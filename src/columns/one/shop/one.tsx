@@ -1,0 +1,271 @@
+import { z } from 'zod';
+import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
+import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
+import { ColumnDef } from '@tanstack/react-table';
+import { TFunction } from 'i18next';
+import { Iconify } from '@/shared/components/iconify';
+
+// Schema for shop validation
+const ShopSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  description: z.string().optional(),
+  logo_url: z.string().nullable().optional(),
+  is_active: z.boolean(),
+  average_rating: z.number(),
+  ratings_count: z.number(),
+  is_open_now: z.boolean(),
+  created_at: z.string(),
+  vendor: z.any().optional(),
+  vendor_id: z.number().optional(),
+  address: z.string().optional(),
+  lat: z.number().optional(),
+  lng: z.number().optional(),
+  phone: z.string().optional(),
+  mobile: z.string().optional(),
+  email: z.string().optional(),
+  area_id: z.number().optional(),
+});
+
+// Type for shop data
+export interface ShopFormValues {
+  id: number;
+  name: string;
+  description?: string;
+  logo_url?: string | null;
+  is_active: boolean;
+  average_rating: number;
+  ratings_count: number;
+  is_open_now: boolean;
+  created_at: string;
+  vendor?: any;
+  vendor_id?: number;
+  address?: string;
+  lat?: number;
+  lng?: number;
+  phone?: string;
+  mobile?: string;
+  email?: string;
+  area_id?: number;
+  [key: string]: any;
+}
+
+export const shopColumns = (
+  permissions: {
+    update: boolean;
+    delete: boolean;
+  },
+  t: TFunction<'table'>,
+  onDelete?: (id: number) => void,
+  isDeleting?: boolean,
+  isDeleteDialogOpen?: boolean,
+  onDeleteConfirm?: () => void,
+  onDeleteCancel?: () => void,
+  deletingId?: number | null
+): ColumnDef<ShopFormValues>[] => [
+  {
+    id: 'id',
+    accessorKey: 'id',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="ID" />,
+    cell: ({ row }) => (
+      <div className="flex items-center gap-2">
+        <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
+          <span className="text-xs font-semibold text-primary">{row.original.id}</span>
+        </div>
+      </div>
+    ),
+  },
+  {
+    id: 'name',
+    accessorKey: 'name',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
+    cell: ({ row }) => (
+      <div className="flex items-center gap-2.5 min-w-0">
+        {row.original.logo_url ? (
+          <img
+            src={row.original.logo_url}
+            alt={row.original.name}
+            className="w-9 h-9 rounded-lg object-cover border border-border/60 flex-shrink-0"
+          />
+        ) : (
+          <div className="w-9 h-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center flex-shrink-0">
+            <Iconify icon="solar:case-minimalistic-bold" className="text-primary" width={18} height={18} />
+          </div>
+        )}
+        <div className="min-w-0">
+          <div className="font-semibold text-foreground truncate">{row.original.name}</div>
+          {row.original.description && (
+            <div className="text-xs text-muted-foreground truncate mt-0.5">
+              {row.original.description}
+            </div>
+          )}
+        </div>
+      </div>
+    ),
+  },
+  {
+    id: 'vendor',
+    accessorKey: 'vendor',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Vendor" />,
+    cell: ({ row }) => {
+      const vendorName = row.original.vendor?.name || row.original.vendor_id || '-';
+      return (
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-lg bg-muted border border-border/60 flex items-center justify-center flex-shrink-0">
+            <Iconify icon="solar:case-minimalistic-bold" className="text-muted-foreground" width={14} height={14} />
+          </div>
+          <span className="text-sm font-medium text-foreground truncate">{vendorName}</span>
+        </div>
+      );
+    },
+  },
+  {
+    id: 'rating',
+    accessorKey: 'average_rating',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Rating" />,
+    cell: ({ row }) => {
+      const rating = row.original.average_rating || 0;
+      const reviewsCount = row.original.ratings_count || 0;
+      const filledStars = Math.floor(rating);
+      const hasHalfStar = rating % 1 >= 0.5;
+      
+      return (
+        <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-0.5">
+            {[...Array(5)].map((_, i) => {
+              const isFilled = i < filledStars;
+              const isHalf = i === filledStars && hasHalfStar;
+              
+              return (
+                <div
+                  key={i}
+                  className={`w-3.5 h-3.5 ${
+                    isFilled
+                      ? 'text-amber-500'
+                      : isHalf
+                        ? 'text-amber-500/50'
+                        : 'text-muted-foreground/30'
+                  }`}
+                >
+                  <Iconify 
+                    icon={isFilled ? 'eva:star-fill' : isHalf ? 'eva:star-fill' : 'eva:star-outline'} 
+                    width={14} 
+                    height={14} 
+                    className={isFilled || isHalf ? 'fill-current' : ''}
+                  />
+                </div>
+              );
+            })}
+          </div>
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-sm font-semibold text-foreground">{rating.toFixed(1)}</span>
+            <span className="text-xs text-muted-foreground">
+              ({reviewsCount})
+            </span>
+          </div>
+        </div>
+      );
+    },
+  },
+  {
+    id: 'is_open_now',
+    accessorKey: 'is_open_now',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Open Now" />,
+    cell: ({ row }) => {
+      const isOpen = row.original.is_open_now;
+      return (
+        <div className="flex items-center gap-2">
+          <div
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border w-fit transition-all ${
+              isOpen
+                ? 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/50 text-emerald-700 dark:text-emerald-300'
+                : 'bg-muted border-border text-muted-foreground'
+            }`}
+          >
+            <div
+              className={`w-1.5 h-1.5 rounded-full ${
+                isOpen ? 'bg-emerald-500 animate-pulse' : 'bg-muted-foreground'
+              }`}
+            />
+            <span className="text-xs font-medium">{isOpen ? 'Open' : 'Closed'}</span>
+          </div>
+        </div>
+      );
+    },
+  },
+  {
+    id: 'email',
+    accessorKey: 'email',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Email" />,
+    cell: ({ row }) => (
+      <div className="flex items-center gap-2 min-w-0">
+        <Iconify icon="solar:letter-bold" className="text-muted-foreground flex-shrink-0" width={16} height={16} />
+        <span className="text-sm text-muted-foreground truncate">{row.original.email || '-'}</span>
+      </div>
+    ),
+  },
+  {
+    id: 'phone',
+    accessorKey: 'phone',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Phone" />,
+    cell: ({ row }) => (
+      <div className="flex items-center gap-2 min-w-0">
+        <Iconify icon="solar:phone-bold" className="text-muted-foreground flex-shrink-0" width={16} height={16} />
+        <span className="text-sm text-muted-foreground truncate">{row.original.phone || '-'}</span>
+      </div>
+    ),
+  },
+  {
+    id: 'status',
+    accessorKey: 'is_active',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
+    cell: ({ row }) => {
+      const isActive = row.original.is_active;
+      return (
+        <div
+          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border w-fit ${
+            isActive
+              ? 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/50 text-emerald-700 dark:text-emerald-300'
+              : 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800/50 text-red-700 dark:text-red-300'
+          }`}
+        >
+          <Iconify
+            icon={isActive ? 'solar:check-circle-bold' : 'solar:close-circle-bold'}
+            width={14}
+            height={14}
+            className="flex-shrink-0"
+          />
+          <span className="text-xs font-medium">{isActive ? 'Active' : 'Inactive'}</span>
+        </div>
+      );
+    },
+  },
+  {
+    id: 'created_at',
+    accessorKey: 'created_at',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Created At" />,
+    cell: ({ row }) => (
+      <div className="flex items-center gap-2">
+        <Iconify icon="solar:calendar-date-bold" className="text-muted-foreground flex-shrink-0" width={16} height={16} />
+        <span className="text-sm text-muted-foreground">{row.original.created_at}</span>
+      </div>
+    ),
+  },
+  {
+    id: 'actions',
+    cell: ({ row }: any) => (
+      <DataTableRowActions
+        schema={ShopSchema}
+        row={row}
+        editItem={`/shop/update/${row.original.id}`}
+        onDelete={onDelete}
+        isDeleting={isDeleting}
+        isDeleteDialogOpen={isDeleteDialogOpen}
+        onDeleteConfirm={onDeleteConfirm}
+        onDeleteCancel={onDeleteCancel}
+        deletingId={deletingId}
+        permissions={permissions}
+      />
+    ),
+  },
+];

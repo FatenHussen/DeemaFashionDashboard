@@ -1,0 +1,84 @@
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/api';
+import { _CityApi, type CityCreateUpdatePayload } from '../api/city.services';
+
+export const useFetchCities = (page: number = 1, limit: number = 25) => {
+  return useQuery({
+    queryKey: queryKeys.city.list({ page, limit }),
+    queryFn: () => _CityApi.getListCities(),
+  });
+};
+
+export const useFetchCityById = (id: number | string) => {
+  return useQuery({
+    queryKey: queryKeys.city.details(id),
+    queryFn: () => _CityApi.getCityById(id),
+    enabled: !!id,
+  });
+};
+
+export const useCreateCity = (page?: number, limit?: number) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: CityCreateUpdatePayload) => _CityApi.createCity(data),
+    onSuccess: () => {
+      // Invalidate and refetch all list queries
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.city.list(),
+        refetchType: 'active',
+      });
+      // Also explicitly refetch all matching queries
+      queryClient.refetchQueries({
+        queryKey: queryKeys.city.list(),
+      });
+    },
+  });
+};
+
+export const useUpdateCity = (page?: number, limit?: number) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number | string; data: CityCreateUpdatePayload }) =>
+      _CityApi.updateCity(id, data),
+    onSuccess: (_, variables) => {
+      // Invalidate and refetch all list queries
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.city.list(),
+        refetchType: 'active',
+      });
+      // Also explicitly refetch all matching queries
+      queryClient.refetchQueries({
+        queryKey: queryKeys.city.list(),
+      });
+      // Invalidate the specific city details query
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.city.details(variables.id),
+      });
+    },
+  });
+};
+
+export const useDeleteCity = (page?: number, limit?: number) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: number | string) => _CityApi.deleteCity(id),
+    onSuccess: (_, id) => {
+      // Invalidate and refetch all list queries
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.city.list(),
+        refetchType: 'active',
+      });
+      // Also explicitly refetch all matching queries
+      queryClient.refetchQueries({
+        queryKey: queryKeys.city.list(),
+      });
+      // Invalidate the specific city details query
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.city.details(id),
+      });
+    },
+  });
+};

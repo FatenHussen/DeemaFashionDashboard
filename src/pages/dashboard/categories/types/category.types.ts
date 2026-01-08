@@ -1,0 +1,70 @@
+// ----------------------------------------------------------------------
+
+export interface ParentCategory {
+  id: number;
+  name: string;
+}
+
+export interface CategoryData {
+  id: number;
+  name: string;
+  description: string;
+  icon: string | null;
+  parent_id: number | null;
+  parent: ParentCategory | null;
+  children_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CategoryListResponse {
+  status: boolean;
+  message: string;
+  data: {
+    items: CategoryData[];
+    pagination: {
+      current_page: number;
+      last_page: number;
+      per_page: number;
+      total: number;
+    };
+  };
+}
+
+export interface CategoryDetailData {
+  id: number;
+  name: {
+    ar: string;
+    en: string;
+  };
+  description: {
+    ar: string;
+    en: string;
+  };
+  icon: string | null;
+  parent_id: number | null;
+  parent: ParentCategory | null;
+  children: CategoryData[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CategoryDetailResponse {
+  status: boolean;
+  message: string;
+  data: CategoryDetailData;
+}
+
+export interface CategoryCreateUpdatePayload {
+  name: {
+    en: string;
+    ar: string;
+  };
+  description: {
+    en: string;
+    ar: string;
+  };
+  icon?: File | null;
+  parent_id?: number | null;
+}
+
