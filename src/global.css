@@ -1,0 +1,116 @@
+@import 'tailwindcss';
+
+/** **************************************
+* Fonts: app
+*************************************** */
+@import '@fontsource-variable/public-sans';
+
+@import '@fontsource/barlow/400.css';
+@import '@fontsource/barlow/500.css';
+@import '@fontsource/barlow/600.css';
+@import '@fontsource/barlow/700.css';
+@import '@fontsource/barlow/800.css';
+
+/** **************************************
+* Fonts: options
+*************************************** */
+@import '@fontsource-variable/dm-sans';
+@import '@fontsource-variable/inter';
+@import '@fontsource-variable/nunito-sans';
+
+/** **************************************
+* Plugins
+*************************************** */
+/* scrollbar */
+
+@import './shared/components/scrollbar/styles.css';
+
+/** **************************************
+* Design Tokens (CSS Variables)
+*************************************** */
+:root {
+  /* Light theme colors - using RGB values for opacity support */
+  --background: 255 255 255;
+  --foreground: 17 24 39;
+  --card: 255 255 255;
+  --card-foreground: 17 24 39;
+  --border: 229 231 235;
+  --input: 229 231 235;
+  --muted: 249 250 251;
+  --muted-foreground: 107 114 128;
+  --primary: 0 167 111;
+  --primary-foreground: 255 255 255;
+  --popover: 255 255 255;
+  --popover-foreground: 17 24 39;
+}
+
+.dark {
+  /* Dark theme colors - using RGB values for opacity support */
+  --background: 17 24 39;
+  --foreground: 249 250 251;
+  --card: 31 41 55;
+  --card-foreground: 249 250 251;
+  --border: 55 65 81;
+  --input: 55 65 81;
+  --muted: 31 41 55;
+  --muted-foreground: 156 163 175;
+  --primary: 0 167 111;
+  --primary-foreground: 255 255 255;
+  --popover: 31 41 55;
+  --popover-foreground: 249 250 251;
+}
+
+/** **************************************
+* Tailwind Theme Configuration
+*************************************** */
+@theme {
+  --color-background: rgb(var(--background));
+  --color-foreground: rgb(var(--foreground));
+  --color-card: rgb(var(--card));
+  --color-card-foreground: rgb(var(--card-foreground));
+  --color-border: rgb(var(--border));
+  --color-input: rgb(var(--input));
+  --color-muted: rgb(var(--muted));
+  --color-muted-foreground: rgb(var(--muted-foreground));
+  --color-primary: rgb(var(--primary));
+  --color-primary-foreground: rgb(var(--primary-foreground));
+  --color-popover: rgb(var(--popover));
+  --color-popover-foreground: rgb(var(--popover-foreground));
+}
+
+/** **************************************
+* Baseline
+*************************************** */
+html {
+  height: 100%;
+  -webkit-overflow-scrolling: touch;
+}
+body,
+#root,
+#root__layout {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 100%;
+  flex-direction: column;
+}
+img {
+  max-width: 100%;
+  vertical-align: middle;
+}
+ul {
+  margin: 0;
+  padding: 0;
+  list-style-type: none;
+}
+input[type='number'] {
+  -moz-appearance: textfield;
+  appearance: none;
+}
+input[type='number']::-webkit-outer-spin-button {
+  margin: 0;
+  -webkit-appearance: none;
+}
+input[type='number']::-webkit-inner-spin-button {
+  margin: 0;
+  -webkit-appearance: none;
+}
