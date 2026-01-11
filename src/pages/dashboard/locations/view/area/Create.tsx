@@ -1,24 +1,24 @@
 import { useEffect } from 'react';
+import { toast } from 'react-toastify';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useNavigate } from 'react-router';
-import { toast } from 'react-toastify';
-import { CONFIG } from 'src/global-config';
-
-import { Box, Typography, SimpleSelect } from 'src/shared/ui';
-import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
-import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
 import { Iconify } from '@/shared/components/iconify';
-import {
-  useFetchAreaById,
-  useCreateArea,
-  useUpdateArea,
-} from '@/pages/dashboard/locations/hooks/area';
 import { useFetchCities } from '@/pages/dashboard/locations/hooks/city';
 import {
   AreaSchema,
   type AreaFormValues,
 } from '@/pages/dashboard/locations/validation/area.validation';
+import {
+  useCreateArea,
+  useUpdateArea,
+  useFetchAreaById,
+} from '@/pages/dashboard/locations/hooks/area';
+
+import { CONFIG } from 'src/global-config';
+import { Box, Typography, SimpleSelect } from 'src/shared/ui';
+import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
+import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
 
 // ----------------------------------------------------------------------
 

@@ -1,9 +1,10 @@
-import { axiosInstance, apiRoutes } from '@/api';
 import type {
   BrandListResponse,
   BrandDetailsResponse,
   BrandCreateUpdatePayload,
 } from '../types/brand.types';
+
+import { apiRoutes, axiosInstance } from '@/api';
 
 export const _BrandApi = {
   getListBrands: async (params?: { name?: string }): Promise<BrandListResponse> => {

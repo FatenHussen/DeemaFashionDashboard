@@ -2,14 +2,12 @@ import type { RouteObject } from 'react-router';
 
 import { Outlet } from 'react-router';
 import { lazy, Suspense } from 'react';
+import { RequirePermission } from '@/auth/components/require-permission';
 
 import { CONFIG } from 'src/global-config';
-import { DashboardLayout } from 'src/layouts/dashboard';
-
-import { LoadingScreen } from 'src/shared/components/loading-screen';
-
 import { AuthGuard } from 'src/pages/auth/guard';
-import { RequirePermission } from '@/auth/components/require-permission';
+import { DashboardLayout } from 'src/layouts/dashboard';
+import { LoadingScreen } from 'src/shared/components/loading-screen';
 
 import { usePathname } from '../hooks';
 
@@ -417,7 +415,7 @@ export const dashboardRoutes: RouteObject[] = [
     children: [
       {
         element: (
-          <RequirePermission permission="category-attribute.view">
+          <RequirePermission permission="categoryattribute.view">
             <CategoryAttributeIndexPage />
           </RequirePermission>
         ),
@@ -426,7 +424,7 @@ export const dashboardRoutes: RouteObject[] = [
       {
         path: 'create',
         element: (
-          <RequirePermission permission="category-attribute.create">
+          <RequirePermission permission="categoryattribute.create">
             <CategoryAttributeCreatePage />
           </RequirePermission>
         ),
@@ -434,7 +432,7 @@ export const dashboardRoutes: RouteObject[] = [
       {
         path: 'update/:id',
         element: (
-          <RequirePermission permission="category-attribute.update">
+          <RequirePermission permission="categoryattribute.update">
             <CategoryAttributeCreatePage />
           </RequirePermission>
         ),

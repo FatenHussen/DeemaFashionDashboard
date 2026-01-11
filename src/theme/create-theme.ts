@@ -1,8 +1,8 @@
 // This file is kept for backwards compatibility but is no longer used
 // Since we're using Tailwind CSS, we don't need to create MUI themes
 
-import type { SettingsState } from 'src/shared/components/settings';
 import type { ThemeOptions } from './with-settings/update-core';
+import type { SettingsState } from 'src/shared/components/settings';
 
 // ----------------------------------------------------------------------
 

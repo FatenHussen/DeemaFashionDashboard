@@ -1,8 +1,9 @@
+import type { TFunction } from 'i18next';
+import type { ColumnDef } from '@tanstack/react-table';
+
 import { z } from 'zod';
-import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
-import { ColumnDef } from '@tanstack/react-table';
-import { TFunction } from 'i18next';
+import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 
 // Schema for vendor validation
 const VendorSchema = z.object({

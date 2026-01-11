@@ -3,13 +3,11 @@ import type { NavSectionProps } from 'src/shared/components/nav-section';
 import { varAlpha, mergeClasses } from 'minimal-shared/utils';
 
 import { Box } from 'src/shared/ui';
-
 import { Logo } from 'src/shared/components/logo';
 import { Scrollbar } from 'src/shared/components/scrollbar';
 import { NavSectionMini, NavSectionVertical } from 'src/shared/components/nav-section';
 
 import { layoutClasses } from '../core';
-
 import { NavToggleButton } from '../components/nav-toggle-button';
 
 // ----------------------------------------------------------------------

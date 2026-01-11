@@ -1,5 +1,7 @@
 import { fToNow } from 'src/utils/format-time';
 
+import { Label } from 'src/shared/components/label';
+import { FileThumbnail } from 'src/shared/components/file-thumbnail';
 import {
   Box,
   Button,
@@ -9,9 +11,6 @@ import {
   ListItemAvatar,
   ListItemButton,
 } from 'src/shared/ui';
-
-import { Label } from 'src/shared/components/label';
-import { FileThumbnail } from 'src/shared/components/file-thumbnail';
 
 import { notificationIcons } from './icons';
 

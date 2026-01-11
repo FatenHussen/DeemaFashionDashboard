@@ -1,9 +1,8 @@
 import * as React from 'react';
-import * as SelectPrimitive from '@radix-ui/react-select';
-import { Check, ChevronDown, ChevronUp } from 'lucide-react';
-
 import { cn } from '@/utils/utils';
 import { mergeClasses } from 'minimal-shared/utils';
+import * as SelectPrimitive from '@radix-ui/react-select';
+import { Check, ChevronUp, ChevronDown } from 'lucide-react';
 
 // Radix UI Select components
 const Select = SelectPrimitive.Root;
@@ -228,12 +227,12 @@ export function SimpleSelect({
 // Export Radix UI Select components
 export {
   Select,
+  SelectItem,
   SelectGroup,
   SelectValue,
+  SelectLabel,
   SelectTrigger,
   SelectContent,
-  SelectLabel,
-  SelectItem,
   SelectSeparator,
   SelectScrollUpButton,
   SelectScrollDownButton,

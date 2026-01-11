@@ -1,8 +1,10 @@
-import type { BaseSyntheticEvent, ReactNode } from 'react';
-import { Box, Button, Typography } from 'src/shared/ui';
 import type { UseFormReturn } from 'react-hook-form';
-import { Form } from 'src/shared/components/hook-form/form-provider';
+import type { ReactNode, BaseSyntheticEvent } from 'react';
+
 import { Iconify } from '@/shared/components/iconify';
+
+import { Box, Button, Typography } from 'src/shared/ui';
+import { Form } from 'src/shared/components/hook-form/form-provider';
 
 // ----------------------------------------------------------------------
 

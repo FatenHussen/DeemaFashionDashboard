@@ -3,11 +3,11 @@ import type { AuthState } from '../../types';
 import { useSetState } from 'minimal-shared/hooks';
 import { useMemo, useEffect, useCallback } from 'react';
 
-import { axiosInstance, apiRoutes } from 'src/api';
+import { apiRoutes, axiosInstance } from 'src/api';
 
-import { AuthContext } from '../auth-context';
-import { JWT_STORAGE_KEY } from './constant';
 import { isValidToken } from './utils';
+import { JWT_STORAGE_KEY } from './constant';
+import { AuthContext } from '../auth-context';
 
 // ----------------------------------------------------------------------
 
@@ -62,10 +62,10 @@ export function AuthProvider({ children }: Props) {
           }
 
           // For other errors, try to use stored user
-          const storedUser = sessionStorage.getItem('user_data');
-          if (storedUser) {
+          const fallbackUser = sessionStorage.getItem('user_data');
+          if (fallbackUser) {
             try {
-              const user = JSON.parse(storedUser);
+              const user = JSON.parse(fallbackUser);
               setState({ user, loading: false });
             } catch (e) {
               setState({ user: null, loading: false });

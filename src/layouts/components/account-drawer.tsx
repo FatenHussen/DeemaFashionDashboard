@@ -5,6 +5,11 @@ import { usePathname } from 'src/routes/hooks';
 import { RouterLink } from 'src/routes/components';
 
 import { _mock } from 'src/_mock';
+import { Label } from 'src/shared/components/label';
+import { useMockedUser } from 'src/pages/auth/hooks';
+import { Iconify } from 'src/shared/components/iconify';
+import { Scrollbar } from 'src/shared/components/scrollbar';
+import { AnimateBorder } from 'src/shared/components/animate';
 import {
   Box,
   Link,
@@ -16,13 +21,6 @@ import {
   Typography,
   IconButton,
 } from 'src/shared/ui';
-
-import { Label } from 'src/shared/components/label';
-import { Iconify } from 'src/shared/components/iconify';
-import { Scrollbar } from 'src/shared/components/scrollbar';
-import { AnimateBorder } from 'src/shared/components/animate';
-
-import { useMockedUser } from 'src/pages/auth/hooks';
 
 import { UpgradeBlock } from './nav-upgrade';
 import { AccountButton } from './account-button';

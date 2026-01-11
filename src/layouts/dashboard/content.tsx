@@ -1,7 +1,6 @@
 import { mergeClasses } from 'minimal-shared/utils';
 
 import { Box } from 'src/shared/ui';
-
 import { useSettingsContext } from 'src/shared/components/settings';
 
 import { layoutClasses } from '../core';

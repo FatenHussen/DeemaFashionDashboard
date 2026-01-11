@@ -3,8 +3,8 @@ import type { Row } from '@tanstack/react-table';
 
 import { cn } from '@/utils/utils';
 import { useNavigate } from 'react-router';
-import { useTranslation } from 'react-i18next';
 import { Button } from '@/shared/ui/button';
+import { useTranslation } from 'react-i18next';
 import { Dialog, DialogContent } from '@/shared/ui/dialogTable';
 import { Eye, Trash, Pencil, MoreHorizontal } from 'lucide-react';
 import {

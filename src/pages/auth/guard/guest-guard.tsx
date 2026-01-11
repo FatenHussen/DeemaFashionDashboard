@@ -3,7 +3,6 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'src/routes/hooks';
 
 import { CONFIG } from 'src/global-config';
-
 import { SplashScreen } from 'src/shared/components/loading-screen';
 
 import { useAuthContext } from '../hooks';

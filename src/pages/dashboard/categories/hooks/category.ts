@@ -1,21 +1,18 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/api';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+
 import { _CategoryApi, type CategoryCreateUpdatePayload } from '../api/category.services';
 
-export const useFetchCategories = (page: number = 1, limit: number = 25, parentId?: number) => {
-  return useQuery({
+export const useFetchCategories = (page: number = 1, limit: number = 25, parentId?: number) => useQuery({
     queryKey: queryKeys.category.list({ page, limit, parent_id: parentId }),
     queryFn: () => _CategoryApi.getListCategories(parentId),
   });
-};
 
-export const useFetchCategoryById = (id: number | string) => {
-  return useQuery({
+export const useFetchCategoryById = (id: number | string) => useQuery({
     queryKey: queryKeys.category.details(id),
     queryFn: () => _CategoryApi.getCategoryById(id),
     enabled: !!id,
   });
-};
 
 export const useCreateCategory = (page?: number, limit?: number) => {
   const queryClient = useQueryClient();

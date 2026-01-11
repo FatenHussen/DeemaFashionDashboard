@@ -4,8 +4,8 @@ import * as React from 'react';
 import { cn } from '@/utils/utils';
 import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
-import { CheckIcon, PlusCircle } from 'lucide-react';
 import { Separator } from '@/shared/ui/separator';
+import { CheckIcon, PlusCircle } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/shared/ui/popover';
 import {
   Command,

@@ -1,8 +1,9 @@
-import { CONFIG } from 'src/global-config';
 import { useNavigate } from 'react-router';
 import { Button } from '@/shared/ui/button';
-import { Box, Typography } from 'src/shared/ui';
 import { Iconify } from '@/shared/components/iconify';
+
+import { CONFIG } from 'src/global-config';
+import { Box, Typography } from 'src/shared/ui';
 
 // ----------------------------------------------------------------------
 
@@ -25,7 +26,7 @@ export default function Page403() {
               403 Forbidden
             </Typography>
             <Typography variant="body1" className="text-muted-foreground mb-6">
-              You don't have permission to access this resource.
+              You don&apos;t have permission to access this resource.
             </Typography>
           </Box>
           <Button variant="contained" onClick={() => navigate('/admin')}>

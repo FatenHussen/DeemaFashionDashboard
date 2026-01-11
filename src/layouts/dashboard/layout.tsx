@@ -6,12 +6,10 @@ import { useBoolean } from 'minimal-shared/hooks';
 import { mergeClasses } from 'minimal-shared/utils';
 
 import { Box, Alert } from 'src/shared/ui';
-import { _contacts, _notifications } from 'src/_mock';
-
 import { Logo } from 'src/shared/components/logo';
-import { useSettingsContext } from 'src/shared/components/settings';
-
 import { useMockedUser } from 'src/pages/auth/hooks';
+import { _contacts, _notifications } from 'src/_mock';
+import { useSettingsContext } from 'src/shared/components/settings';
 import { useAuthContext } from 'src/pages/auth/hooks/use-auth-context';
 
 import { NavMobile } from './nav-mobile';
@@ -22,6 +20,7 @@ import { _account } from '../nav-config-account';
 import { Searchbar } from '../components/searchbar';
 import { _workspaces } from '../nav-config-workspace';
 import { MenuButton } from '../components/menu-button';
+import { LogoutButton } from '../components/logout-button';
 import { AccountDrawer } from '../components/account-drawer';
 import { SettingsButton } from '../components/settings-button';
 import { LanguagePopover } from '../components/language-popover';
@@ -30,7 +29,6 @@ import { WorkspacesPopover } from '../components/workspaces-popover';
 import { navData as dashboardNavData } from '../nav-config-dashboard';
 import { dashboardLayoutVars, dashboardNavColorVars } from './css-vars';
 import { NotificationsDrawer } from '../components/notifications-drawer';
-import { LogoutButton } from '../components/logout-button';
 import { MainSection, layoutClasses, HeaderSection, LayoutSection } from '../core';
 
 // ----------------------------------------------------------------------

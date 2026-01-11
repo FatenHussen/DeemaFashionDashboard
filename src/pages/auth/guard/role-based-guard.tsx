@@ -3,7 +3,6 @@ import { mergeClasses } from 'minimal-shared/utils';
 
 import { Typography } from 'src/shared/ui';
 import { ForbiddenIllustration } from 'src/assets/illustrations';
-
 import { varBounce, MotionContainer } from 'src/shared/components/animate';
 
 // ----------------------------------------------------------------------

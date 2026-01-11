@@ -1,11 +1,12 @@
-import { useParams, useNavigate } from 'react-router';
-import { CONFIG } from 'src/global-config';
-import { useFetchRoleById } from '@/pages/dashboard/roles/hooks/role';
-import { LoadingScreen } from 'src/shared/components/loading-screen';
-import { Iconify } from '@/shared/components/iconify';
 import { Button } from '@/shared/ui/button';
+import { useParams, useNavigate } from 'react-router';
+import { Iconify } from '@/shared/components/iconify';
+import { useFetchRoleById } from '@/pages/dashboard/roles/hooks/role';
+
+import { CONFIG } from 'src/global-config';
 import { Box, Typography } from 'src/shared/ui';
 import { Separator } from 'src/shared/ui/separator';
+import { LoadingScreen } from 'src/shared/components/loading-screen';
 
 // ----------------------------------------------------------------------
 
@@ -185,7 +186,7 @@ export default function DetailsPage() {
                           {resource}
                         </Typography>
                         <Box className="flex flex-wrap gap-2">
-                          {perms.map((permission) => (
+                          {(perms ?? []).map((permission) => (
                             <Box
                               key={permission.id}
                               className="px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20 text-primary text-sm font-medium"

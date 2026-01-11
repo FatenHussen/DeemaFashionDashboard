@@ -1,11 +1,11 @@
 import type { NavItemProps } from '../types';
 
+import { Tooltip } from '@/shared/ui';
 import { mergeClasses } from 'minimal-shared/utils';
 import { useState, useEffect, forwardRef } from 'react';
 
 import { Iconify } from '../../iconify';
 import { createNavItem } from '../utils';
-import { Tooltip } from '@/shared/ui';
 import { navSectionClasses } from '../styles';
 
 // ----------------------------------------------------------------------

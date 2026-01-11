@@ -1,9 +1,12 @@
-import { axiosInstance, apiRoutes } from '@/api';
 import type {
   DriverListResponse,
   DriverDetailsResponse,
   DriverCreateUpdatePayload,
 } from '../types/driver.types';
+
+import { apiRoutes, axiosInstance } from '@/api';
+
+export type { DriverCreateUpdatePayload };
 
 export const _DriverApi = {
   getListDrivers: async (): Promise<DriverListResponse> => {

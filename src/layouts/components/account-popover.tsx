@@ -7,9 +7,8 @@ import { usePathname } from 'src/routes/hooks';
 import { RouterLink } from 'src/routes/components';
 
 import { Label } from 'src/shared/components/label';
-import { CustomPopover } from 'src/shared/components/custom-popover';
-
 import { useMockedUser } from 'src/pages/auth/hooks';
+import { CustomPopover } from 'src/shared/components/custom-popover';
 
 import { AccountButton } from './account-button';
 import { SignOutButton } from './sign-out-button';

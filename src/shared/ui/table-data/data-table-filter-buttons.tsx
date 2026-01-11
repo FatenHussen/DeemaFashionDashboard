@@ -1,9 +1,7 @@
-import { Filter } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { Input } from '@/shared/ui/input';
+import { useTranslation } from 'react-i18next';
 
-import { CustomSelect } from '../select/customSelect';
 
 interface IFilterParams {
   start_date?: string;

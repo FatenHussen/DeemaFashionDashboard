@@ -1,10 +1,10 @@
-import { axiosInstance, apiRoutes } from '@/api';
 import type {
-  CategoryData,
   CategoryListResponse,
   CategoryDetailResponse,
   CategoryCreateUpdatePayload,
 } from '../types/category.types';
+
+import { apiRoutes, axiosInstance } from '@/api';
 
 export type { CategoryCreateUpdatePayload };
 

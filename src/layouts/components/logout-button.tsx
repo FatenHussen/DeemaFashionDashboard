@@ -1,13 +1,12 @@
 import type { HTMLAttributes } from 'react';
 
-import { useCallback, useState } from 'react';
+import { useState, useCallback } from 'react';
 
 import { useRouter } from 'src/routes/hooks';
 
-import { Button, IconButton, Tooltip } from 'src/shared/ui';
-import { Iconify } from 'src/shared/components/iconify';
-
 import { useAuthContext } from 'src/pages/auth/hooks';
+import { Iconify } from 'src/shared/components/iconify';
+import { Button, Tooltip, IconButton } from 'src/shared/ui';
 import { signOut } from 'src/pages/auth/context/jwt/action';
 
 // ----------------------------------------------------------------------
@@ -36,6 +35,9 @@ export function LogoutButton({ variant = 'icon', showLabel = false, className, .
   }, [checkUserSession, router]);
 
   if (variant === 'button') {
+    const { color: _, ...restProps } = other as HTMLAttributes<HTMLButtonElement> & {
+      color?: string;
+    };
     return (
       <Button
         type="button"
@@ -43,16 +45,21 @@ export function LogoutButton({ variant = 'icon', showLabel = false, className, .
         disabled={isLoggingOut}
         loading={isLoggingOut}
         variant="outlined"
-        color="error"
-        startIcon={<Iconify icon="solar:logout-2-bold" />}
+        color={'error' as const}
         className={className}
-        {...other}
+        {...restProps}
       >
-        {showLabel ? 'Logout' : ''}
+        <span className="flex items-center gap-2">
+          <Iconify icon="solar:logout-2-bold" />
+          {showLabel ? 'Logout' : ''}
+        </span>
       </Button>
     );
   }
 
+  const { color: __, ...restIconProps } = other as HTMLAttributes<HTMLButtonElement> & {
+    color?: string;
+  };
   return (
     <Tooltip title="Logout">
       <IconButton
@@ -60,7 +67,7 @@ export function LogoutButton({ variant = 'icon', showLabel = false, className, .
         onClick={handleLogout}
         disabled={isLoggingOut}
         className={className}
-        {...other}
+        {...restIconProps}
       >
         <Iconify icon="solar:logout-2-bold" />
       </IconButton>

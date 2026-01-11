@@ -1,24 +1,24 @@
-import { useEffect, useState } from 'react';
-import { useForm, Controller, useFieldArray } from 'react-hook-form';
+import { useEffect } from 'react';
+import { toast } from 'react-toastify';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useNavigate } from 'react-router';
-import { toast } from 'react-toastify';
-import { CONFIG } from 'src/global-config';
-
-import { Box, Typography, SimpleSelect, Button } from 'src/shared/ui';
-import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
-import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
 import { Iconify } from '@/shared/components/iconify';
-import {
-  useFetchCategoryAttributeById,
-  useCreateCategoryAttribute,
-  useUpdateCategoryAttribute,
-} from '@/pages/dashboard/categories/hooks/category-attribute';
+import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { useFetchCategories } from '@/pages/dashboard/categories/hooks/category';
 import {
   CategoryAttributeSchema,
   type CategoryAttributeFormValues,
 } from '@/pages/dashboard/categories/validation/category-attribute.validation';
+import {
+  useCreateCategoryAttribute,
+  useUpdateCategoryAttribute,
+  useFetchCategoryAttributeById,
+} from '@/pages/dashboard/categories/hooks/category-attribute';
+
+import { CONFIG } from 'src/global-config';
+import { Box, Button, Typography, SimpleSelect } from 'src/shared/ui';
+import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
+import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
 
 // ----------------------------------------------------------------------
 
@@ -254,7 +254,9 @@ export default function CreatePage() {
                 options={TYPE_OPTIONS}
                 placeholder="Select attribute type"
                 error={!!error}
-                helperText={error?.message || 'Select the type of attribute (color, square, circle)'}
+                helperText={
+                  error?.message || 'Select the type of attribute (color, square, circle)'
+                }
                 fullWidth
                 className="transition-all duration-200"
               />
@@ -276,8 +278,9 @@ export default function CreatePage() {
               variant="outlined"
               size="small"
               onClick={() => append({ name: { en: '', ar: '' } })}
-              startIcon={<Iconify icon="solar:add-circle-bold" width={20} height={20} />}
+              className="flex items-center gap-2"
             >
+              <Iconify icon="solar:add-circle-bold" width={20} height={20} />
               Add Value
             </Button>
           </Box>
@@ -295,8 +298,9 @@ export default function CreatePage() {
                     color="error"
                     size="small"
                     onClick={() => remove(index)}
-                    startIcon={<Iconify icon="solar:trash-bin-trash-bold" width={16} height={16} />}
+                    className="flex items-center gap-2"
                   >
+                    <Iconify icon="solar:trash-bin-trash-bold" width={16} height={16} />
                     Remove
                   </Button>
                 )}
@@ -324,4 +328,3 @@ export default function CreatePage() {
     </>
   );
 }
-

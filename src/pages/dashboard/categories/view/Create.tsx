@@ -1,24 +1,24 @@
-import { useEffect, useState } from 'react';
+import { toast } from 'react-toastify';
+import { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useNavigate } from 'react-router';
-import { toast } from 'react-toastify';
-import { CONFIG } from 'src/global-config';
-
-import { Box, Typography, SimpleSelect, Input } from 'src/shared/ui';
-import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
-import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
 import { Iconify } from '@/shared/components/iconify';
-import {
-  useFetchCategoryById,
-  useCreateCategory,
-  useUpdateCategory,
-} from '@/pages/dashboard/categories/hooks/category';
-import { useFetchCategories } from '@/pages/dashboard/categories/hooks/category';
 import {
   CategorySchema,
   type CategoryFormValues,
 } from '@/pages/dashboard/categories/validation/category.validation';
+import {
+  useCreateCategory,
+  useUpdateCategory,
+  useFetchCategories,
+  useFetchCategoryById,
+} from '@/pages/dashboard/categories/hooks/category';
+
+import { CONFIG } from 'src/global-config';
+import { Box, Input, Typography, SimpleSelect } from 'src/shared/ui';
+import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
+import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
 
 // ----------------------------------------------------------------------
 
@@ -67,7 +67,7 @@ export default function CreatePage() {
         icon: null, // Don't pre-fill file input
         parent_id: category.parent_id,
       });
-      
+
       // Set preview image if icon exists
       if (category.icon) {
         setPreviewImage(category.icon);
@@ -151,7 +151,9 @@ export default function CreatePage() {
         isSubmitting={isSubmitting}
         errorMessage={errorMessage}
         title={isEditMode ? 'Edit Category' : 'Create New Category'}
-        description={isEditMode ? 'Update category information' : 'Add a new category to your system'}
+        description={
+          isEditMode ? 'Update category information' : 'Add a new category to your system'
+        }
         isEditMode={isEditMode}
         isLoading={isLoadingCategory}
         loadingText="Loading category data..."
@@ -201,14 +203,27 @@ export default function CreatePage() {
               Description (Arabic)
             </Typography>
           </Box>
-          <RHFTextField
+          <Controller
             name="description.ar"
-            placeholder="e.g., أجهزة وإكسسوارات"
-            helperText="Enter the category description in Arabic"
-            className="transition-all duration-200"
-            dir="rtl"
-            multiline
-            rows={3}
+            control={control}
+            render={({ field, fieldState: { error } }) => (
+              <div className="w-full">
+                <textarea
+                  {...field}
+                  placeholder="e.g., أجهزة وإكسسوارات"
+                  dir="rtl"
+                  rows={3}
+                  className={`w-full rounded-lg border bg-transparent px-3 py-2 text-sm transition-all duration-200 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-0 ${
+                    error
+                      ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                      : 'border-input focus:border-blue-500 focus:ring-blue-500'
+                  }`}
+                />
+                <p className={`mt-1 text-xs ${error ? 'text-red-600' : 'text-muted-foreground'}`}>
+                  {error?.message ?? 'Enter the category description in Arabic'}
+                </p>
+              </div>
+            )}
           />
         </Box>
 
@@ -220,13 +235,26 @@ export default function CreatePage() {
               Description (English)
             </Typography>
           </Box>
-          <RHFTextField
+          <Controller
             name="description.en"
-            placeholder="e.g., Devices and gadgets"
-            helperText="Enter the category description in English"
-            className="transition-all duration-200"
-            multiline
-            rows={3}
+            control={control}
+            render={({ field, fieldState: { error } }) => (
+              <div className="w-full">
+                <textarea
+                  {...field}
+                  placeholder="e.g., Devices and gadgets"
+                  rows={3}
+                  className={`w-full rounded-lg border bg-transparent px-3 py-2 text-sm transition-all duration-200 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-0 ${
+                    error
+                      ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                      : 'border-input focus:border-blue-500 focus:ring-blue-500'
+                  }`}
+                />
+                <p className={`mt-1 text-xs ${error ? 'text-red-600' : 'text-muted-foreground'}`}>
+                  {error?.message ?? 'Enter the category description in English'}
+                </p>
+              </div>
+            )}
           />
         </Box>
 
@@ -259,7 +287,12 @@ export default function CreatePage() {
         {/* Icon Upload Field */}
         <Box className="group">
           <Box className="flex items-center gap-2 mb-2">
-            <Iconify icon="solar:gallery-add-bold" className="text-primary" width={24} height={24} />
+            <Iconify
+              icon="solar:gallery-add-bold"
+              className="text-primary"
+              width={24}
+              height={24}
+            />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
               Category Icon (Optional)
             </Typography>
@@ -299,4 +332,3 @@ export default function CreatePage() {
     </>
   );
 }
-

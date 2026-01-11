@@ -3,10 +3,8 @@ import type { NavSectionProps } from 'src/shared/components/nav-section';
 import { paths } from 'src/routes/paths';
 
 import { CONFIG } from 'src/global-config';
-
 import { Label } from 'src/shared/components/label';
 import { SvgColor } from 'src/shared/components/svg-color';
-import { Iconify } from 'src/shared/components/iconify';
 
 // ----------------------------------------------------------------------
 
@@ -134,7 +132,7 @@ export const navData: NavSectionProps['data'] = [
         title: 'Category Attributes',
         path: paths.dashboard.categoryAttributes,
         icon: ICONS.params,
-        requiredPermission: 'category-attribute.view',
+        requiredPermission: 'categoryattribute.view',
       },
     ],
   },

@@ -1,24 +1,23 @@
-import { useEffect, useState } from 'react';
+import { toast } from 'react-toastify';
+import { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useNavigate } from 'react-router';
-import { toast } from 'react-toastify';
-import { CONFIG } from 'src/global-config';
-
-import { Box, Typography, Input } from 'src/shared/ui';
-import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
-import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
 import { Iconify } from '@/shared/components/iconify';
-import {
-  useFetchBrandById,
-  useCreateBrand,
-  useUpdateBrand,
-} from '@/pages/dashboard/products/hooks/brand';
 import {
   BrandSchema,
   type BrandFormValues,
 } from '@/pages/dashboard/products/validation/brand.validation';
-import { CONFIG as GLOBAL_CONFIG } from 'src/global-config';
+import {
+  useCreateBrand,
+  useUpdateBrand,
+  useFetchBrandById,
+} from '@/pages/dashboard/products/hooks/brand';
+
+import { Box, Input, Typography } from 'src/shared/ui';
+import { CONFIG , CONFIG as GLOBAL_CONFIG } from 'src/global-config';
+import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
+import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
 
 // ----------------------------------------------------------------------
 

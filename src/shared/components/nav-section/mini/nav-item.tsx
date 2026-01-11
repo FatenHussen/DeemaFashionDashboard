@@ -1,11 +1,11 @@
 import type { NavItemProps } from '../types';
 
 import { forwardRef } from 'react';
+import { Tooltip } from '@/shared/ui';
 import { mergeClasses } from 'minimal-shared/utils';
 
 import { Iconify } from '../../iconify';
 import { createNavItem } from '../utils';
-import { Tooltip } from '@/shared/ui';
 import { navSectionClasses } from '../styles';
 
 // ----------------------------------------------------------------------
@@ -99,22 +99,6 @@ export const NavItem = forwardRef<HTMLButtonElement, NavItemProps>(function NavI
           style={slotProps?.icon?.style}
         >
           {navItem.renderIcon}
-        </span>
-      )}
-
-      {false && title && (
-        <span
-          className={mergeClasses([
-            navSectionClasses.item.title,
-            isRootItem ? 'leading-4 text-[10px] font-semibold' : 'text-sm font-medium',
-            'overflow-hidden text-ellipsis whitespace-nowrap',
-            isRootItem && active ? 'font-bold' : '',
-            !isRootItem && active ? 'font-semibold' : '',
-            slotProps?.title?.className,
-          ])}
-          style={slotProps?.title?.style}
-        >
-          {title}
         </span>
       )}
 

@@ -1,8 +1,8 @@
-import { CONFIG } from 'src/global-config';
 import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
 import { DataTable } from '@/shared/ui/table-data/table-data';
+import { usePermissions } from '@/auth/hooks/use-permissions';
 import {
   categoryAttributeColumns,
   type CategoryAttributeFormValues,
@@ -11,7 +11,8 @@ import {
   useFetchCategoryAttributes,
   useDeleteCategoryAttribute,
 } from '@/pages/dashboard/categories/hooks/category-attribute';
-import { usePermissions } from '@/auth/hooks/use-permissions';
+
+import { CONFIG } from 'src/global-config';
 
 // ----------------------------------------------------------------------
 
@@ -24,8 +25,11 @@ export default function Page() {
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
   // Fetch category attributes using the hook
-  const { data: categoryAttributesResponse, isLoading, error } =
-    useFetchCategoryAttributes(currentPage, pageSize);
+  const {
+    data: categoryAttributesResponse,
+    isLoading,
+    error,
+  } = useFetchCategoryAttributes(currentPage, pageSize);
   const deleteCategoryAttributeMutation = useDeleteCategoryAttribute();
 
   // Log error for debugging
@@ -52,8 +56,8 @@ export default function Page() {
         await deleteCategoryAttributeMutation.mutateAsync(deletingId);
         toast.success(t('deleteSuccess') || 'Category attribute deleted successfully');
         setDeletingId(null);
-      } catch (error: any) {
-        toast.error(error?.message || t('deleteError') || 'Failed to delete category attribute');
+      } catch (err: any) {
+        toast.error(err?.message || t('deleteError') || 'Failed to delete category attribute');
       }
     }
   };
@@ -73,10 +77,7 @@ export default function Page() {
         per_page: apiPagination.per_page,
         total: apiPagination.total,
         from: (apiPagination.current_page - 1) * apiPagination.per_page + 1,
-        to: Math.min(
-          apiPagination.current_page * apiPagination.per_page,
-          apiPagination.total
-        ),
+        to: Math.min(apiPagination.current_page * apiPagination.per_page, apiPagination.total),
       }
     : {
         current_page: 1,
@@ -89,9 +90,7 @@ export default function Page() {
 
   const { can } = usePermissions();
 
-  const hasPermission = (action: string, resource: string) => {
-    return can(`${resource}.${action}`);
-  };
+  const hasPermission = (action: string, resource: string) => can(`${resource}.${action}`);
 
   return (
     <>
@@ -101,8 +100,8 @@ export default function Page() {
         tableName="Category Attributes"
         columns={categoryAttributeColumns(
           {
-            update: hasPermission('update', 'category-attribute'),
-            delete: hasPermission('delete', 'category-attribute'),
+            update: hasPermission('update', 'categoryattribute'),
+            delete: hasPermission('delete', 'categoryattribute'),
           },
           t,
           onDelete,
@@ -116,9 +115,9 @@ export default function Page() {
         createPath="/categories/attributes/create"
         hasDetails={false}
         permissions={{
-          create: hasPermission('create', 'category-attribute'),
-          update: hasPermission('update', 'category-attribute'),
-          delete: hasPermission('delete', 'category-attribute'),
+          create: hasPermission('create', 'categoryattribute'),
+          update: hasPermission('update', 'categoryattribute'),
+          delete: hasPermission('delete', 'categoryattribute'),
         }}
         isLoading={isLoading}
         columnTranslations={{
@@ -137,4 +136,3 @@ export default function Page() {
     </>
   );
 }
-

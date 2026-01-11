@@ -1,22 +1,20 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { queryKeys } from '@/api';
-import { _VendorApi } from '../api/vendor.services';
-import { VendorCreateUpdatePayload } from '../types/vendor.types';
+import type { VendorCreateUpdatePayload } from '../types/vendor.types';
 
-export const useFetchVendors = (page: number = 1, limit: number = 25) => {
-  return useQuery({
+import { queryKeys } from '@/api';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+
+import { _VendorApi } from '../api/vendor.services';
+
+export const useFetchVendors = (page: number = 1, limit: number = 25) => useQuery({
     queryKey: queryKeys.vendor.list({ page, limit }),
     queryFn: () => _VendorApi.getListVendor(),
   });
-};
 
-export const useFetchVendorById = (id: number | string) => {
-  return useQuery({
+export const useFetchVendorById = (id: number | string) => useQuery({
     queryKey: queryKeys.vendor.details(id),
     queryFn: () => _VendorApi.getVendorById(id),
     enabled: !!id,
   });
-};
 
 export const useCreateVendor = () => {
   const queryClient = useQueryClient();

@@ -18,7 +18,7 @@ export function TableSkeleton({ columns, rows = 5 }: TableSkeletonProps) {
             rowIndex % 2 === 0 ? 'bg-background' : 'bg-muted/20'
           }`}
         >
-          {Array.from({ length: columns }).map((_, colIndex) => (
+          {Array.from({ length: columns }).map((__unused, colIndex) => (
             <TableCell key={colIndex} className="first:pl-6 last:pr-6">
               <div className="flex items-center gap-2">
                 {/* Varied skeleton widths for more realistic appearance */}

@@ -5,11 +5,10 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 import { usePathname } from 'src/routes/hooks';
 
+import { AuthProvider } from 'src/pages/auth/context/jwt';
 import { ProgressBar } from 'src/shared/components/progress-bar';
 import { MotionLazy } from 'src/shared/components/animate/motion-lazy';
 import { SettingsDrawer, defaultSettings, SettingsProvider } from 'src/shared/components/settings';
-
-import { AuthProvider } from 'src/pages/auth/context/jwt';
 
 // ----------------------------------------------------------------------
 

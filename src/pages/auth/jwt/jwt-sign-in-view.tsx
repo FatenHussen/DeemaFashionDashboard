@@ -8,11 +8,9 @@ import { useRouter } from 'src/routes/hooks';
 import { RouterLink } from 'src/routes/components';
 
 import { CONFIG } from 'src/global-config';
-
-import { Box, Alert, Button, IconButton, Typography } from 'src/shared/ui';
-
 import { Iconify } from 'src/shared/components/iconify';
 import { Form, Field } from 'src/shared/components/hook-form';
+import { Box, Alert, Button, IconButton, Typography } from 'src/shared/ui';
 
 import { useAuthContext } from '../hooks';
 import { getErrorMessage } from '../utils';

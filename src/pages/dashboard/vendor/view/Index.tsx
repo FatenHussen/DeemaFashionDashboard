@@ -1,11 +1,12 @@
-import { CONFIG } from 'src/global-config';
 import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
 import { DataTable } from '@/shared/ui/table-data/table-data';
+import { usePermissions } from '@/auth/hooks/use-permissions';
 import { vendorColumns, type VendorFormValues } from '@/columns/one/vendor/one';
 import { useFetchVendors, useDeleteVendor } from '@/pages/dashboard/vendor/hooks/vendor';
-import { usePermissions } from '@/auth/hooks/use-permissions';
+
+import { CONFIG } from 'src/global-config';
 
 // ----------------------------------------------------------------------
 
@@ -45,8 +46,8 @@ export default function Page() {
         await deleteVendorMutation.mutateAsync(deletingId);
         toast.success(t('deleteSuccess') || 'Vendor deleted successfully');
         setDeletingId(null);
-      } catch (error: any) {
-        toast.error(error?.message || t('deleteError') || 'Failed to delete vendor');
+      } catch (err: any) {
+        toast.error(err?.message || t('deleteError') || 'Failed to delete vendor');
       }
     }
   };
@@ -78,9 +79,7 @@ export default function Page() {
 
   const { can } = usePermissions();
 
-  const hasPermission = (action: string, resource: string) => {
-    return can(`${resource}.${action}`);
-  };
+  const hasPermission = (action: string, resource: string) => can(`${resource}.${action}`);
 
   return (
     <>

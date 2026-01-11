@@ -1,23 +1,23 @@
 import { useEffect } from 'react';
+import { toast } from 'react-toastify';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useNavigate } from 'react-router';
-import { toast } from 'react-toastify';
-import { CONFIG } from 'src/global-config';
-
-import { Box, Typography } from 'src/shared/ui';
-import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
-import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
 import { Iconify } from '@/shared/components/iconify';
-import {
-  useFetchAdminById,
-  useCreateAdmin,
-  useUpdateAdmin,
-} from '@/pages/dashboard/admin/hooks/admin';
 import {
   AdminSchema,
   type AdminFormValues,
 } from '@/pages/dashboard/admin/validation/admin.validation';
+import {
+  useCreateAdmin,
+  useUpdateAdmin,
+  useFetchAdminById,
+} from '@/pages/dashboard/admin/hooks/admin';
+
+import { CONFIG } from 'src/global-config';
+import { Box, Typography } from 'src/shared/ui';
+import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
+import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
 
 // ----------------------------------------------------------------------
 
