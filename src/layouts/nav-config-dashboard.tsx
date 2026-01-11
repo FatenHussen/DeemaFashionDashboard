@@ -134,6 +134,12 @@ export const navData: NavSectionProps['data'] = [
         icon: ICONS.params,
         requiredPermission: 'categoryattribute.view',
       },
+      {
+        title: 'Category Details',
+        path: paths.dashboard.categoryDetails,
+        icon: ICONS.menuItem,
+        requiredPermission: 'categorydetail.view',
+      },
     ],
   },
 ];

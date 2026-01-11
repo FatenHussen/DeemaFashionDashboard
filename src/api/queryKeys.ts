@@ -68,4 +68,10 @@ export const queryKeys = {
       ['categoryattribute', 'list', params] as const,
     details: (id: number | string) => ['categoryattribute', 'details', id] as const,
   },
+  // Category Detail query keys
+  categoryDetail: {
+    list: (params?: { page?: number; limit?: number }) =>
+      ['categorydetail', 'list', params] as const,
+    details: (id: number | string) => ['categorydetail', 'details', id] as const,
+  },
 } as const;
