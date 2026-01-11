@@ -83,7 +83,7 @@ export const navData: NavSectionProps['data'] = [
         requiredPermission: 'driver.view',
       },
       {
-        title: 'Products',
+        title: 'Brand',
         path: paths.dashboard.products,
         icon: ICONS.product,
         requiredPermission: 'brand.view',
@@ -139,6 +139,20 @@ export const navData: NavSectionProps['data'] = [
         path: paths.dashboard.categoryDetails,
         icon: ICONS.menuItem,
         requiredPermission: 'categorydetail.view',
+      },
+    ],
+  },
+  /**
+   * Services
+   */
+  {
+    subheader: '🛠️ Services',
+    items: [
+      {
+        title: 'Services',
+        path: paths.dashboard.services,
+        icon: ICONS.course,
+        requiredPermission: 'service.view',
       },
     ],
   },

@@ -74,4 +74,9 @@ export const queryKeys = {
       ['categorydetail', 'list', params] as const,
     details: (id: number | string) => ['categorydetail', 'details', id] as const,
   },
+  // Service query keys
+  service: {
+    list: (params?: { page?: number; limit?: number }) => ['service', 'list', params] as const,
+    details: (id: number | string) => ['service', 'details', id] as const,
+  },
 } as const;

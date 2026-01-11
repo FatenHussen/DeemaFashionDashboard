@@ -104,6 +104,14 @@ export const apiRoutes = {
     delete: (id: number | string) => `${ROOTS.ADMIN}/category-details/${id}`,
     details: (id: number | string) => `${ROOTS.ADMIN}/category-details/${id}`,
   },
+  // Service routes
+  service: {
+    list: `${ROOTS.ADMIN}/services`,
+    create: `${ROOTS.ADMIN}/services`,
+    update: (id: number | string) => `${ROOTS.ADMIN}/services/${id}`,
+    delete: (id: number | string) => `${ROOTS.ADMIN}/services/${id}`,
+    details: (id: number | string) => `${ROOTS.ADMIN}/services/${id}`,
+  },
   // Other API routes (from old endpoints)
   chat: '/api/chat',
   kanban: '/api/kanban',

@@ -1,0 +1,153 @@
+import { useEffect } from 'react';
+import { toast } from 'react-toastify';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useParams, useNavigate, useLocation } from 'react-router';
+import { Iconify } from '@/shared/components/iconify';
+import { useForm } from 'react-hook-form';
+import { ServiceSchema, type ServiceFormValues } from '../../validation/service.validation';
+import { useCreateService, useUpdateService } from '../../hooks/service';
+
+import { CONFIG } from 'src/global-config';
+import { Box, Typography } from 'src/shared/ui';
+import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
+import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
+
+// ----------------------------------------------------------------------
+
+const metadata = { title: `Service ${CONFIG.appName}` };
+
+export default function CreatePage() {
+  const { id } = useParams<{ id?: string }>();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const isEditMode = !!id;
+
+  // Get data passed from the list page via navigation state
+  const serviceFromState = location.state?.service;
+
+  const createServiceMutation = useCreateService();
+  const updateServiceMutation = useUpdateService();
+
+  const defaultValues: ServiceFormValues = {
+    name: {
+      en: '',
+      ar: '',
+    },
+  };
+
+  const methods = useForm<ServiceFormValues>({
+    resolver: zodResolver(ServiceSchema),
+    defaultValues,
+  });
+
+  const { handleSubmit, reset } = methods;
+
+  // Load service data from navigation state if in edit mode
+  useEffect(() => {
+    if (isEditMode && serviceFromState) {
+      reset({
+        name: {
+          en: serviceFromState.name,
+          ar: serviceFromState.name,
+        },
+      });
+    } else if (isEditMode && !serviceFromState) {
+      // If no service data passed, redirect back to list
+      toast.error('Service data not found. Please select a service to edit.');
+      // navigate('/services');
+    }
+  }, [isEditMode, serviceFromState, reset, navigate]);
+
+  const isSubmitting = createServiceMutation.isPending || updateServiceMutation.isPending;
+  const errorMessage =
+    createServiceMutation.error?.message || updateServiceMutation.error?.message || null;
+
+  const onSubmit = async (data: ServiceFormValues) => {
+    try {
+      const payload = {
+        name: {
+          en: data.name.en,
+          ar: data.name.ar,
+        },
+      };
+
+      if (isEditMode && id) {
+        await updateServiceMutation.mutateAsync({ id, data: payload });
+        toast.success('Service updated successfully');
+        navigate('/services');
+      } else {
+        await createServiceMutation.mutateAsync(payload);
+        toast.success('Service created successfully');
+        navigate('/services');
+      }
+    } catch (error: any) {
+      console.error('Error saving service:', error);
+    }
+  };
+
+  const handleCancel = () => {
+    navigate('/services');
+  };
+
+  const infoText = isEditMode
+    ? 'You can update any field. Make sure both Arabic and English names are provided.'
+    : 'Fill in the service name. Make sure both Arabic and English names are provided.';
+
+  return (
+    <>
+      <title>
+        {isEditMode ? `Edit Service | ${metadata.title}` : `Create Service | ${metadata.title}`}
+      </title>
+
+      <CreateFormLayout
+        methods={methods}
+        onSubmit={handleSubmit(onSubmit)}
+        onCancel={handleCancel}
+        isSubmitting={isSubmitting}
+        errorMessage={errorMessage}
+        title={isEditMode ? 'Edit Service' : 'Create New Service'}
+        description={isEditMode ? 'Update service information' : 'Add a new service to your system'}
+        isEditMode={isEditMode}
+        isLoading={false}
+        loadingText="Loading service data..."
+        maxWidth="3xl"
+        infoText={infoText}
+        submitLabel={isEditMode ? 'Update Service' : 'Create Service'}
+        submittingLabel={isEditMode ? 'Updating...' : 'Creating...'}
+      >
+        {/* Name Field - Arabic */}
+        <Box className="group">
+          <Box className="flex items-center gap-2 mb-2">
+            <Iconify icon="solar:service-bold" className="text-primary" width={24} height={24} />
+            <Typography variant="subtitle2" className="font-semibold text-foreground">
+              Service Name (Arabic)
+            </Typography>
+          </Box>
+          <RHFTextField
+            name="name.ar"
+            placeholder="e.g., توصيل"
+            helperText="Enter the service name in Arabic"
+            className="transition-all duration-200"
+            dir="rtl"
+          />
+        </Box>
+
+        {/* Name Field - English */}
+        <Box className="group">
+          <Box className="flex items-center gap-2 mb-2">
+            <Iconify icon="solar:service-bold" className="text-primary" width={24} height={24} />
+            <Typography variant="subtitle2" className="font-semibold text-foreground">
+              Service Name (English)
+            </Typography>
+          </Box>
+          <RHFTextField
+            name="name.en"
+            placeholder="e.g., Delivery"
+            helperText="Enter the service name in English"
+            className="transition-all duration-200"
+          />
+        </Box>
+      </CreateFormLayout>
+    </>
+  );
+}

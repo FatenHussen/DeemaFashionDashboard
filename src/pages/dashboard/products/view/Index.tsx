@@ -55,7 +55,7 @@ export default function Page() {
   };
 
   // Extract data from API response
-  const brandData: BrandFormValues[] = (brandsResponse?.data ?? []) as BrandFormValues[];
+  const brandData: BrandFormValues[] = (brandsResponse?.data.items ?? []) as BrandFormValues[];
 
   const { can } = usePermissions();
 

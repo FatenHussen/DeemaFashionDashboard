@@ -16,6 +16,7 @@ export const ROOTS = {
   CATEGORIES: '/categories',
   CATEGORY_ATTRIBUTES: '/categories/attributes',
   CATEGORY_DETAILS: '/categories/details',
+  SERVICES: '/services',
 };
 
 // ----------------------------------------------------------------------
@@ -68,6 +69,7 @@ export const paths = {
     categories: ROOTS.CATEGORIES,
     categoryAttributes: ROOTS.CATEGORY_ATTRIBUTES,
     categoryDetails: ROOTS.CATEGORY_DETAILS,
+    services: ROOTS.SERVICES,
     // two: `${ROOTS.DASHBOARD}/two`,
     // three: `${ROOTS.DASHBOARD}/three`,
     // group: {

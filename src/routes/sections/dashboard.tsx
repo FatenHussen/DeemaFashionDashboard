@@ -62,6 +62,9 @@ const CategoryDetailCreatePage = lazy(
   () => import('@/pages/dashboard/categories/view/details/Create')
 );
 
+const ServiceIndexPage = lazy(() => import('@/pages/dashboard/vendor/view/service/Index'));
+const ServiceCreatePage = lazy(() => import('@/pages/dashboard/vendor/view/service/Create'));
+
 const Page403 = lazy(() => import('src/pages/error/403'));
 // const PageTwo = lazy(() => import('src/pages/dashboard/two'));
 // const PageThree = lazy(() => import('src/pages/dashboard/three'));
@@ -471,6 +474,36 @@ export const dashboardRoutes: RouteObject[] = [
         element: (
           <RequirePermission permission="categorydetail.update">
             <CategoryDetailCreatePage />
+          </RequirePermission>
+        ),
+      },
+    ],
+  },
+  {
+    path: 'services',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: (
+          <RequirePermission permission="service.view">
+            <ServiceIndexPage />
+          </RequirePermission>
+        ),
+        index: true,
+      },
+      {
+        path: 'create',
+        element: (
+          <RequirePermission permission="service.create">
+            <ServiceCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'update/:id',
+        element: (
+          <RequirePermission permission="service.update">
+            <ServiceCreatePage />
           </RequirePermission>
         ),
       },
