@@ -79,4 +79,9 @@ export const queryKeys = {
     list: (params?: { page?: number; limit?: number }) => ['service', 'list', params] as const,
     details: (id: number | string) => ['service', 'details', id] as const,
   },
+  // Language query keys
+  language: {
+    list: (params?: { page?: number; limit?: number; code?: string; is_active?: number; direction?: string }) => ['language', 'list', params] as const,
+    details: (id: number | string) => ['language', 'details', id] as const,
+  },
 } as const;

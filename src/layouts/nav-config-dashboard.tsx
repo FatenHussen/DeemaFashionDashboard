@@ -156,4 +156,24 @@ export const navData: NavSectionProps['data'] = [
       },
     ],
   },
+  /**
+   * Languages
+   */
+  {
+    subheader: '🌐 Languages',
+    items: [
+      {
+        title: 'Languages',
+        path: paths.dashboard.languages,
+        icon: ICONS.label,
+        requiredPermission: 'language.view',
+      },
+      {
+        title: 'Translation Manager',
+        path: `${paths.dashboard.languages}/translations`,
+        icon: ICONS.file,
+        requiredPermission: 'language.view',
+      },
+    ],
+  },
 ];

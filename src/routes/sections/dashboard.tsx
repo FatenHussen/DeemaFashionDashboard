@@ -65,6 +65,10 @@ const CategoryDetailCreatePage = lazy(
 const ServiceIndexPage = lazy(() => import('@/pages/dashboard/vendor/view/service/Index'));
 const ServiceCreatePage = lazy(() => import('@/pages/dashboard/vendor/view/service/Create'));
 
+const LanguageIndexPage = lazy(() => import('@/pages/dashboard/languages/view/Index'));
+const LanguageCreatePage = lazy(() => import('@/pages/dashboard/languages/view/Create'));
+const TranslationManagerPage = lazy(() => import('@/pages/dashboard/languages/view/TranslationManager'));
+
 const Page403 = lazy(() => import('src/pages/error/403'));
 // const PageTwo = lazy(() => import('src/pages/dashboard/two'));
 // const PageThree = lazy(() => import('src/pages/dashboard/three'));
@@ -504,6 +508,44 @@ export const dashboardRoutes: RouteObject[] = [
         element: (
           <RequirePermission permission="service.update">
             <ServiceCreatePage />
+          </RequirePermission>
+        ),
+      },
+    ],
+  },
+  {
+    path: 'languages',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: (
+          <RequirePermission permission="language.view">
+            <LanguageIndexPage />
+          </RequirePermission>
+        ),
+        index: true,
+      },
+      {
+        path: 'create',
+        element: (
+          <RequirePermission permission="language.create">
+            <LanguageCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'update/:id',
+        element: (
+          <RequirePermission permission="language.update">
+            <LanguageCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'translations',
+        element: (
+          <RequirePermission permission="language.view">
+            <TranslationManagerPage />
           </RequirePermission>
         ),
       },

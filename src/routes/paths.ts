@@ -17,6 +17,7 @@ export const ROOTS = {
   CATEGORY_ATTRIBUTES: '/categories/attributes',
   CATEGORY_DETAILS: '/categories/details',
   SERVICES: '/services',
+  LANGUAGES: '/languages',
 };
 
 // ----------------------------------------------------------------------
@@ -70,12 +71,6 @@ export const paths = {
     categoryAttributes: ROOTS.CATEGORY_ATTRIBUTES,
     categoryDetails: ROOTS.CATEGORY_DETAILS,
     services: ROOTS.SERVICES,
-    // two: `${ROOTS.DASHBOARD}/two`,
-    // three: `${ROOTS.DASHBOARD}/three`,
-    // group: {
-    //   root: `${ROOTS.DASHBOARD}/group`,
-    //   five: `${ROOTS.DASHBOARD}/group/five`,
-    //   six: `${ROOTS.DASHBOARD}/group/six`,
-    // },
+    languages: ROOTS.LANGUAGES,
   },
 };

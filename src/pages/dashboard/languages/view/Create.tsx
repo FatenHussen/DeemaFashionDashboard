@@ -1,0 +1,309 @@
+import { useEffect, useState } from 'react';
+import { toast } from 'react-toastify';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useParams, useNavigate } from 'react-router';
+import { Iconify } from '@/shared/components/iconify';
+import {
+  LanguageSchema,
+  type LanguageSchemaType,
+} from '@/pages/dashboard/languages/validation/language.validation';
+import {
+  useCreateLanguage,
+  useUpdateLanguage,
+  useFetchLanguageById,
+} from '@/pages/dashboard/languages/hooks/language';
+
+import { CONFIG, CONFIG as GLOBAL_CONFIG } from 'src/global-config';
+import { Box, Checkbox, Typography, Input } from 'src/shared/ui';
+import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
+import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
+import { RHFSelect } from 'src/shared/components/hook-form/rhf-select';
+
+// ----------------------------------------------------------------------
+
+const metadata = { title: `Language ${CONFIG.appName}` };
+
+export default function CreatePage() {
+  const { id } = useParams<{ id?: string }>();
+  const navigate = useNavigate();
+  const isEditMode = !!id;
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+
+  const { data: languageData, isLoading: isLoadingLanguage } = useFetchLanguageById(id || '');
+  const createLanguageMutation = useCreateLanguage();
+  const updateLanguageMutation = useUpdateLanguage();
+
+  const defaultValues: LanguageSchemaType = {
+    code: '',
+    native_name: '',
+    direction: 'ltr',
+    is_active: true,
+    is_default: false,
+    flag_icon: null,
+  };
+
+  const methods = useForm<LanguageSchemaType>({
+    resolver: zodResolver(LanguageSchema),
+    defaultValues,
+  });
+
+  const { handleSubmit, reset, control, watch } = methods;
+  const flagIconFile = watch('flag_icon');
+
+  useEffect(() => {
+    if (isEditMode && languageData && !isLoadingLanguage) {
+      const imageUrl = languageData.flag_icon ? `${GLOBAL_CONFIG.serverUrl}/${languageData.flag_icon}` : null;
+      setPreviewImage(imageUrl);
+      reset({
+        code: languageData.code,
+        native_name: languageData.native_name,
+        direction: languageData.direction,
+        is_active: languageData.is_active,
+        is_default: languageData.is_default,
+        flag_icon: null,
+      });
+    }
+  }, [languageData, isEditMode, isLoadingLanguage, reset]);
+
+  useEffect(() => {
+    if (flagIconFile instanceof File) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreviewImage(reader.result as string);
+      };
+      reader.readAsDataURL(flagIconFile);
+    } else if (!flagIconFile && !isEditMode) {
+      setPreviewImage(null);
+    }
+  }, [flagIconFile, isEditMode]);
+
+  const isSubmitting = createLanguageMutation.isPending || updateLanguageMutation.isPending;
+  const errorMessage =
+    createLanguageMutation.error?.message || updateLanguageMutation.error?.message || null;
+
+  const onSubmit = async (data: LanguageSchemaType) => {
+    try {
+      const payload = {
+        code: data.code,
+        native_name: data.native_name,
+        direction: data.direction,
+        is_active: data.is_active,
+        is_default: data.is_default,
+        flag_icon: data.flag_icon instanceof File ? data.flag_icon : undefined,
+      };
+
+      if (isEditMode && id) {
+        await updateLanguageMutation.mutateAsync({ id, data: payload });
+        toast.success('Language updated successfully');
+        navigate('/languages');
+      } else {
+        await createLanguageMutation.mutateAsync(payload);
+        toast.success('Language created successfully');
+        navigate('/languages');
+      }
+    } catch (error: any) {
+      console.error('Error saving language:', error);
+    }
+  };
+
+  const handleCancel = () => {
+    navigate('/languages');
+  };
+
+  const infoText = isEditMode
+    ? 'You can update any field. Leave flag icon unchanged or upload a new one.'
+    : 'Fill in all required fields to create a new language. The language code should follow ISO 639-1 standard (e.g., en, ar, fr).';
+
+  return (
+    <>
+      <title>
+        {isEditMode ? `Edit Language | ${metadata.title}` : `Create Language | ${metadata.title}`}
+      </title>
+
+      <CreateFormLayout
+        methods={methods}
+        onSubmit={handleSubmit(onSubmit)}
+        onCancel={handleCancel}
+        isSubmitting={isSubmitting}
+        errorMessage={errorMessage}
+        title={isEditMode ? 'Edit Language' : 'Create New Language'}
+        description={
+          isEditMode
+            ? 'Update language information and settings'
+            : 'Add a new language to your system'
+        }
+        isEditMode={isEditMode}
+        isLoading={isLoadingLanguage}
+        loadingText="Loading language data..."
+        maxWidth="4xl"
+        infoText={infoText}
+        submitLabel={isEditMode ? 'Update Language' : 'Create Language'}
+        submittingLabel={isEditMode ? 'Updating...' : 'Creating...'}
+      >
+        {/* Language Code */}
+        <Box className="group">
+          <Box className="flex items-center gap-2 mb-2">
+            <Iconify
+              icon="solar:code-bold"
+              className="text-primary"
+              width={24}
+              height={24}
+            />
+            <Typography variant="subtitle2" className="font-semibold text-foreground">
+              Language Code
+            </Typography>
+          </Box>
+          <RHFTextField
+            name="code"
+            placeholder="e.g., en, ar, fr"
+            helperText="Enter the language code (ISO 639-1 standard)"
+            className="transition-all duration-200"
+          />
+        </Box>
+
+        {/* Native Name */}
+        <Box className="group">
+          <Box className="flex items-center gap-2 mb-2">
+            <Iconify
+              icon="solar:text-bold"
+              className="text-primary"
+              width={24}
+              height={24}
+            />
+            <Typography variant="subtitle2" className="font-semibold text-foreground">
+              Native Name
+            </Typography>
+          </Box>
+          <RHFTextField
+            name="native_name"
+            placeholder="e.g., English, العربية, Français"
+            helperText="Enter the language name in its native script"
+            className="transition-all duration-200"
+          />
+        </Box>
+
+        {/* Direction */}
+        <Box className="group">
+          <Box className="flex items-center gap-2 mb-2">
+            <Iconify
+              icon="solar:sort-horizontal-bold"
+              className="text-primary"
+              width={24}
+              height={24}
+            />
+            <Typography variant="subtitle2" className="font-semibold text-foreground">
+              Text Direction
+            </Typography>
+          </Box>
+          <RHFSelect
+            name="direction"
+            options={[
+              { value: 'ltr', label: 'Left to Right (LTR)' },
+              { value: 'rtl', label: 'Right to Left (RTL)' },
+            ]}
+            helperText="Select the text direction for this language"
+            className="transition-all duration-200"
+          />
+        </Box>
+
+        {/* Flag Icon */}
+        <Box className="group">
+          <Box className="flex items-center gap-2 mb-2">
+            <Iconify
+              icon="solar:flag-bold"
+              className="text-primary"
+              width={24}
+              height={24}
+            />
+            <Typography variant="subtitle2" className="font-semibold text-foreground">
+              Flag Icon
+            </Typography>
+          </Box>
+          <Controller
+            name="flag_icon"
+            control={control}
+            render={({ field: { onChange, value, ...field }, fieldState: { error } }) => (
+              <div className="w-full">
+                <Input
+                  {...field}
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    onChange(file || null);
+                  }}
+                  error={!!error}
+                  helperText={error?.message || 'Upload a flag icon image (PNG, JPG, SVG)'}
+                  fullWidth
+                  className="transition-all duration-200"
+                />
+                {previewImage && (
+                  <Box className="mt-4">
+                    <img
+                      src={previewImage}
+                      alt="Flag preview"
+                      className="w-24 h-24 object-cover rounded-lg border border-border/60"
+                    />
+                  </Box>
+                )}
+              </div>
+            )}
+          />
+        </Box>
+
+        {/* Active Status */}
+        <Box className="group">
+          <Box className="flex items-center gap-2 mb-2">
+            <Iconify
+              icon="solar:check-circle-bold"
+              className="text-primary"
+              width={24}
+              height={24}
+            />
+            <Typography variant="subtitle2" className="font-semibold text-foreground">
+              Active Status
+            </Typography>
+          </Box>
+          <Controller
+            name="is_active"
+            control={methods.control}
+            render={({ field }) => (
+              <Checkbox
+                checked={field.value}
+                onChange={(e) => field.onChange(e.target.checked)}
+                label="Mark language as active"
+              />
+            )}
+          />
+        </Box>
+
+        {/* Default Language */}
+        <Box className="group">
+          <Box className="flex items-center gap-2 mb-2">
+            <Iconify
+              icon="solar:star-bold"
+              className="text-primary"
+              width={24}
+              height={24}
+            />
+            <Typography variant="subtitle2" className="font-semibold text-foreground">
+              Default Language
+            </Typography>
+          </Box>
+          <Controller
+            name="is_default"
+            control={methods.control}
+            render={({ field }) => (
+              <Checkbox
+                checked={field.value}
+                onChange={(e) => field.onChange(e.target.checked)}
+                label="Set as default language"
+              />
+            )}
+          />
+        </Box>
+      </CreateFormLayout>
+    </>
+  );
+}
