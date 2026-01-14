@@ -92,4 +92,11 @@ export const queryKeys = {
     manualItems: (manualModel: string, url: string, params?: { page?: number; limit?: number; search?: string }) =>
       ['section', 'manual-items', manualModel, url, params] as const,
   },
+  // Page Section query keys
+  pageSection: {
+    list: (params?: { page?: number; limit?: number }) => ['pageSection', 'list', params] as const,
+    details: (id: number | string) => ['pageSection', 'details', id] as const,
+    pages: () => ['pageSection', 'pages'] as const,
+    displayTypes: () => ['pageSection', 'display-types'] as const,
+  },
 } as const;

@@ -129,6 +129,16 @@ export const apiRoutes = {
     details: (id: number | string) => `${ROOTS.ADMIN}/sections/${id}`,
     itemTypes: `${ROOTS.ADMIN}/sections/item-types`,
   },
+  // Page Section routes
+  pageSection: {
+    list: `${ROOTS.ADMIN}/page-sections`,
+    create: `${ROOTS.ADMIN}/page-sections`,
+    update: (id: number | string) => `${ROOTS.ADMIN}/page-sections/${id}`,
+    delete: (id: number | string) => `${ROOTS.ADMIN}/page-sections/${id}`,
+    details: (id: number | string) => `${ROOTS.ADMIN}/page-sections/${id}`,
+    pages: `${ROOTS.ADMIN}/sections/pages`,
+    displayTypes: `${ROOTS.ADMIN}/sections/display-types`,
+  },
   // Other API routes (from old endpoints)
   chat: '/api/chat',
   kanban: '/api/kanban',

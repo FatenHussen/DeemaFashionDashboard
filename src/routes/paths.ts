@@ -19,6 +19,7 @@ export const ROOTS = {
   SERVICES: '/services',
   LANGUAGES: '/languages',
   SECTIONS: '/sections',
+  PAGE_SECTIONS: '/sections/page-sections',
 };
 
 // ----------------------------------------------------------------------
@@ -74,5 +75,6 @@ export const paths = {
     services: ROOTS.SERVICES,
     languages: ROOTS.LANGUAGES,
     sections: ROOTS.SECTIONS,
+    pageSections: ROOTS.PAGE_SECTIONS,
   },
 };

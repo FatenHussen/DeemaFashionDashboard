@@ -188,6 +188,12 @@ export const navData: NavSectionProps['data'] = [
         icon: ICONS.folder,
         requiredPermission: 'section.view',
       },
+      {
+        title: 'Page Sections',
+        path: paths.dashboard.pageSections,
+        icon: ICONS.menuItem,
+        requiredPermission: 'pagesection.view',
+      },
     ],
   },
 ];

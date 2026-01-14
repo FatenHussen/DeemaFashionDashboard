@@ -75,6 +75,11 @@ const SectionIndexPage = lazy(() => import('@/pages/dashboard/sections/view/Inde
 const SectionCreatePage = lazy(() => import('@/pages/dashboard/sections/view/Create'));
 const SectionDetailsPage = lazy(() => import('@/pages/dashboard/sections/view/Details'));
 
+const PageSectionIndexPage = lazy(() => import('@/pages/dashboard/sections/view/PageSections'));
+const PageSectionCreatePage = lazy(
+  () => import('@/pages/dashboard/sections/view/PageSectionCreate')
+);
+
 const Page403 = lazy(() => import('src/pages/error/403'));
 
 // ----------------------------------------------------------------------
@@ -585,6 +590,30 @@ export const dashboardRoutes: RouteObject[] = [
         element: (
           <RequirePermission permission="section.view">
             <SectionDetailsPage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'page-sections',
+        element: (
+          <RequirePermission permission="pagesection.view">
+            <PageSectionIndexPage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'page-sections/create',
+        element: (
+          <RequirePermission permission="pagesection.create">
+            <PageSectionCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'page-sections/update/:id',
+        element: (
+          <RequirePermission permission="pagesection.update">
+            <PageSectionCreatePage />
           </RequirePermission>
         ),
       },
