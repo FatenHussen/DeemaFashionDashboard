@@ -1,0 +1,84 @@
+// ----------------------------------------------------------------------
+
+export interface SectionListItem {
+  id: number;
+  name: string;
+  type: 'api' | 'manual';
+}
+
+export interface Pagination {
+  current_page: number;
+  last_page: number;
+  per_page: number;
+  total: number;
+}
+
+export interface SectionListResponse {
+  status: boolean;
+  message: string;
+  data: {
+    items: SectionListItem[];
+    pagination: Pagination;
+  };
+}
+
+export interface SectionDetailsItem {
+  id: number;
+  desc?: string;
+  price?: number;
+  [key: string]: any;
+}
+
+export interface SectionDetails {
+  id: number;
+  name: string;
+  type: 'api' | 'manual';
+  api?: Record<string, any>;
+  manual?: {
+    manual_model: string | null;
+  };
+  items: SectionDetailsItem[];
+}
+
+export interface SectionDetailsResponse {
+  status: boolean;
+  message: string;
+  data: SectionDetails;
+}
+
+export interface ItemIdEntry {
+  item_id: number;
+  link: string;
+  order: number;
+}
+
+export interface SectionCreateUpdatePayload {
+  name: {
+    en: string;
+    ar: string;
+  };
+  manual_model: string;
+  item_ids: ItemIdEntry[];
+}
+
+export interface ItemTypeEntry {
+  item_type: string;
+  url: string;
+}
+
+export type ItemTypesMap = Record<string, ItemTypeEntry | any[]>;
+
+export interface ItemTypesResponse {
+  status: boolean;
+  message: string;
+  data: ItemTypesMap;
+}
+
+export interface ManualItemsListResponse {
+  status: boolean;
+  message: string;
+  data: {
+    items: any[];
+    pagination?: Pagination;
+  };
+}

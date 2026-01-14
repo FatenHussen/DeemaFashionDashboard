@@ -67,14 +67,15 @@ const ServiceCreatePage = lazy(() => import('@/pages/dashboard/vendor/view/servi
 
 const LanguageIndexPage = lazy(() => import('@/pages/dashboard/languages/view/Index'));
 const LanguageCreatePage = lazy(() => import('@/pages/dashboard/languages/view/Create'));
-const TranslationManagerPage = lazy(() => import('@/pages/dashboard/languages/view/TranslationManager'));
+const TranslationManagerPage = lazy(
+  () => import('@/pages/dashboard/languages/view/TranslationManager')
+);
+
+const SectionIndexPage = lazy(() => import('@/pages/dashboard/sections/view/Index'));
+const SectionCreatePage = lazy(() => import('@/pages/dashboard/sections/view/Create'));
+const SectionDetailsPage = lazy(() => import('@/pages/dashboard/sections/view/Details'));
 
 const Page403 = lazy(() => import('src/pages/error/403'));
-// const PageTwo = lazy(() => import('src/pages/dashboard/two'));
-// const PageThree = lazy(() => import('src/pages/dashboard/three'));
-// const PageFour = lazy(() => import('src/pages/dashboard/four'));
-// const PageFive = lazy(() => import('src/pages/dashboard/five'));
-// const PageSix = lazy(() => import('src/pages/dashboard/six'));
 
 // ----------------------------------------------------------------------
 
@@ -546,6 +547,44 @@ export const dashboardRoutes: RouteObject[] = [
         element: (
           <RequirePermission permission="language.view">
             <TranslationManagerPage />
+          </RequirePermission>
+        ),
+      },
+    ],
+  },
+  {
+    path: 'sections',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: (
+          <RequirePermission permission="section.view">
+            <SectionIndexPage />
+          </RequirePermission>
+        ),
+        index: true,
+      },
+      {
+        path: 'create',
+        element: (
+          <RequirePermission permission="section.create">
+            <SectionCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'update/:id',
+        element: (
+          <RequirePermission permission="section.update">
+            <SectionCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'details/:id',
+        element: (
+          <RequirePermission permission="section.view">
+            <SectionDetailsPage />
           </RequirePermission>
         ),
       },

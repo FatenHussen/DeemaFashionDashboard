@@ -18,6 +18,7 @@ export const ROOTS = {
   CATEGORY_DETAILS: '/categories/details',
   SERVICES: '/services',
   LANGUAGES: '/languages',
+  SECTIONS: '/sections',
 };
 
 // ----------------------------------------------------------------------
@@ -72,5 +73,6 @@ export const paths = {
     categoryDetails: ROOTS.CATEGORY_DETAILS,
     services: ROOTS.SERVICES,
     languages: ROOTS.LANGUAGES,
+    sections: ROOTS.SECTIONS,
   },
 };

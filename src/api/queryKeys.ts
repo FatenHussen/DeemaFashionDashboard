@@ -84,4 +84,12 @@ export const queryKeys = {
     list: (params?: { page?: number; limit?: number; code?: string; is_active?: number; direction?: string }) => ['language', 'list', params] as const,
     details: (id: number | string) => ['language', 'details', id] as const,
   },
+  // Section query keys
+  section: {
+    list: (params?: { page?: number; limit?: number }) => ['section', 'list', params] as const,
+    details: (id: number | string) => ['section', 'details', id] as const,
+    itemTypes: () => ['section', 'item-types'] as const,
+    manualItems: (manualModel: string, url: string, params?: { page?: number; limit?: number; search?: string }) =>
+      ['section', 'manual-items', manualModel, url, params] as const,
+  },
 } as const;

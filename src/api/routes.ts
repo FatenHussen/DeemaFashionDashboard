@@ -120,6 +120,15 @@ export const apiRoutes = {
     delete: (id: number | string) => `${ROOTS.ADMIN}/languages/${id}`,
     details: (id: number | string) => `${ROOTS.ADMIN}/languages/${id}`,
   },
+  // Section routes
+  section: {
+    list: `${ROOTS.ADMIN}/sections`,
+    create: `${ROOTS.ADMIN}/sections`,
+    update: (id: number | string) => `${ROOTS.ADMIN}/sections/${id}`,
+    delete: (id: number | string) => `${ROOTS.ADMIN}/sections/${id}`,
+    details: (id: number | string) => `${ROOTS.ADMIN}/sections/${id}`,
+    itemTypes: `${ROOTS.ADMIN}/sections/item-types`,
+  },
   // Other API routes (from old endpoints)
   chat: '/api/chat',
   kanban: '/api/kanban',

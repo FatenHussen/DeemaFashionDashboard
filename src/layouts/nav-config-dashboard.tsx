@@ -176,4 +176,18 @@ export const navData: NavSectionProps['data'] = [
       },
     ],
   },
+  /**
+   * Sections
+   */
+  {
+    subheader: '📋 Sections',
+    items: [
+      {
+        title: 'Sections',
+        path: paths.dashboard.sections,
+        icon: ICONS.folder,
+        requiredPermission: 'section.view',
+      },
+    ],
+  },
 ];
