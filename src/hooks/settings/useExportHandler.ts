@@ -10,10 +10,10 @@ export function useExportHandler(tableName: ExportType) {
   // Default export columns - can be customized based on tableName
   const exportColumns: string[] = [];
 
-  const exportToExcel = async (exportData: IExportForm): Promise<ExportResponse> => {
+  const exportToExcel = async (exportData: IExportForm): Promise<ExportResponse> => 
     // TODO: Implement actual export to Excel API call
     // This is a placeholder implementation
-    return new Promise((resolve) => {
+     new Promise((resolve) => {
       setTimeout(() => {
         resolve({
           data: {
@@ -21,13 +21,13 @@ export function useExportHandler(tableName: ExportType) {
           },
         });
       }, 100);
-    });
-  };
+    })
+  ;
 
-  const exportToPDF = async (exportData: IExportForm): Promise<ExportResponse> => {
+  const exportToPDF = async (exportData: IExportForm): Promise<ExportResponse> => 
     // TODO: Implement actual export to PDF API call
     // This is a placeholder implementation
-    return new Promise((resolve) => {
+     new Promise((resolve) => {
       setTimeout(() => {
         resolve({
           data: {
@@ -35,8 +35,8 @@ export function useExportHandler(tableName: ExportType) {
           },
         });
       }, 100);
-    });
-  };
+    })
+  ;
 
   return {
     exportColumns,

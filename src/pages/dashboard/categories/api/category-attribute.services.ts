@@ -1,9 +1,10 @@
-import { axiosInstance, apiRoutes } from '@/api';
 import type {
   CategoryAttributeListResponse,
   CategoryAttributeDetailResponse,
   CategoryAttributeCreateUpdatePayload,
 } from '../types/category-attribute.types';
+
+import { apiRoutes, axiosInstance } from '@/api';
 
 export type { CategoryAttributeCreateUpdatePayload };
 
@@ -25,30 +26,19 @@ export const _CategoryAttributeApi = {
     );
     return response.data;
   },
-  createCategoryAttribute: async (
-    data: CategoryAttributeCreateUpdatePayload
-  ): Promise<any> => {
-    const response = await axiosInstance.post(
-      apiRoutes.categoryAttribute.create,
-      data
-    );
+  createCategoryAttribute: async (data: CategoryAttributeCreateUpdatePayload): Promise<any> => {
+    const response = await axiosInstance.post(apiRoutes.categoryAttribute.create, data);
     return response.data;
   },
   updateCategoryAttribute: async (
     id: number | string,
     data: CategoryAttributeCreateUpdatePayload
   ): Promise<any> => {
-    const response = await axiosInstance.put(
-      apiRoutes.categoryAttribute.update(id),
-      data
-    );
+    const response = await axiosInstance.put(apiRoutes.categoryAttribute.update(id), data);
     return response.data;
   },
   deleteCategoryAttribute: async (id: number | string): Promise<any> => {
-    const response = await axiosInstance.delete(
-      apiRoutes.categoryAttribute.delete(id)
-    );
+    const response = await axiosInstance.delete(apiRoutes.categoryAttribute.delete(id));
     return response.data;
   },
 };
-

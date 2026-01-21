@@ -2,14 +2,12 @@ import type { RouteObject } from 'react-router';
 
 import { Outlet } from 'react-router';
 import { lazy, Suspense } from 'react';
+import { RequirePermission } from '@/auth/components/require-permission';
 
 import { CONFIG } from 'src/global-config';
-import { DashboardLayout } from 'src/layouts/dashboard';
-
-import { LoadingScreen } from 'src/shared/components/loading-screen';
-
 import { AuthGuard } from 'src/pages/auth/guard';
-import { RequirePermission } from '@/auth/components/require-permission';
+import { DashboardLayout } from 'src/layouts/dashboard';
+import { LoadingScreen } from 'src/shared/components/loading-screen';
 
 import { usePathname } from '../hooks';
 
@@ -57,12 +55,32 @@ const CategoryAttributeCreatePage = lazy(
   () => import('@/pages/dashboard/categories/view/attributes/Create')
 );
 
+const CategoryDetailIndexPage = lazy(
+  () => import('@/pages/dashboard/categories/view/details/Index')
+);
+const CategoryDetailCreatePage = lazy(
+  () => import('@/pages/dashboard/categories/view/details/Create')
+);
+
+const ServiceIndexPage = lazy(() => import('@/pages/dashboard/vendor/view/service/Index'));
+const ServiceCreatePage = lazy(() => import('@/pages/dashboard/vendor/view/service/Create'));
+
+const LanguageIndexPage = lazy(() => import('@/pages/dashboard/languages/view/Index'));
+const LanguageCreatePage = lazy(() => import('@/pages/dashboard/languages/view/Create'));
+const TranslationManagerPage = lazy(
+  () => import('@/pages/dashboard/languages/view/TranslationManager')
+);
+
+const SectionIndexPage = lazy(() => import('@/pages/dashboard/sections/view/Index'));
+const SectionCreatePage = lazy(() => import('@/pages/dashboard/sections/view/Create'));
+const SectionDetailsPage = lazy(() => import('@/pages/dashboard/sections/view/Details'));
+
+const PageSectionIndexPage = lazy(() => import('@/pages/dashboard/sections/view/PageSections'));
+const PageSectionCreatePage = lazy(
+  () => import('@/pages/dashboard/sections/view/PageSectionCreate')
+);
+
 const Page403 = lazy(() => import('src/pages/error/403'));
-// const PageTwo = lazy(() => import('src/pages/dashboard/two'));
-// const PageThree = lazy(() => import('src/pages/dashboard/three'));
-// const PageFour = lazy(() => import('src/pages/dashboard/four'));
-// const PageFive = lazy(() => import('src/pages/dashboard/five'));
-// const PageSix = lazy(() => import('src/pages/dashboard/six'));
 
 // ----------------------------------------------------------------------
 
@@ -417,7 +435,7 @@ export const dashboardRoutes: RouteObject[] = [
     children: [
       {
         element: (
-          <RequirePermission permission="category-attribute.view">
+          <RequirePermission permission="categoryattribute.view">
             <CategoryAttributeIndexPage />
           </RequirePermission>
         ),
@@ -426,7 +444,7 @@ export const dashboardRoutes: RouteObject[] = [
       {
         path: 'create',
         element: (
-          <RequirePermission permission="category-attribute.create">
+          <RequirePermission permission="categoryattribute.create">
             <CategoryAttributeCreatePage />
           </RequirePermission>
         ),
@@ -434,8 +452,168 @@ export const dashboardRoutes: RouteObject[] = [
       {
         path: 'update/:id',
         element: (
-          <RequirePermission permission="category-attribute.update">
+          <RequirePermission permission="categoryattribute.update">
             <CategoryAttributeCreatePage />
+          </RequirePermission>
+        ),
+      },
+    ],
+  },
+  {
+    path: 'categories/details',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: (
+          <RequirePermission permission="categorydetail.view">
+            <CategoryDetailIndexPage />
+          </RequirePermission>
+        ),
+        index: true,
+      },
+      {
+        path: 'create',
+        element: (
+          <RequirePermission permission="categorydetail.create">
+            <CategoryDetailCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'update/:id',
+        element: (
+          <RequirePermission permission="categorydetail.update">
+            <CategoryDetailCreatePage />
+          </RequirePermission>
+        ),
+      },
+    ],
+  },
+  {
+    path: 'services',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: (
+          <RequirePermission permission="service.view">
+            <ServiceIndexPage />
+          </RequirePermission>
+        ),
+        index: true,
+      },
+      {
+        path: 'create',
+        element: (
+          <RequirePermission permission="service.create">
+            <ServiceCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'update/:id',
+        element: (
+          <RequirePermission permission="service.update">
+            <ServiceCreatePage />
+          </RequirePermission>
+        ),
+      },
+    ],
+  },
+  {
+    path: 'languages',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: (
+          <RequirePermission permission="language.view">
+            <LanguageIndexPage />
+          </RequirePermission>
+        ),
+        index: true,
+      },
+      {
+        path: 'create',
+        element: (
+          <RequirePermission permission="language.create">
+            <LanguageCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'update/:id',
+        element: (
+          <RequirePermission permission="language.update">
+            <LanguageCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'translations',
+        element: (
+          <RequirePermission permission="language.view">
+            <TranslationManagerPage />
+          </RequirePermission>
+        ),
+      },
+    ],
+  },
+  {
+    path: 'sections',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: (
+          <RequirePermission permission="section.view">
+            <SectionIndexPage />
+          </RequirePermission>
+        ),
+        index: true,
+      },
+      {
+        path: 'create',
+        element: (
+          <RequirePermission permission="section.create">
+            <SectionCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'update/:id',
+        element: (
+          <RequirePermission permission="section.update">
+            <SectionCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'details/:id',
+        element: (
+          <RequirePermission permission="section.view">
+            <SectionDetailsPage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'page-sections',
+        element: (
+          <RequirePermission permission="pagesection.view">
+            <PageSectionIndexPage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'page-sections/create',
+        element: (
+          <RequirePermission permission="pagesection.create">
+            <PageSectionCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'page-sections/update/:id',
+        element: (
+          <RequirePermission permission="pagesection.update">
+            <PageSectionCreatePage />
           </RequirePermission>
         ),
       },

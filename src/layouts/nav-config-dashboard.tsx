@@ -3,10 +3,8 @@ import type { NavSectionProps } from 'src/shared/components/nav-section';
 import { paths } from 'src/routes/paths';
 
 import { CONFIG } from 'src/global-config';
-
 import { Label } from 'src/shared/components/label';
 import { SvgColor } from 'src/shared/components/svg-color';
-import { Iconify } from 'src/shared/components/iconify';
 
 // ----------------------------------------------------------------------
 
@@ -85,7 +83,7 @@ export const navData: NavSectionProps['data'] = [
         requiredPermission: 'driver.view',
       },
       {
-        title: 'Products',
+        title: 'Brand',
         path: paths.dashboard.products,
         icon: ICONS.product,
         requiredPermission: 'brand.view',
@@ -134,7 +132,67 @@ export const navData: NavSectionProps['data'] = [
         title: 'Category Attributes',
         path: paths.dashboard.categoryAttributes,
         icon: ICONS.params,
-        requiredPermission: 'category-attribute.view',
+        requiredPermission: 'categoryattribute.view',
+      },
+      {
+        title: 'Category Details',
+        path: paths.dashboard.categoryDetails,
+        icon: ICONS.menuItem,
+        requiredPermission: 'categorydetail.view',
+      },
+    ],
+  },
+  /**
+   * Services
+   */
+  {
+    subheader: '🛠️ Services',
+    items: [
+      {
+        title: 'Services',
+        path: paths.dashboard.services,
+        icon: ICONS.course,
+        requiredPermission: 'service.view',
+      },
+    ],
+  },
+  /**
+   * Languages
+   */
+  {
+    subheader: '🌐 Languages',
+    items: [
+      {
+        title: 'Languages',
+        path: paths.dashboard.languages,
+        icon: ICONS.label,
+        requiredPermission: 'language.view',
+      },
+      {
+        title: 'Translation Manager',
+        path: `${paths.dashboard.languages}/translations`,
+        icon: ICONS.file,
+        requiredPermission: 'language.view',
+      },
+    ],
+  },
+  /**
+   * Sections
+   */
+  {
+    subheader: '📋 Sections',
+    items: [
+      {
+        title: 'Sections',
+        path: paths.dashboard.sections,
+        icon: ICONS.folder,
+        requiredPermission: 'section.view',
+      },
+      {
+        title: 'Page Sections',
+        path: paths.dashboard.pageSections,
+        icon: ICONS.menuItem,
+        requiredPermission: 'pagesection.view',
       },
     ],
   },

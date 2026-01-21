@@ -1,10 +1,13 @@
-import { axiosInstance, apiRoutes } from '@/api';
 import type {
   RoleListResponse,
   RoleDetailsResponse,
-  RoleCreateUpdatePayload,
   PermissionListResponse,
+  RoleCreateUpdatePayload,
 } from '../types/role.types';
+
+import { apiRoutes, axiosInstance } from '@/api';
+
+export type { RoleCreateUpdatePayload };
 
 export const _RoleApi = {
   getListRoles: async (): Promise<RoleListResponse> => {

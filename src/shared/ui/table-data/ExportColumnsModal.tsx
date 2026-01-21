@@ -2,8 +2,8 @@ import type { Table } from '@tanstack/react-table';
 
 import { useState } from 'react';
 import { Input } from '@/shared/ui/input';
-import { useTranslation } from 'react-i18next';
 import { Button } from '@/shared/ui/button';
+import { useTranslation } from 'react-i18next';
 import { Checkbox } from '@/shared/ui/checkbox';
 import {
   Dialog,

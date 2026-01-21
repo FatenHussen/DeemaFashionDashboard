@@ -1,5 +1,6 @@
-import { axiosInstance, apiRoutes } from '@/api';
 import type { AreaData, AreaListResponse, AreaCreateUpdatePayload } from '../types/area.types';
+
+import { apiRoutes, axiosInstance } from '@/api';
 
 export type { AreaCreateUpdatePayload };
 

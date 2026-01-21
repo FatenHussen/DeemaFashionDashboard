@@ -1,8 +1,8 @@
 import type { RecycleBinType } from '@/types/recycleBin/recycleBin';
 
 import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { Button } from '@/shared/ui/button';
+import { useTranslation } from 'react-i18next';
 import { Filter, RotateCcw } from 'lucide-react';
 import {
   DropdownMenu,

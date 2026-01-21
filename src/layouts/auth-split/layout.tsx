@@ -8,7 +8,6 @@ import { paths } from 'src/routes/paths';
 import { RouterLink } from 'src/routes/components';
 
 import { CONFIG } from 'src/global-config';
-
 import { Logo } from 'src/shared/components/logo';
 
 import { AuthSplitSection } from './section';

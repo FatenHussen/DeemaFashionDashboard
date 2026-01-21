@@ -1,11 +1,12 @@
-import { CONFIG } from 'src/global-config';
 import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
 import { DataTable } from '@/shared/ui/table-data/table-data';
-import { cityColumns, type CityFormValues } from '@/columns/one/locations/city';
-import { useFetchCities, useDeleteCity } from '@/pages/dashboard/locations/hooks/city';
 import { usePermissions } from '@/auth/hooks/use-permissions';
+import { cityColumns, type CityFormValues } from '@/columns/one/locations/city';
+import { useDeleteCity, useFetchCities } from '@/pages/dashboard/locations/hooks/city';
+
+import { CONFIG } from 'src/global-config';
 
 // ----------------------------------------------------------------------
 
@@ -45,8 +46,8 @@ export default function Page() {
         await deleteCityMutation.mutateAsync(deletingId);
         toast.success(t('deleteSuccess') || 'City deleted successfully');
         setDeletingId(null);
-      } catch (error: any) {
-        toast.error(error?.message || t('deleteError') || 'Failed to delete city');
+      } catch (err: any) {
+        toast.error(err?.message || t('deleteError') || 'Failed to delete city');
       }
     }
   };
@@ -81,9 +82,7 @@ export default function Page() {
 
   const { can } = usePermissions();
 
-  const hasPermission = (action: string, resource: string) => {
-    return can(`${resource}.${action}`);
-  };
+  const hasPermission = (action: string, resource: string) => can(`${resource}.${action}`);
 
   return (
     <>

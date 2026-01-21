@@ -4,13 +4,12 @@ import { m } from 'framer-motion';
 import { useState, useCallback } from 'react';
 import { useBoolean } from 'minimal-shared/hooks';
 
-import { Box, Tab, Badge, Drawer, Button, Tooltip, Typography, IconButton } from 'src/shared/ui';
-
 import { Label } from 'src/shared/components/label';
 import { Iconify } from 'src/shared/components/iconify';
 import { Scrollbar } from 'src/shared/components/scrollbar';
 import { CustomTabs } from 'src/shared/components/custom-tabs';
 import { varTap, varHover, transitionTap } from 'src/shared/components/animate';
+import { Box, Tab, Badge, Drawer, Button, Tooltip, Typography, IconButton } from 'src/shared/ui';
 
 import { NotificationItem } from './notification-item';
 

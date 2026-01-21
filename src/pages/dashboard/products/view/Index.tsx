@@ -1,12 +1,13 @@
-import { CONFIG } from 'src/global-config';
-import { useState, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useState } from 'react';
 import { toast } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router';
 import { DataTable } from '@/shared/ui/table-data/table-data';
+import { usePermissions } from '@/auth/hooks/use-permissions';
 import { brandColumns, type BrandFormValues } from '@/columns/one/products/one';
 import { useFetchBrands, useDeleteBrand } from '@/pages/dashboard/products/hooks/brand';
-import { usePermissions } from '@/auth/hooks/use-permissions';
+
+import { CONFIG } from 'src/global-config';
 
 // ----------------------------------------------------------------------
 
@@ -43,8 +44,8 @@ export default function Page() {
         await deleteBrandMutation.mutateAsync(deletingId);
         toast.success(t('deleteSuccess') || 'Brand deleted successfully');
         setDeletingId(null);
-      } catch (error: any) {
-        toast.error(error?.message || t('deleteError') || 'Failed to delete brand');
+      } catch (err: any) {
+        toast.error(err?.message || t('deleteError') || 'Failed to delete brand');
       }
     }
   };
@@ -54,13 +55,11 @@ export default function Page() {
   };
 
   // Extract data from API response
-  const brandData: BrandFormValues[] = brandsResponse?.data?.items || [];
+  const brandData: BrandFormValues[] = (brandsResponse?.data.items ?? []) as BrandFormValues[];
 
   const { can } = usePermissions();
 
-  const hasPermission = (action: string, resource: string) => {
-    return can(`${resource}.${action}`);
-  };
+  const hasPermission = (action: string, resource: string) => can(`${resource}.${action}`);
 
   return (
     <>
@@ -83,7 +82,7 @@ export default function Page() {
         )}
         data={brandData}
         createPath="/products/create"
-        hasDetails={true}
+        hasDetails
         permissions={{
           create: hasPermission('create', 'brand'),
           update: hasPermission('update', 'brand'),

@@ -1,4 +1,4 @@
-export { default as axiosInstance, fetcher } from './axios';
 export { apiRoutes } from './routes';
 export { queryKeys } from './queryKeys';
+export { fetcher, default as axiosInstance } from './axios';
 

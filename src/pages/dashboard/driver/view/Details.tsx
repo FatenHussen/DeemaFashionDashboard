@@ -1,11 +1,12 @@
-import { useParams, useNavigate } from 'react-router';
-import { CONFIG } from 'src/global-config';
-import { useFetchDriverById } from '@/pages/dashboard/driver/hooks/driver';
-import { LoadingScreen } from 'src/shared/components/loading-screen';
-import { Iconify } from '@/shared/components/iconify';
 import { Button } from '@/shared/ui/button';
+import { useParams, useNavigate } from 'react-router';
+import { Iconify } from '@/shared/components/iconify';
+import { useFetchDriverById } from '@/pages/dashboard/driver/hooks/driver';
+
+import { CONFIG } from 'src/global-config';
 import { Box, Typography } from 'src/shared/ui';
 import { Separator } from 'src/shared/ui/separator';
+import { LoadingScreen } from 'src/shared/components/loading-screen';
 
 // ----------------------------------------------------------------------
 

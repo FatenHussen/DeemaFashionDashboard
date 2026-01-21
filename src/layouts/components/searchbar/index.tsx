@@ -6,7 +6,6 @@ import { useBoolean } from 'minimal-shared/hooks';
 import { useMemo, useState, useEffect, useCallback } from 'react';
 
 import { Box, Input, Modal } from 'src/shared/ui';
-
 import { Label } from 'src/shared/components/label';
 import { Iconify } from 'src/shared/components/iconify';
 import { Scrollbar } from 'src/shared/components/scrollbar';

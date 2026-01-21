@@ -1,7 +1,6 @@
-import { axiosInstance, apiRoutes } from 'src/api';
+import { apiRoutes, axiosInstance } from 'src/api';
 
 import { setSession } from './utils';
-import { JWT_STORAGE_KEY } from './constant';
 
 // ----------------------------------------------------------------------
 

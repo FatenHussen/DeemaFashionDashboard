@@ -6,7 +6,6 @@ import { mergeClasses } from 'minimal-shared/utils';
 import { usePathname } from 'src/routes/hooks';
 
 import { Box, Drawer } from 'src/shared/ui';
-
 import { Logo } from 'src/shared/components/logo';
 import { Scrollbar } from 'src/shared/components/scrollbar';
 import { NavSectionVertical } from 'src/shared/components/nav-section';

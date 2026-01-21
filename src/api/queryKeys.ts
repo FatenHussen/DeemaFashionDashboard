@@ -65,7 +65,38 @@ export const queryKeys = {
   // Category Attribute query keys
   categoryAttribute: {
     list: (params?: { page?: number; limit?: number }) =>
-      ['category-attribute', 'list', params] as const,
-    details: (id: number | string) => ['category-attribute', 'details', id] as const,
+      ['categoryattribute', 'list', params] as const,
+    details: (id: number | string) => ['categoryattribute', 'details', id] as const,
+  },
+  // Category Detail query keys
+  categoryDetail: {
+    list: (params?: { page?: number; limit?: number }) =>
+      ['categorydetail', 'list', params] as const,
+    details: (id: number | string) => ['categorydetail', 'details', id] as const,
+  },
+  // Service query keys
+  service: {
+    list: (params?: { page?: number; limit?: number }) => ['service', 'list', params] as const,
+    details: (id: number | string) => ['service', 'details', id] as const,
+  },
+  // Language query keys
+  language: {
+    list: (params?: { page?: number; limit?: number; code?: string; is_active?: number; direction?: string }) => ['language', 'list', params] as const,
+    details: (id: number | string) => ['language', 'details', id] as const,
+  },
+  // Section query keys
+  section: {
+    list: (params?: { page?: number; limit?: number }) => ['section', 'list', params] as const,
+    details: (id: number | string) => ['section', 'details', id] as const,
+    itemTypes: () => ['section', 'item-types'] as const,
+    manualItems: (manualModel: string, url: string, params?: { page?: number; limit?: number; search?: string }) =>
+      ['section', 'manual-items', manualModel, url, params] as const,
+  },
+  // Page Section query keys
+  pageSection: {
+    list: (params?: { page?: number; limit?: number }) => ['pageSection', 'list', params] as const,
+    details: (id: number | string) => ['pageSection', 'details', id] as const,
+    pages: () => ['pageSection', 'pages'] as const,
+    displayTypes: () => ['pageSection', 'display-types'] as const,
   },
 } as const;

@@ -7,7 +7,6 @@ import { paths } from 'src/routes/paths';
 import { RouterLink } from 'src/routes/components';
 
 import { Box, Alert } from 'src/shared/ui';
-
 import { Logo } from 'src/shared/components/logo';
 
 import { SimpleCompactContent } from './content';

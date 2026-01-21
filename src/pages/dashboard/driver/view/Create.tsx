@@ -1,25 +1,24 @@
-import { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
+
+import { toast } from 'react-toastify';
+import { useState, useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useNavigate } from 'react-router';
-import { toast } from 'react-toastify';
-import { CONFIG } from 'src/global-config';
-
-import { Box, Typography, Input } from 'src/shared/ui';
-import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
-import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
 import { Iconify } from '@/shared/components/iconify';
-import { Controller } from 'react-hook-form';
-import {
-  useFetchDriverById,
-  useCreateDriver,
-  useUpdateDriver,
-} from '@/pages/dashboard/driver/hooks/driver';
+import { useForm , Controller } from 'react-hook-form';
 import {
   DriverSchema,
   type DriverFormValues,
 } from '@/pages/dashboard/driver/validation/driver.validation';
-import type { DriverDetailsResponse } from '@/pages/dashboard/driver/types/driver.types';
+import {
+  useCreateDriver,
+  useUpdateDriver,
+  useFetchDriverById,
+} from '@/pages/dashboard/driver/hooks/driver';
+
+import { CONFIG } from 'src/global-config';
+import { Box, Input, Typography } from 'src/shared/ui';
+import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
+import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
 
 // ----------------------------------------------------------------------
 
@@ -245,9 +244,9 @@ export default function CreatePage() {
                     if (value) {
                       const ids = value
                         .split(',')
-                        .map((id) => id.trim())
-                        .filter((id) => id)
-                        .map((id) => ({ id: Number(id) }));
+                        .map((areaId) => areaId.trim())
+                        .filter((areaId) => areaId)
+                        .map((areaId) => ({ id: Number(areaId) }));
                       field.onChange(ids);
                       setSelectedAreas(ids);
                     } else {

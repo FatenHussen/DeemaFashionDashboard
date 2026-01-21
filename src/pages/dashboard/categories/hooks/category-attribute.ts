@@ -1,24 +1,21 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/api';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+
 import {
   _CategoryAttributeApi,
   type CategoryAttributeCreateUpdatePayload,
 } from '../api/category-attribute.services';
 
-export const useFetchCategoryAttributes = (page: number = 1, limit: number = 25) => {
-  return useQuery({
+export const useFetchCategoryAttributes = (page: number = 1, limit: number = 25) => useQuery({
     queryKey: queryKeys.categoryAttribute.list({ page, limit }),
     queryFn: () => _CategoryAttributeApi.getListCategoryAttributes(page, limit),
   });
-};
 
-export const useFetchCategoryAttributeById = (id: number | string) => {
-  return useQuery({
+export const useFetchCategoryAttributeById = (id: number | string) => useQuery({
     queryKey: queryKeys.categoryAttribute.details(id),
     queryFn: () => _CategoryAttributeApi.getCategoryAttributeById(id),
     enabled: !!id,
   });
-};
 
 export const useCreateCategoryAttribute = () => {
   const queryClient = useQueryClient();
@@ -77,8 +74,7 @@ export const useDeleteCategoryAttribute = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: number | string) =>
-      _CategoryAttributeApi.deleteCategoryAttribute(id),
+    mutationFn: (id: number | string) => _CategoryAttributeApi.deleteCategoryAttribute(id),
     onSuccess: (_, id) => {
       // Invalidate all category attribute list queries (matches all queries starting with ['category-attribute', 'list'])
       queryClient.invalidateQueries({
@@ -99,4 +95,3 @@ export const useDeleteCategoryAttribute = () => {
     },
   });
 };
-

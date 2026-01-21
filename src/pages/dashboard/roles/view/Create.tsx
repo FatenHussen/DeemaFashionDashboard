@@ -1,25 +1,26 @@
-import { useEffect, useMemo } from 'react';
+import type { Permission } from '@/pages/dashboard/roles/types/role.types';
+
+import { toast } from 'react-toastify';
+import { useMemo, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useNavigate } from 'react-router';
-import { toast } from 'react-toastify';
-import { CONFIG } from 'src/global-config';
-
-import { Box, Typography, Checkbox } from 'src/shared/ui';
-import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
-import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
 import { Iconify } from '@/shared/components/iconify';
-import {
-  useFetchRoleById,
-  useCreateRole,
-  useUpdateRole,
-  useFetchPermissions,
-} from '@/pages/dashboard/roles/hooks/role';
 import {
   RoleSchema,
   type RoleFormValues,
 } from '@/pages/dashboard/roles/validation/role.validation';
-import type { Permission } from '@/pages/dashboard/roles/types/role.types';
+import {
+  useCreateRole,
+  useUpdateRole,
+  useFetchRoleById,
+  useFetchPermissions,
+} from '@/pages/dashboard/roles/hooks/role';
+
+import { CONFIG } from 'src/global-config';
+import { Box, Checkbox, Typography } from 'src/shared/ui';
+import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
+import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
 
 // ----------------------------------------------------------------------
 
@@ -118,7 +119,7 @@ export default function CreatePage() {
   const toggleResourceGroup = (resourcePermissions: Permission[]) => {
     const current = selectedPermissions || [];
     const resourcePermissionIds = resourcePermissions.map((p) => p.id);
-    const allSelected = resourcePermissionIds.every((id) => current.some((p) => p.id === id));
+    const allSelected = resourcePermissionIds.every((permId) => current.some((p) => p.id === permId));
 
     if (allSelected) {
       // Deselect all permissions in this group
@@ -126,9 +127,9 @@ export default function CreatePage() {
     } else {
       // Select all permissions in this group
       const newPermissions = [...current];
-      resourcePermissionIds.forEach((id) => {
-        if (!newPermissions.some((p) => p.id === id)) {
-          newPermissions.push({ id });
+      resourcePermissionIds.forEach((permId) => {
+        if (!newPermissions.some((p) => p.id === permId)) {
+          newPermissions.push({ id: permId });
         }
       });
       return newPermissions;

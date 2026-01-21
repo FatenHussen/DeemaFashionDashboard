@@ -4,7 +4,6 @@ import { RouterLink } from 'src/routes/components';
 
 import { SimpleLayout } from 'src/layouts/simple';
 import { PageNotFoundIllustration } from 'src/assets/illustrations';
-
 import { varBounce, MotionContainer } from 'src/shared/components/animate';
 
 // ----------------------------------------------------------------------

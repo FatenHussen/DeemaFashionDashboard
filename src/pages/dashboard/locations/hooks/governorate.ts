@@ -1,21 +1,18 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/api';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+
 import { _GovernorateApi, type GovernorateCreateUpdatePayload } from '../api/governorate.services';
 
-export const useFetchGovernorates = (page: number = 1, limit: number = 25) => {
-  return useQuery({
+export const useFetchGovernorates = (page: number = 1, limit: number = 25) => useQuery({
     queryKey: queryKeys.governorate.list({ page, limit }),
     queryFn: () => _GovernorateApi.getListGovernorates(),
   });
-};
 
-export const useFetchGovernorateById = (id: number | string) => {
-  return useQuery({
+export const useFetchGovernorateById = (id: number | string) => useQuery({
     queryKey: queryKeys.governorate.details(id),
     queryFn: () => _GovernorateApi.getGovernorateById(id),
     enabled: !!id,
   });
-};
 
 export const useCreateGovernorate = (page?: number, limit?: number) => {
   const queryClient = useQueryClient();

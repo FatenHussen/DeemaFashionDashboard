@@ -1,11 +1,12 @@
-import { CONFIG } from 'src/global-config';
 import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
 import { DataTable } from '@/shared/ui/table-data/table-data';
-import { categoryColumns, type CategoryFormValues } from '@/columns/one/categories/one';
-import { useFetchCategories, useDeleteCategory } from '@/pages/dashboard/categories/hooks/category';
 import { usePermissions } from '@/auth/hooks/use-permissions';
+import { categoryColumns, type CategoryFormValues } from '@/columns/one/categories/one';
+import { useDeleteCategory, useFetchCategories } from '@/pages/dashboard/categories/hooks/category';
+
+import { CONFIG } from 'src/global-config';
 
 // ----------------------------------------------------------------------
 
@@ -48,8 +49,8 @@ export default function Page() {
         await deleteCategoryMutation.mutateAsync(deletingId);
         toast.success(t('deleteSuccess') || 'Category deleted successfully');
         setDeletingId(null);
-      } catch (error: any) {
-        toast.error(error?.message || t('deleteError') || 'Failed to delete category');
+      } catch (err: any) {
+        toast.error(err?.message || t('deleteError') || 'Failed to delete category');
       }
     }
   };
@@ -84,9 +85,7 @@ export default function Page() {
 
   const { can } = usePermissions();
 
-  const hasPermission = (action: string, resource: string) => {
-    return can(`${resource}.${action}`);
-  };
+  const hasPermission = (action: string, resource: string) => can(`${resource}.${action}`);
 
   return (
     <>

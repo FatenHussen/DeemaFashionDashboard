@@ -1,5 +1,6 @@
-import { axiosInstance, apiRoutes } from '@/api';
 import type { CityData, CityListResponse, CityCreateUpdatePayload } from '../types/city.types';
+
+import { apiRoutes, axiosInstance } from '@/api';
 
 export type { CityCreateUpdatePayload };
 

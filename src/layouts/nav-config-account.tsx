@@ -1,7 +1,8 @@
 import type { AccountDrawerProps } from './components/account-drawer';
 
-import { Iconify } from 'src/shared/components/iconify';
 import { paths } from 'src/routes/paths';
+
+import { Iconify } from 'src/shared/components/iconify';
 
 // ----------------------------------------------------------------------
 

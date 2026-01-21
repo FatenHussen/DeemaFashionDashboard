@@ -1,9 +1,10 @@
-import { axiosInstance, apiRoutes } from '@/api';
 import type {
   VendorData,
   VendorListResponse,
   VendorCreateUpdatePayload,
 } from '../types/vendor.types';
+
+import { apiRoutes, axiosInstance } from '@/api';
 
 export const _VendorApi = {
   getListVendor: async (): Promise<VendorListResponse> => {

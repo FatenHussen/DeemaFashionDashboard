@@ -1,21 +1,18 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/api';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+
 import { _AreaApi, type AreaCreateUpdatePayload } from '../api/area.services';
 
-export const useFetchAreas = (page: number = 1, limit: number = 25) => {
-  return useQuery({
+export const useFetchAreas = (page: number = 1, limit: number = 25) => useQuery({
     queryKey: queryKeys.area.list({ page, limit }),
     queryFn: () => _AreaApi.getListAreas(),
   });
-};
 
-export const useFetchAreaById = (id: number | string) => {
-  return useQuery({
+export const useFetchAreaById = (id: number | string) => useQuery({
     queryKey: queryKeys.area.details(id),
     queryFn: () => _AreaApi.getAreaById(id),
     enabled: !!id,
   });
-};
 
 export const useCreateArea = (page?: number, limit?: number) => {
   const queryClient = useQueryClient();

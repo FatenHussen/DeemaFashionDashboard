@@ -2,8 +2,8 @@ import type { ZodSchema } from 'zod';
 import type { Row } from '@tanstack/react-table';
 
 import { useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { Button } from '@/shared/ui/button';
+import { useTranslation } from 'react-i18next';
 import { RotateCcw, MoreHorizontal } from 'lucide-react';
 import { Dialog, DialogContent } from '@/shared/ui/dialogTable';
 import {

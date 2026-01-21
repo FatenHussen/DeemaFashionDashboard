@@ -1,5 +1,6 @@
-import { axiosInstance, apiRoutes } from '@/api';
 import type { ShopData, ShopListResponse, ShopCreateUpdatePayload } from '../types/shop.types';
+
+import { apiRoutes, axiosInstance } from '@/api';
 
 export const _ShopApi = {
   getListShop: async (): Promise<ShopListResponse> => {

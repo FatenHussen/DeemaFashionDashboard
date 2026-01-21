@@ -1,5 +1,5 @@
-import { useTranslation } from 'react-i18next';
 import { Button } from '@/shared/ui/button';
+import { useTranslation } from 'react-i18next';
 // data-table-pagination.tsx
 import { type Table } from '@tanstack/react-table';
 import { useLocalizationStore } from '@/store/useLocalizationStore';
@@ -51,15 +51,17 @@ export function DataTablePagination<TData>({
     }
 
     if (!pagination) {
-      const currentPageIndex = table?.getState().pagination.pageIndex || 0;
+      const pageIndex = table?.getState().pagination.pageIndex || 0;
       const totalPageCount = table?.getPageCount() || 1;
       const delta = 2;
       const range = [];
       const rangeWithDots = [];
+      
+      // Use pageIndex instead of currentPageIndex to avoid shadowing
 
       for (
-        let i = Math.max(0, currentPageIndex - delta);
-        i <= Math.min(totalPageCount - 1, currentPageIndex + delta);
+        let i = Math.max(0, pageIndex - delta);
+        i <= Math.min(totalPageCount - 1, pageIndex + delta);
         i++
       ) {
         range.push(i);

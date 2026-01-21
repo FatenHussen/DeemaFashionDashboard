@@ -3,7 +3,6 @@ import type { NavSectionProps } from 'src/shared/components/nav-section';
 import { varAlpha, mergeClasses } from 'minimal-shared/utils';
 
 import { Box } from 'src/shared/ui';
-
 import { NavSectionHorizontal } from 'src/shared/components/nav-section';
 
 import { layoutClasses } from '../core';

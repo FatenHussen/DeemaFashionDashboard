@@ -96,6 +96,49 @@ export const apiRoutes = {
     delete: (id: number | string) => `${ROOTS.ADMIN}/category-attributes/${id}`,
     details: (id: number | string) => `${ROOTS.ADMIN}/category-attributes/${id}`,
   },
+  // Category Details routes
+  categoryDetail: {
+    list: `${ROOTS.ADMIN}/category-details`,
+    create: `${ROOTS.ADMIN}/category-details`,
+    update: (id: number | string) => `${ROOTS.ADMIN}/category-details/${id}`,
+    delete: (id: number | string) => `${ROOTS.ADMIN}/category-details/${id}`,
+    details: (id: number | string) => `${ROOTS.ADMIN}/category-details/${id}`,
+  },
+  // Service routes
+  service: {
+    list: `${ROOTS.ADMIN}/services`,
+    create: `${ROOTS.ADMIN}/services`,
+    update: (id: number | string) => `${ROOTS.ADMIN}/services/${id}`,
+    delete: (id: number | string) => `${ROOTS.ADMIN}/services/${id}`,
+    details: (id: number | string) => `${ROOTS.ADMIN}/services/${id}`,
+  },
+  // Language routes
+  language: {
+    list: `${ROOTS.ADMIN}/languages`,
+    create: `${ROOTS.ADMIN}/languages`,
+    update: (id: number | string) => `${ROOTS.ADMIN}/languages/${id}`,
+    delete: (id: number | string) => `${ROOTS.ADMIN}/languages/${id}`,
+    details: (id: number | string) => `${ROOTS.ADMIN}/languages/${id}`,
+  },
+  // Section routes
+  section: {
+    list: `${ROOTS.ADMIN}/sections`,
+    create: `${ROOTS.ADMIN}/sections`,
+    update: (id: number | string) => `${ROOTS.ADMIN}/sections/${id}`,
+    delete: (id: number | string) => `${ROOTS.ADMIN}/sections/${id}`,
+    details: (id: number | string) => `${ROOTS.ADMIN}/sections/${id}`,
+    itemTypes: `${ROOTS.ADMIN}/sections/item-types`,
+  },
+  // Page Section routes
+  pageSection: {
+    list: `${ROOTS.ADMIN}/page-sections`,
+    create: `${ROOTS.ADMIN}/page-sections`,
+    update: (id: number | string) => `${ROOTS.ADMIN}/page-sections/${id}`,
+    delete: (id: number | string) => `${ROOTS.ADMIN}/page-sections/${id}`,
+    details: (id: number | string) => `${ROOTS.ADMIN}/page-sections/${id}`,
+    pages: `${ROOTS.ADMIN}/sections/pages`,
+    displayTypes: `${ROOTS.ADMIN}/sections/display-types`,
+  },
   // Other API routes (from old endpoints)
   chat: '/api/chat',
   kanban: '/api/kanban',

@@ -1,7 +1,8 @@
 import { Navigate } from 'react-router';
-import { usePermissions } from '../hooks/use-permissions';
 import { LoadingScreen } from '@/shared/components/loading-screen';
 import { useAuthContext } from '@/pages/auth/hooks/use-auth-context';
+
+import { usePermissions } from '../hooks/use-permissions';
 
 // ----------------------------------------------------------------------
 

@@ -1,12 +1,14 @@
-import { CONFIG } from 'src/global-config';
-import { useQuery } from '@tanstack/react-query';
-import { useTranslation } from 'react-i18next';
 import { queryKeys } from '@/api';
-import { _ProfileApi } from '../api/profile.services';
+import { useTranslation } from 'react-i18next';
+import { useQuery } from '@tanstack/react-query';
+
+import { CONFIG } from 'src/global-config';
+import { Separator } from 'src/shared/ui/separator';
+import { Box, Badge, Typography } from 'src/shared/ui';
 import { Iconify } from 'src/shared/components/iconify';
 import { LoadingScreen } from 'src/shared/components/loading-screen';
-import { Box, Typography, Badge } from 'src/shared/ui';
-import { Separator } from 'src/shared/ui/separator';
+
+import { _ProfileApi } from '../api/profile.services';
 
 // ----------------------------------------------------------------------
 
@@ -87,8 +89,12 @@ export default function ProfilePage() {
               </Typography>
             </Box>
             <Badge
-              variant={profile.is_active === 1 ? 'default' : 'secondary'}
-              className="text-sm px-3 py-1"
+              variant="standard"
+              className={`text-sm px-3 py-1 ${
+                profile.is_active === 1
+                  ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                  : 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
+              }`}
             >
               {profile.is_active === 1 ? 'Active' : 'Inactive'}
             </Badge>
@@ -150,7 +156,11 @@ export default function ProfilePage() {
               <Box className="flex flex-wrap gap-2 justify-end">
                 {profile.roles && profile.roles.length > 0 ? (
                   profile.roles.map((role) => (
-                    <Badge key={role} variant="outline" className="text-sm capitalize">
+                    <Badge
+                      key={role}
+                      variant="standard"
+                      className="text-sm capitalize border bg-transparent"
+                    >
                       {role}
                     </Badge>
                   ))
@@ -172,7 +182,14 @@ export default function ProfilePage() {
                   Account Status
                 </Typography>
               </Box>
-              <Badge variant={profile.is_active === 1 ? 'default' : 'secondary'}>
+              <Badge
+                variant="standard"
+                className={`${
+                  profile.is_active === 1
+                    ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                    : 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
+                }`}
+              >
                 {profile.is_active === 1 ? 'Active' : 'Inactive'}
               </Badge>
             </Box>

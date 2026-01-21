@@ -1,8 +1,5 @@
 import type { HTMLAttributes } from 'react';
 
-import { RouterLink } from 'src/routes/components';
-
-import { CONFIG } from 'src/global-config';
 
 // ----------------------------------------------------------------------
 

@@ -1,36 +1,11 @@
-import { Iconify } from 'src/shared/components/iconify';
+import { CSS } from '@dnd-kit/utilities';
+import { useSortable } from '@dnd-kit/sortable';
 import { mergeClasses } from 'minimal-shared/utils';
+
+import { Iconify } from 'src/shared/components/iconify';
 
 // Type definitions for optional dependencies
 type UniqueIdentifier = string | number;
-
-// Stub for dnd-kit if not available
-let useSortable: any;
-let CSS: any;
-
-try {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const dndSortable = require('@dnd-kit/sortable');
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const dndUtilities = require('@dnd-kit/utilities');
-
-  useSortable = dndSortable.useSortable;
-  CSS = dndUtilities.CSS;
-} catch {
-  // DnD Kit not available - provide fallbacks
-  useSortable = () => ({
-    attributes: {},
-    listeners: {},
-    setNodeRef: () => {},
-    transform: null,
-    transition: null,
-  });
-  CSS = {
-    Transform: {
-      toString: () => '',
-    },
-  };
-}
 
 interface SortableItemProps {
   id: UniqueIdentifier;
@@ -38,8 +13,7 @@ interface SortableItemProps {
 }
 
 export function SortableItem({ id, children }: SortableItemProps) {
-  const { attributes, listeners, setNodeRef, transform, transition } =
-    useSortable({ id });
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
 
   const style = {
     transform: CSS.Transform.toString(transform),

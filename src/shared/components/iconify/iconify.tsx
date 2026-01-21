@@ -11,7 +11,7 @@ import { allIconNames, registerIcons } from './register-icons';
 // ----------------------------------------------------------------------
 
 export type IconifyProps = Omit<IconProps, 'icon'> & {
-  icon: IconifyName;
+  icon: string;
   className?: string;
   width?: number | string;
   height?: number | string;
@@ -20,7 +20,7 @@ export type IconifyProps = Omit<IconProps, 'icon'> & {
 export function Iconify({ className, icon, width = 20, height, ...other }: IconifyProps) {
   const uniqueId = useId();
 
-  if (!allIconNames.includes(icon)) {
+  if (!allIconNames.includes(icon as IconifyName)) {
     console.warn(
       [
         `Icon "${icon}" is currently loaded online, which may cause flickering effects.`,
@@ -40,11 +40,7 @@ export function Iconify({ className, icon, width = 20, height, ...other }: Iconi
       ssr
       id={uniqueId}
       icon={icon}
-      className={mergeClasses([
-        iconifyClasses.root,
-        'inline-flex flex-shrink-0',
-        className,
-      ])}
+      className={mergeClasses([iconifyClasses.root, 'inline-flex flex-shrink-0', className])}
       style={{ width: iconWidth, height: iconHeight }}
       {...other}
     />

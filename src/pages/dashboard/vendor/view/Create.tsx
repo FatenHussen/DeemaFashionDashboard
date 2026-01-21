@@ -1,23 +1,23 @@
 import { useEffect } from 'react';
+import { toast } from 'react-toastify';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useNavigate } from 'react-router';
-import { toast } from 'react-toastify';
-import { CONFIG } from 'src/global-config';
-
-import { Box, Typography, Checkbox } from 'src/shared/ui';
-import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
-import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
 import { Iconify } from '@/shared/components/iconify';
-import {
-  useFetchVendorById,
-  useCreateVendor,
-  useUpdateVendor,
-} from '@/pages/dashboard/vendor/hooks/vendor';
 import {
   VendorSchema,
   type VendorFormValues,
 } from '@/pages/dashboard/vendor/validation/vendor.validation';
+import {
+  useCreateVendor,
+  useUpdateVendor,
+  useFetchVendorById,
+} from '@/pages/dashboard/vendor/hooks/vendor';
+
+import { CONFIG } from 'src/global-config';
+import { Box, Checkbox, Typography } from 'src/shared/ui';
+import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
+import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
 
 // ----------------------------------------------------------------------
 

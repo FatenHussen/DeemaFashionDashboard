@@ -1,14 +1,15 @@
-import { CONFIG } from 'src/global-config';
 import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
 import { DataTable } from '@/shared/ui/table-data/table-data';
+import { usePermissions } from '@/auth/hooks/use-permissions';
 import { governorateColumns, type GovernorateFormValues } from '@/columns/one/locations/one';
 import {
   useFetchGovernorates,
   useDeleteGovernorate,
 } from '@/pages/dashboard/locations/hooks/governorate';
-import { usePermissions } from '@/auth/hooks/use-permissions';
+
+import { CONFIG } from 'src/global-config';
 
 // ----------------------------------------------------------------------
 
@@ -52,8 +53,8 @@ export default function Page() {
         await deleteGovernorateMutation.mutateAsync(deletingId);
         toast.success(t('deleteSuccess') || 'Governorate deleted successfully');
         setDeletingId(null);
-      } catch (error: any) {
-        toast.error(error?.message || t('deleteError') || 'Failed to delete governorate');
+      } catch (err: any) {
+        toast.error(err?.message || t('deleteError') || 'Failed to delete governorate');
       }
     }
   };
@@ -85,9 +86,7 @@ export default function Page() {
 
   const { can } = usePermissions();
 
-  const hasPermission = (action: string, resource: string) => {
-    return can(`${resource}.${action}`);
-  };
+  const hasPermission = (action: string, resource: string) => can(`${resource}.${action}`);
 
   return (
     <>

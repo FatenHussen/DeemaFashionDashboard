@@ -1,5 +1,8 @@
-import { axiosInstance, apiRoutes } from '@/api';
 import type { AdminData, AdminListResponse, AdminCreateUpdatePayload } from '../types/admin.types';
+
+import { apiRoutes, axiosInstance } from '@/api';
+
+export type { AdminCreateUpdatePayload };
 
 export const _AdminApi = {
   getListAdmin: async (): Promise<AdminListResponse> => {

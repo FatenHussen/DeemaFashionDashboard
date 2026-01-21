@@ -1,9 +1,10 @@
-import { axiosInstance, apiRoutes } from '@/api';
 import type {
   GovernorateData,
   GovernorateListResponse,
   GovernorateCreateUpdatePayload,
 } from '../types/governorate.types';
+
+import { apiRoutes, axiosInstance } from '@/api';
 
 export type { GovernorateCreateUpdatePayload };
 

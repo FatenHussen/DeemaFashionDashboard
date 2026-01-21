@@ -1,12 +1,12 @@
-import { CONFIG } from 'src/global-config';
 import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
 import { DataTable } from '@/shared/ui/table-data/table-data';
-import { roleColumns, type RoleFormValues } from '@/columns/one/role/one';
-import { useFetchRoles, useDeleteRole, useFetchRoleById } from '@/pages/dashboard/roles/hooks/role';
-import { Iconify } from '@/shared/components/iconify';
 import { usePermissions } from '@/auth/hooks/use-permissions';
+import { roleColumns, type RoleFormValues } from '@/columns/one/role/one';
+import { useFetchRoles, useDeleteRole } from '@/pages/dashboard/roles/hooks/role';
+
+import { CONFIG } from 'src/global-config';
 
 // ----------------------------------------------------------------------
 
@@ -46,8 +46,8 @@ export default function Page() {
         await deleteRoleMutation.mutateAsync(deletingId);
         toast.success(t('deleteSuccess') || 'Role deleted successfully');
         setDeletingId(null);
-      } catch (error: any) {
-        toast.error(error?.message || t('deleteError') || 'Failed to delete role');
+      } catch (err: any) {
+        toast.error(err?.message || t('deleteError') || 'Failed to delete role');
       }
     }
   };
@@ -79,9 +79,7 @@ export default function Page() {
 
   const { can } = usePermissions();
 
-  const hasPermission = (action: string, resource: string) => {
-    return can(`${resource}.${action}`);
-  };
+  const hasPermission = (action: string, resource: string) => can(`${resource}.${action}`);
 
   return (
     <>

@@ -1,11 +1,12 @@
-import { CONFIG } from 'src/global-config';
 import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
 import { DataTable } from '@/shared/ui/table-data/table-data';
+import { usePermissions } from '@/auth/hooks/use-permissions';
 import { driverColumns, type DriverFormValues } from '@/columns/one/driver/one';
 import { useFetchDrivers, useDeleteDriver } from '@/pages/dashboard/driver/hooks/driver';
-import { usePermissions } from '@/auth/hooks/use-permissions';
+
+import { CONFIG } from 'src/global-config';
 
 // ----------------------------------------------------------------------
 
@@ -45,8 +46,8 @@ export default function Page() {
         await deleteDriverMutation.mutateAsync(deletingId);
         toast.success(t('deleteSuccess') || 'Driver deleted successfully');
         setDeletingId(null);
-      } catch (error: any) {
-        toast.error(error?.message || t('deleteError') || 'Failed to delete driver');
+      } catch (err: any) {
+        toast.error(err?.message || t('deleteError') || 'Failed to delete driver');
       }
     }
   };
@@ -78,9 +79,7 @@ export default function Page() {
 
   const { can } = usePermissions();
 
-  const hasPermission = (action: string, resource: string) => {
-    return can(`${resource}.${action}`);
-  };
+  const hasPermission = (action: string, resource: string) => can(`${resource}.${action}`);
 
   return (
     <>
@@ -103,7 +102,7 @@ export default function Page() {
         )}
         data={driverData}
         createPath="/driver/create"
-        hasDetails={true}
+        hasDetails
         permissions={{
           create: hasPermission('create', 'driver'),
           update: hasPermission('update', 'driver'),

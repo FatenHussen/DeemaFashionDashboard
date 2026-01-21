@@ -15,6 +15,11 @@ export const ROOTS = {
   AREA: '/locations/area',
   CATEGORIES: '/categories',
   CATEGORY_ATTRIBUTES: '/categories/attributes',
+  CATEGORY_DETAILS: '/categories/details',
+  SERVICES: '/services',
+  LANGUAGES: '/languages',
+  SECTIONS: '/sections',
+  PAGE_SECTIONS: '/sections/page-sections',
 };
 
 // ----------------------------------------------------------------------
@@ -66,12 +71,10 @@ export const paths = {
     area: ROOTS.AREA,
     categories: ROOTS.CATEGORIES,
     categoryAttributes: ROOTS.CATEGORY_ATTRIBUTES,
-    // two: `${ROOTS.DASHBOARD}/two`,
-    // three: `${ROOTS.DASHBOARD}/three`,
-    // group: {
-    //   root: `${ROOTS.DASHBOARD}/group`,
-    //   five: `${ROOTS.DASHBOARD}/group/five`,
-    //   six: `${ROOTS.DASHBOARD}/group/six`,
-    // },
+    categoryDetails: ROOTS.CATEGORY_DETAILS,
+    services: ROOTS.SERVICES,
+    languages: ROOTS.LANGUAGES,
+    sections: ROOTS.SECTIONS,
+    pageSections: ROOTS.PAGE_SECTIONS,
   },
 };

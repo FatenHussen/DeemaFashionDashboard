@@ -1,25 +1,26 @@
+import type { DaySchedule } from '@/pages/dashboard/vendor/types/shop.types';
+
 import { useEffect } from 'react';
+import { toast } from 'react-toastify';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useNavigate } from 'react-router';
-import { toast } from 'react-toastify';
-import { CONFIG } from 'src/global-config';
-
-import { Box, Typography, Checkbox, SimpleSelect, Input } from 'src/shared/ui';
-import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
-import { StepperFormLayout } from 'src/shared/components/forms/stepper-form-layout';
 import { Iconify } from '@/shared/components/iconify';
-import {
-  useFetchShopById,
-  useCreateShop,
-  useUpdateShop,
-} from '@/pages/dashboard/vendor/hooks/shop';
 import { useFetchVendors } from '@/pages/dashboard/vendor/hooks/vendor';
 import {
   ShopSchema,
   type ShopFormValues,
 } from '@/pages/dashboard/vendor/validation/shop.validation';
-import type { DaySchedule } from '@/pages/dashboard/vendor/types/shop.types';
+import {
+  useCreateShop,
+  useUpdateShop,
+  useFetchShopById,
+} from '@/pages/dashboard/vendor/hooks/shop';
+
+import { CONFIG } from 'src/global-config';
+import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
+import { Box, Input, Checkbox, Typography, SimpleSelect } from 'src/shared/ui';
+import { StepperFormLayout } from 'src/shared/components/forms/stepper-form-layout';
 
 // ----------------------------------------------------------------------
 
@@ -654,9 +655,9 @@ export default function CreatePage() {
                         if (value) {
                           const ids = value
                             .split(',')
-                            .map((id) => id.trim())
-                            .filter((id) => id)
-                            .map((id) => ({ id: Number(id) }));
+                            .map((areaId) => areaId.trim())
+                            .filter((areaId) => areaId)
+                            .map((areaId) => ({ id: Number(areaId) }));
                           field.onChange(ids);
                         } else {
                           field.onChange([]);
@@ -736,7 +737,7 @@ export default function CreatePage() {
         steps={steps}
         submitLabel={isEditMode ? 'Update Shop' : 'Create Shop'}
         submittingLabel={isEditMode ? 'Updating...' : 'Creating...'}
-      ></StepperFormLayout>
+       />
     </>
   );
 }

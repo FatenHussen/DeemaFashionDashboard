@@ -1,11 +1,12 @@
-import { useParams, useNavigate } from 'react-router';
-import { CONFIG } from 'src/global-config';
-import { useFetchBrandById } from '@/pages/dashboard/products/hooks/brand';
-import { LoadingScreen } from 'src/shared/components/loading-screen';
-import { Iconify } from '@/shared/components/iconify';
 import { Button } from '@/shared/ui/button';
+import { useParams, useNavigate } from 'react-router';
+import { Iconify } from '@/shared/components/iconify';
+import { useFetchBrandById } from '@/pages/dashboard/products/hooks/brand';
+
+import { CONFIG } from 'src/global-config';
 import { Box, Typography } from 'src/shared/ui';
 import { Separator } from 'src/shared/ui/separator';
+import { LoadingScreen } from 'src/shared/components/loading-screen';
 
 // ----------------------------------------------------------------------
 

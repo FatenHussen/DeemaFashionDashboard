@@ -1,22 +1,20 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { queryKeys } from '@/api';
-import { _BrandApi } from '../api/brand.services';
 import type { BrandCreateUpdatePayload } from '../types/brand.types';
 
-export const useFetchBrands = (params?: { name?: string }) => {
-  return useQuery({
+import { queryKeys } from '@/api';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+
+import { _BrandApi } from '../api/brand.services';
+
+export const useFetchBrands = (params?: { name?: string }) => useQuery({
     queryKey: queryKeys.brand.list(params),
     queryFn: () => _BrandApi.getListBrands(params),
   });
-};
 
-export const useFetchBrandById = (id: number | string) => {
-  return useQuery({
+export const useFetchBrandById = (id: number | string) => useQuery({
     queryKey: queryKeys.brand.details(id),
     queryFn: () => _BrandApi.getBrandById(id),
     enabled: !!id,
   });
-};
 
 export const useCreateBrand = () => {
   const queryClient = useQueryClient();

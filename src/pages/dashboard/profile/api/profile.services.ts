@@ -1,4 +1,4 @@
-import { axiosInstance, apiRoutes } from '@/api';
+import { apiRoutes, axiosInstance } from '@/api';
 
 export type ProfileData = {
   id: number;

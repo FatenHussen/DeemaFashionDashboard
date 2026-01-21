@@ -1,7 +1,7 @@
 import { toast } from 'react-toastify';
 import { Input } from '@/shared/ui/input';
-import { useTranslation } from 'react-i18next';
 import { Button } from '@/shared/ui/button';
+import { useTranslation } from 'react-i18next';
 import { useMeStore } from '@/store/useMeStore';
 import { useRef, useState, useEffect } from 'react';
 import { X, Upload, ChevronUp, ChevronDown } from 'lucide-react';
