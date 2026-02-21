@@ -7,8 +7,13 @@ import type {
 import { apiRoutes, axiosInstance } from '@/api';
 
 export const _VendorApi = {
-  getListVendor: async (): Promise<VendorListResponse> => {
-    const response = await axiosInstance.get<VendorListResponse>(apiRoutes.vendor.list);
+  getListVendor: async (params?: {
+    page?: number;
+    limit?: number;
+  }): Promise<VendorListResponse> => {
+    const response = await axiosInstance.get<VendorListResponse>(apiRoutes.vendor.list, {
+      params,
+    });
     console.log(response);
     return response.data;
   },

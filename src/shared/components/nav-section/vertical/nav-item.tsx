@@ -55,15 +55,14 @@ export const NavItem = forwardRef<HTMLButtonElement, NavItemProps>(function NavI
     'pt-[var(--nav-item-pt)] pr-[var(--nav-item-pr)] pb-[var(--nav-item-pb)] pl-[var(--nav-item-pl)]',
     'rounded-[var(--nav-item-radius)]',
     'text-[var(--nav-item-color)]',
-    'relative group flex items-center justify-center',
+    'relative group flex items-center',
     'transition-all duration-200 ease-out',
-    'hover:bg-[var(--nav-item-hover-bg)] hover:translate-x-0.5',
-    'hover:shadow-sm',
+    'hover:bg-[var(--nav-item-hover-bg)]',
     open
-      ? 'text-[var(--nav-item-root-open-color)] bg-[var(--nav-item-root-open-bg)] shadow-sm'
+      ? 'text-[var(--nav-item-root-open-color)] bg-[var(--nav-item-root-open-bg)]'
       : '',
     active
-      ? 'text-[var(--nav-item-root-active-color)] bg-[var(--nav-item-root-active-bg)] hover:bg-[var(--nav-item-root-active-hover-bg)] shadow-md before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-10 before:bg-[var(--nav-item-root-active-color)] before:rounded-r-full'
+      ? 'text-[var(--nav-item-root-active-color)] bg-[var(--nav-item-root-active-bg)]'
       : '',
     disabled ? 'opacity-48 pointer-events-none' : '',
   ]);
@@ -119,9 +118,6 @@ export const NavItem = forwardRef<HTMLButtonElement, NavItemProps>(function NavI
             'inline-flex shrink-0',
             'w-[var(--nav-icon-size)] h-[var(--nav-icon-size)]',
             'm-[var(--nav-icon-margin)]',
-            'transition-all duration-200',
-            'group-hover:scale-110',
-            active ? 'scale-105' : '',
             '[&>:first-of-type:not(style):not(:first-of-type~*),&>style+*]:w-full [&>:first-of-type:not(style):not(:first-of-type~*),&>style+*]:h-full',
             slotProps?.icon?.className,
           ])}
@@ -186,12 +182,12 @@ export const NavItem = forwardRef<HTMLButtonElement, NavItemProps>(function NavI
 
       {hasChild && (
         <Iconify
-          icon={open ? 'eva:arrow-ios-downward-fill' : 'eva:arrow-ios-forward-fill'}
+          icon="solar:alt-arrow-down-outline"
           className={mergeClasses([
             navSectionClasses.item.arrow,
-            'w-4 h-4 shrink-0 ml-1.5 inline-flex',
+            'w-4 h-4 shrink-0 ml-auto inline-flex',
             'transition-transform duration-200 ease-out',
-            isRtl ? 'scale-x-[-1]' : '',
+            open ? 'rotate-0' : 'rotate-0',
             slotProps?.arrow?.className,
           ])}
           style={slotProps?.arrow?.style}

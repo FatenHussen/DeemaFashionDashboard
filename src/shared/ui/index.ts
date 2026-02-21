@@ -10,6 +10,7 @@ export * from './button';
 export * from './dialog';
 export * from './drawer';
 export * from './select';
+export * from './multi-select';
 export * from './switch';
 export * from './avatar';
 export * from './tooltip';

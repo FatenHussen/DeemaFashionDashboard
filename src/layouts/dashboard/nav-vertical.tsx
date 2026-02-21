@@ -42,20 +42,20 @@ export function NavVertical({
   const renderNavVertical = () => (
     <>
       {slots?.topArea ?? (
-        <Box className="pl-3 pt-4 pb-3 relative z-10 border-b border-border/30">
-          <Box className="transition-all duration-300 hover:scale-[1.02]">
-            <Logo href="/" />
+        <Box className="flex justify-center items-center pt-6 pb-4 relative z-10">
+          <Box className="transition-all duration-300">
+            <Logo href="/" isSingle={false} />
           </Box>
         </Box>
       )}
 
-      <Scrollbar fillContent className="relative z-10 py-1">
+      <Scrollbar fillContent className="relative z-10 py-2">
         <NavSectionVertical
           data={data}
           cssVars={cssVars}
           checkPermissions={checkPermissions}
           checkPermission={checkPermission}
-          className="px-2 flex-auto"
+          className="px-3 flex-auto"
         />
       </Scrollbar>
     </>
@@ -89,23 +89,13 @@ export function NavVertical({
         layoutClasses.nav.root,
         layoutClasses.nav.vertical,
         ' top-0 left-0 h-full hidden fixed flex-col z-[var(--layout-nav-zIndex)]',
-        'bg-gradient-to-b from-background via-background to-muted/20',
-        'backdrop-blur-xl backdrop-saturate-150',
+        'bg-white',
         'overflow-hidden',
         isNavMini ? 'w-[var(--layout-nav-mini-width)]' : 'w-[var(--layout-nav-vertical-width)]',
-        'border-r border-border/40',
-        'shadow-[0_0_0_1px_rgba(0,0,0,0.02),0_4px_24px_rgba(0,0,0,0.04)]',
-        'dark:shadow-[0_0_0_1px_rgba(255,255,255,0.05),0_4px_24px_rgba(0,0,0,0.3)]',
-        // Ensure content is visible
-        'text-foreground',
-        'transition-[width] duration-[var(--layout-transition-duration)] ease-[var(--layout-transition-easing)]',
-        'before:absolute before:inset-0 before:bg-gradient-to-b before:from-primary/5 before:via-transparent before:to-transparent before:pointer-events-none',
-        'after:absolute after:top-0 after:right-0 after:w-px after:h-full after:bg-gradient-to-b after:from-transparent after:via-border/60 after:to-transparent after:pointer-events-none',
         `${layoutQuery}:flex`,
         className,
       ])}
       style={{
-        borderColor: `var(--layout-nav-border-color, ${varAlpha('145 158 171', 0.12)})`,
         ...style,
       }}
       {...other}

@@ -6,12 +6,15 @@ import {
   type CategoryAttributeCreateUpdatePayload,
 } from '../api/category-attribute.services';
 
-export const useFetchCategoryAttributes = (page: number = 1, limit: number = 25) => useQuery({
-    queryKey: queryKeys.categoryAttribute.list({ page, limit }),
+export const useFetchCategoryAttributes = (categoryId: any, page: number = 1, limit: number = 25) =>
+  useQuery({
+    queryKey: queryKeys.categoryAttribute.list({ categoryId, page, limit }),
     queryFn: () => _CategoryAttributeApi.getListCategoryAttributes(page, limit),
+    enabled: !!categoryId,
   });
 
-export const useFetchCategoryAttributeById = (id: number | string) => useQuery({
+export const useFetchCategoryAttributeById = (id: number | string) =>
+  useQuery({
     queryKey: queryKeys.categoryAttribute.details(id),
     queryFn: () => _CategoryAttributeApi.getCategoryAttributeById(id),
     enabled: !!id,

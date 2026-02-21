@@ -7,7 +7,7 @@ export function dashboardLayoutVars() {
     '--layout-transition-easing': 'linear',
     '--layout-transition-duration': '120ms',
     '--layout-nav-mini-width': '88px',
-    '--layout-nav-vertical-width': '180px',
+    '--layout-nav-vertical-width': '240px',
     '--layout-nav-horizontal-height': '64px',
     '--layout-dashboard-content-pt': '8px',
     '--layout-dashboard-content-pb': '32px',

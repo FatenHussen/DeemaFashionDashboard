@@ -76,7 +76,7 @@ export type NavSubListProps = Omit<NavListProps, 'data'> & {
 };
 
 export type NavGroupProps = Omit<NavListProps, 'data' | 'depth'> & {
-  subheader?: string;
+  subheader?: string | React.ReactNode;
   items: NavItemDataProps[];
   checkPermission?: (permission?: string) => boolean;
 };
@@ -88,7 +88,7 @@ export type NavSectionProps = React.ComponentProps<'nav'> &
   Omit<NavListProps, 'data' | 'depth'> & {
     className?: string;
     data: {
-      subheader?: string;
+      subheader?: string | React.ReactNode;
       items: NavItemDataProps[];
     }[];
     checkPermission?: (permission?: string) => boolean;

@@ -7,7 +7,7 @@ import { Input } from '@/shared/ui/input';
 import { useNavigate } from 'react-router';
 import { Button } from '@/shared/ui/button';
 import { useTranslation } from 'react-i18next';
-import { X, Plus, Download } from 'lucide-react';
+import { X, Plus, Download, Search, Sparkles } from 'lucide-react';
 
 import { Import } from './import';
 import DataTableFilterButtons from './data-table-filter-buttons';
@@ -106,56 +106,162 @@ export function DataTableToolbar<TData>({
     }
   };
 
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+
   return (
-    <div className="flex items-center justify-between flex-wrap space-y-2 md:space-y-0 md:flex-nowrap gap-1">
-      <div className="flex flex-1 items-center space-x-2 text-foreground">
+    <div className="flex items-center justify-between flex-wrap space-y-3 md:space-y-0 md:flex-nowrap gap-3 p-4 bg-linear-to-r from-muted/30 via-transparent to-muted/30 rounded-xl border border-border/30 backdrop-blur-sm animate-[tableRowSlideUp_0.4s_ease-out]">
+      {/* Search Section */}
+      <div className="flex flex-1 items-center gap-3 text-foreground">
         {availableColumns.length > 0 && (
-          <Input
-            placeholder={t('search')}
-            value={searchValue}
-            onChange={(event) => handleSearchChange(event.target.value)}
-            className="h-8 w-[200px] lg:w-[250px]"
-          />
+          <div
+            className={`
+              relative group flex items-center transition-all duration-300
+              ${isSearchFocused ? 'scale-[1.02]' : ''}
+            `}
+          >
+            {/* Search Icon with Animation */}
+            <div
+              className={`
+                absolute left-3 z-10 transition-all duration-300
+                ${isSearchFocused ? 'text-primary scale-110' : 'text-muted-foreground'}
+              `}
+            >
+              <Search className="w-4 h-4" />
+            </div>
+
+            {/* Search Input */}
+            <Input
+              placeholder={t('search')}
+              value={searchValue}
+              onChange={(event) => handleSearchChange(event.target.value)}
+              onFocus={() => setIsSearchFocused(true)}
+              onBlur={() => setIsSearchFocused(false)}
+              className={`
+                h-10 w-55 lg:w-70 pl-10 pr-4
+                bg-background/80 backdrop-blur-sm
+                border-border/50 rounded-xl
+                transition-all duration-300
+                focus:border-primary/50 focus:bg-background
+                focus:shadow-lg focus:shadow-primary/10
+                hover:border-primary/30 hover:bg-background/90
+                placeholder:text-muted-foreground/60
+              `}
+            />
+
+            {/* Animated Border Glow */}
+            <div
+              className={`
+                absolute inset-0 rounded-xl pointer-events-none
+                transition-opacity duration-300
+                ${isSearchFocused ? 'opacity-100' : 'opacity-0'}
+                bg-linear-to-r from-primary/20 via-transparent to-primary/20
+                blur-xl -z-10
+              `}
+            />
+          </div>
         )}
 
+        {/* Reset Button with Animation */}
         {isFiltered && (
-          <Button variant="text" onClick={resetFilters} className="h-8 px-2 lg:px-3">
-            Reset
-            <X className="ml-2 h-4 w-4" />
+          <Button
+            variant="text"
+            onClick={resetFilters}
+            className="
+              h-10 px-4 rounded-xl
+              bg-destructive/10 text-destructive
+              border border-destructive/20
+              hover:bg-destructive/20 hover:border-destructive/40
+              hover:scale-105 active:scale-95
+              transition-all duration-300
+              animate-[tableCellReveal_0.3s_ease-out]
+              group
+            "
+          >
+            <span className="font-medium">Reset</span>
+            <X className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:rotate-90" />
           </Button>
         )}
       </div>
 
-      {hasFilter && <DataTableFilterButtons />}
+      {/* Filter Buttons */}
+      {hasFilter && (
+        <div className="animate-[tableCellReveal_0.3s_ease-out_0.1s_both]">
+          <DataTableFilterButtons />
+        </div>
+      )}
 
-      {hasRecycleFilter && <DataTableRecycleFilterButton onFilterChange={onRecycleFilterChange} />}
+      {hasRecycleFilter && (
+        <div className="animate-[tableCellReveal_0.3s_ease-out_0.15s_both]">
+          <DataTableRecycleFilterButton onFilterChange={onRecycleFilterChange} />
+        </div>
+      )}
 
-      <div className="flex flex-wrap md:flex-nowrap items-center md:space-x-2">
+      {/* Actions Section */}
+      <div className="flex flex-wrap md:flex-nowrap items-center gap-2">
+        {/* Export Options */}
         {VALID_EXPORT_TYPES.includes(tableName as ExportType) && (
-          <DataTableViewOptionsCustom table={table} tableName={tableName as ExportType} />
+          <div className="animate-[tableCellReveal_0.3s_ease-out_0.2s_both]">
+            <DataTableViewOptionsCustom table={table} tableName={tableName as ExportType} />
+          </div>
         )}
 
-        <DataTableViewOptions table={table} tableName={tableName} />
+        <div className="animate-[tableCellReveal_0.3s_ease-out_0.25s_both]">
+          <DataTableViewOptions table={table} tableName={tableName} />
+        </div>
 
+        {/* Import Section */}
         {canImport && (
-          <div className="flex items-center space-x-2">
-            <Button variant="outlined" size="small" onClick={downloadTemplate} className="h-8">
-              <Download className="w-4 h-4 mr-2" />
-              {t('downloadTemplate')}
+          <div className="flex items-center gap-2 animate-[tableCellReveal_0.3s_ease-out_0.3s_both]">
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={downloadTemplate}
+              className="
+                h-10 px-4 rounded-xl
+                bg-background/80 backdrop-blur-sm
+                border-border/50
+                hover:border-primary/50 hover:bg-primary/5
+                hover:shadow-lg hover:shadow-primary/10
+                hover:scale-105 active:scale-95
+                transition-all duration-300
+                group
+              "
+            >
+              <Download className="w-4 h-4 mr-2 transition-transform duration-300 group-hover:translate-y-0.5" />
+              <span className="font-medium">{t('downloadTemplate')}</span>
             </Button>
 
             <Import tableName={tableName} onImportSuccess={onImportSuccess} />
           </div>
         )}
 
+        {/* Create Button with Special Animation */}
         {permissions?.create && (
           <Button
             variant="outlined"
-            className="h-8 px-2 md:mr-2 lg:px-3 bg-primary md:mt-0 text-primary-foreground border-border"
             onClick={() => navigate(createPath ? createPath : '')}
+            className="
+              h-10 px-5 rounded-xl
+              bg-linear-to-r from-primary to-primary/90
+              text-primary-foreground font-semibold
+              border-0 shadow-lg shadow-primary/25
+              hover:shadow-xl hover:shadow-primary/30
+              hover:scale-105 hover:from-primary/90 hover:to-primary
+              active:scale-95
+              transition-all duration-300
+              animate-[tableCellReveal_0.3s_ease-out_0.35s_both]
+              group relative overflow-hidden
+            "
           >
-            <Plus className="w-4 h-4 mr-2" />
-            {t('create')}
+            {/* Shimmer Effect */}
+            <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+
+            {/* Icon with Animation */}
+            <div className="relative flex items-center">
+              <Plus className="w-5 h-5 mr-2 transition-all duration-300 group-hover:rotate-90 group-hover:scale-110" />
+              <span>{t('create')}</span>
+              <Sparkles className="w-4 h-4 ml-2  group-hover:opacity-100 transition-all duration-300 group-hover:animate-pulse" />
+            </div>
           </Button>
         )}
       </div>

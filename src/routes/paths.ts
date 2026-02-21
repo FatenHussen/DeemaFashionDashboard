@@ -10,6 +10,7 @@ export const ROOTS = {
   ROLE: '/role',
   DRIVER: '/driver',
   PRODUCTS: '/products',
+  BRANDS: '/products/brands',
   LOCATIONS: '/locations',
   CITY: '/locations/city',
   AREA: '/locations/area',
@@ -20,6 +21,10 @@ export const ROOTS = {
   LANGUAGES: '/languages',
   SECTIONS: '/sections',
   PAGE_SECTIONS: '/sections/page-sections',
+  BANNERS: '/sections/banners',
+  COUPONS: '/coupons',
+  COMPLAINTS: '/complaints',
+  USERS: '/users',
 };
 
 // ----------------------------------------------------------------------
@@ -66,6 +71,7 @@ export const paths = {
     role: ROOTS.ROLE,
     driver: ROOTS.DRIVER,
     products: ROOTS.PRODUCTS,
+    brands: ROOTS.BRANDS,
     locations: ROOTS.LOCATIONS,
     city: ROOTS.CITY,
     area: ROOTS.AREA,
@@ -76,5 +82,9 @@ export const paths = {
     languages: ROOTS.LANGUAGES,
     sections: ROOTS.SECTIONS,
     pageSections: ROOTS.PAGE_SECTIONS,
+    banners: ROOTS.BANNERS,
+    coupons: ROOTS.COUPONS,
+    complaints: ROOTS.COMPLAINTS,
+    users: ROOTS.USERS,
   },
 };

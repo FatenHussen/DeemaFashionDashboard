@@ -144,6 +144,7 @@ export const areaColumns = (
       <DataTableRowActions
         schema={AreaSchema}
         row={row}
+        viewDetails={`/locations/area/details/${row.original.id}`}
         editItem={`/locations/area/update/${row.original.id}`}
         onDelete={onDelete}
         isDeleting={isDeleting}

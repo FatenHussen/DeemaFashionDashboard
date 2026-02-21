@@ -5,6 +5,7 @@ import { paths } from 'src/routes/paths';
 import { CONFIG } from 'src/global-config';
 import { Label } from 'src/shared/components/label';
 import { SvgColor } from 'src/shared/components/svg-color';
+import { Iconify } from 'src/shared/components/iconify';
 
 // ----------------------------------------------------------------------
 
@@ -40,6 +41,16 @@ const ICONS = {
   ecommerce: icon('ic-ecommerce'),
   analytics: icon('ic-analytics'),
   dashboard: icon('ic-dashboard'),
+};
+
+// Creative group icons
+const GROUP_ICONS = {
+  products: <Iconify icon="solar:shop-2-bold" width={16} height={16} />,
+  locations: <Iconify icon="solar:map-point-bold" width={16} height={16} />,
+  categories: <Iconify icon="solar:widget-5-bold" width={16} height={16} />,
+  services: <Iconify icon="solar:settings-bold" width={16} height={16} />,
+  languages: <Iconify icon="solar:global-bold" width={16} height={16} />,
+  sections: <Iconify icon="solar:document-bold" width={16} height={16} />,
 };
 
 // ----------------------------------------------------------------------
@@ -83,9 +94,34 @@ export const navData: NavSectionProps['data'] = [
         requiredPermission: 'driver.view',
       },
       {
-        title: 'Brand',
+        title: 'Users',
+        path: paths.dashboard.users,
+        icon: ICONS.user,
+        requiredPermission: 'user.view',
+      },
+    ],
+  },
+  /**
+   * Products & Brands
+   */
+  {
+    subheader: (
+      <span className="flex items-center gap-2">
+        {GROUP_ICONS.products}
+        <span>Products</span>
+      </span>
+    ) as any,
+    items: [
+      {
+        title: 'Products',
         path: paths.dashboard.products,
         icon: ICONS.product,
+        requiredPermission: 'product.view',
+      },
+      {
+        title: 'Brands',
+        path: paths.dashboard.brands,
+        icon: ICONS.ecommerce,
         requiredPermission: 'brand.view',
       },
     ],
@@ -94,7 +130,12 @@ export const navData: NavSectionProps['data'] = [
    * Locations
    */
   {
-    subheader: '🗺️ Locations',
+    subheader: (
+      <span className="flex items-center gap-2">
+        {GROUP_ICONS.locations}
+        <span>Locations</span>
+      </span>
+    ) as any,
     items: [
       {
         title: 'Government',
@@ -120,7 +161,12 @@ export const navData: NavSectionProps['data'] = [
    * Categories
    */
   {
-    subheader: '📦 Categories',
+    subheader: (
+      <span className="flex items-center gap-2">
+        {GROUP_ICONS.categories}
+        <span>Categories</span>
+      </span>
+    ) as any,
     items: [
       {
         title: 'Categories',
@@ -146,7 +192,12 @@ export const navData: NavSectionProps['data'] = [
    * Services
    */
   {
-    subheader: '🛠️ Services',
+    subheader: (
+      <span className="flex items-center gap-2">
+        {GROUP_ICONS.services}
+        <span>Services</span>
+      </span>
+    ) as any,
     items: [
       {
         title: 'Services',
@@ -160,7 +211,12 @@ export const navData: NavSectionProps['data'] = [
    * Languages
    */
   {
-    subheader: '🌐 Languages',
+    subheader: (
+      <span className="flex items-center gap-2">
+        {GROUP_ICONS.languages}
+        <span>Languages</span>
+      </span>
+    ) as any,
     items: [
       {
         title: 'Languages',
@@ -180,7 +236,12 @@ export const navData: NavSectionProps['data'] = [
    * Sections
    */
   {
-    subheader: '📋 Sections',
+    subheader: (
+      <span className="flex items-center gap-2">
+        {GROUP_ICONS.sections}
+        <span>Sections</span>
+      </span>
+    ) as any,
     items: [
       {
         title: 'Sections',
@@ -193,6 +254,24 @@ export const navData: NavSectionProps['data'] = [
         path: paths.dashboard.pageSections,
         icon: ICONS.menuItem,
         requiredPermission: 'pagesection.view',
+      },
+      {
+        title: 'Banners',
+        path: paths.dashboard.banners,
+        icon: ICONS.ecommerce,
+        requiredPermission: 'banner.view',
+      },
+      {
+        title: 'Coupons',
+        path: paths.dashboard.coupons,
+        icon: ICONS.invoice,
+        requiredPermission: 'coupon.view',
+      },
+      {
+        title: 'Complaints',
+        path: paths.dashboard.complaints,
+        icon: ICONS.chat,
+        requiredPermission: 'complaint.view',
       },
     ],
   },

@@ -21,6 +21,7 @@ interface DataTableRowActionsProps<TData> {
   schema: ZodSchema;
   viewDetails?: string | undefined | null;
   editItem?: string | undefined;
+  onEdit?: (row: Row<TData>) => void;
   onDelete?: (id: number) => void;
   permissions?: {
     update: boolean;
@@ -37,6 +38,7 @@ export function DataTableRowActions<TData>({
   row,
   viewDetails,
   editItem,
+  onEdit,
   onDelete,
   permissions,
   isDeleting = false,
@@ -128,12 +130,16 @@ export function DataTableRowActions<TData>({
               </DropdownMenuItem>
             )}
 
-            {permissions?.update && editItem && (
+            {permissions?.update && (editItem || onEdit) && (
               <DropdownMenuItem
                 className="hover:bg-muted"
                 onClick={(e) => {
                   e.stopPropagation();
-                  navigate(editItem);
+                  if (onEdit) {
+                    onEdit(row);
+                  } else if (editItem) {
+                    navigate(editItem);
+                  }
                 }}
               >
                 <Pencil className="mr-2 h-4 w-4" />

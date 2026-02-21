@@ -15,7 +15,7 @@ import {
 } from '@/pages/dashboard/products/hooks/brand';
 
 import { Box, Input, Typography } from 'src/shared/ui';
-import { CONFIG , CONFIG as GLOBAL_CONFIG } from 'src/global-config';
+import { CONFIG, CONFIG as GLOBAL_CONFIG } from 'src/global-config';
 import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
 import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
 
@@ -56,10 +56,11 @@ export default function CreatePage() {
       const brand = brandResponse.data;
       const imageUrl = brand.image ? `${GLOBAL_CONFIG.serverUrl}/${brand.image}` : null;
       setPreviewImage(imageUrl);
+      console.log(brand);
       reset({
         name: {
-          en: brand.name, // Assuming API returns name as string, adjust if needed
-          ar: brand.name, // Adjust based on actual API response
+          en: brand.name?.en, // Assuming API returns name as string, adjust if needed
+          ar: brand.name?.ar, // Adjust based on actual API response
         },
         image: null, // Don't pre-fill file input
       });
@@ -96,11 +97,11 @@ export default function CreatePage() {
       if (isEditMode && id) {
         await updateBrandMutation.mutateAsync({ id, data: payload });
         toast.success('Brand updated successfully');
-        navigate('/products');
+        navigate('/products/brands');
       } else {
         await createBrandMutation.mutateAsync(payload);
         toast.success('Brand created successfully');
-        navigate('/products');
+        navigate('/products/brands');
       }
     } catch (error: any) {
       console.error('Error saving brand:', error);
@@ -108,7 +109,7 @@ export default function CreatePage() {
   };
 
   const handleCancel = () => {
-    navigate('/products');
+    navigate('/products/brands');
   };
 
   const infoText = isEditMode

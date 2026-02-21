@@ -18,6 +18,7 @@ export const _CategoryAttributeApi = {
     );
     return response.data;
   },
+
   getCategoryAttributeById: async (
     id: number | string
   ): Promise<CategoryAttributeDetailResponse> => {

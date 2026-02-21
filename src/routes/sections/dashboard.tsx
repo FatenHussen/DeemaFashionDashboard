@@ -32,9 +32,13 @@ const DriverIndexPage = lazy(() => import('@/pages/dashboard/driver/view/Index')
 const DriverCreatePage = lazy(() => import('@/pages/dashboard/driver/view/Create'));
 const DriverDetailsPage = lazy(() => import('@/pages/dashboard/driver/view/Details'));
 
-const BrandIndexPage = lazy(() => import('@/pages/dashboard/products/view/Index'));
-const BrandCreatePage = lazy(() => import('@/pages/dashboard/products/view/Create'));
-const BrandDetailsPage = lazy(() => import('@/pages/dashboard/products/view/Details'));
+const BrandIndexPage = lazy(() => import('@/pages/dashboard/products/view/brand/Index'));
+const BrandCreatePage = lazy(() => import('@/pages/dashboard/products/view/brand/Create'));
+const BrandDetailsPage = lazy(() => import('@/pages/dashboard/products/view/brand/Details'));
+
+const ProductIndexPage = lazy(() => import('@/pages/dashboard/products/view/product/Index'));
+const ProductCreatePage = lazy(() => import('@/pages/dashboard/products/view/product/Create'));
+const ProductDetailsPage = lazy(() => import('@/pages/dashboard/products/view/product/Details'));
 
 const GovernorateIndexPage = lazy(() => import('@/pages/dashboard/locations/view/Index'));
 const GovernorateCreatePage = lazy(() => import('@/pages/dashboard/locations/view/Create'));
@@ -44,6 +48,7 @@ const CityCreatePage = lazy(() => import('@/pages/dashboard/locations/view/city/
 
 const AreaIndexPage = lazy(() => import('@/pages/dashboard/locations/view/area/Index'));
 const AreaCreatePage = lazy(() => import('@/pages/dashboard/locations/view/area/Create'));
+const AreaDetailsPage = lazy(() => import('@/pages/dashboard/locations/view/area/Details'));
 
 const CategoryIndexPage = lazy(() => import('@/pages/dashboard/categories/view/Index'));
 const CategoryCreatePage = lazy(() => import('@/pages/dashboard/categories/view/Create'));
@@ -79,6 +84,20 @@ const PageSectionIndexPage = lazy(() => import('@/pages/dashboard/sections/view/
 const PageSectionCreatePage = lazy(
   () => import('@/pages/dashboard/sections/view/PageSectionCreate')
 );
+
+const BannerIndexPage = lazy(() => import('@/pages/dashboard/banners/view/Index'));
+const BannerCreatePage = lazy(() => import('@/pages/dashboard/banners/view/Create'));
+
+const CouponIndexPage = lazy(() => import('@/pages/dashboard/coupons/view/Index'));
+const CouponCreatePage = lazy(() => import('@/pages/dashboard/coupons/view/Create'));
+const CouponDetailsPage = lazy(() => import('@/pages/dashboard/coupons/view/Details'));
+
+const ComplaintIndexPage = lazy(() => import('@/pages/dashboard/complaints/view/Index'));
+const ComplaintDetailsPage = lazy(() => import('@/pages/dashboard/complaints/view/Details'));
+
+const UserIndexPage = lazy(() => import('@/pages/dashboard/users/view/Index'));
+const UserCreatePage = lazy(() => import('@/pages/dashboard/users/view/Create'));
+const UserUpdatePage = lazy(() => import('@/pages/dashboard/users/view/Update'));
 
 const Page403 = lazy(() => import('src/pages/error/403'));
 
@@ -277,6 +296,44 @@ export const dashboardRoutes: RouteObject[] = [
     children: [
       {
         element: (
+          <RequirePermission permission="product.view">
+            <ProductIndexPage />
+          </RequirePermission>
+        ),
+        index: true,
+      },
+      {
+        path: 'create',
+        element: (
+          <RequirePermission permission="product.create">
+            <ProductCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'update/:id',
+        element: (
+          <RequirePermission permission="product.update">
+            <ProductCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'details/:id',
+        element: (
+          <RequirePermission permission="product.view">
+            <ProductDetailsPage />
+          </RequirePermission>
+        ),
+      },
+    ],
+  },
+  {
+    path: 'products/brands',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: (
           <RequirePermission permission="brand.view">
             <BrandIndexPage />
           </RequirePermission>
@@ -394,6 +451,14 @@ export const dashboardRoutes: RouteObject[] = [
         element: (
           <RequirePermission permission="area.update">
             <AreaCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'details/:id',
+        element: (
+          <RequirePermission permission="area.view">
+            <AreaDetailsPage />
           </RequirePermission>
         ),
       },
@@ -614,6 +679,126 @@ export const dashboardRoutes: RouteObject[] = [
         element: (
           <RequirePermission permission="pagesection.update">
             <PageSectionCreatePage />
+          </RequirePermission>
+        ),
+      },
+    ],
+  },
+  {
+    path: 'sections/banners',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: (
+          <RequirePermission permission="banner.view">
+            <BannerIndexPage />
+          </RequirePermission>
+        ),
+        index: true,
+      },
+      {
+        path: 'create',
+        element: (
+          <RequirePermission permission="banner.create">
+            <BannerCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'update/:id',
+        element: (
+          <RequirePermission permission="banner.update">
+            <BannerCreatePage />
+          </RequirePermission>
+        ),
+      },
+    ],
+  },
+  {
+    path: 'users',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: (
+          <RequirePermission permission="user.view">
+            <UserIndexPage />
+          </RequirePermission>
+        ),
+        index: true,
+      },
+      {
+        path: 'create',
+        element: (
+          <RequirePermission permission="user.create">
+            <UserCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'update/:id',
+        element: (
+          <RequirePermission permission="user.update">
+            <UserUpdatePage />
+          </RequirePermission>
+        ),
+      },
+    ],
+  },
+  {
+    path: 'complaints',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: (
+          <RequirePermission permission="complaint.view">
+            <ComplaintIndexPage />
+          </RequirePermission>
+        ),
+        index: true,
+      },
+      {
+        path: 'details/:id',
+        element: (
+          <RequirePermission permission="complaint.view">
+            <ComplaintDetailsPage />
+          </RequirePermission>
+        ),
+      },
+    ],
+  },
+  {
+    path: 'coupons',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: (
+          <RequirePermission permission="coupon.view">
+            <CouponIndexPage />
+          </RequirePermission>
+        ),
+        index: true,
+      },
+      {
+        path: 'create',
+        element: (
+          <RequirePermission permission="coupon.create">
+            <CouponCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'update/:id',
+        element: (
+          <RequirePermission permission="coupon.update">
+            <CouponCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'details/:id',
+        element: (
+          <RequirePermission permission="coupon.view">
+            <CouponDetailsPage />
           </RequirePermission>
         ),
       },

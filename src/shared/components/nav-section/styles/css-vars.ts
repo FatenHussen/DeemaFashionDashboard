@@ -4,36 +4,36 @@ import { varAlpha } from 'minimal-shared/utils';
 
 export const bulletColor = { dark: '#282F37', light: '#EDEFF2' };
 
-// Placeholder color values - these should match your design system
+// Color values matching the sidebar design
 const palette = {
   text: {
     primary: 'rgb(33, 43, 54)',
-    secondary: 'rgb(99, 115, 129)',
+    secondary: 'rgb(74, 85, 104)', // #4A5568 - default text color
     disabled: 'rgb(145, 158, 171)',
   },
   primary: {
-    main: 'rgb(0, 167, 255)',
-    mainChannel: '0 167 255',
+    main: 'rgb(51, 102, 204)', // #3366CC - active text/icon color
+    mainChannel: '51 102 204',
     light: 'rgb(94, 190, 247)',
   },
   action: {
     hover: 'rgba(145, 158, 171, 0.08)',
-    selected: 'rgba(145, 158, 171, 0.16)',
+    selected: 'rgba(230, 230, 255, 1)', // #E6E6FF - active background
   },
 };
 
 function colorVars(variant?: 'vertical' | 'mini' | 'horizontal'): React.CSSProperties {
   return {
     '--nav-item-color': palette.text.secondary,
-    '--nav-item-hover-bg': varAlpha(palette.primary.mainChannel, 0.06),
+    '--nav-item-hover-bg': 'rgba(145, 158, 171, 0.08)',
     '--nav-item-caption-color': palette.text.disabled,
     // root
-    '--nav-item-root-active-color': palette.primary.main,
+    '--nav-item-root-active-color': palette.primary.main, // #3366CC
     '--nav-item-root-active-color-on-dark': palette.primary.light,
-    '--nav-item-root-active-bg': varAlpha(palette.primary.mainChannel, 0.12),
-    '--nav-item-root-active-hover-bg': varAlpha(palette.primary.mainChannel, 0.18),
+    '--nav-item-root-active-bg': 'rgb(230, 230, 255)', // #E6E6FF
+    '--nav-item-root-active-hover-bg': 'rgb(230, 230, 255)',
     '--nav-item-root-open-color': palette.text.primary,
-    '--nav-item-root-open-bg': varAlpha(palette.primary.mainChannel, 0.06),
+    '--nav-item-root-open-bg': 'rgba(145, 158, 171, 0.06)',
     // sub
     '--nav-item-sub-active-color': palette.text.primary,
     '--nav-item-sub-active-bg': varAlpha(palette.primary.mainChannel, 0.08),
@@ -52,19 +52,19 @@ function colorVars(variant?: 'vertical' | 'mini' | 'horizontal'): React.CSSPrope
 function verticalVars(): React.CSSProperties {
   return {
     ...colorVars('vertical'),
-    '--nav-item-gap': '8px',
-    '--nav-item-radius': '8px',
-    '--nav-item-pt': '8px',
-    '--nav-item-pr': '6px',
-    '--nav-item-pb': '8px',
-    '--nav-item-pl': '8px',
+    '--nav-item-gap': '4px',
+    '--nav-item-radius': '6px',
+    '--nav-item-pt': '12px',
+    '--nav-item-pr': '16px',
+    '--nav-item-pb': '12px',
+    '--nav-item-pl': '16px',
     // root
-    '--nav-item-root-height': '52px',
+    '--nav-item-root-height': '48px',
     // sub
     '--nav-item-sub-height': '44px',
     // icon
-    '--nav-icon-size': '18px',
-    '--nav-icon-margin': '0 6px 0 0',
+    '--nav-icon-size': '20px',
+    '--nav-icon-margin': '0 12px 0 0',
     // bullet
     '--nav-bullet-size': '8px',
     '--nav-bullet-light-color': bulletColor.light,

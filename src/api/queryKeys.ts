@@ -41,6 +41,11 @@ export const queryKeys = {
     list: (params?: { name?: string }) => ['brand', 'list', params] as const,
     details: (id: number | string) => ['brand', 'details', id] as const,
   },
+  // Product query keys
+  product: {
+    list: (params?: { page?: number; limit?: number }) => ['product', 'list', params] as const,
+    details: (id: number | string) => ['product', 'details', id] as const,
+  },
   // Governorate query keys
   governorate: {
     list: (params?: { page?: number; limit?: number }) => ['governorate', 'list', params] as const,
@@ -91,6 +96,32 @@ export const queryKeys = {
     itemTypes: () => ['section', 'item-types'] as const,
     manualItems: (manualModel: string, url: string, params?: { page?: number; limit?: number; search?: string }) =>
       ['section', 'manual-items', manualModel, url, params] as const,
+  },
+  // User query keys
+  user: {
+    list: (params?: {
+      page?: number;
+      per_page?: number;
+      is_affiliate?: number;
+      affiliate_approved?: number;
+      area_id?: number;
+    }) => ['user', 'list', params] as const,
+    details: (id: number | string) => ['user', 'details', id] as const,
+  },
+  // Complaint query keys
+  complaint: {
+    list: (params?: { page?: number; per_page?: number; status?: string; user_id?: number }) =>
+      ['complaint', 'list', params] as const,
+    details: (id: number | string) => ['complaint', 'details', id] as const,
+  },
+  // Coupon query keys
+  coupon: {
+    list: (params?: { page?: number; per_page?: number }) => ['coupon', 'list', params] as const,
+    details: (id: number | string) => ['coupon', 'details', id] as const,
+  },
+  // Banner query keys
+  banner: {
+    list: (params?: { page?: number; per_page?: number }) => ['banner', 'list', params] as const,
   },
   // Page Section query keys
   pageSection: {

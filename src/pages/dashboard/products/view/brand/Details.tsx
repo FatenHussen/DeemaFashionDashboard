@@ -34,7 +34,7 @@ export default function DetailsPage() {
           <Typography variant="body2" className="text-muted-foreground mb-4">
             {error instanceof Error ? error.message : 'Failed to load brand information'}
           </Typography>
-          <Button variant="outlined" onClick={() => navigate('/products')}>
+          <Button variant="outlined" onClick={() => navigate('/products/brands')}>
             Back to Brands
           </Button>
         </Box>
@@ -62,7 +62,7 @@ export default function DetailsPage() {
           <Box className="mb-6">
             <Button
               variant="text"
-              onClick={() => navigate('/products')}
+              onClick={() => navigate('/products/brands')}
               className="mb-4 -ml-2 text-muted-foreground hover:text-foreground"
             >
               <Iconify icon="solar:arrow-left-bold" width={20} className="mr-2" />
@@ -96,7 +96,7 @@ export default function DetailsPage() {
               </Box>
               <Button
                 variant="contained"
-                onClick={() => navigate(`/products/update/${id}`)}
+                onClick={() => navigate(`/products/brands/update/${id}`)}
                 className="gap-2"
               >
                 <Iconify icon="solar:pen-bold" width={18} />

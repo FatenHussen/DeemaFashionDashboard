@@ -19,6 +19,7 @@ import { CONFIG } from 'src/global-config';
 import { Box, Typography, SimpleSelect } from 'src/shared/ui';
 import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
 import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
+import { MapPicker } from 'src/shared/components/map/map-picker';
 
 // ----------------------------------------------------------------------
 
@@ -41,6 +42,9 @@ export default function CreatePage() {
       ar: '',
     },
     city_id: 0,
+    lat: '',
+    lng: '',
+    base_fee: '',
   };
 
   const methods = useForm<AreaFormValues>({
@@ -48,7 +52,9 @@ export default function CreatePage() {
     defaultValues,
   });
 
-  const { handleSubmit, reset, control } = methods;
+  const { handleSubmit, reset, control, setValue, watch } = methods;
+  const watchedLat = watch('lat');
+  const watchedLng = watch('lng');
 
   // Fetch area data if in edit mode
   useEffect(() => {
@@ -59,9 +65,15 @@ export default function CreatePage() {
           ? { ar: areaData.name, en: areaData.name }
           : areaData.name;
 
+      const baseFee =
+        areaData.base_fee != null ? String(areaData.base_fee) : '';
+
       reset({
         name: nameValue,
         city_id: areaData.city?.id || 0,
+        lat: areaData.lat ?? '',
+        lng: areaData.lng ?? '',
+        base_fee: baseFee,
       });
     }
   }, [areaData, isEditMode, isLoadingArea, reset]);
@@ -78,6 +90,9 @@ export default function CreatePage() {
           ar: data.name.ar,
         },
         city_id: data.city_id,
+        lat: data.lat ?? '',
+        lng: data.lng ?? '',
+        base_fee: data.base_fee ?? '',
       };
 
       if (isEditMode && id) {
@@ -187,6 +202,44 @@ export default function CreatePage() {
                 className="transition-all duration-200"
               />
             )}
+          />
+        </Box>
+
+        {/* Map - Pick Location */}
+        <Box className="group">
+          <Box className="flex items-center gap-2 mb-2">
+            <Iconify icon="solar:map-point-bold" className="text-primary" width={24} height={24} />
+            <Typography variant="subtitle2" className="font-semibold text-foreground">
+              Location
+            </Typography>
+          </Box>
+          <MapPicker
+            lat={watchedLat ?? ''}
+            lng={watchedLng ?? ''}
+            onChange={(latVal, lngVal) => {
+              setValue('lat', latVal, { shouldDirty: true });
+              setValue('lng', lngVal, { shouldDirty: true });
+            }}
+            height="280px"
+          />
+          <Typography variant="caption" className="text-muted-foreground mt-1 block">
+            Click on the map to set the area location
+          </Typography>
+        </Box>
+
+        {/* Base Fee */}
+        <Box className="group">
+          <Box className="flex items-center gap-2 mb-2">
+            <Iconify icon="solar:dollar-bold" className="text-primary" width={24} height={24} />
+            <Typography variant="subtitle2" className="font-semibold text-foreground">
+              Base Fee
+            </Typography>
+          </Box>
+          <RHFTextField
+            name="base_fee"
+            placeholder="e.g., 700"
+            helperText="Enter the base delivery fee"
+            className="transition-all duration-200"
           />
         </Box>
       </CreateFormLayout>

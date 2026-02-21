@@ -46,7 +46,7 @@ interface DataTableProps<TData, TValue> {
   expandedRowRender?: (row: TData) => React.ReactNode;
   columnTranslations?: Record<string, string>;
   onImportSuccess?: () => void;
-  // إضافة خصائص Pagination الجديدة
+
   pagination?: {
     current_page: number;
     last_page: number;
@@ -151,17 +151,17 @@ export function DataTable<TData, TValue>({
       />
 
       {/* Table View - Full Width */}
-      <div className="w-full border border-border/50 bg-background overflow-hidden">
+      <div className="w-full border border-border/30 bg-background overflow-hidden rounded-xl shadow-sm hover:shadow-md transition-shadow duration-300">
         <Table
           id="table-container"
           className="w-full"
           style={{ tableLayout: isTwoColumns ? 'fixed' : 'auto', width: '100%' }}
         >
-          <TableHeader className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border/50">
+          <TableHeader className="sticky top-0 z-10 table-header-glass border-b border-border/30">
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow
                 key={headerGroup.id}
-                className="hover:bg-transparent border-b border-border/30"
+                className="hover:bg-transparent border-b border-border/20 bg-linear-to-r from-muted/40 via-muted/20 to-muted/40"
               >
                 {expandedRowRender && (
                   <TableHead className="w-12 sticky left-0 z-20 bg-background/95 backdrop-blur">
@@ -201,21 +201,29 @@ export function DataTable<TData, TValue>({
               </TableRow>
             ))}
           </TableHeader>
-          <TableBody className="divide-y divide-border/30">
+          <TableBody className="divide-y divide-border/20 relative">
             {isLoading ? (
               <TableSkeleton
                 columns={table.getAllColumns().length + (expandedRowRender ? 1 : 0)}
                 rows={pagination?.per_page || table.getState().pagination.pageSize || 5}
               />
             ) : !isLoading && table.getRowModel().rows.length === 0 ? (
-              <TableRow>
+              <TableRow className="hover:bg-transparent">
                 <TableCell
                   colSpan={columns?.length + (expandedRowRender ? 1 : 0) + 1}
-                  className="h-32 text-center"
+                  className="h-48 text-center"
                 >
-                  <div className="flex flex-col items-center justify-center py-8">
-                    <div className="text-4xl mb-4 opacity-50">📭</div>
-                    <p className="text-muted-foreground text-lg font-medium">{t('noResults')}</p>
+                  <div className="flex flex-col items-center justify-center py-12 animate-[tableRowSlideUp_0.5s_ease-out]">
+                    <div className="relative mb-6">
+                      <div className="text-6xl animate-[float_3s_ease-in-out_infinite]">📭</div>
+                      <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-12 h-2 bg-muted/50 rounded-full blur-sm animate-pulse" />
+                    </div>
+                    <p className="text-muted-foreground text-lg font-medium mb-2">
+                      {t('noResults')}
+                    </p>
+                    <p className="text-muted-foreground/60 text-sm">
+                      Try adjusting your search or filters
+                    </p>
                   </div>
                 </TableCell>
               </TableRow>
@@ -227,14 +235,15 @@ export function DataTable<TData, TValue>({
                   <React.Fragment key={row.id}>
                     <TableRow
                       data-state={isSelected && 'selected'}
+                      style={{ '--row-index': rowIndex } as React.CSSProperties}
                       className={`
-                          group cursor-pointer transition-all duration-200
-                          hover:bg-gradient-to-r hover:from-primary/5 hover:via-primary/3 hover:to-transparent
-                          hover:shadow-sm hover:border-l-4 hover:border-l-primary
-                          active:scale-[0.99] active:bg-muted/70
-                          ${isSelected ? 'bg-primary/10 border-l-4 border-l-primary' : ''}
-                          ${rowIndex % 2 === 0 ? 'bg-background' : 'bg-muted/20'}
-                          transition-all duration-300 ease-in-out
+                          group cursor-pointer
+                          table-modern-row table-row-gradient-hover
+                          hover:bg-linear-to-r hover:from-primary/8 hover:via-primary/4 hover:to-transparent
+                          hover:shadow-[inset_4px_0_0_0_rgb(var(--primary)),0_4px_12px_-4px_rgba(var(--primary),0.15)]
+                          active:scale-[0.995] active:bg-muted/50
+                          ${isSelected ? 'bg-primary/10 shadow-[inset_4px_0_0_0_rgb(var(--primary))] scale-[1.002]' : ''}
+                          ${rowIndex % 2 === 0 ? 'bg-background' : 'bg-muted/10'}
                         `}
                     >
                       {expandedRowRender && (
@@ -244,14 +253,14 @@ export function DataTable<TData, TValue>({
                               e.stopPropagation();
                               toggleRowExpansion(row.id);
                             }}
-                            className="p-2 rounded-lg transition-all duration-200 hover:bg-primary/20 hover:scale-110 active:scale-95 group-hover:text-primary"
+                            className="p-2.5 rounded-xl transition-all duration-300 hover:bg-primary/20 hover:scale-110 hover:rotate-90 active:scale-90 group-hover:text-primary bg-muted/30 hover:shadow-lg hover:shadow-primary/20"
                           >
                             <Iconify
                               icon={
                                 isExpanded ? 'eva:arrow-downward-fill' : 'eva:arrow-forward-fill'
                               }
                               width={18}
-                              className="transition-transform duration-300"
+                              className={`transition-transform duration-300 ${isExpanded ? 'rotate-0' : ''}`}
                             />
                           </button>
                         </TableCell>
@@ -280,12 +289,18 @@ export function DataTable<TData, TValue>({
                                 }
                               }
                             }}
+                            style={
+                              {
+                                '--cell-index': cell.column.getIndex(),
+                                ...(columnWidth ? { width: columnWidth } : {}),
+                              } as React.CSSProperties
+                            }
                             className={`
                                 transition-all duration-200 first:pl-6 last:pr-6
+                                table-cell-animated
                                 ${isActionsColumn ? 'sticky right-0 z-10 bg-background/95 backdrop-blur' : ''}
                                 group-hover:text-foreground
                               `}
-                            style={columnWidth ? { width: columnWidth } : undefined}
                           >
                             {isActionsColumn ? (
                               <div
@@ -304,9 +319,9 @@ export function DataTable<TData, TValue>({
                       })}
                     </TableRow>
                     {expandedRowRender && isExpanded && (
-                      <TableRow className="bg-gradient-to-r from-muted/50 via-muted/30 to-transparent transition-all duration-300 ease-in-out">
+                      <TableRow className="bg-linear-to-r from-primary/5 via-muted/30 to-transparent table-expanded-content">
                         <TableCell colSpan={table.getAllColumns().length + 1} className="p-6">
-                          <div className="border-l-4 border-l-primary pl-4">
+                          <div className="border-l-4 border-l-primary pl-6 py-2 bg-linear-to-r from-muted/30 to-transparent rounded-r-lg animate-[tableRowFadeIn_0.4s_ease-out]">
                             {expandedRowRender(row.original)}
                           </div>
                         </TableCell>

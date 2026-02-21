@@ -79,6 +79,7 @@ export const apiRoutes = {
     create: `${ROOTS.ADMIN}/areas`,
     update: (id: number | string) => `${ROOTS.ADMIN}/areas/${id}`,
     delete: (id: number | string) => `${ROOTS.ADMIN}/areas/${id}`,
+    details: (id: number | string) => `${ROOTS.ADMIN}/areas/${id}`,
   },
   // Category routes
   category: {
@@ -129,6 +130,13 @@ export const apiRoutes = {
     details: (id: number | string) => `${ROOTS.ADMIN}/sections/${id}`,
     itemTypes: `${ROOTS.ADMIN}/sections/item-types`,
   },
+  // Banner routes
+  banner: {
+    list: `${ROOTS.ADMIN}/banners`,
+    create: `${ROOTS.ADMIN}/banners`,
+    update: (id: number | string) => `${ROOTS.ADMIN}/banners/${id}`,
+    delete: (id: number | string) => `${ROOTS.ADMIN}/banners/${id}`,
+  },
   // Page Section routes
   pageSection: {
     list: `${ROOTS.ADMIN}/page-sections`,
@@ -154,9 +162,33 @@ export const apiRoutes = {
     latest: '/api/post/latest',
     search: '/api/post/search',
   },
+  // Complaint routes
+  complaint: {
+    list: `${ROOTS.ADMIN}/complaints`,
+    update: (id: number | string) => `${ROOTS.ADMIN}/complaints/${id}`,
+    details: (id: number | string) => `${ROOTS.ADMIN}/complaints/${id}`,
+  },
+  // Coupon routes
+  coupon: {
+    list: `${ROOTS.ADMIN}/coupons`,
+    create: `${ROOTS.ADMIN}/coupons`,
+    update: (id: number | string) => `${ROOTS.ADMIN}/coupons/${id}`,
+    delete: (id: number | string) => `${ROOTS.ADMIN}/coupons/${id}`,
+    details: (id: number | string) => `${ROOTS.ADMIN}/coupons/${id}`,
+  },
+  // User routes
+  user: {
+    list: `${ROOTS.ADMIN}/users`,
+    create: `${ROOTS.ADMIN}/users`,
+    update: (id: number | string) => `${ROOTS.ADMIN}/users/${id}`,
+    delete: (id: number | string) => `${ROOTS.ADMIN}/users/${id}`,
+    details: (id: number | string) => `${ROOTS.ADMIN}/users/${id}`,
+  },
   product: {
-    list: '/api/product/list',
-    details: '/api/product/details',
-    search: '/api/product/search',
+    list: `${ROOTS.ADMIN}/products`,
+    create: `${ROOTS.ADMIN}/products`,
+    update: (id: number | string) => `${ROOTS.ADMIN}/products/${id}`,
+    delete: (id: number | string) => `${ROOTS.ADMIN}/products/${id}`,
+    details: (id: number | string) => `${ROOTS.ADMIN}/products/${id}`,
   },
 } as const;

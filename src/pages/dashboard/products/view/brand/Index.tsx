@@ -81,7 +81,7 @@ export default function Page() {
           deletingId
         )}
         data={brandData}
-        createPath="/products/create"
+        createPath="/products/brands/create"
         hasDetails
         permissions={{
           create: hasPermission('create', 'brand'),

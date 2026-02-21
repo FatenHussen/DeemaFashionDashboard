@@ -216,7 +216,7 @@ export function DataTableViewOptions<TData>({
   return (
     <div className="flex items-center space-x-2 md:space-x-3 mr-2 py-3 gap-2 transition-opacity duration-300">
       {/* Print Button with Creative Design */}
-      <Button
+      {/* <Button
         variant="outlined"
         size="small"
         className="
@@ -236,7 +236,7 @@ export function DataTableViewOptions<TData>({
         <span className="relative z-10 font-medium text-sm text-foreground group-hover:text-primary transition-colors duration-300">
           {t('print')}
         </span>
-      </Button>
+      </Button> */}
 
       {/* Export Dropdown with Enhanced Design */}
       <DropdownMenu>

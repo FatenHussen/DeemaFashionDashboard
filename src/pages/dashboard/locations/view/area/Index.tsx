@@ -105,7 +105,8 @@ export default function Page() {
         )}
         data={areaData}
         createPath="/locations/area/create"
-        hasDetails={false}
+        hasDetails
+        detailsLink="/locations/area/details"
         permissions={{
           create: hasPermission('create', 'area'),
           update: hasPermission('update', 'area'),

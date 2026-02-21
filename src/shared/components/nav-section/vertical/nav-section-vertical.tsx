@@ -1,5 +1,6 @@
 import type { NavGroupProps, NavSectionProps } from '../types';
 
+import React from 'react';
 import { useBoolean } from 'minimal-shared/hooks';
 import { mergeClasses } from 'minimal-shared/utils';
 
@@ -57,7 +58,7 @@ function Group({
   checkPermission,
   enabledRootRedirect,
 }: NavGroupProps) {
-  const groupOpen = useBoolean(true);
+  const groupOpen = useBoolean(false);
 
   const renderContent = () => (
     <NavUl className="gap-[var(--nav-item-gap)]">
@@ -76,12 +77,25 @@ function Group({
     </NavUl>
   );
 
+  // Extract text from subheader for data-title attribute
+  const getSubheaderText = () => {
+    if (typeof subheader === 'string') return subheader;
+    if (React.isValidElement(subheader)) {
+      // Try to extract text from React element
+      const text =
+        subheader.props?.children?.find?.((child: any) => typeof child === 'string') ||
+        (typeof subheader.props?.children === 'string' ? subheader.props.children : '');
+      return text || 'Group';
+    }
+    return 'Group';
+  };
+
   return (
     <NavLi>
       {subheader ? (
         <>
           <NavSubheader
-            data-title={subheader}
+            data-title={getSubheaderText()}
             open={groupOpen.value}
             onClick={groupOpen.onToggle}
             {...slotProps?.subheader}
