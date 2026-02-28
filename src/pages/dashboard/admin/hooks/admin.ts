@@ -22,7 +22,7 @@ export const useCreateAdmin = () => {
   return useMutation({
     mutationFn: (data: AdminCreateUpdatePayload) => _AdminApi.createAdmin(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.admin.list() });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'list'] });
     },
   });
 };
@@ -34,7 +34,7 @@ export const useUpdateAdmin = () => {
     mutationFn: ({ id, data }: { id: number | string; data: AdminCreateUpdatePayload }) =>
       _AdminApi.updateAdmin(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.admin.list() });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'list'] });
     },
   });
 };
@@ -45,7 +45,7 @@ export const useDeleteAdmin = () => {
   return useMutation({
     mutationFn: (id: number | string) => _AdminApi.deleteAdmin(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.admin.list() });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'list'] });
     },
   });
 };

@@ -23,7 +23,7 @@ export const useCreateVendor = () => {
   return useMutation({
     mutationFn: (data: VendorCreateUpdatePayload) => _VendorApi.createVendor(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.vendor.list() });
+      queryClient.invalidateQueries({ queryKey: ['vendor', 'list'] });
     },
   });
 };
@@ -35,7 +35,7 @@ export const useUpdateVendor = () => {
     mutationFn: ({ id, data }: { id: number | string; data: VendorCreateUpdatePayload }) =>
       _VendorApi.updateVendor(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.vendor.list() });
+      queryClient.invalidateQueries({ queryKey: ['vendor', 'list'] });
     },
   });
 };
@@ -46,7 +46,7 @@ export const useDeleteVendor = () => {
   return useMutation({
     mutationFn: (id: number | string) => _VendorApi.deleteVendor(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.vendor.list() });
+      queryClient.invalidateQueries({ queryKey: ['vendor', 'list'] });
     },
   });
 };

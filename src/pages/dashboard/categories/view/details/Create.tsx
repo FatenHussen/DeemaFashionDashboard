@@ -16,7 +16,7 @@ import {
 } from '@/pages/dashboard/categories/hooks/category-detail';
 
 import { CONFIG } from 'src/global-config';
-import { Box, Button, Typography, SimpleSelect } from 'src/shared/ui';
+import { Box, Typography, SimpleSelect } from 'src/shared/ui';
 import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
 import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
 

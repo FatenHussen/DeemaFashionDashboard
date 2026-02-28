@@ -2,31 +2,65 @@ import type { ShopData, ShopListResponse, ShopCreateUpdatePayload } from '../typ
 
 import { apiRoutes, axiosInstance } from '@/api';
 
+/** Builds FormData for create and update - logo included when user selects a new file */
+const buildFormDataPayload = (data: ShopCreateUpdatePayload): FormData => {
+  const formData = new FormData();
+  formData.append('vendor_id', String(data.vendor_id));
+  formData.append('name[ar]', data.name.ar);
+  formData.append('name[en]', data.name.en);
+  formData.append('description[ar]', data.description.ar);
+  formData.append('description[en]', data.description.en);
+  formData.append('address[ar]', data.address.ar);
+  formData.append('address[en]', data.address.en);
+  formData.append('lat', String(data.lat));
+  formData.append('lng', String(data.lng));
+  formData.append('phone', data.phone);
+  formData.append('mobile', data.mobile);
+  formData.append('email', data.email);
+  formData.append('is_active', data.is_active ? '1' : '0');
+  formData.append('area_id', String(data.area_id));
+  data.service_ids.forEach((s, i) => formData.append(`service_ids[${i}][id]`, String(s.id)));
+  Object.entries(data.working_hours || {}).forEach(([day, schedule]) => {
+    if (schedule && typeof schedule === 'object') {
+      if (schedule.closed) formData.append(`working_hours[${day}][closed]`, '1');
+      if (schedule.open) formData.append(`working_hours[${day}][open]`, schedule.open);
+      if (schedule.close) formData.append(`working_hours[${day}][close]`, schedule.close);
+    }
+  });
+  if (data.logo instanceof File) {
+    formData.append('logo', data.logo);
+  } else if (typeof data.logo === 'string') {
+    formData.append('logo', data.logo);
+  }
+  return formData;
+};
+
 export const _ShopApi = {
-  getListShop: async (): Promise<ShopListResponse> => {
-    const response = await axiosInstance.get<ShopListResponse>(apiRoutes.shop.list);
-    console.log(response);
+  getListShop: async (params?: { page?: number; per_page?: number }): Promise<ShopListResponse> => {
+    const response = await axiosInstance.get<ShopListResponse>(apiRoutes.shop.list, { params });
     return response.data;
   },
   createShop: async (data: ShopCreateUpdatePayload): Promise<any> => {
-    const response = await axiosInstance.post(apiRoutes.shop.create, data);
+    const formData = buildFormDataPayload(data);
+    const response = await axiosInstance.post(apiRoutes.shop.create, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
     return response.data;
   },
   updateShop: async (id: number | string, data: ShopCreateUpdatePayload): Promise<any> => {
-    const response = await axiosInstance.put(apiRoutes.shop.update(id), data);
+    const formData = buildFormDataPayload(data);
+    formData.append('_method', 'PUT');
+    const response = await axiosInstance.post(apiRoutes.shop.update(id), formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
     return response.data;
   },
   deleteShop: async (id: number | string): Promise<any> => {
     const response = await axiosInstance.delete(apiRoutes.shop.delete(id));
     return response.data;
   },
-  getShopById: async (id: number | string): Promise<ShopData> => {
-    const response = await axiosInstance.get<ShopListResponse>(apiRoutes.shop.list);
-    // Find the shop by ID from the list (or you might have a separate endpoint)
-    const shop = response.data.data.items.find((item) => item.id === Number(id));
-    if (!shop) {
-      throw new Error('Shop not found');
-    }
-    return shop;
+  getShopById: async (id: number | string): Promise<{ status: boolean; data: ShopData }> => {
+    const response = await axiosInstance.get(apiRoutes.shop.details(id));
+    return response.data;
   },
 };

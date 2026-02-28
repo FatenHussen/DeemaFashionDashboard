@@ -1,8 +1,8 @@
 import type {
   UserListResponse,
-  UserDetailsResponse,
   UserCreatePayload,
   UserUpdatePayload,
+  UserDetailsResponse,
   UserConvertAffiliatePayload,
 } from '../types/user.types';
 

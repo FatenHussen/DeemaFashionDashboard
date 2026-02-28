@@ -1,8 +1,10 @@
 import type { NotificationItemProps } from './notification-item';
 
 import { m } from 'framer-motion';
-import { useState, useCallback } from 'react';
+import { queryKeys } from '@/api';
+import { useQuery } from '@tanstack/react-query';
 import { useBoolean } from 'minimal-shared/hooks';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 
 import { Label } from 'src/shared/components/label';
 import { Iconify } from 'src/shared/components/iconify';
@@ -12,14 +14,23 @@ import { varTap, varHover, transitionTap } from 'src/shared/components/animate';
 import { Box, Tab, Badge, Drawer, Button, Tooltip, Typography, IconButton } from 'src/shared/ui';
 
 import { NotificationItem } from './notification-item';
+import { _NotificationApi, type NotificationApiItem } from './api/notification.services';
 
 // ----------------------------------------------------------------------
 
-const TABS = [
-  { value: 'all', label: 'All', count: 22 },
-  { value: 'unread', label: 'Unread', count: 12 },
-  { value: 'archived', label: 'Archived', count: 10 },
-];
+function mapApiToNotification(
+  item: NotificationApiItem
+): NotificationItemProps['notification'] {
+  return {
+    id: item.id,
+    type: 'mail',
+    title: item.title,
+    category: item.body || '',
+    isUnRead: item.read_at === null,
+    avatarUrl: null,
+    createdAt: item.created_at,
+  };
+}
 
 // ----------------------------------------------------------------------
 
@@ -31,23 +42,56 @@ export function NotificationsDrawer({ data = [], className, ...other }: Notifica
   const { value: open, onFalse: onClose, onTrue: onOpen } = useBoolean();
 
   const [currentTab, setCurrentTab] = useState('all');
+  const [localNotifications, setLocalNotifications] = useState<NotificationItemProps['notification'][] | null>(null);
+
+  const { data: apiResponse, isLoading, refetch } = useQuery({
+    queryKey: queryKeys.auth.notifications(),
+    queryFn: () => _NotificationApi.getList(),
+  });
+
+  // Refetch notifications when drawer opens to get latest data
+  useEffect(() => {
+    if (open) {
+      refetch();
+    }
+  }, [open, refetch]);
+
+  const notifications = useMemo(() => {
+    if (localNotifications !== null) return localNotifications;
+    const items = apiResponse?.data ?? [];
+    return items.length > 0 ? items.map(mapApiToNotification) : data;
+  }, [apiResponse?.data, localNotifications, data]);
+
+  const totalUnRead = notifications.filter((item) => item.isUnRead === true).length;
+  const totalArchived = notifications.filter((item) => !item.isUnRead).length;
+
+  const tabs = useMemo(
+    () => [
+      { value: 'all', label: 'All', count: notifications.length },
+      { value: 'unread', label: 'Unread', count: totalUnRead },
+      { value: 'archived', label: 'Archived', count: totalArchived },
+    ],
+    [notifications.length, totalUnRead, totalArchived]
+  );
+
+  const filteredNotifications = useMemo(() => {
+    if (currentTab === 'unread') return notifications.filter((n) => n.isUnRead);
+    if (currentTab === 'archived') return notifications.filter((n) => !n.isUnRead);
+    return notifications;
+  }, [notifications, currentTab]);
 
   const handleChangeTab = useCallback((_event: React.SyntheticEvent, newValue: string | number) => {
     setCurrentTab(newValue as string);
   }, []);
 
-  const [notifications, setNotifications] = useState(data);
-
-  const totalUnRead = notifications.filter((item) => item.isUnRead === true).length;
-
   const handleMarkAllAsRead = () => {
-    setNotifications(notifications.map((notification) => ({ ...notification, isUnRead: false })));
+    setLocalNotifications(
+      notifications.map((notification) => ({ ...notification, isUnRead: false }))
+    );
   };
 
   const renderHead = () => (
-    <Box
-      className="py-2 pr-1 pl-2.5 min-h-[68px] flex items-center"
-    >
+    <Box className="py-2 pr-1 pl-2.5 min-h-[68px] flex items-center">
       <Typography variant="h6" className="flex-grow">
         Notifications
       </Typography>
@@ -72,7 +116,7 @@ export function NotificationsDrawer({ data = [], className, ...other }: Notifica
 
   const renderTabs = () => (
     <CustomTabs variant="fullWidth" value={currentTab} onChange={handleChangeTab}>
-      {TABS.map((tab) => (
+      {tabs.map((tab) => (
         <Tab
           key={tab.value}
           iconPosition="end"
@@ -98,11 +142,21 @@ export function NotificationsDrawer({ data = [], className, ...other }: Notifica
   const renderList = () => (
     <Scrollbar>
       <Box component="ul">
-        {notifications?.map((notification) => (
-          <Box component="li" key={notification.id} className="flex">
-            <NotificationItem notification={notification} />
+        {isLoading ? (
+          <Box className="flex justify-center py-8">
+            <Iconify icon="svg-spinners:ring-resize" width={32} className="text-muted-foreground" />
           </Box>
-        ))}
+        ) : filteredNotifications.length === 0 ? (
+          <Box className="flex justify-center py-8 text-sm text-muted-foreground">
+            No notifications
+          </Box>
+        ) : (
+          filteredNotifications.map((notification) => (
+            <Box component="li" key={notification.id} className="flex">
+              <NotificationItem notification={notification} />
+            </Box>
+          ))
+        )}
       </Box>
     </Scrollbar>
   );

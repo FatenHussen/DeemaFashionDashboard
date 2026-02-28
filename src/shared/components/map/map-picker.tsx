@@ -1,8 +1,9 @@
-import { useEffect, useRef, useCallback } from 'react';
-import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
-const DEFAULT_CENTER: [number, number] = [33.5138, 36.2765]; // Damascus
+import L from 'leaflet';
+import { useRef, useEffect, useCallback } from 'react';
+
+export const MAP_DEFAULT_CENTER: [number, number] = [33.5138, 36.2765]; // Damascus
 const DEFAULT_ZOOM = 12;
 
 interface MapPickerProps {
@@ -32,11 +33,11 @@ export function MapPicker({ lat, lng, onChange, height = '300px', className = ''
   const initMap = useCallback(() => {
     if (!containerRef.current || mapRef.current) return;
 
-    const initialLat = lat ? parseFloat(lat) : DEFAULT_CENTER[0];
-    const initialLng = lng ? parseFloat(lng) : DEFAULT_CENTER[1];
+    const initialLat = lat ? parseFloat(lat) : MAP_DEFAULT_CENTER[0];
+    const initialLng = lng ? parseFloat(lng) : MAP_DEFAULT_CENTER[1];
     const center: [number, number] = [
-      Number.isNaN(initialLat) ? DEFAULT_CENTER[0] : initialLat,
-      Number.isNaN(initialLng) ? DEFAULT_CENTER[1] : initialLng,
+      Number.isNaN(initialLat) ? MAP_DEFAULT_CENTER[0] : initialLat,
+      Number.isNaN(initialLng) ? MAP_DEFAULT_CENTER[1] : initialLng,
     ];
 
     const map = L.map(containerRef.current).setView(center, DEFAULT_ZOOM);

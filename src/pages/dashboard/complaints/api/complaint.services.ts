@@ -1,7 +1,7 @@
 import type {
   ComplaintListResponse,
-  ComplaintDetailsResponse,
   ComplaintUpdatePayload,
+  ComplaintDetailsResponse,
 } from '../types/complaint.types';
 
 import { apiRoutes, axiosInstance } from '@/api';

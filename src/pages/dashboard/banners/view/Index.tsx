@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { toast } from 'react-toastify';
-import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
+// import type { BannerItem } from '@/pages/dashboard/banners/types/banner.types';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { usePermissions } from '@/auth/hooks/use-permissions';
 import { bannerColumns, type BannerFormValues } from '@/columns/one/banners/one';
@@ -44,9 +45,7 @@ export default function Page() {
         await deleteBannerMutation.mutateAsync(deletingId);
         toast.success(t('deleteSuccess') || 'Banner deleted successfully');
         setDeletingId(null);
-      } catch (err: any) {
-        toast.error(err?.message || t('deleteError') || 'Failed to delete banner');
-      }
+      } catch {}
     }
   };
 
@@ -60,7 +59,20 @@ export default function Page() {
     });
   };
 
-  const bannerData: BannerFormValues[] = bannersResponse?.data?.items || [];
+  const rawItems = bannersResponse?.data?.items ?? [];
+  const bannerData: BannerFormValues[] = rawItems.map((item) => {
+    const desc = item.description;
+    const descriptionStr =
+      typeof desc === 'string'
+        ? desc
+        : desc && typeof desc === 'object' && 'en' in desc
+          ? ((desc as { en?: string }).en ?? '')
+          : '';
+    return {
+      ...item,
+      description: descriptionStr,
+    } as BannerFormValues;
+  });
   const apiPagination = bannersResponse?.data?.pagination;
   const pagination = apiPagination
     ? {

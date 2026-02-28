@@ -5,7 +5,7 @@ import { _GovernorateApi, type GovernorateCreateUpdatePayload } from '../api/gov
 
 export const useFetchGovernorates = (page: number = 1, limit: number = 25) => useQuery({
     queryKey: queryKeys.governorate.list({ page, limit }),
-    queryFn: () => _GovernorateApi.getListGovernorates(),
+    queryFn: () => _GovernorateApi.getListGovernorates({ page, per_page: limit }),
   });
 
 export const useFetchGovernorateById = (id: number | string) => useQuery({
@@ -21,7 +21,7 @@ export const useCreateGovernorate = (page?: number, limit?: number) => {
     mutationFn: (data: GovernorateCreateUpdatePayload) => _GovernorateApi.createGovernorate(data),
     onSuccess: () => {
       // Invalidate all list queries
-      queryClient.invalidateQueries({ queryKey: queryKeys.governorate.list() });
+      queryClient.invalidateQueries({ queryKey: ['governorate', 'list'] });
       // Refetch the current page query if pagination params are provided
       if (page !== undefined && limit !== undefined) {
         queryClient.refetchQueries({
@@ -40,7 +40,7 @@ export const useUpdateGovernorate = (page?: number, limit?: number) => {
       _GovernorateApi.updateGovernorate(id, data),
     onSuccess: () => {
       // Invalidate all list queries
-      queryClient.invalidateQueries({ queryKey: queryKeys.governorate.list() });
+      queryClient.invalidateQueries({ queryKey: ['governorate', 'list'] });
       // Refetch the current page query if pagination params are provided
       if (page !== undefined && limit !== undefined) {
         queryClient.refetchQueries({
@@ -58,7 +58,7 @@ export const useDeleteGovernorate = (page?: number, limit?: number) => {
     mutationFn: (id: number | string) => _GovernorateApi.deleteGovernorate(id),
     onSuccess: () => {
       // Invalidate all list queries
-      queryClient.invalidateQueries({ queryKey: queryKeys.governorate.list() });
+      queryClient.invalidateQueries({ queryKey: ['governorate', 'list'] });
       // Refetch the current page query if pagination params are provided
       if (page !== undefined && limit !== undefined) {
         queryClient.refetchQueries({

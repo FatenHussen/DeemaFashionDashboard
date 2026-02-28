@@ -1,6 +1,7 @@
-import type { MultiValue, SingleValue } from 'react-select';
-import ReactSelect, { type GroupBase, type Props } from 'react-select';
+import type { GroupBase, MultiValue } from 'react-select';
+
 import { cn } from '@/utils/utils';
+import ReactSelect from 'react-select';
 
 // ----------------------------------------------------------------------
 
@@ -75,9 +76,7 @@ export function MultiSelect({
 
   return (
     <div className={cn(fullWidth && 'w-full', className)}>
-      {label && (
-        <label className="mb-1 block text-sm font-medium text-foreground">{label}</label>
-      )}
+      {label && <label className="mb-1 block text-sm font-medium text-foreground">{label}</label>}
       <ReactSelect<MultiSelectOption, true, GroupBase<MultiSelectOption>>
         isMulti
         options={selectOptions}
@@ -119,12 +118,7 @@ export function MultiSelect({
         })}
       />
       {helperText && (
-        <p
-          className={cn(
-            'mt-1 text-xs',
-            error ? 'text-red-600' : 'text-muted-foreground'
-          )}
-        >
+        <p className={cn('mt-1 text-xs', error ? 'text-red-600' : 'text-muted-foreground')}>
           {helperText}
         </p>
       )}

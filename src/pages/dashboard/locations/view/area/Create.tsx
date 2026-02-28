@@ -1,3 +1,5 @@
+import type { Resolver } from 'react-hook-form';
+
 import { useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { useForm, Controller } from 'react-hook-form';
@@ -17,9 +19,9 @@ import {
 
 import { CONFIG } from 'src/global-config';
 import { Box, Typography, SimpleSelect } from 'src/shared/ui';
+import { MapPicker, MAP_DEFAULT_CENTER } from 'src/shared/components/map/map-picker';
 import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
 import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
-import { MapPicker } from 'src/shared/components/map/map-picker';
 
 // ----------------------------------------------------------------------
 
@@ -42,13 +44,13 @@ export default function CreatePage() {
       ar: '',
     },
     city_id: 0,
-    lat: '',
-    lng: '',
+    lat: String(MAP_DEFAULT_CENTER[0]),
+    lng: String(MAP_DEFAULT_CENTER[1]),
     base_fee: '',
   };
 
   const methods = useForm<AreaFormValues>({
-    resolver: zodResolver(AreaSchema),
+    resolver: zodResolver(AreaSchema) as Resolver<AreaFormValues>,
     defaultValues,
   });
 
@@ -59,20 +61,25 @@ export default function CreatePage() {
   // Fetch area data if in edit mode
   useEffect(() => {
     if (isEditMode && areaData && !isLoadingArea) {
-      // API returns name as string, but form expects {ar, en}
+      // API returns name as string or {ar, en}
+      const rawName = areaData.name as string | { ar?: string; en?: string };
       const nameValue =
-        typeof areaData.name === 'string'
-          ? { ar: areaData.name, en: areaData.name }
-          : areaData.name;
+        typeof rawName === 'string'
+          ? { ar: rawName, en: rawName }
+          : { ar: rawName?.ar ?? '', en: rawName?.en ?? '' };
 
       const baseFee =
         areaData.base_fee != null ? String(areaData.base_fee) : '';
 
+      const hasCoords = areaData.lat != null && areaData.lng != null && !Number.isNaN(Number(areaData.lat)) && !Number.isNaN(Number(areaData.lng));
+      const latVal = hasCoords ? String(areaData.lat) : String(MAP_DEFAULT_CENTER[0]);
+      const lngVal = hasCoords ? String(areaData.lng) : String(MAP_DEFAULT_CENTER[1]);
+
       reset({
         name: nameValue,
         city_id: areaData.city?.id || 0,
-        lat: areaData.lat ?? '',
-        lng: areaData.lng ?? '',
+        lat: latVal,
+        lng: lngVal,
         base_fee: baseFee,
       });
     }
@@ -84,14 +91,18 @@ export default function CreatePage() {
 
   const onSubmit = async (data: AreaFormValues) => {
     try {
+      const numLat = data.lat ? parseFloat(data.lat) : NaN;
+      const numLng = data.lng ? parseFloat(data.lng) : NaN;
+      const hasValidCoords = !Number.isNaN(numLat) && !Number.isNaN(numLng);
+
       const payload = {
         name: {
           en: data.name.en,
           ar: data.name.ar,
         },
         city_id: data.city_id,
-        lat: data.lat ?? '',
-        lng: data.lng ?? '',
+        lat: hasValidCoords ? numLat : MAP_DEFAULT_CENTER[0],
+        lng: hasValidCoords ? numLng : MAP_DEFAULT_CENTER[1],
         base_fee: data.base_fee ?? '',
       };
 

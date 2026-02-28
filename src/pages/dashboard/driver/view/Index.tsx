@@ -46,9 +46,7 @@ export default function Page() {
         await deleteDriverMutation.mutateAsync(deletingId);
         toast.success(t('deleteSuccess') || 'Driver deleted successfully');
         setDeletingId(null);
-      } catch (err: any) {
-        toast.error(err?.message || t('deleteError') || 'Failed to delete driver');
-      }
+      } catch {}
     }
   };
 
@@ -111,11 +109,16 @@ export default function Page() {
         isLoading={isLoading}
         columnTranslations={{
           id: 'ID',
+          name: 'Name',
           phone: 'Phone',
           address: 'Address',
           status: 'Status',
           is_active: 'Active',
           rate_per_order: 'Rate per Order',
+          average_rating: 'Avg Rating',
+          total_orders: 'Total Orders',
+          completed_orders: 'Completed',
+          total_earnings: 'Total Earnings',
           created_at: 'Created At',
           actions: 'Actions',
         }}

@@ -1,8 +1,8 @@
 import { Button } from '@/shared/ui/button';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
-import { useFetchAreaById } from '@/pages/dashboard/locations/hooks/area';
 import { MapDisplay } from '@/shared/components/map/map-display';
+import { useFetchAreaById } from '@/pages/dashboard/locations/hooks/area';
 
 import { CONFIG } from 'src/global-config';
 import { Box, Typography } from 'src/shared/ui';

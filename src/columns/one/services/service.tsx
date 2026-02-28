@@ -2,9 +2,10 @@ import type { TFunction } from 'i18next';
 import type { ColumnDef } from '@tanstack/react-table';
 
 import { Link } from 'react-router';
-import { Iconify } from '@/shared/components/iconify';
-import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 import { Button } from '@/shared/ui';
+import { Iconify } from '@/shared/components/iconify';
+import { formatTranslated } from '@/utils/format-translated';
+import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 
 // Type for service data
 export interface ServiceFormValues {
@@ -45,7 +46,7 @@ export const serviceColumns = (
           <Iconify icon="solar:service-bold" className="text-primary" width={18} height={18} />
         </div>
         <div className="min-w-0">
-          <div className="font-semibold text-foreground truncate">{row.original.name}</div>
+          <div className="font-semibold text-foreground truncate">{formatTranslated(row.original.name)}</div>
         </div>
       </div>
     ),

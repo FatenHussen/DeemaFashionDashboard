@@ -30,8 +30,10 @@ export const _RoleApi = {
     const response = await axiosInstance.delete(apiRoutes.role.delete(id));
     return response.data;
   },
-  getListPermissions: async (): Promise<PermissionListResponse> => {
-    const response = await axiosInstance.get<PermissionListResponse>(apiRoutes.permission.list);
+  getListPermissions: async (params?: { page?: number; per_page?: number }): Promise<PermissionListResponse> => {
+    const response = await axiosInstance.get<PermissionListResponse>(apiRoutes.permission.list, {
+      params: params ?? { per_page: 500 },
+    });
     return response.data;
   },
 };

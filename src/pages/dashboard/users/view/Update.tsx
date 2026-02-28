@@ -1,28 +1,29 @@
+import type { UserItem } from '@/pages/dashboard/users/types/user.types';
+
 import { toast } from 'react-toastify';
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useParams, useNavigate, useLocation } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
+import { useParams, useNavigate, useLocation } from 'react-router';
+import { useFetchAreas } from '@/pages/dashboard/locations/hooks/area';
 import {
-  UserUpdateSchema,
-  UserConvertAffiliateSchema,
-  type UserUpdateFormValues,
-  type UserConvertAffiliateFormValues,
-} from '@/pages/dashboard/users/validation/user.validation';
-import type { UserItem } from '@/pages/dashboard/users/types/user.types';
-import {
-  useFetchUserById,
   useUpdateUser,
+  useFetchUserById,
   useConvertToAffiliate,
 } from '@/pages/dashboard/users/hooks/user';
-import { useFetchAreas } from '@/pages/dashboard/locations/hooks/area';
+import {
+  UserUpdateSchema,
+  type UserUpdateFormValues,
+  UserConvertAffiliateSchema,
+  type UserConvertAffiliateFormValues,
+} from '@/pages/dashboard/users/validation/user.validation';
 
-import { Box, Typography, Button } from 'src/shared/ui';
 import { CONFIG } from 'src/global-config';
+import { Box, Button, Typography } from 'src/shared/ui';
+import { LoadingScreen } from 'src/shared/components/loading-screen';
 import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
 import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
-import { LoadingScreen } from 'src/shared/components/loading-screen';
 
 // ----------------------------------------------------------------------
 
@@ -45,10 +46,18 @@ export default function UpdatePage() {
   const areas = areasResponse?.data?.items || [];
 
   const sourceUser = user ?? userFromState;
-  const isAffiliate = sourceUser?.affiliate?.is_affiliate ?? false;
+  const aff = sourceUser?.affiliate;
+  const isAffiliate = aff?.is_affiliate ?? false;
+  const isApprovedAffiliate =
+    isAffiliate &&
+    (aff?.affiliate_approved ?? false) &&
+    (aff?.affiliate_id != null && aff?.affiliate_id !== '') &&
+    (aff?.affiliate_rate != null && aff?.affiliate_rate !== '');
+  const showConvertAffiliateSection = isAffiliate && !isApprovedAffiliate;
 
   const defaultValues: UserUpdateFormValues = {
     name: '',
+    last_name: '',
     email: '',
     phone: '',
     password: '',
@@ -73,6 +82,7 @@ export default function UpdatePage() {
     if (sourceUser) {
       reset({
         name: sourceUser.name || '',
+        last_name: (sourceUser as any).last_name ?? '',
         email: sourceUser.email || '',
         phone: sourceUser.phone || '',
         password: '',
@@ -90,6 +100,7 @@ export default function UpdatePage() {
     try {
       const payload: any = {
         name: data.name,
+        last_name: data.last_name || '',
         email: data.email,
         phone: data.phone || '',
         area_id: data.area_id,
@@ -100,9 +111,7 @@ export default function UpdatePage() {
       }
       await updateUserMutation.mutateAsync({ id: id!, data: payload });
       toast.success('User updated successfully');
-    } catch (err: any) {
-      toast.error(err?.message || 'Failed to update user');
-    }
+    } catch {}
   };
 
   const onConvertSubmit = async (data: UserConvertAffiliateFormValues) => {
@@ -117,9 +126,7 @@ export default function UpdatePage() {
       toast.success('User converted to affiliate successfully');
       setShowConvertAffiliate(false);
       convertMethods.reset();
-    } catch (err: any) {
-      toast.error(err?.message || 'Failed to convert to affiliate');
-    }
+    } catch {}
   };
 
   const handleCancel = () => {
@@ -153,7 +160,8 @@ export default function UpdatePage() {
         maxWidth="2xl"
       >
         <Box className="space-y-4">
-          <RHFTextField name="name" label="Name" fullWidth />
+          <RHFTextField name="name" label="First Name" fullWidth />
+          <RHFTextField name="last_name" label="Last Name" fullWidth />
           <RHFTextField name="email" label="Email" type="email" fullWidth />
           <RHFTextField name="phone" label="Phone" fullWidth />
           <RHFTextField
@@ -197,7 +205,7 @@ export default function UpdatePage() {
             />
           </Box>
 
-          {isAffiliate && (
+          {showConvertAffiliateSection && (
             <Box className="rounded-lg border border-border p-4">
               {!showConvertAffiliate ? (
                 <Button

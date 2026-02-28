@@ -22,12 +22,12 @@ export const useCreateArea = (page?: number, limit?: number) => {
     onSuccess: () => {
       // Invalidate and refetch all list queries
       queryClient.invalidateQueries({ 
-        queryKey: queryKeys.area.list(),
+        queryKey: ['area', 'list'],
         refetchType: 'active',
       });
       // Also explicitly refetch all matching queries
       queryClient.refetchQueries({
-        queryKey: queryKeys.area.list(),
+        queryKey: ['area', 'list'],
       });
     },
   });
@@ -42,12 +42,12 @@ export const useUpdateArea = (page?: number, limit?: number) => {
     onSuccess: (_, variables) => {
       // Invalidate and refetch all list queries
       queryClient.invalidateQueries({ 
-        queryKey: queryKeys.area.list(),
+        queryKey: ['area', 'list'],
         refetchType: 'active',
       });
       // Also explicitly refetch all matching queries
       queryClient.refetchQueries({
-        queryKey: queryKeys.area.list(),
+        queryKey: ['area', 'list'],
       });
       // Invalidate the specific area details query
       queryClient.invalidateQueries({
@@ -65,12 +65,12 @@ export const useDeleteArea = (page?: number, limit?: number) => {
     onSuccess: (_, id) => {
       // Invalidate and refetch all list queries
       queryClient.invalidateQueries({ 
-        queryKey: queryKeys.area.list(),
+        queryKey: ['area', 'list'],
         refetchType: 'active',
       });
       // Also explicitly refetch all matching queries
       queryClient.refetchQueries({
-        queryKey: queryKeys.area.list(),
+        queryKey: ['area', 'list'],
       });
       // Invalidate the specific area details query
       queryClient.invalidateQueries({

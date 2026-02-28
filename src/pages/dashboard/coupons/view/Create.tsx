@@ -1,29 +1,31 @@
+import type { MultiSelectOption } from '@/shared/ui/multi-select';
+import type { CouponDetailsData } from '@/pages/dashboard/coupons/types/coupon.types';
+
 import { toast } from 'react-toastify';
-import { useEffect, useMemo } from 'react';
+import { formatTranslated } from '@/utils/format-translated';
+import { useMemo, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useParams, useNavigate, useLocation } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
+import { useParams, useNavigate, useLocation } from 'react-router';
+import { useFetchVendors } from '@/pages/dashboard/vendor/hooks/vendor';
+import { useFetchProducts } from '@/pages/dashboard/products/hooks/product';
 import {
   CouponSchema,
   type CouponFormValues,
 } from '@/pages/dashboard/coupons/validation/coupon.validation';
-import type { CouponDetailsData } from '@/pages/dashboard/coupons/types/coupon.types';
 import {
   useCreateCoupon,
   useUpdateCoupon,
   useFetchCouponById,
 } from '@/pages/dashboard/coupons/hooks/coupon';
-import { useFetchProducts } from '@/pages/dashboard/products/hooks/product';
-import { useFetchVendors } from '@/pages/dashboard/vendor/hooks/vendor';
 
-import { Box, Typography, Switch } from 'src/shared/ui';
 import { CONFIG } from 'src/global-config';
+import { Box, Switch, Typography } from 'src/shared/ui';
 import { LoadingScreen } from 'src/shared/components/loading-screen';
 import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
 import { RHFMultiSelect } from 'src/shared/components/hook-form/rhf-multi-select';
 import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
-import type { MultiSelectOption } from '@/shared/ui/multi-select';
 
 // ----------------------------------------------------------------------
 
@@ -53,18 +55,27 @@ export default function CreatePage() {
   const vendors = vendorsResponse?.data?.items || [];
 
   const productOptions: MultiSelectOption[] = useMemo(
-    () => products.map((p) => ({ value: p.id, label: p.name || `Product #${p.id}` })),
+    () =>
+      products.map((p) => ({
+        value: p.id,
+        label: formatTranslated(p.name) || `Product #${p.id}`,
+      })),
     [products]
   );
 
   const vendorOptions: MultiSelectOption[] = useMemo(
-    () => vendors.map((v) => ({ value: v.id, label: v.name || `Vendor #${v.id}` })),
+    () =>
+      vendors.map((v) => ({
+        value: v.id,
+        label: formatTranslated(v.name) || `Vendor #${v.id}`,
+      })),
     [vendors]
   );
 
   const defaultValues: CouponFormValues = {
     name: { en: '', ar: '' },
     code: '',
+    affiliate_id: undefined,
     discount_type: 'percentage',
     discount_value: '',
     start_at: '',
@@ -83,6 +94,8 @@ export default function CreatePage() {
 
   const { handleSubmit, reset, control, watch } = methods;
   const couponType = watch('coupon_type');
+  const affiliateId = watch('affiliate_id');
+  const hasAffiliateId = !!affiliateId && affiliateId > 0;
 
   // Determine coupon type from API response
   const inferCouponType = (data: CouponDetailsData): 'general' | 'product' | 'vendor' => {
@@ -102,6 +115,7 @@ export default function CreatePage() {
             ? (source.name as { en: string; ar: string })
             : { en: source.name || '', ar: source.name || '' },
         code: source.code || '',
+        affiliate_id: (source as any).affiliate_id ?? undefined,
         discount_type: (discount?.type as 'percentage' | 'fixed') || 'percentage',
         discount_value: discount?.value?.toString() || '',
         start_at: source.start_at ? toISODateTimeLocal(source.start_at) : '',
@@ -124,6 +138,7 @@ export default function CreatePage() {
       const payload: any = {
         name: data.name,
         code: data.code,
+        ...(data.affiliate_id && data.affiliate_id > 0 && { affiliate_id: data.affiliate_id }),
         discount_type: data.discount_type,
         discount_value: data.discount_value,
         start_at: data.start_at,
@@ -186,6 +201,27 @@ export default function CreatePage() {
         submitLabel={isEditMode ? 'Update Coupon' : 'Create Coupon'}
         submittingLabel={isEditMode ? 'Updating...' : 'Creating...'}
       >
+        {/* Affiliate ID */}
+        <Box className="group">
+          <Box className="flex items-center gap-2 mb-2">
+            <Iconify icon="solar:user-id-bold" className="text-primary" width={24} height={24} />
+            <Typography variant="subtitle2" className="font-semibold text-foreground">
+              Affiliate ID (optional)
+            </Typography>
+          </Box>
+          <RHFTextField
+            name="affiliate_id"
+            type="number"
+            placeholder="Leave empty for non-affiliate coupons"
+            fullWidth
+          />
+          {hasAffiliateId && (
+            <Typography variant="caption" className="text-muted-foreground mt-1 block">
+              Product/Vendor selection is managed by the affiliate system.
+            </Typography>
+          )}
+        </Box>
+
         {/* Coupon Type */}
         <Box className="group">
           <Box className="flex items-center gap-2 mb-2">
@@ -206,12 +242,16 @@ export default function CreatePage() {
                     { value: 'vendor', label: 'Vendors' },
                   ] as const
                 ).map((opt) => (
-                  <label key={opt.value} className="flex items-center gap-2 cursor-pointer">
+                  <label
+                    key={opt.value}
+                    className={`flex items-center gap-2 ${isEditMode || hasAffiliateId ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
+                  >
                     <input
                       type="radio"
                       checked={field.value === opt.value}
                       onChange={() => field.onChange(opt.value)}
-                      className="accent-primary"
+                      disabled={isEditMode || hasAffiliateId}
+                      className="accent-primary disabled:cursor-not-allowed"
                     />
                     <span className="text-sm">{opt.label}</span>
                   </label>
@@ -239,8 +279,9 @@ export default function CreatePage() {
               name="product_ids"
               options={productOptions}
               label="Select products"
-              placeholder="Search and select products..."
+              placeholder={hasAffiliateId ? 'Managed by affiliate' : 'Search and select products...'}
               fullWidth
+              isDisabled={hasAffiliateId}
             />
           </Box>
         )}
@@ -263,8 +304,9 @@ export default function CreatePage() {
               name="vendor_ids"
               options={vendorOptions}
               label="Select vendors"
-              placeholder="Search and select vendors..."
+              placeholder={hasAffiliateId ? 'Managed by affiliate' : 'Search and select vendors...'}
               fullWidth
+              isDisabled={hasAffiliateId}
             />
           </Box>
         )}

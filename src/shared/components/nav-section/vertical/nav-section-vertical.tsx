@@ -32,7 +32,7 @@ export function NavSectionVertical({
       <NavUl className="flex-auto gap-[var(--nav-item-gap)]">
         {data.map((group) => (
           <Group
-            key={group.subheader ?? group.items[0].title}
+            key={String(group.subheader ?? group.items[0].title)}
             subheader={group.subheader}
             items={group.items}
             render={render}
@@ -58,7 +58,7 @@ function Group({
   checkPermission,
   enabledRootRedirect,
 }: NavGroupProps) {
-  const groupOpen = useBoolean(false);
+  const groupOpen = useBoolean(true);
 
   const renderContent = () => (
     <NavUl className="gap-[var(--nav-item-gap)]">
@@ -78,14 +78,15 @@ function Group({
   );
 
   // Extract text from subheader for data-title attribute
-  const getSubheaderText = () => {
+  const getSubheaderText = (): string => {
     if (typeof subheader === 'string') return subheader;
     if (React.isValidElement(subheader)) {
-      // Try to extract text from React element
-      const text =
-        subheader.props?.children?.find?.((child: any) => typeof child === 'string') ||
-        (typeof subheader.props?.children === 'string' ? subheader.props.children : '');
-      return text || 'Group';
+      const children = (subheader as React.ReactElement<{ children?: React.ReactNode }>).props?.children;
+      if (Array.isArray(children)) {
+        const str = children.find((c): c is string => typeof c === 'string');
+        return str ?? 'Group';
+      }
+      return typeof children === 'string' ? children : 'Group';
     }
     return 'Group';
   };

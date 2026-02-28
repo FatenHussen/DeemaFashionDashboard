@@ -2,13 +2,17 @@ import type { NavItemProps, NavSectionProps } from 'src/shared/components/nav-se
 import type { MainSectionProps, HeaderSectionProps, LayoutSectionProps } from '../core';
 
 import { merge } from 'es-toolkit';
+import { useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useBoolean } from 'minimal-shared/hooks';
 import { mergeClasses } from 'minimal-shared/utils';
 
+import { _contacts } from 'src/_mock';
 import { Box, Alert } from 'src/shared/ui';
+import { getFcmToken } from 'src/lib/firebase';
 import { Logo } from 'src/shared/components/logo';
+import { apiRoutes, axiosInstance } from 'src/api';
 import { useMockedUser } from 'src/pages/auth/hooks';
-import { _contacts, _notifications } from 'src/_mock';
 import { useSettingsContext } from 'src/shared/components/settings';
 import { useAuthContext } from 'src/pages/auth/hooks/use-auth-context';
 
@@ -18,6 +22,7 @@ import { NavVertical } from './nav-vertical';
 import { NavHorizontal } from './nav-horizontal';
 import { _account } from '../nav-config-account';
 import { Searchbar } from '../components/searchbar';
+import { getNavData } from '../nav-config-dashboard';
 import { _workspaces } from '../nav-config-workspace';
 import { MenuButton } from '../components/menu-button';
 import { LogoutButton } from '../components/logout-button';
@@ -26,7 +31,6 @@ import { SettingsButton } from '../components/settings-button';
 import { LanguagePopover } from '../components/language-popover';
 import { ContactsPopover } from '../components/contacts-popover';
 import { WorkspacesPopover } from '../components/workspaces-popover';
-import { navData as dashboardNavData } from '../nav-config-dashboard';
 import { dashboardLayoutVars, dashboardNavColorVars } from './css-vars';
 import { NotificationsDrawer } from '../components/notifications-drawer';
 import { MainSection, layoutClasses, HeaderSection, LayoutSection } from '../core';
@@ -54,6 +58,7 @@ export function DashboardLayout({
   layoutQuery = 'lg',
 }: DashboardLayoutProps) {
   const { user } = useMockedUser();
+  const { t } = useTranslation('nav');
 
   const settings = useSettingsContext();
 
@@ -61,13 +66,30 @@ export function DashboardLayout({
 
   const { value: open, onFalse: onClose, onTrue: onOpen } = useBoolean();
 
-  const navData = slotProps?.nav?.data ?? dashboardNavData;
+  const navData = slotProps?.nav?.data ?? getNavData(t);
 
   const isNavMini = settings.state.navLayout === 'mini';
   const isNavHorizontal = settings.state.navLayout === 'horizontal';
   const isNavVertical = isNavMini || settings.state.navLayout === 'vertical';
 
   const { permissions } = useAuthContext();
+
+  const fcmInitialized = useRef(false);
+  useEffect(() => {
+    if (fcmInitialized.current) return;
+    fcmInitialized.current = true;
+
+    getFcmToken().then((fcmToken) => {
+      if (fcmToken) {
+        axiosInstance
+          .post(apiRoutes.auth.storeToken, {
+            deviceId: navigator.userAgent.slice(0, 50),
+            fcmToken,
+          })
+          .catch(() => {});
+      }
+    });
+  }, []);
 
   // Legacy role-based check (for backward compatibility)
   const canDisplayItemByRole = (allowedRoles: NavItemProps['allowedRoles']): boolean =>
@@ -172,17 +194,14 @@ export function DashboardLayout({
             <LanguagePopover
               data={[
                 { value: 'en', label: 'English', countryCode: 'GB' },
-                { value: 'fr', label: 'French', countryCode: 'FR' },
-                { value: 'vi', label: 'Vietnamese', countryCode: 'VN' },
-                { value: 'cn', label: 'Chinese', countryCode: 'CN' },
-                { value: 'ar', label: 'Arabic', countryCode: 'SA' },
+                { value: 'ar', label: 'العربية', countryCode: 'SA' },
               ]}
             />
           </Box>
 
           {/** @slot Notifications popover */}
           <Box className="flex items-center">
-            <NotificationsDrawer data={_notifications} />
+            <NotificationsDrawer />
           </Box>
 
           {/** @slot Contacts popover */}
@@ -262,8 +281,8 @@ export function DashboardLayout({
       }
       className={mergeClasses([
         className,
-        `[&_.${layoutClasses.sidebarContainer}]:lg:pl-[var(--layout-nav-${isNavMini ? 'mini' : 'vertical'}-width)]`,
-        `[&_.${layoutClasses.sidebarContainer}]:transition-[padding-left]`,
+        `[&_.${layoutClasses.sidebarContainer}]:lg:ps-[var(--layout-nav-${isNavMini ? 'mini' : 'vertical'}-width)]`,
+        `[&_.${layoutClasses.sidebarContainer}]:transition-[padding-inline-start]`,
         `[&_.${layoutClasses.sidebarContainer}]:duration-[var(--layout-transition-duration)]`,
         `[&_.${layoutClasses.sidebarContainer}]:ease-[var(--layout-transition-easing)]`,
       ])}

@@ -7,7 +7,7 @@ import { _ShopApi } from '../api/shop.services';
 
 export const useFetchShops = (page: number = 1, limit: number = 25) => useQuery({
     queryKey: queryKeys.shop.list({ page, limit }),
-    queryFn: () => _ShopApi.getListShop(),
+    queryFn: () => _ShopApi.getListShop({ page, per_page: limit }),
   });
 
 export const useFetchShopById = (id: number | string) => useQuery({
@@ -22,7 +22,7 @@ export const useCreateShop = () => {
   return useMutation({
     mutationFn: (data: ShopCreateUpdatePayload) => _ShopApi.createShop(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.shop.list() });
+      queryClient.invalidateQueries({ queryKey: ['shop', 'list'] });
     },
   });
 };
@@ -34,7 +34,7 @@ export const useUpdateShop = () => {
     mutationFn: ({ id, data }: { id: number | string; data: ShopCreateUpdatePayload }) =>
       _ShopApi.updateShop(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.shop.list() });
+      queryClient.invalidateQueries({ queryKey: ['shop', 'list'] });
     },
   });
 };
@@ -45,7 +45,7 @@ export const useDeleteShop = () => {
   return useMutation({
     mutationFn: (id: number | string) => _ShopApi.deleteShop(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.shop.list() });
+      queryClient.invalidateQueries({ queryKey: ['shop', 'list'] });
     },
   });
 };

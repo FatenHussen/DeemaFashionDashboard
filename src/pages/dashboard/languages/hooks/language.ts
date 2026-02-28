@@ -1,11 +1,10 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-
 import type {
-  LanguageCreateUpdatePayload,
   LanguageListParams,
+  LanguageCreateUpdatePayload,
 } from '../types/language.types';
 
 import { queryKeys } from '@/api';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { _LanguageApi } from '../api/language.services';
 
@@ -27,7 +26,7 @@ export const useCreateLanguage = () => {
   return useMutation({
     mutationFn: (data: LanguageCreateUpdatePayload) => _LanguageApi.createLanguage(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.language.list() });
+      queryClient.invalidateQueries({ queryKey: ['language', 'list'] });
     },
   });
 };
@@ -38,7 +37,7 @@ export const useUpdateLanguage = () => {
     mutationFn: ({ id, data }: { id: number | string; data: LanguageCreateUpdatePayload }) =>
       _LanguageApi.updateLanguage(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.language.list() });
+      queryClient.invalidateQueries({ queryKey: ['language', 'list'] });
     },
   });
 };
@@ -48,7 +47,7 @@ export const useDeleteLanguage = () => {
   return useMutation({
     mutationFn: (id: number | string) => _LanguageApi.deleteLanguage(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.language.list() });
+      queryClient.invalidateQueries({ queryKey: ['language', 'list'] });
     },
   });
 };

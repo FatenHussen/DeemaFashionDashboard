@@ -1,6 +1,7 @@
 import { Controller, useFormContext } from 'react-hook-form';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from 'src/shared/ui/select';
+
 import { Typography } from 'src/shared/ui';
+import { Select, SelectItem, SelectValue, SelectContent, SelectTrigger } from 'src/shared/ui/select';
 
 // ----------------------------------------------------------------------
 
@@ -10,6 +11,7 @@ export type RHFSelectProps = {
   placeholder?: string;
   helperText?: string;
   className?: string;
+  disabled?: boolean;
 };
 
 export function RHFSelect({
@@ -18,6 +20,7 @@ export function RHFSelect({
   placeholder = 'Select an option',
   helperText,
   className,
+  disabled,
 }: RHFSelectProps) {
   const { control } = useFormContext();
 
@@ -27,7 +30,7 @@ export function RHFSelect({
       control={control}
       render={({ field, fieldState: { error } }) => (
         <div className={className}>
-          <Select value={field.value} onValueChange={field.onChange}>
+          <Select value={field.value} onValueChange={field.onChange} disabled={disabled}>
             <SelectTrigger className="w-full">
               <SelectValue placeholder={placeholder} />
             </SelectTrigger>

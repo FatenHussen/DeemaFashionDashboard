@@ -46,9 +46,7 @@ export default function Page() {
         await deleteAdminMutation.mutateAsync(deletingId);
         toast.success(t('deleteSuccess') || 'Admin deleted successfully');
         setDeletingId(null);
-      } catch (err: any) {
-        toast.error(err?.message || t('deleteError') || 'Failed to delete admin');
-      }
+      } catch {}
     }
   };
 

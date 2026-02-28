@@ -7,13 +7,14 @@ import { Input } from '@/shared/ui/input';
 import { useNavigate } from 'react-router';
 import { Button } from '@/shared/ui/button';
 import { useTranslation } from 'react-i18next';
-import { X, Plus, Download, Search, Sparkles } from 'lucide-react';
+import { X, Plus, Search, Download, Sparkles } from 'lucide-react';
 
 import { Import } from './import';
 import DataTableFilterButtons from './data-table-filter-buttons';
 import { DataTableViewOptions } from './data-table-view-options';
 import { DataTableViewOptionsCustom } from './data-table-view-custom';
 import DataTableRecycleFilterButton from './data-Table-RecycleFilter-Button ';
+import { CustomizeColumnsModal } from './customize-columns-modal';
 
 const VALID_EXPORT_TYPES: ExportType[] = [
   'brands',
@@ -35,6 +36,12 @@ const TEMPLATE_FILES: Record<string, string> = {
   // users: "/templates/users-template.xlsx",
 };
 
+interface ColumnItem {
+  id: number;
+  column_name: string;
+  checked: boolean;
+}
+
 interface DataTableToolbarProps<TData> {
   table: Table<TData>;
   tableName: string;
@@ -50,6 +57,8 @@ interface DataTableToolbarProps<TData> {
   onRecycleFilterChange?: (type: RecycleBinType) => void;
   onImport?: () => void;
   onImportSuccess?: () => void;
+  defaultColumns?: ColumnItem[];
+  columnTranslations?: Record<string, string>;
 }
 
 export function DataTableToolbar<TData>({
@@ -62,6 +71,8 @@ export function DataTableToolbar<TData>({
   hasRecycleFilter,
   onRecycleFilterChange,
   onImportSuccess,
+  defaultColumns = [],
+  columnTranslations = {},
 }: DataTableToolbarProps<TData>) {
   const [searchValue, setSearchValue] = useState('');
   const navigate = useNavigate();
@@ -109,7 +120,7 @@ export function DataTableToolbar<TData>({
   const [isSearchFocused, setIsSearchFocused] = useState(false);
 
   return (
-    <div className="flex items-center justify-between flex-wrap space-y-3 md:space-y-0 md:flex-nowrap gap-3 p-4 bg-linear-to-r from-muted/30 via-transparent to-muted/30 rounded-xl border border-border/30 backdrop-blur-sm animate-[tableRowSlideUp_0.4s_ease-out]">
+    <div className="flex items-center justify-between flex-wrap space-y-3 md:space-y-0 md:flex-nowrap gap-3 p-4 bg-linear-to-r from-muted/30 via-transparent to-muted/30 rounded-xl border border-border/30 backdrop-blur-sm animate-[tableRowSlideUp_0.4s_ease-out] rtl:flex-row-reverse">
       {/* Search Section */}
       <div className="flex flex-1 items-center gap-3 text-foreground">
         {availableColumns.length > 0 && (
@@ -122,7 +133,7 @@ export function DataTableToolbar<TData>({
             {/* Search Icon with Animation */}
             <div
               className={`
-                absolute left-3 z-10 transition-all duration-300
+                absolute start-3 z-10 transition-all duration-300
                 ${isSearchFocused ? 'text-primary scale-110' : 'text-muted-foreground'}
               `}
             >
@@ -137,7 +148,7 @@ export function DataTableToolbar<TData>({
               onFocus={() => setIsSearchFocused(true)}
               onBlur={() => setIsSearchFocused(false)}
               className={`
-                h-10 w-55 lg:w-70 pl-10 pr-4
+                h-10 w-55 lg:w-70 ps-10 pe-4
                 bg-background/80 backdrop-blur-sm
                 border-border/50 rounded-xl
                 transition-all duration-300
@@ -177,8 +188,8 @@ export function DataTableToolbar<TData>({
               group
             "
           >
-            <span className="font-medium">Reset</span>
-            <X className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:rotate-90" />
+            <span className="font-medium">{t('resetFilter')}</span>
+            <X className="ms-2 h-4 w-4 transition-transform duration-300 group-hover:rotate-90" />
           </Button>
         )}
       </div>
@@ -198,6 +209,18 @@ export function DataTableToolbar<TData>({
 
       {/* Actions Section */}
       <div className="flex flex-wrap md:flex-nowrap items-center gap-2">
+        {/* Customize Columns */}
+        {defaultColumns.length > 0 && (
+          <div className="animate-[tableCellReveal_0.3s_ease-out_0.18s_both]">
+            <CustomizeColumnsModal
+              table={table}
+              tableName={tableName}
+              defaultColumns={defaultColumns}
+              columnTranslations={columnTranslations}
+            />
+          </div>
+        )}
+
         {/* Export Options */}
         {VALID_EXPORT_TYPES.includes(tableName as ExportType) && (
           <div className="animate-[tableCellReveal_0.3s_ease-out_0.2s_both]">
@@ -227,7 +250,7 @@ export function DataTableToolbar<TData>({
                 group
               "
             >
-              <Download className="w-4 h-4 mr-2 transition-transform duration-300 group-hover:translate-y-0.5" />
+              <Download className="w-4 h-4 me-2 transition-transform duration-300 group-hover:translate-y-0.5" />
               <span className="font-medium">{t('downloadTemplate')}</span>
             </Button>
 
@@ -258,9 +281,9 @@ export function DataTableToolbar<TData>({
 
             {/* Icon with Animation */}
             <div className="relative flex items-center">
-              <Plus className="w-5 h-5 mr-2 transition-all duration-300 group-hover:rotate-90 group-hover:scale-110" />
+              <Plus className="w-5 h-5 me-2 transition-all duration-300 group-hover:rotate-90 group-hover:scale-110" />
               <span>{t('create')}</span>
-              <Sparkles className="w-4 h-4 ml-2  group-hover:opacity-100 transition-all duration-300 group-hover:animate-pulse" />
+              <Sparkles className="w-4 h-4 ms-2  group-hover:opacity-100 transition-all duration-300 group-hover:animate-pulse" />
             </div>
           </Button>
         )}

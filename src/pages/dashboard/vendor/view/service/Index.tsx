@@ -4,9 +4,10 @@ import { useTranslation } from 'react-i18next';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { usePermissions } from '@/auth/hooks/use-permissions';
 import { serviceColumns, type ServiceFormValues } from '@/columns/one/services/service';
-import { useFetchServices, useDeleteService } from '../../hooks/service';
 
 import { CONFIG } from 'src/global-config';
+
+import { useFetchServices, useDeleteService } from '../../hooks/service';
 
 // ----------------------------------------------------------------------
 
@@ -40,9 +41,7 @@ export default function Page() {
       try {
         await deleteServiceMutation.mutateAsync(id);
         toast.success('Service deleted successfully');
-      } catch (err: any) {
-        toast.error(err?.message || 'Failed to delete service');
-      }
+      } catch {}
     }
   };
 

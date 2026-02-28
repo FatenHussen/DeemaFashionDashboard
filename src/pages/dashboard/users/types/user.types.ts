@@ -3,7 +3,49 @@
 export interface UserAffiliate {
   is_affiliate: boolean;
   affiliate_approved: boolean;
-  affiliate_id: number | null;
+  affiliate_id: number | string | null;
+  affiliate_rate?: number | string | null;
+}
+
+export interface MarkterStatistics {
+  total_orders?: number;
+  delivered_orders?: number;
+  total_sales?: number;
+  earned_commission?: number;
+  pending_earnings?: number;
+  withdrawn?: number;
+  available_balance?: number;
+}
+
+export interface UserAddressArea {
+  id: number;
+  name: string | { ar?: string; en?: string };
+  city?: {
+    id: number;
+    name: string | { ar?: string; en?: string };
+    governorate?: {
+      id: number;
+      name: string | { ar?: string; en?: string };
+    };
+  };
+  base_fee?: number;
+  lat?: string;
+  lng?: string;
+}
+
+export interface UserAddress {
+  id: number;
+  label?: string;
+  street_name?: string;
+  nearest_landmark?: string;
+  building_number?: string;
+  floor_apartment?: string;
+  contact_phone?: string;
+  lat?: number;
+  lng?: number;
+  is_default?: boolean;
+  area?: UserAddressArea;
+  created_at?: string;
 }
 
 export interface UserItem {
@@ -11,8 +53,8 @@ export interface UserItem {
   name: string;
   email: string;
   phone: string | null;
-  affiliate: UserAffiliate;
-  created_at: string;
+  affiliate?: UserAffiliate;
+  created_at?: string;
 }
 
 export interface UserListResponse {
@@ -31,6 +73,9 @@ export interface UserListResponse {
 
 export interface UserDetailsData extends UserItem {
   area_id?: number;
+  affiliate?: UserAffiliate;
+  markter_statistics?: MarkterStatistics;
+  addresses?: UserAddress[];
 }
 
 export interface UserDetailsResponse {
@@ -41,6 +86,7 @@ export interface UserDetailsResponse {
 
 export interface UserCreatePayload {
   name: string;
+  last_name?: string;
   email: string;
   phone: string;
   password: string;
@@ -52,6 +98,7 @@ export interface UserCreatePayload {
 
 export interface UserUpdatePayload {
   name: string;
+  last_name?: string;
   email: string;
   phone: string;
   password?: string;

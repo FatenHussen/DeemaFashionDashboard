@@ -1,6 +1,7 @@
-import { useEffect, useRef } from 'react';
-import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+
+import L from 'leaflet';
+import { useRef, useEffect } from 'react';
 
 const DEFAULT_ZOOM = 14;
 
@@ -25,12 +26,12 @@ export function MapDisplay({ lat, lng, title, height = '300px', className = '' }
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!containerRef.current) return;
+    if (!containerRef.current) return () => {};
 
     const numLat = typeof lat === 'string' ? parseFloat(lat) : lat;
     const numLng = typeof lng === 'string' ? parseFloat(lng) : lng;
 
-    if (Number.isNaN(numLat) || Number.isNaN(numLng)) return;
+    if (Number.isNaN(numLat) || Number.isNaN(numLng)) return () => {};
 
     const center: [number, number] = [numLat, numLng];
 

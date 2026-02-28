@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { usePermissions } from '@/auth/hooks/use-permissions';
-import { complaintColumns, type ComplaintFormValues } from '@/columns/one/complaints/one';
 import { useFetchComplaints } from '@/pages/dashboard/complaints/hooks/complaint';
+import { complaintColumns, type ComplaintFormValues } from '@/columns/one/complaints/one';
 
 import { CONFIG } from 'src/global-config';
 
@@ -67,8 +67,8 @@ export default function Page() {
       <title>{metadata.title}</title>
 
       <div className="w-full flex flex-col gap-4">
-        <div className="flex items-center gap-2 p-4 bg-linear-to-r from-muted/30 via-transparent to-muted/30 rounded-xl border border-border/30">
-          <label className="text-sm font-medium text-foreground shrink-0">Status:</label>
+        <div className="flex items-center gap-2 p-4 bg-linear-to-r from-muted/30 via-transparent to-muted/30 rounded-xl border border-border/30 rtl:flex-row-reverse">
+          <label className="text-sm font-medium text-foreground shrink-0">{t('statusLabel')}:</label>
           <select
             value={statusFilter}
             onChange={(e) => {
@@ -77,10 +77,10 @@ export default function Page() {
             }}
             className="h-9 min-w-[120px] rounded-md border border-input bg-background px-3 text-sm"
           >
-            <option value="">All</option>
-            <option value="new">New</option>
-            <option value="rejected">Rejected</option>
-            <option value="resolved">Resolved</option>
+            <option value="">{t('all')}</option>
+            <option value="new">{t('statusNew')}</option>
+            <option value="rejected">{t('statusRejected')}</option>
+            <option value="resolved">{t('statusResolved')}</option>
           </select>
         </div>
 
@@ -92,7 +92,7 @@ export default function Page() {
           '/complaints/details'
         )}
         data={complaintData}
-        hasDetails={true}
+        hasDetails
         detailsLink="/complaints/details"
         permissions={{
           create: false,

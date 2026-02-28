@@ -104,10 +104,7 @@ export function DataTableViewOptionsCustom<TData>({
           document.body.removeChild(link);
         }
       }
-    } catch (err) {
-      toast.error('Export failed. Please try again later');
-      console.error('Export error:', err);
-    }
+    } catch {}
   };
 
   const handleCustomExportExcel = (selectedColumns: string[]) => {

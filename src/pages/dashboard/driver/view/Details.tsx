@@ -88,15 +88,23 @@ export default function DetailsPage() {
             </Button>
 
             <Box className="flex items-center gap-4 mb-2">
-              <Box className="w-16 h-16 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
-                <Iconify icon="solar:user-bold" className="text-primary" width={32} height={32} />
-              </Box>
+              {driver.image ? (
+                <img
+                  src={driver.image}
+                  alt={driver.name || 'Driver'}
+                  className="w-16 h-16 rounded-xl object-cover border border-primary/20"
+                />
+              ) : (
+                <Box className="w-16 h-16 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
+                  <Iconify icon="solar:user-bold" className="text-primary" width={32} height={32} />
+                </Box>
+              )}
               <Box className="flex-1">
                 <Typography variant="h4" className="font-bold text-foreground mb-1">
-                  Driver #{driver.id}
+                  {driver.name || `Driver #${driver.id}`}
                 </Typography>
                 <Typography variant="body2" className="text-muted-foreground">
-                  Driver Details
+                  Driver #{driver.id} {driver.name && '· Driver Details'}
                 </Typography>
               </Box>
               <Button
@@ -175,17 +183,29 @@ export default function DetailsPage() {
                     </Typography>
                     <Box
                       className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border w-fit ${
-                        driver.is_active === 1
+                        driver.is_active === 1 || driver.is_active === true
                           ? 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/50 text-emerald-700 dark:text-emerald-300'
                           : 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800/50 text-red-700 dark:text-red-300'
                       }`}
                     >
                       <Iconify
-                        icon={driver.is_active === 1 ? 'solar:check-circle-bold' : 'solar:close-circle-bold'}
+                        icon={driver.is_active === 1 || driver.is_active === true ? 'solar:check-circle-bold' : 'solar:close-circle-bold'}
                         width={14}
                         height={14}
                       />
-                      <span className="text-xs font-medium">{driver.is_active === 1 ? 'Active' : 'Inactive'}</span>
+                      <span className="text-xs font-medium">{driver.is_active === 1 || driver.is_active === true ? 'Active' : 'Inactive'}</span>
+                    </Box>
+                  </Box>
+
+                  <Box className="space-y-2">
+                    <Typography variant="body2" className="text-muted-foreground font-medium">
+                      Name
+                    </Typography>
+                    <Box className="flex items-center gap-2">
+                      <Iconify icon="solar:user-rounded-bold" className="text-primary" width={18} />
+                      <Typography variant="body1" className="text-foreground">
+                        {driver.name || '-'}
+                      </Typography>
                     </Box>
                   </Box>
 
@@ -196,10 +216,41 @@ export default function DetailsPage() {
                     <Box className="flex items-center gap-2">
                       <Iconify icon="solar:dollar-bold" className="text-primary" width={18} />
                       <Typography variant="body1" className="text-foreground">
-                        {driver.rate_per_order}
+                        {driver.rate_per_order ?? '-'}
                       </Typography>
                     </Box>
                   </Box>
+
+                  {(driver.vehicle_type || driver.vehicle_number) && (
+                    <>
+                      {driver.vehicle_type && (
+                        <Box className="space-y-2">
+                          <Typography variant="body2" className="text-muted-foreground font-medium">
+                            Vehicle Type
+                          </Typography>
+                          <Box className="flex items-center gap-2">
+                            <Iconify icon="solar:delivery-bold" className="text-primary" width={18} />
+                            <Typography variant="body1" className="text-foreground capitalize">
+                              {driver.vehicle_type}
+                            </Typography>
+                          </Box>
+                        </Box>
+                      )}
+                      {driver.vehicle_number && (
+                        <Box className="space-y-2">
+                          <Typography variant="body2" className="text-muted-foreground font-medium">
+                            Vehicle Number
+                          </Typography>
+                          <Box className="flex items-center gap-2">
+                            <Iconify icon="solar:card-recive-bold" className="text-primary" width={18} />
+                            <Typography variant="body1" className="text-foreground">
+                              {driver.vehicle_number}
+                            </Typography>
+                          </Box>
+                        </Box>
+                      )}
+                    </>
+                  )}
 
                   <Box className="space-y-2">
                     <Typography variant="body2" className="text-muted-foreground font-medium">
@@ -214,6 +265,51 @@ export default function DetailsPage() {
                   </Box>
                 </Box>
               </Box>
+
+              {(driver.average_rating != null || driver.total_orders != null || driver.completed_orders != null || driver.total_earnings != null) && (
+                <>
+                  <Separator />
+                  {/* Statistics */}
+                  <Box>
+                    <Typography variant="h6" className="font-semibold text-foreground mb-4 flex items-center gap-2">
+                      <Iconify icon="solar:chart-2-bold" width={20} />
+                      Statistics
+                    </Typography>
+                    <Box className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {driver.average_rating != null && (
+                        <Box className="p-4 rounded-lg bg-muted/50 border border-border/50">
+                          <Typography variant="caption" className="text-muted-foreground">Average Rating</Typography>
+                          <Typography variant="h6" className="font-semibold mt-1 flex items-center gap-1">
+                            <Iconify icon="solar:star-bold" className="text-amber-500" width={18} />
+                            {driver.average_rating}
+                          </Typography>
+                        </Box>
+                      )}
+                      {driver.total_orders != null && (
+                        <Box className="p-4 rounded-lg bg-muted/50 border border-border/50">
+                          <Typography variant="caption" className="text-muted-foreground">Total Orders</Typography>
+                          <Typography variant="h6" className="font-semibold mt-1">{driver.total_orders}</Typography>
+                        </Box>
+                      )}
+                      {driver.completed_orders != null && (
+                        <Box className="p-4 rounded-lg bg-muted/50 border border-border/50">
+                          <Typography variant="caption" className="text-muted-foreground">Completed Orders</Typography>
+                          <Typography variant="h6" className="font-semibold mt-1">{driver.completed_orders}</Typography>
+                        </Box>
+                      )}
+                      {driver.total_earnings != null && (
+                        <Box className="p-4 rounded-lg bg-muted/50 border border-border/50">
+                          <Typography variant="caption" className="text-muted-foreground">Total Earnings</Typography>
+                          <Typography variant="h6" className="font-semibold mt-1 flex items-center gap-1">
+                            <Iconify icon="solar:wallet-money-bold" className="text-primary" width={18} />
+                            {driver.total_earnings}
+                          </Typography>
+                        </Box>
+                      )}
+                    </Box>
+                  </Box>
+                </>
+              )}
 
               {driver.areas && driver.areas.length > 0 && (
                 <>
@@ -239,26 +335,26 @@ export default function DetailsPage() {
                               {area.name}
                             </Typography>
                           </Box>
-                          <Box className="space-y-1 text-sm text-muted-foreground">
-                            <Box className="flex items-center gap-2">
-                              <Iconify icon="solar:city-bold" className="text-primary" width={16} />
-                              <span>
-                                City: {area.city.name}
-                              </span>
+                          {area.city && (
+                            <Box className="space-y-1 text-sm text-muted-foreground">
+                              <Box className="flex items-center gap-2">
+                                <Iconify icon="solar:city-bold" className="text-primary" width={16} />
+                                <span>City: {area.city.name}</span>
+                              </Box>
+                              {area.city.governorate && (
+                                <Box className="flex items-center gap-2">
+                                  <Iconify icon="solar:global-bold" className="text-primary" width={16} />
+                                  <span>Governorate: {area.city.governorate.name}</span>
+                                </Box>
+                              )}
+                              {area.created_at && (
+                                <Box className="flex items-center gap-2">
+                                  <Iconify icon="solar:calendar-date-bold" className="text-primary" width={16} />
+                                  <span>Created: {area.created_at}</span>
+                                </Box>
+                              )}
                             </Box>
-                            <Box className="flex items-center gap-2">
-                              <Iconify icon="solar:global-bold" className="text-primary" width={16} />
-                              <span>
-                                Governorate: {area.city.governorate.name}
-                              </span>
-                            </Box>
-                            <Box className="flex items-center gap-2">
-                              <Iconify icon="solar:calendar-date-bold" className="text-primary" width={16} />
-                              <span>
-                                Created: {area.created_at}
-                              </span>
-                            </Box>
-                          </Box>
+                          )}
                         </Box>
                       ))}
                     </Box>

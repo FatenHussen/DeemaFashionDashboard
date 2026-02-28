@@ -1,8 +1,8 @@
 import type {
+  ItemTypesResponse,
   SectionListResponse,
   SectionDetailsResponse,
   SectionCreateUpdatePayload,
-  ItemTypesResponse,
 } from '../types/section.types';
 
 import { apiRoutes, axiosInstance } from '@/api';

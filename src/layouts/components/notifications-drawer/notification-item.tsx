@@ -56,14 +56,24 @@ export function NotificationItem({ notification }: NotificationItemProps) {
     </ListItemAvatar>
   );
 
+  const formatTime = (val: string | number | null) => {
+    if (val == null) return '';
+    const formatted = fToNow(val);
+    return formatted === 'Invalid date' ? String(val) : formatted;
+  };
+
   const renderText = () => (
     <ListItemText
       primary={readerContent(notification.title)}
       secondary={
         <>
-          {fToNow(notification.createdAt)}
-          <Box component="span" className="w-0.5 h-0.5 rounded-full bg-current mx-1" />
-          {notification.category}
+          {formatTime(notification.createdAt)}
+          {notification.category && (
+            <>
+              <Box component="span" className="w-0.5 h-0.5 rounded-full bg-current mx-1" />
+              {notification.category}
+            </>
+          )}
         </>
       }
       slotProps={{

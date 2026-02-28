@@ -16,11 +16,12 @@ import { usePathname } from '../hooks';
 const IndexPage = lazy(() => import('@/pages/dashboard/admin/view/Index'));
 const CreatePage = lazy(() => import('@/pages/dashboard/admin/view/Create'));
 
-const VendorIndexPage = lazy(() => import('@/pages/dashboard/vendor/view/Index'));
-const VendorCreatePage = lazy(() => import('@/pages/dashboard/vendor/view/Create'));
+const VendorIndexPage = lazy(() => import('@/pages/dashboard/vendor/view/vendor/Index'));
+const VendorCreatePage = lazy(() => import('@/pages/dashboard/vendor/view/vendor/Create'));
 
 const ShopIndexPage = lazy(() => import('@/pages/dashboard/vendor/view/shop/Index'));
 const ShopCreatePage = lazy(() => import('@/pages/dashboard/vendor/view/shop/Create'));
+const ShopDetailsPage = lazy(() => import('@/pages/dashboard/vendor/view/shop/Details'));
 
 const ProfilePage = lazy(() => import('@/pages/dashboard/profile/view/Profile'));
 
@@ -98,6 +99,135 @@ const ComplaintDetailsPage = lazy(() => import('@/pages/dashboard/complaints/vie
 const UserIndexPage = lazy(() => import('@/pages/dashboard/users/view/Index'));
 const UserCreatePage = lazy(() => import('@/pages/dashboard/users/view/Create'));
 const UserUpdatePage = lazy(() => import('@/pages/dashboard/users/view/Update'));
+const UserDetailsPage = lazy(() => import('@/pages/dashboard/users/view/Details'));
+
+// Orders
+const OrderIndexPage = lazy(() => import('@/pages/dashboard/orders/view/Index'));
+const OrderDetailsPage = lazy(() => import('@/pages/dashboard/orders/view/Details'));
+
+// Baskets
+const BasketIndexPage = lazy(() => import('@/pages/dashboard/baskets/view/basket/Index'));
+const BasketCreatePage = lazy(() => import('@/pages/dashboard/baskets/view/basket/Create'));
+const BasketDetailsPage = lazy(() => import('@/pages/dashboard/baskets/view/basket/Details'));
+
+// Scheduled Baskets
+const ScheduledBasketIndexPage = lazy(
+  () => import('@/pages/dashboard/baskets/view/scheduled/Index')
+);
+const ScheduledBasketCreatePage = lazy(
+  () => import('@/pages/dashboard/baskets/view/scheduled/Create')
+);
+const ScheduledBasketDetailsPage = lazy(
+  () => import('@/pages/dashboard/baskets/view/scheduled/Details')
+);
+
+// Packages
+const PackageIndexPage = lazy(() => import('@/pages/dashboard/packages/view/Index'));
+const PackageCreatePage = lazy(() => import('@/pages/dashboard/packages/view/Create'));
+const PackageDetailsPage = lazy(() => import('@/pages/dashboard/packages/view/Details'));
+
+// Subscriptions
+const SubscriptionIndexPage = lazy(() => import('@/pages/dashboard/subscriptions/view/Index'));
+const SubscriptionCreatePage = lazy(() => import('@/pages/dashboard/subscriptions/view/Create'));
+const SubscriptionDetailsPage = lazy(() => import('@/pages/dashboard/subscriptions/view/Details'));
+
+// Gifts
+const GiftIndexPage = lazy(() => import('@/pages/dashboard/gifts/view/Index'));
+const GiftCreatePage = lazy(() => import('@/pages/dashboard/gifts/view/Create'));
+const GiftDetailsPage = lazy(() => import('@/pages/dashboard/gifts/view/Details'));
+
+// Point Exchanges
+const PointExchangeIndexPage = lazy(() => import('@/pages/dashboard/point-exchanges/view/Index'));
+const PointExchangeDetailsPage = lazy(
+  () => import('@/pages/dashboard/point-exchanges/view/Details')
+);
+
+// User Points
+const UserPointsIndexPage = lazy(() => import('@/pages/dashboard/user-points/view/Index'));
+const UserPointsDetailsPage = lazy(() => import('@/pages/dashboard/user-points/view/Details'));
+
+// Currencies
+const CurrencyIndexPage = lazy(() => import('@/pages/dashboard/currencies/view/Index'));
+const CurrencyCreatePage = lazy(() => import('@/pages/dashboard/currencies/view/Create'));
+const CurrencyDetailsPage = lazy(() => import('@/pages/dashboard/currencies/view/Details'));
+
+// Recipes
+const RecipeIndexPage = lazy(() => import('@/pages/dashboard/recipes/view/Index'));
+const RecipeCreatePage = lazy(() => import('@/pages/dashboard/recipes/view/Create'));
+const RecipeDetailsPage = lazy(() => import('@/pages/dashboard/recipes/view/Details'));
+
+// Legal Documents
+const LegalDocumentIndexPage = lazy(() => import('@/pages/dashboard/content/view/legal-document/Index'));
+const LegalDocumentEditPage = lazy(() => import('@/pages/dashboard/content/view/legal-document/Edit'));
+
+// FAQs
+const FaqIndexPage = lazy(() => import('@/pages/dashboard/content/view/faq/Index'));
+const FaqCreatePage = lazy(() => import('@/pages/dashboard/content/view/faq/Create'));
+
+// Vendor Subscriptions
+const VendorSubscriptionIndexPage = lazy(
+  () => import('@/pages/dashboard/vendor/view/subscription/Index')
+);
+const VendorSubscriptionDetailsPage = lazy(
+  () => import('@/pages/dashboard/vendor/view/subscription/Details')
+);
+
+// Admin Notifications
+const AdminNotificationIndexPage = lazy(
+  () => import('@/pages/dashboard/admin-notifications/view/Index')
+);
+const AdminNotificationCreatePage = lazy(
+  () => import('@/pages/dashboard/admin-notifications/view/Create')
+);
+
+// Vendor Packages
+const VendorPackageIndexPage = lazy(
+  () => import('@/pages/dashboard/vendor/view/package/Index')
+);
+const VendorPackageCreatePage = lazy(
+  () => import('@/pages/dashboard/vendor/view/package/Create')
+);
+const VendorPackageDetailsPage = lazy(
+  () => import('@/pages/dashboard/vendor/view/package/Details')
+);
+
+// Vendor Users
+const VendorUserIndexPage = lazy(
+  () => import('@/pages/dashboard/vendor/view/vendor-user/Index')
+);
+const VendorUserCreatePage = lazy(
+  () => import('@/pages/dashboard/vendor/view/vendor-user/Create')
+);
+
+// Seller Registrations
+const SellerRegistrationIndexPage = lazy(
+  () => import('@/pages/dashboard/vendor/view/seller-registration/Index')
+);
+const SellerRegistrationDetailsPage = lazy(
+  () => import('@/pages/dashboard/vendor/view/seller-registration/Details')
+);
+
+// Statistics
+const StatisticsPage = lazy(() => import('@/pages/dashboard/statistics/view/Index'));
+
+// Reports
+const ReportsIndexPage = lazy(() => import('@/pages/dashboard/reports/view/Index'));
+const SalesReportPage = lazy(() => import('@/pages/dashboard/reports/view/SalesReport'));
+const ProductMovementReportPage = lazy(
+  () => import('@/pages/dashboard/reports/view/ProductMovementReport')
+);
+const VendorPerformanceReportPage = lazy(
+  () => import('@/pages/dashboard/reports/view/VendorPerformanceReport')
+);
+const DriverPerformanceReportPage = lazy(
+  () => import('@/pages/dashboard/reports/view/DriverPerformanceReport')
+);
+const SalesByLocationReportPage = lazy(
+  () => import('@/pages/dashboard/reports/view/SalesByLocationReport')
+);
+const SalesByCategoryReportPage = lazy(
+  () => import('@/pages/dashboard/reports/view/SalesByCategoryReport')
+);
 
 const Page403 = lazy(() => import('src/pages/error/403'));
 
@@ -204,6 +334,14 @@ export const dashboardRoutes: RouteObject[] = [
         element: (
           <RequirePermission permission="shop.update">
             <ShopCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'details/:id',
+        element: (
+          <RequirePermission permission="shop.view">
+            <ShopDetailsPage />
           </RequirePermission>
         ),
       },
@@ -742,6 +880,14 @@ export const dashboardRoutes: RouteObject[] = [
           </RequirePermission>
         ),
       },
+      {
+        path: 'details/:id',
+        element: (
+          <RequirePermission permission="user.view">
+            <UserDetailsPage />
+          </RequirePermission>
+        ),
+      },
     ],
   },
   {
@@ -802,6 +948,551 @@ export const dashboardRoutes: RouteObject[] = [
           </RequirePermission>
         ),
       },
+    ],
+  },
+  {
+    path: 'orders',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: (
+          <RequirePermission permission="order.view">
+            <OrderIndexPage />
+          </RequirePermission>
+        ),
+        index: true,
+      },
+      {
+        path: 'details/:id',
+        element: (
+          <RequirePermission permission="order.view">
+            <OrderDetailsPage />
+          </RequirePermission>
+        ),
+      },
+    ],
+  },
+  {
+    path: 'baskets',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: (
+          <RequirePermission permission="basket.view">
+            <BasketIndexPage />
+          </RequirePermission>
+        ),
+        index: true,
+      },
+      {
+        path: 'create',
+        element: (
+          <RequirePermission permission="basket.create">
+            <BasketCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'update/:id',
+        element: (
+          <RequirePermission permission="basket.update">
+            <BasketCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'details/:id',
+        element: (
+          <RequirePermission permission="basket.view">
+            <BasketDetailsPage />
+          </RequirePermission>
+        ),
+      },
+    ],
+  },
+  {
+    path: 'scheduled-baskets',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: (
+          <RequirePermission permission="scheduledbasket.view">
+            <ScheduledBasketIndexPage />
+          </RequirePermission>
+        ),
+        index: true,
+      },
+      {
+        path: 'create',
+        element: (
+          <RequirePermission permission="scheduledbasket.create">
+            <ScheduledBasketCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'update/:id',
+        element: (
+          <RequirePermission permission="scheduledbasket.update">
+            <ScheduledBasketCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'details/:id',
+        element: (
+          <RequirePermission permission="scheduledbasket.view">
+            <ScheduledBasketDetailsPage />
+          </RequirePermission>
+        ),
+      },
+    ],
+  },
+  {
+    path: 'packages',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: (
+          <RequirePermission permission="package.view">
+            <PackageIndexPage />
+          </RequirePermission>
+        ),
+        index: true,
+      },
+      {
+        path: 'create',
+        element: (
+          <RequirePermission permission="package.create">
+            <PackageCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'update/:id',
+        element: (
+          <RequirePermission permission="package.update">
+            <PackageCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'details/:id',
+        element: (
+          <RequirePermission permission="package.view">
+            <PackageDetailsPage />
+          </RequirePermission>
+        ),
+      },
+    ],
+  },
+  {
+    path: 'subscriptions',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: (
+          <RequirePermission permission="subscription.view">
+            <SubscriptionIndexPage />
+          </RequirePermission>
+        ),
+        index: true,
+      },
+      {
+        path: 'create',
+        element: (
+          <RequirePermission permission="subscription.create">
+            <SubscriptionCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'update/:id',
+        element: (
+          <RequirePermission permission="subscription.update">
+            <SubscriptionCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'details/:id',
+        element: (
+          <RequirePermission permission="subscription.view">
+            <SubscriptionDetailsPage />
+          </RequirePermission>
+        ),
+      },
+    ],
+  },
+  {
+    path: 'gifts',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: (
+          <RequirePermission permission="gift.view">
+            <GiftIndexPage />
+          </RequirePermission>
+        ),
+        index: true,
+      },
+      {
+        path: 'create',
+        element: (
+          <RequirePermission permission="gift.create">
+            <GiftCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'update/:id',
+        element: (
+          <RequirePermission permission="gift.update">
+            <GiftCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'details/:id',
+        element: (
+          <RequirePermission permission="gift.view">
+            <GiftDetailsPage />
+          </RequirePermission>
+        ),
+      },
+    ],
+  },
+  {
+    path: 'point-exchanges',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: (
+          <RequirePermission permission="pointexchange.view">
+            <PointExchangeIndexPage />
+          </RequirePermission>
+        ),
+        index: true,
+      },
+      {
+        path: 'details/:id',
+        element: (
+          <RequirePermission permission="pointexchange.view">
+            <PointExchangeDetailsPage />
+          </RequirePermission>
+        ),
+      },
+    ],
+  },
+  {
+    path: 'user-points',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: (
+          <RequirePermission permission="pointwallet.view">
+            <UserPointsIndexPage />
+          </RequirePermission>
+        ),
+        index: true,
+      },
+      {
+        path: 'details/:id',
+        element: (
+          <RequirePermission permission="pointwallet.view">
+            <UserPointsDetailsPage />
+          </RequirePermission>
+        ),
+      },
+    ],
+  },
+  {
+    path: 'currencies',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: (
+          <RequirePermission permission="currency.view">
+            <CurrencyIndexPage />
+          </RequirePermission>
+        ),
+        index: true,
+      },
+      {
+        path: 'create',
+        element: (
+          <RequirePermission permission="currency.create">
+            <CurrencyCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'update/:id',
+        element: (
+          <RequirePermission permission="currency.update">
+            <CurrencyCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'details/:id',
+        element: (
+          <RequirePermission permission="currency.view">
+            <CurrencyDetailsPage />
+          </RequirePermission>
+        ),
+      },
+    ],
+  },
+  {
+    path: 'recipes',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: (
+          <RequirePermission permission="recipe.view">
+            <RecipeIndexPage />
+          </RequirePermission>
+        ),
+        index: true,
+      },
+      {
+        path: 'create',
+        element: (
+          <RequirePermission permission="recipe.create">
+            <RecipeCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'update/:id',
+        element: (
+          <RequirePermission permission="recipe.update">
+            <RecipeCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'details/:id',
+        element: (
+          <RequirePermission permission="recipe.view">
+            <RecipeDetailsPage />
+          </RequirePermission>
+        ),
+      },
+    ],
+  },
+  {
+    path: 'legal-documents',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: (
+          <RequirePermission permission="legaldocument.view">
+            <LegalDocumentIndexPage />
+          </RequirePermission>
+        ),
+        index: true,
+      },
+      {
+        path: 'update/:id',
+        element: (
+          <RequirePermission permission="legaldocument.update">
+            <LegalDocumentEditPage />
+          </RequirePermission>
+        ),
+      },
+    ],
+  },
+  {
+    path: 'faqs',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: (
+          <RequirePermission permission="faq.view">
+            <FaqIndexPage />
+          </RequirePermission>
+        ),
+        index: true,
+      },
+      {
+        path: 'create',
+        element: (
+          <RequirePermission permission="faq.create">
+            <FaqCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'update/:id',
+        element: (
+          <RequirePermission permission="faq.update">
+            <FaqCreatePage />
+          </RequirePermission>
+        ),
+      },
+    ],
+  },
+  {
+    path: 'admin-notifications',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: (
+          <RequirePermission permission="notification.view">
+            <AdminNotificationIndexPage />
+          </RequirePermission>
+        ),
+        index: true,
+      },
+      {
+        path: 'create',
+        element: (
+          <RequirePermission permission="notification.create">
+            <AdminNotificationCreatePage />
+          </RequirePermission>
+        ),
+      },
+    ],
+  },
+  {
+    path: 'vendor-subscriptions',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: (
+          <RequirePermission permission="vendorsubscription.view">
+            <VendorSubscriptionIndexPage />
+          </RequirePermission>
+        ),
+        index: true,
+      },
+      {
+        path: ':id',
+        element: (
+          <RequirePermission permission="vendorsubscription.view">
+            <VendorSubscriptionDetailsPage />
+          </RequirePermission>
+        ),
+      },
+    ],
+  },
+  {
+    path: 'vendor-packages',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: (
+          <RequirePermission permission="vendorpackage.view">
+            <VendorPackageIndexPage />
+          </RequirePermission>
+        ),
+        index: true,
+      },
+      {
+        path: 'create',
+        element: (
+          <RequirePermission permission="vendorpackage.create">
+            <VendorPackageCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'update/:id',
+        element: (
+          <RequirePermission permission="vendorpackage.update">
+            <VendorPackageCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'details/:id',
+        element: (
+          <RequirePermission permission="vendorpackage.view">
+            <VendorPackageDetailsPage />
+          </RequirePermission>
+        ),
+      },
+    ],
+  },
+  {
+    path: 'vendor-users',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: (
+          <RequirePermission permission="vendoruser.view">
+            <VendorUserIndexPage />
+          </RequirePermission>
+        ),
+        index: true,
+      },
+      {
+        path: 'create',
+        element: (
+          <RequirePermission permission="vendoruser.create">
+            <VendorUserCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'update/:id',
+        element: (
+          <RequirePermission permission="vendoruser.update">
+            <VendorUserCreatePage />
+          </RequirePermission>
+        ),
+      },
+    ],
+  },
+  {
+    path: 'seller-registrations',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: (
+          <RequirePermission permission="sellerregistration.view">
+            <SellerRegistrationIndexPage />
+          </RequirePermission>
+        ),
+        index: true,
+      },
+      {
+        path: ':id',
+        element: (
+          <RequirePermission permission="sellerregistration.view">
+            <SellerRegistrationDetailsPage />
+          </RequirePermission>
+        ),
+      },
+    ],
+  },
+  {
+    path: 'statistics',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: (
+          <RequirePermission permission="stats.index">
+            <StatisticsPage />
+          </RequirePermission>
+        ),
+        index: true,
+      },
+    ],
+  },
+  {
+    path: 'reports',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      { element: <ReportsIndexPage />, index: true },
+      { path: 'sales', element: <SalesReportPage /> },
+      { path: 'product-movement', element: <ProductMovementReportPage /> },
+      { path: 'vendor-performance', element: <VendorPerformanceReportPage /> },
+      { path: 'driver-performance', element: <DriverPerformanceReportPage /> },
+      { path: 'sales-by-location', element: <SalesByLocationReportPage /> },
+      { path: 'sales-by-category', element: <SalesByCategoryReportPage /> },
     ],
   },
   {

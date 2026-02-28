@@ -5,10 +5,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { _ProductApi } from '../api/product.services';
 
-export const useFetchProducts = (params?: { page?: number; limit?: number }) =>
+export const useFetchProducts = (params?: { page?: number; limit?: number; per_page?: number; search?: string; sort_field?: string; sort_order?: string; shop_id?: number }) =>
   useQuery({
     queryKey: queryKeys.product.list(params),
-    queryFn: () => _ProductApi.getListProducts(params),
+    queryFn: () =>
+      _ProductApi.getListProducts({
+        ...params,
+        per_page: params?.per_page ?? params?.limit,
+      }),
   });
 
 export const useFetchProductById = (id: number | string) =>

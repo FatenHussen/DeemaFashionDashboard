@@ -1,6 +1,9 @@
 import 'src/global.css';
+import 'src/lib/i18n';
+import 'react-toastify/dist/ReactToastify.css';
 
 import { useEffect } from 'react';
+import { ToastContainer } from 'react-toastify';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 import { usePathname } from 'src/routes/hooks';
@@ -38,6 +41,7 @@ export default function App({ children }: AppProps) {
         <SettingsProvider defaultSettings={defaultSettings}>
           <MotionLazy>
             <ProgressBar />
+            <ToastContainer position="top-right" autoClose={3000} theme="colored" rtl={false} />
             <SettingsDrawer defaultSettings={defaultSettings} />
             {children}
           </MotionLazy>

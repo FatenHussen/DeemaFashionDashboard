@@ -3,6 +3,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 
 import { z } from 'zod';
 import { Iconify } from '@/shared/components/iconify';
+import { formatTranslated } from '@/utils/format-translated';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 
@@ -73,7 +74,7 @@ export const categoryColumns = (
         {row.original.icon ? (
           <img
             src={row.original.icon}
-            alt={row.original.name}
+            alt={formatTranslated(row.original.name)}
             className="w-10 h-10 rounded-lg object-cover border border-border/60"
           />
         ) : (
@@ -104,7 +105,7 @@ export const categoryColumns = (
           />
         </div>
         <div className="min-w-0">
-          <div className="font-semibold text-foreground truncate">{row.original.name}</div>
+          <div className="font-semibold text-foreground truncate">{formatTranslated(row.original.name)}</div>
         </div>
       </div>
     ),
@@ -116,7 +117,7 @@ export const categoryColumns = (
     cell: ({ row }) => (
       <div className="flex items-center gap-2 min-w-0">
         <span className="text-sm text-muted-foreground truncate">
-          {row.original.description || '-'}
+          {formatTranslated(row.original.description) || '-'}
         </span>
       </div>
     ),
@@ -136,7 +137,7 @@ export const categoryColumns = (
               height={16}
             />
             <span className="text-sm text-muted-foreground truncate">
-              {row.original.parent.name}
+              {formatTranslated(row.original.parent.name)}
             </span>
           </>
         ) : (

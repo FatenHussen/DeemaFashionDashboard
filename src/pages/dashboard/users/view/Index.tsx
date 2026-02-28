@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { toast } from 'react-toastify';
-import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { usePermissions } from '@/auth/hooks/use-permissions';
+import { useFetchAreas } from '@/pages/dashboard/locations/hooks/area';
 import { userColumns, type UserFormValues } from '@/columns/one/users/one';
 import { useFetchUsers, useDeleteUser } from '@/pages/dashboard/users/hooks/user';
-import { useFetchAreas } from '@/pages/dashboard/locations/hooks/area';
 
 import { CONFIG } from 'src/global-config';
 
@@ -62,9 +62,7 @@ export default function Page() {
         await deleteUserMutation.mutateAsync(deletingId);
         toast.success(t('deleteSuccess') || 'User deleted successfully');
         setDeletingId(null);
-      } catch (err: any) {
-        toast.error(err?.message || t('deleteError') || 'Failed to delete user');
-      }
+      } catch {}
     }
   };
 
@@ -117,9 +115,9 @@ export default function Page() {
       <title>{metadata.title}</title>
 
       <div className="w-full flex flex-col gap-4">
-        <div className="flex flex-wrap items-center gap-3 p-4 bg-linear-to-r from-muted/30 via-transparent to-muted/30 rounded-xl border border-border/30">
-          <div className="flex items-center gap-2 shrink-0">
-            <label className="text-sm font-medium text-foreground">Is Affiliate:</label>
+        <div className="flex flex-wrap items-center gap-3 p-4 bg-linear-to-r from-muted/30 via-transparent to-muted/30 rounded-xl border border-border/30 rtl:flex-row-reverse">
+          <div className="flex items-center gap-2 shrink-0 rtl:flex-row-reverse">
+            <label className="text-sm font-medium text-foreground">{t('isAffiliateLabel')}:</label>
             <select
               value={isAffiliateFilter}
               onChange={(e) => {
@@ -128,14 +126,14 @@ export default function Page() {
               }}
               className="h-9 min-w-[100px] rounded-md border border-input bg-background px-3 text-sm"
             >
-              <option value="">All</option>
-              <option value="0">No</option>
-              <option value="1">Yes</option>
+              <option value="">{t('all')}</option>
+              <option value="0">{t('no')}</option>
+              <option value="1">{t('yes')}</option>
             </select>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2 shrink-0 rtl:flex-row-reverse">
             <label className="text-sm font-medium text-foreground">
-              Affiliate Approved:
+              {t('affiliateApprovedLabel')}:
             </label>
             <select
               value={affiliateApprovedFilter}
@@ -145,13 +143,13 @@ export default function Page() {
               }}
               className="h-9 min-w-[100px] rounded-md border border-input bg-background px-3 text-sm"
             >
-              <option value="">All</option>
-              <option value="0">No</option>
-              <option value="1">Yes</option>
+              <option value="">{t('all')}</option>
+              <option value="0">{t('no')}</option>
+              <option value="1">{t('yes')}</option>
             </select>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <label className="text-sm font-medium text-foreground">Area:</label>
+          <div className="flex items-center gap-2 shrink-0 rtl:flex-row-reverse">
+            <label className="text-sm font-medium text-foreground">{t('areaLabel')}:</label>
             <select
               value={areaFilter}
               onChange={(e) => {
@@ -160,7 +158,7 @@ export default function Page() {
               }}
               className="h-9 min-w-[140px] rounded-md border border-input bg-background px-3 text-sm"
             >
-              <option value="">All</option>
+              <option value="">{t('all')}</option>
               {areas.map((a) => (
                 <option key={a.id} value={a.id}>
                   {a.name}
@@ -174,7 +172,7 @@ export default function Page() {
               onClick={resetFilters}
               className="text-sm text-primary hover:underline"
             >
-              Reset
+              {t('resetFilter')}
             </button>
           )}
         </div>
@@ -197,7 +195,8 @@ export default function Page() {
           )}
           data={userData}
           createPath="/users/create"
-          hasDetails={false}
+          hasDetails
+          detailsLink="/users/details"
           permissions={{
             create: hasPermission('create', 'user'),
             update: hasPermission('update', 'user'),

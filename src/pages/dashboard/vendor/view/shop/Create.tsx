@@ -1,12 +1,16 @@
 import type { DaySchedule } from '@/pages/dashboard/vendor/types/shop.types';
 
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { toast } from 'react-toastify';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
+import { MultiSelect } from '@/shared/ui/multi-select';
+import { formatTranslated } from '@/utils/format-translated';
+import { useFetchAreas } from '@/pages/dashboard/locations/hooks/area';
 import { useFetchVendors } from '@/pages/dashboard/vendor/hooks/vendor';
+import { useFetchServices } from '@/pages/dashboard/vendor/hooks/service';
 import {
   ShopSchema,
   type ShopFormValues,
@@ -17,9 +21,11 @@ import {
   useFetchShopById,
 } from '@/pages/dashboard/vendor/hooks/shop';
 
+import { MapPicker } from '@/shared/components/map/map-picker';
+
 import { CONFIG } from 'src/global-config';
+import { Box, Checkbox, Typography, SimpleSelect, Input } from 'src/shared/ui';
 import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
-import { Box, Input, Checkbox, Typography, SimpleSelect } from 'src/shared/ui';
 import { StepperFormLayout } from 'src/shared/components/forms/stepper-form-layout';
 
 // ----------------------------------------------------------------------
@@ -44,6 +50,8 @@ export default function CreatePage() {
   // Hooks for fetching and mutations
   const { data: shopData, isLoading: isLoadingShop } = useFetchShopById(id || '');
   const { data: vendorsResponse } = useFetchVendors();
+  const { data: areasResponse } = useFetchAreas(1, 200);
+  const { data: servicesResponse } = useFetchServices(1, 200);
   const createShopMutation = useCreateShop();
   const updateShopMutation = useUpdateShop();
 
@@ -51,11 +59,23 @@ export default function CreatePage() {
   const vendorOptions =
     vendorsResponse?.data?.items.map((vendor) => ({
       value: vendor.id,
-      label: vendor.name,
+      label: formatTranslated(vendor.name),
     })) || [];
+
+  const areas = (areasResponse as any)?.data?.items ?? [];
+  const services = (servicesResponse as any)?.data?.items ?? [];
+  const areaOptions = areas.map((a: any) => ({
+    value: a.id,
+    label: formatTranslated(a.name),
+  }));
+  const serviceOptions = services.map((s: any) => ({
+    value: s.id,
+    label: formatTranslated(s.name),
+  }));
 
   const defaultValues: ShopFormValues = {
     vendor_id: 0,
+    logo: null,
     name: {
       ar: '',
       en: '',
@@ -93,40 +113,57 @@ export default function CreatePage() {
   });
 
   const { handleSubmit, reset, control, watch } = methods;
+  const logoFile = watch('logo');
 
-  // Fetch shop data if in edit mode
+  const logoPreviewUrl = useMemo(() => {
+    if (logoFile instanceof File) return URL.createObjectURL(logoFile);
+    if (isEditMode && shopData?.data?.logo_url && !logoFile)
+      return shopData.data.logo_url as string;
+    return null;
+  }, [logoFile, isEditMode, shopData?.data?.logo_url]);
+
   useEffect(() => {
-    if (isEditMode && shopData && !isLoadingShop) {
-      // Note: API might return name as string, but form expects {ar, en}
-      const nameValue =
-        typeof shopData.name === 'string'
-          ? { ar: shopData.name, en: shopData.name }
-          : shopData.name || { ar: '', en: '' };
+    if (logoFile instanceof File && logoPreviewUrl?.startsWith('blob:')) {
+      return () => URL.revokeObjectURL(logoPreviewUrl);
+    }
+  }, [logoFile, logoPreviewUrl]);
 
-      const descriptionValue =
-        typeof shopData.description === 'string'
-          ? { ar: shopData.description, en: shopData.description }
-          : shopData.description || { ar: '', en: '' };
+  // Fetch shop data if in edit mode (GET admin/shops/:id)
+  useEffect(() => {
+    const shop = shopData?.data;
+    if (isEditMode && shop && !isLoadingShop) {
+      const toBilingual = (val: unknown): { ar: string; en: string } => {
+        if (typeof val === 'string') return { ar: val, en: val };
+        if (Array.isArray(val)) return { ar: String(val?.[0] ?? ''), en: String(val?.[1] ?? '') };
+        if (val && typeof val === 'object' && 'ar' in val && 'en' in val)
+          return { ar: String((val as { ar: unknown; en: unknown }).ar ?? ''), en: String((val as { ar: unknown; en: unknown }).en ?? '') };
+        return { ar: '', en: '' };
+      };
 
-      const addressValue =
-        typeof shopData.address === 'string'
-          ? { ar: shopData.address, en: shopData.address }
-          : shopData.address || { ar: '', en: '' };
+      const nameValue = toBilingual(shop.name);
+      const descriptionValue = toBilingual(shop.description);
+      const addressValue = toBilingual(shop.address);
+
+      const rawServices = shop.services ?? shop.service_ids ?? [];
+      const serviceIds = rawServices.map((s: { id?: number } | number) =>
+        typeof s === 'object' && s?.id != null ? { id: s.id } : { id: Number(s) }
+      );
 
       reset({
-        vendor_id: shopData.vendor_id,
+        vendor_id: shop.vendor_id ?? shop.vendor?.id ?? 0,
+        logo: null,
         name: nameValue,
         description: descriptionValue,
         address: addressValue,
-        lat: shopData.lat || 0,
-        lng: shopData.lng || 0,
-        phone: shopData.phone || '',
-        mobile: shopData.mobile || '',
-        email: shopData.email || '',
-        working_hours: shopData.working_hours || defaultValues.working_hours,
-        is_active: shopData.is_active,
-        area_id: shopData.area_id || 0,
-        service_ids: shopData.service_ids || [],
+        lat: Number(shop.lat ?? shop.area?.lat ?? 0),
+        lng: Number(shop.lng ?? shop.area?.lng ?? 0),
+        phone: shop.phone ?? '',
+        mobile: shop.mobile ?? '',
+        email: shop.email ?? '',
+        working_hours: shop.working_hours ?? defaultValues.working_hours,
+        is_active: shop.is_active,
+        area_id: shop.area?.id ?? shop.area_id ?? 0,
+        service_ids: serviceIds,
       });
     }
   }, [shopData, isEditMode, isLoadingShop, reset]);
@@ -139,6 +176,12 @@ export default function CreatePage() {
     try {
       const payload = {
         vendor_id: data.vendor_id,
+        logo:
+          data.logo instanceof File
+            ? data.logo
+            : isEditMode && shopData?.data?.logo_url
+              ? shopData.data.logo_url
+              : undefined,
         name: {
           ar: data.name.ar,
           en: data.name.en,
@@ -163,7 +206,7 @@ export default function CreatePage() {
       };
 
       if (isEditMode && id) {
-        await updateShopMutation.mutateAsync({ id, data: payload });
+        await updateShopMutation.mutateAsync({ id, data: payload as any });
         toast.success('Shop updated successfully');
         navigate('/shop');
       } else {
@@ -402,6 +445,58 @@ export default function CreatePage() {
               />
             </Box>
           </Box>
+
+          {/* Shop Logo Upload */}
+          <Box className="group">
+            <Box className="flex items-center gap-2.5 mb-3">
+              <Box className="w-7 h-7 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
+                <Iconify
+                  icon="solar:gallery-add-bold"
+                  className="text-primary"
+                  width={16}
+                  height={16}
+                />
+              </Box>
+              <Typography variant="subtitle2" className="font-semibold text-foreground">
+                Shop Logo
+              </Typography>
+            </Box>
+            <Controller
+              name="logo"
+              control={control}
+              render={({ field: { onChange, value, ...field }, fieldState: { error } }) => (
+                <div className="w-full">
+                  <Input
+                    {...field}
+                    type="file"
+                    accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      onChange(file || null);
+                    }}
+                    error={!!error}
+                    helperText={
+                      error?.message ||
+                      (isEditMode
+                        ? 'Leave empty to keep current logo'
+                        : 'Upload a shop logo (optional, max 2MB)')
+                    }
+                    fullWidth
+                    className="transition-all duration-200"
+                  />
+                  {logoPreviewUrl && (
+                    <Box className="mt-4">
+                      <img
+                        src={logoPreviewUrl}
+                        alt="Shop logo preview"
+                        className="w-24 h-24 rounded-xl object-cover border border-border/60"
+                      />
+                    </Box>
+                  )}
+                </div>
+              )}
+            />
+          </Box>
         </Box>
       ),
     },
@@ -458,51 +553,53 @@ export default function CreatePage() {
             </Box>
           </Box>
 
-          {/* Coordinates */}
-          <Box className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Box className="group">
-              <Box className="flex items-center gap-2.5 mb-3">
-                <Box className="w-7 h-7 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
-                  <Iconify
-                    icon="solar:settings-bold"
-                    className="text-primary"
-                    width={16}
-                    height={16}
-                  />
-                </Box>
-                <Typography variant="subtitle2" className="font-semibold text-foreground">
+          {/* Map Picker - Select location by clicking on the map */}
+          <Box className="group">
+            <Box className="flex items-center gap-2.5 mb-3">
+              <Box className="w-7 h-7 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
+                <Iconify
+                  icon="solar:map-point-bold"
+                  className="text-primary"
+                  width={16}
+                  height={16}
+                />
+              </Box>
+              <Typography variant="subtitle2" className="font-semibold text-foreground">
+                Location
+              </Typography>
+            </Box>
+            <Typography variant="caption" className="text-muted-foreground block mb-2">
+              Click on the map to set the shop location
+            </Typography>
+            <MapPicker
+              lat={String(watch('lat') ?? '')}
+              lng={String(watch('lng') ?? '')}
+              onChange={(latStr, lngStr) => {
+                const latNum = parseFloat(latStr);
+                const lngNum = parseFloat(lngStr);
+                if (!Number.isNaN(latNum)) methods.setValue('lat', latNum);
+                if (!Number.isNaN(lngNum)) methods.setValue('lng', lngNum);
+              }}
+              height="320px"
+              className="w-full"
+            />
+            <Box className="mt-3 grid grid-cols-2 gap-4">
+              <Box>
+                <Typography variant="caption" className="text-muted-foreground">
                   Latitude
                 </Typography>
-              </Box>
-              <RHFTextField
-                name="lat"
-                type="number"
-                placeholder="e.g., 33.5138"
-                helperText="Enter the latitude coordinate"
-                className="transition-all duration-200"
-              />
-            </Box>
-            <Box className="group">
-              <Box className="flex items-center gap-2.5 mb-3">
-                <Box className="w-7 h-7 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
-                  <Iconify
-                    icon="solar:settings-bold"
-                    className="text-primary"
-                    width={16}
-                    height={16}
-                  />
-                </Box>
-                <Typography variant="subtitle2" className="font-semibold text-foreground">
-                  Longitude
+                <Typography variant="body2" className="font-mono font-medium">
+                  {watch('lat') ?? '-'}
                 </Typography>
               </Box>
-              <RHFTextField
-                name="lng"
-                type="number"
-                placeholder="e.g., 36.2765"
-                helperText="Enter the longitude coordinate"
-                className="transition-all duration-200"
-              />
+              <Box>
+                <Typography variant="caption" className="text-muted-foreground">
+                  Longitude
+                </Typography>
+                <Typography variant="body2" className="font-mono font-medium">
+                  {watch('lng') ?? '-'}
+                </Typography>
+              </Box>
             </Box>
           </Box>
         </Box>
@@ -616,15 +713,33 @@ export default function CreatePage() {
                   />
                 </Box>
                 <Typography variant="subtitle2" className="font-semibold text-foreground">
-                  Area ID
+                  Area
                 </Typography>
               </Box>
-              <RHFTextField
+              <Controller
                 name="area_id"
-                type="number"
-                placeholder="e.g., 1"
-                helperText="Enter the area ID"
-                className="transition-all duration-200"
+                control={control}
+                render={({ field, fieldState: { error } }) => (
+                  <div className="w-full">
+                    <select
+                      value={field.value ?? 0}
+                      onChange={(e) => field.onChange(Number(e.target.value))}
+                      className="w-full h-9 px-3 rounded-lg border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                    >
+                      <option value={0}>Select area</option>
+                      {areaOptions.map((opt: any) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                    {error?.message && (
+                      <Typography variant="caption" className="text-destructive mt-1 block">
+                        {error.message}
+                      </Typography>
+                    )}
+                  </div>
+                )}
               />
             </Box>
 
@@ -639,7 +754,7 @@ export default function CreatePage() {
                   />
                 </Box>
                 <Typography variant="subtitle2" className="font-semibold text-foreground">
-                  Service IDs
+                  Services
                 </Typography>
               </Box>
               <Controller
@@ -647,29 +762,22 @@ export default function CreatePage() {
                 control={control}
                 render={({ field, fieldState: { error } }) => (
                   <div className="w-full">
-                    <Input
-                      placeholder="e.g., 1,2"
-                      value={field.value?.map((s) => s.id).join(',') || ''}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        if (value) {
-                          const ids = value
-                            .split(',')
-                            .map((areaId) => areaId.trim())
-                            .filter((areaId) => areaId)
-                            .map((areaId) => ({ id: Number(areaId) }));
-                          field.onChange(ids);
-                        } else {
-                          field.onChange([]);
-                        }
-                      }}
-                      error={!!error}
-                      helperText={
-                        error?.message || 'Enter service IDs separated by commas (e.g., 1,2)'
+                    <MultiSelect
+                      options={serviceOptions}
+                      value={field.value?.map((s) => s.id) ?? []}
+                      onChange={(ids) =>
+                        field.onChange(
+                          (ids as (string | number)[]).map((id) => ({ id: Number(id) }))
+                        )
                       }
-                      fullWidth
-                      className="transition-all duration-200"
+                      placeholder="Select services..."
+                      isDisabled={serviceOptions.length === 0}
                     />
+                    {error?.message && (
+                      <Typography variant="caption" className="text-destructive mt-1 block">
+                        {error.message}
+                      </Typography>
+                    )}
                   </div>
                 )}
               />
@@ -722,7 +830,27 @@ export default function CreatePage() {
 
       <StepperFormLayout
         methods={methods}
-        onSubmit={handleSubmit(onSubmit)}
+        onSubmit={handleSubmit(
+          (data) => {
+            console.log('[Shop] Submit OK', data);
+            onSubmit(data);
+          },
+          (errors) => {
+            console.log('[Shop] Validation failed', errors);
+            const getFirstMessage = (obj: unknown): string | null => {
+              if (!obj || typeof obj !== 'object') return null;
+              const o = obj as Record<string, unknown>;
+              if (typeof o.message === 'string') return o.message;
+              for (const v of Object.values(o)) {
+                const m = getFirstMessage(v);
+                if (m) return m;
+              }
+              return null;
+            };
+            const msg = getFirstMessage(errors);
+            if (msg) toast.error(msg);
+          }
+        )}
         onCancel={handleCancel}
         isSubmitting={isSubmitting}
         errorMessage={errorMessage}
@@ -737,7 +865,7 @@ export default function CreatePage() {
         steps={steps}
         submitLabel={isEditMode ? 'Update Shop' : 'Create Shop'}
         submittingLabel={isEditMode ? 'Updating...' : 'Creating...'}
-       />
+      />
     </>
   );
 }

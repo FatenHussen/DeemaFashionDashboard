@@ -1,11 +1,10 @@
 import type { TFunction } from 'i18next';
 import type { ColumnDef } from '@tanstack/react-table';
+import type { UserItem } from '@/pages/dashboard/users/types/user.types';
 
 import { z } from 'zod';
-import { Iconify } from '@/shared/components/iconify';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
-import type { UserItem } from '@/pages/dashboard/users/types/user.types';
 
 const UserSchema = z.object({
   id: z.number(),
@@ -15,8 +14,9 @@ const UserSchema = z.object({
   affiliate: z.object({
     is_affiliate: z.boolean(),
     affiliate_approved: z.boolean(),
-    affiliate_id: z.number().nullable(),
-  }),
+    affiliate_id: z.union([z.number(), z.string()]).nullable(),
+    affiliate_rate: z.union([z.number(), z.string()]).nullable().optional(),
+  }).optional(),
   created_at: z.string(),
 });
 
@@ -100,7 +100,9 @@ export const userColumns = (
     header: ({ column }) => <DataTableColumnHeader column={column} title="Created" />,
     cell: ({ row }) => (
       <span className="text-sm text-muted-foreground">
-        {new Date(row.original.created_at).toLocaleDateString()}
+        {row.original.created_at
+          ? new Date(row.original.created_at).toLocaleDateString()
+          : '-'}
       </span>
     ),
   },
@@ -110,6 +112,7 @@ export const userColumns = (
       <DataTableRowActions
         schema={UserSchema}
         row={row}
+        viewDetails={`/users/details/${row.original.id}`}
         editItem={onEdit ? undefined : `/users/update/${row.original.id}`}
         onEdit={onEdit}
         onDelete={onDelete}

@@ -3,6 +3,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 
 import { z } from 'zod';
 import { Iconify } from '@/shared/components/iconify';
+import { formatTranslated } from '@/utils/format-translated';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 
@@ -66,7 +67,7 @@ export const bannerColumns = (
           {imageUrl ? (
             <img
               src={imageUrl}
-              alt={row.original.title}
+              alt={formatTranslated(row.original.title)}
               className="w-12 h-12 rounded-lg object-cover border border-border/60"
             />
           ) : (
@@ -89,7 +90,7 @@ export const bannerColumns = (
     header: ({ column }) => <DataTableColumnHeader column={column} title="Title" />,
     cell: ({ row }) => (
       <div className="flex items-center gap-2.5 min-w-0">
-        <div className="font-semibold text-foreground truncate">{row.original.title}</div>
+        <div className="font-semibold text-foreground truncate">{formatTranslated(row.original.title)}</div>
       </div>
     ),
   },
@@ -98,12 +99,11 @@ export const bannerColumns = (
     accessorKey: 'description',
     header: ({ column }) => <DataTableColumnHeader column={column} title="Description" />,
     cell: ({ row }) => {
-      const desc = row.original.description;
-      const text = typeof desc === 'object' && desc !== null && 'en' in desc ? (desc as any).en : desc;
+      const text = formatTranslated(row.original.description);
       return (
         <div className="max-w-[200px]">
-          <span className="text-sm text-muted-foreground truncate block" title={text ?? ''}>
-            {text ?? '-'}
+          <span className="text-sm text-muted-foreground truncate block" title={text}>
+            {text}
           </span>
         </div>
       );

@@ -1,8 +1,8 @@
 import type { UseFormReturn } from 'react-hook-form';
 import type { ReactNode, BaseSyntheticEvent } from 'react';
-import React, { useEffect, useMemo, useRef } from 'react';
 
 import { Iconify } from '@/shared/components/iconify';
+import React, { useRef, useMemo, useEffect } from 'react';
 
 import { Box, Button, Typography } from 'src/shared/ui';
 import { Form } from 'src/shared/components/hook-form/form-provider';
@@ -91,7 +91,7 @@ export function CreateFormLayout<T extends Record<string, any>>({
 
   // Unsaved changes guard
   useEffect(() => {
-    if (!showUnsavedGuard) return;
+    if (!showUnsavedGuard) return () => {};
 
     const handler = (e: BeforeUnloadEvent) => {
       if (methods.formState.isDirty && !isSubmitting) {

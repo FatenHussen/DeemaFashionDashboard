@@ -1,11 +1,11 @@
 import type { TFunction } from 'i18next';
 import type { ColumnDef } from '@tanstack/react-table';
+import type { CouponItem } from '@/pages/dashboard/coupons/types/coupon.types';
 
 import { z } from 'zod';
-import { Iconify } from '@/shared/components/iconify';
+import { formatTranslated } from '@/utils/format-translated';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
-import type { CouponItem } from '@/pages/dashboard/coupons/types/coupon.types';
 
 const CouponSchema = z.object({
   id: z.number(),
@@ -54,7 +54,7 @@ export const couponColumns = (
     accessorKey: 'name',
     header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
     cell: ({ row }) => (
-      <div className="font-semibold text-foreground truncate">{row.original.name}</div>
+      <div className="font-semibold text-foreground truncate">{formatTranslated(row.original.name)}</div>
     ),
   },
   {

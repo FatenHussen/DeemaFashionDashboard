@@ -6,25 +6,39 @@ import { Iconify } from '@/shared/components/iconify';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 
-// Schema for driver validation
+// Schema for driver table/row data
 const DriverSchema = z.object({
   id: z.number(),
+  name: z.string().optional(),
   phone: z.string(),
   address: z.string(),
   status: z.string(),
-  is_active: z.number(),
-  rate_per_order: z.string(),
+  is_active: z.union([z.number(), z.boolean()]),
+  rate_per_order: z.union([z.string(), z.number()]).optional(),
+  vehicle_type: z.string().optional().nullable(),
+  vehicle_number: z.string().optional().nullable(),
+  average_rating: z.number().optional(),
+  total_orders: z.number().optional(),
+  completed_orders: z.number().optional(),
+  total_earnings: z.number().optional(),
   created_at: z.string(),
 });
 
-// Type for driver data
+// Type for driver table row
 export interface DriverFormValues {
   id: number;
+  name?: string;
   phone: string;
   address: string;
   status: string;
-  is_active: number;
-  rate_per_order: string;
+  is_active: number | boolean;
+  rate_per_order?: string | number;
+  vehicle_type?: string | null;
+  vehicle_number?: string | null;
+  average_rating?: number;
+  total_orders?: number;
+  completed_orders?: number;
+  total_earnings?: number;
   created_at: string;
   [key: string]: any;
 }
@@ -51,6 +65,17 @@ export const driverColumns = (
         <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
           <span className="text-xs font-semibold text-primary">{row.original.id}</span>
         </div>
+      </div>
+    ),
+  },
+  {
+    id: 'name',
+    accessorKey: 'name',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
+    cell: ({ row }) => (
+      <div className="flex items-center gap-2 min-w-0">
+        <Iconify icon="solar:user-rounded-bold" className="text-muted-foreground flex-shrink-0" width={16} height={16} />
+        <span className="text-sm text-foreground font-medium truncate">{row.original.name || '-'}</span>
       </div>
     ),
   },
@@ -118,7 +143,7 @@ export const driverColumns = (
     accessorKey: 'is_active',
     header: ({ column }) => <DataTableColumnHeader column={column} title="Active" />,
     cell: ({ row }) => {
-      const isActive = row.original.is_active === 1;
+      const isActive = row.original.is_active === 1 || row.original.is_active === true;
       return (
         <div
           className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border w-fit ${
@@ -145,7 +170,45 @@ export const driverColumns = (
     cell: ({ row }) => (
       <div className="flex items-center gap-2">
         <Iconify icon="solar:dollar-bold" className="text-muted-foreground flex-shrink-0" width={16} height={16} />
-        <span className="text-sm text-muted-foreground">{row.original.rate_per_order}</span>
+        <span className="text-sm text-muted-foreground">{row.original.rate_per_order ?? '-'}</span>
+      </div>
+    ),
+  },
+  {
+    id: 'average_rating',
+    accessorKey: 'average_rating',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Avg Rating" />,
+    cell: ({ row }) => (
+      <div className="flex items-center gap-2">
+        <Iconify icon="solar:star-bold" className="text-muted-foreground flex-shrink-0" width={16} height={16} />
+        <span className="text-sm text-muted-foreground">{row.original.average_rating ?? '-'}</span>
+      </div>
+    ),
+  },
+  {
+    id: 'total_orders',
+    accessorKey: 'total_orders',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Total Orders" />,
+    cell: ({ row }) => (
+      <span className="text-sm text-muted-foreground">{row.original.total_orders ?? '-'}</span>
+    ),
+  },
+  {
+    id: 'completed_orders',
+    accessorKey: 'completed_orders',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Completed" />,
+    cell: ({ row }) => (
+      <span className="text-sm text-muted-foreground">{row.original.completed_orders ?? '-'}</span>
+    ),
+  },
+  {
+    id: 'total_earnings',
+    accessorKey: 'total_earnings',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Total Earnings" />,
+    cell: ({ row }) => (
+      <div className="flex items-center gap-2">
+        <Iconify icon="solar:wallet-money-bold" className="text-muted-foreground flex-shrink-0" width={16} height={16} />
+        <span className="text-sm text-muted-foreground">{row.original.total_earnings ?? '-'}</span>
       </div>
     ),
   },

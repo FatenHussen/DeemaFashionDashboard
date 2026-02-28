@@ -18,45 +18,29 @@ export default function Page() {
   const [pageSize, setPageSize] = useState(10);
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
-  // Fetch vendors using the hook
   const { data: vendorsResponse, isLoading, error } = useFetchVendors(currentPage, pageSize);
   const deleteVendorMutation = useDeleteVendor();
 
-  // Log error for debugging
-  if (error) {
-    console.error('Error fetching vendors:', error);
-  }
+  if (error) console.error('Error fetching vendors:', error);
 
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-  };
-
+  const handlePageChange = (page: number) => setCurrentPage(page);
   const handlePageSizeChange = (size: number) => {
     setPageSize(size);
     setCurrentPage(1);
   };
 
-  const onDelete = (id: number) => {
-    setDeletingId(id);
-  };
-
+  const onDelete = (id: number) => setDeletingId(id);
   const onDeleteConfirm = async () => {
     if (deletingId) {
       try {
         await deleteVendorMutation.mutateAsync(deletingId);
         toast.success(t('deleteSuccess') || 'Vendor deleted successfully');
         setDeletingId(null);
-      } catch (err: any) {
-        toast.error(err?.message || t('deleteError') || 'Failed to delete vendor');
-      }
+      } catch {}
     }
   };
+  const onDeleteCancel = () => setDeletingId(null);
 
-  const onDeleteCancel = () => {
-    setDeletingId(null);
-  };
-
-  // Extract data from API response
   const vendorData: VendorFormValues[] = vendorsResponse?.data?.items || [];
   const apiPagination = vendorsResponse?.data?.pagination;
   const pagination = apiPagination
@@ -68,17 +52,9 @@ export default function Page() {
         from: (apiPagination.current_page - 1) * apiPagination.per_page + 1,
         to: Math.min(apiPagination.current_page * apiPagination.per_page, apiPagination.total),
       }
-    : {
-        current_page: 1,
-        last_page: 1,
-        per_page: 10,
-        total: 0,
-        from: 0,
-        to: 0,
-      };
+    : { current_page: 1, last_page: 1, per_page: 10, total: 0, from: 0, to: 0 };
 
   const { can } = usePermissions();
-
   const hasPermission = (action: string, resource: string) => can(`${resource}.${action}`);
 
   return (
@@ -113,7 +89,6 @@ export default function Page() {
           id: 'ID',
           name: 'Name',
           owner_name: 'Owner Name',
-          average_rating: 'Rating',
           status: 'Status',
           created_at: 'Created At',
           actions: 'Actions',

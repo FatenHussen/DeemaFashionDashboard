@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { toast } from 'react-toastify';
-import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { usePermissions } from '@/auth/hooks/use-permissions';
 import { couponColumns, type CouponFormValues } from '@/columns/one/coupons/one';
@@ -44,9 +44,7 @@ export default function Page() {
         await deleteCouponMutation.mutateAsync(deletingId);
         toast.success(t('deleteSuccess') || 'Coupon deleted successfully');
         setDeletingId(null);
-      } catch (err: any) {
-        toast.error(err?.message || t('deleteError') || 'Failed to delete coupon');
-      }
+      } catch {}
     }
   };
 
@@ -105,7 +103,7 @@ export default function Page() {
         )}
         data={couponData}
         createPath="/coupons/create"
-        hasDetails={true}
+        hasDetails
         detailsLink="/coupons/details"
         permissions={{
           create: hasPermission('create', 'coupon'),

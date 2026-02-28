@@ -22,12 +22,12 @@ export const useCreateCity = (page?: number, limit?: number) => {
     onSuccess: () => {
       // Invalidate and refetch all list queries
       queryClient.invalidateQueries({
-        queryKey: queryKeys.city.list(),
+        queryKey: ['city', 'list'],
         refetchType: 'active',
       });
       // Also explicitly refetch all matching queries
       queryClient.refetchQueries({
-        queryKey: queryKeys.city.list(),
+        queryKey: ['city', 'list'],
       });
     },
   });
@@ -42,12 +42,12 @@ export const useUpdateCity = (page?: number, limit?: number) => {
     onSuccess: (_, variables) => {
       // Invalidate and refetch all list queries
       queryClient.invalidateQueries({
-        queryKey: queryKeys.city.list(),
+        queryKey: ['city', 'list'],
         refetchType: 'active',
       });
       // Also explicitly refetch all matching queries
       queryClient.refetchQueries({
-        queryKey: queryKeys.city.list(),
+        queryKey: ['city', 'list'],
       });
       // Invalidate the specific city details query
       queryClient.invalidateQueries({
@@ -65,12 +65,12 @@ export const useDeleteCity = (page?: number, limit?: number) => {
     onSuccess: (_, id) => {
       // Invalidate and refetch all list queries
       queryClient.invalidateQueries({
-        queryKey: queryKeys.city.list(),
+        queryKey: ['city', 'list'],
         refetchType: 'active',
       });
       // Also explicitly refetch all matching queries
       queryClient.refetchQueries({
-        queryKey: queryKeys.city.list(),
+        queryKey: ['city', 'list'],
       });
       // Invalidate the specific city details query
       queryClient.invalidateQueries({

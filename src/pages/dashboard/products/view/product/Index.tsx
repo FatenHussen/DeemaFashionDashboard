@@ -2,9 +2,9 @@ import { useState } from 'react';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router';
+import { productColumns } from '@/columns/one/products/one';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { usePermissions } from '@/auth/hooks/use-permissions';
-import { productColumns } from '@/columns/one/products/one';
 import { useFetchProducts, useDeleteProduct } from '@/pages/dashboard/products/hooks/product';
 
 import { CONFIG } from 'src/global-config';
@@ -39,9 +39,7 @@ export default function Page() {
         await deleteProductMutation.mutateAsync(deletingId);
         toast.success(t('deleteSuccess') || 'Product deleted successfully');
         setDeletingId(null);
-      } catch (err: any) {
-        toast.error(err?.message || t('deleteError') || 'Failed to delete product');
-      }
+      } catch {}
     }
   };
 
@@ -49,13 +47,24 @@ export default function Page() {
     setDeletingId(null);
   };
 
-  // Extract data from API response
-  const productData = productsResponse?.data?.items || [];
-  const pagination = productsResponse?.data?.pagination;
-
-  console.log('productsResponse full:', productsResponse);
-  console.log('productData:', productData);
-  console.log('productData length:', productData.length);
+  // Extract data from API response (doc: data.data for list, data has current_page, last_page, per_page, total)
+  const listData = productsResponse?.data?.data ?? productsResponse?.data?.items ?? [];
+  const productData = listData;
+  const apiPagination = productsResponse?.data;
+  const pagination =
+    apiPagination && typeof apiPagination.current_page === 'number'
+      ? {
+          current_page: apiPagination.current_page,
+          last_page: apiPagination.last_page ?? 1,
+          per_page: apiPagination.per_page ?? limit,
+          total: apiPagination.total ?? 0,
+          from: (apiPagination.current_page - 1) * (apiPagination.per_page ?? limit) + 1,
+          to: Math.min(
+            apiPagination.current_page * (apiPagination.per_page ?? limit),
+            apiPagination.total ?? 0
+          ),
+        }
+      : undefined;
   const { can } = usePermissions();
 
   const hasPermission = (action: string, resource: string) => can(`${resource}.${action}`);

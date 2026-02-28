@@ -2,31 +2,30 @@ import type { TFunction } from 'i18next';
 import type { ColumnDef } from '@tanstack/react-table';
 
 import { z } from 'zod';
+import { formatTranslated } from '@/utils/format-translated';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 
 // Schema for vendor validation
-const VendorSchema = z.object({
-  id: z.number(),
-  name: z.string(),
-  owner_name: z.string(),
-  logo_url: z.string().nullable(),
-  is_active: z.boolean(),
-  average_rating: z.number(),
-  ratings_count: z.number(),
-  created_at: z.string(),
-});
+const VendorSchema = z
+  .object({
+    id: z.number(),
+    name: z.union([z.string(), z.record(z.string())]),
+    owner_name: z.string(),
+    logo_url: z.string().nullable().optional(),
+    is_active: z.boolean(),
+    created_at: z.string().optional(),
+  })
+  .passthrough();
 
-// Type for vendor data
+// Type for vendor data (table row)
 export interface VendorFormValues {
   id: number;
-  name: string;
+  name: string | Record<string, string>;
   owner_name: string;
-  logo_url: string | null;
+  logo_url?: string | null;
   is_active: boolean;
-  average_rating: number;
-  ratings_count: number;
-  created_at: string;
+  created_at?: string;
   [key: string]: any;
 }
 
@@ -53,7 +52,7 @@ export const vendorColumns = (
     id: 'name',
     accessorKey: 'name',
     header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
-    cell: ({ row }) => <div className="font-medium">{row.original.name}</div>,
+    cell: ({ row }) => <div className="font-medium">{formatTranslated(row.original.name)}</div>,
   },
   {
     id: 'owner_name',
@@ -61,19 +60,6 @@ export const vendorColumns = (
     header: ({ column }) => <DataTableColumnHeader column={column} title="Owner Name" />,
     cell: ({ row }) => (
       <div className="text-sm text-muted-foreground">{row.original.owner_name}</div>
-    ),
-  },
-  {
-    id: 'average_rating',
-    accessorKey: 'average_rating',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Rating" />,
-    cell: ({ row }) => (
-      <div className="flex items-center gap-1">
-        <span className="text-sm font-medium">{row.original.average_rating.toFixed(1)}</span>
-        <span className="text-xs text-muted-foreground">
-          ({row.original.ratings_count} reviews)
-        </span>
-      </div>
     ),
   },
   {

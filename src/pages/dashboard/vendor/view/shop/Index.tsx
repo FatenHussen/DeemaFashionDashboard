@@ -46,9 +46,7 @@ export default function Page() {
         await deleteShopMutation.mutateAsync(deletingId);
         toast.success(t('deleteSuccess') || 'Shop deleted successfully');
         setDeletingId(null);
-      } catch (err: any) {
-        toast.error(err?.message || t('deleteError') || 'Failed to delete shop');
-      }
+      } catch {}
     }
   };
 
@@ -102,7 +100,8 @@ export default function Page() {
         )}
         data={shopData}
         createPath="/shop/create"
-        hasDetails={false}
+        hasDetails
+        detailsLink="/shop/details"
         permissions={{
           create: hasPermission('create', 'shop'),
           update: hasPermission('update', 'shop'),

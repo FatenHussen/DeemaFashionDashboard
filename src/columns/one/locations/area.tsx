@@ -3,6 +3,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 
 import { z } from 'zod';
 import { Iconify } from '@/shared/components/iconify';
+import { formatTranslated } from '@/utils/format-translated';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 
@@ -81,7 +82,7 @@ export const areaColumns = (
           />
         </div>
         <div className="min-w-0">
-          <div className="font-semibold text-foreground truncate">{row.original.name}</div>
+          <div className="font-semibold text-foreground truncate">{formatTranslated(row.original.name)}</div>
         </div>
       </div>
     ),
@@ -99,7 +100,7 @@ export const areaColumns = (
           height={16}
         />
         <span className="text-sm text-muted-foreground truncate">
-          {row.original.city?.name || '-'}
+          {formatTranslated(row.original.city?.name) || '-'}
         </span>
       </div>
     ),
@@ -117,7 +118,7 @@ export const areaColumns = (
           height={16}
         />
         <span className="text-sm text-muted-foreground truncate">
-          {row.original.city?.governorate?.name || '-'}
+          {formatTranslated(row.original.city?.governorate?.name) || '-'}
         </span>
       </div>
     ),

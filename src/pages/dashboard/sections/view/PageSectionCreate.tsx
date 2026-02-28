@@ -1,6 +1,8 @@
-import { useEffect, useState } from 'react';
+import type { SectionItem, FilterConfig } from '../types/page-section.types';
+
 import { toast } from 'react-toastify';
 import { useForm } from 'react-hook-form';
+import { useState, useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
@@ -9,21 +11,20 @@ import {
   type PageSectionFormValues,
 } from '@/pages/dashboard/sections/validation/page-section.validation';
 import {
+  useFetchPages,
+  useFetchFilterData,
   useCreatePageSection,
   useUpdatePageSection,
-  useFetchPageSectionDetails,
-  useFetchPages,
   useFetchDisplayTypes,
+  useFetchPageSectionDetails,
   useFetchSectionsForDropdown,
-  useFetchFilterData,
 } from '@/pages/dashboard/sections/hooks/usePageSections';
-import type { SectionItem, FilterConfig } from '../types/page-section.types';
 
 import { CONFIG } from 'src/global-config';
 import { Box, Typography } from 'src/shared/ui';
+import { RHFSelect } from 'src/shared/components/hook-form/rhf-select';
 import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
 import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
-import { RHFSelect } from 'src/shared/components/hook-form/rhf-select';
 
 // ----------------------------------------------------------------------
 
@@ -166,7 +167,7 @@ export default function CreatePage() {
 
   const displayTypeOptions =
     displayTypesData?.data?.map((type) => ({
-      value: type.id,
+      value: String(type.id),
       label: `${type.manual_model} (ID: ${type.id})`,
     })) || [];
 

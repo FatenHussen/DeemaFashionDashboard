@@ -70,6 +70,7 @@ export function NavMobile({
           data={data}
           checkPermissions={checkPermissions}
           checkPermission={checkPermission}
+          enabledRootRedirect
           className="px-4 flex-auto"
           {...other}
         />

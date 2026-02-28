@@ -1,10 +1,10 @@
 import type {
+  PagesResponse,
+  SectionsListResponse,
+  DisplayTypesResponse,
   PageSectionListResponse,
   PageSectionDetailsResponse,
   PageSectionCreateUpdatePayload,
-  SectionsListResponse,
-  PagesResponse,
-  DisplayTypesResponse,
 } from '../types/page-section.types';
 
 import { apiRoutes, axiosInstance } from '@/api';

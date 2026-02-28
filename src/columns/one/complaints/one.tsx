@@ -1,11 +1,10 @@
 import type { TFunction } from 'i18next';
 import type { ColumnDef } from '@tanstack/react-table';
+import type { ComplaintItem } from '@/pages/dashboard/complaints/types/complaint.types';
 
 import { z } from 'zod';
-import { Iconify } from '@/shared/components/iconify';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
-import type { ComplaintItem } from '@/pages/dashboard/complaints/types/complaint.types';
 
 const ComplaintSchema = z.object({
   id: z.number(),

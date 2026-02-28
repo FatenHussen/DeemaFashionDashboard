@@ -3,6 +3,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 
 import { z } from 'zod';
 import { Iconify } from '@/shared/components/iconify';
+import { formatTranslated } from '@/utils/format-translated';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 
@@ -66,7 +67,7 @@ export const cityColumns = (
           <Iconify icon="solar:flag-bold" className="text-primary" width={18} height={18} />
         </div>
         <div className="min-w-0">
-          <div className="font-semibold text-foreground truncate">{row.original.name}</div>
+          <div className="font-semibold text-foreground truncate">{formatTranslated(row.original.name)}</div>
         </div>
       </div>
     ),
@@ -84,7 +85,7 @@ export const cityColumns = (
           height={16}
         />
         <span className="text-sm text-muted-foreground truncate">
-          {row.original.governorate?.name || '-'}
+          {formatTranslated(row.original.governorate?.name) || '-'}
         </span>
       </div>
     ),

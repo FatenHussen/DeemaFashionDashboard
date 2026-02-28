@@ -11,10 +11,14 @@ export type { CategoryAttributeCreateUpdatePayload };
 export const _CategoryAttributeApi = {
   getListCategoryAttributes: async (
     page: number = 1,
-    limit: number = 25
+    limit: number = 25,
+    categoryId?: number | string
   ): Promise<CategoryAttributeListResponse> => {
+    const params: Record<string, string | number> = { page, per_page: limit };
+    if (categoryId) params.category_id = categoryId;
     const response = await axiosInstance.get<CategoryAttributeListResponse>(
-      `${apiRoutes.categoryAttribute.list}?page=${page}&limit=${limit}`
+      apiRoutes.categoryAttribute.list,
+      { params }
     );
     return response.data;
   },

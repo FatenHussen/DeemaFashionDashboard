@@ -3,6 +3,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 
 import { z } from 'zod';
 import { Iconify } from '@/shared/components/iconify';
+import { formatTranslated } from '@/utils/format-translated';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 
@@ -116,7 +117,7 @@ export const brandColumns = (
     cell: ({ row }) => (
       <div className="flex items-center gap-2.5 min-w-0">
         <div className="min-w-0">
-          <div className="font-semibold text-foreground truncate">{row.original.name}</div>
+          <div className="font-semibold text-foreground truncate">{formatTranslated(row.original.name)}</div>
         </div>
       </div>
     ),
@@ -213,7 +214,7 @@ export const productColumns = (
           {imageUrl ? (
             <img
               src={imageUrl}
-              alt={row.original.name}
+              alt={formatTranslated(row.original.name)}
               className="w-12 h-12 rounded-lg object-cover border border-border/60"
             />
           ) : (
@@ -232,9 +233,9 @@ export const productColumns = (
     cell: ({ row }) => (
       <div className="flex items-center gap-2.5 min-w-0">
         <div className="min-w-0">
-          <div className="font-semibold text-foreground truncate">{row.original.name}</div>
+          <div className="font-semibold text-foreground truncate">{formatTranslated(row.original.name)}</div>
           <div className="text-xs text-muted-foreground truncate">
-            {row.original.description}
+            {formatTranslated(row.original.description)}
           </div>
         </div>
       </div>

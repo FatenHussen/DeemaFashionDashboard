@@ -51,7 +51,7 @@ const DataTableRecycleFilterButton = ({
         <Button
           variant="outlined"
           size="small"
-          className="h-8 lg:flex text-foreground border-border mr-[0.25rem]"
+          className="h-8 lg:flex text-foreground border-border me-1"
         >
           <Filter className="h-4 w-4" />
           <span>{t('filterByType')}</span>
@@ -224,7 +224,7 @@ const DataTableRecycleFilterButton = ({
           onClick={handleReset}
           className="cursor-pointer text-red-600 hover:text-red-700 hover:bg-red-50"
         >
-          <RotateCcw className="mr-2 h-4 w-4" />
+          <RotateCcw className="me-2 h-4 w-4" />
           {t('resetFilter')}
         </DropdownMenuItem>
       </DropdownMenuContent>

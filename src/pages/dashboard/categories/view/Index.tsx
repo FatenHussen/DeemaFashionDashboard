@@ -49,9 +49,7 @@ export default function Page() {
         await deleteCategoryMutation.mutateAsync(deletingId);
         toast.success(t('deleteSuccess') || 'Category deleted successfully');
         setDeletingId(null);
-      } catch (err: any) {
-        toast.error(err?.message || t('deleteError') || 'Failed to delete category');
-      }
+      } catch {}
     }
   };
 

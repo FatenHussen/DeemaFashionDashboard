@@ -65,11 +65,8 @@ export function JwtSignInView() {
       // Refresh user session to get the latest user data
       await checkUserSession?.();
 
-      // Small delay to ensure state is updated before redirect
-      setTimeout(() => {
-        // Redirect to admin dashboard after successful login
-        window.location.href = CONFIG.auth.redirectPath;
-      }, 100);
+      // Redirect to admin dashboard (FCM token is handled in dashboard layout)
+      window.location.href = CONFIG.auth.redirectPath;
     } catch (error) {
       console.error(error);
       const feedbackMessage = getErrorMessage(error);

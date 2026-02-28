@@ -21,6 +21,7 @@ export const queryKeys = {
   // Auth query keys
   auth: {
     profile: () => ['auth', 'profile'] as const,
+    notifications: () => ['auth', 'notifications'] as const,
   },
   // Role query keys
   role: {
@@ -69,7 +70,7 @@ export const queryKeys = {
   },
   // Category Attribute query keys
   categoryAttribute: {
-    list: (params?: { page?: number; limit?: number }) =>
+    list: (params?: { categoryId?: number | string; page?: number; limit?: number }) =>
       ['categoryattribute', 'list', params] as const,
     details: (id: number | string) => ['categoryattribute', 'details', id] as const,
   },
@@ -122,6 +123,7 @@ export const queryKeys = {
   // Banner query keys
   banner: {
     list: (params?: { page?: number; per_page?: number }) => ['banner', 'list', params] as const,
+    details: (id: number | string) => ['banner', 'details', id] as const,
   },
   // Page Section query keys
   pageSection: {
@@ -129,5 +131,146 @@ export const queryKeys = {
     details: (id: number | string) => ['pageSection', 'details', id] as const,
     pages: () => ['pageSection', 'pages'] as const,
     displayTypes: () => ['pageSection', 'display-types'] as const,
+  },
+  // Order query keys
+  order: {
+    list: (params?: { page?: number; per_page?: number; status?: string }) => ['order', 'list', params] as const,
+    details: (id: number | string) => ['order', 'details', id] as const,
+  },
+  // Basket query keys
+  basket: {
+    list: (params?: { page?: number; per_page?: number }) => ['basket', 'list', params] as const,
+    details: (id: number | string) => ['basket', 'details', id] as const,
+  },
+  // Scheduled Basket query keys
+  scheduledBasket: {
+    list: (params?: { page?: number; per_page?: number }) => ['scheduledBasket', 'list', params] as const,
+    details: (id: number | string) => ['scheduledBasket', 'details', id] as const,
+  },
+  // Package query keys
+  package: {
+    list: (params?: { page?: number; per_page?: number }) => ['package', 'list', params] as const,
+    details: (id: number | string) => ['package', 'details', id] as const,
+  },
+  // Subscription query keys
+  subscription: {
+    list: (params?: { page?: number; per_page?: number }) => ['subscription', 'list', params] as const,
+    details: (id: number | string) => ['subscription', 'details', id] as const,
+  },
+  // Gift query keys
+  gift: {
+    list: (params?: { page?: number; per_page?: number }) => ['gift', 'list', params] as const,
+    details: (id: number | string) => ['gift', 'details', id] as const,
+  },
+  // Point Exchange query keys
+  pointExchange: {
+    list: (params?: { page?: number; per_page?: number }) => ['pointExchange', 'list', params] as const,
+    details: (id: number | string) => ['pointExchange', 'details', id] as const,
+  },
+  // User Points query keys
+  userPoints: {
+    list: (params?: { page?: number; per_page?: number }) => ['userPoints', 'list', params] as const,
+    details: (userId: number | string) => ['userPoints', 'details', userId] as const,
+    transactions: (userId: number | string, params?: { page?: number; per_page?: number }) =>
+      ['userPoints', 'transactions', userId, params] as const,
+    statistics: () => ['userPoints', 'statistics'] as const,
+  },
+  // Currency query keys
+  currency: {
+    list: (params?: { page?: number; per_page?: number }) => ['currency', 'list', params] as const,
+    details: (id: number | string) => ['currency', 'details', id] as const,
+  },
+  // Recipe query keys
+  recipe: {
+    list: (params?: { page?: number; per_page?: number }) => ['recipe', 'list', params] as const,
+    details: (id: number | string) => ['recipe', 'details', id] as const,
+  },
+  // Shop Product Variant query keys (shared - used in selects)
+  shopProductVariant: {
+    list: (params?: { page?: number; per_page?: number }) =>
+      ['shopProductVariant', 'list', params] as const,
+  },
+  // Legal Document query keys
+  legalDocument: {
+    list: (params?: { page?: number; per_page?: number }) =>
+      ['legalDocument', 'list', params] as const,
+    details: (id: number | string) => ['legalDocument', 'details', id] as const,
+  },
+  // FAQ query keys
+  faq: {
+    list: (params?: { page?: number; per_page?: number; type?: string }) =>
+      ['faq', 'list', params] as const,
+    details: (id: number | string) => ['faq', 'details', id] as const,
+  },
+  // Vendor Subscription query keys
+  vendorSubscription: {
+    list: (params?: Record<string, any>) => ['vendorSubscription', 'list', params] as const,
+    details: (id: number | string) => ['vendorSubscription', 'details', id] as const,
+  },
+  // Admin Notification query keys
+  adminNotification: {
+    list: (params?: { page?: number; per_page?: number; search?: string }) =>
+      ['adminNotification', 'list', params] as const,
+  },
+  // Vendor Package query keys
+  vendorPackage: {
+    list: (params?: {
+      page?: number;
+      per_page?: number;
+      sort_field?: string;
+      sort_order?: string;
+      is_active?: number;
+      min_price?: number;
+      max_price?: number;
+      slug?: string;
+      search?: string;
+    }) => ['vendorPackage', 'list', params] as const,
+    details: (id: number | string) => ['vendorPackage', 'details', id] as const,
+  },
+  // Vendor User query keys
+  vendorUser: {
+    list: (params?: { page?: number; per_page?: number; search?: string }) =>
+      ['vendorUser', 'list', params] as const,
+    details: (id: number | string) => ['vendorUser', 'details', id] as const,
+  },
+  // Seller Registration query keys
+  sellerRegistration: {
+    list: (params?: { page?: number; per_page?: number }) =>
+      ['sellerRegistration', 'list', params] as const,
+    details: (id: number | string) => ['sellerRegistration', 'details', id] as const,
+  },
+  // Report query keys
+  report: {
+    sales: (params?: object) => ['report', 'sales', params] as const,
+    productMovement: (params?: object) => ['report', 'productMovement', params] as const,
+    vendorPerformance: (id: number | string, params?: object) =>
+      ['report', 'vendorPerformance', id, params] as const,
+    driverPerformance: (id: number | string, params?: object) =>
+      ['report', 'driverPerformance', id, params] as const,
+    salesByLocation: (params?: object) => ['report', 'salesByLocation', params] as const,
+    salesByCategory: (params?: object) => ['report', 'salesByCategory', params] as const,
+  },
+  // Statistics query keys
+  statistics: {
+    dashboard: (params?: Record<string, unknown>) => ['statistics', 'dashboard', params] as const,
+    counts: () => ['statistics', 'counts'] as const,
+    monthlyPerformance: (params?: Record<string, unknown>) =>
+      ['statistics', 'monthlyPerformance', params] as const,
+    ordersByStatus: () => ['statistics', 'ordersByStatus'] as const,
+    topShops: (params?: Record<string, unknown>) => ['statistics', 'topShops', params] as const,
+    revenueTrend: (params?: Record<string, unknown>) =>
+      ['statistics', 'revenueTrend', params] as const,
+    ordersByHour: () => ['statistics', 'ordersByHour'] as const,
+    ordersByDay: () => ['statistics', 'ordersByDay'] as const,
+    topCategories: (params?: Record<string, unknown>) =>
+      ['statistics', 'topCategories', params] as const,
+    userGrowth: (params?: Record<string, unknown>) => ['statistics', 'userGrowth', params] as const,
+    orderFunnel: () => ['statistics', 'orderFunnel'] as const,
+    avgOrderValueTrend: (params?: Record<string, unknown>) =>
+      ['statistics', 'avgOrderValueTrend', params] as const,
+    driverComparison: (params?: Record<string, unknown>) =>
+      ['statistics', 'driverComparison', params] as const,
+    stockLevels: () => ['statistics', 'stockLevels'] as const,
+    salesHeatmap: () => ['statistics', 'salesHeatmap'] as const,
   },
 } as const;

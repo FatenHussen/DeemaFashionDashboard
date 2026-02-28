@@ -3,6 +3,7 @@ import { z } from 'zod';
 export const UserCreateSchema = z
   .object({
     name: z.string().min(1, 'Name is required'),
+    last_name: z.string().optional().default(''),
     email: z.string().email('Invalid email'),
     phone: z.string().optional().default(''),
     password: z.string().min(6, 'Password must be at least 6 characters'),
@@ -42,6 +43,7 @@ export const UserCreateSchema = z
 export const UserUpdateSchema = z
   .object({
     name: z.string().min(1, 'Name is required'),
+    last_name: z.string().optional().default(''),
     email: z.string().email('Invalid email'),
     phone: z.string().optional().default(''),
     password: z.string().optional(),

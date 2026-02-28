@@ -11,13 +11,20 @@ export const useFetchBanners = (page: number = 1, perPage: number = 10) =>
     queryFn: () => _BannerApi.getListBanners({ page, per_page: perPage }),
   });
 
+export const useFetchBannerById = (id: number | string) =>
+  useQuery({
+    queryKey: queryKeys.banner.details(id),
+    queryFn: () => _BannerApi.getBannerById(id),
+    enabled: !!id,
+  });
+
 export const useCreateBanner = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (data: BannerFormValues) => _BannerApi.createBanner(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.banner.list() });
+      queryClient.invalidateQueries({ queryKey: ['banner', 'list'] });
     },
   });
 };
@@ -29,7 +36,7 @@ export const useUpdateBanner = () => {
     mutationFn: ({ id, data }: { id: number | string; data: BannerFormValues }) =>
       _BannerApi.updateBanner(id, data),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.banner.list() });
+      queryClient.invalidateQueries({ queryKey: ['banner', 'list'] });
     },
   });
 };
@@ -40,7 +47,7 @@ export const useDeleteBanner = () => {
   return useMutation({
     mutationFn: (id: number | string) => _BannerApi.deleteBanner(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.banner.list() });
+      queryClient.invalidateQueries({ queryKey: ['banner', 'list'] });
     },
   });
 };

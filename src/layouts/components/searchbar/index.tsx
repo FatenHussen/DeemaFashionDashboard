@@ -89,12 +89,12 @@ export function Searchbar({ data: navItems = [], className, ...other }: Searchba
       } ${className || ''}`}
       {...other}
     >
-      <Box component={isSmUp ? 'span' : 'button'} className={isSmUp ? 'p-1 inline-flex text-gray-600' : ''}>
+      <Box component={isSmUp ? 'span' : 'button'} className={isSmUp ? 'p-1 inline-flex text-muted-foreground' : ''}>
         <Iconify icon="eva:search-fill" />
       </Box>
 
       <Label
-        className={`text-gray-800 cursor-inherit bg-white text-xs shadow-sm ${
+        className={`text-foreground cursor-inherit bg-muted text-xs shadow-sm ${
           isSmUp ? 'inline-flex' : 'hidden'
         }`}
       >
@@ -147,9 +147,9 @@ export function Searchbar({ data: navItems = [], className, ...other }: Searchba
               value={searchQuery}
               onChange={handleSearch}
               startAdornment={
-                <Iconify icon="eva:search-fill" width={24} className="text-gray-400" />
+                <Iconify icon="eva:search-fill" width={24} className="text-muted-foreground" />
               }
-              endAdornment={<Label className="tracking-wider text-gray-500">esc</Label>}
+              endAdornment={<Label className="tracking-wider text-muted-foreground">esc</Label>}
               id="search-input"
               className="text-lg"
             />

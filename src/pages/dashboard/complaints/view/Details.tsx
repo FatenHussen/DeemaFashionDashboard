@@ -1,10 +1,10 @@
 import { toast } from 'react-toastify';
+import { Button } from '@/shared/ui/button';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Button } from '@/shared/ui/button';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
-import { useFetchComplaintById, useUpdateComplaint } from '@/pages/dashboard/complaints/hooks/complaint';
+import { useUpdateComplaint, useFetchComplaintById } from '@/pages/dashboard/complaints/hooks/complaint';
 import {
   ComplaintUpdateSchema,
   type ComplaintUpdateFormValues,
@@ -69,9 +69,7 @@ export default function DetailsPage() {
       await updateComplaintMutation.mutateAsync({ id: id!, data });
       toast.success('Complaint updated successfully');
       reset();
-    } catch (err: any) {
-      toast.error(err?.message || 'Failed to update complaint');
-    }
+    } catch {}
   };
 
   const statusVariant =
@@ -274,7 +272,7 @@ export default function DetailsPage() {
                       <Controller
                         name="admin_response"
                         control={control}
-                        render={({ field, fieldState: { error } }) => (
+                        render={({ field, fieldState: { error: fieldError } }) => (
                           <div>
                             <textarea
                               {...field}
@@ -282,9 +280,9 @@ export default function DetailsPage() {
                               placeholder="Type your response..."
                               className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm min-h-[100px]"
                             />
-                            {error?.message && (
+                            {fieldError?.message && (
                               <p className="mt-1 text-xs text-destructive">
-                                {error.message}
+                                {fieldError.message}
                               </p>
                             )}
                           </div>

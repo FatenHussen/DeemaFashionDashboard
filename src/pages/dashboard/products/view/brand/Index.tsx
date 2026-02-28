@@ -44,9 +44,7 @@ export default function Page() {
         await deleteBrandMutation.mutateAsync(deletingId);
         toast.success(t('deleteSuccess') || 'Brand deleted successfully');
         setDeletingId(null);
-      } catch (err: any) {
-        toast.error(err?.message || t('deleteError') || 'Failed to delete brand');
-      }
+      } catch {}
     }
   };
 
@@ -54,8 +52,8 @@ export default function Page() {
     setDeletingId(null);
   };
 
-  // Extract data from API response
-  const brandData: BrandFormValues[] = (brandsResponse?.data.items ?? []) as BrandFormValues[];
+  // Extract data from API response (data is BrandData[])
+  const brandData: BrandFormValues[] = (brandsResponse?.data ?? []) as BrandFormValues[];
 
   const { can } = usePermissions();
 

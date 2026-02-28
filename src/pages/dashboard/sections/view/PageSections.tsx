@@ -52,9 +52,7 @@ export default function Page() {
         await deletePageSectionMutation.mutateAsync(deletingId);
         toast.success(t('deleteSuccess') || 'Page Section deleted successfully');
         setDeletingId(null);
-      } catch (err: any) {
-        toast.error(err?.message || t('deleteError') || 'Failed to delete page section');
-      }
+      } catch {}
     }
   };
 

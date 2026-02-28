@@ -1,6 +1,7 @@
 import { Button } from '@/shared/ui/button';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
+import { formatTranslated } from '@/utils/format-translated';
 import { useFetchProductById } from '@/pages/dashboard/products/hooks/product';
 
 import { CONFIG } from 'src/global-config';
@@ -21,7 +22,7 @@ export default function DetailsPage() {
     return <LoadingScreen />;
   }
 
-  if (error || !productResponse?.data) {
+  if (error || !productResponse) {
     return (
       <Box className="flex items-center justify-center min-h-[400px] p-6">
         <Box className="w-full max-w-md rounded-xl border border-border/50 shadow-lg bg-background p-6">
@@ -42,8 +43,13 @@ export default function DetailsPage() {
     );
   }
 
-  const product = productResponse.data;
-  const imageUrl = product.image ? `${CONFIG.serverUrl}/${product.image}` : null;
+  const product = productResponse;
+  const img = (product as any).images?.[0] ?? (product as any);
+  const imageUrl = img?.url
+    ? (String(img.url).startsWith('http') ? img.url : `${CONFIG.serverUrl}/${img.url}`)
+    : (product as any).image
+      ? `${CONFIG.serverUrl}/${(product as any).image}`
+      : null;
 
   return (
     <>
@@ -73,7 +79,7 @@ export default function DetailsPage() {
               {imageUrl ? (
                 <img
                   src={imageUrl}
-                  alt={product.name}
+                  alt={formatTranslated(product.name)}
                   className="w-16 h-16 rounded-xl object-cover border border-border/60"
                 />
               ) : (
@@ -88,7 +94,7 @@ export default function DetailsPage() {
               )}
               <Box className="flex-1">
                 <Typography variant="h4" className="font-bold text-foreground mb-1">
-                  {product.name}
+                  {formatTranslated(product.name)}
                 </Typography>
                 <Typography variant="body2" className="text-muted-foreground">
                   Product Details
@@ -134,7 +140,7 @@ export default function DetailsPage() {
                       Product Name
                     </Typography>
                     <Typography variant="body1" className="text-foreground">
-                      {product.name}
+                      {formatTranslated(product.name)}
                     </Typography>
                   </Box>
 
@@ -143,7 +149,7 @@ export default function DetailsPage() {
                       Category
                     </Typography>
                     <Typography variant="body1" className="text-foreground">
-                      {product.category_id}
+                      {formatTranslated(product.category?.name) ?? product.category_id}
                     </Typography>
                   </Box>
 
@@ -188,7 +194,7 @@ export default function DetailsPage() {
                   Description
                 </Typography>
                 <Typography variant="body1" className="text-foreground">
-                  {product.description}
+                  {formatTranslated(product.description)}
                 </Typography>
               </Box>
 

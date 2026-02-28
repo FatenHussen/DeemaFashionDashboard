@@ -1,6 +1,6 @@
 import type { NavSectionProps } from 'src/shared/components/nav-section';
 
-import { varAlpha, mergeClasses } from 'minimal-shared/utils';
+import { mergeClasses } from 'minimal-shared/utils';
 
 import { Box } from 'src/shared/ui';
 import { Logo } from 'src/shared/components/logo';
@@ -55,6 +55,7 @@ export function NavVertical({
           cssVars={cssVars}
           checkPermissions={checkPermissions}
           checkPermission={checkPermission}
+          enabledRootRedirect
           className="px-3 flex-auto"
         />
       </Scrollbar>
@@ -76,6 +77,7 @@ export function NavVertical({
         cssVars={cssVars}
         checkPermissions={checkPermissions}
         checkPermission={checkPermission}
+        enabledRootRedirect
         className="pb-4 px-1 flex-auto overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden relative z-10"
       />
 
@@ -88,8 +90,8 @@ export function NavVertical({
       className={mergeClasses([
         layoutClasses.nav.root,
         layoutClasses.nav.vertical,
-        ' top-0 left-0 h-full hidden fixed flex-col z-[var(--layout-nav-zIndex)]',
-        'bg-white',
+        ' top-0 start-0 h-full hidden fixed flex-col z-[var(--layout-nav-zIndex)]',
+        'bg-background border-e border-border/60',
         'overflow-hidden',
         isNavMini ? 'w-[var(--layout-nav-mini-width)]' : 'w-[var(--layout-nav-vertical-width)]',
         `${layoutQuery}:flex`,

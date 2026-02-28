@@ -1,9 +1,9 @@
 // ----------------------------------------------------------------------
 
-export interface Area {
+export interface DriverArea {
   id: number;
   name: string;
-  city: {
+  city?: {
     id: number;
     name: string;
     governorate: {
@@ -13,21 +13,29 @@ export interface Area {
     };
     created_at: string;
   };
-  created_at: string;
+  created_at?: string;
 }
 
 export interface DriverData {
   id: number;
+  name?: string;
   phone: string;
   address: string;
   status: string;
-  is_active: number;
-  rate_per_order: string;
+  is_active: number | boolean;
+  image?: string | null;
+  rate_per_order: number | string;
+  vehicle_type?: string | null;
+  vehicle_number?: string | null;
+  average_rating?: number;
+  total_orders?: number;
+  completed_orders?: number;
+  total_earnings?: number;
   created_at: string;
 }
 
 export interface DriverDetailsData extends DriverData {
-  areas: Area[];
+  areas: DriverArea[];
 }
 
 export interface DriverListResponse {
@@ -56,5 +64,10 @@ export interface DriverCreateUpdatePayload {
   password?: string;
   address: string;
   area_ids: Array<{ id: number }>;
+  rate_per_order?: number | string;
+  vehicle_type?: string;
+  vehicle_number?: string;
+  /** File for new upload, or string URL when keeping existing image on update */
+  image?: File | string | null;
 }
 

@@ -56,6 +56,16 @@ export function NavList({
     }
   }, [data.children, onOpen]);
 
+  const handleToggleMenu = useCallback(() => {
+    if (data.children) {
+      if (open) {
+        onClose();
+      } else {
+        onOpen();
+      }
+    }
+  }, [data.children, open, onOpen, onClose]);
+
   const renderNavItem = () => (
     <NavItem
       ref={navItemRef}
@@ -79,6 +89,7 @@ export function NavList({
       // styles
       slotProps={depth === 1 ? slotProps?.rootItem : slotProps?.subItem}
       // actions
+      onClick={handleToggleMenu}
       onMouseEnter={handleOpenMenu}
       onMouseLeave={onClose}
     />

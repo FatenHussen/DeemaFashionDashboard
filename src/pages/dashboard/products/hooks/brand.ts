@@ -22,7 +22,7 @@ export const useCreateBrand = () => {
   return useMutation({
     mutationFn: (data: BrandCreateUpdatePayload) => _BrandApi.createBrand(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.brand.list() });
+      queryClient.invalidateQueries({ queryKey: ['brand', 'list'] });
     },
   });
 };
@@ -34,7 +34,7 @@ export const useUpdateBrand = () => {
     mutationFn: ({ id, data }: { id: number | string; data: BrandCreateUpdatePayload }) =>
       _BrandApi.updateBrand(id, data),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.brand.list() });
+      queryClient.invalidateQueries({ queryKey: ['brand', 'list'] });
       queryClient.invalidateQueries({ queryKey: queryKeys.brand.details(variables.id) });
     },
   });
@@ -46,7 +46,7 @@ export const useDeleteBrand = () => {
   return useMutation({
     mutationFn: (id: number | string) => _BrandApi.deleteBrand(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.brand.list() });
+      queryClient.invalidateQueries({ queryKey: ['brand', 'list'] });
     },
   });
 };

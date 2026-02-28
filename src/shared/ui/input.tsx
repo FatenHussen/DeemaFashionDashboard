@@ -1,7 +1,7 @@
-import React, { forwardRef, useId, useMemo } from 'react';
 import { mergeClasses } from 'minimal-shared/utils';
+import React, { useId, useMemo, forwardRef } from 'react';
 
-export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+export interface InputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'> {
   error?: boolean;
   success?: boolean;
   helperText?: string;
@@ -10,7 +10,7 @@ export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> 
   startAdornment?: React.ReactNode;
   endAdornment?: React.ReactNode;
 
-  // New: UI options
+  /** UI size - distinct from HTML input size attribute */
   size?: 'sm' | 'md' | 'lg';
   variant?: 'default' | 'filled';
   floatingLabel?: boolean;
@@ -87,14 +87,14 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         return {
           border: 'border-red-500/70',
           ring: 'focus:ring-red-500/25 focus:border-red-500',
-          text: 'text-red-700 dark:text-red-300',
+          text: 'text-red-600',
         };
       }
       if (success) {
         return {
           border: 'border-emerald-500/50',
           ring: 'focus:ring-emerald-500/20 focus:border-emerald-500',
-          text: 'text-emerald-700 dark:text-emerald-300',
+          text: 'text-emerald-600',
         };
       }
       return {
@@ -221,7 +221,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             className={mergeClasses([
               'mt-1.5',
               sizeClasses.helper,
-              error ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground',
+              error ? 'text-red-600' : 'text-muted-foreground',
             ])}
           >
             {helperText}

@@ -42,9 +42,7 @@ export default function Page() {
         await deleteSectionMutation.mutateAsync(deletingId);
         toast.success(t('deleteSuccess') || 'Section deleted successfully');
         setDeletingId(null);
-      } catch (err: any) {
-        toast.error(err?.message || t('deleteError') || 'Failed to delete section');
-      }
+      } catch {}
     }
   };
 
@@ -97,7 +95,7 @@ export default function Page() {
         )}
         data={sectionData}
         createPath="/sections/create"
-        hasDetails={true}
+        hasDetails
         permissions={{
           create: hasPermission('create', 'section'),
           update: hasPermission('update', 'section'),

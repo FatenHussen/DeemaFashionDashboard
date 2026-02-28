@@ -24,7 +24,7 @@ export const useCreateSection = () => {
   return useMutation({
     mutationFn: (data: SectionCreateUpdatePayload) => _SectionApi.createSection(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.section.list() });
+      queryClient.invalidateQueries({ queryKey: ['section', 'list'] });
     },
   });
 };
@@ -36,7 +36,7 @@ export const useUpdateSection = () => {
     mutationFn: ({ id, data }: { id: number | string; data: SectionCreateUpdatePayload }) =>
       _SectionApi.updateSection(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.section.list() });
+      queryClient.invalidateQueries({ queryKey: ['section', 'list'] });
     },
   });
 };
@@ -47,7 +47,7 @@ export const useDeleteSection = () => {
   return useMutation({
     mutationFn: (id: number | string) => _SectionApi.deleteSection(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.section.list() });
+      queryClient.invalidateQueries({ queryKey: ['section', 'list'] });
     },
   });
 };

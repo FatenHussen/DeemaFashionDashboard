@@ -49,8 +49,8 @@ export interface AreaCreateUpdatePayload {
     ar: string;
   };
   city_id: number;
-  lat: string;
-  lng: string;
+  lat: number | string;
+  lng: number | string;
   base_fee: string;
 }
 

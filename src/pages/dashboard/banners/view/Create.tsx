@@ -1,21 +1,24 @@
+import type { BannerItem } from '@/pages/dashboard/banners/types/banner.types';
+
 import { toast } from 'react-toastify';
 import { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useParams, useNavigate, useLocation } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
+import { useParams, useNavigate, useLocation } from 'react-router';
+import {
+  useCreateBanner,
+  useUpdateBanner,
+  useFetchBannerById,
+} from '@/pages/dashboard/banners/hooks/banner';
 import {
   BannerUpdateSchema,
   type BannerUpdateFormValues,
 } from '@/pages/dashboard/banners/validation/banner.validation';
-import type { BannerItem } from '@/pages/dashboard/banners/types/banner.types';
-import {
-  useCreateBanner,
-  useUpdateBanner,
-} from '@/pages/dashboard/banners/hooks/banner';
 
-import { Box, Input, Typography } from 'src/shared/ui';
 import { CONFIG } from 'src/global-config';
+import { Box, Input, Typography } from 'src/shared/ui';
+import { LoadingScreen } from 'src/shared/components/loading-screen';
 import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
 import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
 
@@ -31,6 +34,7 @@ export default function CreatePage() {
   const isEditMode = !!id;
   const [previewImage, setPreviewImage] = useState<string | null>(null);
 
+  const { data: detailsResponse, isLoading: isLoadingDetails } = useFetchBannerById(id || '');
   const createBannerMutation = useCreateBanner();
   const updateBannerMutation = useUpdateBanner();
 
@@ -49,35 +53,29 @@ export default function CreatePage() {
   const { handleSubmit, reset, control, watch } = methods;
   const imageFile = watch('image');
 
-  // Load banner data from state when in edit mode
+  // Load banner data from state or API when in edit mode
   useEffect(() => {
-    if (isEditMode && bannerFromState) {
-      setPreviewImage(bannerFromState.image_url || null);
-      const desc = bannerFromState.description;
-      const descriptionStr =
-        typeof desc === 'object' && desc !== null && 'en' in desc ? desc.en ?? '' : (desc ?? '');
+    const source = isEditMode ? (detailsResponse?.data ?? bannerFromState) : null;
+    if (source) {
+      setPreviewImage(source.image_url || null);
+      const desc = source.description;
+      const descriptionStr: string =
+        typeof desc === 'object' && desc !== null ? (desc as any)?.en ?? (desc as any)?.ar ?? '' : (desc ?? '');
       reset({
         title: {
-          en: bannerFromState.title || '',
-          ar: bannerFromState.title || '',
+          en: source.title || '',
+          ar: source.title || '',
         },
         description: descriptionStr,
         image: null,
-        link: bannerFromState.link ?? '',
+        link: source.link ?? '',
       });
     }
-  }, [bannerFromState, isEditMode, reset]);
-
-  // Redirect if edit mode without banner data (e.g. direct URL access)
-  useEffect(() => {
-    if (isEditMode && id && !bannerFromState) {
-      toast.error('Please edit the banner from the list page');
-      navigate('/sections/banners');
-    }
-  }, [isEditMode, id, bannerFromState, navigate]);
+  }, [detailsResponse?.data, bannerFromState, isEditMode, reset]);
 
   // Update preview when image file changes
   useEffect(() => {
+    const currentImageUrl = detailsResponse?.data?.image_url || bannerFromState?.image_url;
     if (imageFile instanceof File) {
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -86,10 +84,10 @@ export default function CreatePage() {
       reader.readAsDataURL(imageFile);
     } else if (!imageFile && !isEditMode) {
       setPreviewImage(null);
-    } else if (isEditMode && !imageFile && bannerFromState?.image_url) {
-      setPreviewImage(bannerFromState.image_url);
+    } else if (isEditMode && !imageFile && currentImageUrl) {
+      setPreviewImage(currentImageUrl);
     }
-  }, [imageFile, isEditMode, bannerFromState?.image_url]);
+  }, [imageFile, isEditMode, detailsResponse?.data?.image_url, bannerFromState?.image_url]);
 
   const isSubmitting = createBannerMutation.isPending || updateBannerMutation.isPending;
   const errorMessage =
@@ -130,9 +128,7 @@ export default function CreatePage() {
     ? 'You can update any field. Leave image unchanged or upload a new one.'
     : 'Fill in the banner title, description, upload an image and optionally add a link.';
 
-  if (isEditMode && !bannerFromState) {
-    return null;
-  }
+  if (isEditMode && isLoadingDetails && !bannerFromState) return <LoadingScreen />;
 
   return (
     <>
@@ -151,7 +147,7 @@ export default function CreatePage() {
           isEditMode ? 'Update banner information and image' : 'Add a new banner to your system'
         }
         isEditMode={isEditMode}
-        isLoading={false}
+        isLoading={isEditMode && isLoadingDetails}
         loadingText="Loading banner data..."
         maxWidth="3xl"
         infoText={infoText}

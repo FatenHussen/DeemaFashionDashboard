@@ -57,11 +57,12 @@ export default function CreatePage() {
       const imageUrl = brand.image ? `${GLOBAL_CONFIG.serverUrl}/${brand.image}` : null;
       setPreviewImage(imageUrl);
       console.log(brand);
+      const nameValue =
+        typeof brand.name === 'object' && brand.name !== null && 'en' in brand.name
+          ? { en: (brand.name as { en?: string }).en ?? '', ar: (brand.name as { ar?: string }).ar ?? '' }
+          : { en: typeof brand.name === 'string' ? brand.name : '', ar: typeof brand.name === 'string' ? brand.name : '' };
       reset({
-        name: {
-          en: brand.name?.en, // Assuming API returns name as string, adjust if needed
-          ar: brand.name?.ar, // Adjust based on actual API response
-        },
+        name: nameValue,
         image: null, // Don't pre-fill file input
       });
     }

@@ -3,47 +3,50 @@ import type { ColumnDef } from '@tanstack/react-table';
 
 import { z } from 'zod';
 import { Iconify } from '@/shared/components/iconify';
+import { formatTranslated } from '@/utils/format-translated';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 
 // Schema for shop validation
-const ShopSchema = z.object({
-  id: z.number(),
-  name: z.string(),
-  description: z.string().optional(),
-  logo_url: z.string().nullable().optional(),
-  is_active: z.boolean(),
-  average_rating: z.number(),
-  ratings_count: z.number(),
-  is_open_now: z.boolean(),
-  created_at: z.string(),
-  vendor: z.any().optional(),
-  vendor_id: z.number().optional(),
-  address: z.string().optional(),
-  lat: z.number().optional(),
-  lng: z.number().optional(),
-  phone: z.string().optional(),
-  mobile: z.string().optional(),
-  email: z.string().optional(),
-  area_id: z.number().optional(),
-});
+const ShopSchema = z
+  .object({
+    id: z.number(),
+    name: z.union([z.string(), z.record(z.string())]),
+    description: z.union([z.string(), z.record(z.string())]).optional(),
+    logo_url: z.string().nullable().optional(),
+    is_active: z.boolean(),
+    average_rating: z.number().optional(),
+    ratings_count: z.number().optional(),
+    is_open_now: z.boolean().optional(),
+    created_at: z.string().optional(),
+    vendor: z.any().optional(),
+    vendor_id: z.number().optional(),
+    address: z.union([z.string(), z.record(z.string())]).optional(),
+    lat: z.number().optional(),
+    lng: z.number().optional(),
+    phone: z.string().optional(),
+    mobile: z.string().optional(),
+    email: z.string().optional(),
+    area_id: z.number().optional(),
+  })
+  .passthrough();
 
-// Type for shop data
+// Type for shop data (API may return name/description as { ar, en })
 export interface ShopFormValues {
   id: number;
-  name: string;
-  description?: string;
+  name: string | { ar?: string; en?: string };
+  description?: string | { ar?: string; en?: string };
   logo_url?: string | null;
   is_active: boolean;
-  average_rating: number;
-  ratings_count: number;
-  is_open_now: boolean;
-  created_at: string;
+  average_rating?: number;
+  ratings_count?: number;
+  is_open_now?: boolean;
+  created_at?: string;
   vendor?: any;
   vendor_id?: number;
-  address?: string;
-  lat?: number;
-  lng?: number;
+  address?: string | { ar?: string; en?: string };
+  lat?: number | null;
+  lng?: number | null;
   phone?: string;
   mobile?: string;
   email?: string;
@@ -85,7 +88,7 @@ export const shopColumns = (
         {row.original.logo_url ? (
           <img
             src={row.original.logo_url}
-            alt={row.original.name}
+            alt={formatTranslated(row.original.name)}
             className="w-9 h-9 rounded-lg object-cover border border-border/60 flex-shrink-0"
           />
         ) : (
@@ -94,10 +97,10 @@ export const shopColumns = (
           </div>
         )}
         <div className="min-w-0">
-          <div className="font-semibold text-foreground truncate">{row.original.name}</div>
-          {row.original.description && (
+          <div className="font-semibold text-foreground truncate">{formatTranslated(row.original.name)}</div>
+          {row.original.description != null && formatTranslated(row.original.description) !== '-' && (
             <div className="text-xs text-muted-foreground truncate mt-0.5">
-              {row.original.description}
+              {formatTranslated(row.original.description)}
             </div>
           )}
         </div>
@@ -109,7 +112,7 @@ export const shopColumns = (
     accessorKey: 'vendor',
     header: ({ column }) => <DataTableColumnHeader column={column} title="Vendor" />,
     cell: ({ row }) => {
-      const vendorName = row.original.vendor?.name || row.original.vendor_id || '-';
+      const vendorName = formatTranslated(row.original.vendor?.name) || row.original.vendor_id || '-';
       return (
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-lg bg-muted border border-border/60 flex items-center justify-center flex-shrink-0">

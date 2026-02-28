@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import { useForm } from 'react-hook-form';
+import { useState, useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
+import { useFetchManualItems } from '@/pages/dashboard/sections/hooks/useManualItems';
 import {
   SectionSchema,
   type SectionFormValues,
@@ -13,13 +14,12 @@ import {
   useUpdateSection,
   useFetchSectionDetails,
 } from '@/pages/dashboard/sections/hooks/useSections';
-import { useFetchManualItems } from '@/pages/dashboard/sections/hooks/useManualItems';
 
 import { CONFIG } from 'src/global-config';
-import { Box, Typography, Button } from 'src/shared/ui';
+import { Box, Button, Typography } from 'src/shared/ui';
+import { RHFSelect } from 'src/shared/components/hook-form/rhf-select';
 import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
 import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
-import { RHFSelect } from 'src/shared/components/hook-form/rhf-select';
 
 // ----------------------------------------------------------------------
 

@@ -1,10 +1,11 @@
 
 import { m } from 'framer-motion';
-import { useState, useCallback } from 'react';
+import { useCallback } from 'react';
 import { usePopover } from 'minimal-shared/hooks';
 
 import { FlagIcon } from 'src/shared/components/flag-icon';
 import { CustomPopover } from 'src/shared/components/custom-popover';
+import { useLocalizationStore } from 'src/store/useLocalizationStore';
 import { varTap, varHover, transitionTap } from 'src/shared/components/animate';
 
 // ----------------------------------------------------------------------
@@ -20,16 +21,16 @@ export type LanguagePopoverProps = React.ComponentPropsWithoutRef<'button'> & {
 export function LanguagePopover({ data = [], className, ...other }: LanguagePopoverProps) {
   const { open, anchorEl, onClose, onOpen } = usePopover();
 
-  const [locale, setLocale] = useState<string>(data[0]?.value || '');
+  const { language, setLanguage } = useLocalizationStore();
 
-  const currentLang = data.find((lang) => lang.value === locale);
+  const currentLang = data.find((lang) => lang.value === language) ?? data[0];
 
   const handleChangeLang = useCallback(
     (newLang: string) => {
-      setLocale(newLang);
+      setLanguage(newLang);
       onClose();
     },
-    [onClose]
+    [onClose, setLanguage]
   );
 
   const renderMenuList = () => (

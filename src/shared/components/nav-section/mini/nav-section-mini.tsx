@@ -26,7 +26,7 @@ export function NavSectionMini({
       <NavUl className="flex-auto gap-[var(--nav-item-gap)]">
         {data.map((group) => (
           <Group
-            key={group.subheader ?? group.items[0].title}
+            key={String(group.subheader ?? group.items[0].title)}
             render={render}
             cssVars={cssVars}
             items={group.items}

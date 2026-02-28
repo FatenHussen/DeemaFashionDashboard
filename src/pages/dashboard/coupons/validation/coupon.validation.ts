@@ -6,6 +6,7 @@ export const CouponSchema = z.object({
     ar: z.string().min(1, 'Arabic name is required'),
   }),
   code: z.string().min(1, 'Code is required'),
+  affiliate_id: z.coerce.number().optional(),
   discount_type: z.enum(['percentage', 'fixed']),
   discount_value: z.coerce.string().min(1, 'Discount value is required'),
   start_at: z.string().min(1, 'Start date is required'),

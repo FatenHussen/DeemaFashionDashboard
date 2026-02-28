@@ -46,9 +46,7 @@ export default function Page() {
         await deleteCityMutation.mutateAsync(deletingId);
         toast.success(t('deleteSuccess') || 'City deleted successfully');
         setDeletingId(null);
-      } catch (err: any) {
-        toast.error(err?.message || t('deleteError') || 'Failed to delete city');
-      }
+      } catch {}
     }
   };
 

@@ -4,6 +4,7 @@ import { z as zod } from 'zod';
 
 export const ProductSchema = zod.object({
   category_id: zod.number().min(1, { message: 'Category is required!' }),
+  brand_id: zod.number().min(0).optional(),
   name: zod.object({
     en: zod.string().min(1, { message: 'English name is required!' }),
     ar: zod.string().min(1, { message: 'Arabic name is required!' }),
@@ -25,6 +26,7 @@ export const ProductSchema = zod.object({
     })
     .optional(),
   price: zod.number().min(0, { message: 'Price must be positive!' }),
+  price_after_discount: zod.number().min(0).optional(),
   quantity: zod.number().min(0, { message: 'Quantity must be positive!' }),
   sku: zod.string().optional(),
   model: zod.string().optional(),
@@ -33,20 +35,22 @@ export const ProductSchema = zod.object({
   is_instant_delivery: zod.number().min(0).max(1),
   images: zod.array(zod.instanceof(File)).optional(),
 
-  // Variants
+  // Variants - id optional (for update), images optional per variant
   variants: zod
     .array(
       zod.object({
+        id: zod.number().optional(),
         attributes_values_ids: zod.array(zod.number()),
-        price: zod.number().min(0),
+        images: zod.array(zod.instanceof(File)).optional(),
       })
     )
     .optional(),
 
-  // Category Details
+  // Category Details - id optional (for update)
   category_details: zod
     .array(
       zod.object({
+        id: zod.number().optional(),
         category_detail_id: zod.number(),
         detail_value: zod.object({
           en: zod.string(),
@@ -56,10 +60,11 @@ export const ProductSchema = zod.object({
     )
     .optional(),
 
-  // Extra Details
+  // Extra Details - id optional (for update)
   extra_details: zod
     .array(
       zod.object({
+        id: zod.number().optional(),
         detail_key: zod.object({
           en: zod.string(),
           ar: zod.string(),

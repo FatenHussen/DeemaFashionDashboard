@@ -16,6 +16,20 @@ export const _CategoryApi = {
     const response = await axiosInstance.get<CategoryListResponse>(url);
     return response.data;
   },
+  getListCategoriesPaginated: async (params?: {
+    page?: number;
+    per_page?: number;
+    parent_id?: number;
+  }): Promise<CategoryListResponse> => {
+    const searchParams = new URLSearchParams();
+    if (params?.page) searchParams.set('page', String(params.page));
+    if (params?.per_page) searchParams.set('per_page', String(params.per_page));
+    if (params?.parent_id) searchParams.set('parent_id', String(params.parent_id));
+    const query = searchParams.toString();
+    const url = query ? `${apiRoutes.category.list}?${query}` : apiRoutes.category.list;
+    const response = await axiosInstance.get<CategoryListResponse>(url);
+    return response.data;
+  },
   getCategoryById: async (id: number | string): Promise<CategoryDetailResponse> => {
     const response = await axiosInstance.get<CategoryDetailResponse>(
       apiRoutes.category.details(id)

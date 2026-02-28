@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
+import { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useNavigate } from 'react-router';
@@ -14,11 +14,11 @@ import {
   useFetchLanguageById,
 } from '@/pages/dashboard/languages/hooks/language';
 
+import { Box, Input, Checkbox, Typography } from 'src/shared/ui';
 import { CONFIG, CONFIG as GLOBAL_CONFIG } from 'src/global-config';
-import { Box, Checkbox, Typography, Input } from 'src/shared/ui';
+import { RHFSelect } from 'src/shared/components/hook-form/rhf-select';
 import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
 import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
-import { RHFSelect } from 'src/shared/components/hook-form/rhf-select';
 
 // ----------------------------------------------------------------------
 

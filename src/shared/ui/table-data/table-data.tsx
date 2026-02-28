@@ -21,7 +21,6 @@ import { Iconify } from 'src/shared/components/iconify';
 import { TableSkeleton } from './data-table-skeleton';
 import { DataTableToolbar } from './data-table-toolbar';
 import { DataTablePagination } from './data-table-pagination';
-import { CustomizeColumnsModal } from './customize-columns-modal';
 // table-data.tsx
 import { Table, TableRow, TableBody, TableCell, TableHead, TableHeader } from '../table';
 
@@ -148,6 +147,8 @@ export function DataTable<TData, TValue>({
         hasRecycleFilter={hasRecycleFilter}
         onRecycleFilterChange={onRecycleFilterChange}
         onImportSuccess={onImportSuccess}
+        defaultColumns={defaultColumnsConfig}
+        columnTranslations={columnTranslations}
       />
 
       {/* Table View - Full Width */}
@@ -168,19 +169,6 @@ export function DataTable<TData, TValue>({
                     {/* Empty header for expand/collapse column */}
                   </TableHead>
                 )}
-                <TableHead
-                  colSpan={1}
-                  className=" px-0 sticky left-0 z-30 bg-background/95 backdrop-blur"
-                >
-                  <div className="absolute -top-1 left-0">
-                    <CustomizeColumnsModal
-                      table={table}
-                      tableName={tableName}
-                      defaultColumns={defaultColumnsConfig}
-                      columnTranslations={columnTranslations}
-                    />
-                  </div>
-                </TableHead>
                 {headerGroup.headers.map((header) => {
                   const isActionsColumn = header.id === 'actions';
                   // For 2 columns, distribute 50% each (excluding actions column)
@@ -210,7 +198,7 @@ export function DataTable<TData, TValue>({
             ) : !isLoading && table.getRowModel().rows.length === 0 ? (
               <TableRow className="hover:bg-transparent">
                 <TableCell
-                  colSpan={columns?.length + (expandedRowRender ? 1 : 0) + 1}
+                  colSpan={columns?.length + (expandedRowRender ? 1 : 0)}
                   className="h-48 text-center"
                 >
                   <div className="flex flex-col items-center justify-center py-12 animate-[tableRowSlideUp_0.5s_ease-out]">
@@ -222,7 +210,7 @@ export function DataTable<TData, TValue>({
                       {t('noResults')}
                     </p>
                     <p className="text-muted-foreground/60 text-sm">
-                      Try adjusting your search or filters
+                      {t('noResultsHelper')}
                     </p>
                   </div>
                 </TableCell>
@@ -265,10 +253,6 @@ export function DataTable<TData, TValue>({
                           </button>
                         </TableCell>
                       )}
-                      <TableHead
-                        colSpan={1}
-                        className="w-fit px-0 sticky left-0 z-10 bg-background/95 backdrop-blur"
-                      />
                       {row.getVisibleCells().map((cell) => {
                         const isActionsColumn = cell.column.id === 'actions';
                         // For 2 columns, distribute 50% each (excluding actions column)

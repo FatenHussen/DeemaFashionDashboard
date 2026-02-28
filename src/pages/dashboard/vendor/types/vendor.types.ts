@@ -2,13 +2,19 @@
 
 export interface VendorData {
   id: number;
-  name: string;
+  name: string | { ar: string; en: string };
   owner_name: string;
-  logo_url: string | null;
+  owner_phone?: string;
+  commercial_register?: string;
+  contract_date?: string;
+  contract_number?: string;
+  contract_duration_months?: number;
+  commission_rate?: number;
+  logo_url?: string | null;
   is_active: boolean;
-  average_rating: number;
-  ratings_count: number;
-  created_at: string;
+  average_rating?: number;
+  ratings_count?: number;
+  created_at?: string;
 }
 
 export interface VendorListResponse {

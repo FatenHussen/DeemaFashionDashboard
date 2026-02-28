@@ -1,0 +1,87 @@
+import { useState } from 'react';
+import { toast } from 'react-toastify';
+import { useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
+import { DataTable } from '@/shared/ui/table-data/table-data';
+import { usePermissions } from '@/auth/hooks/use-permissions';
+import { packageColumns, type PackageFormValues } from '@/columns/one/packages/one';
+import { useFetchPackages, useDeletePackage } from '@/pages/dashboard/packages/hooks/package';
+
+import { CONFIG } from 'src/global-config';
+
+const metadata = { title: `Packages | Dashboard - ${CONFIG.appName}` };
+
+export default function Page() {
+  const { t } = useTranslation('table');
+  const navigate = useNavigate();
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+
+  const { data: packagesResponse, isLoading, error } = useFetchPackages(currentPage, pageSize);
+  const deletePackageMutation = useDeletePackage();
+
+  if (error) console.error('Error fetching packages:', error);
+
+  const handlePageChange = (page: number) => setCurrentPage(page);
+  const handlePageSizeChange = (size: number) => { setPageSize(size); setCurrentPage(1); };
+  const onDelete = (id: number) => setDeletingId(id);
+  const onDeleteConfirm = async () => {
+    if (deletingId) {
+      try {
+        await deletePackageMutation.mutateAsync(deletingId);
+        toast.success(t('deleteSuccess') || 'Package deleted successfully');
+        setDeletingId(null);
+      } catch {}
+    }
+  };
+  const onDeleteCancel = () => setDeletingId(null);
+  const handleEdit = (row: { original: PackageFormValues }) => {
+    navigate(`/packages/update/${row.original.id}`, { state: { package: row.original } });
+  };
+
+  const packageData: PackageFormValues[] = packagesResponse?.data?.items || [];
+  const apiPagination = packagesResponse?.data?.pagination;
+  const pagination = apiPagination
+    ? {
+        current_page: apiPagination.current_page,
+        last_page: apiPagination.last_page,
+        per_page: apiPagination.per_page,
+        total: apiPagination.total,
+        from: (apiPagination.current_page - 1) * apiPagination.per_page + 1,
+        to: Math.min(apiPagination.current_page * apiPagination.per_page, apiPagination.total),
+      }
+    : { current_page: 1, last_page: 1, per_page: 10, total: 0, from: 0, to: 0 };
+
+  const { can } = usePermissions();
+  const hasPermission = (action: string, resource: string) => can(`${resource}.${action}`);
+
+  return (
+    <>
+      <title>{metadata.title}</title>
+      <DataTable
+        tableName="Package"
+        columns={packageColumns(
+          { update: hasPermission('update', 'package'), delete: hasPermission('delete', 'package') },
+          t, onDelete, deletePackageMutation.isPending, deletingId !== null, onDeleteConfirm, onDeleteCancel, deletingId, handleEdit
+        )}
+        data={packageData}
+        createPath="/packages/create"
+        hasDetails
+        detailsLink="/packages/details"
+        permissions={{
+          create: hasPermission('create', 'package'),
+          update: hasPermission('update', 'package'),
+          delete: hasPermission('delete', 'package'),
+        }}
+        isLoading={isLoading}
+        columnTranslations={{ id: 'ID', name: 'Name', price: 'Price', duration_days: 'Duration (Days)', monthly_orders_limit: 'Monthly Orders', discount_percentage: 'Discount %', is_active: 'Status', created_at: 'Created', actions: 'Actions' }}
+        pagination={pagination}
+        currentPage={currentPage}
+        pageSize={pageSize}
+        onPageChange={handlePageChange}
+        onPageSizeChange={handlePageSizeChange}
+      />
+    </>
+  );
+}

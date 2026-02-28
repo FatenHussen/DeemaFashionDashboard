@@ -1,4 +1,4 @@
-import type { BannerListResponse, BannerFormValues } from '../types/banner.types';
+import type { BannerItem, BannerFormValues, BannerListResponse } from '../types/banner.types';
 
 import { apiRoutes, axiosInstance } from '@/api';
 
@@ -51,6 +51,11 @@ export const _BannerApi = {
 
   deleteBanner: async (id: number | string): Promise<any> => {
     const response = await axiosInstance.delete(apiRoutes.banner.delete(id));
+    return response.data;
+  },
+
+  getBannerById: async (id: number | string): Promise<{ status: boolean; data: BannerItem }> => {
+    const response = await axiosInstance.get(apiRoutes.banner.details(id));
     return response.data;
   },
 };

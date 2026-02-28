@@ -1,17 +1,16 @@
 import { toast } from 'react-toastify';
+import { useNavigate } from 'react-router';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useNavigate } from 'react-router';
-import { Iconify } from '@/shared/components/iconify';
+import { useCreateUser } from '@/pages/dashboard/users/hooks/user';
+import { useFetchAreas } from '@/pages/dashboard/locations/hooks/area';
 import {
   UserCreateSchema,
   type UserCreateFormValues,
 } from '@/pages/dashboard/users/validation/user.validation';
-import { useCreateUser } from '@/pages/dashboard/users/hooks/user';
-import { useFetchAreas } from '@/pages/dashboard/locations/hooks/area';
 
-import { Box, Typography } from 'src/shared/ui';
 import { CONFIG } from 'src/global-config';
+import { Box, Typography } from 'src/shared/ui';
 import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
 import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
 
@@ -27,6 +26,7 @@ export default function CreatePage() {
 
   const defaultValues: UserCreateFormValues = {
     name: '',
+    last_name: '',
     email: '',
     phone: '',
     password: '',
@@ -52,6 +52,7 @@ export default function CreatePage() {
     try {
       const payload: any = {
         name: data.name,
+        last_name: data.last_name || '',
         email: data.email,
         phone: data.phone || '',
         password: data.password,
@@ -65,9 +66,7 @@ export default function CreatePage() {
       await createUserMutation.mutateAsync(payload);
       toast.success('User created successfully');
       navigate('/users');
-    } catch (err: any) {
-      toast.error(err?.message || 'Failed to create user');
-    }
+    } catch {}
   };
 
   const handleCancel = () => {
@@ -89,7 +88,8 @@ export default function CreatePage() {
         maxWidth="2xl"
       >
         <Box className="space-y-4">
-          <RHFTextField name="name" label="Name" placeholder="Ahmed Ali" fullWidth />
+          <RHFTextField name="name" label="First Name" placeholder="Ahmed" fullWidth />
+          <RHFTextField name="last_name" label="Last Name" placeholder="Ali" fullWidth />
           <RHFTextField name="email" label="Email" type="email" placeholder="user@example.com" fullWidth />
           <RHFTextField name="phone" label="Phone" placeholder="+201234567896" fullWidth />
           <RHFTextField name="password" label="Password" type="password" fullWidth />

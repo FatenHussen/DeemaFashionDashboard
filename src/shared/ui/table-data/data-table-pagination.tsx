@@ -2,7 +2,6 @@ import { Button } from '@/shared/ui/button';
 import { useTranslation } from 'react-i18next';
 // data-table-pagination.tsx
 import { type Table } from '@tanstack/react-table';
-import { useLocalizationStore } from '@/store/useLocalizationStore';
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { Select, SelectItem, SelectValue, SelectContent, SelectTrigger } from '@/shared/ui/select';
 
@@ -35,7 +34,6 @@ export function DataTablePagination<TData>({
   onPageSizeChange,
 }: DataTablePaginationProps<TData>) {
   const { t } = useTranslation('table');
-  const { language } = useLocalizationStore();
 
   // Safe access with fallbacks
   const selectedCount = table?.getFilteredSelectedRowModel()?.rows?.length || 0;
@@ -158,7 +156,7 @@ export function DataTablePagination<TData>({
     return (
       <div className="relative flex flex-col space-y-2 md:space-y-0 md:flex-row items-center justify-between px-2">
         <div className="flex-1 text-sm text-muted-foreground">
-          {language === 'en' ? 'No data available' : 'لا توجد بيانات متاحة'}
+          {t('noData')}
         </div>
       </div>
     );
@@ -170,13 +168,7 @@ export function DataTablePagination<TData>({
       <div className="flex flex-col space-y-4 md:hidden">
         {/* Row Selection Info */}
         <div className="text-xs text-center text-muted-foreground">
-          {language === 'en' ? (
-            `${selectedCount} of ${totalCount} row(s) selected`
-          ) : (
-            <span>
-              تم تحديد {selectedCount} من {totalCount} صفا
-            </span>
-          )}
+          {t('rowsSelected', { selected: selectedCount, total: totalCount })}
         </div>
 
         {/* Pagination Controls */}
@@ -233,9 +225,7 @@ export function DataTablePagination<TData>({
         <div className="flex flex-col items-center space-y-2">
           {!isPagePaginateHiddent && (
             <div className="text-xs font-medium ">
-              {language === 'en'
-                ? `Page ${currentPageIndex} of ${totalPages}`
-                : `الصفحة ${currentPageIndex} من ${totalPages}`}
+              {t('pageOf', { current: currentPageIndex, total: totalPages })}
             </div>
           )}
           <div className="flex items-center space-x-2 ">
@@ -267,13 +257,7 @@ export function DataTablePagination<TData>({
       {/* Desktop Layout */}
       <div className="hidden md:flex flex-col space-y-3 lg:space-y-0 lg:flex-row justify-between items-center ">
         <div className=" text-sm text-muted-foreground ">
-          {language === 'en' ? (
-            `${selectedCount} of ${totalCount} row(s) selected`
-          ) : (
-            <span>
-              تم تحديد {selectedCount} من {totalCount} صفا
-            </span>
-          )}
+          {t('rowsSelected', { selected: selectedCount, total: totalCount })}
         </div>
 
         <div className="flex items-center justify-center space-x-2">
@@ -312,7 +296,7 @@ export function DataTablePagination<TData>({
                   className={`h-8 w-8 flex items-center justify-center  rounded-md text-sm font-medium 
                     ${
                       (page as number) === currentPageIndex - 1
-                        ? 'bg-primary text-white '
+                        ? 'bg-primary text-primary-foreground'
                         : 'hover:bg-muted'
                     }`}
                   disabled={(page as number) === currentPageIndex - 1}
@@ -370,9 +354,7 @@ export function DataTablePagination<TData>({
 
           {!isPagePaginateHiddent && (
             <div className="hidden sm:flex w-[100px] items-center justify-center text-sm font-medium ">
-              {language === 'en'
-                ? `Page ${currentPageIndex} of ${totalPages}`
-                : `الصفحة ${currentPageIndex} من ${totalPages}`}
+              {t('pageOf', { current: currentPageIndex, total: totalPages })}
             </div>
           )}
         </div>

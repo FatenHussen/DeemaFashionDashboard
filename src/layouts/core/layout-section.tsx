@@ -58,11 +58,11 @@ export function LayoutSection({
               className={mergeClasses([
                 layoutClasses.sidebarContainer,
                 'flex flex-1 flex-col relative z-[1]',
-                // Dynamic margin-left based on sidebar width CSS variables
+                // Dynamic margin-inline-start based on sidebar width CSS variables
                 // Uses --layout-nav-current-width if set, otherwise falls back to vertical width
-                'lg:ml-[var(--layout-nav-current-width,var(--layout-nav-vertical-width))]',
+                'lg:ms-(--layout-nav-current-width,var(--layout-nav-vertical-width))',
                 // Transition for smooth width changes
-                'transition-[margin-left] duration-[var(--layout-transition-duration)] ease-[var(--layout-transition-easing)]',
+                'transition-[margin-inline-start] duration-(--layout-transition-duration) ease-(--layout-transition-easing)',
               ])}
             >
               {headerSection}
