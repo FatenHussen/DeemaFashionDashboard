@@ -23,7 +23,7 @@ export interface VendorPackageFormValues extends VendorPackageItem {
 
 export const vendorPackageColumns = (
   permissions: { update: boolean; delete: boolean },
-  _t: TFunction<'table'>,
+  t: TFunction<'table'>,
   onDelete?: (id: number) => void,
   isDeleting?: boolean,
   isDeleteDialogOpen?: boolean,
@@ -34,7 +34,7 @@ export const vendorPackageColumns = (
   {
     id: 'id',
     accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="ID" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
     cell: ({ row }) => (
       <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
         <span className="text-xs font-semibold text-primary">{row.original.id}</span>
@@ -44,7 +44,7 @@ export const vendorPackageColumns = (
   {
     id: 'name',
     accessorKey: 'name',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.name')} />,
     cell: ({ row }) => {
       const name = row.original.name;
       const display =
@@ -55,31 +55,31 @@ export const vendorPackageColumns = (
   {
     id: 'price',
     accessorKey: 'price',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Price" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.price')} />,
     cell: ({ row }) => <span className="text-sm font-medium">{row.original.price}</span>,
   },
   {
     id: 'duration_days',
     accessorKey: 'duration_days',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Duration (Days)" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.durationDays')} />,
     cell: ({ row }) => <span className="text-sm">{row.original.duration_days}</span>,
   },
   {
     id: 'max_products',
     accessorKey: 'max_products',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Max Products" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.maxProducts')} />,
     cell: ({ row }) => <span className="text-sm">{row.original.max_products}</span>,
   },
   {
     id: 'commission_rate',
     accessorKey: 'commission_rate',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Commission %" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.commissionPercent')} />,
     cell: ({ row }) => <span className="text-sm">{row.original.commission_rate}%</span>,
   },
   {
     id: 'is_active',
     accessorKey: 'is_active',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.status')} />,
     cell: ({ row }) => {
       const isActive = row.original.is_active;
       return (
@@ -97,7 +97,7 @@ export const vendorPackageColumns = (
     id: 'active_subscriptions_count',
     accessorKey: 'active_subscriptions_count',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Active Subs" />
+      <DataTableColumnHeader column={column} title={t('columns.activeSubs')} />
     ),
     cell: ({ row }) => (
       <span className="text-sm text-muted-foreground">
@@ -108,7 +108,7 @@ export const vendorPackageColumns = (
   {
     id: 'created_at',
     accessorKey: 'created_at',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Created" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.created')} />,
     cell: ({ row }) => (
       <span className="text-sm text-muted-foreground">
         {new Date(row.original.created_at).toLocaleDateString()}

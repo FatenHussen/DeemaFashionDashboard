@@ -19,9 +19,13 @@ import { useFetchSalesByLocationReport } from '../hooks/report';
 
 const metadata = { title: `Sales by Location | Dashboard - ${CONFIG.appName}` };
 
-function getLocalName(obj: { ar?: string; en?: string } | undefined, lang: string) {
-  if (!obj) return '-';
-  return (lang === 'ar' ? obj.ar : obj.en) || obj.en || obj.ar || '-';
+function getDisplayName(
+  value: string | { ar?: string; en?: string } | undefined,
+  lang: string
+): string {
+  if (value == null) return '-';
+  if (typeof value === 'string') return value;
+  return (lang === 'ar' ? value.ar : value.en) || value.en || value.ar || '-';
 }
 
 export default function SalesByLocationReportPage() {
@@ -37,14 +41,27 @@ export default function SalesByLocationReportPage() {
     to_date: toDate || undefined,
   };
   const { data, isLoading, refetch } = useFetchSalesByLocationReport(params);
-  const reportData = data?.data;
+  const reportData = (data?.data ?? data) as
+    | {
+        by_governorate?: {
+          governorate?: string | { ar?: string; en?: string };
+          total_orders?: number;
+          total_revenue?: number;
+        }[];
+        by_city?: {
+          city?: string | { ar?: string; en?: string };
+          total_orders?: number;
+          total_revenue?: number;
+        }[];
+      }
+    | undefined;
 
   const handleExport = async (format: ExportFormat) => {
     setIsExporting(true);
     try {
       await _ReportApi.exportSalesByLocationReport(format, params);
       toast.success(`Report exported as ${format.toUpperCase()}`);
-    } catch {} finally {
+    } catch { return; } finally {
       setIsExporting(false);
     }
   };
@@ -101,9 +118,9 @@ export default function SalesByLocationReportPage() {
         </div>
 
         <div className="w-full space-y-4 transition-opacity duration-500 p-6">
-          {reportData && (
+          {reportData ? (
             <Box className="space-y-4">
-              {reportData.by_governorate && reportData.by_governorate.length > 0 && (
+              {(reportData.by_governorate?.length ?? 0) > 0 && (
                 <Box className={tableContainerClass}>
                   <Box className="border-b border-border/30 bg-muted/30 px-5 py-4">
                     <Typography variant="subtitle1" className="font-semibold text-foreground">
@@ -120,11 +137,16 @@ export default function SalesByLocationReportPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {reportData.by_governorate.map((item, idx) => (
+                        {(reportData.by_governorate ?? []).map((item, idx) => (
                           <tr key={idx} className="border-b border-border/20 hover:bg-muted/20 transition-colors">
-                            <td className="py-3 px-5 font-medium">{getLocalName(item.governorate, lang)}</td>
-                            <td className="text-right py-3 px-5">{item.total_orders}</td>
-                            <td className="text-right py-3 px-5">{item.total_revenue?.toFixed(2)}</td>
+                            <td className="py-3 px-5 font-medium">{getDisplayName(item.governorate, lang)}</td>
+                            <td className="text-right py-3 px-5">{Number(item.total_orders ?? 0).toLocaleString()}</td>
+                            <td className="text-right py-3 px-5">
+                              {Number(item.total_revenue ?? 0).toLocaleString(undefined, {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              })}
+                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -133,7 +155,7 @@ export default function SalesByLocationReportPage() {
                 </Box>
               )}
 
-              {reportData.by_city && reportData.by_city.length > 0 && (
+              {(reportData.by_city?.length ?? 0) > 0 && (
                 <Box className={tableContainerClass}>
                   <Box className="border-b border-border/30 bg-muted/30 px-5 py-4">
                     <Typography variant="subtitle1" className="font-semibold text-foreground">By City</Typography>
@@ -148,11 +170,16 @@ export default function SalesByLocationReportPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {reportData.by_city.map((item, idx) => (
+                        {(reportData.by_city ?? []).map((item, idx) => (
                           <tr key={idx} className="border-b border-border/20 hover:bg-muted/20 transition-colors">
-                            <td className="py-3 px-5 font-medium">{getLocalName(item.city, lang)}</td>
-                            <td className="text-right py-3 px-5">{item.total_orders}</td>
-                            <td className="text-right py-3 px-5">{item.total_revenue?.toFixed(2)}</td>
+                            <td className="py-3 px-5 font-medium">{getDisplayName(item.city, lang)}</td>
+                            <td className="text-right py-3 px-5">{Number(item.total_orders ?? 0).toLocaleString()}</td>
+                            <td className="text-right py-3 px-5">
+                              {Number(item.total_revenue ?? 0).toLocaleString(undefined, {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              })}
+                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -161,15 +188,21 @@ export default function SalesByLocationReportPage() {
                 </Box>
               )}
 
-              {(!reportData.by_governorate?.length && !reportData.by_city?.length) && (
+              {(!reportData.by_governorate?.length && !reportData.by_city?.length) ? (
                 <Box className={`${tableContainerClass} p-12 text-center`}>
                   <Typography variant="body2" className="text-muted-foreground">
                     No data found for the selected date range
                   </Typography>
                 </Box>
-              )}
+              ) : null}
             </Box>
-          )}
+          ) : !isLoading ? (
+            <Box className={`${tableContainerClass} p-12 text-center`}>
+              <Typography variant="body2" className="text-muted-foreground">
+                No report data available
+              </Typography>
+            </Box>
+          ) : null}
         </div>
       </div>
     </>

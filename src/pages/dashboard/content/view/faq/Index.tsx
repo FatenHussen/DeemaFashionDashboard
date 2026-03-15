@@ -45,7 +45,7 @@ export default function Page() {
     try {
       await deleteMutation.mutateAsync(deletingId);
       toast.success('FAQ deleted successfully');
-    } catch {} finally {
+    } catch { return; } finally {
       setDeleteDialogOpen(false);
       setDeletingId(null);
     }

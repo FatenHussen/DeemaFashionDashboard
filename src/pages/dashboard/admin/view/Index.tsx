@@ -4,7 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { usePermissions } from '@/auth/hooks/use-permissions';
 import { adminColumns, type AdminFormValues } from '@/columns/one/admin/one';
-import { useFetchAdmins, useDeleteAdmin } from '@/pages/dashboard/admin/hooks/admin';
+import { UpdatePasswordDialog } from '@/shared/components/update-password-dialog';
+import { useFetchAdmins, useDeleteAdmin, useUpdateAdmin } from '@/pages/dashboard/admin/hooks/admin';
 
 import { CONFIG } from 'src/global-config';
 
@@ -17,10 +18,12 @@ export default function Page() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+  const [passwordDialogTargetId, setPasswordDialogTargetId] = useState<number | null>(null);
 
-  // Fetch admins using the hook
   const { data: adminsResponse, isLoading, error } = useFetchAdmins(currentPage, pageSize);
   const deleteAdminMutation = useDeleteAdmin();
+  const updateAdminMutation = useUpdateAdmin();
 
   // Log error for debugging
   if (error) {
@@ -46,12 +49,34 @@ export default function Page() {
         await deleteAdminMutation.mutateAsync(deletingId);
         toast.success(t('deleteSuccess') || 'Admin deleted successfully');
         setDeletingId(null);
-      } catch {}
+      } catch { return; }
     }
   };
 
   const onDeleteCancel = () => {
     setDeletingId(null);
+  };
+
+  const onUpdatePassword = (row: { original: AdminFormValues }) => {
+    setPasswordDialogTargetId(row.original.id);
+    setPasswordDialogOpen(true);
+  };
+
+  const handlePasswordSubmit = async (data: { password: string; password_confirmation: string }) => {
+    if (!passwordDialogTargetId) return;
+    const admin = adminData.find((a) => a.id === passwordDialogTargetId);
+    await updateAdminMutation.mutateAsync({
+      id: passwordDialogTargetId,
+      data: {
+        name: admin?.name ?? '',
+        email: admin?.email ?? '',
+        password: data.password,
+        password_confirmation: data.password_confirmation,
+      },
+    });
+    toast.success('Password updated successfully');
+    setPasswordDialogTargetId(null);
+    setPasswordDialogOpen(false);
   };
 
   // Extract data from API response
@@ -83,6 +108,15 @@ export default function Page() {
     <>
       <title>{metadata.title}</title>
 
+      <UpdatePasswordDialog
+        open={passwordDialogOpen}
+        onOpenChange={setPasswordDialogOpen}
+        onSubmit={handlePasswordSubmit}
+        isSubmitting={updateAdminMutation.isPending}
+        entityName="Admin"
+        minLength={6}
+      />
+
       <DataTable
         tableName="Admin"
         columns={adminColumns(
@@ -96,7 +130,8 @@ export default function Page() {
           deletingId !== null,
           onDeleteConfirm,
           onDeleteCancel,
-          deletingId
+          deletingId,
+          onUpdatePassword
         )}
         data={adminData}
         createPath="/admin/create"

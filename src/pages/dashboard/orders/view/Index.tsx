@@ -1,12 +1,13 @@
-import { useMemo, useState, useCallback } from 'react';
+import type { OrderStatus } from '@/pages/dashboard/orders/types/order.types';
+
+import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
-import { toast } from 'react-toastify';
+import { useMemo, useState, useCallback } from 'react';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { usePermissions } from '@/auth/hooks/use-permissions';
-import { useFetchOrders, useChangeOrderStatus } from '@/pages/dashboard/orders/hooks/order';
 import { orderColumns, type OrderFormValues } from '@/columns/one/orders/one';
-import type { OrderStatus } from '@/pages/dashboard/orders/types/order.types';
+import { useFetchOrders, useChangeOrderStatus } from '@/pages/dashboard/orders/hooks/order';
 
 import { CONFIG } from 'src/global-config';
 

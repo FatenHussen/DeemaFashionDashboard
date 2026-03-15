@@ -85,6 +85,9 @@ const PageSectionIndexPage = lazy(() => import('@/pages/dashboard/sections/view/
 const PageSectionCreatePage = lazy(
   () => import('@/pages/dashboard/sections/view/PageSectionCreate')
 );
+const PageSectionDetailsPage = lazy(
+  () => import('@/pages/dashboard/sections/view/PageSectionDetails')
+);
 
 const BannerIndexPage = lazy(() => import('@/pages/dashboard/banners/view/Index'));
 const BannerCreatePage = lazy(() => import('@/pages/dashboard/banners/view/Create'));
@@ -135,6 +138,11 @@ const SubscriptionDetailsPage = lazy(() => import('@/pages/dashboard/subscriptio
 const GiftIndexPage = lazy(() => import('@/pages/dashboard/gifts/view/Index'));
 const GiftCreatePage = lazy(() => import('@/pages/dashboard/gifts/view/Create'));
 const GiftDetailsPage = lazy(() => import('@/pages/dashboard/gifts/view/Details'));
+
+// User Gifts
+const UserGiftIndexPage = lazy(() => import('@/pages/dashboard/user-gifts/view/Index'));
+const UserGiftCreatePage = lazy(() => import('@/pages/dashboard/user-gifts/view/Create'));
+const UserGiftDetailsPage = lazy(() => import('@/pages/dashboard/user-gifts/view/Details'));
 
 // Point Exchanges
 const PointExchangeIndexPage = lazy(() => import('@/pages/dashboard/point-exchanges/view/Index'));
@@ -197,6 +205,9 @@ const VendorUserIndexPage = lazy(
 );
 const VendorUserCreatePage = lazy(
   () => import('@/pages/dashboard/vendor/view/vendor-user/Create')
+);
+const VendorUserDetailsPage = lazy(
+  () => import('@/pages/dashboard/vendor/view/vendor-user/Details')
 );
 
 // Seller Registrations
@@ -820,6 +831,14 @@ export const dashboardRoutes: RouteObject[] = [
           </RequirePermission>
         ),
       },
+      {
+        path: 'page-sections/details/:id',
+        element: (
+          <RequirePermission permission="pagesection.view">
+            <PageSectionDetailsPage />
+          </RequirePermission>
+        ),
+      },
     ],
   },
   {
@@ -1163,6 +1182,36 @@ export const dashboardRoutes: RouteObject[] = [
     ],
   },
   {
+    path: 'user-gifts',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: (
+          <RequirePermission permission="gift.view">
+            <UserGiftIndexPage />
+          </RequirePermission>
+        ),
+        index: true,
+      },
+      {
+        path: 'create',
+        element: (
+          <RequirePermission permission="gift.create">
+            <UserGiftCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'details/:id',
+        element: (
+          <RequirePermission permission="gift.view">
+            <UserGiftDetailsPage />
+          </RequirePermission>
+        ),
+      },
+    ],
+  },
+  {
     path: 'point-exchanges',
     element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
     children: [
@@ -1444,6 +1493,14 @@ export const dashboardRoutes: RouteObject[] = [
           </RequirePermission>
         ),
       },
+      {
+        path: 'details/:id',
+        element: (
+          <RequirePermission permission="vendoruser.view">
+            <VendorUserDetailsPage />
+          </RequirePermission>
+        ),
+      },
     ],
   },
   {
@@ -1474,7 +1531,7 @@ export const dashboardRoutes: RouteObject[] = [
     children: [
       {
         element: (
-          <RequirePermission permission="stats.index">
+          <RequirePermission permissionAny={['stats.index', 'stats.view', 'statistics.view']}>
             <StatisticsPage />
           </RequirePermission>
         ),

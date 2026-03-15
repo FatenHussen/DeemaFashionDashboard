@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { Button } from '@/shared/ui/button';
+import { useTranslation } from 'react-i18next';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useNavigate } from 'react-router';
@@ -25,6 +26,7 @@ import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout
 const metadata = { title: `Edit Legal Document | Dashboard - ${CONFIG.appName}` };
 
 export default function EditPage() {
+  const { t } = useTranslation('table');
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
@@ -81,7 +83,7 @@ export default function EditPage() {
       await updateMutation.mutateAsync({ id: id!, data });
       toast.success('Legal document updated successfully');
       navigate('/legal-documents');
-    } catch {}
+    } catch { return; }
   };
 
   return (
@@ -119,11 +121,11 @@ export default function EditPage() {
           onCancel={() => navigate('/legal-documents')}
           isSubmitting={updateMutation.isPending}
           errorMessage={updateMutation.error?.message || null}
-          title="Edit Legal Document"
-          description="Update the title and content in both languages"
+          title={t('form.editLegalDocument')}
+          description={t('form.updateTitleContent')}
           isEditMode
           maxWidth="2xl"
-          submitLabel="Save Changes"
+          submitLabel={t('form.saveChanges')}
           submittingLabel="Saving..."
         >
           {/* Title */}
@@ -136,13 +138,13 @@ export default function EditPage() {
                 <Typography variant="subtitle2" className="mb-1 text-muted-foreground text-xs">
                   English
                 </Typography>
-                <RHFTextField name="title.en" placeholder="e.g. Privacy Policy" fullWidth />
+                <RHFTextField name="title.en" placeholder={t('form.legalTitleEn')} fullWidth />
               </Box>
               <Box>
                 <Typography variant="subtitle2" className="mb-1 text-muted-foreground text-xs">
                   Arabic
                 </Typography>
-                <RHFTextField name="title.ar" placeholder="مثال: سياسة الخصوصية" fullWidth />
+                <RHFTextField name="title.ar" placeholder={t('form.legalTitleAr')} fullWidth />
               </Box>
             </Box>
           </Box>
@@ -166,7 +168,7 @@ export default function EditPage() {
                       <textarea
                         {...field}
                         rows={10}
-                        placeholder="Enter content in English..."
+                        placeholder={t('form.legalContentPlaceholder')}
                         className={`w-full resize-y rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary ${
                           fieldError ? 'border-destructive' : 'border-input'
                         }`}

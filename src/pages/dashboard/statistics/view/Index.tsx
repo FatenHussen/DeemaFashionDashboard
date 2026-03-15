@@ -11,36 +11,36 @@ import {
   Line,
   XAxis,
   YAxis,
+  Radar,
   Legend,
   Tooltip,
   PieChart,
   BarChart,
   AreaChart,
   LineChart,
-  RadarChart,
-  Radar,
   PolarGrid,
+  RadarChart,
+  CartesianGrid,
   PolarAngleAxis,
   PolarRadiusAxis,
-  CartesianGrid,
   ResponsiveContainer,
 } from 'recharts';
 
 import { CONFIG } from 'src/global-config';
 
 import {
+  useFetchUserGrowth,
+  useFetchOrdersByDay,
+  useFetchOrderFunnel,
+  useFetchStockLevels,
   useFetchRevenueTrend,
+  useFetchOrdersByHour,
+  useFetchSalesHeatmap,
   useFetchTopCategories,
   useFetchOrdersByStatus,
-  useFetchDashboardStatistics,
-  useFetchOrdersByHour,
-  useFetchOrdersByDay,
-  useFetchUserGrowth,
-  useFetchOrderFunnel,
-  useFetchAvgOrderValueTrend,
   useFetchDriverComparison,
-  useFetchStockLevels,
-  useFetchSalesHeatmap,
+  useFetchAvgOrderValueTrend,
+  useFetchDashboardStatistics,
 } from '../hooks/statistics';
 
 // ----------------------------------------------------------------------

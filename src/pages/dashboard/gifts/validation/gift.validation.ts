@@ -16,6 +16,10 @@ export const GiftSchema = z.object({
   stock_quantity: z.coerce.number().min(0).optional(),
   is_active: z.boolean(),
   category_id: z.coerce.number().optional(),
+  shop_product_variant_id: z.preprocess(
+    (v) => (v === '' || v === undefined || v === 0 ? null : Number(v)),
+    z.number().nullable().optional()
+  ),
   terms_conditions: z
     .object({
       ar: z.string().optional(),

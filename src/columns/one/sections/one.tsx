@@ -35,19 +35,19 @@ export const sectionColumns = (
   {
     id: 'id',
     accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="ID" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
     cell: ({ row }) => <div className="font-medium">{row.original.id}</div>,
   },
   {
     id: 'name',
     accessorKey: 'name',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.name')} />,
     cell: ({ row }) => <div className="font-medium">{formatTranslated(row.original.name)}</div>,
   },
   {
     id: 'type',
     accessorKey: 'type',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Type" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.type')} />,
     cell: ({ row }) => {
       const type = row.original.type;
       return (
@@ -65,20 +65,26 @@ export const sectionColumns = (
   },
   {
     id: 'actions',
-    cell: ({ row }: any) => (
-      <DataTableRowActions
-        schema={SectionSchema}
-        row={row}
-        viewDetails={`/sections/details/${row.original.id}`}
-        editItem={`/sections/update/${row.original.id}`}
-        onDelete={onDelete}
-        isDeleting={isDeleting}
-        isDeleteDialogOpen={isDeleteDialogOpen}
-        onDeleteConfirm={onDeleteConfirm}
-        onDeleteCancel={onDeleteCancel}
-        deletingId={deletingId}
-        permissions={permissions}
-      />
-    ),
+    cell: ({ row }: any) => {
+      const isApiType = row.original.type === 'api';
+      const rowPermissions = isApiType
+        ? { update: false, delete: false }
+        : permissions;
+      return (
+        <DataTableRowActions
+          schema={SectionSchema}
+          row={row}
+          viewDetails={`/sections/details/${row.original.id}`}
+          editItem={isApiType ? undefined : `/sections/update/${row.original.id}`}
+          onDelete={isApiType ? undefined : onDelete}
+          isDeleting={isDeleting}
+          isDeleteDialogOpen={isDeleteDialogOpen}
+          onDeleteConfirm={onDeleteConfirm}
+          onDeleteCancel={onDeleteCancel}
+          deletingId={deletingId}
+          permissions={rowPermissions}
+        />
+      );
+    },
   },
 ];

@@ -1,16 +1,18 @@
 import { useEffect } from 'react';
 import { toast } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useNavigate } from 'react-router';
 import { MultiSelect } from '@/shared/ui/multi-select';
 import { formatTranslated } from '@/utils/format-translated';
-import { useFetchVendors } from '@/pages/dashboard/vendor/hooks/vendor';
+import { _VendorApi } from '@/pages/dashboard/vendor/api/vendor.services';
 
 import { CONFIG } from 'src/global-config';
 import { Box, Typography } from 'src/shared/ui';
 import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
 import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
+import { RHFInfiniteSelect } from 'src/shared/components/hook-form/rhf-infinite-select';
 
 import {
   VendorUserSchema,
@@ -27,20 +29,26 @@ import {
 
 const metadata = { title: `Vendor User ${CONFIG.appName}` };
 
+const vendorFetcher = (page: number, limit: number) =>
+  _VendorApi.getListVendor({ page, limit }).then((r) => ({
+    data: {
+      items: r.data.items.map((vendor) => ({ id: vendor.id, label: vendor.name })),
+      pagination: r.data.pagination,
+    },
+  }));
+
 export default function CreatePage() {
+  const { t } = useTranslation('table');
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
   const isEditMode = !!id;
 
   const { data: vendorUserData, isLoading: isLoadingUser } = useFetchVendorUserById(id || '');
-  const { data: vendorsResponse } = useFetchVendors(1, 1000);
   const createMutation = useCreateVendorUser();
   const updateMutation = useUpdateVendorUser();
 
-  const vendors = (vendorsResponse?.data?.items || []) as any[];
-
   const methods = useForm<VendorUserFormValues>({
-    resolver: zodResolver(VendorUserSchema),
+    resolver: zodResolver(VendorUserSchema) as any,
     defaultValues: {
       name: '',
       email: '',
@@ -65,10 +73,9 @@ export default function CreatePage() {
       reset({
         name: user.name,
         email: user.email,
-        password: '',
-        vendor_id: user.vendor_id,
-        is_active: user.is_active,
-        shop_ids: user.shops?.map((s: any) => s.id) || [],
+        vendor_id: Number(user.vendor_id) || 0,
+        is_active: Boolean(user.is_active ?? true),
+        shop_ids: (user.shops?.map((s: any) => Number(s.id)) || []).filter((n) => !Number.isNaN(n)),
       });
     }
   }, [isEditMode, vendorUserData, reset]);
@@ -87,7 +94,6 @@ export default function CreatePage() {
       };
 
       if (isEditMode && id) {
-        if (data.password) payload.password = data.password;
         await updateMutation.mutateAsync({ id, data: payload });
         toast.success('Vendor user updated successfully');
         navigate('/vendor-users');
@@ -103,6 +109,7 @@ export default function CreatePage() {
       }
     } catch (error: any) {
       console.error('Error saving vendor user:', error);
+      toast.error(error?.message || 'Failed to save vendor user');
     }
   };
 
@@ -120,8 +127,24 @@ export default function CreatePage() {
       </title>
 
       <CreateFormLayout
-        methods={methods}
-        onSubmit={handleSubmit(onSubmit)}
+        methods={methods as any}
+        onSubmit={handleSubmit(onSubmit as any, (errors) => {
+          console.error('[Vendor User Form] Validation errors:', errors);
+          const getFirstMsg = (obj: any): string | null => {
+            if (!obj) return null;
+            if (typeof obj?.message === 'string') return obj.message;
+            if (typeof obj === 'object') {
+              for (const v of Object.values(obj)) {
+                const m = getFirstMsg(v);
+                if (m) return m;
+              }
+            }
+            return null;
+          };
+          const msg = getFirstMsg(errors);
+          console.error('[Vendor User Form] First error:', msg);
+          toast.error(msg || 'Please fix the form errors.');
+        })}
         onCancel={() => navigate('/vendor-users')}
         isSubmitting={isSubmitting}
         errorMessage={errorMessage}
@@ -133,61 +156,48 @@ export default function CreatePage() {
         }
         isEditMode={isEditMode}
         isLoading={isEditMode && isLoadingUser}
-        loadingText="Loading vendor user data..."
+        loadingText={t('form.loadingVendorUser')}
         maxWidth="2xl"
         submitLabel={isEditMode ? 'Update User' : 'Create User'}
         submittingLabel={isEditMode ? 'Updating...' : 'Creating...'}
       >
         <Box className="space-y-4">
           {/* Name */}
-          <RHFTextField name="name" label="Full Name" placeholder="Ahmed Mohammed" fullWidth />
+          <RHFTextField name="name" label={t('form.fullName')} placeholder={t('form.namePlaceholder')} fullWidth />
 
           {/* Email */}
           <RHFTextField
             name="email"
-            label="Email"
+            label={t('columns.email')}
             type="email"
-            placeholder="user@example.com"
+            placeholder={t('form.userEmailPlaceholder')}
             fullWidth
           />
 
-          {/* Password */}
-          <RHFTextField
-            name="password"
-            label={isEditMode ? 'New Password (leave blank to keep current)' : 'Password'}
-            type="password"
-            placeholder="Min 8 characters"
-            fullWidth
-          />
+          {!isEditMode && (
+            <RHFTextField
+              name="password"
+              label={t('form.passwordLabel')}
+              type="password"
+              placeholder={t('form.passwordMinPlaceholder')}
+              fullWidth
+            />
+          )}
 
           {/* Vendor Selector */}
           <Box>
-            <label className="mb-2 block text-sm font-medium">Vendor</label>
-            <Controller
+            <label className="mb-2 block text-sm font-medium">{t('columns.vendor')}</label>
+            <RHFInfiniteSelect
               name="vendor_id"
-              control={control}
-              render={({ field, fieldState: { error } }) => (
-                <div>
-                  <select
-                    value={field.value || ''}
-                    onChange={(e) => {
-                      field.onChange(parseInt(e.target.value, 10) || 0);
-                      methods.setValue('shop_ids', []);
-                    }}
-                    className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
-                  >
-                    <option value={0}>Select vendor</option>
-                    {vendors.map((v) => (
-                      <option key={v.id} value={v.id}>
-                        {formatTranslated(v.name)}
-                      </option>
-                    ))}
-                  </select>
-                  {error?.message && (
-                    <p className="mt-1 text-xs text-destructive">{error.message}</p>
-                  )}
-                </div>
-              )}
+              queryKey={['vendors', 'infinite', 'vendor-user-form']}
+              fetcher={vendorFetcher}
+              placeholder={t('form.selectVendor')}
+              initialLabel={
+                isEditMode && vendorUserData?.data?.vendor
+                  ? formatTranslated(vendorUserData.data.vendor.name as any)
+                  : undefined
+              }
+              onValueChange={() => methods.setValue('shop_ids', [])}
             />
           </Box>
 

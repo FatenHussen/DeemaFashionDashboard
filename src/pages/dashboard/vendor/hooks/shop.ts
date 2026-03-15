@@ -33,8 +33,9 @@ export const useUpdateShop = () => {
   return useMutation({
     mutationFn: ({ id, data }: { id: number | string; data: ShopCreateUpdatePayload }) =>
       _ShopApi.updateShop(id, data),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['shop', 'list'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.shop.details(variables.id) });
     },
   });
 };

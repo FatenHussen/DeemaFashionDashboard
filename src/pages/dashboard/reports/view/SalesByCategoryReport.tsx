@@ -44,7 +44,7 @@ export default function SalesByCategoryReportPage() {
     try {
       await _ReportApi.exportSalesByCategoryReport(format, params);
       toast.success(`Report exported as ${format.toUpperCase()}`);
-    } catch {} finally {
+    } catch { return; } finally {
       setIsExporting(false);
     }
   };
@@ -123,7 +123,7 @@ export default function SalesByCategoryReportPage() {
                           <tr key={idx} className="border-b border-border/20 hover:bg-muted/20 transition-colors">
                             <td className="py-3 px-5 font-medium">{getLocalName(item.category, lang)}</td>
                             <td className="text-right py-3 px-5">{item.total_quantity}</td>
-                            <td className="text-right py-3 px-5">{item.total_revenue?.toFixed(2)}</td>
+                            <td className="text-right py-3 px-5">{item.total_revenue != null ? Number(item.total_revenue).toFixed(2) : '-'}</td>
                           </tr>
                         ))}
                       </tbody>

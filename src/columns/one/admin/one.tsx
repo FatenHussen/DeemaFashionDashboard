@@ -38,12 +38,13 @@ export const adminColumns = (
   isDeleteDialogOpen?: boolean,
   onDeleteConfirm?: () => void,
   onDeleteCancel?: () => void,
-  deletingId?: number | null
+  deletingId?: number | null,
+  onUpdatePassword?: (row: { original: AdminFormValues }) => void
 ): ColumnDef<AdminFormValues>[] => [
   {
     id: 'id',
     accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="ID" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
     cell: ({ row }) => (
       <div className="flex items-center gap-2">
         <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
@@ -55,7 +56,7 @@ export const adminColumns = (
   {
     id: 'name',
     accessorKey: 'name',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.name')} />,
     cell: ({ row }) => (
       <div className="flex items-center gap-2.5 min-w-0">
         <div className="w-9 h-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center flex-shrink-0">
@@ -70,7 +71,7 @@ export const adminColumns = (
   {
     id: 'email',
     accessorKey: 'email',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Email" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.email')} />,
     cell: ({ row }) => (
       <div className="flex items-center gap-2 min-w-0">
         <Iconify icon="solar:letter-bold" className="text-muted-foreground flex-shrink-0" width={16} height={16} />
@@ -81,7 +82,7 @@ export const adminColumns = (
   {
     id: 'roles',
     accessorKey: 'roles',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Roles" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.roles')} />,
     cell: ({ row }) => (
       <div className="flex flex-wrap gap-1.5">
         {row.original.roles?.map((role, index) => (
@@ -101,7 +102,7 @@ export const adminColumns = (
   {
     id: 'status',
     accessorKey: 'is_active',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.status')} />,
     cell: ({ row }) => {
       const isActive = row.original.is_active === 1;
       return (
@@ -118,7 +119,7 @@ export const adminColumns = (
             height={14}
             className="flex-shrink-0"
           />
-          <span className="text-xs font-medium">{isActive ? 'Active' : 'Inactive'}</span>
+          <span className="text-xs font-medium">{isActive ? t('active') : t('inactive')}</span>
         </div>
       );
     },
@@ -126,7 +127,7 @@ export const adminColumns = (
   {
     id: 'created_at',
     accessorKey: 'created_at',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Created At" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.createdAt')} />,
     cell: ({ row }) => (
       <div className="flex items-center gap-2">
         <Iconify icon="solar:calendar-date-bold" className="text-muted-foreground flex-shrink-0" width={16} height={16} />
@@ -142,6 +143,7 @@ export const adminColumns = (
         row={row}
         editItem={`/admin/update/${row.original.id}`}
         onDelete={onDelete}
+        onUpdatePassword={onUpdatePassword}
         isDeleting={isDeleting}
         isDeleteDialogOpen={isDeleteDialogOpen}
         onDeleteConfirm={onDeleteConfirm}

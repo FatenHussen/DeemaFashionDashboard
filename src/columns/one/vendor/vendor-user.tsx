@@ -38,12 +38,13 @@ export const vendorUserColumns = (
   isDeleteDialogOpen?: boolean,
   onDeleteConfirm?: () => void,
   onDeleteCancel?: () => void,
-  deletingId?: number | null
+  deletingId?: number | null,
+  onUpdatePassword?: (row: { original: VendorUserFormValues }) => void
 ): ColumnDef<VendorUserFormValues>[] => [
   {
     id: 'id',
     accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="ID" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
     cell: ({ row }) => (
       <div className="flex items-center gap-2">
         <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
@@ -55,7 +56,7 @@ export const vendorUserColumns = (
   {
     id: 'name',
     accessorKey: 'name',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.name')} />,
     cell: ({ row }) => (
       <div className="font-semibold text-foreground">{row.original.name}</div>
     ),
@@ -63,7 +64,7 @@ export const vendorUserColumns = (
   {
     id: 'email',
     accessorKey: 'email',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Email" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.email')} />,
     cell: ({ row }) => (
       <span className="text-sm text-muted-foreground">{row.original.email}</span>
     ),
@@ -71,7 +72,7 @@ export const vendorUserColumns = (
   {
     id: 'vendor_name',
     accessorKey: 'vendor_name',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Vendor" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.vendor')} />,
     cell: ({ row }) => (
       <span className="text-sm">
         {row.original.vendor_name ? formatTranslated(row.original.vendor_name) : '-'}
@@ -81,7 +82,7 @@ export const vendorUserColumns = (
   {
     id: 'shops_count',
     accessorKey: 'shops_count',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Shops" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.shops')} />,
     cell: ({ row }) => (
       <span className="inline-flex items-center rounded-full bg-primary/10 text-primary px-2 py-0.5 text-xs font-medium">
         {row.original.shops_count ?? 0}
@@ -91,7 +92,7 @@ export const vendorUserColumns = (
   {
     id: 'is_active',
     accessorKey: 'is_active',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.status')} />,
     cell: ({ row }) => {
       const isActive = row.original.is_active;
       return (
@@ -110,7 +111,7 @@ export const vendorUserColumns = (
   {
     id: 'created_at',
     accessorKey: 'created_at',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Created" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.created')} />,
     cell: ({ row }) => (
       <span className="text-sm text-muted-foreground">
         {new Date(row.original.created_at).toLocaleDateString()}
@@ -123,8 +124,10 @@ export const vendorUserColumns = (
       <DataTableRowActions
         schema={VendorUserSchema}
         row={row}
+        viewDetails={`/vendor-users/details/${row.original.id}`}
         editItem={`/vendor-users/update/${row.original.id}`}
         onDelete={onDelete}
+        onUpdatePassword={onUpdatePassword}
         isDeleting={isDeleting}
         isDeleteDialogOpen={isDeleteDialogOpen}
         onDeleteConfirm={onDeleteConfirm}

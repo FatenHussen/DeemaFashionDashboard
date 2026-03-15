@@ -41,9 +41,17 @@ export default function DetailsPage() {
               <Iconify icon="solar:arrow-left-bold" width={20} className="mr-2" /> Back to Gifts
             </Button>
             <Box className="flex items-center gap-4 mb-2">
-              <Box className="w-16 h-16 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
-                <Iconify icon="solar:gift-bold" className="text-primary" width={32} height={32} />
-              </Box>
+              {item.image ? (
+                <img
+                  src={item.image}
+                  alt={toStr(item.name)}
+                  className="w-16 h-16 rounded-xl object-cover border border-border"
+                />
+              ) : (
+                <Box className="w-16 h-16 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
+                  <Iconify icon="solar:gift-bold" className="text-primary" width={32} height={32} />
+                </Box>
+              )}
               <Box className="flex-1">
                 <Typography variant="h4" className="font-bold text-foreground mb-1">{toStr(item.name)}</Typography>
                 <Typography variant="body2" className="text-muted-foreground">{item.points_required} points required</Typography>
@@ -70,6 +78,18 @@ export default function DetailsPage() {
                   <Typography variant="caption" className="text-muted-foreground">Stock Quantity</Typography>
                   <Typography variant="body1" className="font-medium">{item.stock_quantity}</Typography>
                 </Box>
+                {item.exchanges_count != null && (
+                  <Box>
+                    <Typography variant="caption" className="text-muted-foreground">Exchanges Count</Typography>
+                    <Typography variant="body1" className="font-medium">{item.exchanges_count}</Typography>
+                  </Box>
+                )}
+                {item.shop_product_variant_id != null && (
+                  <Box>
+                    <Typography variant="caption" className="text-muted-foreground">Shop Product Variant ID</Typography>
+                    <Typography variant="body1" className="font-medium">{item.shop_product_variant_id}</Typography>
+                  </Box>
+                )}
                 <Box>
                   <Typography variant="caption" className="text-muted-foreground">Status</Typography>
                   <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${item.is_active ? 'bg-green-500/20 text-green-600' : 'bg-red-500/20 text-red-600'}`}>

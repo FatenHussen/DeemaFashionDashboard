@@ -2,15 +2,16 @@ import type { RecipeData } from '@/pages/dashboard/recipes/types/recipe.types';
 
 import { toast } from 'react-toastify';
 import { Button } from '@/shared/ui/button';
+import { useTranslation } from 'react-i18next';
 import { useRef, useState, useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Iconify } from '@/shared/components/iconify';
 import { useParams, useNavigate, useLocation } from 'react-router';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
-import { InfiniteScrollSelect } from '@/shared/components/infinite-scroll-select';
-import { _ShopProductVariantApi } from '@/shared/api/shop-product-variant.services';
-import { _CategoryApi } from '@/pages/dashboard/categories/api/category.services';
 import { _ShopApi } from '@/pages/dashboard/vendor/api/shop.services';
+import { InfiniteScrollSelect } from '@/shared/components/infinite-scroll-select';
+import { _CategoryApi } from '@/pages/dashboard/categories/api/category.services';
+import { _ShopProductVariantApi } from '@/shared/api/shop-product-variant.services';
 import { RecipeSchema, type RecipeFormValues } from '@/pages/dashboard/recipes/validation/recipe.validation';
 import { useCreateRecipe, useUpdateRecipe, useFetchRecipeById } from '@/pages/dashboard/recipes/hooks/recipe';
 
@@ -37,6 +38,7 @@ interface ItemSelectState {
 }
 
 export default function CreatePage() {
+  const { t } = useTranslation('table');
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
   const location = useLocation();
@@ -167,26 +169,26 @@ export default function CreatePage() {
         description={isEditMode ? 'Update recipe details' : 'Add a new recipe'}
         isEditMode={isEditMode}
         isLoading={isEditMode && isLoadingDetails}
-        loadingText="Loading recipe..."
+        loadingText={t('form.loadingRecipe')}
         maxWidth="2xl"
         submitLabel={isEditMode ? 'Update Recipe' : 'Create Recipe'}
         submittingLabel={isEditMode ? 'Updating...' : 'Creating...'}
       >
         {/* Name */}
         <Box className="group">
-          <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">Name</Typography>
+          <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('columns.name')}</Typography>
           <div className="flex flex-col gap-2">
-            <RHFTextField name="name.en" placeholder="Recipe name in English" fullWidth />
-            <RHFTextField name="name.ar" placeholder="اسم الوصفة بالعربي" dir="rtl" fullWidth />
+            <RHFTextField name="name.en" placeholder={t('form.recipeNameEn')} fullWidth />
+            <RHFTextField name="name.ar" placeholder={t('form.recipeNameAr')} dir="rtl" fullWidth />
           </div>
         </Box>
 
         {/* Description */}
         <Box className="group">
-          <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">Description</Typography>
+          <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('columns.description')}</Typography>
           <div className="flex flex-col gap-2">
-            <RHFTextField name="description.en" placeholder="Description in English" fullWidth />
-            <RHFTextField name="description.ar" placeholder="الوصف بالعربي" dir="rtl" fullWidth />
+            <RHFTextField name="description.en" placeholder={t('form.descriptionEnPlaceholder')} fullWidth />
+            <RHFTextField name="description.ar" placeholder={t('form.descriptionArPlaceholder')} dir="rtl" fullWidth />
           </div>
         </Box>
 
@@ -265,8 +267,8 @@ export default function CreatePage() {
 
         {/* Video URL */}
         <Box className="group">
-          <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">Video URL</Typography>
-          <RHFTextField name="video_url" placeholder="https://..." fullWidth />
+          <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.videoUrl')}</Typography>
+          <RHFTextField name="video_url" placeholder={t('form.videoUrlPlaceholder')} fullWidth />
         </Box>
 
         {/* Numeric fields */}
@@ -276,16 +278,16 @@ export default function CreatePage() {
             <RHFTextField name="discount" type="number" placeholder="0" fullWidth />
           </Box>
           <Box className="flex-1 min-w-[130px]">
-            <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">Delivery Price</Typography>
+            <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.deliveryPrice')}</Typography>
             <RHFTextField name="delivery_price" type="number" placeholder="0" fullWidth />
           </Box>
           <Box className="flex-1 min-w-[130px]">
-            <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">Serves</Typography>
-            <RHFTextField name="serves" placeholder="e.g., 2-4" fullWidth />
+            <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('columns.servings')}</Typography>
+            <RHFTextField name="serves" placeholder={t('form.servesPlaceholder')} fullWidth />
           </Box>
           <Box className="flex-1 min-w-[130px]">
-            <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">Prepare Time (min)</Typography>
-            <RHFTextField name="prepare_time" placeholder="e.g., 25" fullWidth />
+            <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('columns.prepTime')}</Typography>
+            <RHFTextField name="prepare_time" placeholder={t('form.prepareTimePlaceholder')} fullWidth />
           </Box>
         </Box>
 
@@ -351,7 +353,7 @@ export default function CreatePage() {
                           },
                         }))
                       }
-                      placeholder="All categories"
+                      placeholder={t('form.allCategories')}
                     />
                   </Box>
 
@@ -374,7 +376,7 @@ export default function CreatePage() {
                           },
                         }))
                       }
-                      placeholder="Select shop..."
+                      placeholder={t('form.selectShop')}
                     />
                   </Box>
                 </div>
@@ -444,7 +446,7 @@ export default function CreatePage() {
                             },
                           }))
                         }
-                        placeholder="No switchable category"
+                        placeholder={t('form.noSwitchableCategory')}
                         initialLabel={itemSwitchableLabels[index]}
                       />
                     )}
@@ -454,7 +456,7 @@ export default function CreatePage() {
                 {/* Row 4: Quantity fields + is_required */}
                 <div className="flex gap-2 flex-wrap items-end">
                   <Box className="flex-1 min-w-[80px]">
-                    <Typography variant="subtitle2" className="mb-1 text-xs text-muted-foreground">Quantity</Typography>
+                    <Typography variant="subtitle2" className="mb-1 text-xs text-muted-foreground">{t('form.quantity')}</Typography>
                     <RHFTextField name={`items.${index}.quantity`} type="number" placeholder="1" fullWidth />
                   </Box>
                   <Box className="flex-1 min-w-[80px]">
@@ -532,8 +534,8 @@ export default function CreatePage() {
               <Box>
                 <Typography variant="subtitle2" className="mb-1 text-xs text-muted-foreground">Heat Level</Typography>
                 <div className="flex flex-col gap-1">
-                  <RHFTextField name={`steps.${index}.heat_level.en`} placeholder="e.g. Medium" fullWidth />
-                  <RHFTextField name={`steps.${index}.heat_level.ar`} placeholder="مثال: متوسط" dir="rtl" fullWidth />
+                  <RHFTextField name={`steps.${index}.heat_level.en`} placeholder={t('form.heatLevelEn')} fullWidth />
+                  <RHFTextField name={`steps.${index}.heat_level.ar`} placeholder={t('form.heatLevelAr')} dir="rtl" fullWidth />
                 </div>
               </Box>
 
@@ -541,8 +543,8 @@ export default function CreatePage() {
               <Box>
                 <Typography variant="subtitle2" className="mb-1 text-xs text-muted-foreground">Time</Typography>
                 <div className="flex flex-col gap-1">
-                  <RHFTextField name={`steps.${index}.time_minutes.en`} placeholder="e.g. 10 minutes" fullWidth />
-                  <RHFTextField name={`steps.${index}.time_minutes.ar`} placeholder="مثال: 10 دقائق" dir="rtl" fullWidth />
+                  <RHFTextField name={`steps.${index}.time_minutes.en`} placeholder={t('form.timeMinutesEn')} fullWidth />
+                  <RHFTextField name={`steps.${index}.time_minutes.ar`} placeholder={t('form.timeMinutesAr')} dir="rtl" fullWidth />
                 </div>
               </Box>
 
@@ -550,8 +552,8 @@ export default function CreatePage() {
               <Box>
                 <Typography variant="subtitle2" className="mb-1 text-xs text-muted-foreground">Instruction</Typography>
                 <div className="flex flex-col gap-1">
-                  <RHFTextField name={`steps.${index}.instruction.en`} placeholder="Step instructions in English" fullWidth />
-                  <RHFTextField name={`steps.${index}.instruction.ar`} placeholder="تعليمات الخطوة بالعربي" dir="rtl" fullWidth />
+                  <RHFTextField name={`steps.${index}.instruction.en`} placeholder={t('form.stepInstructionsEn')} fullWidth />
+                  <RHFTextField name={`steps.${index}.instruction.ar`} placeholder={t('form.stepInstructionsAr')} dir="rtl" fullWidth />
                 </div>
               </Box>
             </Box>

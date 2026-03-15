@@ -29,7 +29,11 @@ export default function Page() {
     setCurrentPage(1);
   };
 
-  const exchangeData: PointExchangeFormValues[] = exchangesResponse?.data?.items || [];
+  const exchangeData: PointExchangeFormValues[] =
+    (exchangesResponse?.data as { items?: PointExchangeFormValues[]; data?: PointExchangeFormValues[] } | undefined)
+      ?.items ??
+    (exchangesResponse?.data as { data?: PointExchangeFormValues[] } | undefined)?.data ??
+    [];
   const apiPagination = exchangesResponse?.data?.pagination;
   const pagination = apiPagination
     ? {
@@ -71,8 +75,10 @@ export default function Page() {
         columnTranslations={{
           id: 'ID',
           user_name: 'User',
-          points: 'Points',
+          exchange_type: 'Type',
+          points_used: 'Points',
           status: 'Status',
+          delivered_at: 'Delivered',
           created_at: 'Created At',
         }}
         pagination={pagination}

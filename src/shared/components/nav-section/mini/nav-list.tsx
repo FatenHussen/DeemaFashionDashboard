@@ -20,6 +20,7 @@ export function NavList({
   slotProps,
   checkPermissions,
   checkPermission,
+  checkPermissionAny,
   enabledRootRedirect,
 }: NavListProps) {
   const [isRtl, setIsRtl] = useState(false);
@@ -126,6 +127,7 @@ export function NavList({
             slotProps={slotProps}
             checkPermissions={checkPermissions}
             checkPermission={checkPermission}
+            checkPermissionAny={checkPermissionAny}
             enabledRootRedirect={enabledRootRedirect}
           />
         </NavDropdownPaper>
@@ -138,7 +140,9 @@ export function NavList({
   }
 
   // Hidden item by permission
-  if (data.requiredPermission && checkPermission && !checkPermission(data.requiredPermission)) {
+  if (data.requiredPermissionAny && checkPermissionAny) {
+    if (!checkPermissionAny(data.requiredPermissionAny)) return null;
+  } else if (data.requiredPermission && checkPermission && !checkPermission(data.requiredPermission)) {
     return null;
   }
 
@@ -160,6 +164,7 @@ function NavSubList({
   slotProps,
   checkPermissions,
   checkPermission,
+  checkPermissionAny,
   enabledRootRedirect,
 }: NavSubListProps) {
   return (
@@ -174,6 +179,7 @@ function NavSubList({
           slotProps={slotProps}
           checkPermissions={checkPermissions}
           checkPermission={checkPermission}
+          checkPermissionAny={checkPermissionAny}
           enabledRootRedirect={enabledRootRedirect}
         />
       ))}

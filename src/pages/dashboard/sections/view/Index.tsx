@@ -42,7 +42,7 @@ export default function Page() {
         await deleteSectionMutation.mutateAsync(deletingId);
         toast.success(t('deleteSuccess') || 'Section deleted successfully');
         setDeletingId(null);
-      } catch {}
+      } catch { return; }
     }
   };
 

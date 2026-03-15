@@ -23,7 +23,7 @@ export interface PackageFormValues extends PackageData {
 
 export const packageColumns = (
   permissions: { update: boolean; delete: boolean },
-  _t: TFunction<'table'>,
+  t: TFunction<'table'>,
   onDelete?: (id: number) => void,
   isDeleting?: boolean,
   isDeleteDialogOpen?: boolean,
@@ -35,7 +35,7 @@ export const packageColumns = (
   {
     id: 'id',
     accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="ID" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
     cell: ({ row }) => (
       <div className="flex items-center gap-2">
         <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
@@ -47,7 +47,7 @@ export const packageColumns = (
   {
     id: 'name',
     accessorKey: 'name',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.name')} />,
     cell: ({ row }) => {
       const name = row.original.name;
       const display = typeof name === 'object' ? (name as any)?.en || (name as any)?.ar : name;
@@ -57,7 +57,7 @@ export const packageColumns = (
   {
     id: 'price',
     accessorKey: 'price',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Price" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.price')} />,
     cell: ({ row }) => (
       <span className="text-sm font-medium">{row.original.price}</span>
     ),
@@ -65,7 +65,7 @@ export const packageColumns = (
   {
     id: 'duration_days',
     accessorKey: 'duration_days',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Duration (Days)" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.durationDays')} />,
     cell: ({ row }) => (
       <span className="text-sm">{row.original.duration_days}</span>
     ),
@@ -73,7 +73,7 @@ export const packageColumns = (
   {
     id: 'monthly_orders_limit',
     accessorKey: 'monthly_orders_limit',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Monthly Orders" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.monthlyOrders')} />,
     cell: ({ row }) => (
       <span className="text-sm">{row.original.monthly_orders_limit}</span>
     ),
@@ -81,7 +81,7 @@ export const packageColumns = (
   {
     id: 'discount_percentage',
     accessorKey: 'discount_percentage',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Discount %" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.discountPercent')} />,
     cell: ({ row }) => (
       <span className="text-sm">{row.original.discount_percentage}%</span>
     ),
@@ -89,7 +89,7 @@ export const packageColumns = (
   {
     id: 'is_active',
     accessorKey: 'is_active',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.status')} />,
     cell: ({ row }) => {
       const isActive = row.original.is_active;
       return (
@@ -108,7 +108,7 @@ export const packageColumns = (
   {
     id: 'created_at',
     accessorKey: 'created_at',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Created" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.created')} />,
     cell: ({ row }) => (
       <span className="text-sm text-muted-foreground">
         {new Date(row.original.created_at).toLocaleDateString()}

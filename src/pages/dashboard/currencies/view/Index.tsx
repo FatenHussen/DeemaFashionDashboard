@@ -30,7 +30,7 @@ export default function Page() {
         await deleteMutation.mutateAsync(deletingId);
         toast.success(t('deleteSuccess') || 'Currency deleted successfully');
         setDeletingId(null);
-      } catch {}
+      } catch { return; }
     }
   };
   const onDeleteCancel = () => setDeletingId(null);

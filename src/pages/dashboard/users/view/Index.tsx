@@ -6,7 +6,8 @@ import { DataTable } from '@/shared/ui/table-data/table-data';
 import { usePermissions } from '@/auth/hooks/use-permissions';
 import { useFetchAreas } from '@/pages/dashboard/locations/hooks/area';
 import { userColumns, type UserFormValues } from '@/columns/one/users/one';
-import { useFetchUsers, useDeleteUser } from '@/pages/dashboard/users/hooks/user';
+import { UpdatePasswordDialog } from '@/shared/components/update-password-dialog';
+import { useFetchUsers, useDeleteUser, useUpdateUser, useFetchUserById } from '@/pages/dashboard/users/hooks/user';
 
 import { CONFIG } from 'src/global-config';
 
@@ -21,8 +22,11 @@ export default function Page() {
   const [affiliateApprovedFilter, setAffiliateApprovedFilter] = useState<string>('');
   const [areaFilter, setAreaFilter] = useState<string>('');
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+  const [passwordDialogTargetId, setPasswordDialogTargetId] = useState<number | null>(null);
 
   const { data: areasResponse } = useFetchAreas();
+  const { data: userDetailsResponse } = useFetchUserById(passwordDialogTargetId ?? '');
   const areas = areasResponse?.data?.items || [];
 
   const params: Record<string, number> = {};
@@ -38,6 +42,7 @@ export default function Page() {
   );
 
   const deleteUserMutation = useDeleteUser();
+  const updateUserMutation = useUpdateUser();
 
   if (error) {
     console.error('Error fetching users:', error);
@@ -62,7 +67,7 @@ export default function Page() {
         await deleteUserMutation.mutateAsync(deletingId);
         toast.success(t('deleteSuccess') || 'User deleted successfully');
         setDeletingId(null);
-      } catch {}
+      } catch { return; }
     }
   };
 
@@ -74,6 +79,31 @@ export default function Page() {
     navigate(`/users/update/${row.original.id}`, {
       state: { user: row.original },
     });
+  };
+
+  const onUpdatePassword = (row: { original: UserFormValues }) => {
+    setPasswordDialogTargetId(row.original.id);
+    setPasswordDialogOpen(true);
+  };
+
+  const handlePasswordSubmit = async (data: { password: string; password_confirmation: string }) => {
+    if (!passwordDialogTargetId) return;
+    const user = userDetailsResponse?.data ?? userData.find((u) => u.id === passwordDialogTargetId);
+    await updateUserMutation.mutateAsync({
+      id: passwordDialogTargetId,
+      data: {
+        name: user?.name ?? '',
+        last_name: (user as any)?.last_name ?? '',
+        email: user?.email ?? '',
+        phone: user?.phone ?? '',
+        area_id: (user as any)?.area_id ?? 0,
+        password: data.password,
+        password_confirmation: data.password_confirmation,
+      },
+    });
+    toast.success('Password updated successfully');
+    setPasswordDialogTargetId(null);
+    setPasswordDialogOpen(false);
   };
 
   const userData: UserFormValues[] = usersResponse?.data?.items || [];
@@ -113,6 +143,15 @@ export default function Page() {
   return (
     <>
       <title>{metadata.title}</title>
+
+      <UpdatePasswordDialog
+        open={passwordDialogOpen}
+        onOpenChange={setPasswordDialogOpen}
+        onSubmit={handlePasswordSubmit}
+        isSubmitting={updateUserMutation.isPending}
+        entityName="User"
+        minLength={6}
+      />
 
       <div className="w-full flex flex-col gap-4">
         <div className="flex flex-wrap items-center gap-3 p-4 bg-linear-to-r from-muted/30 via-transparent to-muted/30 rounded-xl border border-border/30 rtl:flex-row-reverse">
@@ -189,9 +228,10 @@ export default function Page() {
             deleteUserMutation.isPending,
             deletingId !== null,
             onDeleteConfirm,
-            onDeleteCancel,
-            deletingId,
-            handleEdit
+          onDeleteCancel,
+          deletingId,
+          handleEdit,
+          onUpdatePassword
           )}
           data={userData}
           createPath="/users/create"

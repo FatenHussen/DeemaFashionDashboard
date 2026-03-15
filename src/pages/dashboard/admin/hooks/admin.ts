@@ -33,8 +33,9 @@ export const useUpdateAdmin = () => {
   return useMutation({
     mutationFn: ({ id, data }: { id: number | string; data: AdminCreateUpdatePayload }) =>
       _AdminApi.updateAdmin(id, data),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'list'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.details(variables.id) });
     },
   });
 };

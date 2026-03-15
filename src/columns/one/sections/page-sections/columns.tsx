@@ -8,11 +8,11 @@ import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-
 
 const PageSectionSchema = z.object({
   id: z.number(),
-  name: z.string(),
-  type: z.enum(['api', 'manual']),
-  position: z.enum(['before', 'after']),
-  order: z.number(),
-  display_type_id: z.number(),
+  name: z.union([z.string(), z.array(z.any()), z.record(z.any())]).optional(),
+  type: z.enum(['api', 'manual']).optional(),
+  position: z.enum(['before', 'after']).optional(),
+  order: z.number().optional(),
+  display_type_id: z.number().optional(),
 });
 
 export interface PageSectionFormValues {
@@ -43,19 +43,19 @@ export const pageSectionColumns = (
   {
     id: 'id',
     accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="ID" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
     cell: ({ row }) => <div className="font-medium">{row.original.id}</div>,
   },
   {
     id: 'name',
     accessorKey: 'name',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.name')} />,
     cell: ({ row }) => <div className="font-medium">{formatTranslated(row.original.name)}</div>,
   },
   {
     id: 'type',
     accessorKey: 'type',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Type" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.type')} />,
     cell: ({ row }) => {
       const type = row.original.type;
       return (
@@ -74,7 +74,7 @@ export const pageSectionColumns = (
   {
     id: 'position',
     accessorKey: 'position',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Position" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.position')} />,
     cell: ({ row }) => {
       const position = row.original.position;
       return (
@@ -93,13 +93,13 @@ export const pageSectionColumns = (
   {
     id: 'order',
     accessorKey: 'order',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Order" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.orderRef')} />,
     cell: ({ row }) => <div className="font-medium">{row.original.order}</div>,
   },
   {
     id: 'display_type_id',
     accessorKey: 'display_type_id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Display Type" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.displayType')} />,
     cell: ({ row }) => <div className="font-medium">{row.original.display_type_id}</div>,
   },
   {
@@ -108,6 +108,7 @@ export const pageSectionColumns = (
       <DataTableRowActions
         schema={PageSectionSchema}
         row={row}
+        viewDetails={`/sections/page-sections/details/${row.original.id}`}
         editItem={`/sections/page-sections/update/${row.original.id}`}
         onDelete={onDelete}
         isDeleting={isDeleting}

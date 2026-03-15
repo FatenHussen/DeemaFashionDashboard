@@ -56,7 +56,7 @@ export default function Page() {
         await deleteCategoryDetailMutation.mutateAsync(deletingId);
         toast.success(t('deleteSuccess') || 'Category detail deleted successfully');
         setDeletingId(null);
-      } catch {}
+      } catch { return; }
     }
   };
 

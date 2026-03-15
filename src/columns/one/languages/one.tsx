@@ -48,31 +48,31 @@ export const languageColumns = (
   {
     id: 'id',
     accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="ID" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
     cell: ({ row }) => <div className="font-medium">{row.original.id}</div>,
   },
   {
     id: 'flag_icon',
     accessorKey: 'flag_icon',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Flag" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.flag')} />,
     cell: ({ row }) => <div className="text-2xl">{row.original.flag_icon}</div>,
   },
   {
     id: 'code',
     accessorKey: 'code',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Code" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.code')} />,
     cell: ({ row }) => <div className="font-medium uppercase">{row.original.code}</div>,
   },
   {
     id: 'native_name',
     accessorKey: 'native_name',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Native Name" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.nativeName')} />,
     cell: ({ row }) => <div className="font-medium">{row.original.native_name}</div>,
   },
   {
     id: 'direction',
     accessorKey: 'direction',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Direction" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.direction')} />,
     cell: ({ row }) => (
       <div className="text-sm uppercase font-medium">{row.original.direction}</div>
     ),
@@ -80,13 +80,13 @@ export const languageColumns = (
   {
     id: 'order',
     accessorKey: 'order',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Order" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.orderRef')} />,
     cell: ({ row }) => <div className="text-sm">{row.original.order}</div>,
   },
   {
     id: 'is_default',
     accessorKey: 'is_default',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Default" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.default')} />,
     cell: ({ row }) => {
       const isDefault = row.original.is_default;
       return isDefault ? (
@@ -99,7 +99,7 @@ export const languageColumns = (
   {
     id: 'status',
     accessorKey: 'is_active',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.status')} />,
     cell: ({ row }) => {
       const isActive = row.original.is_active;
       return (

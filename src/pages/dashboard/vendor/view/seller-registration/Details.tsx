@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { toast } from 'react-toastify';
 import { Button } from '@/shared/ui/button';
+import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
 
@@ -36,6 +37,7 @@ function InfoRow({ label, value }: { label: string; value?: string | null }) {
 }
 
 export default function DetailsPage() {
+  const { t } = useTranslation('table');
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
@@ -76,7 +78,7 @@ export default function DetailsPage() {
       await approveMutation.mutateAsync({ id: item.id, payload });
       toast.success('Registration approved and credentials sent via email');
       navigate('/seller-registrations');
-    } catch {}
+    } catch { return; }
   };
 
   const handleReject = async () => {
@@ -85,7 +87,7 @@ export default function DetailsPage() {
       await rejectMutation.mutateAsync(item.id);
       toast.success('Registration rejected');
       navigate('/seller-registrations');
-    } catch {}
+    } catch { return; }
   };
 
   return (
@@ -146,13 +148,27 @@ export default function DetailsPage() {
               <Typography variant="subtitle1" className="font-semibold mb-4 text-foreground">
                 Registration Details
               </Typography>
-              <InfoRow label="Seller Name" value={item.seller_name} />
-              <InfoRow label="Email" value={item.email} />
-              <InfoRow label="Store Name" value={item.store_name} />
-              <InfoRow label="Address" value={item.address} />
-              <InfoRow label="Country" value={item.country} />
-              <InfoRow label="Governorate" value={item.governorate?.name} />
-              <InfoRow label="City" value={item.city?.name} />
+              <InfoRow label={t('form.sellerName')} value={item.seller_name} />
+              <InfoRow label={t('columns.email')} value={item.email} />
+              <InfoRow label={t('form.storeName')} value={item.store_name} />
+              <InfoRow label={t('columns.address')} value={item.address} />
+              <InfoRow label={t('form.country')} value={item.country} />
+              <InfoRow
+                label={t('columns.governorate')}
+                value={
+                  typeof item.governorate === 'object' && item.governorate
+                    ? (item.governorate as { name?: string }).name
+                    : item.governorate
+                }
+              />
+              <InfoRow
+                label={t('columns.city')}
+                value={
+                  typeof item.city === 'object' && item.city
+                    ? (item.city as { name?: string }).name
+                    : item.city
+                }
+              />
             </Box>
 
             {/* Commercial Register */}
@@ -161,11 +177,11 @@ export default function DetailsPage() {
                 Commercial Register
               </Typography>
               <InfoRow
-                label="Register Number"
+                label={t('form.registerNumber')}
                 value={item.commercial_register_number}
               />
               <InfoRow
-                label="Register Date"
+                label={t('form.registerDate')}
                 value={
                   item.commercial_register_date
                     ? new Date(item.commercial_register_date).toLocaleDateString()

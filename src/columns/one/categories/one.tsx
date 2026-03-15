@@ -56,7 +56,7 @@ export const categoryColumns = (
   {
     id: 'id',
     accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="ID" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
     cell: ({ row }) => (
       <div className="flex items-center gap-2">
         <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
@@ -68,7 +68,7 @@ export const categoryColumns = (
   {
     id: 'icon',
     accessorKey: 'icon',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Icon" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.icon')} />,
     cell: ({ row }) => (
       <div className="flex items-center gap-2">
         {row.original.icon ? (
@@ -93,7 +93,7 @@ export const categoryColumns = (
   {
     id: 'name',
     accessorKey: 'name',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.name')} />,
     cell: ({ row }) => (
       <div className="flex items-center gap-2.5 min-w-0">
         <div className="w-9 h-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
@@ -113,7 +113,7 @@ export const categoryColumns = (
   {
     id: 'description',
     accessorKey: 'description',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Description" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.description')} />,
     cell: ({ row }) => (
       <div className="flex items-center gap-2 min-w-0">
         <span className="text-sm text-muted-foreground truncate">
@@ -125,7 +125,7 @@ export const categoryColumns = (
   {
     id: 'parent',
     accessorKey: 'parent.name',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Parent" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.parent')} />,
     cell: ({ row }) => (
       <div className="flex items-center gap-2 min-w-0">
         {row.original.parent ? (
@@ -149,7 +149,7 @@ export const categoryColumns = (
   {
     id: 'children_count',
     accessorKey: 'children_count',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Children" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.children')} />,
     cell: ({ row }) => (
       <div className="flex items-center gap-2">
         <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-primary/10 border border-primary/20 w-fit">
@@ -169,7 +169,7 @@ export const categoryColumns = (
   {
     id: 'created_at',
     accessorKey: 'created_at',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Created At" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.createdAt')} />,
     cell: ({ row }) => (
       <div className="flex items-center gap-2">
         <Iconify

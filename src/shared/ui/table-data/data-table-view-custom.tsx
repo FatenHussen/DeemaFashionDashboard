@@ -104,7 +104,7 @@ export function DataTableViewOptionsCustom<TData>({
           document.body.removeChild(link);
         }
       }
-    } catch {}
+    } catch { return; }
   };
 
   const handleCustomExportExcel = (selectedColumns: string[]) => {

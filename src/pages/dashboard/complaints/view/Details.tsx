@@ -1,5 +1,6 @@
 import { toast } from 'react-toastify';
 import { Button } from '@/shared/ui/button';
+import { useTranslation } from 'react-i18next';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useNavigate } from 'react-router';
@@ -20,6 +21,7 @@ import { LoadingScreen } from 'src/shared/components/loading-screen';
 const metadata = { title: `Complaint Details | Dashboard - ${CONFIG.appName}` };
 
 export default function DetailsPage() {
+  const { t } = useTranslation('table');
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: complaintResponse, isLoading, error } = useFetchComplaintById(id || '');
@@ -69,7 +71,7 @@ export default function DetailsPage() {
       await updateComplaintMutation.mutateAsync({ id: id!, data });
       toast.success('Complaint updated successfully');
       reset();
-    } catch {}
+    } catch { return; }
   };
 
   const statusVariant =
@@ -277,7 +279,7 @@ export default function DetailsPage() {
                             <textarea
                               {...field}
                               rows={4}
-                              placeholder="Type your response..."
+                              placeholder={t('form.typeResponse')}
                               className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm min-h-[100px]"
                             />
                             {fieldError?.message && (

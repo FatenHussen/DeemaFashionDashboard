@@ -1,15 +1,17 @@
 import { toast } from 'react-toastify';
-import { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useQuery } from '@tanstack/react-query';
+import { apiRoutes, axiosInstance } from '@/api';
+import { useRef, useState, useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useNavigate } from 'react-router';
-import { useQuery } from '@tanstack/react-query';
 import { Iconify } from '@/shared/components/iconify';
-import { useForm, Controller, useFieldArray } from 'react-hook-form';
-import { useFetchBrands } from '@/pages/dashboard/products/hooks/brand';
-import { useFetchCategories } from '@/pages/dashboard/categories/hooks/category';
-import { useFetchCategoryAttributes } from '@/pages/dashboard/categories/hooks/category-attribute';
+import { formatTranslated } from '@/utils/format-translated';
 import { useFetchShops } from '@/pages/dashboard/vendor/hooks/shop';
-import { axiosInstance, apiRoutes } from '@/api';
+import { useForm, Controller, useFieldArray } from 'react-hook-form';
+import { _BrandApi } from '@/pages/dashboard/products/api/brand.services';
+import { _CategoryApi } from '@/pages/dashboard/categories/api/category.services';
+import { useFetchCategoryAttributes } from '@/pages/dashboard/categories/hooks/category-attribute';
 import {
   ProductSchema,
   type ProductFormValues,
@@ -21,19 +23,38 @@ import {
 } from '@/pages/dashboard/products/hooks/product';
 
 import { paths } from 'src/routes/paths';
+
 import { CONFIG } from 'src/global-config';
 import { Label } from 'src/shared/components/label';
 import { Box, Input, Button, Typography } from 'src/shared/ui';
 import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
+import { RHFInfiniteSelect } from 'src/shared/components/hook-form/rhf-infinite-select';
 
 // ----------------------------------------------------------------------
 
 const metadata = { title: `Product ${CONFIG.appName}` };
 
+const categoryFetcher = (page: number, limit: number) =>
+  _CategoryApi.getListCategoriesPaginated({ page, per_page: limit }).then((r) => ({
+    data: {
+      items: r.data.items.map((cat) => ({ id: cat.id, label: cat.name })),
+      pagination: r.data.pagination,
+    },
+  }));
+
+const brandFetcher = (page: number, limit: number) =>
+  _BrandApi.getListBrands({ page, per_page: limit }).then((r) => ({
+    data: {
+      items: r.data.items.map((b) => ({ id: b.id, label: b.name })),
+      pagination: r.data.pagination,
+    },
+  }));
+
 const inputCls =
   'w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary';
 
 export default function CreatePage() {
+  const { t } = useTranslation('table');
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
   const isEditMode = !!id;
@@ -42,17 +63,12 @@ export default function CreatePage() {
   const [existingImageUrls, setExistingImageUrls] = useState<string[]>([]);
 
   // Fetch dependencies
-  const { data: categoriesResponse } = useFetchCategories();
-  const { data: brandsResponse } = useFetchBrands();
   const { data: shopsResponse } = useFetchShops(1, 100);
   const { data: productResponse, isLoading: isLoadingProduct } = useFetchProductById(id || '');
 
   const createProductMutation = useCreateProduct();
   const updateProductMutation = useUpdateProduct();
 
-  const categories = categoriesResponse?.data.items || [];
-  const brandsRaw = (brandsResponse as any)?.data;
-  const brands = Array.isArray(brandsRaw) ? brandsRaw : (brandsRaw?.items ?? []);
   const shops = (shopsResponse as any)?.data?.items ?? [];
 
   const defaultValues: ProductFormValues = {
@@ -79,7 +95,7 @@ export default function CreatePage() {
   };
 
   const methods = useForm<ProductFormValues>({
-    resolver: zodResolver(ProductSchema),
+    resolver: zodResolver(ProductSchema) as any,
     defaultValues,
   });
 
@@ -93,7 +109,9 @@ export default function CreatePage() {
   const { data: categoryAttributesAll, isLoading: isLoadingAttributes } =
     useFetchCategoryAttributes(categoryId ? Number(categoryId) : undefined, 1, 100);
   const categoryAttributes =
-    categoryAttributesAll?.data?.items ?? categoryAttributesAll?.data?.data ?? [];
+    (categoryAttributesAll?.data as { items?: unknown[]; data?: unknown[] } | undefined)?.items ??
+    (categoryAttributesAll?.data as { data?: unknown[] } | undefined)?.data ??
+    [];
 
   // Fetch category details filtered by category_id
   const { data: categoryDetailsResponse } = useQuery({
@@ -117,7 +135,8 @@ export default function CreatePage() {
         .get(apiRoutes.product.list, { params: { per_page: 200 } })
         .then((r) => r.data),
   });
-  const allProducts: any[] = allProductsResponse?.data?.data ?? [];
+  const allProducts: any[] =
+    allProductsResponse?.data?.data ?? allProductsResponse?.data?.items ?? [];
 
   // Field Arrays
   const { fields: variantsFields, append: appendVariant, remove: removeVariant } = useFieldArray({
@@ -136,15 +155,15 @@ export default function CreatePage() {
     if (isEditMode && productResponse && !isLoadingProduct) {
       const p = productResponse;
       reset({
-        category_id: p.category?.id ?? 0,
-        brand_id: p.brand?.id ?? 0,
+        category_id: Number(p.category?.id) || 0,
+        brand_id: Number(p.brand?.id) || 0,
         name: { en: p.name?.en ?? '', ar: p.name?.ar ?? '' },
         description: { en: p.description?.en ?? '', ar: p.description?.ar ?? '' },
         full_description: { en: p.full_description?.en ?? '', ar: p.full_description?.ar ?? '' },
         country: { en: p.country?.en ?? '', ar: p.country?.ar ?? '' },
-        price: p.price,
-        price_after_discount: p.price_after_discount ?? undefined,
-        quantity: p.quantity ?? 0,
+        price: Number(p.price) || 0,
+        price_after_discount: p.price_after_discount != null ? Number(p.price_after_discount) : undefined,
+        quantity: Number(p.quantity) || 0,
         sku: p.sku ?? '',
         model: p.model ?? '',
         barcode: p.barcode ?? '',
@@ -169,14 +188,17 @@ export default function CreatePage() {
             detail_key: { en: ed.key?.en ?? '', ar: ed.key?.ar ?? '' },
             detail_value: { en: ed.value?.en ?? '', ar: ed.value?.ar ?? '' },
           })) ?? [],
-        bought_with: p.bought_with ?? [],
+        bought_with: (p.bought_with ?? [])
+          .map((v: any) => (typeof v === 'object' && v?.id != null ? v.id : v))
+          .filter((v) => v != null && v !== '' && !Number.isNaN(Number(v)))
+          .map((v) => Number(v)),
         shop_variants:
           p.variants?.flatMap((v, vIndex) =>
             (v.shops ?? []).map((s: any) => ({
-              shop_id: s.shop_id,
+              shop_id: Number(s.shop_id),
               variant_index: vIndex,
-              price: s.price ?? 0,
-              quantity: s.quantity ?? 0,
+              price: Number(s.price) || 0,
+              quantity: Number(s.quantity) || 0,
             }))
           ) ?? [],
       });
@@ -302,18 +324,143 @@ export default function CreatePage() {
   const errorMessage =
     createProductMutation.error?.message || updateProductMutation.error?.message || null;
 
+  // Map product variant attributes to attributes_values_ids using category attributes
+  const mapVariantsToAttributeIds = (
+    variants: Array<{ id?: number; attributes?: Array<{ attribute: string; value: string }>; images?: File[] }>,
+    attrs: any[]
+  ) =>
+    variants.map((v) => {
+      const ids: number[] = [];
+      attrs.forEach((attr: any) => {
+        const attrName = String(
+          typeof attr.name === 'object' ? attr.name?.en ?? attr.name?.ar : attr.name
+        ).trim();
+        const vAttr = (v.attributes ?? []).find(
+          (a: any) => String((a as any).attribute ?? a).trim() === attrName
+        );
+        if (vAttr) {
+          const vVal = typeof vAttr === 'object' ? (vAttr as any).value : vAttr;
+          const vals = attr?.values ?? [];
+          const match =
+            vals.find(
+              (x: any) =>
+                String(typeof x.value === 'string' ? x.value : x.value?.en ?? x.value?.ar ?? '').trim() ===
+                String(vVal).trim()
+            ) ??
+            vals.find(
+              (x: any) =>
+                String(
+                  typeof x.name === 'object' ? x.name?.en ?? x.name?.ar : x.name ?? ''
+                ).trim() === String(vVal).trim()
+            );
+          if (match?.id) ids.push(match.id);
+        }
+      });
+      return { id: v.id, attributes_values_ids: ids, images: (v as any).images ?? [] };
+    });
+
   const onSubmit = async (data: ProductFormValues) => {
     try {
+      console.log('[Product Form] Validation passed, submitting:', data);
+      let payload: ProductFormValues = { ...data };
+
+      // In edit mode: ensure variants have attributes_values_ids (full payload - changed + unchanged)
+      if (isEditMode && productResponse && (payload.variants?.length ?? 0) > 0 && categoryAttributes.length > 0) {
+        const enrichedFromApi = mapVariantsToAttributeIds(
+          productResponse.variants?.map((v) => ({
+            id: v.id,
+            attributes: v.attributes,
+          })) ?? [],
+          categoryAttributes
+        );
+        payload = {
+          ...payload,
+          variants: payload.variants!.map((fv) => {
+            if (fv.attributes_values_ids?.length) {
+              return fv; // User already selected - use form values
+            }
+            const mapped =
+              fv.id && productResponse.variants
+                ? enrichedFromApi.find((e) => e.id === fv.id)
+                : null;
+            return {
+              ...fv,
+              attributes_values_ids:
+                mapped?.attributes_values_ids ?? fv.attributes_values_ids ?? [],
+            };
+          }),
+        };
+      }
+
+      // Ensure category_details have category_detail_id (merge with productResponse if needed)
+      if (
+        isEditMode &&
+        productResponse?.category_details?.length &&
+        availableCategoryDetails.length > 0 &&
+        payload.category_details?.some((cd) => !cd.category_detail_id || cd.category_detail_id === 0)
+      ) {
+        payload = {
+          ...payload,
+          category_details: payload.category_details!.map((cd) => {
+            if (cd.category_detail_id && cd.category_detail_id > 0) return cd;
+            const orig = productResponse!.category_details!.find((o: any) => o.id === cd.id);
+            if (!orig) return cd;
+            const cdAny = orig as any;
+            let defId = cdAny.category_detail_id ?? cdAny.category_detail?.id;
+            if (!defId) {
+              const nameToMatch =
+                typeof orig.name === 'string' ? orig.name : cdAny.name?.en ?? cdAny.name?.ar;
+              const matched = availableCategoryDetails.find((ad: any) => {
+                const adName =
+                  typeof ad.name === 'object' ? ad.name?.en ?? ad.name?.ar : ad.name;
+                return adName && nameToMatch && String(adName).trim() === String(nameToMatch).trim();
+              });
+              defId = matched?.id;
+            }
+            return {
+              ...cd,
+              category_detail_id: defId ? Number(defId) : cd.category_detail_id,
+            };
+          }),
+        };
+      }
+
+      // Filter variants with empty attributes_values_ids (backend requires it)
+      const validVariants =
+        payload.variants?.filter(
+          (v) => Array.isArray(v.attributes_values_ids) && v.attributes_values_ids.length > 0
+        ) ?? [];
+      if (
+        (payload.variants?.length ?? 0) > 0 &&
+        validVariants.length < (payload.variants?.length ?? 0)
+      ) {
+        toast.warning(
+          'Some variants were skipped (no attribute values). Each variant must have at least one attribute selected.'
+        );
+      }
+      const finalPayload = {
+        ...payload,
+        variants: validVariants,
+        category_details: payload.category_details?.filter(
+          (cd) => cd.category_detail_id && cd.category_detail_id > 0
+        ),
+      };
+
       if (isEditMode && id) {
-        await updateProductMutation.mutateAsync({ id, data });
+        console.log('[Product Form] Sending update payload:', { id, data: finalPayload });
+        await updateProductMutation.mutateAsync({ id, data: finalPayload });
         toast.success('Product updated successfully');
       } else {
-        await createProductMutation.mutateAsync(data);
+        console.log('[Product Form] Sending create payload:', finalPayload);
+        await createProductMutation.mutateAsync(finalPayload);
         toast.success('Product created successfully');
       }
       navigate('/products');
     } catch (error: any) {
-      console.error('Error saving product:', error);
+      console.error('[Product Form] Submit error:', error);
+      console.error('[Product Form] Error response:', error?.response?.data);
+      console.error('[Product Form] Error message:', error?.message);
+      toast.error(error?.message || 'Failed to save product');
     }
   };
 
@@ -332,8 +479,24 @@ export default function CreatePage() {
       </title>
 
       <CreateFormLayout
-        methods={methods}
-        onSubmit={handleSubmit(onSubmit)}
+        methods={methods as any}
+        onSubmit={handleSubmit(onSubmit as any, (errors) => {
+          console.error('[Product Form] Validation errors:', errors);
+          const getFirstMessage = (obj: any): string | null => {
+            if (!obj) return null;
+            if (typeof obj.message === 'string') return obj.message;
+            if (typeof obj === 'object') {
+              for (const v of Object.values(obj)) {
+                const m = getFirstMessage(v);
+                if (m) return m;
+              }
+            }
+            return null;
+          };
+          const msg = getFirstMessage(errors);
+          console.error('[Product Form] First error message:', msg);
+          toast.error(msg || 'Please fix the form errors and try again.');
+        })}
         onCancel={() => navigate('/products')}
         isSubmitting={isSubmitting}
         errorMessage={errorMessage}
@@ -343,7 +506,7 @@ export default function CreatePage() {
         }
         isEditMode={isEditMode}
         isLoading={isLoadingProduct}
-        loadingText="Loading product data..."
+        loadingText={t('form.loadingProduct')}
         maxWidth="6xl"
         infoText={
           isEditMode
@@ -361,34 +524,16 @@ export default function CreatePage() {
               Category *
             </Typography>
           </Box>
-          <Controller
+          <RHFInfiniteSelect
             name="category_id"
-            control={control}
-            render={({ field: { onChange, value }, fieldState: { error } }) => (
-              <div>
-                <select
-                  value={value}
-                  onChange={(e) => {
-                    onChange(Number(e.target.value));
-                    setValue('variants', []);
-                    setValue('category_details', []);
-                  }}
-                  className={inputCls}
-                >
-                  <option value={0}>Select Category</option>
-                  {categories.map((c: any) => (
-                    <option key={c.id} value={c.id}>
-                      {typeof c.name === 'object' ? c.name?.en ?? c.name?.ar : c.name}
-                    </option>
-                  ))}
-                </select>
-                {error && (
-                  <Typography variant="caption" className="text-destructive mt-1">
-                    {error.message}
-                  </Typography>
-                )}
-              </div>
-            )}
+            queryKey={['categories', 'infinite', 'product-form']}
+            fetcher={categoryFetcher}
+            placeholder={t('form.selectCategory')}
+            initialLabel={productResponse?.category?.name}
+            onValueChange={() => {
+              setValue('variants', []);
+              setValue('category_details', []);
+            }}
           />
         </Box>
 
@@ -414,25 +559,12 @@ export default function CreatePage() {
               Create New Brand
             </Button>
           </Box>
-          <Controller
+          <RHFInfiniteSelect
             name="brand_id"
-            control={control}
-            render={({ field: { onChange, value } }) => (
-              <select
-                value={value ?? 0}
-                onChange={(e) => onChange(Number(e.target.value))}
-                className={inputCls}
-              >
-                <option value={0}>Select Brand (optional)</option>
-                {brands.map((b: any) => (
-                  <option key={b.id} value={b.id}>
-                    {typeof b.name === 'object'
-                      ? b.name?.en ?? b.name?.ar ?? `Brand #${b.id}`
-                      : b.name}
-                  </option>
-                ))}
-              </select>
-            )}
+            queryKey={['brands', 'infinite', 'product-form']}
+            fetcher={brandFetcher}
+            placeholder={t('form.selectBrandOptional')}
+            initialLabel={productResponse?.brand ? formatTranslated(productResponse.brand.name as any) : undefined}
           />
         </Box>
 
@@ -450,7 +582,7 @@ export default function CreatePage() {
               control={control}
               render={({ field, fieldState: { error } }) => (
                 <div>
-                  <input {...field} type="text" placeholder="e.g., iPhone 15" className={inputCls} />
+                  <input {...field} type="text" placeholder={t('form.productNamePlaceholder')} className={inputCls} />
                   {error && (
                     <Typography variant="caption" className="text-destructive mt-1">
                       {error.message}
@@ -507,7 +639,7 @@ export default function CreatePage() {
                   <textarea
                     {...field}
                     rows={3}
-                    placeholder="Product description in English"
+                    placeholder={t('form.productDescPlaceholder')}
                     className={inputCls}
                   />
                   {error && (
@@ -565,7 +697,7 @@ export default function CreatePage() {
                 <textarea
                   {...field}
                   rows={4}
-                  placeholder="Full detailed description in English"
+                  placeholder={t('form.fullDescPlaceholder')}
                   className={inputCls}
                 />
               )}
@@ -607,7 +739,7 @@ export default function CreatePage() {
               name="country.en"
               control={control}
               render={({ field }) => (
-                <input {...field} type="text" placeholder="e.g., USA" className={inputCls} />
+                <input {...field} type="text" placeholder={t('form.countryPlaceholder')} className={inputCls} />
               )}
             />
           </Box>
@@ -748,7 +880,7 @@ export default function CreatePage() {
               name="sku"
               control={control}
               render={({ field }) => (
-                <input {...field} type="text" placeholder="e.g., SKU-001" className={inputCls} />
+                <input {...field} type="text" placeholder={t('form.skuPlaceholder')} className={inputCls} />
               )}
             />
           </Box>
@@ -761,7 +893,7 @@ export default function CreatePage() {
               name="model"
               control={control}
               render={({ field }) => (
-                <input {...field} type="text" placeholder="e.g., iPhone15Pro" className={inputCls} />
+                <input {...field} type="text" placeholder={t('form.modelPlaceholder')} className={inputCls} />
               )}
             />
           </Box>
@@ -902,7 +1034,7 @@ export default function CreatePage() {
                     </Button>
                   </Box>
 
-                  {/* Attribute selects */}
+                  {/* Attribute selects / color picker */}
                   <Box className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {categoryAttributes.map((attr: any) => {
                       const selectedIds =
@@ -914,46 +1046,92 @@ export default function CreatePage() {
                         selectedIds.includes(Number(v.id))
                       );
 
+                      const getValColor = (v: any) => {
+                        const raw = typeof v?.name === 'object' ? v?.name?.en ?? v?.name?.ar : v?.name;
+                        const s = String(raw || '').trim();
+                        if (/^#[0-9a-fA-F]{3,8}$/.test(s)) return s;
+                        const colorMap: Record<string, string> = {
+                          red: '#ff0000', blue: '#0000ff', green: '#008000',
+                          white: '#ffffff', black: '#000000', yellow: '#ffff00',
+                          orange: '#ffa500', gray: '#808080', grey: '#808080',
+                          pink: '#ffc0cb', purple: '#800080', brown: '#a52a2a',
+                        };
+                        return colorMap[s.toLowerCase()] ?? '#cccccc';
+                      };
+
+                      const isColor = String(attr.type).toLowerCase() === 'color';
+
                       return (
                         <Box key={attr.id} className="group">
                           <Typography variant="caption" className="text-muted-foreground mb-1 block">
                             {typeof attr.name === 'object' ? attr.name?.en : attr.name} ({attr.type})
                           </Typography>
-                          <select
-                            value={found ? Number(found.id) : 0}
-                            onChange={(e) => {
-                              const pickedId = Number(e.target.value);
-                              const current = (watch(
-                                `variants.${variantIndex}.attributes_values_ids`
-                              ) || []) as number[];
-                              const filtered = current.filter((i) => !attrValueIds.has(i));
-                              setValue(
-                                `variants.${variantIndex}.attributes_values_ids`,
-                                pickedId ? [...filtered, pickedId] : filtered,
-                                { shouldDirty: true }
-                              );
-                            }}
-                            className={inputCls}
-                          >
-                            <option value={0}>
-                              Select {typeof attr.name === 'object' ? attr.name?.en : attr.name}
-                            </option>
-                            {(attr.values || []).map((val: any) => (
-                              <option key={val.id} value={val.id}>
-                                {typeof val.name === 'object' ? val.name?.en : val.name}
-                              </option>
-                            ))}
-                          </select>
-                          {attr.type === 'color' && found && (
-                            <Box className="mt-1 flex items-center gap-2">
-                              <span
-                                className="inline-block w-4 h-4 rounded border border-border"
-                                style={{ background: String(found.name) }}
-                              />
-                              <Typography variant="caption" className="text-muted-foreground">
-                                {found.name}
-                              </Typography>
+                          {isColor ? (
+                            <Box className="flex flex-wrap items-center gap-2">
+                              {(attr.values || []).map((val: any) => {
+                                const hex = getValColor(val);
+                                const isSelected = selectedIds.includes(Number(val.id));
+                                const label = typeof val.name === 'object' ? val.name?.en ?? val.name?.ar : val.name;
+                                return (
+                                  <button
+                                    key={val.id}
+                                    type="button"
+                                    onClick={() => {
+                                      const current = (watch(
+                                        `variants.${variantIndex}.attributes_values_ids`
+                                      ) || []) as number[];
+                                      const filtered = current.filter((i) => !attrValueIds.has(i));
+                                      const next = isSelected
+                                        ? filtered
+                                        : [...filtered, Number(val.id)];
+                                      setValue(
+                                        `variants.${variantIndex}.attributes_values_ids`,
+                                        next,
+                                        { shouldDirty: true }
+                                      );
+                                    }}
+                                    className={`flex items-center gap-2 rounded-lg border-2 p-2 transition-all hover:scale-105 ${
+                                      isSelected ? 'border-primary ring-2 ring-primary/30' : 'border-border hover:border-primary/50'
+                                    }`}
+                                    title={String(label || hex)}
+                                  >
+                                    <span
+                                      className="h-8 w-8 rounded-md border border-border/60 shrink-0"
+                                      style={{ background: hex }}
+                                    />
+                                    <Typography variant="caption" className="text-foreground truncate max-w-[80px]">
+                                      {label || hex}
+                                    </Typography>
+                                  </button>
+                                );
+                              })}
                             </Box>
+                          ) : (
+                            <select
+                              value={found ? Number(found.id) : 0}
+                              onChange={(e) => {
+                                const pickedId = Number(e.target.value);
+                                const current = (watch(
+                                  `variants.${variantIndex}.attributes_values_ids`
+                                ) || []) as number[];
+                                const filtered = current.filter((i) => !attrValueIds.has(i));
+                                setValue(
+                                  `variants.${variantIndex}.attributes_values_ids`,
+                                  pickedId ? [...filtered, pickedId] : filtered,
+                                  { shouldDirty: true }
+                                );
+                              }}
+                              className={inputCls}
+                            >
+                              <option value={0}>
+                                Select {typeof attr.name === 'object' ? attr.name?.en : attr.name}
+                              </option>
+                              {(attr.values || []).map((val: any) => (
+                                <option key={val.id} value={val.id}>
+                                  {typeof val.name === 'object' ? val.name?.en : val.name}
+                                </option>
+                              ))}
+                            </select>
                           )}
                         </Box>
                       );
@@ -1062,7 +1240,7 @@ export default function CreatePage() {
                       name={`category_details.${index}.detail_value.en`}
                       control={control}
                       render={({ field: f }) => (
-                        <input {...f} placeholder="Value (EN)" className={inputCls} />
+                        <input {...f} placeholder={t('form.productValueEn')} className={inputCls} />
                       )}
                     />
                     <Controller
@@ -1112,7 +1290,7 @@ export default function CreatePage() {
                     name={`extra_details.${index}.detail_key.en`}
                     control={control}
                     render={({ field: f }) => (
-                      <input {...f} placeholder="Key (EN) — e.g., Weight" className={inputCls} />
+                      <input {...f} placeholder={t('form.productKeyEnPlaceholder')} className={inputCls} />
                     )}
                   />
                   <Controller
@@ -1131,7 +1309,7 @@ export default function CreatePage() {
                     name={`extra_details.${index}.detail_value.en`}
                     control={control}
                     render={({ field: f }) => (
-                      <input {...f} placeholder="Value (EN) — e.g., 500g" className={inputCls} />
+                      <input {...f} placeholder={t('form.productValueEnPlaceholder')} className={inputCls} />
                     )}
                   />
                   <Controller

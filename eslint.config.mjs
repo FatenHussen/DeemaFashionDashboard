@@ -50,6 +50,12 @@ const commonRules = () => ({
  */
 const importRules = () => ({
   ...importPlugin.configs.recommended.rules,
+  'import/no-unresolved': [
+    2,
+    {
+      ignore: ['^firebase', '^leaflet', '^recharts', '^react-select'],
+    },
+  ],
   'import/named': 0,
   'import/export': 0,
   'import/default': 0,

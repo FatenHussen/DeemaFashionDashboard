@@ -1,4 +1,5 @@
 import { Button } from '@/shared/ui/button';
+import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
 import { useFetchVendorPackageById } from '@/pages/dashboard/vendor/hooks/vendor-package';
@@ -19,6 +20,7 @@ function DetailRow({ label, value }: { label: string; value: React.ReactNode }) 
 }
 
 export default function DetailsPage() {
+  const { t } = useTranslation('table');
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: response, isLoading, error } = useFetchVendorPackageById(id || '');
@@ -106,13 +108,13 @@ export default function DetailsPage() {
                 Package Information
               </Typography>
               <Box className="grid gap-4 sm:grid-cols-2">
-                <DetailRow label="Price" value={pkg.price} />
-                <DetailRow label="Duration (Days)" value={pkg.duration_days} />
-                <DetailRow label="Max Products" value={pkg.max_products} />
-                <DetailRow label="Commission Rate (%)" value={pkg.commission_rate} />
-                <DetailRow label="Commission Per Order" value={pkg.commission_per_order} />
+                <DetailRow label={t('columns.price')} value={pkg.price} />
+                <DetailRow label={t('columns.durationDays')} value={pkg.duration_days} />
+                <DetailRow label={t('columns.maxProducts')} value={pkg.max_products} />
+                <DetailRow label={t('form.commissionRatePercent')} value={pkg.commission_rate} />
+                <DetailRow label={t('form.commissionPerOrder')} value={pkg.commission_per_order} />
                 <DetailRow
-                  label="Status"
+                  label={t('columns.status')}
                   value={
                     <span
                       className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
@@ -123,12 +125,12 @@ export default function DetailsPage() {
                     </span>
                   }
                 />
-                <DetailRow label="Search Priority" value={pkg.search_priority} />
-                <DetailRow label="Max Campaigns" value={pkg.max_campaigns} />
-                <DetailRow label="Report Level" value={pkg.report_level} />
-                <DetailRow label="Active Subscriptions" value={pkg.active_subscriptions_count} />
-                <DetailRow label="Created At" value={pkg.created_at ? new Date(pkg.created_at).toLocaleString() : '-'} />
-                <DetailRow label="Updated At" value={pkg.updated_at ? new Date(pkg.updated_at).toLocaleString() : '-'} />
+                <DetailRow label={t('form.searchPriority')} value={pkg.search_priority} />
+                <DetailRow label={t('form.maxCampaigns')} value={pkg.max_campaigns} />
+                <DetailRow label={t('form.reportLevel')} value={pkg.report_level} />
+                <DetailRow label={t('form.activeSubscriptions')} value={pkg.active_subscriptions_count} />
+                <DetailRow label={t('columns.createdAt')} value={pkg.created_at ? new Date(pkg.created_at).toLocaleString() : '-'} />
+                <DetailRow label={t('columns.updatedAt')} value={pkg.updated_at ? new Date(pkg.updated_at).toLocaleString() : '-'} />
               </Box>
 
               {descStr && (

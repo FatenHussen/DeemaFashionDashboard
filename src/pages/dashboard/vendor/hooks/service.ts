@@ -35,14 +35,12 @@ export const useUpdateService = () => {
   return useMutation({
     mutationFn: ({ id, data }: { id: number | string; data: ServiceCreateUpdatePayload }) =>
       _ServiceApi.updateService(id, data),
-    onSuccess: () => {
-      // Invalidate all service list queries
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({
         queryKey: ['service', 'list'],
         refetchType: 'active',
       });
-
-      // Explicitly refetch all active service list queries
+      queryClient.invalidateQueries({ queryKey: queryKeys.service.details(variables.id) });
       queryClient.refetchQueries({
         queryKey: ['service', 'list'],
         type: 'active',

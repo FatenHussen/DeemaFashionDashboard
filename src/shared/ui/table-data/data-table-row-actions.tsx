@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router';
 import { Button } from '@/shared/ui/button';
 import { useTranslation } from 'react-i18next';
 import { Dialog, DialogContent } from '@/shared/ui/dialogTable';
-import { Eye, Trash, Pencil, MoreHorizontal } from 'lucide-react';
+import { Eye, Trash, Pencil, KeyRound, MoreHorizontal } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuItem,
@@ -23,6 +23,7 @@ interface DataTableRowActionsProps<TData> {
   editItem?: string | undefined;
   onEdit?: (row: Row<TData>) => void;
   onDelete?: (id: number) => void;
+  onUpdatePassword?: (row: Row<TData>) => void;
   permissions?: {
     update: boolean;
     delete: boolean;
@@ -40,6 +41,7 @@ export function DataTableRowActions<TData>({
   editItem,
   onEdit,
   onDelete,
+  onUpdatePassword,
   permissions,
   isDeleting = false,
   isDeleteDialogOpen = false,
@@ -144,6 +146,19 @@ export function DataTableRowActions<TData>({
               >
                 <Pencil className="mr-2 h-4 w-4" />
                 {t('editDetails')}
+              </DropdownMenuItem>
+            )}
+
+            {permissions?.update && onUpdatePassword && (
+              <DropdownMenuItem
+                className="hover:bg-muted"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onUpdatePassword(row);
+                }}
+              >
+                <KeyRound className="mr-2 h-4 w-4" />
+                {t('updatePassword')}
               </DropdownMenuItem>
             )}
 

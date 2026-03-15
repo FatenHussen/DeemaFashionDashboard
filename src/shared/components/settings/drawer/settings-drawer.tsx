@@ -316,10 +316,10 @@ export function SettingsDrawer({ defaultSettings }: SettingsDrawerProps) {
         backdrop: { invisible: true },
       }}
     >
-      {renderHead()}
-
-      <Scrollbar>
-        <Box className="pb-10 gap-12 px-5 flex flex-col">
+      <div className="flex flex-col h-full overflow-hidden">
+        {renderHead()}
+        <Scrollbar className="flex-1 min-h-0">
+          <Box className="pb-10 gap-12 px-5 flex flex-col">
           <Box className="gap-2 grid grid-cols-2">
             {isColorSchemeVisible && renderMode()}
             {isContrastVisible && renderContrast()}
@@ -331,7 +331,8 @@ export function SettingsDrawer({ defaultSettings }: SettingsDrawerProps) {
           {isPrimaryColorVisible && renderPresets()}
           {(isFontFamilyVisible || isFontSizeVisible) && renderFont()}
         </Box>
-      </Scrollbar>
+        </Scrollbar>
+      </div>
     </Drawer>
   );
 }

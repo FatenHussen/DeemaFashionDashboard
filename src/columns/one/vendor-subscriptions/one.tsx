@@ -21,12 +21,12 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export const vendorSubscriptionColumns = (
-  _t: TFunction<'table'>
+  t: TFunction<'table'>
 ): ColumnDef<VendorSubscriptionFormValues>[] => [
   {
     id: 'id',
     accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="ID" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
     cell: ({ row }) => (
       <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
         <span className="text-xs font-semibold text-primary">{row.original.id}</span>
@@ -36,7 +36,7 @@ export const vendorSubscriptionColumns = (
   {
     id: 'shop_name',
     accessorKey: 'shop_name',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Shop" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.shop')} />,
     cell: ({ row }) => (
       <span className="font-medium text-foreground">{row.original.shop_name}</span>
     ),
@@ -44,7 +44,7 @@ export const vendorSubscriptionColumns = (
   {
     id: 'package',
     accessorKey: 'package',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Package" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.package')} />,
     cell: ({ row }) => (
       <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium bg-primary/10 text-primary border-primary/20">
         {formatTranslated(row.original.package?.name) || '-'}
@@ -54,7 +54,7 @@ export const vendorSubscriptionColumns = (
   {
     id: 'starts_at',
     accessorKey: 'starts_at',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Starts" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.starts')} />,
     cell: ({ row }) => (
       <span className="text-sm text-muted-foreground">{row.original.starts_at}</span>
     ),
@@ -62,7 +62,7 @@ export const vendorSubscriptionColumns = (
   {
     id: 'ends_at',
     accessorKey: 'ends_at',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Ends" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.ends')} />,
     cell: ({ row }) => (
       <span className="text-sm text-muted-foreground">{row.original.ends_at}</span>
     ),
@@ -70,7 +70,7 @@ export const vendorSubscriptionColumns = (
   {
     id: 'auto_renew',
     accessorKey: 'auto_renew',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Auto Renew" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.autoRenew')} />,
     cell: ({ row }) =>
       row.original.auto_renew ? (
         <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-blue-500/20 text-blue-600">
@@ -83,7 +83,7 @@ export const vendorSubscriptionColumns = (
   {
     id: 'status',
     accessorKey: 'status',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.status')} />,
     cell: ({ row }) => {
       const status = row.original.status;
       return (
@@ -98,7 +98,7 @@ export const vendorSubscriptionColumns = (
   {
     id: 'created_at',
     accessorKey: 'created_at',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Created" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.created')} />,
     cell: ({ row }) => (
       <span className="text-xs text-muted-foreground">{row.original.created_at}</span>
     ),

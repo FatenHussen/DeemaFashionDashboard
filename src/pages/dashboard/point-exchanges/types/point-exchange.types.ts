@@ -1,20 +1,25 @@
 // ----------------------------------------------------------------------
 
-export type PointExchangeStatus = 'approved' | 'rejected' | 'pending';
+export type PointExchangeStatus = 'approved' | 'rejected' | 'pending' | 'completed';
+
+export type PointExchangeType = 'free_delivery' | 'gift' | string;
 
 export interface PointExchangeUser {
   id: number;
   name: string;
-  email: string;
+  email?: string;
 }
 
 export interface PointExchangeItem {
   id: number;
   user: PointExchangeUser;
-  points: number;
+  exchange_type?: PointExchangeType;
   status: PointExchangeStatus;
+  points?: number;
+  points_used?: number;
+  delivered_at?: string | null;
   created_at: string;
-  updated_at: string;
+  updated_at?: string;
 }
 
 export interface PointExchangeListResponse {
@@ -34,10 +39,13 @@ export interface PointExchangeListResponse {
 export interface PointExchangeDetailsData {
   id: number;
   user: PointExchangeUser;
-  points: number;
+  exchange_type?: PointExchangeType;
   status: PointExchangeStatus;
+  points?: number;
+  points_used?: number;
+  delivered_at?: string | null;
   created_at: string;
-  updated_at: string;
+  updated_at?: string;
 }
 
 export interface PointExchangeDetailsResponse {

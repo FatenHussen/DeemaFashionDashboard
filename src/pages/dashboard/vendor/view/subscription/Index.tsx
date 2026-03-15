@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Button } from '@/shared/ui/button';
 import { useTranslation } from 'react-i18next';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { useFetchVendorSubscriptions } from '@/pages/dashboard/vendor/hooks/vendor-subscription';
@@ -65,57 +66,45 @@ export default function Page() {
       }
     : { current_page: 1, last_page: 1, per_page: 10, total: 0, from: 0, to: 0 };
 
+  const filterContent = (
+    <>
+      <input
+        type="text"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        onKeyDown={(e) => e.key === 'Enter' && handleApplyFilters()}
+        placeholder={t('searchByShopName')}
+        className="h-10 min-w-[180px] rounded-xl border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50"
+      />
+      <select
+        value={statusFilter}
+        onChange={(e) => {
+          setStatusFilter(e.target.value);
+          setCurrentPage(1);
+        }}
+        className="h-10 min-w-[120px] rounded-xl border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+      >
+        <option value="">{t('allStatuses')}</option>
+        {VENDOR_SUBSCRIPTION_STATUSES.map((s) => (
+          <option key={s} value={s}>
+            {s.charAt(0).toUpperCase() + s.slice(1)}
+          </option>
+        ))}
+      </select>
+      <Button variant="outlined" size="small" onClick={handleApplyFilters} className="h-10 px-4 rounded-xl">
+        {t('apply')}
+      </Button>
+      {hasActiveFilters && (
+        <Button variant="text" size="small" onClick={handleResetFilters} className="h-10 px-4 rounded-xl text-muted-foreground hover:text-foreground">
+          {t('resetFilter')}
+        </Button>
+      )}
+    </>
+  );
+
   return (
     <>
       <title>{metadata.title}</title>
-
-      {/* Filters */}
-      <div className="mb-4 flex flex-wrap gap-3 rounded-xl border border-border bg-card p-4 shadow-sm rtl:flex-row-reverse">
-        {/* Search */}
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && handleApplyFilters()}
-          placeholder={t('searchByShopName')}
-          className="h-9 min-w-[200px] rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-        />
-
-        {/* Status filter */}
-        <select
-          value={statusFilter}
-          onChange={(e) => {
-            setStatusFilter(e.target.value);
-            setCurrentPage(1);
-          }}
-          className="h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-        >
-          <option value="">{t('allStatuses')}</option>
-          {VENDOR_SUBSCRIPTION_STATUSES.map((s) => (
-            <option key={s} value={s}>
-              {s.charAt(0).toUpperCase() + s.slice(1)}
-            </option>
-          ))}
-        </select>
-
-        <button
-          type="button"
-          onClick={handleApplyFilters}
-          className="h-9 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-        >
-          {t('apply')}
-        </button>
-
-        {hasActiveFilters && (
-          <button
-            type="button"
-            onClick={handleResetFilters}
-            className="h-9 rounded-md border border-border px-4 text-sm font-medium text-foreground hover:bg-muted"
-          >
-            {t('resetFilter')}
-          </button>
-        )}
-      </div>
 
       <DataTable
         tableName="Vendor Subscriptions"
@@ -123,6 +112,7 @@ export default function Page() {
         data={items}
         hasDetails
         detailsLink="/vendor-subscriptions"
+        toolbarFilter={filterContent}
         permissions={{
           create: false,
           update: false,

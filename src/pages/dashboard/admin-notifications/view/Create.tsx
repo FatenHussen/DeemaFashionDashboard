@@ -1,6 +1,7 @@
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router';
 import { Button } from '@/shared/ui/button';
+import { useTranslation } from 'react-i18next';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Iconify } from '@/shared/components/iconify';
@@ -21,6 +22,7 @@ import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout
 const metadata = { title: `Send Notification | Dashboard - ${CONFIG.appName}` };
 
 export default function CreatePage() {
+  const { t } = useTranslation('table');
   const navigate = useNavigate();
   const createMutation = useCreateAdminNotification();
 
@@ -40,7 +42,7 @@ export default function CreatePage() {
       await createMutation.mutateAsync(data);
       toast.success('Notification sent successfully');
       navigate('/admin-notifications');
-    } catch {}
+    } catch { return; }
   };
 
   const isSubmitting = createMutation.isPending;
@@ -69,18 +71,18 @@ export default function CreatePage() {
           onCancel={() => navigate('/admin-notifications')}
           isSubmitting={isSubmitting}
           errorMessage={mutationError}
-          title="Send Notification"
-          description="Send a push notification to users, drivers, or vendors"
+          title={t('form.sendNotification')}
+          description={t('form.sendNotificationDesc')}
           isEditMode={false}
           maxWidth="2xl"
-          submitLabel="Send Notification"
+          submitLabel={t('form.sendNotificationSubmit')}
           submittingLabel="Sending..."
         >
           <Box className="col-span-2">
             <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
               Title <span className="text-destructive">*</span>
             </Typography>
-            <RHFTextField name="title" placeholder="e.g. Hi driver from admin" fullWidth />
+            <RHFTextField name="title" placeholder={t('form.notificationTitlePlaceholder')} fullWidth />
           </Box>
 
           <Box className="col-span-2">
@@ -95,7 +97,7 @@ export default function CreatePage() {
                   <textarea
                     {...field}
                     rows={4}
-                    placeholder="Enter notification message..."
+                    placeholder={t('form.enterNotificationMessage')}
                     className={`w-full rounded-md border bg-background px-3 py-2 text-sm resize-y focus:outline-none focus:ring-2 focus:ring-primary ${
                       fieldError ? 'border-destructive' : 'border-input'
                     }`}

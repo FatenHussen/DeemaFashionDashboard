@@ -1,10 +1,14 @@
 import { useEffect } from 'react';
 import { toast } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
+import { formatTranslated } from '@/utils/format-translated';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { useFetchCategories } from '@/pages/dashboard/categories/hooks/category';
+import { _CategoryApi } from '@/pages/dashboard/categories/api/category.services';
+import { RHFInfiniteSelect } from '@/shared/components/hook-form/rhf-infinite-select';
 import {
   CategoryAttributeSchema,
   type CategoryAttributeFormValues,
@@ -24,6 +28,17 @@ import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout
 
 const metadata = { title: `Category Attribute ${CONFIG.appName}` };
 
+const categoryFetcher = (page: number, limit: number) =>
+  _CategoryApi.getListCategoriesPaginated({ page, per_page: limit }).then((r) => ({
+    data: {
+      items: (r.data?.items ?? []).map((cat) => ({
+        id: cat.id,
+        label: typeof cat.name === 'object' ? formatTranslated(cat.name) : cat.name,
+      })),
+      pagination: r.data?.pagination ?? { current_page: 1, last_page: 1, per_page: limit, total: 0 },
+    },
+  }));
+
 const TYPE_OPTIONS = [
   { value: 'color', label: 'Color' },
   { value: 'square', label: 'Square' },
@@ -31,6 +46,7 @@ const TYPE_OPTIONS = [
 ];
 
 export default function CreatePage() {
+  const { t } = useTranslation('table');
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
   const isEditMode = !!id;
@@ -38,7 +54,7 @@ export default function CreatePage() {
   // Hooks for fetching and mutations
   const { data: categoryAttributeData, isLoading: isLoadingAttribute } =
     useFetchCategoryAttributeById(id || '');
-  const { data: categoriesResponse } = useFetchCategories(1, 100); // Fetch all for category dropdown
+  const { data: categoriesResponse } = useFetchCategories(1, 500); // For edit mode: resolve category_id from name
   const createCategoryAttributeMutation = useCreateCategoryAttribute();
   const updateCategoryAttributeMutation = useUpdateCategoryAttribute();
 
@@ -65,23 +81,22 @@ export default function CreatePage() {
 
   // Fetch category attribute data if in edit mode
   useEffect(() => {
-    if (
-      isEditMode &&
-      categoryAttributeData?.data &&
-      !isLoadingAttribute &&
-      categoriesResponse?.data?.items
-    ) {
+    if (isEditMode && categoryAttributeData?.data && !isLoadingAttribute) {
       const attribute = categoryAttributeData.data;
-      // Find category by name (matching Arabic or English name)
-      const foundCategory = categoriesResponse.data.items.find(
-        (cat) => cat.name === attribute.category
-      );
+      let categoryId = 0;
+      if (categoriesResponse?.data?.items?.length) {
+        const foundCategory = categoriesResponse.data.items.find((cat: any) => {
+          const catName = typeof cat.name === 'object' ? formatTranslated(cat.name) : cat.name;
+          return catName === attribute.category;
+        });
+        categoryId = foundCategory?.id ?? 0;
+      }
       reset({
-        category_id: foundCategory?.id || 0,
+        category_id: categoryId,
         name: attribute.name,
         type: attribute.type,
         values:
-          attribute.values.length > 0
+          attribute.values?.length > 0
             ? attribute.values.map((val) => ({
                 name: val.name,
               }))
@@ -142,13 +157,6 @@ export default function CreatePage() {
     ? 'You can update any field. Make sure both Arabic and English names are provided for the attribute and all values.'
     : 'Fill in the category, attribute name, type, and values. Make sure both Arabic and English names are provided.';
 
-  // Prepare category options
-  const categoryOptions =
-    categoriesResponse?.data?.items.map((cat) => ({
-      value: cat.id,
-      label: cat.name,
-    })) || [];
-
   return (
     <>
       <title>
@@ -171,7 +179,7 @@ export default function CreatePage() {
         }
         isEditMode={isEditMode}
         isLoading={isLoadingAttribute}
-        loadingText="Loading category attribute data..."
+        loadingText={t('form.loadingCategoryAttribute')}
         maxWidth="4xl"
         infoText={infoText}
         submitLabel={isEditMode ? 'Update Attribute' : 'Create Attribute'}
@@ -182,24 +190,16 @@ export default function CreatePage() {
           <Box className="flex items-center gap-2 mb-2">
             <Iconify icon="solar:diagram-bold" className="text-primary" width={24} height={24} />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Category
+              {t('form.categoryLabel')}
             </Typography>
           </Box>
-          <Controller
+          <RHFInfiniteSelect
             name="category_id"
-            control={control}
-            render={({ field: { onChange, value }, fieldState: { error } }) => (
-              <SimpleSelect
-                value={value || ''}
-                onChange={(val) => onChange(val ? Number(val) : 0)}
-                options={categoryOptions}
-                placeholder="Select a category"
-                error={!!error}
-                helperText={error?.message || 'Select the category for this attribute'}
-                fullWidth
-                className="transition-all duration-200"
-              />
-            )}
+            queryKey={['categories', 'infinite', 'attribute-form']}
+            fetcher={categoryFetcher}
+            placeholder={t('form.selectCategory')}
+            helperText={t('form.attributeCategoryHelper')}
+            initialLabel={categoryAttributeData?.data?.category}
           />
         </Box>
 
@@ -208,13 +208,13 @@ export default function CreatePage() {
           <Box className="flex items-center gap-2 mb-2">
             <Iconify icon="solar:tag-bold" className="text-primary" width={24} height={24} />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Attribute Name (Arabic)
+              {t('form.nameAr')}
             </Typography>
           </Box>
           <RHFTextField
             name="name.ar"
-            placeholder="e.g., اللون"
-            helperText="Enter the attribute name in Arabic"
+            placeholder={t('form.colorNameAr')}
+            helperText={t('form.attributeNameArHelper')}
             className="transition-all duration-200"
             dir="rtl"
           />
@@ -225,13 +225,13 @@ export default function CreatePage() {
           <Box className="flex items-center gap-2 mb-2">
             <Iconify icon="solar:tag-bold" className="text-primary" width={24} height={24} />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Attribute Name (English)
+              {t('form.nameEn')}
             </Typography>
           </Box>
           <RHFTextField
             name="name.en"
-            placeholder="e.g., Color"
-            helperText="Enter the attribute name in English"
+            placeholder={t('form.colorNameEn')}
+            helperText={t('form.attributeNameEnHelper')}
             className="transition-all duration-200"
           />
         </Box>
@@ -252,7 +252,7 @@ export default function CreatePage() {
                 value={value || ''}
                 onChange={onChange}
                 options={TYPE_OPTIONS}
-                placeholder="Select attribute type"
+                placeholder={t('form.selectAttributeType')}
                 error={!!error}
                 helperText={
                   error?.message || 'Select the type of attribute (color, square, circle)'
@@ -309,14 +309,14 @@ export default function CreatePage() {
               <Box className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <RHFTextField
                   name={`values.${index}.name.en`}
-                  placeholder="e.g., Red"
-                  label="English Name"
+                  placeholder={t('form.valueEn')}
+                  label={t('form.nameEn')}
                   className="transition-all duration-200"
                 />
                 <RHFTextField
                   name={`values.${index}.name.ar`}
-                  placeholder="e.g., أحمر"
-                  label="Arabic Name"
+                  placeholder={t('form.valueAr')}
+                  label={t('form.nameAr')}
                   className="transition-all duration-200"
                   dir="rtl"
                 />

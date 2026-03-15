@@ -8,7 +8,6 @@ import { paths } from 'src/routes/paths';
 import { RouterLink } from 'src/routes/components';
 
 import { CONFIG } from 'src/global-config';
-import { Logo } from 'src/shared/components/logo';
 
 import { AuthSplitSection } from './section';
 import { AuthSplitContent } from './content';
@@ -46,21 +45,25 @@ export function AuthSplitLayout({
     const headerSlots: HeaderSectionProps['slots'] = {
       topArea: <div className="hidden rounded-none">This is an info Alert.</div>,
       leftArea: (
-        <>
-          {/** @slot Logo */}
-          <Logo href="/" />
-        </>
+        // <>
+        //   {/** @slot Logo */}
+        //   <RouterLink href="/" className="block">
+        //     <img src="/logo/logo.png" alt="Logo" className="h-10 w-auto object-contain" />
+        //   </RouterLink>
+        // </>
+        null
       ),
       rightArea: (
-        <div className="flex items-center gap-2 sm:gap-3">
-          {/** @slot Help link */}
-          <RouterLink href={paths.faqs} className="text-inherit text-sm font-medium">
-            Need help?
-          </RouterLink>
+        // <div className="flex items-center gap-2 sm:gap-3">
+        //   {/** @slot Help link */}
+        //   <RouterLink href={paths.faqs} className="text-inherit text-sm font-medium">
+        //     Need help?
+        //   </RouterLink>
 
-          {/** @slot Settings button */}
-          <SettingsButton />
-        </div>
+        //   {/** @slot Settings button */}
+        //   <SettingsButton />
+        // </div>
+        null
       ),
     };
 

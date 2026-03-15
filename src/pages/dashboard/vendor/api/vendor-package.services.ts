@@ -1,7 +1,7 @@
 import type {
-  VendorPackageCreateUpdatePayload,
-  VendorPackageDetailsResponse,
   VendorPackageListResponse,
+  VendorPackageDetailsResponse,
+  VendorPackageCreateUpdatePayload,
 } from '../types/vendor-package.types';
 
 import { apiRoutes, axiosInstance } from '@/api';

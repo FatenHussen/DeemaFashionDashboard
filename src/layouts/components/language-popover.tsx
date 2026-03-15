@@ -34,7 +34,14 @@ export function LanguagePopover({ data = [], className, ...other }: LanguagePopo
   );
 
   const renderMenuList = () => (
-    <CustomPopover open={open} anchorEl={anchorEl} onClose={onClose}>
+    <CustomPopover
+      open={open}
+      anchorEl={anchorEl}
+      onClose={onClose}
+      anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      transformOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      slotProps={{ arrow: { offset: 2, placement: 'bottom-left' } }}
+    >
       <ul className="w-40 min-h-[72px] p-0 m-0 list-none">
         {data?.map((option) => (
           <li key={option.value}>
@@ -64,7 +71,7 @@ export function LanguagePopover({ data = [], className, ...other }: LanguagePopo
         whileHover={varHover(1.04)}
         transition={transitionTap()}
         aria-label="Languages button"
-        onClick={onOpen}
+        onClick={(e) => onOpen(e as any)}
         className={`p-0 w-10 h-10 inline-flex items-center justify-center rounded-lg hover:bg-muted transition-colors ${
           open ? 'bg-muted' : ''
         } ${className || ''}`}

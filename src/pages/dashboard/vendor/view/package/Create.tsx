@@ -2,6 +2,7 @@ import type { VendorPackageDetails } from '@/pages/dashboard/vendor/types/vendor
 
 import { useEffect } from 'react';
 import { toast } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useNavigate, useLocation } from 'react-router';
@@ -86,6 +87,7 @@ function mapDetailsToForm(source: VendorPackageDetails): VendorPackageFormValues
 const metadata = { title: `Vendor Package | ${CONFIG.appName}` };
 
 export default function CreatePage() {
+  const { t } = useTranslation('table');
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
   const location = useLocation();
@@ -127,7 +129,7 @@ export default function CreatePage() {
         toast.success('Vendor package created successfully');
       }
       navigate('/vendor-packages');
-    } catch {}
+    } catch { return; }
   };
 
   if (isEditMode && isLoadingDetails && !packageFromState) return <LoadingScreen />;
@@ -168,7 +170,7 @@ export default function CreatePage() {
         description={isEditMode ? 'Update vendor package details' : 'Add a new vendor subscription package'}
         isEditMode={isEditMode}
         isLoading={isEditMode && isLoadingDetails}
-        loadingText="Loading vendor package..."
+        loadingText={t('form.loadingVendorPackage')}
         maxWidth="4xl"
         submitLabel={isEditMode ? 'Update Package' : 'Create Package'}
         submittingLabel={isEditMode ? 'Updating...' : 'Creating...'}
@@ -180,7 +182,7 @@ export default function CreatePage() {
           <Box className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <Box>
               <Typography variant="caption" className="text-muted-foreground">English *</Typography>
-              <RHFTextField name="name.en" placeholder="Package name in English" fullWidth />
+              <RHFTextField name="name.en" placeholder={t('form.packageNameEnPlaceholder')} fullWidth />
             </Box>
             <Box>
               <Typography variant="caption" className="text-muted-foreground">Arabic *</Typography>
@@ -203,7 +205,7 @@ export default function CreatePage() {
                   <textarea
                     {...field}
                     rows={3}
-                    placeholder="Description in English"
+                    placeholder={t('form.descriptionEnPlaceholder2')}
                     className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                   />
                 )}
@@ -288,16 +290,16 @@ export default function CreatePage() {
             Features (Toggle)
           </Typography>
           <Box className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            <SwitchField name="is_active" label="Active" />
-            <SwitchField name="is_featured" label="Featured" />
-            <SwitchField name="has_premium_badge" label="Premium Badge" />
-            <SwitchField name="has_banner_ad" label="Banner Ad" />
-            <SwitchField name="has_sales_reports" label="Sales Reports" />
-            <SwitchField name="has_analytics" label="Analytics" />
-            <SwitchField name="can_set_prep_time" label="Can Set Prep Time" />
-            <SwitchField name="custom_shipping_options" label="Custom Shipping" />
-            <SwitchField name="has_vendor_delivery" label="Vendor Delivery" />
-            <SwitchField name="activation_fee_waived" label="Activation Fee Waived" />
+            <SwitchField name="is_active" label={t('active')} />
+            <SwitchField name="is_featured" label={t('form.featured')} />
+            <SwitchField name="has_premium_badge" label={t('form.premiumBadge')} />
+            <SwitchField name="has_banner_ad" label={t('form.bannerAd')} />
+            <SwitchField name="has_sales_reports" label={t('form.salesReports')} />
+            <SwitchField name="has_analytics" label={t('form.analytics')} />
+            <SwitchField name="can_set_prep_time" label={t('form.canSetPrepTime')} />
+            <SwitchField name="custom_shipping_options" label={t('form.customShipping')} />
+            <SwitchField name="has_vendor_delivery" label={t('form.vendorDelivery')} />
+            <SwitchField name="activation_fee_waived" label={t('form.activationFeeWaived')} />
           </Box>
         </Box>
       </CreateFormLayout>

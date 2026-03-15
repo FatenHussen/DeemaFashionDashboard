@@ -7,9 +7,12 @@ import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-
 
 const PointExchangeSchema = z.object({
   id: z.number(),
-  user: z.object({ id: z.number(), name: z.string(), email: z.string() }),
-  points: z.number(),
+  user: z.object({ id: z.number(), name: z.string(), email: z.string().optional() }),
+  exchange_type: z.string().optional(),
+  points: z.number().optional(),
+  points_used: z.number().optional(),
   status: z.string(),
+  delivered_at: z.string().nullable().optional(),
   created_at: z.string(),
 });
 
@@ -23,7 +26,7 @@ export const pointExchangeColumns = (
   {
     id: 'id',
     accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="ID" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
     cell: ({ row }) => (
       <div className="flex items-center gap-2">
         <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
@@ -35,48 +38,69 @@ export const pointExchangeColumns = (
   {
     id: 'user_name',
     accessorKey: 'user.name',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="User" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.user')} />,
     cell: ({ row }) => (
       <div>
         <div className="font-semibold text-foreground truncate">{row.original.user?.name ?? '-'}</div>
-        <div className="text-xs text-muted-foreground">{row.original.user?.email ?? '-'}</div>
+        {row.original.user?.email && (
+          <div className="text-xs text-muted-foreground">{row.original.user.email}</div>
+        )}
       </div>
     ),
   },
   {
-    id: 'points',
-    accessorKey: 'points',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Points" />,
+    id: 'exchange_type',
+    accessorKey: 'exchange_type',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.type')} />,
     cell: ({ row }) => (
-      <span className="text-sm font-medium">{row.original.points}</span>
+      <span className="text-sm capitalize">{row.original.exchange_type?.replace(/_/g, ' ') ?? '-'}</span>
     ),
+  },
+  {
+    id: 'points_used',
+    accessorKey: 'points_used',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.points')} />,
+    cell: ({ row }) => {
+      const pts = row.original.points_used ?? row.original.points;
+      return <span className="text-sm font-medium">{pts ?? '-'}</span>;
+    },
   },
   {
     id: 'status',
     accessorKey: 'status',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.status')} />,
     cell: ({ row }) => {
       const status = row.original.status;
-      const label = status.charAt(0).toUpperCase() + status.slice(1);
+      const label = status ? status.charAt(0).toUpperCase() + status.slice(1) : '-';
+      const statusClass =
+        status === 'completed' || status === 'approved'
+          ? 'bg-green-500/20 text-green-600'
+          : status === 'rejected'
+            ? 'bg-red-500/20 text-red-600'
+            : 'bg-yellow-500/20 text-yellow-600';
       return (
-        <span
-          className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-            status === 'approved'
-              ? 'bg-green-500/20 text-green-600'
-              : status === 'rejected'
-                ? 'bg-red-500/20 text-red-600'
-                : 'bg-yellow-500/20 text-yellow-600'
-          }`}
-        >
+        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${statusClass}`}>
           {label}
         </span>
       );
     },
   },
   {
+    id: 'delivered_at',
+    accessorKey: 'delivered_at',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.delivered')} />,
+    cell: ({ row }) => (
+      <span className="text-sm text-muted-foreground">
+        {row.original.delivered_at
+          ? new Date(row.original.delivered_at).toLocaleDateString()
+          : '-'}
+      </span>
+    ),
+  },
+  {
     id: 'created_at',
     accessorKey: 'created_at',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Created At" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.createdAt')} />,
     cell: ({ row }) => (
       <span className="text-sm text-muted-foreground">
         {new Date(row.original.created_at).toLocaleDateString()}

@@ -35,7 +35,7 @@ export default function Page() {
         await deleteBasketMutation.mutateAsync(deletingId);
         toast.success(t('deleteSuccess') || 'Basket deleted successfully');
         setDeletingId(null);
-      } catch {}
+      } catch { return; }
     }
   };
   const onDeleteCancel = () => setDeletingId(null);
@@ -43,7 +43,9 @@ export default function Page() {
     navigate(`/baskets/update/${row.original.id}`, { state: { basket: row.original } });
   };
 
-  const basketData: BasketFormValues[] = basketsResponse?.data?.items || [];
+  const basketData: BasketFormValues[] =
+    (basketsResponse?.data as { items?: BasketFormValues[]; data?: BasketFormValues[] } | undefined)
+      ?.items ?? (basketsResponse?.data as { data?: BasketFormValues[] } | undefined)?.data ?? [];
   const apiPagination = basketsResponse?.data?.pagination;
   const pagination = apiPagination
     ? {
@@ -85,7 +87,15 @@ export default function Page() {
           delete: hasPermission('delete', 'basket'),
         }}
         isLoading={isLoading}
-        columnTranslations={{ id: 'ID', name: 'Name', discount: 'Discount', items_count: 'Items', created_at: 'Created', actions: 'Actions' }}
+        columnTranslations={{
+          id: 'ID',
+          name: 'Name',
+          category: 'Category',
+          discount: 'Discount',
+          items_count: 'Items',
+          created_at: 'Created',
+          actions: 'Actions',
+        }}
         pagination={pagination}
         currentPage={currentPage}
         pageSize={pageSize}

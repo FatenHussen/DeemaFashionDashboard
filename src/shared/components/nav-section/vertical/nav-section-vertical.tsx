@@ -5,6 +5,7 @@ import { useBoolean } from 'minimal-shared/hooks';
 import { mergeClasses } from 'minimal-shared/utils';
 
 import { NavList } from './nav-list';
+import { canShowNavItem } from '../utils';
 import { navSectionClasses, navSectionCssVars } from '../styles';
 import { Nav, NavUl, NavLi, NavCollapse, NavSubheader } from '../components';
 
@@ -17,6 +18,7 @@ export function NavSectionVertical({
   slotProps,
   checkPermissions,
   checkPermission,
+  checkPermissionAny,
   enabledRootRedirect,
   cssVars: overridesVars,
   ...other
@@ -30,15 +32,16 @@ export function NavSectionVertical({
       {...other}
     >
       <NavUl className="flex-auto gap-[var(--nav-item-gap)]">
-        {data.map((group) => (
+        {data.map((group, index) => (
           <Group
-            key={String(group.subheader ?? group.items[0].title)}
+            key={index}
             subheader={group.subheader}
             items={group.items}
             render={render}
             slotProps={slotProps}
             checkPermissions={checkPermissions}
             checkPermission={checkPermission}
+            checkPermissionAny={checkPermissionAny}
             enabledRootRedirect={enabledRootRedirect}
           />
         ))}
@@ -56,9 +59,15 @@ function Group({
   slotProps,
   checkPermissions,
   checkPermission,
+  checkPermissionAny,
   enabledRootRedirect,
 }: NavGroupProps) {
   const groupOpen = useBoolean(true);
+
+  const hasVisibleItems = items.some((item) =>
+    canShowNavItem(item, checkPermissions, checkPermission, checkPermissionAny)
+  );
+  if (!hasVisibleItems) return null;
 
   const renderContent = () => (
     <NavUl className="gap-[var(--nav-item-gap)]">
@@ -71,6 +80,7 @@ function Group({
           slotProps={slotProps}
           checkPermissions={checkPermissions}
           checkPermission={checkPermission}
+          checkPermissionAny={checkPermissionAny}
           enabledRootRedirect={enabledRootRedirect}
         />
       ))}

@@ -1,10 +1,12 @@
+import type { ProductData } from '@/pages/dashboard/products/types/product.types';
+
 import { useState } from 'react';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router';
-import { productColumns } from '@/columns/one/products/one';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { usePermissions } from '@/auth/hooks/use-permissions';
+import { productColumns, type ProductFormValues } from '@/columns/one/products/one';
 import { useFetchProducts, useDeleteProduct } from '@/pages/dashboard/products/hooks/product';
 
 import { CONFIG } from 'src/global-config';
@@ -15,7 +17,7 @@ const metadata = { title: `Products | Dashboard - ${CONFIG.appName}` };
 
 export default function Page() {
   const { t } = useTranslation('table');
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const page = Number(searchParams.get('page')) || 1;
   const limit = Number(searchParams.get('limit')) || 10;
@@ -39,7 +41,7 @@ export default function Page() {
         await deleteProductMutation.mutateAsync(deletingId);
         toast.success(t('deleteSuccess') || 'Product deleted successfully');
         setDeletingId(null);
-      } catch {}
+      } catch { return; }
     }
   };
 
@@ -47,10 +49,42 @@ export default function Page() {
     setDeletingId(null);
   };
 
-  // Extract data from API response (doc: data.data for list, data has current_page, last_page, per_page, total)
-  const listData = productsResponse?.data?.data ?? productsResponse?.data?.items ?? [];
+  const handlePageChange = (newPage: number) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set('page', String(newPage));
+      return next;
+    });
+  };
+
+  const handlePageSizeChange = (newSize: number) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set('limit', String(newSize));
+      next.set('page', '1'); // Reset to first page when changing page size
+      return next;
+    });
+  };
+
+  // Extract data from API response
+  // Supports both formats: production (data.items + data.pagination) and local (data.data + flat pagination)
+  const rawData = productsResponse?.data;
+  const listData =
+    (rawData as { items?: ProductData[] } | undefined)?.items ??
+    (rawData as { data?: ProductData[] } | undefined)?.data ??
+    [];
   const productData = listData;
-  const apiPagination = productsResponse?.data;
+  type PaginationShape = {
+    current_page: number;
+    last_page?: number;
+    per_page?: number;
+    total?: number;
+  };
+  const apiPagination =
+    (rawData as { pagination?: PaginationShape } | undefined)?.pagination ??
+    (typeof (rawData as PaginationShape)?.current_page === 'number'
+      ? (rawData as PaginationShape)
+      : null);
   const pagination =
     apiPagination && typeof apiPagination.current_page === 'number'
       ? {
@@ -88,9 +122,10 @@ export default function Page() {
           onDeleteCancel,
           deletingId
         )}
-        data={productData}
+        data={productData as ProductFormValues[]}
         createPath="/products/create"
         hasDetails
+        rowClickToDetails={false}
         permissions={{
           create: hasPermission('create', 'product'),
           update: hasPermission('update', 'product'),
@@ -98,6 +133,10 @@ export default function Page() {
         }}
         isLoading={isLoading}
         pagination={pagination}
+        currentPage={page}
+        pageSize={limit}
+        onPageChange={handlePageChange}
+        onPageSizeChange={handlePageSizeChange}
         searchColumns={['name', 'sku', 'barcode']}
         columnTranslations={{
           id: 'ID',

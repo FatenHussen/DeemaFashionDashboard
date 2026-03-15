@@ -46,7 +46,7 @@ export default function Page() {
         await deleteRoleMutation.mutateAsync(deletingId);
         toast.success(t('deleteSuccess') || 'Role deleted successfully');
         setDeletingId(null);
-      } catch {}
+      } catch { return; }
     }
   };
 

@@ -2,8 +2,9 @@ import type { NavSectionProps } from 'src/shared/components/nav-section';
 
 import { mergeClasses } from 'minimal-shared/utils';
 
+import { RouterLink } from 'src/routes/components';
+
 import { Box } from 'src/shared/ui';
-import { Logo } from 'src/shared/components/logo';
 import { Scrollbar } from 'src/shared/components/scrollbar';
 import { NavSectionMini, NavSectionVertical } from 'src/shared/components/nav-section';
 
@@ -44,7 +45,9 @@ export function NavVertical({
       {slots?.topArea ?? (
         <Box className="flex justify-center items-center pt-6 pb-4 relative z-10">
           <Box className="transition-all duration-300">
-            <Logo href="/" isSingle={false} />
+            <RouterLink href="/" className="block">
+              <img src="/logo/logo.png" alt="Logo" className="h-12 w-auto object-contain" />
+            </RouterLink>
           </Box>
         </Box>
       )}
@@ -55,7 +58,6 @@ export function NavVertical({
           cssVars={cssVars}
           checkPermissions={checkPermissions}
           checkPermission={checkPermission}
-          enabledRootRedirect
           className="px-3 flex-auto"
         />
       </Scrollbar>
@@ -67,7 +69,9 @@ export function NavVertical({
       {slots?.topArea ?? (
         <Box className="flex justify-center py-6 relative z-10 border-b border-border/30">
           <Box className="transition-all duration-300 hover:scale-110">
-            <Logo href="/" />
+            <RouterLink href="/" className="block w-10 h-10">
+              <img src="/logo/logo.png" alt="Logo" className="w-full h-full object-contain" />
+            </RouterLink>
           </Box>
         </Box>
       )}

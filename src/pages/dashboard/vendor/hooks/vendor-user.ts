@@ -40,8 +40,9 @@ export const useUpdateVendorUser = () => {
   return useMutation({
     mutationFn: ({ id, data }: { id: number | string; data: VendorUserUpdatePayload }) =>
       _VendorUserApi.update(id, data),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['vendorUser', 'list'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.vendorUser.details(variables.id) });
     },
   });
 };

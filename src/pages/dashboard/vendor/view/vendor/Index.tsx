@@ -36,7 +36,7 @@ export default function Page() {
         await deleteVendorMutation.mutateAsync(deletingId);
         toast.success(t('deleteSuccess') || 'Vendor deleted successfully');
         setDeletingId(null);
-      } catch {}
+      } catch { return; }
     }
   };
   const onDeleteCancel = () => setDeletingId(null);

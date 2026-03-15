@@ -91,7 +91,7 @@ export default function Page() {
       <div className="mb-4 flex flex-wrap gap-3 rounded-xl border border-border bg-card p-4 shadow-sm">
         <input
           type="text"
-          placeholder="Search by name or email..."
+          placeholder={t('form.searchByNameOrEmail')}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleApplyFilters()}
@@ -99,14 +99,14 @@ export default function Page() {
         />
         <input
           type="number"
-          placeholder="Balance min"
+          placeholder={t('form.balanceMin')}
           value={balanceMin}
           onChange={(e) => setBalanceMin(e.target.value)}
           className="h-9 w-32 rounded-md border px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
         />
         <input
           type="number"
-          placeholder="Balance max"
+          placeholder={t('form.balanceMax')}
           value={balanceMax}
           onChange={(e) => setBalanceMax(e.target.value)}
           className="h-9 w-32 rounded-md border px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"

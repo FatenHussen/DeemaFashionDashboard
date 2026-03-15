@@ -39,7 +39,7 @@ export const roleColumns = (
   {
     id: 'id',
     accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="ID" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
     cell: ({ row }) => (
       <div className="flex items-center gap-2">
         <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
@@ -51,7 +51,7 @@ export const roleColumns = (
   {
     id: 'name',
     accessorKey: 'name',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Role Name" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.roleName')} />,
     cell: ({ row }) => (
       <div className="flex items-center gap-2.5 min-w-0">
         <div className="w-9 h-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center flex-shrink-0">
@@ -68,7 +68,7 @@ export const roleColumns = (
   {
     id: 'guard_name',
     accessorKey: 'guard_name',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Guard" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.guard')} />,
     cell: ({ row }) => (
       <div className="flex items-center gap-2 min-w-0">
         <Iconify
@@ -84,7 +84,7 @@ export const roleColumns = (
   {
     id: 'created_at',
     accessorKey: 'created_at',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Created At" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.createdAt')} />,
     cell: ({ row }) => (
       <div className="flex items-center gap-2">
         <Iconify

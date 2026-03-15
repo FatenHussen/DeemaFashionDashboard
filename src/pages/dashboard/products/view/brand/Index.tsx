@@ -27,9 +27,6 @@ export default function Page() {
   } = useFetchBrands(nameFilter ? { name: nameFilter } : undefined);
   const deleteBrandMutation = useDeleteBrand();
 
-  console.log(brandsResponse);
-
-  // Log error for debugging
   if (error) {
     console.error('Error fetching brands:', error);
   }
@@ -44,7 +41,7 @@ export default function Page() {
         await deleteBrandMutation.mutateAsync(deletingId);
         toast.success(t('deleteSuccess') || 'Brand deleted successfully');
         setDeletingId(null);
-      } catch {}
+      } catch { return; }
     }
   };
 
@@ -52,8 +49,7 @@ export default function Page() {
     setDeletingId(null);
   };
 
-  // Extract data from API response (data is BrandData[])
-  const brandData: BrandFormValues[] = (brandsResponse?.data ?? []) as BrandFormValues[];
+  const brandData: BrandFormValues[] = (brandsResponse?.data?.items ?? []) as BrandFormValues[];
 
   const { can } = usePermissions();
 

@@ -35,8 +35,9 @@ export const useUpdateSection = () => {
   return useMutation({
     mutationFn: ({ id, data }: { id: number | string; data: SectionCreateUpdatePayload }) =>
       _SectionApi.updateSection(id, data),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['section', 'list'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.section.details(variables.id) });
     },
   });
 };

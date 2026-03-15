@@ -55,7 +55,7 @@ export default function VendorPerformanceReportPage() {
     try {
       await _ReportApi.exportVendorPerformanceReport(Number(vendorId), format, params);
       toast.success(`Report exported as ${format.toUpperCase()}`);
-    } catch {} finally {
+    } catch { return; } finally {
       setIsExporting(false);
     }
   };
@@ -173,22 +173,22 @@ export default function VendorPerformanceReportPage() {
           {reportData && vendorId && (
             <Box className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {[
-                { label: 'Total Sales', value: reportData.total_sales?.toFixed(2) },
-                { label: 'Total Orders', value: reportData.total_orders },
+                { label: 'Total Sales', value: reportData.total_sales != null ? Number(reportData.total_sales).toFixed(2) : '-' },
+                { label: 'Total Orders', value: reportData.total_orders ?? '-' },
                 {
                   label: 'Avg Order Value',
-                  value: reportData.average_order_value?.toFixed(2),
+                  value: reportData.average_order_value != null ? Number(reportData.average_order_value).toFixed(2) : '-',
                 },
-                { label: 'Total Shops', value: reportData.total_shops },
-                { label: 'Active Shops', value: reportData.active_shops },
+                { label: 'Total Shops', value: reportData.total_shops ?? '-' },
+                { label: 'Active Shops', value: reportData.active_shops ?? '-' },
                 {
                   label: 'Average Rating',
-                  value: reportData.average_rating?.toFixed(1),
+                  value: reportData.average_rating != null ? Number(reportData.average_rating).toFixed(1) : '-',
                 },
-                { label: 'Total Ratings', value: reportData.total_ratings },
+                { label: 'Total Ratings', value: reportData.total_ratings ?? '-' },
                 {
                   label: 'Customer Satisfaction',
-                  value: `${reportData.customer_satisfaction?.toFixed(1)}%`,
+                  value: reportData.customer_satisfaction != null ? `${Number(reportData.customer_satisfaction).toFixed(1)}%` : '-',
                 },
               ].map(({ label, value }) => (
                 <Box key={label} className={`${tableContainerClass} p-4`}>

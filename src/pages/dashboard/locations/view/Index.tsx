@@ -53,7 +53,7 @@ export default function Page() {
         await deleteGovernorateMutation.mutateAsync(deletingId);
         toast.success(t('deleteSuccess') || 'Governorate deleted successfully');
         setDeletingId(null);
-      } catch {}
+      } catch { return; }
     }
   };
 

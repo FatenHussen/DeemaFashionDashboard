@@ -2,11 +2,14 @@ import type { GiftData, GiftTranslation } from '@/pages/dashboard/gifts/types/gi
 
 import { useEffect } from 'react';
 import { toast } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useNavigate, useLocation } from 'react-router';
 import { InfiniteScrollSelect } from '@/shared/components/infinite-scroll-select';
 import { _CategoryApi } from '@/pages/dashboard/categories/api/category.services';
+import { _ShopProductVariantApi } from '@/shared/api/shop-product-variant.services';
+import { RHFInfiniteSelect } from '@/shared/components/hook-form/rhf-infinite-select';
 import { useCreateGift, useUpdateGift, useFetchGiftById } from '@/pages/dashboard/gifts/hooks/gift';
 import { GiftSchema, type GiftFormValues } from '@/pages/dashboard/gifts/validation/gift.validation';
 
@@ -21,13 +24,14 @@ import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout
 const metadata = { title: `Gift ${CONFIG.appName}` };
 
 /** Safely extract a translation value from a string or { ar, en } object */
-const t = (val: GiftTranslation | string | undefined, lang: 'ar' | 'en'): string => {
+const getTranslation = (val: GiftTranslation | string | undefined, lang: 'ar' | 'en'): string => {
   if (!val) return '';
   if (typeof val === 'string') return lang === 'ar' ? val : '';
   return val[lang] || '';
 };
 
 export default function CreatePage() {
+  const { t } = useTranslation('table');
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
   const location = useLocation();
@@ -46,6 +50,7 @@ export default function CreatePage() {
     stock_quantity: 0,
     is_active: true,
     category_id: undefined,
+    shop_product_variant_id: null,
     terms_conditions: { ar: '', en: '' },
   };
 
@@ -60,16 +65,17 @@ export default function CreatePage() {
     const source = isEditMode ? (detailsResponse?.data ?? fromState) : null;
     if (source) {
       reset({
-        name: { ar: t(source.name, 'ar'), en: t(source.name, 'en') },
-        description: { ar: t(source.description, 'ar'), en: t(source.description, 'en') },
+        name: { ar: getTranslation(source.name, 'ar'), en: getTranslation(source.name, 'en') },
+        description: { ar: getTranslation(source.description, 'ar'), en: getTranslation(source.description, 'en') },
         image: null,
         points_required: source.points_required || 1,
         stock_quantity: source.stock_quantity || 0,
         is_active: source.is_active ?? true,
         category_id: source.category_id || (source as any).category?.id,
+        shop_product_variant_id: (source as any).shop_product_variant_id ?? null,
         terms_conditions: {
-          ar: t(source.terms_conditions, 'ar'),
-          en: t(source.terms_conditions, 'en'),
+          ar: getTranslation(source.terms_conditions, 'ar'),
+          en: getTranslation(source.terms_conditions, 'en'),
         },
       });
     }
@@ -108,7 +114,7 @@ export default function CreatePage() {
         description={isEditMode ? 'Update gift details' : 'Add a new gift'}
         isEditMode={isEditMode}
         isLoading={isEditMode && isLoadingDetails}
-        loadingText="Loading gift..."
+        loadingText={t('form.loadingGift')}
         maxWidth="2xl"
         submitLabel={isEditMode ? 'Update Gift' : 'Create Gift'}
         submittingLabel={isEditMode ? 'Updating...' : 'Creating...'}
@@ -116,22 +122,22 @@ export default function CreatePage() {
         {/* Name */}
         <Box className="group">
           <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
-            Name
+            {t('columns.name')}
           </Typography>
           <div className="flex flex-col gap-2">
-            <RHFTextField name="name.ar" placeholder="الاسم بالعربي" dir="rtl" fullWidth />
-            <RHFTextField name="name.en" placeholder="Name in English" fullWidth />
+            <RHFTextField name="name.ar" placeholder={t('form.descriptionArPlaceholder')} dir="rtl" fullWidth />
+            <RHFTextField name="name.en" placeholder={t('form.namePlaceholder')} fullWidth />
           </div>
         </Box>
 
         {/* Description */}
         <Box className="group">
           <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
-            Description
+            {t('columns.description')}
           </Typography>
           <div className="flex flex-col gap-2">
-            <RHFTextField name="description.ar" placeholder="الوصف بالعربي" dir="rtl" fullWidth />
-            <RHFTextField name="description.en" placeholder="Description in English" fullWidth />
+            <RHFTextField name="description.ar" placeholder={t('form.descriptionArPlaceholder')} dir="rtl" fullWidth />
+            <RHFTextField name="description.en" placeholder={t('form.descriptionEnPlaceholder')} fullWidth />
           </div>
         </Box>
 
@@ -139,22 +145,51 @@ export default function CreatePage() {
         <Box className="flex gap-4 flex-wrap">
           <Box className="flex-1 min-w-35">
             <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
-              Points Required
+              {t('columns.pointsRequired')}
             </Typography>
             <RHFTextField name="points_required" type="number" placeholder="1000" fullWidth />
           </Box>
           <Box className="flex-1 min-w-35">
             <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
-              Stock Quantity
+              {t('columns.stock')}
             </Typography>
             <RHFTextField name="stock_quantity" type="number" placeholder="50" fullWidth />
           </Box>
         </Box>
 
+        {/* Shop Product Variant (optional - links gift to store product variant) */}
+        <Box className="group">
+          <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
+            Shop Product Variant (optional)
+          </Typography>
+          <RHFInfiniteSelect
+            name="shop_product_variant_id"
+            queryKey={['shopProductVariant', 'gift']}
+            fetcher={(page, limit) =>
+              _ShopProductVariantApi.getList({ page, per_page: limit }).then((res) => ({
+                data: {
+                  items:
+                    page === 1
+                      ? [{ id: 0, label: 'No product variant' }, ...(res.data.items ?? [])]
+                      : res.data.items ?? [],
+                  pagination: res.data.pagination,
+                },
+              }))
+            }
+            placeholder={t('form.selectProductVariant')}
+            initialLabel={(() => {
+              const src = detailsResponse?.data ?? fromState;
+              const vid = (src as any)?.shop_product_variant_id;
+              return vid ? `Variant #${vid}` : undefined;
+            })()}
+            pageSize={15}
+          />
+        </Box>
+
         {/* Category */}
         <Box className="group">
           <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
-            Category (optional)
+            {t('form.categoryLabel')} (optional)
           </Typography>
           <Controller
             name="category_id"
@@ -175,7 +210,7 @@ export default function CreatePage() {
                     },
                   }))
                 }
-                placeholder="No category"
+                placeholder={t('form.noCategory')}
                 initialLabel={(() => {
                   const src = detailsResponse?.data ?? fromState;
                   const cat = (src as any)?.category;
@@ -200,7 +235,7 @@ export default function CreatePage() {
             />
             <RHFTextField
               name="terms_conditions.en"
-              placeholder="Terms and conditions in English"
+              placeholder={t('form.termsEnPlaceholder')}
               fullWidth
             />
           </div>

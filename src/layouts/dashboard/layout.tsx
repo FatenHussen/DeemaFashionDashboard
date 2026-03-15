@@ -7,7 +7,6 @@ import { useTranslation } from 'react-i18next';
 import { useBoolean } from 'minimal-shared/hooks';
 import { mergeClasses } from 'minimal-shared/utils';
 
-import { _contacts } from 'src/_mock';
 import { Box, Alert } from 'src/shared/ui';
 import { getFcmToken } from 'src/lib/firebase';
 import { Logo } from 'src/shared/components/logo';
@@ -20,16 +19,13 @@ import { NavMobile } from './nav-mobile';
 import { VerticalDivider } from './content';
 import { NavVertical } from './nav-vertical';
 import { NavHorizontal } from './nav-horizontal';
-import { _account } from '../nav-config-account';
 import { Searchbar } from '../components/searchbar';
 import { getNavData } from '../nav-config-dashboard';
 import { _workspaces } from '../nav-config-workspace';
 import { MenuButton } from '../components/menu-button';
 import { LogoutButton } from '../components/logout-button';
-import { AccountDrawer } from '../components/account-drawer';
 import { SettingsButton } from '../components/settings-button';
 import { LanguagePopover } from '../components/language-popover';
-import { ContactsPopover } from '../components/contacts-popover';
 import { WorkspacesPopover } from '../components/workspaces-popover';
 import { dashboardLayoutVars, dashboardNavColorVars } from './css-vars';
 import { NotificationsDrawer } from '../components/notifications-drawer';
@@ -106,6 +102,13 @@ export function DashboardLayout({
     return permissions.includes(requiredPermission);
   };
 
+  // Permission-based check (any of the list)
+  const canDisplayItemByPermissionAny = (requiredPermissions: string[]): boolean => {
+    if (!requiredPermissions?.length) return true;
+    if (!permissions || !Array.isArray(permissions)) return false;
+    return requiredPermissions.some((p) => permissions.includes(p));
+  };
+
   const renderHeader = () => {
     const headerSlotProps: HeaderSectionProps['slotProps'] = {
       container: {
@@ -141,6 +144,7 @@ export function DashboardLayout({
           cssVars={navVars.section}
           checkPermissions={canDisplayItemByRole}
           checkPermission={canDisplayItemByPermission}
+          checkPermissionAny={canDisplayItemByPermissionAny}
         />
       ) : null,
       leftArea: (
@@ -154,6 +158,7 @@ export function DashboardLayout({
             cssVars={navVars.section}
             checkPermissions={canDisplayItemByRole}
             checkPermission={canDisplayItemByPermission}
+            checkPermissionAny={canDisplayItemByPermissionAny}
           />
 
           {/** @slot Logo */}
@@ -168,7 +173,7 @@ export function DashboardLayout({
           {isNavHorizontal && <VerticalDivider className="hidden lg:flex" />}
 
           {/** @slot Workspace popover */}
-          <Box className="flex items-center gap-2">
+          {/* <Box className="flex items-center gap-2">
             <WorkspacesPopover
               data={_workspaces}
               className={mergeClasses([
@@ -176,7 +181,7 @@ export function DashboardLayout({
                 'transition-all duration-200 hover:scale-105',
               ])}
             />
-          </Box>
+          </Box> */}
         </Box>
       ),
       rightArea: (
@@ -189,25 +194,15 @@ export function DashboardLayout({
           {/** @slot Divider for visual separation */}
           <Box className="hidden sm:block h-6 w-px bg-gradient-to-b from-transparent via-border to-transparent mx-1" />
 
-          {/** @slot Language popover */}
-          <Box className="flex items-center gap-1">
-            <LanguagePopover
-              data={[
-                { value: 'en', label: 'English', countryCode: 'GB' },
-                { value: 'ar', label: 'العربية', countryCode: 'SA' },
-              ]}
-            />
-          </Box>
-
           {/** @slot Notifications popover */}
           <Box className="flex items-center">
             <NotificationsDrawer />
           </Box>
 
           {/** @slot Contacts popover */}
-          <Box className="hidden md:flex items-center">
+          {/* <Box className="hidden md:flex items-center">
             <ContactsPopover data={_contacts} />
-          </Box>
+          </Box> */}
 
           {/** @slot Settings button */}
           <Box className="flex items-center">
@@ -222,10 +217,20 @@ export function DashboardLayout({
             <LogoutButton />
           </Box>
 
-          {/** @slot Account drawer */}
-          <Box className="flex items-center">
-            <AccountDrawer data={_account} />
+          {/** @slot Language popover - at bottom of header actions */}
+          <Box className="flex items-center gap-1">
+            <LanguagePopover
+              data={[
+                { value: 'en', label: 'English', countryCode: 'GB' },
+                { value: 'ar', label: 'العربية', countryCode: 'SA' },
+              ]}
+            />
           </Box>
+
+          {/** @slot Account drawer */}
+          {/* <Box className="flex items-center">
+            <AccountDrawer data={_account} />
+          </Box> */}
         </Box>
       ),
     };
@@ -250,6 +255,7 @@ export function DashboardLayout({
       cssVars={navVars.section}
       checkPermissions={canDisplayItemByRole}
       checkPermission={canDisplayItemByPermission}
+      checkPermissionAny={canDisplayItemByPermissionAny}
       onToggleNav={() =>
         settings.setField(
           'navLayout',

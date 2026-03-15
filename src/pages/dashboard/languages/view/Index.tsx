@@ -44,7 +44,7 @@ export default function Page() {
         await deleteLanguageMutation.mutateAsync(deletingId);
         toast.success(t('deleteSuccess') || 'Language deleted successfully');
         setDeletingId(null);
-      } catch {}
+      } catch { return; }
     }
   };
 

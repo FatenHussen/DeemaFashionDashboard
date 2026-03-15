@@ -33,12 +33,13 @@ export const userColumns = (
   onDeleteConfirm?: () => void,
   onDeleteCancel?: () => void,
   deletingId?: number | null,
-  onEdit?: (row: any) => void
+  onEdit?: (row: any) => void,
+  onUpdatePassword?: (row: { original: UserFormValues }) => void
 ): ColumnDef<UserFormValues>[] => [
   {
     id: 'id',
     accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="ID" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
     cell: ({ row }) => (
       <div className="flex items-center gap-2">
         <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
@@ -50,7 +51,7 @@ export const userColumns = (
   {
     id: 'name',
     accessorKey: 'name',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.name')} />,
     cell: ({ row }) => (
       <div className="font-semibold text-foreground truncate">{row.original.name}</div>
     ),
@@ -58,7 +59,7 @@ export const userColumns = (
   {
     id: 'email',
     accessorKey: 'email',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Email" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.email')} />,
     cell: ({ row }) => (
       <span className="text-sm text-muted-foreground">{row.original.email}</span>
     ),
@@ -66,7 +67,7 @@ export const userColumns = (
   {
     id: 'phone',
     accessorKey: 'phone',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Phone" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.phone')} />,
     cell: ({ row }) => (
       <span className="text-sm">{row.original.phone || '-'}</span>
     ),
@@ -74,7 +75,7 @@ export const userColumns = (
   {
     id: 'affiliate',
     accessorKey: 'affiliate',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Affiliate" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.affiliate')} />,
     cell: ({ row }) => {
       const aff = row.original.affiliate;
       const isAff = aff?.is_affiliate ?? false;
@@ -97,7 +98,7 @@ export const userColumns = (
   {
     id: 'created_at',
     accessorKey: 'created_at',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Created" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.created')} />,
     cell: ({ row }) => (
       <span className="text-sm text-muted-foreground">
         {row.original.created_at
@@ -116,6 +117,7 @@ export const userColumns = (
         editItem={onEdit ? undefined : `/users/update/${row.original.id}`}
         onEdit={onEdit}
         onDelete={onDelete}
+        onUpdatePassword={onUpdatePassword}
         isDeleting={isDeleting}
         isDeleteDialogOpen={isDeleteDialogOpen}
         onDeleteConfirm={onDeleteConfirm}

@@ -37,7 +37,7 @@ export default function SalesReportPage() {
     try {
       await _ReportApi.exportSalesReport(format, params);
       toast.success(`Report exported as ${format.toUpperCase()}`);
-    } catch {} finally {
+    } catch { return; } finally {
       setIsExporting(false);
     }
   };

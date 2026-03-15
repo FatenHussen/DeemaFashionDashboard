@@ -2,6 +2,7 @@ import type { Permission } from '@/pages/dashboard/roles/types/role.types';
 
 import { toast } from 'react-toastify';
 import { useMemo, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useNavigate } from 'react-router';
@@ -27,6 +28,7 @@ import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout
 const metadata = { title: `Role ${CONFIG.appName}` };
 
 export default function CreatePage() {
+  const { t } = useTranslation('table');
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
   const isEditMode = !!id;
@@ -158,7 +160,7 @@ export default function CreatePage() {
         }
         isEditMode={isEditMode}
         isLoading={isLoadingRole || isLoadingPermissions}
-        loadingText="Loading role data..."
+        loadingText={t('form.loadingRole')}
         maxWidth="4xl"
         infoText={infoText}
         submitLabel={isEditMode ? 'Update Role' : 'Create Role'}
@@ -179,8 +181,8 @@ export default function CreatePage() {
           </Box>
           <RHFTextField
             name="name"
-            placeholder="e.g., admin, manager, employee"
-            helperText="Enter a unique name for this role"
+            placeholder={t('form.rolePlaceholder')}
+            helperText={t('form.roleNameHelper')}
             className="transition-all duration-200"
           />
         </Box>

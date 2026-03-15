@@ -56,7 +56,7 @@ export default function Page() {
         await deleteCategoryAttributeMutation.mutateAsync(deletingId);
         toast.success(t('deleteSuccess') || 'Category attribute deleted successfully');
         setDeletingId(null);
-      } catch {}
+      } catch { return; }
     }
   };
 

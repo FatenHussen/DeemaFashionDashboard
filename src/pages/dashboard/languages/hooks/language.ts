@@ -36,8 +36,9 @@ export const useUpdateLanguage = () => {
   return useMutation({
     mutationFn: ({ id, data }: { id: number | string; data: LanguageCreateUpdatePayload }) =>
       _LanguageApi.updateLanguage(id, data),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['language', 'list'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.language.details(variables.id) });
     },
   });
 };

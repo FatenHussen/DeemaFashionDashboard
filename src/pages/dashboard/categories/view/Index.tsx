@@ -49,7 +49,7 @@ export default function Page() {
         await deleteCategoryMutation.mutateAsync(deletingId);
         toast.success(t('deleteSuccess') || 'Category deleted successfully');
         setDeletingId(null);
-      } catch {}
+      } catch { return; }
     }
   };
 

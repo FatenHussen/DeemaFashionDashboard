@@ -38,10 +38,9 @@ export const useUpdateGovernorate = (page?: number, limit?: number) => {
   return useMutation({
     mutationFn: ({ id, data }: { id: number | string; data: GovernorateCreateUpdatePayload }) =>
       _GovernorateApi.updateGovernorate(id, data),
-    onSuccess: () => {
-      // Invalidate all list queries
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['governorate', 'list'] });
-      // Refetch the current page query if pagination params are provided
+      queryClient.invalidateQueries({ queryKey: queryKeys.governorate.details(variables.id) });
       if (page !== undefined && limit !== undefined) {
         queryClient.refetchQueries({
           queryKey: queryKeys.governorate.list({ page, limit }),

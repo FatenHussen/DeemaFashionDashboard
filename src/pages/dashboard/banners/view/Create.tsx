@@ -2,6 +2,7 @@ import type { BannerItem } from '@/pages/dashboard/banners/types/banner.types';
 
 import { toast } from 'react-toastify';
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Iconify } from '@/shared/components/iconify';
@@ -27,6 +28,7 @@ import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout
 const metadata = { title: `Banner ${CONFIG.appName}` };
 
 export default function CreatePage() {
+  const { t } = useTranslation('table');
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
   const location = useLocation();
@@ -148,7 +150,7 @@ export default function CreatePage() {
         }
         isEditMode={isEditMode}
         isLoading={isEditMode && isLoadingDetails}
-        loadingText="Loading banner data..."
+        loadingText={t('form.loadingBanner')}
         maxWidth="3xl"
         infoText={infoText}
         submitLabel={isEditMode ? 'Update Banner' : 'Create Banner'}
@@ -164,8 +166,8 @@ export default function CreatePage() {
           </Box>
           <RHFTextField
             name="title.en"
-            placeholder="e.g., New Arrivals"
-            helperText="Enter the banner title in English"
+            placeholder={t('form.bannerTitleEnPlaceholder')}
+            helperText={t('form.bannerTitleEnHelper')}
             className="transition-all duration-200"
           />
         </Box>
@@ -181,7 +183,7 @@ export default function CreatePage() {
           <RHFTextField
             name="title.ar"
             placeholder="e.g., وصل حديثًا"
-            helperText="Enter the banner title in Arabic"
+            helperText={t('form.bannerTitleArHelper')}
             className="transition-all duration-200"
             dir="rtl"
           />
@@ -197,8 +199,8 @@ export default function CreatePage() {
           </Box>
           <RHFTextField
             name="description"
-            placeholder="Optional description"
-            helperText="Enter a description for the banner"
+            placeholder={t('form.optionalDescription')}
+            helperText={t('form.bannerDescHelper')}
             className="transition-all duration-200"
           />
         </Box>
@@ -258,8 +260,8 @@ export default function CreatePage() {
           </Box>
           <RHFTextField
             name="link"
-            placeholder="https://example.com"
-            helperText="Optional URL when the banner is clicked"
+            placeholder={t('form.linkPlaceholder')}
+            helperText={t('form.linkHelper')}
             className="transition-all duration-200"
           />
         </Box>

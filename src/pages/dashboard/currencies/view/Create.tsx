@@ -2,6 +2,7 @@ import type { CurrencyData } from '@/pages/dashboard/currencies/types/currency.t
 
 import { useEffect } from 'react';
 import { toast } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useNavigate, useLocation } from 'react-router';
@@ -17,6 +18,7 @@ import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout
 const metadata = { title: `Currency ${CONFIG.appName}` };
 
 export default function CreatePage() {
+  const { t } = useTranslation('table');
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
   const location = useLocation();
@@ -89,18 +91,18 @@ export default function CreatePage() {
         description={isEditMode ? 'Update currency details' : 'Add a new currency'}
         isEditMode={isEditMode}
         isLoading={isEditMode && isLoadingDetails}
-        loadingText="Loading currency..."
+        loadingText={t('form.loadingCurrency')}
         maxWidth="2xl"
         submitLabel={isEditMode ? 'Update Currency' : 'Create Currency'}
         submittingLabel={isEditMode ? 'Updating...' : 'Creating...'}
       >
         <Box className="group">
           <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">Code (3 characters)</Typography>
-          <RHFTextField name="code" placeholder="USD" fullWidth />
+          <RHFTextField name="code" placeholder={t('form.currencyCodePlaceholder')} fullWidth />
         </Box>
         <Box className="group">
           <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">Name (English)</Typography>
-          <RHFTextField name="name.en" placeholder="US Dollar" fullWidth />
+          <RHFTextField name="name.en" placeholder={t('form.currencyNamePlaceholder')} fullWidth />
         </Box>
         <Box className="group">
           <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">Name (Arabic)</Typography>

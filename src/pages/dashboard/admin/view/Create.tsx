@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { useForm } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
@@ -24,6 +25,7 @@ import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout
 const metadata = { title: `Admin ${CONFIG.appName}` };
 
 export default function CreatePage() {
+  const { t } = useTranslation('table');
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
   const isEditMode = !!id;
@@ -36,7 +38,7 @@ export default function CreatePage() {
   const defaultValues: AdminFormValues = {
     name: '',
     email: '',
-    password: '',
+    ...(isEditMode ? {} : { password: '' }),
   };
 
   const methods = useForm<AdminFormValues>({
@@ -52,7 +54,6 @@ export default function CreatePage() {
       reset({
         name: adminData.name,
         email: adminData.email,
-        password: '', // Don't pre-fill password
       });
     }
   }, [adminData, isEditMode, isLoadingAdmin, reset]);
@@ -66,7 +67,7 @@ export default function CreatePage() {
       const payload = {
         name: data.name,
         email: data.email,
-        ...(data.password && data.password.trim() !== '' && { password: data.password }),
+        ...(!isEditMode && data.password && { password: data.password }),
       };
 
       if (isEditMode && id) {
@@ -88,7 +89,7 @@ export default function CreatePage() {
   };
 
   const infoText = isEditMode
-    ? 'You can update any field. Leave password blank to keep the current one.'
+    ? 'Update admin information and permissions. Use the table action to change password.'
     : 'Make sure to use a strong password and a valid email address for the admin account.';
 
   return (
@@ -111,7 +112,7 @@ export default function CreatePage() {
         }
         isEditMode={isEditMode}
         isLoading={isLoadingAdmin}
-        loadingText="Loading admin data..."
+        loadingText={t('form.loadingAdmin')}
         maxWidth="3xl"
         infoText={infoText}
         submitLabel={isEditMode ? 'Update Admin' : 'Create Admin'}
@@ -127,13 +128,13 @@ export default function CreatePage() {
               height={24}
             />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Full Name
+              {t('form.fullName')}
             </Typography>
           </Box>
           <RHFTextField
             name="name"
-            placeholder="e.g., John Doe"
-            helperText="Enter the complete name of the administrator"
+            placeholder={t('form.namePlaceholder')}
+            helperText={t('form.adminNameHelper')}
             className="transition-all duration-200"
           />
         </Box>
@@ -143,45 +144,40 @@ export default function CreatePage() {
           <Box className="flex items-center gap-2 mb-2">
             <Iconify icon="solar:letter-bold" className="text-primary" width={24} height={24} />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Email Address
+              {t('form.emailAddress')}
             </Typography>
           </Box>
           <RHFTextField
             name="email"
             type="email"
-            placeholder="e.g., admin@example.com"
-            helperText="A valid email address is required for login"
+            placeholder={t('form.emailPlaceholder')}
+            helperText={t('form.adminEmailHelper')}
             className="transition-all duration-200"
           />
         </Box>
 
-        {/* Password Field with Icon */}
-        <Box className="group">
-          <Box className="flex items-center gap-2 mb-2">
-            <Iconify
-              icon="solar:lock-password-outline"
-              className="text-primary"
-              width={24}
-              height={24}
+        {!isEditMode && (
+          <Box className="group">
+            <Box className="flex items-center gap-2 mb-2">
+              <Iconify
+                icon="solar:lock-password-outline"
+                className="text-primary"
+                width={24}
+                height={24}
+              />
+              <Typography variant="subtitle2" className="font-semibold text-foreground">
+                {t('form.passwordLabel')}
+              </Typography>
+            </Box>
+            <RHFTextField
+              name="password"
+              type="password"
+              placeholder={t('form.passwordPlaceholder')}
+              helperText={t('form.adminPasswordHelper')}
+              className="transition-all duration-200"
             />
-            <Typography variant="subtitle2" className="font-semibold text-foreground">
-              {isEditMode ? 'New Password (Optional)' : 'Password'}
-            </Typography>
           </Box>
-          <RHFTextField
-            name="password"
-            type="password"
-            placeholder={
-              isEditMode ? 'Leave blank to keep current password' : 'Enter secure password'
-            }
-            helperText={
-              isEditMode
-                ? 'Only fill this if you want to change the password'
-                : 'Must be at least 6 characters long'
-            }
-            className="transition-all duration-200"
-          />
-        </Box>
+        )}
       </CreateFormLayout>
     </>
   );

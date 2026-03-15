@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { useForm } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Iconify } from '@/shared/components/iconify';
 import { useParams, useNavigate, useLocation } from 'react-router';
@@ -18,6 +19,7 @@ import { ServiceSchema, type ServiceFormValues } from '../../validation/service.
 const metadata = { title: `Service ${CONFIG.appName}` };
 
 export default function CreatePage() {
+  const { t } = useTranslation('table');
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
   const location = useLocation();
@@ -110,7 +112,7 @@ export default function CreatePage() {
         description={isEditMode ? 'Update service information' : 'Add a new service to your system'}
         isEditMode={isEditMode}
         isLoading={false}
-        loadingText="Loading service data..."
+        loadingText={t('form.loadingService')}
         maxWidth="3xl"
         infoText={infoText}
         submitLabel={isEditMode ? 'Update Service' : 'Create Service'}
@@ -121,13 +123,13 @@ export default function CreatePage() {
           <Box className="flex items-center gap-2 mb-2">
             <Iconify icon="solar:service-bold" className="text-primary" width={24} height={24} />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Service Name (Arabic)
+              {t('form.nameAr')}
             </Typography>
           </Box>
           <RHFTextField
             name="name.ar"
-            placeholder="e.g., توصيل"
-            helperText="Enter the service name in Arabic"
+            placeholder={t('form.serviceNameAr')}
+            helperText={t('form.serviceNameArHelper')}
             className="transition-all duration-200"
             dir="rtl"
           />
@@ -138,13 +140,13 @@ export default function CreatePage() {
           <Box className="flex items-center gap-2 mb-2">
             <Iconify icon="solar:service-bold" className="text-primary" width={24} height={24} />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Service Name (English)
+              {t('form.nameEn')}
             </Typography>
           </Box>
           <RHFTextField
             name="name.en"
-            placeholder="e.g., Delivery"
-            helperText="Enter the service name in English"
+            placeholder={t('form.serviceNameEn')}
+            helperText={t('form.serviceNameEnHelper')}
             className="transition-all duration-200"
           />
         </Box>

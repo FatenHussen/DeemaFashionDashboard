@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+
 import { CONFIG } from 'src/global-config';
 import { Box, Typography } from 'src/shared/ui';
 
@@ -6,6 +8,7 @@ import { Box, Typography } from 'src/shared/ui';
 const metadata = { title: `Translation Manager | Dashboard - ${CONFIG.appName}` };
 
 export default function TranslationManagerPage() {
+  const { t } = useTranslation('table');
   return (
     <>
       <title>{metadata.title}</title>
@@ -24,7 +27,7 @@ export default function TranslationManagerPage() {
           <iframe
             src="https://tikmool.octopus-software.online/translations"
             className="w-full h-full border-0"
-            title="Translation Manager"
+            title={t('form.translationManager')}
             style={{ minHeight: 'calc(100vh - 200px)' }}
           />
         </Box>

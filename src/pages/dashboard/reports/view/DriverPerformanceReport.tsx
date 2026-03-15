@@ -52,7 +52,7 @@ export default function DriverPerformanceReportPage() {
     try {
       await _ReportApi.exportDriverPerformanceReport(Number(driverId), format, params);
       toast.success(`Report exported as ${format.toUpperCase()}`);
-    } catch {} finally {
+    } catch { return; } finally {
       setIsExporting(false);
     }
   };

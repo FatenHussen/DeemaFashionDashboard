@@ -35,7 +35,7 @@ export default function Page() {
         await deleteScheduledBasketMutation.mutateAsync(deletingId);
         toast.success(t('deleteSuccess') || 'Scheduled basket deleted successfully');
         setDeletingId(null);
-      } catch {}
+      } catch { return; }
     }
   };
   const onDeleteCancel = () => setDeletingId(null);

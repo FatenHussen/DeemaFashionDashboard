@@ -1,9 +1,10 @@
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useCreateUser } from '@/pages/dashboard/users/hooks/user';
-import { useFetchAreas } from '@/pages/dashboard/locations/hooks/area';
+import { _AreaApi } from '@/pages/dashboard/locations/api/area.services';
 import {
   UserCreateSchema,
   type UserCreateFormValues,
@@ -13,15 +14,24 @@ import { CONFIG } from 'src/global-config';
 import { Box, Typography } from 'src/shared/ui';
 import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
 import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
+import { RHFInfiniteSelect } from 'src/shared/components/hook-form/rhf-infinite-select';
 
 // ----------------------------------------------------------------------
 
 const metadata = { title: `User ${CONFIG.appName}` };
 
+// Areas API loads all at once — fake single-page pagination
+const areaFetcher = (_page: number, _limit: number) =>
+  _AreaApi.getListAreas().then((r) => ({
+    data: {
+      items: r.data.items.map((area) => ({ id: area.id, label: area.name })),
+      pagination: r.data.pagination,
+    },
+  }));
+
 export default function CreatePage() {
+  const { t } = useTranslation('table');
   const navigate = useNavigate();
-  const { data: areasResponse } = useFetchAreas();
-  const areas = areasResponse?.data?.items || [];
   const createUserMutation = useCreateUser();
 
   const defaultValues: UserCreateFormValues = {
@@ -66,7 +76,7 @@ export default function CreatePage() {
       await createUserMutation.mutateAsync(payload);
       toast.success('User created successfully');
       navigate('/users');
-    } catch {}
+    } catch { return; }
   };
 
   const handleCancel = () => {
@@ -83,48 +93,30 @@ export default function CreatePage() {
         onCancel={handleCancel}
         isSubmitting={isSubmitting}
         errorMessage={errorMessage}
-        title="Create New User"
-        description="Add a new user. Optionally make them an affiliate."
+        title={t('form.createUser')}
+        description={t('form.createUserDesc')}
         maxWidth="2xl"
       >
         <Box className="space-y-4">
-          <RHFTextField name="name" label="First Name" placeholder="Ahmed" fullWidth />
-          <RHFTextField name="last_name" label="Last Name" placeholder="Ali" fullWidth />
-          <RHFTextField name="email" label="Email" type="email" placeholder="user@example.com" fullWidth />
-          <RHFTextField name="phone" label="Phone" placeholder="+201234567896" fullWidth />
-          <RHFTextField name="password" label="Password" type="password" fullWidth />
+          <RHFTextField name="name" label={t('form.firstName')} placeholder={t('form.namePlaceholder')} fullWidth />
+          <RHFTextField name="last_name" label={t('form.lastName')} placeholder={t('form.namePlaceholder')} fullWidth />
+          <RHFTextField name="email" label={t('columns.email')} type="email" placeholder={t('form.emailPlaceholder')} fullWidth />
+          <RHFTextField name="phone" label={t('columns.phone')} placeholder={t('form.phonePlaceholder')} fullWidth />
+          <RHFTextField name="password" label={t('form.passwordLabel')} type="password" placeholder={t('form.passwordPlaceholder')} fullWidth />
           <RHFTextField
             name="password_confirmation"
-            label="Confirm Password"
+            label={t('form.confirmPasswordLabel')}
             type="password"
             fullWidth
           />
 
           <Box>
-            <label className="mb-2 block text-sm font-medium">Area</label>
-            <Controller
+            <label className="mb-2 block text-sm font-medium">{t('areaLabel')}</label>
+            <RHFInfiniteSelect
               name="area_id"
-              control={control}
-              render={({ field, fieldState: { error } }) => (
-                <div>
-                  <select
-                    {...field}
-                    value={field.value || ''}
-                    onChange={(e) => field.onChange(parseInt(e.target.value, 10) || 0)}
-                    className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
-                  >
-                    <option value={0}>Select area</option>
-                    {areas.map((a) => (
-                      <option key={a.id} value={a.id}>
-                        {a.name}
-                      </option>
-                    ))}
-                  </select>
-                  {error?.message && (
-                    <p className="mt-1 text-xs text-destructive">{error.message}</p>
-                  )}
-                </div>
-              )}
+              queryKey={['areas', 'infinite', 'user-form']}
+              fetcher={areaFetcher}
+              placeholder={t('form.selectArea')}
             />
           </Box>
 
@@ -149,7 +141,7 @@ export default function CreatePage() {
               <Box className="mt-4 flex flex-col gap-4 sm:flex-row">
                 <Box className="flex-1">
                   <Typography variant="caption" className="mb-1 block">
-                    Affiliate ID
+                    {t('form.affiliateId')}
                   </Typography>
                   <RHFTextField name="affiliate_id" type="number" placeholder="56" fullWidth />
                 </Box>

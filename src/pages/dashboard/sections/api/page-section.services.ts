@@ -47,8 +47,11 @@ export const _PageSectionApi = {
     return response.data;
   },
 
-  getDisplayTypes: async (): Promise<DisplayTypesResponse> => {
-    const response = await axiosInstance.get<DisplayTypesResponse>(apiRoutes.pageSection.displayTypes);
+  getDisplayTypes: async (manualModel?: string): Promise<DisplayTypesResponse> => {
+    const response = await axiosInstance.get<DisplayTypesResponse>(
+      apiRoutes.pageSection.displayTypes,
+      { params: manualModel ? { manual_model: manualModel } : undefined }
+    );
     return response.data;
   },
 

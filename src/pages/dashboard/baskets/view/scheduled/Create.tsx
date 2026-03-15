@@ -3,6 +3,7 @@ import type { ScheduledBasketData } from '@/pages/dashboard/baskets/types/schedu
 import { useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { Button } from '@/shared/ui/button';
+import { useTranslation } from 'react-i18next';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Iconify } from '@/shared/components/iconify';
 import { useParams, useNavigate, useLocation } from 'react-router';
@@ -30,6 +31,7 @@ import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout
 const metadata = { title: `Scheduled Basket ${CONFIG.appName}` };
 
 export default function CreatePage() {
+  const { t } = useTranslation('table');
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
   const location = useLocation();
@@ -128,14 +130,14 @@ export default function CreatePage() {
         description={isEditMode ? 'Update scheduled basket details' : 'Add a new scheduled basket with products'}
         isEditMode={isEditMode}
         isLoading={isEditMode && isLoadingScheduledBasket}
-        loadingText="Loading scheduled basket..."
+        loadingText={t('form.loadingScheduledBasket')}
         maxWidth="2xl"
         submitLabel={isEditMode ? 'Update Scheduled Basket' : 'Create Scheduled Basket'}
         submittingLabel={isEditMode ? 'Updating...' : 'Creating...'}
       >
         {/* Category */}
         <Box className="group">
-          <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">Category</Typography>
+          <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.categoryLabel')}</Typography>
           <Controller
             name="category_id"
             control={control}
@@ -155,7 +157,7 @@ export default function CreatePage() {
                     },
                   }))
                 }
-                placeholder="Select category..."
+                placeholder={t('form.selectCategoryPlaceholder')}
                 initialLabel={(() => {
                   const src = scheduledBasketResponse?.data ?? scheduledBasketFromState;
                   const cat = src?.category;
@@ -168,14 +170,14 @@ export default function CreatePage() {
 
         {/* Name EN */}
         <Box className="group">
-          <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">Name (English)</Typography>
-          <RHFTextField name="name.en" placeholder="Basket name in English" fullWidth />
+          <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.nameEn')}</Typography>
+          <RHFTextField name="name.en" placeholder={t('form.basketNameEn')} fullWidth />
         </Box>
 
         {/* Name AR */}
         <Box className="group">
-          <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">Name (Arabic)</Typography>
-          <RHFTextField name="name.ar" placeholder="اسم السلة بالعربي" dir="rtl" fullWidth />
+          <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.nameAr')}</Typography>
+          <RHFTextField name="name.ar" placeholder={t('form.basketNameAr')} dir="rtl" fullWidth />
         </Box>
 
         {/* Discount */}
@@ -201,25 +203,25 @@ export default function CreatePage() {
 
         {/* Offer ends at */}
         <Box className="group">
-          <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">Offer Ends At</Typography>
+          <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.offerEndsAt')}</Typography>
           <RHFTextField name="offer_ends_at" type="date" fullWidth />
         </Box>
 
         {/* Delivery Price */}
         <Box className="group">
-          <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">Delivery Price</Typography>
+          <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.deliveryPrice')}</Typography>
           <RHFTextField name="delivery_price" type="number" placeholder="0" fullWidth />
         </Box>
 
         {/* Scheduled At */}
         <Box className="group">
-          <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">Scheduled At</Typography>
+          <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.scheduledAt')}</Typography>
           <RHFTextField name="scheduled_at" type="datetime-local" fullWidth />
         </Box>
 
         {/* Scheduled End At */}
         <Box className="group">
-          <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">Scheduled End At</Typography>
+          <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.scheduledEndAt')}</Typography>
           <RHFTextField name="scheduled_end_at" type="datetime-local" fullWidth />
         </Box>
 
@@ -293,13 +295,13 @@ export default function CreatePage() {
               <Box className="flex-1">
                 <RHFTextField
                   name={`items.${index}.shop_product_variant_id`}
-                  placeholder="Variant ID"
+                  placeholder={t('form.variantId')}
                   type="number"
                   fullWidth
                 />
               </Box>
               <Box className="w-24">
-                <RHFTextField name={`items.${index}.quantity`} placeholder="Qty" type="number" fullWidth />
+                <RHFTextField name={`items.${index}.quantity`} placeholder={t('form.quantity')} type="number" fullWidth />
               </Box>
               {fields.length > 1 && (
                 <Button type="button" variant="text" onClick={() => remove(index)} className="text-destructive">

@@ -15,12 +15,12 @@ export interface SellerRegistrationItem {
   seller_name: string;
   email: string;
   store_name: string;
-  address: string;
-  commercial_register_number: string;
-  commercial_register_date: string;
-  country: string;
-  governorate: SellerRegistrationGovernorate | null;
-  city: SellerRegistrationCity | null;
+  address?: string;
+  commercial_register_number?: string;
+  commercial_register_date?: string;
+  country?: string;
+  governorate?: SellerRegistrationGovernorate | string | null;
+  city?: SellerRegistrationCity | string | null;
   logo: string | null;
   status: SellerRegistrationStatus;
   registered_at: string;
@@ -29,12 +29,20 @@ export interface SellerRegistrationItem {
 }
 
 export interface SellerRegistrationListResponse {
-  success: boolean;
+  status?: boolean;
+  success?: boolean;
   data: {
-    current_page: number;
-    data: SellerRegistrationItem[];
-    per_page: number;
-    total: number;
+    items?: SellerRegistrationItem[];
+    data?: SellerRegistrationItem[];
+    pagination?: {
+      current_page: number;
+      last_page: number;
+      per_page: number;
+      total: number;
+    };
+    current_page?: number;
+    per_page?: number;
+    total?: number;
     last_page?: number;
   };
 }

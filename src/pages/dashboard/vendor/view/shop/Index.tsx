@@ -46,7 +46,7 @@ export default function Page() {
         await deleteShopMutation.mutateAsync(deletingId);
         toast.success(t('deleteSuccess') || 'Shop deleted successfully');
         setDeletingId(null);
-      } catch {}
+      } catch { return; }
     }
   };
 

@@ -45,19 +45,19 @@ export const vendorColumns = (
   {
     id: 'id',
     accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="ID" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
     cell: ({ row }) => <div className="font-medium">{row.original.id}</div>,
   },
   {
     id: 'name',
     accessorKey: 'name',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.name')} />,
     cell: ({ row }) => <div className="font-medium">{formatTranslated(row.original.name)}</div>,
   },
   {
     id: 'owner_name',
     accessorKey: 'owner_name',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Owner Name" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.ownerName')} />,
     cell: ({ row }) => (
       <div className="text-sm text-muted-foreground">{row.original.owner_name}</div>
     ),
@@ -65,7 +65,7 @@ export const vendorColumns = (
   {
     id: 'status',
     accessorKey: 'is_active',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.status')} />,
     cell: ({ row }) => {
       const isActive = row.original.is_active;
       return (
@@ -84,7 +84,7 @@ export const vendorColumns = (
   {
     id: 'created_at',
     accessorKey: 'created_at',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Created At" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.createdAt')} />,
     cell: ({ row }) => (
       <div className="text-sm text-muted-foreground">{row.original.created_at}</div>
     ),

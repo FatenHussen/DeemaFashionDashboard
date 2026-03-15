@@ -19,7 +19,7 @@ export interface RecipeFormValues extends RecipeData {
 
 export const recipeColumns = (
   permissions: { update: boolean; delete: boolean },
-  _t: TFunction<'table'>,
+  t: TFunction<'table'>,
   onDelete?: (id: number) => void,
   isDeleting?: boolean,
   isDeleteDialogOpen?: boolean,
@@ -31,7 +31,7 @@ export const recipeColumns = (
   {
     id: 'id',
     accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="ID" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
     cell: ({ row }) => (
       <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
         <span className="text-xs font-semibold text-primary">{row.original.id}</span>
@@ -40,7 +40,7 @@ export const recipeColumns = (
   },
   {
     id: 'name',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.name')} />,
     cell: ({ row }) => {
       const name = row.original.name;
       const display = typeof name === 'object' ? (name as any)?.en || (name as any)?.ar : name;
@@ -50,25 +50,25 @@ export const recipeColumns = (
   {
     id: 'prep_time',
     accessorKey: 'prep_time',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Prep Time" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.prepTime')} />,
     cell: ({ row }) => <span className="text-sm text-muted-foreground">{row.original.prep_time || '-'}</span>,
   },
   {
     id: 'cook_time',
     accessorKey: 'cook_time',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Cook Time" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.cookTime')} />,
     cell: ({ row }) => <span className="text-sm text-muted-foreground">{row.original.cook_time || '-'}</span>,
   },
   {
     id: 'servings',
     accessorKey: 'servings',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Servings" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.servings')} />,
     cell: ({ row }) => <span className="text-sm">{row.original.servings ?? '-'}</span>,
   },
   {
     id: 'is_active',
     accessorKey: 'is_active',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.status')} />,
     cell: ({ row }) => (
       <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${row.original.is_active ? 'bg-green-500/20 text-green-600' : 'bg-red-500/20 text-red-600'}`}>
         {row.original.is_active ? 'Active' : 'Inactive'}

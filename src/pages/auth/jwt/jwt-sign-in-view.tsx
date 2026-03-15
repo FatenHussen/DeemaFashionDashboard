@@ -4,13 +4,17 @@ import { useForm } from 'react-hook-form';
 import { useBoolean } from 'minimal-shared/hooks';
 import { zodResolver } from '@hookform/resolvers/zod';
 
-import { useRouter } from 'src/routes/hooks';
 import { RouterLink } from 'src/routes/components';
 
-import { CONFIG } from 'src/global-config';
 import { Iconify } from 'src/shared/components/iconify';
 import { Form, Field } from 'src/shared/components/hook-form';
 import { Box, Alert, Button, IconButton, Typography } from 'src/shared/ui';
+
+import {
+  getPostLoginRedirectPath,
+  extractPermissionsFromLoginResponse,
+  fetchPermissionsFromMe,
+} from 'src/auth/post-login-redirect';
 
 import { useAuthContext } from '../hooks';
 import { getErrorMessage } from '../utils';
@@ -34,11 +38,10 @@ export const SignInSchema = zod.object({
 // ----------------------------------------------------------------------
 
 export function JwtSignInView() {
-  const router = useRouter();
 
   const showPassword = useBoolean();
 
-  const { checkUserSession } = useAuthContext();
+  useAuthContext();
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -60,13 +63,21 @@ export function JwtSignInView() {
   const onSubmit = handleSubmit(async (data) => {
     try {
       setErrorMessage(null);
-      const { user } = await signInWithPassword({ email: data.email, password: data.password });
+      const { user, responseData } = await signInWithPassword({
+        email: data.email,
+        password: data.password,
+      });
 
-      // Refresh user session to get the latest user data
-      await checkUserSession?.();
+      // Redirect: statistics if has stats.view, else first permitted sidebar item
+      // Do this BEFORE checkUserSession to avoid race with GuestGuard's returnTo redirect
+      let permissions = extractPermissionsFromLoginResponse(user, responseData);
+      if (permissions.length === 0) {
+        permissions = await fetchPermissionsFromMe();
+      }
+      const redirectPath = getPostLoginRedirectPath(permissions);
+      window.location.href = redirectPath;
 
-      // Redirect to admin dashboard (FCM token is handled in dashboard layout)
-      window.location.href = CONFIG.auth.redirectPath;
+      // Skip checkUserSession - new page will init session; prevents GuestGuard from redirecting to returnTo
     } catch (error) {
       console.error(error);
       const feedbackMessage = getErrorMessage(error);
@@ -78,14 +89,14 @@ export function JwtSignInView() {
     <Box className="gap-6 flex flex-col">
       {/* Email Field with Icon */}
       <Box className="group relative">
-        <Box className="absolute left-4 top-[38px] z-10 flex items-center pointer-events-none">
+        <Box className="absolute left-3 sm:left-4 top-[38px] z-10 flex items-center pointer-events-none">
           <Iconify
             icon="solar:letter-bold"
             className="text-muted-foreground group-focus-within:text-primary transition-colors"
             width={20}
           />
         </Box>
-        <Box className="pl-12">
+        <Box className="pl-10 sm:pl-12">
           <Field.Text
             name="email"
             label="Email address"
@@ -97,14 +108,14 @@ export function JwtSignInView() {
 
       {/* Password Field with Icon */}
       <Box className="group relative">
-        <Box className="absolute left-4 top-[38px] z-10 flex items-center pointer-events-none">
+        <Box className="absolute left-3 sm:left-4 top-[38px] z-10 flex items-center pointer-events-none">
           <Iconify
             icon="solar:lock-password-outline"
             className="text-muted-foreground group-focus-within:text-primary transition-colors"
             width={20}
           />
         </Box>
-        <Box className="pl-12">
+        <Box className="pl-10 sm:pl-12">
           <Field.Text
             name="password"
             label="Password"
@@ -155,19 +166,19 @@ export function JwtSignInView() {
   );
 
   return (
-    <Box className="w-full  max-w-md mx-auto">
+    <Box className="w-full max-w-md mx-auto px-4 sm:px-6 md:px-8">
       {/* Header Section */}
-      <Box className="mb-8 text-center ">
-        <Box className="mb-6 inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20">
-          <Iconify icon="solar:shield-check-bold" className="text-primary" width={32} />
+      <Box className="mb-6 sm:mb-8 text-center">
+        <Box className="mb-6 inline-flex items-center justify-center p-3 sm:p-4 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 shadow-sm">
+          <img src="/logo/logo.png" alt="Logo" className="h-12 w-auto sm:h-14 object-contain" />
         </Box>
         <Typography
           variant="h4"
-          className="mb-2 font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent"
+          className="mb-2 text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent"
         >
           Welcome Back
         </Typography>
-        <Typography variant="body2" className="text-muted-foreground">
+        <Typography variant="body2" className="text-muted-foreground text-sm sm:text-base">
           Sign in to continue to your account
         </Typography>
       </Box>
@@ -184,7 +195,7 @@ export function JwtSignInView() {
       )}
 
       {/* Form */}
-      <Box className="p-6 rounded-2xl border border-border/60 bg-card/50 backdrop-blur-sm shadow-lg">
+      <Box className="p-4 sm:p-6 rounded-2xl border border-border/60 bg-card/50 backdrop-blur-sm shadow-lg transition-all duration-300 hover:shadow-xl animate-in fade-in slide-in-from-bottom-4 duration-500">
         <Form methods={methods} onSubmit={onSubmit}>
           {renderForm()}
         </Form>

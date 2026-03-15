@@ -1,21 +1,24 @@
 import type { SectionItem, FilterConfig } from '../types/page-section.types';
 
+import { axiosInstance } from '@/api';
 import { toast } from 'react-toastify';
-import { useForm } from 'react-hook-form';
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useQuery } from '@tanstack/react-query';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
+import { useForm , Controller, useFormContext } from 'react-hook-form';
+import { useFetchSectionDetails } from '@/pages/dashboard/sections/hooks/useSections';
+import { RHFInfiniteSelect } from '@/shared/components/hook-form/rhf-infinite-select';
+import { _PageSectionApi } from '@/pages/dashboard/sections/api/page-section.services';
 import {
   PageSectionSchema,
   type PageSectionFormValues,
 } from '@/pages/dashboard/sections/validation/page-section.validation';
 import {
-  useFetchPages,
-  useFetchFilterData,
   useCreatePageSection,
   useUpdatePageSection,
-  useFetchDisplayTypes,
   useFetchPageSectionDetails,
   useFetchSectionsForDropdown,
 } from '@/pages/dashboard/sections/hooks/usePageSections';
@@ -25,12 +28,35 @@ import { Box, Typography } from 'src/shared/ui';
 import { RHFSelect } from 'src/shared/components/hook-form/rhf-select';
 import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
 import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
+import { InfiniteScrollSelect } from 'src/shared/components/infinite-scroll-select';
 
 // ----------------------------------------------------------------------
 
 const metadata = { title: `Page Section ${CONFIG.appName}` };
 
+const sectionFetcher = (page: number, limit: number) =>
+  _PageSectionApi.getSections(page, limit).then((r) => ({
+    data: {
+      items: (r.data?.items ?? []).map((s: any) => ({ id: s.id, label: s.name })),
+      pagination:
+        r.data?.pagination ?? { current_page: 1, last_page: 1, per_page: limit, total: 0 },
+    },
+  }));
+
+const pageFetcher = async () => {
+  const r = await _PageSectionApi.getPages();
+  const items = (r.data ?? []).map((p: any) => ({ id: p.id, label: p.title }));
+  return {
+    data: {
+      items,
+      pagination: { current_page: 1, last_page: 1, per_page: items.length, total: items.length },
+    },
+  };
+};
+
+
 export default function CreatePage() {
+  const { t } = useTranslation('table');
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
   const isEditMode = !!id;
@@ -41,9 +67,7 @@ export default function CreatePage() {
   const { data: pageSectionData, isLoading: isLoadingPageSection } = useFetchPageSectionDetails(
     id || ''
   );
-  const { data: pagesData, isLoading: isLoadingPages } = useFetchPages();
-  const { data: displayTypesData, isLoading: isLoadingDisplayTypes } = useFetchDisplayTypes();
-  const { data: sectionsData, isLoading: isLoadingSections } = useFetchSectionsForDropdown();
+  const { data: sectionsData } = useFetchSectionsForDropdown();
   const createPageSectionMutation = useCreatePageSection();
   const updatePageSectionMutation = useUpdatePageSection();
 
@@ -70,32 +94,47 @@ export default function CreatePage() {
   const { handleSubmit, reset, watch, setValue } = methods;
 
   const watchedSectionId = watch('section_id');
+  const sectionIdForDetails =
+    typeof watchedSectionId === 'string' ? parseInt(watchedSectionId, 10) : Number(watchedSectionId);
+  const { data: sectionDetailsData } = useFetchSectionDetails(sectionIdForDetails || '');
 
   // Update selected section when section_id changes
   useEffect(() => {
-    if (watchedSectionId && sectionsData?.data?.items) {
-      const sectionId =
-        typeof watchedSectionId === 'string' ? parseInt(watchedSectionId) : watchedSectionId;
-      const section = sectionsData.data.items.find((s: SectionItem) => s.id === sectionId);
-      console.log(section);
-
-      if (section) {
-        setSelectedSection(section);
-        setSelectedSectionId(sectionId);
-      }
+    const sectionId =
+      typeof watchedSectionId === 'string' ? parseInt(watchedSectionId, 10) : Number(watchedSectionId);
+    if (!sectionId || !sectionsData?.data?.items) {
+      setSelectedSection(null);
+      setSelectedSectionId(null);
+      return;
+    }
+    const section = sectionsData.data.items.find((s: SectionItem) => s.id === sectionId);
+    if (section) {
+      setSelectedSection(section);
+      setSelectedSectionId(sectionId);
+    } else {
+      setSelectedSection(null);
+      setSelectedSectionId(null);
     }
   }, [watchedSectionId, sectionsData]);
 
   useEffect(() => {
     if (isEditMode && pageSectionData?.data && !isLoadingPageSection) {
       const pageSection = pageSectionData.data;
+      const ps = pageSection as any;
+      const nameObj =
+        typeof pageSection.name === 'object' &&
+        pageSection.name &&
+        !Array.isArray(pageSection.name)
+          ? (pageSection.name as { en?: string; ar?: string })
+          : null;
+      const nameStr = typeof pageSection.name === 'string' ? pageSection.name : '';
       reset({
         name: {
-          en: pageSection.name,
-          ar: pageSection.name,
+          en: nameObj?.en ?? nameStr,
+          ar: nameObj?.ar ?? nameStr,
         },
-        section_id: pageSection.id,
-        page_id: pageSection.id,
+        section_id: ps.section_id ?? pageSection.id,
+        page_id: ps.page_id ?? pageSection.id,
         display_type_id: pageSection.display_type_id,
         position: pageSection.position,
         order: pageSection.order,
@@ -158,25 +197,6 @@ export default function CreatePage() {
     }));
   };
 
-  // Prepare options for dropdowns
-  const pageOptions =
-    pagesData?.data?.map((page) => ({
-      value: page.id.toString(),
-      label: page.title,
-    })) || [];
-
-  const displayTypeOptions =
-    displayTypesData?.data?.map((type) => ({
-      value: String(type.id),
-      label: `${type.manual_model} (ID: ${type.id})`,
-    })) || [];
-
-  const sectionOptions =
-    sectionsData?.data?.items?.map((section: SectionItem) => ({
-      value: section.id.toString(),
-      label: section.name,
-    })) || [];
-
   const positionOptions = [
     { value: 'before', label: 'Before' },
     { value: 'after', label: 'After' },
@@ -214,12 +234,35 @@ export default function CreatePage() {
         }
         isEditMode={isEditMode}
         isLoading={isLoadingPageSection}
-        loadingText="Loading page section data..."
+        loadingText={t('form.loadingPageSection')}
         maxWidth="4xl"
         infoText={infoText}
         submitLabel={isEditMode ? 'Update Page Section' : 'Create Page Section'}
         submittingLabel={isEditMode ? 'Updating...' : 'Creating...'}
       >
+        {/* Section - First: select section to enable display types with manual_model */}
+        <Box className="group">
+          <Box className="flex items-center gap-2 mb-2">
+            <Iconify icon="solar:widget-bold" className="text-primary" width={24} height={24} />
+            <Typography variant="subtitle2" className="font-semibold text-foreground">
+              Section
+            </Typography>
+          </Box>
+          <RHFInfiniteSelect
+            name="section_id"
+            queryKey={['pageSection', 'sections', 'infinite']}
+            fetcher={sectionFetcher}
+            placeholder={t('form.selectSection')}
+            helperText={t('form.selectSectionHelper')}
+            initialLabel={
+              sectionsData?.data?.items?.find(
+                (s: SectionItem) =>
+                  s.id === Number((pageSectionData?.data as any)?.section_id ?? 0)
+              )?.name
+            }
+          />
+        </Box>
+
         {/* English Name */}
         <Box className="group">
           <Box className="flex items-center gap-2 mb-2">
@@ -230,8 +273,8 @@ export default function CreatePage() {
           </Box>
           <RHFTextField
             name="name.en"
-            placeholder="e.g., Featured Products"
-            helperText="Enter the page section name in English"
+            placeholder={t('form.sectionNameEnPlaceholder')}
+            helperText={t('form.sectionNameEnHelper')}
             className="transition-all duration-200"
           />
         </Box>
@@ -246,28 +289,10 @@ export default function CreatePage() {
           </Box>
           <RHFTextField
             name="name.ar"
-            placeholder="e.g., منتجات مميزة"
-            helperText="Enter the page section name in Arabic"
+            placeholder={t('form.sectionNameArPlaceholder')}
+            helperText={t('form.sectionNameArHelper')}
             className="transition-all duration-200"
             dir="rtl"
-          />
-        </Box>
-
-        {/* Section */}
-        <Box className="group">
-          <Box className="flex items-center gap-2 mb-2">
-            <Iconify icon="solar:widget-bold" className="text-primary" width={24} height={24} />
-            <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Section
-            </Typography>
-          </Box>
-          <RHFSelect
-            name="section_id"
-            options={sectionOptions}
-            placeholder="Select a section"
-            helperText="Select the section for this page section"
-            className="transition-all duration-200"
-            disabled={isLoadingSections}
           />
         </Box>
 
@@ -279,33 +304,31 @@ export default function CreatePage() {
               Page
             </Typography>
           </Box>
-          <RHFSelect
+          <RHFInfiniteSelect
             name="page_id"
-            options={pageOptions}
-            placeholder="Select a page"
-            helperText="Select the page for this section"
-            className="transition-all duration-200"
-            disabled={isLoadingPages}
+            queryKey={['pageSection', 'pages', 'infinite']}
+            fetcher={() => pageFetcher()}
+            placeholder={t('form.selectPage')}
+            helperText={t('form.selectPageHelper')}
+            initialLabel={
+              (pageSectionData?.data as any)?.page_title ??
+              (pageSectionData?.data as any)?.page?.title
+            }
           />
         </Box>
 
-        {/* Display Type */}
-        <Box className="group">
-          <Box className="flex items-center gap-2 mb-2">
-            <Iconify icon="solar:gallery-bold" className="text-primary" width={24} height={24} />
-            <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Display Type
-            </Typography>
-          </Box>
-          <RHFSelect
-            name="display_type_id"
-            options={displayTypeOptions}
-            placeholder="Select a display type"
-            helperText="Select how this section will be displayed"
-            className="transition-all duration-200"
-            disabled={isLoadingDisplayTypes}
-          />
-        </Box>
+        {/* Display Type - fetches with manual_model from selected section, shows as images */}
+        <DisplayTypeImageSelect
+          name="display_type_id"
+          manualModel={
+            selectedSection?.manual?.manual_model ??
+            (sectionDetailsData?.data as any)?.manual?.manual_model ??
+            null
+          }
+          selectedSection={selectedSection}
+          helperText={t('form.selectDisplayHelper')}
+          currentDisplayTypeId={pageSectionData?.data?.display_type_id}
+        />
 
         {/* Position */}
         <Box className="group">
@@ -323,8 +346,8 @@ export default function CreatePage() {
           <RHFSelect
             name="position"
             options={positionOptions}
-            placeholder="Select position"
-            helperText="Select whether this section appears before or after"
+            placeholder={t('form.selectPosition')}
+            helperText={t('form.selectPositionHelper')}
             className="transition-all duration-200"
           />
         </Box>
@@ -340,8 +363,8 @@ export default function CreatePage() {
           <RHFTextField
             name="order"
             type="number"
-            placeholder="e.g., 1"
-            helperText="Enter the display order (1 = first)"
+            placeholder={t('form.displayOrderPlaceholder')}
+            helperText={t('form.displayOrderHelper')}
             className="transition-all duration-200"
           />
         </Box>
@@ -356,8 +379,8 @@ export default function CreatePage() {
           </Box>
           <RHFTextField
             name="background_color"
-            placeholder="e.g., #FF5733 or red"
-            helperText="Enter a background color (optional)"
+            placeholder={t('form.bgColorPlaceholder')}
+            helperText={t('form.bgColorHelper')}
             className="transition-all duration-200"
           />
         </Box>
@@ -372,8 +395,8 @@ export default function CreatePage() {
           </Box>
           <RHFTextField
             name="background_card_color"
-            placeholder="e.g., #3498DB or blue"
-            helperText="Enter a background card color (optional)"
+            placeholder={t('form.bgCardColorPlaceholder')}
+            helperText={t('form.bgCardColorHelper')}
             className="transition-all duration-200"
           />
         </Box>
@@ -405,6 +428,112 @@ export default function CreatePage() {
   );
 }
 
+function DisplayTypeImageSelect({
+  name,
+  manualModel,
+  selectedSection,
+  helperText,
+  currentDisplayTypeId,
+}: {
+  name: string;
+  manualModel?: string | null;
+  selectedSection: SectionItem | null;
+  helperText?: string;
+  currentDisplayTypeId?: number;
+}) {
+  const { control } = useFormContext();
+  const displayTypesQuery = useQuery({
+    queryKey: ['pageSection', 'displayTypes', manualModel || ''],
+    queryFn: () => _PageSectionApi.getDisplayTypes(manualModel || undefined),
+    enabled: !!selectedSection,
+  });
+
+  const displayTypes = displayTypesQuery.data?.data ?? [];
+
+  return (
+    <Box className="group">
+      <Box className="flex items-center gap-2 mb-2">
+        <Iconify icon="solar:gallery-bold" className="text-primary" width={24} height={24} />
+        <Typography variant="subtitle2" className="font-semibold text-foreground">
+          Display Type
+        </Typography>
+      </Box>
+      <Controller
+        name={name}
+        control={control}
+        render={({ field }) => (
+          <Box>
+            {!selectedSection ? (
+              <Box className="p-6 border border-dashed rounded-lg text-center">
+                <Iconify
+                  icon="solar:widget-bold"
+                  className="w-12 h-12 text-muted-foreground/50 mx-auto mb-2"
+                />
+                <Typography variant="body2" className="text-muted-foreground">
+                  Select a section first to load display types
+                </Typography>
+              </Box>
+            ) : displayTypesQuery.isLoading ? (
+              <Box className="flex justify-center gap-2 py-8">
+                <Iconify
+                  icon="solar:refresh-circle-bold"
+                  className="w-8 h-8 text-primary animate-spin"
+                />
+                <Typography variant="body2" className="text-muted-foreground">
+                  Loading display types...
+                </Typography>
+              </Box>
+            ) : displayTypes.length === 0 ? (
+              <Box className="p-6 border border-dashed rounded-lg text-center">
+                <Typography variant="body2" className="text-muted-foreground">
+                  No display types found for this section
+                </Typography>
+              </Box>
+            ) : (
+              <Box className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                {displayTypes.map((dt: { id: number; image_url: string }) => {
+                  const value = typeof field.value === 'string' ? parseInt(field.value, 10) : field.value;
+                  const currentVal = value || currentDisplayTypeId;
+                  const isSelected = currentVal === dt.id;
+                  return (
+                    <button
+                      key={dt.id}
+                      type="button"
+                      onClick={() => field.onChange(dt.id)}
+                      className={`relative rounded-lg border-2 overflow-hidden transition-all hover:border-primary/50 ${
+                        isSelected ? 'border-primary ring-2 ring-primary/20' : 'border-border'
+                      }`}
+                    >
+                      <img
+                        src={dt.image_url}
+                        alt={`Display type ${dt.id}`}
+                        className="w-full aspect-[4/3] object-cover"
+                      />
+                      {isSelected && (
+                        <Box className="absolute inset-0 bg-primary/10 flex items-center justify-center">
+                          <Iconify
+                            icon="solar:check-circle-bold"
+                            className="text-primary w-8 h-8"
+                          />
+                        </Box>
+                      )}
+                    </button>
+                  );
+                })}
+              </Box>
+            )}
+            {helperText && (
+              <Typography variant="caption" className="text-muted-foreground mt-1 block">
+                {helperText}
+              </Typography>
+            )}
+          </Box>
+        )}
+      />
+    </Box>
+  );
+}
+
 function DynamicFilterField({
   filterKey,
   filterConfig,
@@ -416,15 +545,13 @@ function DynamicFilterField({
   value: any;
   onChange: (value: any) => void;
 }) {
-  const { data: filterData, isLoading } = useFetchFilterData(
-    filterConfig.type === 'select' && filterConfig.url ? filterConfig.url : null
-  );
+  const label = filterKey.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
 
   if (filterConfig.type === 'number') {
     return (
       <Box className="group">
         <Typography variant="subtitle2" className="font-semibold text-foreground mb-2">
-          {filterKey.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
+          {label}
         </Typography>
         <input
           type="number"
@@ -438,35 +565,40 @@ function DynamicFilterField({
   }
 
   if (filterConfig.type === 'select' && filterConfig.url) {
-    const options =
-      filterData?.data?.items?.map((item: any) => ({
-        value: item.id,
-        label: item.name || item.title || `Item ${item.id}`,
-      })) ||
-      filterData?.data?.map((item: any) => ({
-        value: item.id,
-        label: item.name || item.title || `Item ${item.id}`,
-      })) ||
-      [];
+    const url = filterConfig.url;
+    const fetcher = (page: number, limit: number) =>
+      axiosInstance.get(url, { params: { page, limit } }).then((r) => {
+        const responseData = r.data?.data;
+        const items = responseData?.items ?? (Array.isArray(responseData) ? responseData : []);
+        const pagination = responseData?.pagination ?? {
+          current_page: 1,
+          last_page: 1,
+          per_page: items.length,
+          total: items.length,
+        };
+        return {
+          data: {
+            items: items.map((item: any) => ({
+              id: item.id,
+              label: item.name || item.title || `Item ${item.id}`,
+            })),
+            pagination,
+          },
+        };
+      });
 
     return (
       <Box className="group">
         <Typography variant="subtitle2" className="font-semibold text-foreground mb-2">
-          {filterKey.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
+          {label}
         </Typography>
-        <select
-          value={value || ''}
-          onChange={(e) => onChange(e.target.value ? parseInt(e.target.value) : undefined)}
-          className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-          disabled={isLoading}
-        >
-          <option value="">Select {filterKey.replace(/_/g, ' ')}</option>
-          {options.map((option: any) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
+        <InfiniteScrollSelect
+          value={value || 0}
+          onChange={(val) => onChange(val || undefined)}
+          queryKey={['filter-data', url, 'infinite']}
+          fetcher={fetcher}
+          placeholder={`Select ${filterKey.replace(/_/g, ' ')}`}
+        />
       </Box>
     );
   }

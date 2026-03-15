@@ -4,7 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { usePermissions } from '@/auth/hooks/use-permissions';
 import { driverColumns, type DriverFormValues } from '@/columns/one/driver/one';
-import { useFetchDrivers, useDeleteDriver } from '@/pages/dashboard/driver/hooks/driver';
+import { UpdatePasswordDialog } from '@/shared/components/update-password-dialog';
+import { useFetchDrivers, useDeleteDriver, useUpdateDriver, useFetchDriverById } from '@/pages/dashboard/driver/hooks/driver';
 
 import { CONFIG } from 'src/global-config';
 
@@ -17,10 +18,13 @@ export default function Page() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+  const [passwordDialogTargetId, setPasswordDialogTargetId] = useState<number | null>(null);
 
-  // Fetch drivers using the hook
   const { data: driversResponse, isLoading, error } = useFetchDrivers(currentPage, pageSize);
+  const { data: driverDetailsResponse } = useFetchDriverById(passwordDialogTargetId ?? '');
   const deleteDriverMutation = useDeleteDriver();
+  const updateDriverMutation = useUpdateDriver();
 
   // Log error for debugging
   if (error) {
@@ -46,12 +50,37 @@ export default function Page() {
         await deleteDriverMutation.mutateAsync(deletingId);
         toast.success(t('deleteSuccess') || 'Driver deleted successfully');
         setDeletingId(null);
-      } catch {}
+      } catch { return; }
     }
   };
 
   const onDeleteCancel = () => {
     setDeletingId(null);
+  };
+
+  const onUpdatePassword = (row: { original: DriverFormValues }) => {
+    setPasswordDialogTargetId(row.original.id);
+    setPasswordDialogOpen(true);
+  };
+
+  const handlePasswordSubmit = async (data: { password: string; password_confirmation: string }) => {
+    if (!passwordDialogTargetId) return;
+    const driver = driverDetailsResponse?.data ?? driverData.find((d) => d.id === passwordDialogTargetId);
+    const areaIds = (driver as any)?.areas?.map((a: { id: number }) => ({ id: a.id })) ?? [];
+    await updateDriverMutation.mutateAsync({
+      id: passwordDialogTargetId,
+      data: {
+        name: driver?.name ?? '',
+        phone: driver?.phone ?? '',
+        address: driver?.address ?? '',
+        area_ids: areaIds.length > 0 ? areaIds : [{ id: 0 }],
+        password: data.password,
+        password_confirmation: data.password_confirmation,
+      } as any,
+    });
+    toast.success('Password updated successfully');
+    setPasswordDialogTargetId(null);
+    setPasswordDialogOpen(false);
   };
 
   // Extract data from API response
@@ -83,6 +112,15 @@ export default function Page() {
     <>
       <title>{metadata.title}</title>
 
+      <UpdatePasswordDialog
+        open={passwordDialogOpen}
+        onOpenChange={setPasswordDialogOpen}
+        onSubmit={handlePasswordSubmit}
+        isSubmitting={updateDriverMutation.isPending}
+        entityName="Driver"
+        minLength={8}
+      />
+
       <DataTable
         tableName="Driver"
         columns={driverColumns(
@@ -96,7 +134,8 @@ export default function Page() {
           deletingId !== null,
           onDeleteConfirm,
           onDeleteCancel,
-          deletingId
+          deletingId,
+          onUpdatePassword
         )}
         data={driverData}
         createPath="/driver/create"

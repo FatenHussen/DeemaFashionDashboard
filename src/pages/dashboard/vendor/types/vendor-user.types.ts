@@ -1,22 +1,22 @@
 export interface VendorUserShop {
   id: number;
-  name: { ar: string; en: string };
+  name: string | { ar: string; en: string };
   email: string;
   is_active: boolean;
 }
 
 export interface VendorUserVendor {
   id: number;
-  name: { ar: string; en: string };
+  name: string | { ar: string; en: string };
 }
 
 export interface VendorUserItem {
   id: number;
   name: string;
   email: string;
-  is_active: boolean;
+  is_active: boolean | number;
   vendor_id: number;
-  vendor_name?: { ar: string; en: string };
+  vendor_name?: string | { ar: string; en: string };
   vendor?: VendorUserVendor;
   shops_count?: number;
   shops?: VendorUserShop[];

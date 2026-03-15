@@ -1,10 +1,11 @@
 import { useEffect } from 'react';
 import { toast } from 'react-toastify';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
-import { useFetchGovernorates } from '@/pages/dashboard/locations/hooks/governorate';
+import { _GovernorateApi } from '@/pages/dashboard/locations/api/governorate.services';
 import {
   CitySchema,
   type CityFormValues,
@@ -16,26 +17,33 @@ import {
 } from '@/pages/dashboard/locations/hooks/city';
 
 import { CONFIG } from 'src/global-config';
-import { Box, Typography, SimpleSelect } from 'src/shared/ui';
+import { Box, Typography } from 'src/shared/ui';
 import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
 import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
+import { RHFInfiniteSelect } from 'src/shared/components/hook-form/rhf-infinite-select';
 
 // ----------------------------------------------------------------------
 
 const metadata = { title: `City ${CONFIG.appName}` };
 
+const governorateFetcher = (page: number, limit: number) =>
+  _GovernorateApi.getListGovernorates({ page, per_page: limit }).then((r) => ({
+    data: {
+      items: r.data.items.map((gov) => ({ id: gov.id, label: gov.name })),
+      pagination: r.data.pagination,
+    },
+  }));
+
 export default function CreatePage() {
+  const { t } = useTranslation('table');
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
   const isEditMode = !!id;
 
   // Hooks for fetching and mutations
   const { data: cityData, isLoading: isLoadingCity } = useFetchCityById(id || '');
-  const { data: governoratesResponse } = useFetchGovernorates();
   const createCityMutation = useCreateCity();
   const updateCityMutation = useUpdateCity();
-
-  console.log(governoratesResponse);
 
   const defaultValues: CityFormValues = {
     name: {
@@ -50,7 +58,7 @@ export default function CreatePage() {
     defaultValues,
   });
 
-  const { handleSubmit, reset, control } = methods;
+  const { handleSubmit, reset } = methods;
 
   // Fetch city data if in edit mode
   useEffect(() => {
@@ -104,13 +112,6 @@ export default function CreatePage() {
     ? 'You can update any field. Make sure both Arabic and English names are provided and a governorate is selected.'
     : 'Fill in both Arabic and English names and select a governorate to create a new city.';
 
-  // Prepare governorate options
-  const governorateOptions =
-    governoratesResponse?.data?.items.map((gov) => ({
-      value: gov.id,
-      label: gov.name,
-    })) || [];
-
   return (
     <>
       <title>
@@ -127,7 +128,7 @@ export default function CreatePage() {
         description={isEditMode ? 'Update city information' : 'Add a new city to your system'}
         isEditMode={isEditMode}
         isLoading={isLoadingCity}
-        loadingText="Loading city data..."
+        loadingText={t('form.loadingCity')}
         maxWidth="3xl"
         infoText={infoText}
         submitLabel={isEditMode ? 'Update City' : 'Create City'}
@@ -138,13 +139,13 @@ export default function CreatePage() {
           <Box className="flex items-center gap-2 mb-2">
             <Iconify icon="solar:flag-bold" className="text-primary" width={24} height={24} />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Name (Arabic)
+              {t('form.nameAr')}
             </Typography>
           </Box>
           <RHFTextField
             name="name.ar"
-            placeholder="e.g., مدينة دمشق"
-            helperText="Enter the city name in Arabic"
+            placeholder={t('form.cityNameAr')}
+            helperText={t('form.cityNameArHelper')}
             className="transition-all duration-200"
             dir="rtl"
           />
@@ -155,13 +156,13 @@ export default function CreatePage() {
           <Box className="flex items-center gap-2 mb-2">
             <Iconify icon="solar:flag-bold" className="text-primary" width={24} height={24} />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Name (English)
+              {t('form.nameEn')}
             </Typography>
           </Box>
           <RHFTextField
             name="name.en"
-            placeholder="e.g., Damascus City"
-            helperText="Enter the city name in English"
+            placeholder={t('form.cityNameEn')}
+            helperText={t('form.cityNameEnHelper')}
             className="transition-all duration-200"
           />
         </Box>
@@ -171,24 +172,16 @@ export default function CreatePage() {
           <Box className="flex items-center gap-2 mb-2">
             <Iconify icon="solar:flag-bold" className="text-primary" width={24} height={24} />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Governorate
+              {t('columns.governorate')}
             </Typography>
           </Box>
-          <Controller
+          <RHFInfiniteSelect
             name="governorate_id"
-            control={control}
-            render={({ field: { onChange, value }, fieldState: { error } }) => (
-              <SimpleSelect
-                value={value || ''}
-                onChange={(val) => onChange(Number(val))}
-                options={governorateOptions}
-                placeholder="Select a governorate"
-                error={!!error}
-                helperText={error?.message || 'Select the governorate for this city'}
-                fullWidth
-                className="transition-all duration-200"
-              />
-            )}
+            queryKey={['governorates', 'infinite', 'city-form']}
+            fetcher={governorateFetcher}
+            placeholder={t('form.selectGovernorate')}
+            helperText={t('form.cityGovernorateHelper')}
+            initialLabel={cityData?.governorate?.name}
           />
         </Box>
       </CreateFormLayout>

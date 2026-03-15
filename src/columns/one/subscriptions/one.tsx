@@ -23,7 +23,7 @@ export interface SubscriptionFormValues extends SubscriptionData {
 
 export const subscriptionColumns = (
   permissions: { update: boolean; delete: boolean },
-  _t: TFunction<'table'>,
+  t: TFunction<'table'>,
   onDelete?: (id: number) => void,
   isDeleting?: boolean,
   isDeleteDialogOpen?: boolean,
@@ -35,7 +35,7 @@ export const subscriptionColumns = (
   {
     id: 'id',
     accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="ID" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
     cell: ({ row }) => (
       <div className="flex items-center gap-2">
         <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
@@ -46,7 +46,7 @@ export const subscriptionColumns = (
   },
   {
     id: 'user',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="User" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.user')} />,
     cell: ({ row }) => (
       <div className="font-semibold text-foreground truncate">
         {row.original.user?.name || `User #${row.original.user_id}`}
@@ -55,7 +55,7 @@ export const subscriptionColumns = (
   },
   {
     id: 'package',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Package" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.package')} />,
     cell: ({ row }) => {
       const pkgName = row.original.package?.name;
       const display = typeof pkgName === 'object' ? (pkgName as any)?.en || (pkgName as any)?.ar : pkgName;
@@ -65,7 +65,7 @@ export const subscriptionColumns = (
   {
     id: 'start_date',
     accessorKey: 'start_date',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Start Date" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.startDate')} />,
     cell: ({ row }) => (
       <span className="text-sm text-muted-foreground">
         {row.original.start_date ? new Date(row.original.start_date).toLocaleDateString() : '-'}
@@ -75,7 +75,7 @@ export const subscriptionColumns = (
   {
     id: 'end_date',
     accessorKey: 'end_date',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="End Date" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.endDate')} />,
     cell: ({ row }) => (
       <span className="text-sm text-muted-foreground">
         {row.original.end_date ? new Date(row.original.end_date).toLocaleDateString() : '-'}
@@ -85,7 +85,7 @@ export const subscriptionColumns = (
   {
     id: 'status',
     accessorKey: 'status',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.status')} />,
     cell: ({ row }) => {
       const status = row.original.status;
       const colorClass =
@@ -106,7 +106,7 @@ export const subscriptionColumns = (
   {
     id: 'is_active',
     accessorKey: 'is_active',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Active" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.active')} />,
     cell: ({ row }) => {
       const isActive = row.original.is_active;
       return (
@@ -125,7 +125,7 @@ export const subscriptionColumns = (
   {
     id: 'created_at',
     accessorKey: 'created_at',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Created" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.created')} />,
     cell: ({ row }) => (
       <span className="text-sm text-muted-foreground">
         {new Date(row.original.created_at).toLocaleDateString()}

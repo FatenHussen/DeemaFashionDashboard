@@ -28,12 +28,12 @@ export interface SalesReportResponse {
 export interface ProductMovementItem {
   product_id?: number;
   id?: number;
-  product_name?: { ar: string; en: string };
-  name?: { ar: string; en: string };
-  total_sold?: number;
-  total_revenue?: number;
+  product_name?: { ar: string; en: string } | string;
+  name?: { ar: string; en: string } | string;
+  total_sold?: number | string;
+  total_revenue?: number | string;
   sku?: string;
-  category?: { ar: string; en: string };
+  category?: { ar: string; en: string } | string;
 }
 
 export interface ProductMovementData {
@@ -85,8 +85,8 @@ export interface DriverPerformanceReportResponse {
 }
 
 export interface SalesByLocationItem {
-  governorate?: { ar: string; en: string };
-  city?: { ar: string; en: string };
+  governorate?: string | { ar: string; en: string };
+  city?: string | { ar: string; en: string };
   total_orders: number;
   total_revenue: number;
 }

@@ -2,6 +2,7 @@ import type { UserItem } from '@/pages/dashboard/users/types/user.types';
 
 import { toast } from 'react-toastify';
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Iconify } from '@/shared/components/iconify';
@@ -30,6 +31,7 @@ import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout
 const metadata = { title: `Edit User ${CONFIG.appName}` };
 
 export default function UpdatePage() {
+  const { t } = useTranslation('table');
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
@@ -60,8 +62,6 @@ export default function UpdatePage() {
     last_name: '',
     email: '',
     phone: '',
-    password: '',
-    password_confirmation: '',
     area_id: 0,
   };
 
@@ -85,8 +85,6 @@ export default function UpdatePage() {
         last_name: (sourceUser as any).last_name ?? '',
         email: sourceUser.email || '',
         phone: sourceUser.phone || '',
-        password: '',
-        password_confirmation: '',
         area_id: (sourceUser as any).area_id ?? 0,
       });
     }
@@ -98,20 +96,16 @@ export default function UpdatePage() {
 
   const onSubmit = async (data: UserUpdateFormValues) => {
     try {
-      const payload: any = {
+      const payload = {
         name: data.name,
         last_name: data.last_name || '',
         email: data.email,
         phone: data.phone || '',
         area_id: data.area_id,
       };
-      if (data.password) {
-        payload.password = data.password;
-        payload.password_confirmation = data.password_confirmation;
-      }
       await updateUserMutation.mutateAsync({ id: id!, data: payload });
       toast.success('User updated successfully');
-    } catch {}
+    } catch { return; }
   };
 
   const onConvertSubmit = async (data: UserConvertAffiliateFormValues) => {
@@ -126,7 +120,7 @@ export default function UpdatePage() {
       toast.success('User converted to affiliate successfully');
       setShowConvertAffiliate(false);
       convertMethods.reset();
-    } catch {}
+    } catch { return; }
   };
 
   const handleCancel = () => {
@@ -154,31 +148,19 @@ export default function UpdatePage() {
         onCancel={handleCancel}
         isSubmitting={isSubmitting}
         errorMessage={errorMessage}
-        title="Edit User"
-        description="Update user information"
+        title={t('form.editUser')}
+        description={t('form.editUserDesc')}
         isEditMode
         maxWidth="2xl"
       >
         <Box className="space-y-4">
-          <RHFTextField name="name" label="First Name" fullWidth />
-          <RHFTextField name="last_name" label="Last Name" fullWidth />
-          <RHFTextField name="email" label="Email" type="email" fullWidth />
-          <RHFTextField name="phone" label="Phone" fullWidth />
-          <RHFTextField
-            name="password"
-            label="Password (leave empty to keep)"
-            type="password"
-            fullWidth
-          />
-          <RHFTextField
-            name="password_confirmation"
-            label="Confirm Password"
-            type="password"
-            fullWidth
-          />
+          <RHFTextField name="name" label={t('form.firstName')} fullWidth />
+          <RHFTextField name="last_name" label={t('form.lastName')} fullWidth />
+          <RHFTextField name="email" label={t('columns.email')} type="email" fullWidth />
+          <RHFTextField name="phone" label={t('columns.phone')} fullWidth />
 
           <Box>
-            <label className="mb-2 block text-sm font-medium">Area</label>
+            <label className="mb-2 block text-sm font-medium">{t('areaLabel')}</label>
             <Controller
               name="area_id"
               control={control}
@@ -190,7 +172,7 @@ export default function UpdatePage() {
                     onChange={(e) => field.onChange(parseInt(e.target.value, 10) || 0)}
                     className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
                   >
-                    <option value={0}>Select area</option>
+                    <option value={0}>{t('form.selectArea')}</option>
                     {areas.map((a) => (
                       <option key={a.id} value={a.id}>
                         {a.name}
@@ -226,7 +208,7 @@ export default function UpdatePage() {
                     <Box className="flex flex-col gap-4 sm:flex-row">
                       <Box className="flex-1">
                         <Typography variant="caption" className="mb-1 block">
-                          Affiliate ID
+                          {t('form.affiliateId')}
                         </Typography>
                         <Controller
                           name="affiliate_id"

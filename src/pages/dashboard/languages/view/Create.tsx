@@ -1,5 +1,6 @@
 import { toast } from 'react-toastify';
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useNavigate } from 'react-router';
@@ -25,6 +26,7 @@ import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout
 const metadata = { title: `Language ${CONFIG.appName}` };
 
 export default function CreatePage() {
+  const { t } = useTranslation('table');
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
   const isEditMode = !!id;
@@ -135,7 +137,7 @@ export default function CreatePage() {
         }
         isEditMode={isEditMode}
         isLoading={isLoadingLanguage}
-        loadingText="Loading language data..."
+        loadingText={t('form.loadingLanguage')}
         maxWidth="4xl"
         infoText={infoText}
         submitLabel={isEditMode ? 'Update Language' : 'Create Language'}
@@ -151,13 +153,13 @@ export default function CreatePage() {
               height={24}
             />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Language Code
+              {t('columns.code')}
             </Typography>
           </Box>
           <RHFTextField
             name="code"
-            placeholder="e.g., en, ar, fr"
-            helperText="Enter the language code (ISO 639-1 standard)"
+            placeholder={t('form.codePlaceholder')}
+            helperText={t('form.languageCodeHelper')}
             className="transition-all duration-200"
           />
         </Box>
@@ -172,13 +174,13 @@ export default function CreatePage() {
               height={24}
             />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Native Name
+              {t('columns.nativeName')}
             </Typography>
           </Box>
           <RHFTextField
             name="native_name"
-            placeholder="e.g., English, العربية, Français"
-            helperText="Enter the language name in its native script"
+            placeholder={t('form.nativeNamePlaceholder')}
+            helperText={t('form.languageNativeNameHelper')}
             className="transition-all duration-200"
           />
         </Box>
@@ -193,16 +195,16 @@ export default function CreatePage() {
               height={24}
             />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Text Direction
+              {t('form.directionLabel')}
             </Typography>
           </Box>
           <RHFSelect
             name="direction"
             options={[
-              { value: 'ltr', label: 'Left to Right (LTR)' },
-              { value: 'rtl', label: 'Right to Left (RTL)' },
+              { value: 'ltr', label: t('form.ltr') },
+              { value: 'rtl', label: t('form.rtl') },
             ]}
-            helperText="Select the text direction for this language"
+            helperText={t('form.languageDirectionHelper')}
             className="transition-all duration-200"
           />
         </Box>
@@ -217,7 +219,7 @@ export default function CreatePage() {
               height={24}
             />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Flag Icon
+              {t('columns.flag')}
             </Typography>
           </Box>
           <Controller
@@ -272,7 +274,7 @@ export default function CreatePage() {
               <Checkbox
                 checked={field.value}
                 onChange={(e) => field.onChange(e.target.checked)}
-                label="Mark language as active"
+                label={t('form.markLanguageActive')}
               />
             )}
           />
@@ -298,7 +300,7 @@ export default function CreatePage() {
               <Checkbox
                 checked={field.value}
                 onChange={(e) => field.onChange(e.target.checked)}
-                label="Set as default language"
+                label={t('form.setAsDefaultLanguage')}
               />
             )}
           />

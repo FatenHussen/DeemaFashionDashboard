@@ -21,7 +21,7 @@ export interface GiftFormValues extends GiftData {
 
 export const giftColumns = (
   permissions: { update: boolean; delete: boolean },
-  _t: TFunction<'table'>,
+  t: TFunction<'table'>,
   onDelete?: (id: number) => void,
   isDeleting?: boolean,
   isDeleteDialogOpen?: boolean,
@@ -33,7 +33,7 @@ export const giftColumns = (
   {
     id: 'id',
     accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="ID" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
     cell: ({ row }) => (
       <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
         <span className="text-xs font-semibold text-primary">{row.original.id}</span>
@@ -43,7 +43,7 @@ export const giftColumns = (
   {
     id: 'name',
     accessorKey: 'name',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.name')} />,
     cell: ({ row }) => {
       const name = row.original.name;
       const display = typeof name === 'object' ? (name as any)?.en || (name as any)?.ar || '-' : String(name || '-');
@@ -53,19 +53,29 @@ export const giftColumns = (
   {
     id: 'points_required',
     accessorKey: 'points_required',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Points Required" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.pointsRequired')} />,
     cell: ({ row }) => <span className="font-medium text-sm">{row.original.points_required}</span>,
   },
   {
     id: 'stock_quantity',
     accessorKey: 'stock_quantity',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Stock" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.stock')} />,
     cell: ({ row }) => <span className="text-sm">{row.original.stock_quantity}</span>,
+  },
+  {
+    id: 'exchanges_count',
+    accessorKey: 'exchanges_count',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.exchanges')} />,
+    cell: ({ row }) => (
+      <span className="text-sm text-muted-foreground">
+        {row.original.exchanges_count != null ? row.original.exchanges_count : '-'}
+      </span>
+    ),
   },
   {
     id: 'is_active',
     accessorKey: 'is_active',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.status')} />,
     cell: ({ row }) => (
       <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${row.original.is_active ? 'bg-green-500/20 text-green-600' : 'bg-red-500/20 text-red-600'}`}>
         {row.original.is_active ? 'Active' : 'Inactive'}
@@ -75,7 +85,7 @@ export const giftColumns = (
   {
     id: 'created_at',
     accessorKey: 'created_at',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Created" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.created')} />,
     cell: ({ row }) => (
       <span className="text-sm text-muted-foreground">{new Date(row.original.created_at).toLocaleDateString()}</span>
     ),

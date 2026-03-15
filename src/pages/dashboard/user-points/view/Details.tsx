@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { toast } from 'react-toastify';
 import { useForm } from 'react-hook-form';
 import { Button } from '@/shared/ui/button';
+import { useTranslation } from 'react-i18next';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
@@ -30,6 +31,7 @@ const TX_STATUSES = ['', 'earned', 'redeemed'] as const;
 const TX_SOURCES = ['', 'order_completion', 'first_order', 'product_review', 'user_registration', 'admin_adjustment'] as const;
 
 export default function DetailsPage() {
+  const { t } = useTranslation('table');
   // Route is: details/:id  →  read "id" not "userId"
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -97,7 +99,7 @@ export default function DetailsPage() {
       toast.success('Points added successfully');
       addMethods.reset();
       setActiveForm(null);
-    } catch {}
+    } catch { return; }
   };
 
   const handleDeductPoints = async (data: UserPointsAddDeductFormValues) => {
@@ -106,7 +108,7 @@ export default function DetailsPage() {
       toast.success('Points deducted successfully');
       deductMethods.reset();
       setActiveForm(null);
-    } catch {}
+    } catch { return; }
   };
 
   const resetTxFilters = () => {
@@ -201,8 +203,8 @@ export default function DetailsPage() {
                   onCancel={() => { setActiveForm(null); addMethods.reset(); }}
                   isSubmitting={addPointsMutation.isPending}
                   errorMessage={addPointsMutation.error?.message || null}
-                  title="Add Points" description="Add points to this user's wallet"
-                  isEditMode={false} maxWidth="xl" submitLabel="Add Points" submittingLabel="Adding..."
+                  title={t('form.addPoints')} description={t('form.addPointsDesc')}
+                  isEditMode={false} maxWidth="xl" submitLabel={t('form.addPointsSubmit')} submittingLabel={t('form.addingPoints')}
                 >
                   <Box className="group">
                     <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">Points</Typography>
@@ -212,7 +214,7 @@ export default function DetailsPage() {
                     <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
                       Reason <span className="text-destructive">*</span>
                     </Typography>
-                    <RHFTextField name="reason" placeholder="e.g. Promotional bonus" fullWidth />
+                    <RHFTextField name="reason" placeholder={t('form.reasonBonusPlaceholder')} fullWidth />
                   </Box>
                 </CreateFormLayout>
               )}
@@ -224,8 +226,8 @@ export default function DetailsPage() {
                   onCancel={() => { setActiveForm(null); deductMethods.reset(); }}
                   isSubmitting={deductPointsMutation.isPending}
                   errorMessage={deductPointsMutation.error?.message || null}
-                  title="Deduct Points" description="Deduct points from this user's wallet"
-                  isEditMode={false} maxWidth="xl" submitLabel="Deduct Points" submittingLabel="Deducting..."
+                  title={t('form.deductPoints')} description={t('form.deductPointsDesc')}
+                  isEditMode={false} maxWidth="xl" submitLabel={t('form.deductPointsSubmit')} submittingLabel={t('form.deducting')}
                 >
                   <Box className="group">
                     <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">Points</Typography>
@@ -235,7 +237,7 @@ export default function DetailsPage() {
                     <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
                       Reason <span className="text-destructive">*</span>
                     </Typography>
-                    <RHFTextField name="reason" placeholder="e.g. Correction for error" fullWidth />
+                    <RHFTextField name="reason" placeholder={t('form.reasonCorrectionPlaceholder')} fullWidth />
                   </Box>
                 </CreateFormLayout>
               )}

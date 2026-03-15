@@ -1,5 +1,12 @@
 // ----------------------------------------------------------------------
 
+export interface VendorBadge {
+  id: number;
+  name: string;
+  color: string;
+  postion: string;
+}
+
 export interface VendorData {
   id: number;
   name: string | { ar: string; en: string };
@@ -15,6 +22,9 @@ export interface VendorData {
   average_rating?: number;
   ratings_count?: number;
   created_at?: string;
+  is_favorite?: boolean;
+  top_badges?: VendorBadge[];
+  bottom_badges?: VendorBadge[];
 }
 
 export interface VendorListResponse {

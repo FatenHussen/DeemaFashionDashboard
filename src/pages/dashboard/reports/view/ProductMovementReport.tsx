@@ -19,15 +19,19 @@ import { useFetchProductMovementReport } from '../hooks/report';
 
 const metadata = { title: `Product Movement Report | Dashboard - ${CONFIG.appName}` };
 
-function getLocalizedName(item: { product_name?: { ar: string; en: string }; name?: { ar: string; en: string } }, lang: string) {
+function getLocalizedName(
+  item: { product_name?: { ar: string; en: string } | string; name?: { ar: string; en: string } | string },
+  lang: string
+) {
   const name = item.product_name || item.name;
   if (!name) return '-';
+  if (typeof name === 'string') return name;
   return (lang === 'ar' ? name.ar : name.en) || name.en || name.ar || '-';
 }
 
 export default function ProductMovementReportPage() {
   const navigate = useNavigate();
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation('table');
   const lang = (i18n.language || 'en').startsWith('ar') ? 'ar' : 'en';
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
@@ -47,7 +51,7 @@ export default function ProductMovementReportPage() {
     try {
       await _ReportApi.exportProductMovementReport(format, params);
       toast.success(`Report exported as ${format.toUpperCase()}`);
-    } catch {} finally {
+    } catch { return; } finally {
       setIsExporting(false);
     }
   };
@@ -79,7 +83,7 @@ export default function ProductMovementReportPage() {
           <Box className="flex flex-wrap items-center gap-2">
             <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="h-9 rounded-lg border border-input bg-background px-3 text-sm" />
             <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="h-9 rounded-lg border border-input bg-background px-3 text-sm" />
-            <input type="number" placeholder="Category ID" value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className="h-9 w-28 rounded-lg border border-input bg-background px-3 text-sm" />
+            <input type="number" placeholder={t('form.categoryIdPlaceholder')} value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className="h-9 w-28 rounded-lg border border-input bg-background px-3 text-sm" />
             <Box className="h-5 w-px bg-border/60" />
             <Button variant="outlined" size="small" onClick={() => handleExport('excel')} disabled={isExporting}>
               <Iconify icon="solar:file-spreadsheet-bold" width={18} className="mr-1" /> Excel
@@ -112,7 +116,7 @@ export default function ProductMovementReportPage() {
                           <tr key={idx} className="border-b border-border/20 hover:bg-muted/20 transition-colors">
                             <td className="py-3 px-5 font-medium">{getLocalizedName(item, lang)}</td>
                             <td className="text-right py-3 px-5">{item.total_sold ?? '-'}</td>
-                            <td className="text-right py-3 px-5">{item.total_revenue?.toFixed(2) ?? '-'}</td>
+                            <td className="text-right py-3 px-5">{item.total_revenue != null ? Number(item.total_revenue).toFixed(2) : '-'}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -140,7 +144,7 @@ export default function ProductMovementReportPage() {
                           <tr key={idx} className="border-b border-border/20 hover:bg-muted/20 transition-colors">
                             <td className="py-3 px-5 font-medium">{getLocalizedName(item, lang)}</td>
                             <td className="text-right py-3 px-5">{item.total_sold ?? '-'}</td>
-                            <td className="text-right py-3 px-5">{item.total_revenue?.toFixed(2) ?? '-'}</td>
+                            <td className="text-right py-3 px-5">{item.total_revenue != null ? Number(item.total_revenue).toFixed(2) : '-'}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -166,7 +170,7 @@ export default function ProductMovementReportPage() {
                       <tbody>
                         {reportData.inactive_products.map((item, idx) => {
                           const cat = item.category;
-                          const catName = cat ? (lang === 'ar' ? cat.ar : cat.en) || cat.en || cat.ar : '-';
+                          const catName = !cat ? '-' : typeof cat === 'string' ? cat : (lang === 'ar' ? cat.ar : cat.en) || cat.en || cat.ar || '-';
                           return (
                             <tr key={item.id ?? item.product_id ?? idx} className="border-b border-border/20 hover:bg-muted/20 transition-colors">
                               <td className="py-3 px-5 font-medium">{getLocalizedName(item, lang)}</td>

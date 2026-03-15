@@ -7,7 +7,7 @@ import type {
 import { apiRoutes, axiosInstance } from '@/api';
 
 export const _BrandApi = {
-  getListBrands: async (params?: { name?: string }): Promise<BrandListResponse> => {
+  getListBrands: async (params?: { name?: string; page?: number; per_page?: number }): Promise<BrandListResponse> => {
     const response = await axiosInstance.get<BrandListResponse>(apiRoutes.brand.list, {
       params,
     });

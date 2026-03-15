@@ -34,13 +34,13 @@ export default function Page() {
   const rejectMutation = useRejectSellerRegistration();
   const deleteMutation = useDeleteSellerRegistration();
 
-  // The list response uses Laravel paginator format (data.data, not data.items)
-  const items: SellerRegistrationFormValues[] = response?.data?.data || [];
-  const rawPagination = response?.data;
-  const total = rawPagination?.total ?? 0;
-  const perPage = rawPagination?.per_page ?? pageSize;
-  const currentP = rawPagination?.current_page ?? 1;
-  const lastPage = rawPagination?.last_page ?? (Math.ceil(total / perPage) || 1);
+  const items: SellerRegistrationFormValues[] =
+    response?.data?.items ?? response?.data?.data ?? [];
+  const apiPagination = response?.data?.pagination ?? response?.data;
+  const total = apiPagination?.total ?? 0;
+  const perPage = apiPagination?.per_page ?? pageSize;
+  const currentP = apiPagination?.current_page ?? 1;
+  const lastPage = apiPagination?.last_page ?? (Math.ceil(total / perPage) || 1);
 
   const pagination = {
     current_page: currentP,
@@ -59,7 +59,7 @@ export default function Page() {
     try {
       await approveMutation.mutateAsync({ id });
       toast.success('Registration approved and credentials sent via email');
-    } catch {}
+    } catch { return; }
   };
 
   const onReject = async (id: number) => {
@@ -67,7 +67,7 @@ export default function Page() {
     try {
       await rejectMutation.mutateAsync(id);
       toast.success('Registration rejected');
-    } catch {}
+    } catch { return; }
   };
 
   const onDelete = (id: number) => {
@@ -81,7 +81,7 @@ export default function Page() {
     try {
       await deleteMutation.mutateAsync(pendingDeleteId);
       toast.success('Registration deleted successfully');
-    } catch {} finally {
+    } catch { return; } finally {
       setIsDeleteDialogOpen(false);
       setPendingDeleteId(null);
       setDeletingId(null);

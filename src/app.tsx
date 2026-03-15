@@ -11,7 +11,12 @@ import { usePathname } from 'src/routes/hooks';
 import { AuthProvider } from 'src/pages/auth/context/jwt';
 import { ProgressBar } from 'src/shared/components/progress-bar';
 import { MotionLazy } from 'src/shared/components/animate/motion-lazy';
-import { SettingsDrawer, defaultSettings, SettingsProvider } from 'src/shared/components/settings';
+import {
+  SettingsDrawer,
+  SettingsEffects,
+  defaultSettings,
+  SettingsProvider,
+} from 'src/shared/components/settings';
 
 // ----------------------------------------------------------------------
 
@@ -39,6 +44,7 @@ export default function App({ children }: AppProps) {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <SettingsProvider defaultSettings={defaultSettings}>
+          <SettingsEffects />
           <MotionLazy>
             <ProgressBar />
             <ToastContainer position="top-right" autoClose={3000} theme="colored" rtl={false} />

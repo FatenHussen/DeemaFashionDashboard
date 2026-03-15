@@ -2,6 +2,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 
 import { paths } from 'src/routes/paths';
+
 import { CONFIG } from 'src/global-config';
 import { LANGUAGE_STORAGE_KEY } from 'src/lib/i18n';
 import { JWT_STORAGE_KEY } from 'src/pages/auth/context/jwt/constant';

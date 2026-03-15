@@ -1,11 +1,10 @@
-import type { BasketData } from '@/pages/dashboard/baskets/types/basket.types';
-
 import { useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { Button } from '@/shared/ui/button';
+import { useTranslation } from 'react-i18next';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Iconify } from '@/shared/components/iconify';
-import { useParams, useNavigate, useLocation } from 'react-router';
+import { useParams, useNavigate } from 'react-router';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { InfiniteScrollSelect } from '@/shared/components/infinite-scroll-select';
 import { _CategoryApi } from '@/pages/dashboard/categories/api/category.services';
@@ -31,10 +30,9 @@ import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout
 const metadata = { title: `Basket ${CONFIG.appName}` };
 
 export default function CreatePage() {
+  const { t } = useTranslation('table');
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
-  const location = useLocation();
-  const basketFromState = location.state?.basket as BasketData | undefined;
   const isEditMode = !!id;
 
   const { data: basketResponse, isLoading: isLoadingBasket } = useFetchBasketById(id || '');
@@ -61,16 +59,19 @@ export default function CreatePage() {
   const { fields, append, remove } = useFieldArray({ control, name: 'items' });
 
   useEffect(() => {
-    const source = isEditMode ? (basketResponse?.data ?? basketFromState) : null;
+    // In edit mode, always use API data (GET baskets/:id) - list/state has no items
+    const source = isEditMode ? basketResponse?.data : null;
     if (source) {
       const name = typeof source.name === 'object' ? source.name : { en: String(source.name || ''), ar: String(source.name || '') };
+      const discountNum = typeof source.discount === 'string' ? parseFloat(source.discount) : (source.discount ?? source.discount_value ?? 0);
+      const offerDate = source.offer_ends_at ? (source.offer_ends_at.includes('-') ? source.offer_ends_at.split('T')[0] : source.offer_ends_at) : '';
       reset({
         category_id: source.category?.id || 0,
         name: { en: (name as any)?.en || '', ar: (name as any)?.ar || '' },
-        offer_ends_at: source.offer_ends_at || '',
-        discount: source.discount || 0,
+        offer_ends_at: offerDate,
+        discount: Number.isNaN(discountNum) ? 0 : Number(discountNum),
         discount_type: source.discount_type || 'percentage',
-        delivery_price: source.delivery_price || 0,
+        delivery_price: source.delivery_price ?? 0,
         image: null,
         items: source.items?.length
           ? source.items.map((it) => ({
@@ -80,7 +81,7 @@ export default function CreatePage() {
           : [{ shop_product_variant_id: 0, quantity: 1 }],
       });
     }
-  }, [basketResponse?.data, basketFromState, isEditMode, reset]);
+  }, [basketResponse?.data, isEditMode, reset]);
 
   const isSubmitting = createBasketMutation.isPending || updateBasketMutation.isPending;
   const errorMessage = createBasketMutation.error?.message || updateBasketMutation.error?.message || null;
@@ -103,7 +104,7 @@ export default function CreatePage() {
 
   const handleCancel = () => navigate('/baskets');
 
-  if (isEditMode && isLoadingBasket && !basketFromState) return <LoadingScreen />;
+  if (isEditMode && isLoadingBasket) return <LoadingScreen />;
 
   return (
     <>
@@ -111,7 +112,12 @@ export default function CreatePage() {
 
       <CreateFormLayout
         methods={methods as any}
-        onSubmit={handleSubmit(onSubmit as any)}
+        onSubmit={handleSubmit(
+          onSubmit as any,
+          (errors) => {
+            console.log('[Basket form] Validation errors:', errors);
+          }
+        )}
         onCancel={handleCancel}
         isSubmitting={isSubmitting}
         errorMessage={errorMessage}
@@ -119,14 +125,14 @@ export default function CreatePage() {
         description={isEditMode ? 'Update basket details' : 'Add a new basket with products'}
         isEditMode={isEditMode}
         isLoading={isEditMode && isLoadingBasket}
-        loadingText="Loading basket..."
+        loadingText={t('form.loadingBasket')}
         maxWidth="2xl"
         submitLabel={isEditMode ? 'Update Basket' : 'Create Basket'}
         submittingLabel={isEditMode ? 'Updating...' : 'Creating...'}
       >
         {/* Category */}
         <Box className="group">
-          <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">Category</Typography>
+          <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.categoryLabel')}</Typography>
           <Controller
             name="category_id"
             control={control}
@@ -146,9 +152,9 @@ export default function CreatePage() {
                     },
                   }))
                 }
-                placeholder="Select category..."
+                placeholder={t('form.selectCategory')}
                 initialLabel={(() => {
-                  const src = basketResponse?.data ?? basketFromState;
+                  const src = basketResponse?.data;
                   const cat = src?.category;
                   return cat?.name ? (typeof cat.name === 'object' ? (cat.name as any)?.en || (cat.name as any)?.ar : cat.name) : undefined;
                 })()}
@@ -159,14 +165,14 @@ export default function CreatePage() {
 
         {/* Name EN */}
         <Box className="group">
-          <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">Name (English)</Typography>
-          <RHFTextField name="name.en" placeholder="Basket name in English" fullWidth />
+          <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.nameEn')}</Typography>
+          <RHFTextField name="name.en" placeholder={t('form.basketNameEn')} fullWidth />
         </Box>
 
         {/* Name AR */}
         <Box className="group">
-          <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">Name (Arabic)</Typography>
-          <RHFTextField name="name.ar" placeholder="اسم السلة بالعربي" dir="rtl" fullWidth />
+          <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.nameAr')}</Typography>
+          <RHFTextField name="name.ar" placeholder={t('form.basketNameAr')} dir="rtl" fullWidth />
         </Box>
 
         {/* Discount */}
@@ -185,20 +191,20 @@ export default function CreatePage() {
             />
           </Box>
           <Box className="min-w-[140px] flex-1">
-            <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">Discount Value</Typography>
+            <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.discountValue')}</Typography>
             <RHFTextField name="discount" type="number" placeholder="0" fullWidth />
           </Box>
         </Box>
 
         {/* Offer ends at */}
         <Box className="group">
-          <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">Offer Ends At</Typography>
+          <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.offerEndsAt')}</Typography>
           <RHFTextField name="offer_ends_at" type="date" fullWidth />
         </Box>
 
         {/* Delivery Price */}
         <Box className="group">
-          <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">Delivery Price</Typography>
+          <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.deliveryPrice')}</Typography>
           <RHFTextField name="delivery_price" type="number" placeholder="0" fullWidth />
         </Box>
 
@@ -228,13 +234,13 @@ export default function CreatePage() {
                       onChange={(variantId) => f.onChange(variantId)}
                       queryKey={['shopProductVariant', 'list']}
                       fetcher={(page) => _ShopProductVariantApi.getList({ page, per_page: 10 })}
-                      placeholder="Select product variant..."
+                      placeholder={t('form.variantId')}
                     />
                   )}
                 />
               </Box>
               <Box className="w-24">
-                <RHFTextField name={`items.${index}.quantity`} placeholder="Qty" type="number" fullWidth />
+                <RHFTextField name={`items.${index}.quantity`} placeholder={t('form.quantity')} type="number" fullWidth />
               </Box>
               {fields.length > 1 && (
                 <Button type="button" variant="text" onClick={() => remove(index)} className="shrink-0 text-destructive">

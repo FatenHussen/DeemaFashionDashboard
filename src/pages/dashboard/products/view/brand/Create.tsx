@@ -1,5 +1,6 @@
 import { toast } from 'react-toastify';
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useNavigate } from 'react-router';
@@ -24,6 +25,7 @@ import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout
 const metadata = { title: `Brand ${CONFIG.appName}` };
 
 export default function CreatePage() {
+  const { t } = useTranslation('table');
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
   const isEditMode = !!id;
@@ -135,7 +137,7 @@ export default function CreatePage() {
         }
         isEditMode={isEditMode}
         isLoading={isLoadingBrand}
-        loadingText="Loading brand data..."
+        loadingText={t('form.loadingBrand')}
         maxWidth="3xl"
         infoText={infoText}
         submitLabel={isEditMode ? 'Update Brand' : 'Create Brand'}
@@ -151,8 +153,8 @@ export default function CreatePage() {
           </Box>
           <RHFTextField
             name="name.en"
-            placeholder="e.g., Chanel"
-            helperText="Enter the brand name in English"
+            placeholder={t('form.brandPlaceholder')}
+            helperText={t('form.brandNameEnHelper')}
             className="transition-all duration-200"
           />
         </Box>
@@ -168,7 +170,7 @@ export default function CreatePage() {
           <RHFTextField
             name="name.ar"
             placeholder="e.g., شانيل"
-            helperText="Enter the brand name in Arabic"
+            helperText={t('form.brandNameArHelper')}
             className="transition-all duration-200"
             dir="rtl"
           />

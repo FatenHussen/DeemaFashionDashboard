@@ -41,7 +41,7 @@ export default function Page() {
       try {
         await deleteServiceMutation.mutateAsync(id);
         toast.success('Service deleted successfully');
-      } catch {}
+      } catch { return; }
     }
   };
 

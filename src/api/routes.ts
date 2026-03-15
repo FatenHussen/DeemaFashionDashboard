@@ -201,6 +201,7 @@ export const apiRoutes = {
   order: {
     list: `${ROOTS.ADMIN}/orders`,
     details: (id: number | string) => `${ROOTS.ADMIN}/orders/${id}`,
+    getOne: (id: number | string) => `${ROOTS.ADMIN}/orders/${id}/get_one`,
     changeStatus: (id: number | string) => `${ROOTS.ADMIN}/orders/${id}/change-status`,
     assignDriver: (id: number | string) => `${ROOTS.ADMIN}/orders/${id}/assign-driver`,
     changeItemStatus: (itemId: number | string) =>
@@ -245,6 +246,14 @@ export const apiRoutes = {
     update: (id: number | string) => `${ROOTS.ADMIN}/gifts/${id}`,
     delete: (id: number | string) => `${ROOTS.ADMIN}/gifts/${id}`,
     details: (id: number | string) => `${ROOTS.ADMIN}/gifts/${id}`,
+  },
+  // User Gift routes (هدايا المستخدمين)
+  userGift: {
+    list: `${ROOTS.ADMIN}/user-gifts`,
+    create: `${ROOTS.ADMIN}/user-gifts`,
+    update: (id: number | string) => `${ROOTS.ADMIN}/user-gifts/${id}`,
+    delete: (id: number | string) => `${ROOTS.ADMIN}/user-gifts/${id}`,
+    details: (id: number | string) => `${ROOTS.ADMIN}/user-gifts/${id}`,
   },
   // Point Exchange routes
   pointExchange: {

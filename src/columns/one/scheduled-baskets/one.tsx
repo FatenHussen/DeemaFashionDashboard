@@ -22,7 +22,7 @@ export interface ScheduledBasketFormValues extends ScheduledBasketData {
 
 export const scheduledBasketColumns = (
   permissions: { update: boolean; delete: boolean },
-  _t: TFunction<'table'>,
+  t: TFunction<'table'>,
   onDelete?: (id: number) => void,
   isDeleting?: boolean,
   isDeleteDialogOpen?: boolean,
@@ -34,7 +34,7 @@ export const scheduledBasketColumns = (
   {
     id: 'id',
     accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="ID" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
     cell: ({ row }) => (
       <div className="flex items-center gap-2">
         <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
@@ -46,7 +46,7 @@ export const scheduledBasketColumns = (
   {
     id: 'name',
     accessorKey: 'name',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.name')} />,
     cell: ({ row }) => {
       const name = row.original.name;
       const display = typeof name === 'object' ? (name as any)?.en || (name as any)?.ar : name;
@@ -56,7 +56,7 @@ export const scheduledBasketColumns = (
   {
     id: 'discount',
     accessorKey: 'discount',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Discount" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.discount')} />,
     cell: ({ row }) => {
       const d = row.original;
       const text = d.discount_type === 'percentage' ? `${d.discount}%` : `Fixed: ${d.discount}`;
@@ -66,7 +66,7 @@ export const scheduledBasketColumns = (
   {
     id: 'scheduled_at',
     accessorKey: 'scheduled_at',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Scheduled At" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.scheduledAt')} />,
     cell: ({ row }) => (
       <span className="text-sm text-muted-foreground">
         {row.original.scheduled_at ? new Date(row.original.scheduled_at).toLocaleString() : '-'}
@@ -76,7 +76,7 @@ export const scheduledBasketColumns = (
   {
     id: 'is_active',
     accessorKey: 'is_active',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.status')} />,
     cell: ({ row }) => {
       const isActive = row.original.is_active;
       return (
@@ -94,7 +94,7 @@ export const scheduledBasketColumns = (
   },
   {
     id: 'items_count',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Items" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.items')} />,
     cell: ({ row }) => (
       <span className="text-sm">{row.original.items?.length || 0}</span>
     ),
@@ -102,7 +102,7 @@ export const scheduledBasketColumns = (
   {
     id: 'created_at',
     accessorKey: 'created_at',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Created" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.created')} />,
     cell: ({ row }) => (
       <span className="text-sm text-muted-foreground">
         {new Date(row.original.created_at).toLocaleDateString()}

@@ -52,6 +52,7 @@ export type NavItemDataProps = Pick<NavItemStateProps, 'disabled'> & {
   deepMatch?: boolean;
   allowedRoles?: string | string[]; // Deprecated: use requiredPermission instead
   requiredPermission?: string; // Permission required to show this menu item (e.g., "vendor.view")
+  requiredPermissionAny?: string[]; // Show if user has ANY of these permissions
   children?: NavItemDataProps[];
 };
 
@@ -69,6 +70,7 @@ export type NavListProps = Pick<NavItemProps, 'render' | 'depth' | 'enabledRootR
   slotProps?: NavSlotProps;
   checkPermissions?: (allowedRoles?: NavItemProps['allowedRoles']) => boolean; // Deprecated: use checkPermission instead
   checkPermission?: (permission?: string) => boolean; // Check if user has required permission
+  checkPermissionAny?: (permissions: string[]) => boolean; // Check if user has any permission
 };
 
 export type NavSubListProps = Omit<NavListProps, 'data'> & {
@@ -79,6 +81,7 @@ export type NavGroupProps = Omit<NavListProps, 'data' | 'depth'> & {
   subheader?: string | React.ReactNode;
   items: NavItemDataProps[];
   checkPermission?: (permission?: string) => boolean;
+  checkPermissionAny?: (permissions: string[]) => boolean;
 };
 
 /**
@@ -92,4 +95,5 @@ export type NavSectionProps = React.ComponentProps<'nav'> &
       items: NavItemDataProps[];
     }[];
     checkPermission?: (permission?: string) => boolean;
+    checkPermissionAny?: (permissions: string[]) => boolean;
   };

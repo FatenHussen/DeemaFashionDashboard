@@ -30,7 +30,7 @@ export default function Page() {
         await deleteMutation.mutateAsync(deletingId);
         toast.success(t('deleteSuccess') || 'Gift deleted successfully');
         setDeletingId(null);
-      } catch {}
+      } catch { return; }
     }
   };
   const onDeleteCancel = () => setDeletingId(null);
@@ -38,11 +38,24 @@ export default function Page() {
     navigate(`/gifts/update/${row.original.id}`, { state: { gift: row.original } });
   };
 
-  const items: GiftFormValues[] = response?.data?.items || [];
-  const apiPagination = response?.data?.pagination;
-  const pagination = apiPagination
-    ? { current_page: apiPagination.current_page, last_page: apiPagination.last_page, per_page: apiPagination.per_page, total: apiPagination.total, from: (apiPagination.current_page - 1) * apiPagination.per_page + 1, to: Math.min(apiPagination.current_page * apiPagination.per_page, apiPagination.total) }
-    : { current_page: 1, last_page: 1, per_page: 10, total: 0, from: 0, to: 0 };
+  const rawData = response?.data;
+  const items: GiftFormValues[] = Array.isArray(rawData)
+    ? rawData
+    : (rawData as { items?: GiftFormValues[] })?.items ?? [];
+  const apiPagination = (rawData as { pagination?: { current_page: number; last_page: number; per_page: number; total: number } })?.pagination;
+  const apiMeta = (response as any)?.meta;
+  const total = apiPagination?.total ?? apiMeta?.total ?? 0;
+  const perPage = apiPagination?.per_page ?? apiMeta?.per_page ?? pageSize;
+  const currentP = apiPagination?.current_page ?? apiMeta?.current_page ?? 1;
+  const lastPage = (apiPagination?.last_page ?? Math.ceil(total / perPage)) || 1;
+  const pagination = {
+    current_page: currentP,
+    last_page: lastPage,
+    per_page: perPage,
+    total,
+    from: total ? (currentP - 1) * perPage + 1 : 0,
+    to: Math.min(currentP * perPage, total),
+  };
 
   const { can } = usePermissions();
   const hasPermission = (action: string, resource: string) => can(`${resource}.${action}`);
@@ -62,7 +75,7 @@ export default function Page() {
         detailsLink="/gifts/details"
         permissions={{ create: hasPermission('create', 'gift'), update: hasPermission('update', 'gift'), delete: hasPermission('delete', 'gift') }}
         isLoading={isLoading}
-        columnTranslations={{ id: 'ID', name: 'Name', points_required: 'Points', stock_quantity: 'Stock', is_active: 'Status', created_at: 'Created', actions: 'Actions' }}
+        columnTranslations={{ id: 'ID', name: 'Name', points_required: 'Points', stock_quantity: 'Stock', exchanges_count: 'Exchanges', is_active: 'Status', created_at: 'Created', actions: 'Actions' }}
         pagination={pagination}
         currentPage={currentPage}
         pageSize={pageSize}

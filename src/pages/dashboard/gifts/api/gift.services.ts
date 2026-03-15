@@ -12,8 +12,17 @@ const appendTranslations = (
   if (value.en) formData.append(`${field}[en]`, value.en);
 };
 
+export type GiftListParams = {
+  page?: number;
+  per_page?: number;
+  search?: string;
+  is_active?: boolean;
+  sort_by?: 'id' | 'points_required' | 'created_at';
+  sort_order?: 'asc' | 'desc';
+};
+
 export const _GiftApi = {
-  getListGifts: async (params?: { page?: number; per_page?: number }): Promise<GiftListResponse> => {
+  getListGifts: async (params?: GiftListParams): Promise<GiftListResponse> => {
     const response = await axiosInstance.get<GiftListResponse>(apiRoutes.gift.list, { params });
     return response.data;
   },
@@ -33,6 +42,8 @@ export const _GiftApi = {
     if (data.stock_quantity !== undefined) formData.append('stock_quantity', String(data.stock_quantity));
     if (data.is_active !== undefined) formData.append('is_active', data.is_active ? '1' : '0');
     if (data.category_id) formData.append('category_id', String(data.category_id));
+    if (data.shop_product_variant_id != null)
+      formData.append('shop_product_variant_id', String(data.shop_product_variant_id));
 
     const response = await axiosInstance.post(apiRoutes.gift.create, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
@@ -50,8 +61,10 @@ export const _GiftApi = {
     if (data.stock_quantity !== undefined) formData.append('stock_quantity', String(data.stock_quantity));
     if (data.is_active !== undefined) formData.append('is_active', data.is_active ? '1' : '0');
     if (data.category_id) formData.append('category_id', String(data.category_id));
+    if (data.shop_product_variant_id != null)
+      formData.append('shop_product_variant_id', String(data.shop_product_variant_id));
 
-    const response = await axiosInstance.patch(apiRoutes.gift.update(id), formData, {
+    const response = await axiosInstance.put(apiRoutes.gift.update(id), formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
     return response.data;

@@ -1,5 +1,6 @@
 import { toast } from 'react-toastify';
-import { useState, useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useMemo, useState, useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
@@ -8,18 +9,18 @@ import { MultiSelect } from '@/shared/ui/multi-select';
 import { formatTranslated } from '@/utils/format-translated';
 import { useFetchAreas } from '@/pages/dashboard/locations/hooks/area';
 import {
-  DriverCreateSchema,
-  DriverUpdateSchema,
-  type DriverFormValues,
-} from '@/pages/dashboard/driver/validation/driver.validation';
-import {
   useCreateDriver,
   useUpdateDriver,
   useFetchDriverById,
 } from '@/pages/dashboard/driver/hooks/driver';
+import {
+  DriverCreateSchema,
+  DriverUpdateSchema,
+  type DriverFormValues,
+} from '@/pages/dashboard/driver/validation/driver.validation';
 
 import { CONFIG } from 'src/global-config';
-import { Box, Typography, Input } from 'src/shared/ui';
+import { Box, Input, Typography } from 'src/shared/ui';
 import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
 import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
 
@@ -28,6 +29,7 @@ import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout
 const metadata = { title: `Driver ${CONFIG.appName}` };
 
 export default function CreatePage() {
+  const { t } = useTranslation('table');
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
   const isEditMode = !!id;
@@ -48,7 +50,7 @@ export default function CreatePage() {
   const defaultValues: DriverFormValues = {
     name: '',
     phone: '',
-    password: '',
+    ...(isEditMode ? {} : { password: '' }),
     address: '',
     area_ids: [],
     rate_per_order: '',
@@ -76,6 +78,7 @@ export default function CreatePage() {
     if (imageFile instanceof File && imagePreviewUrl?.startsWith('blob:')) {
       return () => URL.revokeObjectURL(imagePreviewUrl);
     }
+    return undefined;
   }, [imageFile, imagePreviewUrl]);
 
   // Fetch driver data if in edit mode
@@ -87,7 +90,6 @@ export default function CreatePage() {
       reset({
         name: driver.name ?? '',
         phone: driver.phone ?? '',
-        password: '',
         address: driver.address ?? '',
         area_ids: areaIds,
         rate_per_order: driver.rate_per_order != null ? String(driver.rate_per_order) : '',
@@ -118,7 +120,7 @@ export default function CreatePage() {
         phone: data.phone,
         address: data.address,
         area_ids: selectedAreas,
-        ...(!isEditMode ? { password: data.password || '' } : (data.password?.trim() ? { password: data.password } : {})),
+        ...(!isEditMode && data.password && { password: data.password }),
         ...(data.rate_per_order !== '' && data.rate_per_order != null && {
           rate_per_order: typeof data.rate_per_order === 'number' ? data.rate_per_order : Number(data.rate_per_order) || data.rate_per_order,
         }),
@@ -151,7 +153,7 @@ export default function CreatePage() {
   };
 
   const infoText = isEditMode
-    ? 'You can update any field. Leave password blank to keep the current one.'
+    ? 'You can update any field. Use the table action to change password.'
     : 'Make sure to use a strong password and valid information for the driver account.';
 
   // TODO: Add area selection component here
@@ -178,7 +180,7 @@ export default function CreatePage() {
         }
         isEditMode={isEditMode}
         isLoading={isLoadingDriver}
-        loadingText="Loading driver data..."
+        loadingText={t('form.loadingDriver')}
         maxWidth="3xl"
         infoText={infoText}
         submitLabel={isEditMode ? 'Update Driver' : 'Create Driver'}
@@ -194,13 +196,13 @@ export default function CreatePage() {
               height={24}
             />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Full Name
+              {t('form.fullName')}
             </Typography>
           </Box>
           <RHFTextField
             name="name"
-            placeholder="e.g., John Doe"
-            helperText="Enter the complete name of the driver"
+            placeholder={t('form.namePlaceholder')}
+            helperText={t('form.driverNameHelper')}
             className="transition-all duration-200"
           />
         </Box>
@@ -210,58 +212,53 @@ export default function CreatePage() {
           <Box className="flex items-center gap-2 mb-2">
             <Iconify icon="solar:phone-bold" className="text-primary" width={24} height={24} />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Phone
+              {t('columns.phone')}
             </Typography>
           </Box>
           <RHFTextField
             name="phone"
             type="tel"
-            placeholder="e.g., +1234567890"
-            helperText="A valid phone number is required"
+            placeholder={t('form.mobilePlaceholder')}
+            helperText={t('form.driverPhoneHelper')}
             className="transition-all duration-200"
           />
         </Box>
 
-        {/* Password Field with Icon */}
-        <Box className="group">
-          <Box className="flex items-center gap-2 mb-2">
-            <Iconify
-              icon="solar:lock-password-outline"
-              className="text-primary"
-              width={24}
-              height={24}
+        {!isEditMode && (
+          <Box className="group">
+            <Box className="flex items-center gap-2 mb-2">
+              <Iconify
+                icon="solar:lock-password-outline"
+                className="text-primary"
+                width={24}
+                height={24}
+              />
+              <Typography variant="subtitle2" className="font-semibold text-foreground">
+                {t('form.passwordLabel')}
+              </Typography>
+            </Box>
+            <RHFTextField
+              name="password"
+              type="password"
+              placeholder={t('form.passwordPlaceholder')}
+              helperText={t('form.driverPasswordHelper')}
+              className="transition-all duration-200"
             />
-            <Typography variant="subtitle2" className="font-semibold text-foreground">
-              {isEditMode ? 'New Password (Optional)' : 'Password'}
-            </Typography>
           </Box>
-          <RHFTextField
-            name="password"
-            type="password"
-            placeholder={
-              isEditMode ? 'Leave blank to keep current password' : 'Enter secure password'
-            }
-            helperText={
-              isEditMode
-                ? 'Only fill this if you want to change the password'
-                : 'Must be at least 8 characters long'
-            }
-            className="transition-all duration-200"
-          />
-        </Box>
+        )}
 
         {/* Address Field with Icon */}
         <Box className="group">
           <Box className="flex items-center gap-2 mb-2">
             <Iconify icon="solar:map-point-bold" className="text-primary" width={24} height={24} />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Address
+              {t('columns.address')}
             </Typography>
           </Box>
           <RHFTextField
             name="address"
-            placeholder="e.g., 123 Main Street, City"
-            helperText="Enter the driver's address"
+            placeholder={t('form.namePlaceholder')}
+            helperText={t('form.driverAddressHelper')}
             className="transition-all duration-200"
           />
         </Box>
@@ -333,11 +330,13 @@ export default function CreatePage() {
                   options={areaOptions}
                   value={field.value?.map((a: { id: number }) => a.id) ?? []}
                   onChange={(ids) => {
-                    const areaIds = (ids as (string | number)[]).map((id) => ({ id: Number(id) }));
-                    field.onChange(areaIds);
-                    setSelectedAreas(areaIds);
+                    const mappedAreas = (ids as (string | number)[]).map((areaId) => ({
+                      id: Number(areaId),
+                    }));
+                    field.onChange(mappedAreas);
+                    setSelectedAreas(mappedAreas);
                   }}
-                  placeholder="Select areas..."
+                  placeholder={t('form.selectAreas')}
                   isDisabled={areaOptions.length === 0}
                 />
                 {error?.message && (
@@ -375,7 +374,7 @@ export default function CreatePage() {
           </Box>
           <RHFTextField
             name="vehicle_type"
-            placeholder="e.g., Motorcycle, Car"
+            placeholder={t('form.vehicleTypePlaceholder')}
             className="transition-all duration-200"
           />
         </Box>
@@ -390,7 +389,7 @@ export default function CreatePage() {
           </Box>
           <RHFTextField
             name="vehicle_number"
-            placeholder="e.g., ABC-1234"
+            placeholder={t('form.vehiclePlatePlaceholder')}
             className="transition-all duration-200"
           />
         </Box>

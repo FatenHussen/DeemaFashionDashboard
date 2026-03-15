@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { Button } from '@/shared/ui/button';
+import { useTranslation } from 'react-i18next';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Iconify } from '@/shared/components/iconify';
@@ -26,6 +27,7 @@ const metadata = (isEdit: boolean) => ({
 });
 
 export default function CreatePage() {
+  const { t } = useTranslation('table');
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const isEditMode = !!id;
@@ -68,7 +70,7 @@ export default function CreatePage() {
         toast.success('FAQ created successfully');
       }
       navigate('/faqs');
-    } catch {}
+    } catch { return; }
   };
 
   const isSubmitting = createMutation.isPending || updateMutation.isPending;
@@ -138,14 +140,14 @@ export default function CreatePage() {
           {/* Question */}
           <Box className="col-span-2">
             <Typography variant="subtitle1" className="mb-3 font-semibold">
-              Question
+              {t('columns.question')}
             </Typography>
             <Box className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <Box>
                 <Typography variant="subtitle2" className="mb-1 text-xs text-muted-foreground">
                   English <span className="text-destructive">*</span>
                 </Typography>
-                <RHFTextField name="question.en" placeholder="e.g. How can I place an order?" fullWidth />
+                <RHFTextField name="question.en" placeholder={t('form.faqQuestionPlaceholder')} fullWidth />
               </Box>
               <Box>
                 <Typography variant="subtitle2" className="mb-1 text-xs text-muted-foreground">
@@ -159,7 +161,7 @@ export default function CreatePage() {
           {/* Answer */}
           <Box className="col-span-2">
             <Typography variant="subtitle1" className="mb-3 font-semibold">
-              Answer
+              {t('columns.answer')}
             </Typography>
             <Box className="grid grid-cols-1 gap-4 md:grid-cols-2">
               {/* English */}
@@ -175,7 +177,7 @@ export default function CreatePage() {
                       <textarea
                         {...field}
                         rows={5}
-                        placeholder="Enter answer in English..."
+                        placeholder={t('form.enterAnswerEn')}
                         className={`w-full resize-y rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary ${
                           fieldError ? 'border-destructive' : 'border-input'
                         }`}

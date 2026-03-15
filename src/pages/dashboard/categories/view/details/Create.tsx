@@ -1,10 +1,12 @@
 import { useEffect } from 'react';
 import { toast } from 'react-toastify';
+import { useForm } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
-import { useForm, Controller } from 'react-hook-form';
-import { useFetchCategories } from '@/pages/dashboard/categories/hooks/category';
+import { formatTranslated } from '@/utils/format-translated';
+import { _CategoryApi } from '@/pages/dashboard/categories/api/category.services';
 import {
   CategoryDetailSchema,
   type CategoryDetailFormValues,
@@ -16,15 +18,25 @@ import {
 } from '@/pages/dashboard/categories/hooks/category-detail';
 
 import { CONFIG } from 'src/global-config';
-import { Box, Typography, SimpleSelect } from 'src/shared/ui';
+import { Box, Typography } from 'src/shared/ui';
 import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
 import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
+import { RHFInfiniteSelect } from 'src/shared/components/hook-form/rhf-infinite-select';
 
 // ----------------------------------------------------------------------
 
 const metadata = { title: `Category Detail ${CONFIG.appName}` };
 
+const categoryFetcher = (page: number, limit: number) =>
+  _CategoryApi.getListCategoriesPaginated({ page, per_page: limit }).then((r) => ({
+    data: {
+      items: r.data.items.map((cat) => ({ id: cat.id, label: cat.name })),
+      pagination: r.data.pagination,
+    },
+  }));
+
 export default function CreatePage() {
+  const { t } = useTranslation('table');
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
   const isEditMode = !!id;
@@ -32,7 +44,6 @@ export default function CreatePage() {
   // Hooks for fetching and mutations
   const { data: categoryDetailData, isLoading: isLoadingDetail } =
     useFetchCategoryDetailById(id || '');
-  const { data: categoriesResponse } = useFetchCategories(1, 100); // Fetch all for category dropdown
   const createCategoryDetailMutation = useCreateCategoryDetail();
   const updateCategoryDetailMutation = useUpdateCategoryDetail();
 
@@ -49,23 +60,18 @@ export default function CreatePage() {
     defaultValues,
   });
 
-  const { handleSubmit, reset, control } = methods;
+  const { handleSubmit, reset } = methods;
 
   // Fetch category detail data if in edit mode
   useEffect(() => {
-    if (
-      isEditMode &&
-      categoryDetailData?.data &&
-      !isLoadingDetail &&
-      categoriesResponse?.data?.items
-    ) {
+    if (isEditMode && categoryDetailData?.data && !isLoadingDetail) {
       const detail = categoryDetailData.data;
       reset({
         category_id: detail.category.id,
         name: detail.name,
       });
     }
-  }, [categoryDetailData, isEditMode, isLoadingDetail, reset, categoriesResponse?.data?.items]);
+  }, [categoryDetailData, isEditMode, isLoadingDetail, reset]);
 
   const isSubmitting =
     createCategoryDetailMutation.isPending || updateCategoryDetailMutation.isPending;
@@ -106,13 +112,6 @@ export default function CreatePage() {
     ? 'You can update any field. Make sure both Arabic and English names are provided.'
     : 'Fill in the category and detail name. Make sure both Arabic and English names are provided.';
 
-  // Prepare category options
-  const categoryOptions =
-    categoriesResponse?.data?.items.map((cat) => ({
-      value: cat.id,
-      label: cat.name,
-    })) || [];
-
   return (
     <>
       <title>
@@ -135,7 +134,7 @@ export default function CreatePage() {
         }
         isEditMode={isEditMode}
         isLoading={isLoadingDetail}
-        loadingText="Loading category detail data..."
+        loadingText={t('form.loadingCategoryDetail')}
         maxWidth="3xl"
         infoText={infoText}
         submitLabel={isEditMode ? 'Update Detail' : 'Create Detail'}
@@ -146,24 +145,20 @@ export default function CreatePage() {
           <Box className="flex items-center gap-2 mb-2">
             <Iconify icon="solar:diagram-bold" className="text-primary" width={24} height={24} />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Category
+              {t('form.categoryLabel')}
             </Typography>
           </Box>
-          <Controller
+          <RHFInfiniteSelect
             name="category_id"
-            control={control}
-            render={({ field: { onChange, value }, fieldState: { error } }) => (
-              <SimpleSelect
-                value={value || ''}
-                onChange={(val) => onChange(val ? Number(val) : 0)}
-                options={categoryOptions}
-                placeholder="Select a category"
-                error={!!error}
-                helperText={error?.message || 'Select the category for this detail'}
-                fullWidth
-                className="transition-all duration-200"
-              />
-            )}
+            queryKey={['categories', 'infinite', 'detail-form']}
+            fetcher={categoryFetcher}
+            placeholder={t('form.selectCategory')}
+            helperText={t('form.categoryDetailHelper')}
+            initialLabel={
+              categoryDetailData?.data?.category?.name
+                ? formatTranslated(categoryDetailData.data.category.name)
+                : undefined
+            }
           />
         </Box>
 
@@ -172,13 +167,13 @@ export default function CreatePage() {
           <Box className="flex items-center gap-2 mb-2">
             <Iconify icon="solar:widget-5-bold" className="text-primary" width={24} height={24} />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Detail Name (Arabic)
+              {t('form.nameAr')}
             </Typography>
           </Box>
           <RHFTextField
             name="name.ar"
-            placeholder="e.g., الضمان"
-            helperText="Enter the detail name in Arabic"
+            placeholder={t('form.warrantyNameAr')}
+            helperText={t('form.detailNameArHelper')}
             className="transition-all duration-200"
             dir="rtl"
           />
@@ -189,13 +184,13 @@ export default function CreatePage() {
           <Box className="flex items-center gap-2 mb-2">
             <Iconify icon="solar:widget-5-bold" className="text-primary" width={24} height={24} />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Detail Name (English)
+              {t('form.nameEn')}
             </Typography>
           </Box>
           <RHFTextField
             name="name.en"
-            placeholder="e.g., Warranty"
-            helperText="Enter the detail name in English"
+            placeholder={t('form.warrantyNameEn')}
+            helperText={t('form.detailNameEnHelper')}
             className="transition-all duration-200"
           />
         </Box>

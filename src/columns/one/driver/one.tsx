@@ -54,12 +54,13 @@ export const driverColumns = (
   isDeleteDialogOpen?: boolean,
   onDeleteConfirm?: () => void,
   onDeleteCancel?: () => void,
-  deletingId?: number | null
+  deletingId?: number | null,
+  onUpdatePassword?: (row: { original: DriverFormValues }) => void
 ): ColumnDef<DriverFormValues>[] => [
   {
     id: 'id',
     accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="ID" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
     cell: ({ row }) => (
       <div className="flex items-center gap-2">
         <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
@@ -71,7 +72,7 @@ export const driverColumns = (
   {
     id: 'name',
     accessorKey: 'name',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.name')} />,
     cell: ({ row }) => (
       <div className="flex items-center gap-2 min-w-0">
         <Iconify icon="solar:user-rounded-bold" className="text-muted-foreground flex-shrink-0" width={16} height={16} />
@@ -82,7 +83,7 @@ export const driverColumns = (
   {
     id: 'phone',
     accessorKey: 'phone',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Phone" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.phone')} />,
     cell: ({ row }) => (
       <div className="flex items-center gap-2 min-w-0">
         <Iconify icon="solar:phone-bold" className="text-muted-foreground flex-shrink-0" width={16} height={16} />
@@ -93,7 +94,7 @@ export const driverColumns = (
   {
     id: 'address',
     accessorKey: 'address',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Address" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.address')} />,
     cell: ({ row }) => (
       <div className="flex items-center gap-2 min-w-0">
         <Iconify icon="solar:map-point-bold" className="text-muted-foreground flex-shrink-0" width={16} height={16} />
@@ -104,7 +105,7 @@ export const driverColumns = (
   {
     id: 'status',
     accessorKey: 'status',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.status')} />,
     cell: ({ row }) => {
       const status = row.original.status;
       const statusColors: Record<string, { bg: string; border: string; text: string }> = {
@@ -141,7 +142,7 @@ export const driverColumns = (
   {
     id: 'is_active',
     accessorKey: 'is_active',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Active" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.active')} />,
     cell: ({ row }) => {
       const isActive = row.original.is_active === 1 || row.original.is_active === true;
       return (
@@ -166,7 +167,7 @@ export const driverColumns = (
   {
     id: 'rate_per_order',
     accessorKey: 'rate_per_order',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Rate per Order" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.ratePerOrder')} />,
     cell: ({ row }) => (
       <div className="flex items-center gap-2">
         <Iconify icon="solar:dollar-bold" className="text-muted-foreground flex-shrink-0" width={16} height={16} />
@@ -177,7 +178,7 @@ export const driverColumns = (
   {
     id: 'average_rating',
     accessorKey: 'average_rating',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Avg Rating" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.avgRating')} />,
     cell: ({ row }) => (
       <div className="flex items-center gap-2">
         <Iconify icon="solar:star-bold" className="text-muted-foreground flex-shrink-0" width={16} height={16} />
@@ -188,7 +189,7 @@ export const driverColumns = (
   {
     id: 'total_orders',
     accessorKey: 'total_orders',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Total Orders" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.totalOrders')} />,
     cell: ({ row }) => (
       <span className="text-sm text-muted-foreground">{row.original.total_orders ?? '-'}</span>
     ),
@@ -196,7 +197,7 @@ export const driverColumns = (
   {
     id: 'completed_orders',
     accessorKey: 'completed_orders',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Completed" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.completed')} />,
     cell: ({ row }) => (
       <span className="text-sm text-muted-foreground">{row.original.completed_orders ?? '-'}</span>
     ),
@@ -204,7 +205,7 @@ export const driverColumns = (
   {
     id: 'total_earnings',
     accessorKey: 'total_earnings',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Total Earnings" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.totalEarnings')} />,
     cell: ({ row }) => (
       <div className="flex items-center gap-2">
         <Iconify icon="solar:wallet-money-bold" className="text-muted-foreground flex-shrink-0" width={16} height={16} />
@@ -215,7 +216,7 @@ export const driverColumns = (
   {
     id: 'created_at',
     accessorKey: 'created_at',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Created At" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.createdAt')} />,
     cell: ({ row }) => (
       <div className="flex items-center gap-2">
         <Iconify icon="solar:calendar-date-bold" className="text-muted-foreground flex-shrink-0" width={16} height={16} />
@@ -232,6 +233,7 @@ export const driverColumns = (
         viewDetails={`/driver/details/${row.original.id}`}
         editItem={`/driver/update/${row.original.id}`}
         onDelete={onDelete}
+        onUpdatePassword={onUpdatePassword}
         isDeleting={isDeleting}
         isDeleteDialogOpen={isDeleteDialogOpen}
         onDeleteConfirm={onDeleteConfirm}

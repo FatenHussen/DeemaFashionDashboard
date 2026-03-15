@@ -2,6 +2,7 @@ import type { PackageData } from '@/pages/dashboard/packages/types/package.types
 
 import { useEffect } from 'react';
 import { toast } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useNavigate, useLocation } from 'react-router';
@@ -26,6 +27,7 @@ import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout
 const metadata = { title: `Package ${CONFIG.appName}` };
 
 export default function CreatePage() {
+  const { t } = useTranslation('table');
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
   const location = useLocation();
@@ -108,7 +110,7 @@ export default function CreatePage() {
         description={isEditMode ? 'Update package details' : 'Add a new subscription package'}
         isEditMode={isEditMode}
         isLoading={isEditMode && isLoadingPackage}
-        loadingText="Loading package..."
+        loadingText={t('form.loadingPackage')}
         maxWidth="2xl"
         submitLabel={isEditMode ? 'Update Package' : 'Create Package'}
         submittingLabel={isEditMode ? 'Updating...' : 'Creating...'}
@@ -116,7 +118,7 @@ export default function CreatePage() {
         {/* Name EN */}
         <Box className="group">
           <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">Name (English)</Typography>
-          <RHFTextField name="name.en" placeholder="Package name in English" fullWidth />
+          <RHFTextField name="name.en" placeholder={t('form.packageNameEnPlaceholder')} fullWidth />
         </Box>
 
         {/* Name AR */}

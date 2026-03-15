@@ -1,9 +1,10 @@
+import type { UserAddress } from '@/pages/dashboard/users/types/user.types';
+
 import { Button } from '@/shared/ui/button';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
 import { formatTranslated } from '@/utils/format-translated';
 import { useFetchUserById } from '@/pages/dashboard/users/hooks/user';
-import type { UserAddress } from '@/pages/dashboard/users/types/user.types';
 
 import { CONFIG } from 'src/global-config';
 import { Box, Typography } from 'src/shared/ui';

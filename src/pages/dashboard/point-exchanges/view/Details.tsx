@@ -58,11 +58,11 @@ export default function DetailsPage() {
       await updateStatusMutation.mutateAsync({ id: exchange.id, data: { status } });
       toast.success(`Status updated to ${status} successfully`);
       setSelectedStatus('');
-    } catch {}
+    } catch { return; }
   };
 
   const statusColor =
-    exchange.status === 'approved'
+    exchange.status === 'completed' || exchange.status === 'approved'
       ? 'bg-green-500/20 text-green-600'
       : exchange.status === 'rejected'
         ? 'bg-red-500/20 text-red-600'
@@ -102,7 +102,7 @@ export default function DetailsPage() {
                   Point Exchange #{exchange.id}
                 </Typography>
                 <Typography variant="body2" className="text-muted-foreground">
-                  {exchange.user?.name ?? '-'} - {exchange.points} points
+                  {exchange.user?.name ?? '-'} - {exchange.points_used ?? exchange.points} points
                 </Typography>
               </Box>
             </Box>
@@ -135,9 +135,29 @@ export default function DetailsPage() {
                     Points
                   </Typography>
                   <Typography variant="body1" className="font-medium">
-                    {exchange.points}
+                    {exchange.points_used ?? exchange.points ?? '-'}
                   </Typography>
                 </Box>
+                {exchange.exchange_type && (
+                  <Box>
+                    <Typography variant="caption" className="text-muted-foreground">
+                      Type
+                    </Typography>
+                    <Typography variant="body1" className="font-medium capitalize">
+                      {String(exchange.exchange_type).replace(/_/g, ' ')}
+                    </Typography>
+                  </Box>
+                )}
+                {exchange.delivered_at != null && exchange.delivered_at !== '' && (
+                  <Box>
+                    <Typography variant="caption" className="text-muted-foreground">
+                      Delivered At
+                    </Typography>
+                    <Typography variant="body1" className="font-medium">
+                      {new Date(exchange.delivered_at).toLocaleString()}
+                    </Typography>
+                  </Box>
+                )}
                 <Box>
                   <Typography variant="caption" className="text-muted-foreground">
                     Status
@@ -146,7 +166,7 @@ export default function DetailsPage() {
                     <span
                       className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${statusColor}`}
                     >
-                      {exchange.status.charAt(0).toUpperCase() + exchange.status.slice(1)}
+                      {exchange.status?.charAt(0)?.toUpperCase() + exchange.status?.slice(1)}
                     </span>
                   </Typography>
                 </Box>
@@ -180,7 +200,7 @@ export default function DetailsPage() {
                 Update Status
               </Typography>
               <Box className="flex flex-wrap gap-3">
-                {(['approved', 'rejected', 'pending'] as PointExchangeStatus[]).map((status) => (
+                {(['approved', 'rejected', 'pending', 'completed'] as PointExchangeStatus[]).map((status) => (
                   <Button
                     key={status}
                     variant={exchange.status === status ? 'contained' : 'outlined'}

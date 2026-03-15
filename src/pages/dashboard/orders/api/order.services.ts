@@ -24,7 +24,7 @@ export const _OrderApi = {
   },
 
   getOrderById: async (id: number | string): Promise<OrderDetailsResponse> => {
-    const response = await axiosInstance.get<OrderDetailsResponse>(apiRoutes.order.details(id));
+    const response = await axiosInstance.get<OrderDetailsResponse>(apiRoutes.order.getOne(id));
     return response.data;
   },
 

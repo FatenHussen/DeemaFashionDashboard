@@ -46,7 +46,7 @@ export default function Page() {
         await deleteAreaMutation.mutateAsync(deletingId);
         toast.success(t('deleteSuccess') || 'Area deleted successfully');
         setDeletingId(null);
-      } catch {}
+      } catch { return; }
     }
   };
 

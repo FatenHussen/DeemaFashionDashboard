@@ -2,11 +2,12 @@ import type { Resolver } from 'react-hook-form';
 
 import { useEffect } from 'react';
 import { toast } from 'react-toastify';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
-import { useFetchCities } from '@/pages/dashboard/locations/hooks/city';
+import { _CityApi } from '@/pages/dashboard/locations/api/city.services';
 import {
   AreaSchema,
   type AreaFormValues,
@@ -18,23 +19,33 @@ import {
 } from '@/pages/dashboard/locations/hooks/area';
 
 import { CONFIG } from 'src/global-config';
-import { Box, Typography, SimpleSelect } from 'src/shared/ui';
-import { MapPicker, MAP_DEFAULT_CENTER } from 'src/shared/components/map/map-picker';
+import { Box, Typography } from 'src/shared/ui';
 import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
 import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
+import { MapPicker, MAP_DEFAULT_CENTER } from 'src/shared/components/map/map-picker';
+import { RHFInfiniteSelect } from 'src/shared/components/hook-form/rhf-infinite-select';
 
 // ----------------------------------------------------------------------
 
 const metadata = { title: `Area ${CONFIG.appName}` };
 
+// Cities API loads all at once — fake single-page pagination
+const cityFetcher = (_page: number, _limit: number) =>
+  _CityApi.getListCities().then((r) => ({
+    data: {
+      items: r.data.items.map((city) => ({ id: city.id, label: city.name })),
+      pagination: r.data.pagination,
+    },
+  }));
+
 export default function CreatePage() {
+  const { t } = useTranslation('table');
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
   const isEditMode = !!id;
 
   // Hooks for fetching and mutations
   const { data: areaData, isLoading: isLoadingArea } = useFetchAreaById(id || '');
-  const { data: citiesResponse } = useFetchCities();
   const createAreaMutation = useCreateArea();
   const updateAreaMutation = useUpdateArea();
 
@@ -54,7 +65,7 @@ export default function CreatePage() {
     defaultValues,
   });
 
-  const { handleSubmit, reset, control, setValue, watch } = methods;
+  const { handleSubmit, reset, setValue, watch } = methods;
   const watchedLat = watch('lat');
   const watchedLng = watch('lng');
 
@@ -128,13 +139,6 @@ export default function CreatePage() {
     ? 'You can update any field. Make sure both Arabic and English names are provided and a city is selected.'
     : 'Fill in both Arabic and English names and select a city to create a new area.';
 
-  // Prepare city options
-  const cityOptions =
-    citiesResponse?.data?.items.map((city) => ({
-      value: city.id,
-      label: city.name,
-    })) || [];
-
   return (
     <>
       <title>
@@ -151,7 +155,7 @@ export default function CreatePage() {
         description={isEditMode ? 'Update area information' : 'Add a new area to your system'}
         isEditMode={isEditMode}
         isLoading={isLoadingArea}
-        loadingText="Loading area data..."
+        loadingText={t('form.loadingArea')}
         maxWidth="3xl"
         infoText={infoText}
         submitLabel={isEditMode ? 'Update Area' : 'Create Area'}
@@ -162,13 +166,13 @@ export default function CreatePage() {
           <Box className="flex items-center gap-2 mb-2">
             <Iconify icon="solar:flag-bold" className="text-primary" width={24} height={24} />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Name (Arabic)
+              {t('form.nameAr')}
             </Typography>
           </Box>
           <RHFTextField
             name="name.ar"
-            placeholder="e.g., المزة"
-            helperText="Enter the area name in Arabic"
+            placeholder={t('form.areaNameAr')}
+            helperText={t('form.areaNameArHelper')}
             className="transition-all duration-200"
             dir="rtl"
           />
@@ -179,13 +183,13 @@ export default function CreatePage() {
           <Box className="flex items-center gap-2 mb-2">
             <Iconify icon="solar:flag-bold" className="text-primary" width={24} height={24} />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Name (English)
+              {t('form.nameEn')}
             </Typography>
           </Box>
           <RHFTextField
             name="name.en"
-            placeholder="e.g., Mezzeh"
-            helperText="Enter the area name in English"
+            placeholder={t('form.areaNameEn')}
+            helperText={t('form.areaNameEnHelper')}
             className="transition-all duration-200"
           />
         </Box>
@@ -195,24 +199,16 @@ export default function CreatePage() {
           <Box className="flex items-center gap-2 mb-2">
             <Iconify icon="solar:flag-bold" className="text-primary" width={24} height={24} />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              City
+              {t('columns.city')}
             </Typography>
           </Box>
-          <Controller
+          <RHFInfiniteSelect
             name="city_id"
-            control={control}
-            render={({ field: { onChange, value }, fieldState: { error } }) => (
-              <SimpleSelect
-                value={value || ''}
-                onChange={(val) => onChange(Number(val))}
-                options={cityOptions}
-                placeholder="Select a city"
-                error={!!error}
-                helperText={error?.message || 'Select the city for this area'}
-                fullWidth
-                className="transition-all duration-200"
-              />
-            )}
+            queryKey={['cities', 'infinite', 'area-form']}
+            fetcher={cityFetcher}
+            placeholder={t('form.selectCity')}
+            helperText={t('form.areaCityHelper')}
+            initialLabel={areaData?.city?.name}
           />
         </Box>
 
@@ -243,13 +239,13 @@ export default function CreatePage() {
           <Box className="flex items-center gap-2 mb-2">
             <Iconify icon="solar:dollar-bold" className="text-primary" width={24} height={24} />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Base Fee
+              {t('form.baseFee')}
             </Typography>
           </Box>
           <RHFTextField
             name="base_fee"
-            placeholder="e.g., 700"
-            helperText="Enter the base delivery fee"
+            placeholder={t('form.baseFee')}
+            helperText={t('form.areaBaseFeeHelper')}
             className="transition-all duration-200"
           />
         </Box>

@@ -54,7 +54,7 @@ export default function Page() {
         await deleteMutation.mutateAsync(deletingId);
         toast.success(t('deleteSuccess') || 'Vendor package deleted successfully');
         setDeletingId(null);
-      } catch {}
+      } catch { return; }
     }
   };
   const handleDeleteCancel = () => setDeletingId(null);

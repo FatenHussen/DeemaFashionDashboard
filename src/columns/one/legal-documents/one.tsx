@@ -14,12 +14,12 @@ export interface LegalDocumentFormValues extends LegalDocumentItem {
 }
 
 export const legalDocumentColumns = (
-  _t: TFunction<'table'>
+  t: TFunction<'table'>
 ): ColumnDef<LegalDocumentFormValues>[] => [
   {
     id: 'id',
     accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="ID" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
     cell: ({ row }) => (
       <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
         <span className="text-xs font-semibold text-primary">{row.original.id}</span>
@@ -29,7 +29,7 @@ export const legalDocumentColumns = (
   {
     id: 'key',
     accessorKey: 'key',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Key" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.key')} />,
     cell: ({ row }) => (
       <span className="font-mono text-xs bg-muted px-2 py-1 rounded text-muted-foreground">
         {row.original.key}
@@ -39,7 +39,7 @@ export const legalDocumentColumns = (
   {
     id: 'title',
     accessorKey: 'title',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Title" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.title')} />,
     cell: ({ row }) => (
       <span className="font-medium text-foreground">{formatTranslated(row.original.title)}</span>
     ),
@@ -47,7 +47,7 @@ export const legalDocumentColumns = (
   {
     id: 'created_at',
     accessorKey: 'created_at',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Created" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.created')} />,
     cell: ({ row }) => (
       <span className="text-xs text-muted-foreground">{row.original.created_at}</span>
     ),

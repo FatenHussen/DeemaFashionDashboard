@@ -36,7 +36,7 @@ export const complaintColumns = (
   {
     id: 'id',
     accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="ID" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
     cell: ({ row }) => (
       <div className="flex items-center gap-2">
         <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
@@ -48,7 +48,7 @@ export const complaintColumns = (
   {
     id: 'order_id',
     accessorKey: 'order_id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Order" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.orderRef')} />,
     cell: ({ row }) => (
       <span className="text-sm font-medium">#{row.original.order_id}</span>
     ),
@@ -56,7 +56,7 @@ export const complaintColumns = (
   {
     id: 'message',
     accessorKey: 'message',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Message" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.message')} />,
     cell: ({ row }) => (
       <div className="max-w-[200px]">
         <span className="text-sm text-muted-foreground truncate block" title={row.original.message}>
@@ -68,7 +68,7 @@ export const complaintColumns = (
   {
     id: 'type',
     accessorKey: 'type',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Type" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.type')} />,
     cell: ({ row }) => (
       <span className="text-sm capitalize">{row.original.type}</span>
     ),
@@ -76,7 +76,7 @@ export const complaintColumns = (
   {
     id: 'user',
     accessorKey: 'user',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="User" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.user')} />,
     cell: ({ row }) => (
       <div className="text-sm">
         <div className="font-medium">{row.original.user?.name || '-'}</div>
@@ -87,7 +87,7 @@ export const complaintColumns = (
   {
     id: 'status',
     accessorKey: 'status',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.status')} />,
     cell: ({ row }) => {
       const status = row.original.status;
       const variant =
@@ -106,7 +106,7 @@ export const complaintColumns = (
   {
     id: 'created_at',
     accessorKey: 'created_at',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Created" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.created')} />,
     cell: ({ row }) => (
       <span className="text-sm text-muted-foreground">
         {new Date(row.original.created_at).toLocaleDateString()}

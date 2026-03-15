@@ -30,7 +30,8 @@ export const queryKeys = {
   },
   // Permission query keys
   permission: {
-    list: (params?: { page?: number; limit?: number }) => ['permission', 'list', params] as const,
+    list: (params?: { page?: number; limit?: number; per_page?: number }) =>
+      ['permission', 'list', params] as const,
   },
   // Driver query keys
   driver: {
@@ -161,6 +162,11 @@ export const queryKeys = {
   gift: {
     list: (params?: { page?: number; per_page?: number }) => ['gift', 'list', params] as const,
     details: (id: number | string) => ['gift', 'details', id] as const,
+  },
+  // User Gift query keys
+  userGift: {
+    list: (params?: Record<string, unknown>) => ['userGift', 'list', params] as const,
+    details: (id: number | string) => ['userGift', 'details', id] as const,
   },
   // Point Exchange query keys
   pointExchange: {

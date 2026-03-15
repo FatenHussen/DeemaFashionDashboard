@@ -30,6 +30,8 @@ interface DataTableProps<TData, TValue> {
   tableName: string;
   createPath?: string;
   hasDetails?: boolean;
+  /** When false, row click does not navigate to details; only the actions menu does */
+  rowClickToDetails?: boolean;
   isPagePaginateHiddent?: boolean;
   detailsLink?: string;
   permissions?: {
@@ -59,6 +61,8 @@ interface DataTableProps<TData, TValue> {
   onPageChange?: (page: number) => void;
   onPageSizeChange?: (size: number) => void;
   defaultHiddenColumns?: string[];
+  /** Custom filter content rendered in the toolbar (top of table) */
+  toolbarFilter?: React.ReactNode;
 }
 
 export function DataTable<TData, TValue>({
@@ -66,6 +70,7 @@ export function DataTable<TData, TValue>({
   data,
   createPath,
   hasDetails,
+  rowClickToDetails = true,
   hasRecycleFilter = false,
   onRecycleFilterChange,
   isPagePaginateHiddent,
@@ -84,6 +89,7 @@ export function DataTable<TData, TValue>({
   onPageChange,
   onPageSizeChange,
   defaultHiddenColumns = [],
+  toolbarFilter,
 }: DataTableProps<TData, TValue>) {
   const [expandedRows, setExpandedRows] = React.useState<Record<string, boolean>>({});
   const [sorting, setSorting] = React.useState<SortingState>([]);
@@ -149,6 +155,7 @@ export function DataTable<TData, TValue>({
         onImportSuccess={onImportSuccess}
         defaultColumns={defaultColumnsConfig}
         columnTranslations={columnTranslations}
+        toolbarFilter={toolbarFilter}
       />
 
       {/* Table View - Full Width */}
@@ -225,7 +232,7 @@ export function DataTable<TData, TValue>({
                       data-state={isSelected && 'selected'}
                       style={{ '--row-index': rowIndex } as React.CSSProperties}
                       className={`
-                          group cursor-pointer
+                          group ${rowClickToDetails ? 'cursor-pointer' : 'cursor-default'}
                           table-modern-row table-row-gradient-hover
                           hover:bg-linear-to-r hover:from-primary/8 hover:via-primary/4 hover:to-transparent
                           hover:shadow-[inset_4px_0_0_0_rgb(var(--primary)),0_4px_12px_-4px_rgba(var(--primary),0.15)]
@@ -266,9 +273,9 @@ export function DataTable<TData, TValue>({
                           <TableCell
                             key={cell.id}
                             onClick={(e) => {
-                              if (!isActionsColumn) {
+                              if (!isActionsColumn && rowClickToDetails) {
                                 const id = (row.original as ICategory)?.id;
-                                if (hasDetails && id) {
+                                if (hasDetails && id && detailsLink) {
                                   navigate(`${detailsLink}/${id}`);
                                 }
                               }

@@ -4,9 +4,9 @@ import type { ColumnDef } from '@tanstack/react-table';
 import type { OrderData, OrderStatus } from '@/pages/dashboard/orders/types/order.types';
 
 import { z } from 'zod';
+import { Button } from '@/shared/ui/button';
 import { Iconify } from '@/shared/components/iconify';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
-import { Button } from '@/shared/ui/button';
 
 const OrderSchema = z.object({
   id: z.number(),
@@ -46,7 +46,7 @@ export const orderColumns = (
   {
     id: 'id',
     accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="ID" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
     cell: ({ row }) => (
       <div className="flex items-center gap-2">
         <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
@@ -58,7 +58,7 @@ export const orderColumns = (
   {
     id: 'order_number',
     accessorKey: 'order_number',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Order #" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.orderNumber')} />,
     cell: ({ row }) => (
       <code className="px-2 py-1 rounded bg-muted text-sm font-mono">
         {row.original.order_number}
@@ -68,7 +68,7 @@ export const orderColumns = (
   {
     id: 'user',
     accessorKey: 'user',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Customer" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('customer')} />,
     cell: ({ row }) => (
       <div className="font-medium text-foreground truncate">
         {row.original.user?.name || '-'}
@@ -78,7 +78,7 @@ export const orderColumns = (
   {
     id: 'total',
     accessorKey: 'total',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Total" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.total')} />,
     cell: ({ row }) => (
       <span className="font-semibold text-sm">{row.original.total}</span>
     ),
@@ -86,7 +86,7 @@ export const orderColumns = (
   {
     id: 'discount',
     accessorKey: 'discount',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Discount" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.discount')} />,
     cell: ({ row }) => (
       <span className="text-sm">{row.original.discount != null ? row.original.discount : '-'}</span>
     ),
@@ -94,7 +94,7 @@ export const orderColumns = (
   {
     id: 'delivery_price',
     accessorKey: 'delivery_price',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Delivery" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.delivery')} />,
     cell: ({ row }) => (
       <span className="text-sm">{row.original.delivery_price != null ? row.original.delivery_price : '-'}</span>
     ),
@@ -102,7 +102,7 @@ export const orderColumns = (
   {
     id: 'price_after_discount',
     accessorKey: 'price_after_discount',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Price After Discount" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.priceAfterDiscount')} />,
     cell: ({ row }) => (
       <span className="text-sm">{row.original.price_after_discount != null ? row.original.price_after_discount : '-'}</span>
     ),
@@ -110,7 +110,7 @@ export const orderColumns = (
   {
     id: 'rating',
     accessorKey: 'rating',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Rating" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.rating')} />,
     cell: ({ row }) => (
       <span className="text-sm">{row.original.rating != null ? row.original.rating : '-'}</span>
     ),
@@ -118,7 +118,7 @@ export const orderColumns = (
   {
     id: 'status',
     accessorKey: 'status',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.status')} />,
     cell: ({ row }) => {
       const status = row.original.status;
       return (
@@ -133,7 +133,7 @@ export const orderColumns = (
   {
     id: 'driver',
     accessorKey: 'driver',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Driver" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.driver')} />,
     cell: ({ row }) => (
       <span className="text-sm text-muted-foreground">
         {row.original.driver?.phone || 'Not assigned'}
@@ -143,7 +143,7 @@ export const orderColumns = (
   {
     id: 'created_at',
     accessorKey: 'created_at',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Date" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.date')} />,
     cell: ({ row }) => (
       <span className="text-sm text-muted-foreground">
         {new Date(row.original.created_at).toLocaleDateString()}

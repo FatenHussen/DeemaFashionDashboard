@@ -1,16 +1,18 @@
 import type { DaySchedule } from '@/pages/dashboard/vendor/types/shop.types';
 
-import { useEffect, useMemo } from 'react';
 import { toast } from 'react-toastify';
+import { useMemo, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
 import { MultiSelect } from '@/shared/ui/multi-select';
 import { formatTranslated } from '@/utils/format-translated';
-import { useFetchAreas } from '@/pages/dashboard/locations/hooks/area';
-import { useFetchVendors } from '@/pages/dashboard/vendor/hooks/vendor';
+import { MapPicker } from '@/shared/components/map/map-picker';
+import { _AreaApi } from '@/pages/dashboard/locations/api/area.services';
 import { useFetchServices } from '@/pages/dashboard/vendor/hooks/service';
+import { _VendorApi } from '@/pages/dashboard/vendor/api/vendor.services';
 import {
   ShopSchema,
   type ShopFormValues,
@@ -21,16 +23,32 @@ import {
   useFetchShopById,
 } from '@/pages/dashboard/vendor/hooks/shop';
 
-import { MapPicker } from '@/shared/components/map/map-picker';
-
 import { CONFIG } from 'src/global-config';
-import { Box, Checkbox, Typography, SimpleSelect, Input } from 'src/shared/ui';
+import { Box, Input, Checkbox, Typography } from 'src/shared/ui';
 import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
 import { StepperFormLayout } from 'src/shared/components/forms/stepper-form-layout';
+import { RHFInfiniteSelect } from 'src/shared/components/hook-form/rhf-infinite-select';
 
 // ----------------------------------------------------------------------
 
 const metadata = { title: `Shop ${CONFIG.appName}` };
+
+const vendorFetcher = (page: number, limit: number) =>
+  _VendorApi.getListVendor({ page, limit }).then((r) => ({
+    data: {
+      items: r.data.items.map((vendor) => ({ id: vendor.id, label: vendor.name })),
+      pagination: r.data.pagination,
+    },
+  }));
+
+// Areas API loads all at once — fake single-page pagination
+const areaFetcherForShop = (_page: number, _limit: number) =>
+  _AreaApi.getListAreas().then((r) => ({
+    data: {
+      items: r.data.items.map((area) => ({ id: area.id, label: area.name })),
+      pagination: r.data.pagination,
+    },
+  }));
 
 const DAYS_OF_WEEK = [
   { key: 'monday', label: 'Monday' },
@@ -43,31 +61,18 @@ const DAYS_OF_WEEK = [
 ] as const;
 
 export default function CreatePage() {
+  const { t } = useTranslation('table');
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
   const isEditMode = !!id;
 
   // Hooks for fetching and mutations
   const { data: shopData, isLoading: isLoadingShop } = useFetchShopById(id || '');
-  const { data: vendorsResponse } = useFetchVendors();
-  const { data: areasResponse } = useFetchAreas(1, 200);
   const { data: servicesResponse } = useFetchServices(1, 200);
   const createShopMutation = useCreateShop();
   const updateShopMutation = useUpdateShop();
 
-  // Prepare vendor options
-  const vendorOptions =
-    vendorsResponse?.data?.items.map((vendor) => ({
-      value: vendor.id,
-      label: formatTranslated(vendor.name),
-    })) || [];
-
-  const areas = (areasResponse as any)?.data?.items ?? [];
   const services = (servicesResponse as any)?.data?.items ?? [];
-  const areaOptions = areas.map((a: any) => ({
-    value: a.id,
-    label: formatTranslated(a.name),
-  }));
   const serviceOptions = services.map((s: any) => ({
     value: s.id,
     label: formatTranslated(s.name),
@@ -126,6 +131,7 @@ export default function CreatePage() {
     if (logoFile instanceof File && logoPreviewUrl?.startsWith('blob:')) {
       return () => URL.revokeObjectURL(logoPreviewUrl);
     }
+    return undefined;
   }, [logoFile, logoPreviewUrl]);
 
   // Fetch shop data if in edit mode (GET admin/shops/:id)
@@ -290,13 +296,13 @@ export default function CreatePage() {
             <RHFTextField
               name={`working_hours.${day}.open`}
               type="time"
-              label="Open Time"
+              label={t('form.openTime')}
               className="transition-all duration-200"
             />
             <RHFTextField
               name={`working_hours.${day}.close`}
               type="time"
-              label="Close Time"
+              label={t('form.closeTime')}
               className="transition-all duration-200"
             />
           </Box>
@@ -335,20 +341,12 @@ export default function CreatePage() {
                 Vendor
               </Typography>
             </Box>
-            <Controller
+            <RHFInfiniteSelect
               name="vendor_id"
-              control={control}
-              render={({ field, fieldState: { error } }) => (
-                <SimpleSelect
-                  value={field.value}
-                  onChange={(value) => field.onChange(Number(value))}
-                  options={vendorOptions}
-                  placeholder="Select a vendor"
-                  error={!!error}
-                  helperText={error?.message || 'Select the vendor that owns this shop'}
-                  fullWidth
-                />
-              )}
+              queryKey={['vendors', 'infinite', 'shop-form']}
+              fetcher={vendorFetcher}
+              placeholder={t('form.selectVendor')}
+              helperText={t('form.selectVendorHelper')}
             />
           </Box>
 
@@ -364,14 +362,14 @@ export default function CreatePage() {
                     height={16}
                   />
                 </Box>
-                <Typography variant="subtitle2" className="font-semibold text-foreground">
-                  Shop Name (Arabic)
+<Typography variant="subtitle2" className="font-semibold text-foreground">
+                {t('form.storeNameAr')}
                 </Typography>
               </Box>
               <RHFTextField
                 name="name.ar"
-                placeholder="e.g., متجر تجريبي"
-                helperText="Enter the shop name in Arabic"
+                placeholder={t('form.storeNameAr')}
+                helperText={t('form.shopNameArHelper')}
                 className="transition-all duration-200"
               />
             </Box>
@@ -386,14 +384,14 @@ export default function CreatePage() {
                     height={16}
                   />
                 </Box>
-                <Typography variant="subtitle2" className="font-semibold text-foreground">
-                  Shop Name (English)
+<Typography variant="subtitle2" className="font-semibold text-foreground">
+                {t('form.storeNameEn')}
                 </Typography>
               </Box>
               <RHFTextField
                 name="name.en"
-                placeholder="e.g., Test Store"
-                helperText="Enter the shop name in English"
+                placeholder={t('form.storeNameEn')}
+                helperText={t('form.shopNameEnHelper')}
                 className="transition-all duration-200"
               />
             </Box>
@@ -411,14 +409,14 @@ export default function CreatePage() {
                     height={16}
                   />
                 </Box>
-                <Typography variant="subtitle2" className="font-semibold text-foreground">
-                  Description (Arabic)
+<Typography variant="subtitle2" className="font-semibold text-foreground">
+                {t('form.descriptionAr')}
                 </Typography>
               </Box>
               <RHFTextField
                 name="description.ar"
-                placeholder="e.g., متجر تجريبي لبيع المواد الغذائية"
-                helperText="Enter the shop description in Arabic"
+                placeholder={t('form.storeDescAr')}
+                helperText={t('form.shopDescArHelper')}
                 className="transition-all duration-200"
               />
             </Box>
@@ -433,14 +431,14 @@ export default function CreatePage() {
                     height={16}
                   />
                 </Box>
-                <Typography variant="subtitle2" className="font-semibold text-foreground">
-                  Description (English)
+<Typography variant="subtitle2" className="font-semibold text-foreground">
+                {t('form.descriptionEn')}
                 </Typography>
               </Box>
               <RHFTextField
                 name="description.en"
-                placeholder="e.g., Test store for groceries"
-                helperText="Enter the shop description in English"
+                placeholder={t('form.storeDescEn')}
+                helperText={t('form.shopDescEnHelper')}
                 className="transition-all duration-200"
               />
             </Box>
@@ -518,14 +516,14 @@ export default function CreatePage() {
                     height={16}
                   />
                 </Box>
-                <Typography variant="subtitle2" className="font-semibold text-foreground">
-                  Address (Arabic)
+<Typography variant="subtitle2" className="font-semibold text-foreground">
+                {t('form.addressAr')}
                 </Typography>
               </Box>
               <RHFTextField
                 name="address.ar"
-                placeholder="e.g., دمشق - المزة"
-                helperText="Enter the shop address in Arabic"
+                placeholder={t('form.addressPlaceholderAr')}
+                helperText={t('form.shopAddressArHelper')}
                 className="transition-all duration-200"
               />
             </Box>
@@ -540,14 +538,14 @@ export default function CreatePage() {
                     height={16}
                   />
                 </Box>
-                <Typography variant="subtitle2" className="font-semibold text-foreground">
-                  Address (English)
+<Typography variant="subtitle2" className="font-semibold text-foreground">
+                {t('form.addressEn')}
                 </Typography>
               </Box>
               <RHFTextField
                 name="address.en"
-                placeholder="e.g., Damascus - Mazzeh"
-                helperText="Enter the shop address in English"
+                placeholder={t('form.addressPlaceholderEn')}
+                helperText={t('form.shopAddressEnHelper')}
                 className="transition-all duration-200"
               />
             </Box>
@@ -622,14 +620,14 @@ export default function CreatePage() {
                     height={16}
                   />
                 </Box>
-                <Typography variant="subtitle2" className="font-semibold text-foreground">
-                  Phone
+<Typography variant="subtitle2" className="font-semibold text-foreground">
+                {t('columns.phone')}
                 </Typography>
               </Box>
               <RHFTextField
                 name="phone"
-                placeholder="e.g., 0111234567"
-                helperText="Enter the shop phone number"
+                placeholder={t('form.phonePlaceholder')}
+                helperText={t('form.shopPhoneHelper')}
                 className="transition-all duration-200"
               />
             </Box>
@@ -643,14 +641,14 @@ export default function CreatePage() {
                     height={16}
                   />
                 </Box>
-                <Typography variant="subtitle2" className="font-semibold text-foreground">
-                  Mobile
+<Typography variant="subtitle2" className="font-semibold text-foreground">
+                {t('form.mobileLabel')}
                 </Typography>
               </Box>
               <RHFTextField
                 name="mobile"
-                placeholder="e.g., +963944000222"
-                helperText="Enter the shop mobile number"
+                placeholder={t('form.mobilePlaceholder')}
+                helperText={t('form.shopMobileHelper')}
                 className="transition-all duration-200"
               />
             </Box>
@@ -664,15 +662,15 @@ export default function CreatePage() {
                     height={16}
                   />
                 </Box>
-                <Typography variant="subtitle2" className="font-semibold text-foreground">
-                  Email
+<Typography variant="subtitle2" className="font-semibold text-foreground">
+                {t('columns.email')}
                 </Typography>
               </Box>
               <RHFTextField
                 name="email"
                 type="email"
-                placeholder="e.g., teststore@example.com"
-                helperText="Enter the shop email address"
+                placeholder={t('form.emailPlaceholder')}
+                helperText={t('form.shopEmailHelper')}
                 className="transition-all duration-200"
               />
             </Box>
@@ -712,34 +710,16 @@ export default function CreatePage() {
                     height={16}
                   />
                 </Box>
-                <Typography variant="subtitle2" className="font-semibold text-foreground">
-                  Area
+<Typography variant="subtitle2" className="font-semibold text-foreground">
+                {t('areaLabel')}
                 </Typography>
               </Box>
-              <Controller
+              <RHFInfiniteSelect
                 name="area_id"
-                control={control}
-                render={({ field, fieldState: { error } }) => (
-                  <div className="w-full">
-                    <select
-                      value={field.value ?? 0}
-                      onChange={(e) => field.onChange(Number(e.target.value))}
-                      className="w-full h-9 px-3 rounded-lg border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                    >
-                      <option value={0}>Select area</option>
-                      {areaOptions.map((opt: any) => (
-                        <option key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </option>
-                      ))}
-                    </select>
-                    {error?.message && (
-                      <Typography variant="caption" className="text-destructive mt-1 block">
-                        {error.message}
-                      </Typography>
-                    )}
-                  </div>
-                )}
+                queryKey={['areas', 'infinite', 'shop-form']}
+                fetcher={areaFetcherForShop}
+                placeholder={t('form.selectArea')}
+                helperText={t('form.selectAreaHelper')}
               />
             </Box>
 
@@ -767,10 +747,10 @@ export default function CreatePage() {
                       value={field.value?.map((s) => s.id) ?? []}
                       onChange={(ids) =>
                         field.onChange(
-                          (ids as (string | number)[]).map((id) => ({ id: Number(id) }))
+                          (ids as (string | number)[]).map((sid) => ({ id: Number(sid) }))
                         )
                       }
-                      placeholder="Select services..."
+                      placeholder={t('form.selectServices')}
                       isDisabled={serviceOptions.length === 0}
                     />
                     {error?.message && (
@@ -860,7 +840,7 @@ export default function CreatePage() {
         }
         isEditMode={isEditMode}
         isLoading={isLoadingShop}
-        loadingText="Loading shop data..."
+        loadingText={t('form.loadingShop')}
         maxWidth="4xl"
         steps={steps}
         submitLabel={isEditMode ? 'Update Shop' : 'Create Shop'}

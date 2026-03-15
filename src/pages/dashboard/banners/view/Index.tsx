@@ -45,7 +45,7 @@ export default function Page() {
         await deleteBannerMutation.mutateAsync(deletingId);
         toast.success(t('deleteSuccess') || 'Banner deleted successfully');
         setDeletingId(null);
-      } catch {}
+      } catch { return; }
     }
   };
 

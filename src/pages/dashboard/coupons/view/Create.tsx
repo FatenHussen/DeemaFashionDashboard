@@ -2,11 +2,12 @@ import type { MultiSelectOption } from '@/shared/ui/multi-select';
 import type { CouponDetailsData } from '@/pages/dashboard/coupons/types/coupon.types';
 
 import { toast } from 'react-toastify';
-import { formatTranslated } from '@/utils/format-translated';
 import { useMemo, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Iconify } from '@/shared/components/iconify';
+import { formatTranslated } from '@/utils/format-translated';
 import { useParams, useNavigate, useLocation } from 'react-router';
 import { useFetchVendors } from '@/pages/dashboard/vendor/hooks/vendor';
 import { useFetchProducts } from '@/pages/dashboard/products/hooks/product';
@@ -39,6 +40,7 @@ function toISODateTimeLocal(d: string): string {
 }
 
 export default function CreatePage() {
+  const { t } = useTranslation('table');
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
   const location = useLocation();
@@ -51,23 +53,29 @@ export default function CreatePage() {
   const createCouponMutation = useCreateCoupon();
   const updateCouponMutation = useUpdateCoupon();
 
-  const products = productsResponse?.data?.items || [];
-  const vendors = vendorsResponse?.data?.items || [];
+  const products =
+    (productsResponse?.data as { items?: { id: number; name: unknown }[] } | undefined)?.items ??
+    (productsResponse?.data as { data?: { id: number; name: unknown }[] } | undefined)?.data ??
+    [];
+  const vendors =
+    (vendorsResponse?.data as { items?: { id: number; name: unknown }[] } | undefined)?.items ??
+    (vendorsResponse?.data as { data?: { id: number; name: unknown }[] } | undefined)?.data ??
+    [];
 
   const productOptions: MultiSelectOption[] = useMemo(
     () =>
-      products.map((p) => ({
+      products.map((p: { id: number; name: unknown }) => ({
         value: p.id,
-        label: formatTranslated(p.name) || `Product #${p.id}`,
+        label: formatTranslated(p.name as Parameters<typeof formatTranslated>[0]) || `Product #${p.id}`,
       })),
     [products]
   );
 
   const vendorOptions: MultiSelectOption[] = useMemo(
     () =>
-      vendors.map((v) => ({
+      vendors.map((v: { id: number; name: unknown }) => ({
         value: v.id,
-        label: formatTranslated(v.name) || `Vendor #${v.id}`,
+        label: formatTranslated(v.name as Parameters<typeof formatTranslated>[0]) || `Vendor #${v.id}`,
       })),
     [vendors]
   );
@@ -196,7 +204,7 @@ export default function CreatePage() {
         }
         isEditMode={isEditMode}
         isLoading={isEditMode && isLoadingCoupon}
-        loadingText="Loading coupon..."
+        loadingText={t('form.loadingCoupon')}
         maxWidth="2xl"
         submitLabel={isEditMode ? 'Update Coupon' : 'Create Coupon'}
         submittingLabel={isEditMode ? 'Updating...' : 'Creating...'}
@@ -206,13 +214,13 @@ export default function CreatePage() {
           <Box className="flex items-center gap-2 mb-2">
             <Iconify icon="solar:user-id-bold" className="text-primary" width={24} height={24} />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Affiliate ID (optional)
+              {t('form.affiliateId')} (optional)
             </Typography>
           </Box>
           <RHFTextField
             name="affiliate_id"
             type="number"
-            placeholder="Leave empty for non-affiliate coupons"
+            placeholder={t('form.leaveEmptyNonAffiliate')}
             fullWidth
           />
           {hasAffiliateId && (
@@ -278,7 +286,7 @@ export default function CreatePage() {
             <RHFMultiSelect
               name="product_ids"
               options={productOptions}
-              label="Select products"
+              label={t('form.selectProducts')}
               placeholder={hasAffiliateId ? 'Managed by affiliate' : 'Search and select products...'}
               fullWidth
               isDisabled={hasAffiliateId}
@@ -303,7 +311,7 @@ export default function CreatePage() {
             <RHFMultiSelect
               name="vendor_ids"
               options={vendorOptions}
-              label="Select vendors"
+              label={t('form.selectVendors')}
               placeholder={hasAffiliateId ? 'Managed by affiliate' : 'Search and select vendors...'}
               fullWidth
               isDisabled={hasAffiliateId}
@@ -314,25 +322,25 @@ export default function CreatePage() {
         {/* Name EN */}
         <Box className="group">
           <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
-            Name (English)
+            {t('form.couponNameEn')}
           </Typography>
-          <RHFTextField name="name.en" placeholder="e.g., Summer Sale" fullWidth />
+          <RHFTextField name="name.en" placeholder={t('form.summerSaleEn')} fullWidth />
         </Box>
 
         {/* Name AR */}
         <Box className="group">
           <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
-            Name (Arabic)
+            {t('form.couponNameAr')}
           </Typography>
-          <RHFTextField name="name.ar" placeholder="تخفيضات الصيف" dir="rtl" fullWidth />
+          <RHFTextField name="name.ar" placeholder={t('form.summerSaleAr')} dir="rtl" fullWidth />
         </Box>
 
         {/* Code */}
         <Box className="group">
           <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
-            Code
+            {t('form.codeLabel')}
           </Typography>
-          <RHFTextField name="code" placeholder="SUMMER20" fullWidth />
+          <RHFTextField name="code" placeholder={t('form.codePlaceholder')} fullWidth />
         </Box>
 
         {/* Discount Type & Value */}
@@ -357,7 +365,7 @@ export default function CreatePage() {
           </Box>
           <Box className="flex-1 min-w-[140px]">
             <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
-              Discount Value
+              {t('form.discountValue')}
             </Typography>
             <RHFTextField
               name="discount_value"
@@ -371,7 +379,7 @@ export default function CreatePage() {
         {/* Start Date */}
         <Box className="group">
           <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
-            Start Date
+            {t('form.startAt')}
           </Typography>
           <RHFTextField name="start_at" type="datetime-local" fullWidth />
         </Box>
@@ -379,7 +387,7 @@ export default function CreatePage() {
         {/* End Date */}
         <Box className="group">
           <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
-            End Date
+            {t('form.endAt')}
           </Typography>
           <RHFTextField name="end_at" type="datetime-local" fullWidth />
         </Box>
@@ -387,9 +395,9 @@ export default function CreatePage() {
         {/* Max Uses */}
         <Box className="group">
           <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
-            Max Uses
+            {t('form.maxUses')}
           </Typography>
-          <RHFTextField name="max_uses" type="number" placeholder="0 = unlimited" fullWidth />
+          <RHFTextField name="max_uses" type="number" placeholder={t('form.maxUsesPlaceholder')} fullWidth />
         </Box>
 
         {/* Active */}

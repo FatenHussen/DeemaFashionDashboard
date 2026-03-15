@@ -1,23 +1,29 @@
 import type {
+  SalesReportParams,
   SalesReportResponse,
+  ProductMovementReportParams,
   ProductMovementReportResponse,
-  VendorPerformanceReportResponse,
-  DriverPerformanceReportResponse,
   SalesByLocationReportResponse,
   SalesByCategoryReportResponse,
-  SalesReportParams,
-  ProductMovementReportParams,
+  VendorPerformanceReportResponse,
+  DriverPerformanceReportResponse,
 } from '../types/report.types';
 
 import { apiRoutes, axiosInstance } from '@/api';
 
-const getFilenameFromHeaders = (headers: Record<string, string>): string => {
+const getFilenameFromHeaders = (
+  headers: Record<string, string>,
+  format: 'excel' | 'pdf' | 'csv',
+  reportName = 'report'
+): string => {
   const disposition = headers['content-disposition'] || headers['Content-Disposition'];
   const match = disposition?.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
   if (match) {
-    return match[1].replace(/['"]/g, '').trim();
+    const filename = match[1].replace(/['"]/g, '').trim();
+    if (filename) return decodeURIComponent(filename);
   }
-  return 'report.xlsx';
+  const ext = format === 'pdf' ? '.pdf' : format === 'csv' ? '.csv' : '.xlsx';
+  return `${reportName}${ext}`;
 };
 
 const triggerDownload = (blob: Blob, filename: string) => {
@@ -49,7 +55,11 @@ export const _ReportApi = {
       params: { format, ...params },
       responseType: 'blob',
     });
-    const filename = getFilenameFromHeaders(response.headers as unknown as Record<string, string>);
+    const filename = getFilenameFromHeaders(
+      response.headers as unknown as Record<string, string>,
+      format,
+      'sales-report'
+    );
     triggerDownload(response.data, filename);
   },
 
@@ -71,7 +81,11 @@ export const _ReportApi = {
       params: { format, ...params },
       responseType: 'blob',
     });
-    const filename = getFilenameFromHeaders(response.headers as unknown as Record<string, string>);
+    const filename = getFilenameFromHeaders(
+      response.headers as unknown as Record<string, string>,
+      format,
+      'product-movement-report'
+    );
     triggerDownload(response.data, filename);
   },
 
@@ -98,7 +112,11 @@ export const _ReportApi = {
         responseType: 'blob',
       }
     );
-    const filename = getFilenameFromHeaders(response.headers as unknown as Record<string, string>);
+    const filename = getFilenameFromHeaders(
+      response.headers as unknown as Record<string, string>,
+      format,
+      `vendor-performance-${vendorId}-report`
+    );
     triggerDownload(response.data, filename);
   },
 
@@ -125,7 +143,11 @@ export const _ReportApi = {
         responseType: 'blob',
       }
     );
-    const filename = getFilenameFromHeaders(response.headers as unknown as Record<string, string>);
+    const filename = getFilenameFromHeaders(
+      response.headers as unknown as Record<string, string>,
+      format,
+      `driver-performance-${driverId}-report`
+    );
     triggerDownload(response.data, filename);
   },
 
@@ -150,7 +172,11 @@ export const _ReportApi = {
         responseType: 'blob',
       }
     );
-    const filename = getFilenameFromHeaders(response.headers as unknown as Record<string, string>);
+    const filename = getFilenameFromHeaders(
+      response.headers as unknown as Record<string, string>,
+      format,
+      'sales-by-location-report'
+    );
     triggerDownload(response.data, filename);
   },
 
@@ -175,7 +201,11 @@ export const _ReportApi = {
         responseType: 'blob',
       }
     );
-    const filename = getFilenameFromHeaders(response.headers as unknown as Record<string, string>);
+    const filename = getFilenameFromHeaders(
+      response.headers as unknown as Record<string, string>,
+      format,
+      'sales-by-category-report'
+    );
     triggerDownload(response.data, filename);
   },
 };

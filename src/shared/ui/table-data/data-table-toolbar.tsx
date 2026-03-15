@@ -12,9 +12,9 @@ import { X, Plus, Search, Download, Sparkles } from 'lucide-react';
 import { Import } from './import';
 import DataTableFilterButtons from './data-table-filter-buttons';
 import { DataTableViewOptions } from './data-table-view-options';
+import { CustomizeColumnsModal } from './customize-columns-modal';
 import { DataTableViewOptionsCustom } from './data-table-view-custom';
 import DataTableRecycleFilterButton from './data-Table-RecycleFilter-Button ';
-import { CustomizeColumnsModal } from './customize-columns-modal';
 
 const VALID_EXPORT_TYPES: ExportType[] = [
   'brands',
@@ -59,6 +59,8 @@ interface DataTableToolbarProps<TData> {
   onImportSuccess?: () => void;
   defaultColumns?: ColumnItem[];
   columnTranslations?: Record<string, string>;
+  /** Custom filter content rendered in the toolbar */
+  toolbarFilter?: React.ReactNode;
 }
 
 export function DataTableToolbar<TData>({
@@ -73,6 +75,7 @@ export function DataTableToolbar<TData>({
   onImportSuccess,
   defaultColumns = [],
   columnTranslations = {},
+  toolbarFilter,
 }: DataTableToolbarProps<TData>) {
   const [searchValue, setSearchValue] = useState('');
   const navigate = useNavigate();
@@ -169,6 +172,13 @@ export function DataTableToolbar<TData>({
                 blur-xl -z-10
               `}
             />
+          </div>
+        )}
+
+        {/* Custom toolbar filters (e.g. status, search) */}
+        {toolbarFilter && (
+          <div className="flex items-center gap-2">
+            {toolbarFilter}
           </div>
         )}
 

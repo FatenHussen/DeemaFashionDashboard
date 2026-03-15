@@ -40,7 +40,7 @@ export const couponColumns = (
   {
     id: 'id',
     accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="ID" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
     cell: ({ row }) => (
       <div className="flex items-center gap-2">
         <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
@@ -52,7 +52,7 @@ export const couponColumns = (
   {
     id: 'name',
     accessorKey: 'name',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.name')} />,
     cell: ({ row }) => (
       <div className="font-semibold text-foreground truncate">{formatTranslated(row.original.name)}</div>
     ),
@@ -60,7 +60,7 @@ export const couponColumns = (
   {
     id: 'code',
     accessorKey: 'code',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Code" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.code')} />,
     cell: ({ row }) => (
       <code className="px-2 py-1 rounded bg-muted text-sm font-mono">{row.original.code}</code>
     ),
@@ -68,7 +68,7 @@ export const couponColumns = (
   {
     id: 'discount',
     accessorKey: 'discount',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Discount" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.discount')} />,
     cell: ({ row }) => {
       const d = row.original.discount;
       const text =
@@ -81,7 +81,7 @@ export const couponColumns = (
   {
     id: 'start_at',
     accessorKey: 'start_at',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Start" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.start')} />,
     cell: ({ row }) => (
       <span className="text-sm text-muted-foreground">
         {new Date(row.original.start_at).toLocaleDateString()}
@@ -91,7 +91,7 @@ export const couponColumns = (
   {
     id: 'end_at',
     accessorKey: 'end_at',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="End" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.end')} />,
     cell: ({ row }) => (
       <span className="text-sm text-muted-foreground">
         {new Date(row.original.end_at).toLocaleDateString()}
@@ -101,7 +101,7 @@ export const couponColumns = (
   {
     id: 'used_count',
     accessorKey: 'used_count',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Used" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.used')} />,
     cell: ({ row }) => (
       <span className="text-sm">
         {row.original.used_count} / {row.original.max_uses}
@@ -111,7 +111,7 @@ export const couponColumns = (
   {
     id: 'is_active',
     accessorKey: 'is_active',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.status')} />,
     cell: ({ row }) => {
       const isActive = row.original.is_active;
       const isExpired = row.original.is_expired;

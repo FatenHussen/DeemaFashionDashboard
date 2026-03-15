@@ -34,7 +34,7 @@ export const sellerRegistrationColumns = (
   {
     id: 'id',
     accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="ID" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
     cell: ({ row }) => (
       <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
         <span className="text-xs font-semibold text-primary">{row.original.id}</span>
@@ -44,7 +44,7 @@ export const sellerRegistrationColumns = (
   {
     id: 'seller_name',
     accessorKey: 'seller_name',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Seller" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.seller')} />,
     cell: ({ row }) => (
       <div>
         <div className="font-semibold text-foreground">{row.original.seller_name}</div>
@@ -55,7 +55,7 @@ export const sellerRegistrationColumns = (
   {
     id: 'store_name',
     accessorKey: 'store_name',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Store" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.store')} />,
     cell: ({ row }) => (
       <span className="text-sm font-medium">{row.original.store_name}</span>
     ),
@@ -63,20 +63,24 @@ export const sellerRegistrationColumns = (
   {
     id: 'country',
     accessorKey: 'country',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Location" />,
-    cell: ({ row }) => (
-      <div className="text-sm text-muted-foreground">
-        <div>{row.original.country}</div>
-        {row.original.governorate && (
-          <div className="text-xs">{row.original.governorate.name}</div>
-        )}
-      </div>
-    ),
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.location')} />,
+    cell: ({ row }) => {
+      const gov = row.original.governorate;
+      const city = row.original.city;
+      const govStr = typeof gov === 'string' ? gov : gov?.name;
+      const cityStr = typeof city === 'string' ? city : city?.name;
+      const location = [govStr, cityStr].filter(Boolean).join(', ') || row.original.country || '-';
+      return (
+        <div className="text-sm text-muted-foreground">
+          {location}
+        </div>
+      );
+    },
   },
   {
     id: 'status',
     accessorKey: 'status',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.status')} />,
     cell: ({ row }) => {
       const status = row.original.status;
       return (
@@ -93,7 +97,7 @@ export const sellerRegistrationColumns = (
   {
     id: 'registered_at',
     accessorKey: 'registered_at',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Registered" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.registered')} />,
     cell: ({ row }) => (
       <span className="text-xs text-muted-foreground">
         {new Date(row.original.registered_at).toLocaleDateString()}

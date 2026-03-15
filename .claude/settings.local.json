@@ -3,7 +3,8 @@
     "allow": [
       "Bash(npx tsc:*)",
       "Bash(npm install:*)",
-      "Bash(xargs grep -l \"useTranslation\\\\|i18n\")"
+      "Bash(xargs grep -l \"useTranslation\\\\|i18n\")",
+      "Bash(grep -l \"SimpleSelect\\\\|RHFSelect\\\\|<select\" /Users/mhmd/Desktop/tikmool/tikmool-admin-dashboard/src/pages/dashboard/**/view/**/Create.tsx)"
     ]
   }
 }

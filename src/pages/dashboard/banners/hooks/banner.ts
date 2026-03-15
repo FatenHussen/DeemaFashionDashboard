@@ -37,6 +37,7 @@ export const useUpdateBanner = () => {
       _BannerApi.updateBanner(id, data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['banner', 'list'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.banner.details(variables.id) });
     },
   });
 };

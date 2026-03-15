@@ -11,7 +11,15 @@ export interface BrandData {
 export interface BrandListResponse {
   status: boolean;
   message: string;
-  data: BrandData[];
+  data: {
+    items: BrandData[];
+    pagination: {
+      current_page: number;
+      last_page: number;
+      per_page: number;
+      total: number;
+    };
+  };
 }
 
 export interface BrandDetailsResponse {

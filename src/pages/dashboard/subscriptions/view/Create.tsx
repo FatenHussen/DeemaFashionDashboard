@@ -2,6 +2,7 @@ import type { SubscriptionData } from '@/pages/dashboard/subscriptions/types/sub
 
 import { useEffect } from 'react';
 import { toast } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useNavigate, useLocation } from 'react-router';
@@ -24,6 +25,7 @@ import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout
 const metadata = { title: `Subscription ${CONFIG.appName}` };
 
 export default function CreatePage() {
+  const { t } = useTranslation('table');
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
   const location = useLocation();
@@ -97,18 +99,18 @@ export default function CreatePage() {
         description={isEditMode ? 'Update subscription details' : 'Add a new subscription'}
         isEditMode={isEditMode}
         isLoading={isEditMode && isLoadingDetails}
-        loadingText="Loading subscription..."
+        loadingText={t('form.loadingSubscription')}
         maxWidth="2xl"
         submitLabel={isEditMode ? 'Update Subscription' : 'Create Subscription'}
         submittingLabel={isEditMode ? 'Updating...' : 'Creating...'}
       >
         <Box className="group">
           <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">User ID</Typography>
-          <RHFTextField name="user_id" type="number" placeholder="User ID" fullWidth />
+          <RHFTextField name="user_id" type="number" placeholder={t('form.userIdPlaceholder')} fullWidth />
         </Box>
         <Box className="group">
           <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">Package ID</Typography>
-          <RHFTextField name="package_id" type="number" placeholder="Package ID" fullWidth />
+          <RHFTextField name="package_id" type="number" placeholder={t('form.packageIdPlaceholder')} fullWidth />
         </Box>
         <Box className="group">
           <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">Start Date</Typography>

@@ -187,7 +187,7 @@ export const NavItem = forwardRef<HTMLButtonElement, NavItemProps>(function NavI
             navSectionClasses.item.arrow,
             'w-4 h-4 shrink-0 ml-auto inline-flex',
             'transition-transform duration-200 ease-out',
-            open ? 'rotate-0' : 'rotate-0',
+            open ? 'rotate-0' : '-rotate-90',
             slotProps?.arrow?.className,
           ])}
           style={slotProps?.arrow?.style}

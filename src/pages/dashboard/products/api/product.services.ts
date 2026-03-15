@@ -1,7 +1,7 @@
 import type {
+  ProductDetailData,
   ProductListResponse,
   ProductDetailResponse,
-  ProductDetailData,
   ProductCreateUpdatePayload,
 } from '../types/product.types';
 
@@ -57,12 +57,18 @@ const buildProductFormData = (data: ProductCreateUpdatePayload): FormData => {
   }
 
   // Variants - with indexed attributes and optional images
-  if (data.variants && data.variants.length > 0) {
-    data.variants.forEach((variant, vIndex) => {
+  // Only send variants that have attributes_values_ids (required by backend - no default value)
+  const validVariants =
+    data.variants?.filter(
+      (v) =>
+        Array.isArray(v.attributes_values_ids) && v.attributes_values_ids.length > 0
+    ) ?? [];
+  if (validVariants.length > 0) {
+    validVariants.forEach((variant, vIndex) => {
       if (variant.id) {
         formData.append(`variants[${vIndex}][id]`, variant.id.toString());
       }
-      variant.attributes_values_ids.forEach((attrValueId, aIndex) => {
+      (variant.attributes_values_ids ?? []).forEach((attrValueId, aIndex) => {
         formData.append(
           `variants[${vIndex}][attributes_values_ids][${aIndex}]`,
           attrValueId.toString()

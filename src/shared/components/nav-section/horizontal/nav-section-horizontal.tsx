@@ -3,6 +3,7 @@ import type { NavGroupProps, NavSectionProps } from '../types';
 import { mergeClasses } from 'minimal-shared/utils';
 
 import { NavList } from './nav-list';
+import { canShowNavItem } from '../utils';
 import { Scrollbar } from '../../scrollbar';
 import { Nav, NavUl, NavLi } from '../components';
 import { navSectionClasses, navSectionCssVars } from '../styles';
@@ -16,6 +17,7 @@ export function NavSectionHorizontal({
   slotProps,
   checkPermissions,
   checkPermission,
+  checkPermissionAny,
   enabledRootRedirect,
   cssVars: overridesVars,
   ...other
@@ -52,6 +54,7 @@ export function NavSectionHorizontal({
               slotProps={slotProps}
               checkPermissions={checkPermissions}
               checkPermission={checkPermission}
+              checkPermissionAny={checkPermissionAny}
               enabledRootRedirect={enabledRootRedirect}
             />
           ))}
@@ -70,8 +73,14 @@ function Group({
   slotProps,
   checkPermissions,
   checkPermission,
+  checkPermissionAny,
   enabledRootRedirect,
 }: NavGroupProps) {
+  const hasVisibleItems = items.some((item) =>
+    canShowNavItem(item, checkPermissions, checkPermission, checkPermissionAny)
+  );
+  if (!hasVisibleItems) return null;
+
   return (
     <NavLi>
       <NavUl className="flex-row gap-[var(--nav-item-gap)]">
@@ -85,6 +94,7 @@ function Group({
             slotProps={slotProps}
             checkPermissions={checkPermissions}
             checkPermission={checkPermission}
+            checkPermissionAny={checkPermissionAny}
             enabledRootRedirect={enabledRootRedirect}
           />
         ))}

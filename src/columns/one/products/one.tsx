@@ -73,7 +73,7 @@ export const brandColumns = (
   {
     id: 'id',
     accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="ID" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
     cell: ({ row }) => (
       <div className="flex items-center gap-2">
         <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
@@ -85,9 +85,12 @@ export const brandColumns = (
   {
     id: 'image',
     accessorKey: 'image',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Image" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.image')} />,
     cell: ({ row }) => {
-      const imageUrl = row.original.image ? `${CONFIG.serverUrl}/${row.original.image}` : null;
+      const img = row.original.image;
+      const imageUrl = img
+        ? (String(img).startsWith('http') ? img : `${CONFIG.serverUrl}/${img}`)
+        : null;
       return (
         <div className="flex items-center gap-2">
           {imageUrl ? (
@@ -113,7 +116,7 @@ export const brandColumns = (
   {
     id: 'name',
     accessorKey: 'name',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.name')} />,
     cell: ({ row }) => (
       <div className="flex items-center gap-2.5 min-w-0">
         <div className="min-w-0">
@@ -125,7 +128,7 @@ export const brandColumns = (
   {
     id: 'created_at',
     accessorKey: 'created_at',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Created At" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.createdAt')} />,
     cell: ({ row }) => (
       <div className="flex items-center gap-2">
         <Iconify
@@ -143,7 +146,7 @@ export const brandColumns = (
   {
     id: 'updated_at',
     accessorKey: 'updated_at',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Updated At" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.updatedAt')} />,
     cell: ({ row }) => (
       <div className="flex items-center gap-2">
         <Iconify
@@ -194,7 +197,7 @@ export const productColumns = (
   {
     id: 'id',
     accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="ID" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
     cell: ({ row }) => (
       <div className="flex items-center gap-2">
         <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
@@ -206,9 +209,12 @@ export const productColumns = (
   {
     id: 'image',
     accessorKey: 'image',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Image" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.image')} />,
     cell: ({ row }) => {
-      const imageUrl = row.original.image ? `${CONFIG.serverUrl}/${row.original.image}` : null;
+      const img = row.original.image;
+      const imageUrl = img
+        ? (String(img).startsWith('http') ? img : `${CONFIG.serverUrl}/${img}`)
+        : null;
       return (
         <div className="flex items-center gap-2">
           {imageUrl ? (
@@ -229,7 +235,7 @@ export const productColumns = (
   {
     id: 'name',
     accessorKey: 'name',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.name')} />,
     cell: ({ row }) => (
       <div className="flex items-center gap-2.5 min-w-0">
         <div className="min-w-0">
@@ -244,7 +250,7 @@ export const productColumns = (
   {
     id: 'category_id',
     accessorKey: 'category_id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Category" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.category')} />,
     cell: ({ row }) => (
       <div className="flex items-center gap-2">
         <Iconify
@@ -260,7 +266,7 @@ export const productColumns = (
   {
     id: 'price',
     accessorKey: 'price',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Price" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.price')} />,
     cell: ({ row }) => (
       <div className="flex items-center gap-2">
         <Iconify
@@ -276,7 +282,7 @@ export const productColumns = (
   {
     id: 'quantity',
     accessorKey: 'quantity',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Stock" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.stock')} />,
     cell: ({ row }) => {
       const quantity = row.original.quantity ?? 0;
       const isLowStock = quantity < 10 && quantity > 0;
@@ -314,7 +320,7 @@ export const productColumns = (
   {
     id: 'sku',
     accessorKey: 'sku',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="SKU" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.sku')} />,
     cell: ({ row }) => (
       <span className="text-sm text-muted-foreground font-mono">
         {row.original.sku || 'N/A'}
@@ -324,7 +330,7 @@ export const productColumns = (
   {
     id: 'created_at',
     accessorKey: 'created_at',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Created At" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.createdAt')} />,
     cell: ({ row }) => (
       <div className="flex items-center gap-2">
         <Iconify

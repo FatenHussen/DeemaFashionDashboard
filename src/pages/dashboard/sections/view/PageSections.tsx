@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
+import { formatTranslated } from '@/utils/format-translated';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { usePermissions } from '@/auth/hooks/use-permissions';
 import {
@@ -52,7 +53,7 @@ export default function Page() {
         await deletePageSectionMutation.mutateAsync(deletingId);
         toast.success(t('deleteSuccess') || 'Page Section deleted successfully');
         setDeletingId(null);
-      } catch {}
+      } catch { return; }
     }
   };
 
@@ -60,7 +61,16 @@ export default function Page() {
     setDeletingId(null);
   };
 
-  const pageSectionData: PageSectionFormValues[] = pageSectionsResponse?.data?.items || [];
+  const pageSectionData: PageSectionFormValues[] = (
+    pageSectionsResponse?.data?.items || []
+  ).map((item) => ({
+    ...item,
+    name: formatTranslated(item.name as Parameters<typeof formatTranslated>[0]) ?? '-',
+    type: (item.type ?? 'manual') as 'api' | 'manual',
+    position: (item.position ?? 'before') as 'before' | 'after',
+    order: item.order ?? 0,
+    display_type_id: item.display_type_id ?? 0,
+  }));
   const apiPagination = pageSectionsResponse?.data?.pagination;
   const pagination = apiPagination
     ? {
@@ -92,8 +102,8 @@ export default function Page() {
         tableName="Page Section"
         columns={pageSectionColumns(
           {
-            update: hasPermission('update', 'pageSection'),
-            delete: hasPermission('delete', 'pageSection'),
+            update: hasPermission('update', 'pagesection'),
+            delete: hasPermission('delete', 'pagesection'),
           },
           t,
           onDelete,
@@ -105,7 +115,7 @@ export default function Page() {
         )}
         data={pageSectionData}
         createPath="/sections/page-sections/create"
-        hasDetails={false}
+        hasDetails
         permissions={{
           create: hasPermission('create', 'pagesection'),
           update: hasPermission('update', 'pagesection'),

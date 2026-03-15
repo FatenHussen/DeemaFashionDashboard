@@ -1,10 +1,11 @@
 import { toast } from 'react-toastify';
 import { useForm } from 'react-hook-form';
-import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useRef, useState, useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
-import { useFetchManualItems } from '@/pages/dashboard/sections/hooks/useManualItems';
+import { useInfiniteManualItems } from '@/pages/dashboard/sections/hooks/useManualItems';
 import {
   SectionSchema,
   type SectionFormValues,
@@ -26,23 +27,38 @@ import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout
 const metadata = { title: `Section ${CONFIG.appName}` };
 
 export default function CreatePage() {
+  const { t } = useTranslation('table');
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
   const isEditMode = !!id;
   const [selectedModel, setSelectedModel] = useState<string>('');
   const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set());
   const [searchTerm, setSearchTerm] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
   const { data: sectionData, isLoading: isLoadingSection } = useFetchSectionDetails(id || '');
   const createSectionMutation = useCreateSection();
   const updateSectionMutation = useUpdateSection();
 
-  const { itemTypesQuery, itemsQuery } = useFetchManualItems(selectedModel || null, {
-    page: currentPage,
+  const { itemTypesQuery, infiniteQuery, allItems } = useInfiniteManualItems(selectedModel || null, {
     limit: 10,
     search: searchTerm,
   });
+
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return undefined;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && infiniteQuery.hasNextPage && !infiniteQuery.isFetchingNextPage) {
+          infiniteQuery.fetchNextPage();
+        }
+      },
+      { threshold: 0.1 }
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [infiniteQuery]);
 
   const defaultValues: SectionFormValues = {
     name: {
@@ -142,9 +158,8 @@ export default function CreatePage() {
   };
 
   const handleSelectAll = () => {
-    if (!itemsQuery.data?.data?.items) return;
-    const allItemIds = itemsQuery.data.data.items.map((item: any) => item.id);
-    setSelectedItems(new Set(allItemIds));
+    if (!allItems.length) return;
+    setSelectedItems(new Set(allItems.map((item: any) => item.id)));
   };
 
   const handleClearAll = () => {
@@ -180,7 +195,7 @@ export default function CreatePage() {
         description={isEditMode ? 'Update section information' : 'Add a new section to your system'}
         isEditMode={isEditMode}
         isLoading={isLoadingSection}
-        loadingText="Loading section data..."
+        loadingText={t('form.loadingSection')}
         maxWidth="4xl"
         infoText={infoText}
         submitLabel={isEditMode ? 'Update Section' : 'Create Section'}
@@ -196,8 +211,8 @@ export default function CreatePage() {
           </Box>
           <RHFTextField
             name="name.en"
-            placeholder="e.g., Featured Products"
-            helperText="Enter the section name in English"
+            placeholder={t('form.sectionNameEnPlaceholder')}
+            helperText={t('form.sectionNameEnHelper2')}
             className="transition-all duration-200"
           />
         </Box>
@@ -213,7 +228,7 @@ export default function CreatePage() {
           <RHFTextField
             name="name.ar"
             placeholder="e.g., منتجات مميزة"
-            helperText="Enter the section name in Arabic"
+            helperText={t('form.sectionNameArHelper2')}
             className="transition-all duration-200"
             dir="rtl"
           />
@@ -230,9 +245,14 @@ export default function CreatePage() {
           <RHFSelect
             name="manual_model"
             options={itemTypeOptions}
-            placeholder="Select a model type"
-            helperText="Select the type of items for this section"
+            placeholder={t('form.selectModelType')}
+            helperText={
+              isEditMode
+                ? 'Manual model cannot be changed when editing'
+                : 'Select the type of items for this section'
+            }
             className="transition-all duration-200"
+            disabled={isEditMode}
           />
         </Box>
 
@@ -257,7 +277,7 @@ export default function CreatePage() {
                   onClick={handleSelectAll}
                   variant="outlined"
                   size="small"
-                  disabled={!itemsQuery.data?.data?.items?.length}
+                  disabled={!allItems.length}
                 >
                   Select All
                 </Button>
@@ -279,13 +299,13 @@ export default function CreatePage() {
                 name="search"
                 value={searchTerm}
                 onChange={(e: any) => setSearchTerm(e.target.value)}
-                placeholder="Search items..."
+                placeholder={t('form.searchItems')}
                 className="w-full"
               />
             </Box>
 
             {/* Loading State */}
-            {itemsQuery.isLoading && (
+            {infiniteQuery.isLoading && (
               <Box className="text-center p-8 border border-dashed rounded-lg">
                 <Iconify
                   icon="solar:refresh-circle-bold"
@@ -298,7 +318,7 @@ export default function CreatePage() {
             )}
 
             {/* Error State */}
-            {itemsQuery.isError && (
+            {infiniteQuery.isError && (
               <Box className="text-center p-8 border border-destructive/50 rounded-lg bg-destructive/5">
                 <Iconify icon="solar:danger-bold" className="w-12 h-12 text-destructive mx-auto mb-2" />
                 <Typography variant="body2" className="text-destructive">
@@ -308,9 +328,9 @@ export default function CreatePage() {
             )}
 
             {/* Items List */}
-            {!itemsQuery.isLoading && !itemsQuery.isError && itemsQuery.data?.data?.items && (
+            {!infiniteQuery.isLoading && !infiniteQuery.isError && (
               <Box className="border rounded-lg overflow-hidden">
-                {itemsQuery.data.data.items.length === 0 ? (
+                {allItems.length === 0 ? (
                   <Box className="text-center p-8">
                     <Iconify
                       icon="solar:inbox-line-bold"
@@ -322,7 +342,7 @@ export default function CreatePage() {
                   </Box>
                 ) : (
                   <Box className="divide-y divide-border">
-                    {itemsQuery.data.data.items.map((item: any) => {
+                    {allItems.map((item: any) => {
                       const isSelected = selectedItems.has(item.id);
                       return (
                         <Box
@@ -364,36 +384,14 @@ export default function CreatePage() {
                         </Box>
                       );
                     })}
-                  </Box>
-                )}
-
-                {/* Pagination */}
-                {itemsQuery.data?.data?.pagination && itemsQuery.data.data.pagination.last_page > 1 && (
-                  <Box className="flex items-center justify-between p-4 bg-muted/20 border-t">
-                    <Typography variant="body2" className="text-muted-foreground">
-                      Page {itemsQuery.data.data.pagination.current_page} of{' '}
-                      {itemsQuery.data.data.pagination.last_page}
-                    </Typography>
-                    <Box className="flex gap-2">
-                      <Button
-                        type="button"
-                        onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                        disabled={currentPage === 1}
-                        variant="outlined"
-                        size="small"
-                      >
-                        Previous
-                      </Button>
-                      <Button
-                        type="button"
-                        onClick={() => setCurrentPage((p) => p + 1)}
-                        disabled={currentPage >= itemsQuery.data.data.pagination.last_page}
-                        variant="outlined"
-                        size="small"
-                      >
-                        Next
-                      </Button>
-                    </Box>
+                    {/* Sentinel for infinite scroll */}
+                    <div ref={sentinelRef} className="py-2 text-center">
+                      {infiniteQuery.isFetchingNextPage && (
+                        <Typography variant="body2" className="text-muted-foreground">
+                          Loading more...
+                        </Typography>
+                      )}
+                    </div>
                   </Box>
                 )}
               </Box>

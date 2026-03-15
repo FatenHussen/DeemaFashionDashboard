@@ -70,7 +70,7 @@ export const shopColumns = (
   {
     id: 'id',
     accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="ID" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
     cell: ({ row }) => (
       <div className="flex items-center gap-2">
         <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
@@ -82,7 +82,7 @@ export const shopColumns = (
   {
     id: 'name',
     accessorKey: 'name',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.name')} />,
     cell: ({ row }) => (
       <div className="flex items-center gap-2.5 min-w-0">
         {row.original.logo_url ? (
@@ -110,7 +110,7 @@ export const shopColumns = (
   {
     id: 'vendor',
     accessorKey: 'vendor',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Vendor" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.vendor')} />,
     cell: ({ row }) => {
       const vendorName = formatTranslated(row.original.vendor?.name) || row.original.vendor_id || '-';
       return (
@@ -126,7 +126,7 @@ export const shopColumns = (
   {
     id: 'rating',
     accessorKey: 'average_rating',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Rating" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.rating')} />,
     cell: ({ row }) => {
       const rating = row.original.average_rating || 0;
       const reviewsCount = row.original.ratings_count || 0;
@@ -174,7 +174,7 @@ export const shopColumns = (
   {
     id: 'is_open_now',
     accessorKey: 'is_open_now',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Open Now" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.openNow')} />,
     cell: ({ row }) => {
       const isOpen = row.original.is_open_now;
       return (
@@ -200,7 +200,7 @@ export const shopColumns = (
   {
     id: 'email',
     accessorKey: 'email',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Email" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.email')} />,
     cell: ({ row }) => (
       <div className="flex items-center gap-2 min-w-0">
         <Iconify icon="solar:letter-bold" className="text-muted-foreground flex-shrink-0" width={16} height={16} />
@@ -211,7 +211,7 @@ export const shopColumns = (
   {
     id: 'phone',
     accessorKey: 'phone',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Phone" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.phone')} />,
     cell: ({ row }) => (
       <div className="flex items-center gap-2 min-w-0">
         <Iconify icon="solar:phone-bold" className="text-muted-foreground flex-shrink-0" width={16} height={16} />
@@ -222,7 +222,7 @@ export const shopColumns = (
   {
     id: 'status',
     accessorKey: 'is_active',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.status')} />,
     cell: ({ row }) => {
       const isActive = row.original.is_active;
       return (
@@ -247,7 +247,7 @@ export const shopColumns = (
   {
     id: 'created_at',
     accessorKey: 'created_at',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Created At" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.createdAt')} />,
     cell: ({ row }) => (
       <div className="flex items-center gap-2">
         <Iconify icon="solar:calendar-date-bold" className="text-muted-foreground flex-shrink-0" width={16} height={16} />

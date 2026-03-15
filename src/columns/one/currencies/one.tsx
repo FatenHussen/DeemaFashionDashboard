@@ -22,7 +22,7 @@ export interface CurrencyFormValues extends CurrencyData {
 
 export const currencyColumns = (
   permissions: { update: boolean; delete: boolean },
-  _t: TFunction<'table'>,
+  t: TFunction<'table'>,
   onDelete?: (id: number) => void,
   isDeleting?: boolean,
   isDeleteDialogOpen?: boolean,
@@ -34,7 +34,7 @@ export const currencyColumns = (
   {
     id: 'id',
     accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="ID" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
     cell: ({ row }) => (
       <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
         <span className="text-xs font-semibold text-primary">{row.original.id}</span>
@@ -44,12 +44,12 @@ export const currencyColumns = (
   {
     id: 'code',
     accessorKey: 'code',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Code" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.code')} />,
     cell: ({ row }) => <code className="px-2 py-1 rounded bg-muted text-sm font-mono">{row.original.code}</code>,
   },
   {
     id: 'name',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.name')} />,
     cell: ({ row }) => {
       const name = row.original.name;
       const display = typeof name === 'object' ? (name as any)?.en || (name as any)?.ar : name;
@@ -59,19 +59,19 @@ export const currencyColumns = (
   {
     id: 'symbol',
     accessorKey: 'symbol',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Symbol" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.symbol')} />,
     cell: ({ row }) => <span className="text-lg font-medium">{row.original.symbol}</span>,
   },
   {
     id: 'exchange_rate',
     accessorKey: 'exchange_rate',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Rate" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.rate')} />,
     cell: ({ row }) => <span className="text-sm font-mono">{row.original.exchange_rate}</span>,
   },
   {
     id: 'is_default',
     accessorKey: 'is_default',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Default" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.default')} />,
     cell: ({ row }) => row.original.is_default ? (
       <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-blue-500/20 text-blue-600">Default</span>
     ) : <span className="text-muted-foreground text-xs">-</span>,
@@ -79,7 +79,7 @@ export const currencyColumns = (
   {
     id: 'is_active',
     accessorKey: 'is_active',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.status')} />,
     cell: ({ row }) => (
       <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${row.original.is_active ? 'bg-green-500/20 text-green-600' : 'bg-red-500/20 text-red-600'}`}>
         {row.original.is_active ? 'Active' : 'Inactive'}

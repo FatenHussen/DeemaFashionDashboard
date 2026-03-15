@@ -32,7 +32,7 @@ export default function Page() {
         await deletePackageMutation.mutateAsync(deletingId);
         toast.success(t('deleteSuccess') || 'Package deleted successfully');
         setDeletingId(null);
-      } catch {}
+      } catch { return; }
     }
   };
   const onDeleteCancel = () => setDeletingId(null);

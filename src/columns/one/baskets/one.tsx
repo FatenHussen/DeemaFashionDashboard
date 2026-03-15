@@ -9,8 +9,9 @@ import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-
 const BasketSchema = z.object({
   id: z.number(),
   name: z.any(),
-  discount: z.number(),
-  discount_type: z.string(),
+  discount: z.union([z.number(), z.string()]).optional(),
+  discount_value: z.union([z.number(), z.string()]).optional(),
+  discount_type: z.string().optional(),
   created_at: z.string(),
 });
 
@@ -20,7 +21,7 @@ export interface BasketFormValues extends BasketData {
 
 export const basketColumns = (
   permissions: { update: boolean; delete: boolean },
-  _t: TFunction<'table'>,
+  t: TFunction<'table'>,
   onDelete?: (id: number) => void,
   isDeleting?: boolean,
   isDeleteDialogOpen?: boolean,
@@ -32,7 +33,7 @@ export const basketColumns = (
   {
     id: 'id',
     accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="ID" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
     cell: ({ row }) => (
       <div className="flex items-center gap-2">
         <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
@@ -44,7 +45,7 @@ export const basketColumns = (
   {
     id: 'name',
     accessorKey: 'name',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.name')} />,
     cell: ({ row }) => {
       const name = row.original.name;
       const display = typeof name === 'object' ? (name as any)?.en || (name as any)?.ar : name;
@@ -52,26 +53,42 @@ export const basketColumns = (
     },
   },
   {
+    id: 'category',
+    accessorKey: 'category',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.category')} />,
+    cell: ({ row }) => {
+      const cat = row.original.category;
+      const name = typeof cat === 'object' && cat ? (cat as { name?: string })?.name : null;
+      return <span className="text-sm">{name ?? '-'}</span>;
+    },
+  },
+  {
     id: 'discount',
     accessorKey: 'discount',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Discount" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.discount')} />,
     cell: ({ row }) => {
       const d = row.original;
-      const text = d.discount_type === 'percentage' ? `${d.discount}%` : `Fixed: ${d.discount}`;
+      const value = d.discount ?? d.discount_value ?? d.discount_amount ?? 0;
+      const text =
+        d.discount_type === 'percentage'
+          ? `${value}%`
+          : `Fixed: ${typeof value === 'number' ? value : parseFloat(String(value)) || 0}`;
       return <span className="text-sm">{text}</span>;
     },
   },
   {
     id: 'items_count',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Items" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.items')} />,
     cell: ({ row }) => (
-      <span className="text-sm">{row.original.items?.length || 0}</span>
+      <span className="text-sm">
+        {row.original.items_count ?? row.original.items?.length ?? 0}
+      </span>
     ),
   },
   {
     id: 'created_at',
     accessorKey: 'created_at',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Created" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.created')} />,
     cell: ({ row }) => (
       <span className="text-sm text-muted-foreground">
         {new Date(row.original.created_at).toLocaleDateString()}
@@ -84,6 +101,7 @@ export const basketColumns = (
       <DataTableRowActions
         schema={BasketSchema}
         row={row}
+        viewDetails={`/baskets/details/${row.original.id}`}
         editItem={onEdit ? undefined : `/baskets/update/${row.original.id}`}
         onEdit={onEdit}
         onDelete={onDelete}

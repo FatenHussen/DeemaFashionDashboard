@@ -47,7 +47,7 @@ export const bannerColumns = (
   {
     id: 'id',
     accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="ID" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
     cell: ({ row }) => (
       <div className="flex items-center gap-2">
         <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
@@ -59,7 +59,7 @@ export const bannerColumns = (
   {
     id: 'image_url',
     accessorKey: 'image_url',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Image" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.image')} />,
     cell: ({ row }) => {
       const imageUrl = row.original.image_url;
       return (
@@ -87,7 +87,7 @@ export const bannerColumns = (
   {
     id: 'title',
     accessorKey: 'title',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Title" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.title')} />,
     cell: ({ row }) => (
       <div className="flex items-center gap-2.5 min-w-0">
         <div className="font-semibold text-foreground truncate">{formatTranslated(row.original.title)}</div>
@@ -97,7 +97,7 @@ export const bannerColumns = (
   {
     id: 'description',
     accessorKey: 'description',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Description" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.description')} />,
     cell: ({ row }) => {
       const text = formatTranslated(row.original.description);
       return (
@@ -112,7 +112,7 @@ export const bannerColumns = (
   {
     id: 'link',
     accessorKey: 'link',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Link" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.link')} />,
     cell: ({ row }) => {
       const link = row.original.link;
       if (!link) return <span className="text-sm text-muted-foreground">-</span>;
@@ -131,7 +131,7 @@ export const bannerColumns = (
   {
     id: 'created_at',
     accessorKey: 'created_at',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Created At" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.createdAt')} />,
     cell: ({ row }) => (
       <div className="flex items-center gap-2">
         <Iconify

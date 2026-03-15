@@ -29,7 +29,7 @@ const formatTypeLabel = (type: string) =>
     : type.charAt(0).toUpperCase() + type.slice(1);
 
 export const faqColumns = (
-  _t: TFunction<'table'>,
+  t: TFunction<'table'>,
   onDelete?: (id: number) => void,
   isDeleting?: boolean,
   isDeleteDialogOpen?: boolean,
@@ -40,7 +40,7 @@ export const faqColumns = (
   {
     id: 'id',
     accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="ID" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
     cell: ({ row }) => (
       <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
         <span className="text-xs font-semibold text-primary">{row.original.id}</span>
@@ -50,7 +50,7 @@ export const faqColumns = (
   {
     id: 'type',
     accessorKey: 'type',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Type" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.type')} />,
     cell: ({ row }) => {
       const type = row.original.type;
       return (
@@ -65,7 +65,7 @@ export const faqColumns = (
   {
     id: 'question',
     accessorKey: 'question',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Question" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.question')} />,
     cell: ({ row }) => (
       <p className="max-w-sm text-sm text-foreground line-clamp-2">{row.original.question}</p>
     ),
@@ -73,7 +73,7 @@ export const faqColumns = (
   {
     id: 'answer',
     accessorKey: 'answer',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Answer" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.answer')} />,
     cell: ({ row }) => (
       <p className="max-w-sm text-sm text-muted-foreground line-clamp-2">{formatTranslated(row.original.answer)}</p>
     ),

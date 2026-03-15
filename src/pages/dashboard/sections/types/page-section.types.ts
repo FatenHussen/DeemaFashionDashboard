@@ -2,13 +2,16 @@
 
 export interface PageSectionListItem {
   id: number;
-  name: string;
-  type: 'api' | 'manual';
-  position: 'before' | 'after';
-  order: number;
-  display_type_id: number;
-  background_color: string | null;
-  background_card_color: string | null;
+  name: string | Record<string, string> | unknown[];
+  type?: 'api' | 'manual';
+  position?: 'before' | 'after';
+  order?: number;
+  display_type_id?: number;
+  background_color?: string | null;
+  background_card_color?: string | null;
+  background_crad_color?: string | null;
+  filters?: Record<string, unknown> | null;
+  [key: string]: any;
 }
 
 export interface Pagination {
@@ -47,6 +50,7 @@ export interface SectionItem {
   name: string;
   type: 'api' | 'manual';
   filters: SectionFilters | null | any[];
+  manual?: { manual_model: string } | null;
 }
 
 export interface SectionsListResponse {
@@ -74,10 +78,10 @@ export interface PagesResponse {
 
 export interface DisplayType {
   id: number;
-  manual_model: string;
   image_url: string;
-  fields: string[];
-  created_at: string;
+  manual_model?: string;
+  fields?: string[];
+  created_at?: string;
 }
 
 export interface DisplayTypesResponse {

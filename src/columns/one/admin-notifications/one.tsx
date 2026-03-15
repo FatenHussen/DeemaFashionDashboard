@@ -17,12 +17,12 @@ export interface NotificationFormValues extends NotificationItem {
 }
 
 export const adminNotificationColumns = (
-  _t: TFunction<'table'>
+  t: TFunction<'table'>
 ): ColumnDef<NotificationFormValues>[] => [
   {
     id: 'id',
     accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="ID" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
     cell: ({ row }) => (
       <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
         <span className="text-xs font-semibold text-primary">{row.original.id}</span>
@@ -32,7 +32,7 @@ export const adminNotificationColumns = (
   {
     id: 'title',
     accessorKey: 'title',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Title" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.title')} />,
     cell: ({ row }) => (
       <p className="max-w-sm text-sm font-medium text-foreground truncate">{formatTranslated(row.original.title)}</p>
     ),
@@ -40,7 +40,7 @@ export const adminNotificationColumns = (
   {
     id: 'body',
     accessorKey: 'body',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Body" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.body')} />,
     cell: ({ row }) => (
       <p className="max-w-md text-sm text-muted-foreground line-clamp-2">{formatTranslated(row.original.body)}</p>
     ),
@@ -48,7 +48,7 @@ export const adminNotificationColumns = (
   {
     id: 'type',
     accessorKey: 'type',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Type" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.type')} />,
     cell: ({ row }) => {
       const type = row.original.type;
       return (
@@ -63,7 +63,7 @@ export const adminNotificationColumns = (
   {
     id: 'created_at',
     accessorKey: 'created_at',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Created At" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.createdAt')} />,
     cell: ({ row }) => (
       <span className="text-sm text-muted-foreground">{row.original.created_at}</span>
     ),

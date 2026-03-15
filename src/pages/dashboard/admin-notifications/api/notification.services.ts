@@ -1,6 +1,6 @@
 import type {
-  NotificationCreatePayload,
   NotificationListResponse,
+  NotificationCreatePayload,
 } from '../types/notification.types';
 
 import { apiRoutes, axiosInstance } from '@/api';

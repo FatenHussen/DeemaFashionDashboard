@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { toast } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useNavigate } from 'react-router';
@@ -24,6 +25,7 @@ import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout
 const metadata = { title: `Vendor ${CONFIG.appName}` };
 
 export default function CreatePage() {
+  const { t } = useTranslation('table');
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
   const isEditMode = !!id;
@@ -130,7 +132,7 @@ export default function CreatePage() {
         }
         isEditMode={isEditMode}
         isLoading={isLoadingVendor}
-        loadingText="Loading vendor data..."
+        loadingText={t('form.loadingVendor')}
         maxWidth="4xl"
         infoText={infoText}
         submitLabel={isEditMode ? 'Update Vendor' : 'Create Vendor'}
@@ -141,7 +143,7 @@ export default function CreatePage() {
             <Iconify icon="solar:case-minimalistic-bold" className="text-primary" width={24} height={24} />
             <Typography variant="subtitle2" className="font-semibold text-foreground">Store Name (Arabic)</Typography>
           </Box>
-          <RHFTextField name="name.ar" placeholder="e.g., متجر تجريبي" helperText="Enter the store name in Arabic" className="transition-all duration-200" />
+          <RHFTextField name="name.ar" placeholder="e.g., متجر تجريبي" helperText={t('form.storeNameArHelper')} className="transition-all duration-200" />
         </Box>
 
         <Box className="group">
@@ -149,7 +151,7 @@ export default function CreatePage() {
             <Iconify icon="solar:case-minimalistic-bold" className="text-primary" width={24} height={24} />
             <Typography variant="subtitle2" className="font-semibold text-foreground">Store Name (English)</Typography>
           </Box>
-          <RHFTextField name="name.en" placeholder="e.g., Test Store" helperText="Enter the store name in English" className="transition-all duration-200" />
+          <RHFTextField name="name.en" placeholder="e.g., Test Store" helperText={t('form.storeNameEnHelper')} className="transition-all duration-200" />
         </Box>
 
         <Box className="group">
@@ -157,7 +159,7 @@ export default function CreatePage() {
             <Iconify icon="solar:user-rounded-bold" className="text-primary" width={24} height={24} />
             <Typography variant="subtitle2" className="font-semibold text-foreground">Owner Name</Typography>
           </Box>
-          <RHFTextField name="owner_name" placeholder="e.g., أحمد محمد" helperText="Enter the owner's full name" className="transition-all duration-200" />
+          <RHFTextField name="owner_name" placeholder="e.g., أحمد محمد" helperText={t('form.ownerNameHelper')} className="transition-all duration-200" />
         </Box>
 
         <Box className="group">
@@ -165,7 +167,7 @@ export default function CreatePage() {
             <Iconify icon="solar:phone-bold" className="text-primary" width={24} height={24} />
             <Typography variant="subtitle2" className="font-semibold text-foreground">Owner Phone</Typography>
           </Box>
-          <RHFTextField name="owner_phone" placeholder="e.g., +963944000111" helperText="Enter the owner's phone number with country code" className="transition-all duration-200" />
+          <RHFTextField name="owner_phone" placeholder="e.g., +963944000111" helperText={t('form.ownerPhoneHelper')} className="transition-all duration-200" />
         </Box>
 
         <Box className="group">
@@ -173,7 +175,7 @@ export default function CreatePage() {
             <Iconify icon="solar:file-text-bold" className="text-primary" width={24} height={24} />
             <Typography variant="subtitle2" className="font-semibold text-foreground">Commercial Register</Typography>
           </Box>
-          <RHFTextField name="commercial_register" placeholder="e.g., CR-123456" helperText="Enter the commercial register number" className="transition-all duration-200" />
+          <RHFTextField name="commercial_register" placeholder="e.g., CR-123456" helperText={t('form.commercialRegisterHelper')} className="transition-all duration-200" />
         </Box>
 
         <Box className="group">
@@ -181,7 +183,7 @@ export default function CreatePage() {
             <Iconify icon="solar:calendar-date-bold" className="text-primary" width={24} height={24} />
             <Typography variant="subtitle2" className="font-semibold text-foreground">Contract Date</Typography>
           </Box>
-          <RHFTextField name="contract_date" type="date" helperText="Select the contract start date" className="transition-all duration-200" />
+          <RHFTextField name="contract_date" type="date" helperText={t('form.contractDateHelper')} className="transition-all duration-200" />
         </Box>
 
         <Box className="group">
@@ -189,7 +191,7 @@ export default function CreatePage() {
             <Iconify icon="solar:bill-list-bold" className="text-primary" width={24} height={24} />
             <Typography variant="subtitle2" className="font-semibold text-foreground">Contract Number</Typography>
           </Box>
-          <RHFTextField name="contract_number" placeholder="e.g., zxcvv-zzccc" helperText="Enter the contract number" className="transition-all duration-200" />
+          <RHFTextField name="contract_number" placeholder="e.g., zxcvv-zzccc" helperText={t('form.contractNumberHelper')} className="transition-all duration-200" />
         </Box>
 
         <Box className="group">
@@ -197,7 +199,7 @@ export default function CreatePage() {
             <Iconify icon="solar:clock-circle-bold" className="text-primary" width={24} height={24} />
             <Typography variant="subtitle2" className="font-semibold text-foreground">Contract Duration (Months)</Typography>
           </Box>
-          <RHFTextField name="contract_duration_months" type="number" placeholder="e.g., 12" helperText="Enter the contract duration in months" className="transition-all duration-200" />
+          <RHFTextField name="contract_duration_months" type="number" placeholder="e.g., 12" helperText={t('form.contractDurationHelper')} className="transition-all duration-200" />
         </Box>
 
         <Box className="group">
@@ -205,7 +207,7 @@ export default function CreatePage() {
             <Iconify icon="solar:wad-of-money-bold" className="text-primary" width={24} height={24} />
             <Typography variant="subtitle2" className="font-semibold text-foreground">Commission Rate (%)</Typography>
           </Box>
-          <RHFTextField name="commission_rate" type="number" placeholder="e.g., 5" helperText="Enter the commission rate percentage (0-100)" className="transition-all duration-200" />
+          <RHFTextField name="commission_rate" type="number" placeholder="e.g., 5" helperText={t('form.commissionRateHelper')} className="transition-all duration-200" />
         </Box>
 
         <Box className="group">
@@ -220,7 +222,7 @@ export default function CreatePage() {
               <Checkbox
                 checked={field.value}
                 onChange={(e) => field.onChange(e.target.checked)}
-                label="Mark vendor as active"
+                label={t('form.markVendorActive')}
               />
             )}
           />

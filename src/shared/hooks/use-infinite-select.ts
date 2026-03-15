@@ -31,20 +31,23 @@ interface PaginatedSelectResponse {
  */
 export function useInfiniteSelect(
   queryKey: (string | number | undefined | null)[],
-  fetcher: (page: number) => Promise<PaginatedSelectResponse>
+  fetcher: (page: number, limit: number) => Promise<PaginatedSelectResponse>,
+  pageSize = 10
 ) {
   const query = useInfiniteQuery({
     queryKey,
-    queryFn: ({ pageParam }) => fetcher(pageParam as number),
+    queryFn: ({ pageParam }) => fetcher(pageParam as number, pageSize),
     initialPageParam: 1,
     getNextPageParam: (lastPage) => {
-      const { current_page, last_page } = lastPage.data.pagination;
+      const pagination = lastPage?.data?.pagination;
+      if (!pagination) return undefined;
+      const { current_page, last_page } = pagination;
       return current_page < last_page ? current_page + 1 : undefined;
     },
   });
 
   const allItems: InfiniteSelectOption[] =
-    query.data?.pages.flatMap((p) => p.data.items) ?? [];
+    query.data?.pages.flatMap((p) => p?.data?.items ?? []) ?? [];
 
   return {
     ...query,
