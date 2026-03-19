@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { mergeClasses } from 'minimal-shared/utils';
 
 import { Box, Typography } from 'src/shared/ui';
@@ -14,11 +15,13 @@ type SearchNotFoundProps = React.HTMLAttributes<HTMLDivElement> & {
 };
 
 export function SearchNotFound({ query, className, slotProps, ...other }: SearchNotFoundProps) {
+  const { t } = useTranslation('table');
+
   if (!query) {
     const { color: _color, ...descriptionProps } = slotProps?.description || {};
     return (
       <Typography variant="body2" {...descriptionProps}>
-        Please enter keywords
+        {t('common.pleaseEnterKeywords')}
       </Typography>
     );
   }
@@ -35,14 +38,14 @@ export function SearchNotFound({ query, className, slotProps, ...other }: Search
       {...other}
     >
       <Typography variant="h6" color="text" {...titleProps}>
-        Not found
+        {t('common.notFound')}
       </Typography>
 
       <Typography variant="body2" {...descriptionProps}>
-        No results found for &nbsp;
+        {t('common.noResultsFound')} &nbsp;
         <strong>{`"${query}"`}</strong>
         .
-        <br /> Try checking for typos or using complete words.
+        <br /> {t('common.tryCheckingTypos')}
       </Typography>
     </Box>
   );

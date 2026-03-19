@@ -1,4 +1,5 @@
 import { m } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 
 import { RouterLink } from 'src/routes/components';
 
@@ -9,6 +10,8 @@ import { varBounce, MotionContainer } from 'src/shared/components/animate';
 // ----------------------------------------------------------------------
 
 export function NotFoundView() {
+  const { t } = useTranslation('table');
+
   return (
     <SimpleLayout
       slotProps={{
@@ -17,13 +20,12 @@ export function NotFoundView() {
     >
       <MotionContainer className="max-w-screen-xl mx-auto px-4">
         <m.div variants={varBounce('in')}>
-          <h3 className="text-2xl font-semibold mb-4">Sorry, page not found!</h3>
+          <h3 className="text-2xl font-semibold mb-4">{t('common.pageNotFound')}</h3>
         </m.div>
 
         <m.div variants={varBounce('in')}>
           <p className="text-muted-foreground">
-            Sorry, we couldn&apos;t find the page you&apos;re looking for. Perhaps you&apos;ve
-            mistyped the URL? Be sure to check your spelling.
+            {t('common.pageNotFoundDesc')}
           </p>
         </m.div>
 
@@ -35,7 +37,7 @@ export function NotFoundView() {
           href="/"
           className="inline-flex items-center justify-center h-10 px-4 text-base font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800 transition-colors"
         >
-          Go to home
+          {t('common.goToHome')}
         </RouterLink>
       </MotionContainer>
     </SimpleLayout>
