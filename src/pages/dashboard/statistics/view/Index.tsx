@@ -63,7 +63,7 @@ const CHART_COLORS = [
 ];
 
 export default function StatisticsPage() {
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation('table');
   const lang = (i18n.language || 'en').startsWith('ar') ? 'ar' : 'en';
   const { direction } = useLocalizationStore();
   const isRtl = direction === 'rtl';
@@ -207,10 +207,10 @@ export default function StatisticsPage() {
             </Box>
             <Box>
               <Typography variant="h6" className="font-semibold">
-                Statistics & Charts
+                {t('statistics.title')}
               </Typography>
               <Typography variant="caption" className="text-muted-foreground">
-                Admin dashboard overview
+                {t('statistics.subtitle')}
               </Typography>
             </Box>
           </Box>
@@ -218,7 +218,7 @@ export default function StatisticsPage() {
           <Box className="flex flex-wrap items-center gap-2">
             <Box className="flex items-center gap-1.5">
               <Typography variant="caption" className="text-muted-foreground font-medium whitespace-nowrap">
-                From
+                {t('statistics.from')}
               </Typography>
               <Input
                 type="date"
@@ -229,7 +229,7 @@ export default function StatisticsPage() {
             </Box>
             <Box className="flex items-center gap-1.5">
               <Typography variant="caption" className="text-muted-foreground font-medium whitespace-nowrap">
-                To
+                {t('statistics.to')}
               </Typography>
               <Input
                 type="date"
@@ -245,7 +245,7 @@ export default function StatisticsPage() {
               className="h-9 px-4 text-sm gap-1.5"
             >
               <Iconify icon="solar:filter-bold" width={16} />
-              Apply
+              {t('statistics.apply')}
             </Button>
             {appliedFilter && (
               <Button
@@ -254,7 +254,7 @@ export default function StatisticsPage() {
                 className="h-9 px-3 text-sm gap-1.5"
               >
                 <Iconify icon="solar:restart-bold" width={16} />
-                Reset
+                {t('statistics.reset')}
               </Button>
             )}
           </Box>
@@ -265,30 +265,30 @@ export default function StatisticsPage() {
           <Box className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {[
               {
-                label: 'Total Users',
+                label: t('statistics.totalUsers'),
                 value: counts?.total_users ?? 0,
-                sub: `${counts?.active_users ?? 0} active`,
+                sub: t('statistics.activeCount', { count: counts?.active_users ?? 0 }),
                 icon: 'solar:users-group-rounded-bold',
                 color: 'text-primary',
               },
               {
-                label: 'Total Orders',
+                label: t('statistics.totalOrders'),
                 value: counts?.total_orders ?? 0,
-                sub: `${counts?.completed_orders ?? 0} completed`,
+                sub: t('statistics.completedCount', { count: counts?.completed_orders ?? 0 }),
                 icon: 'solar:cart-large-2-bold',
                 color: 'text-blue-600',
               },
               {
-                label: 'Products',
+                label: t('statistics.products'),
                 value: counts?.total_products ?? 0,
-                sub: `${counts?.active_products ?? 0} active`,
+                sub: t('statistics.activeCount', { count: counts?.active_products ?? 0 }),
                 icon: 'solar:box-bold',
                 color: 'text-green-600',
               },
               {
-                label: 'Shops & Vendors',
+                label: t('statistics.shopsAndVendors'),
                 value: (counts?.total_shops ?? 0) + (counts?.total_vendors ?? 0),
-                sub: `${counts?.active_shops ?? 0} shops, ${counts?.total_vendors ?? 0} vendors`,
+                sub: t('statistics.shopsVendorsCount', { shops: counts?.active_shops ?? 0, vendors: counts?.total_vendors ?? 0 }),
                 icon: 'solar:shop-2-bold',
                 color: 'text-amber-600',
               },
@@ -319,7 +319,7 @@ export default function StatisticsPage() {
           {revenueChartData.length > 0 && (
             <Box className={`${tableContainerClass} p-5`}>
               <Typography variant="subtitle1" className="font-semibold mb-4 text-foreground">
-                Revenue Trend (Last 30 Days)
+                {t('statistics.revenueTrend')}
               </Typography>
               <Box className="h-[280px]" dir="ltr">
                 <ResponsiveContainer width="100%" height="100%">
@@ -331,6 +331,8 @@ export default function StatisticsPage() {
                       contentStyle={{
                         borderRadius: '8px',
                         border: '1px solid hsl(var(--border))',
+                        backgroundColor: 'hsl(var(--card))',
+                        color: 'hsl(var(--card-foreground))',
                         boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
                       }}
                     />
@@ -342,7 +344,7 @@ export default function StatisticsPage() {
                       fill="#10b981"
                       fillOpacity={0.2}
                       strokeWidth={2}
-                      name="Revenue"
+                      name={t('statistics.revenueLabel')}
                     />
                     <Area
                       type="monotone"
@@ -351,7 +353,7 @@ export default function StatisticsPage() {
                       fill="#3b82f6"
                       fillOpacity={0.15}
                       strokeWidth={2}
-                      name="Orders"
+                      name={t('statistics.ordersLabel')}
                     />
                   </AreaChart>
                 </ResponsiveContainer>
@@ -364,7 +366,7 @@ export default function StatisticsPage() {
             {ordersPieData.length > 0 && (
               <Box className={`${tableContainerClass} p-5`}>
                 <Typography variant="subtitle1" className="font-semibold mb-4 text-foreground">
-                  Orders by Status
+                  {t('statistics.ordersByStatus')}
                 </Typography>
                 <Box className="h-[260px]" dir="ltr">
                   <ResponsiveContainer width="100%" height="100%">
@@ -390,6 +392,8 @@ export default function StatisticsPage() {
                         contentStyle={{
                           borderRadius: '8px',
                           border: '1px solid hsl(var(--border))',
+                          backgroundColor: 'hsl(var(--card))',
+                          color: 'hsl(var(--card-foreground))',
                           boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
                         }}
                       />
@@ -402,7 +406,7 @@ export default function StatisticsPage() {
             {categoriesPieData.length > 0 && (
               <Box className={`${tableContainerClass} p-5`}>
                 <Typography variant="subtitle1" className="font-semibold mb-4 text-foreground">
-                  Top Categories by Revenue
+                  {t('statistics.topCategoriesByRevenue')}
                 </Typography>
                 <Box className="h-[260px]" dir="ltr">
                   <ResponsiveContainer width="100%" height="100%">
@@ -414,10 +418,12 @@ export default function StatisticsPage() {
                         contentStyle={{
                           borderRadius: '8px',
                           border: '1px solid hsl(var(--border))',
+                          backgroundColor: 'hsl(var(--card))',
+                          color: 'hsl(var(--card-foreground))',
                           boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
                         }}
                       />
-                      <Bar dataKey="value" fill="#10b981" name="Revenue" radius={[0, 4, 4, 0]} />
+                      <Bar dataKey="value" fill="#10b981" name={t('statistics.revenueLabel')} radius={[0, 4, 4, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </Box>
@@ -430,17 +436,17 @@ export default function StatisticsPage() {
             <Box className={tableContainerClass}>
               <Box className="border-b border-border/30 bg-muted/30 px-5 py-4">
                 <Typography variant="subtitle1" className="font-semibold text-foreground">
-                  Top Shops
+                  {t('statistics.topShops')}
                 </Typography>
               </Box>
               <Box className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-border/30 bg-muted/20">
-                      <th className="text-start py-3 px-5 font-medium text-muted-foreground">Shop</th>
-                      <th className="text-end py-3 px-5 font-medium text-muted-foreground">Orders</th>
-                      <th className="text-end py-3 px-5 font-medium text-muted-foreground">Rating</th>
-                      <th className="text-center py-3 px-5 font-medium text-muted-foreground">Status</th>
+                      <th className="text-start py-3 px-5 font-medium text-muted-foreground">{t('statistics.shopColumn')}</th>
+                      <th className="text-end py-3 px-5 font-medium text-muted-foreground">{t('statistics.ordersColumn')}</th>
+                      <th className="text-end py-3 px-5 font-medium text-muted-foreground">{t('statistics.ratingColumn')}</th>
+                      <th className="text-center py-3 px-5 font-medium text-muted-foreground">{t('statistics.statusColumn')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -454,11 +460,11 @@ export default function StatisticsPage() {
                         <td className="text-center py-3 px-5">
                           {shop.is_active ? (
                             <span className="inline-flex items-center rounded-full bg-green-500/10 px-2.5 py-0.5 text-xs font-medium text-green-700 dark:text-green-400">
-                              Active
+                              {t('active')}
                             </span>
                           ) : (
                             <span className="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
-                              Inactive
+                              {t('inactive')}
                             </span>
                           )}
                         </td>
@@ -475,7 +481,7 @@ export default function StatisticsPage() {
             {ordersByHourChartData.length > 0 && (
               <Box className={`${tableContainerClass} p-5`}>
                 <Typography variant="subtitle1" className="font-semibold mb-4 text-foreground">
-                  Orders by Hour
+                  {t('statistics.ordersByHour')}
                 </Typography>
                 <Box className="h-[260px]" dir="ltr">
                   <ResponsiveContainer width="100%" height="100%">
@@ -483,8 +489,8 @@ export default function StatisticsPage() {
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} horizontal={false} />
                       <XAxis type="number" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
                       <YAxis dataKey="hour" type="category" width={45} tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
-                      <Tooltip contentStyle={{ borderRadius: '8px', border: '1px solid hsl(var(--border))', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                      <Bar dataKey="count" fill="#2196F3" name="Orders" radius={[0, 4, 4, 0]} />
+                      <Tooltip contentStyle={{ borderRadius: '8px', border: '1px solid hsl(var(--border))', backgroundColor: 'hsl(var(--card))', color: 'hsl(var(--card-foreground))', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                      <Bar dataKey="count" fill="#2196F3" name={t('statistics.ordersLabel')} radius={[0, 4, 4, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </Box>
@@ -493,7 +499,7 @@ export default function StatisticsPage() {
             {ordersByDayChartData.length > 0 && (
               <Box className={`${tableContainerClass} p-5`}>
                 <Typography variant="subtitle1" className="font-semibold mb-4 text-foreground">
-                  Orders by Day of Week
+                  {t('statistics.ordersByDayOfWeek')}
                 </Typography>
                 <Box className="h-[260px]" dir="ltr">
                   <ResponsiveContainer width="100%" height="100%">
@@ -501,8 +507,8 @@ export default function StatisticsPage() {
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
                       <XAxis dataKey="day" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
                       <YAxis tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
-                      <Tooltip contentStyle={{ borderRadius: '8px', border: '1px solid hsl(var(--border))', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                      <Bar dataKey="count" fill="#9C27B0" name="Orders" radius={[4, 4, 0, 0]} />
+                      <Tooltip contentStyle={{ borderRadius: '8px', border: '1px solid hsl(var(--border))', backgroundColor: 'hsl(var(--card))', color: 'hsl(var(--card-foreground))', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                      <Bar dataKey="count" fill="#9C27B0" name={t('statistics.ordersLabel')} radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </Box>
@@ -515,7 +521,7 @@ export default function StatisticsPage() {
             {userGrowthChartData.length > 0 && (
               <Box className={`${tableContainerClass} p-5`}>
                 <Typography variant="subtitle1" className="font-semibold mb-4 text-foreground">
-                  User Growth (Last 12 Months)
+                  {t('statistics.userGrowth')}
                 </Typography>
                 <Box className="h-[260px]" dir="ltr">
                   <ResponsiveContainer width="100%" height="100%">
@@ -523,10 +529,10 @@ export default function StatisticsPage() {
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
                       <XAxis dataKey="month" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
                       <YAxis tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
-                      <Tooltip contentStyle={{ borderRadius: '8px', border: '1px solid hsl(var(--border))', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                      <Tooltip contentStyle={{ borderRadius: '8px', border: '1px solid hsl(var(--border))', backgroundColor: 'hsl(var(--card))', color: 'hsl(var(--card-foreground))', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
                       <Legend />
-                      <Area type="monotone" dataKey="new_users" stroke="#FF9800" fill="#FF9800" fillOpacity={0.3} strokeWidth={2} name="New Users" />
-                      <Area type="monotone" dataKey="total_users" stroke="#4CAF50" fill="#4CAF50" fillOpacity={0.2} strokeWidth={2} name="Total Users" />
+                      <Area type="monotone" dataKey="new_users" stroke="#FF9800" fill="#FF9800" fillOpacity={0.3} strokeWidth={2} name={t('statistics.newUsersLabel')} />
+                      <Area type="monotone" dataKey="total_users" stroke="#4CAF50" fill="#4CAF50" fillOpacity={0.2} strokeWidth={2} name={t('statistics.totalUsersLabel')} />
                     </AreaChart>
                   </ResponsiveContainer>
                 </Box>
@@ -539,7 +545,7 @@ export default function StatisticsPage() {
             {orderFunnelChartData.length > 0 && (
               <Box className={`${tableContainerClass} p-5`}>
                 <Typography variant="subtitle1" className="font-semibold mb-4 text-foreground">
-                  Order Status Funnel
+                  {t('statistics.orderStatusFunnel')}
                 </Typography>
                 <Box className="h-[260px]" dir="ltr">
                   <ResponsiveContainer width="100%" height="100%">
@@ -547,8 +553,8 @@ export default function StatisticsPage() {
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} horizontal={false} />
                       <XAxis type="number" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
                       <YAxis dataKey="stage" type="category" width={75} tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
-                      <Tooltip contentStyle={{ borderRadius: '8px', border: '1px solid hsl(var(--border))', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                      <Bar dataKey="count" fill="#00BCD4" name="Orders" radius={[0, 4, 4, 0]} />
+                      <Tooltip contentStyle={{ borderRadius: '8px', border: '1px solid hsl(var(--border))', backgroundColor: 'hsl(var(--card))', color: 'hsl(var(--card-foreground))', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                      <Bar dataKey="count" fill="#00BCD4" name={t('statistics.ordersLabel')} radius={[0, 4, 4, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </Box>
@@ -557,7 +563,7 @@ export default function StatisticsPage() {
             {avgOrderValueChartData.length > 0 && (
               <Box className={`${tableContainerClass} p-5`}>
                 <Typography variant="subtitle1" className="font-semibold mb-4 text-foreground">
-                  Average Order Value Trend
+                  {t('statistics.avgOrderValueTrend')}
                 </Typography>
                 <Box className="h-[260px]" dir="ltr">
                   <ResponsiveContainer width="100%" height="100%">
@@ -565,8 +571,8 @@ export default function StatisticsPage() {
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
                       <XAxis dataKey="month" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
                       <YAxis tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
-                      <Tooltip contentStyle={{ borderRadius: '8px', border: '1px solid hsl(var(--border))', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                      <Line type="monotone" dataKey="average_order_value" stroke="#F44336" strokeWidth={2} dot={{ r: 4 }} name="Avg Order Value" />
+                      <Tooltip contentStyle={{ borderRadius: '8px', border: '1px solid hsl(var(--border))', backgroundColor: 'hsl(var(--card))', color: 'hsl(var(--card-foreground))', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                      <Line type="monotone" dataKey="average_order_value" stroke="#F44336" strokeWidth={2} dot={{ r: 4 }} name={t('statistics.avgOrderValueLabel')} />
                     </LineChart>
                   </ResponsiveContainer>
                 </Box>
@@ -579,7 +585,7 @@ export default function StatisticsPage() {
             {driverComparisonChartData.length > 0 && driverComparisonNames.length > 0 && (
               <Box className={`${tableContainerClass} p-5`}>
                 <Typography variant="subtitle1" className="font-semibold mb-4 text-foreground">
-                  Driver Performance Comparison
+                  {t('statistics.driverPerformance')}
                 </Typography>
                 <Box className="h-[280px]" dir="ltr">
                   <ResponsiveContainer width="100%" height="100%">
@@ -599,7 +605,7 @@ export default function StatisticsPage() {
                         />
                       ))}
                       <Legend />
-                      <Tooltip contentStyle={{ borderRadius: '8px', border: '1px solid hsl(var(--border))', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                      <Tooltip contentStyle={{ borderRadius: '8px', border: '1px solid hsl(var(--border))', backgroundColor: 'hsl(var(--card))', color: 'hsl(var(--card-foreground))', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
                     </RadarChart>
                   </ResponsiveContainer>
                 </Box>
@@ -608,7 +614,7 @@ export default function StatisticsPage() {
             {stockLevelsChartData.length > 0 && (
               <Box className={`${tableContainerClass} p-5`}>
                 <Typography variant="subtitle1" className="font-semibold mb-4 text-foreground">
-                  Product Stock Levels
+                  {t('statistics.productStockLevels')}
                 </Typography>
                 <Box className="grid grid-cols-3 gap-4">
                   {stockLevelsChartData.map((item, idx) => {
@@ -644,7 +650,7 @@ export default function StatisticsPage() {
           {salesHeatmapChartData.length > 0 && (
             <Box className={`${tableContainerClass} p-5`}>
               <Typography variant="subtitle1" className="font-semibold mb-4 text-foreground">
-                Sales Heatmap (Day vs Hour)
+                {t('statistics.salesHeatmap')}
               </Typography>
               <HeatmapGrid data={salesHeatmapChartData} />
             </Box>

@@ -23,19 +23,19 @@ import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout
 
 const metadata = { title: `Promotion | ${CONFIG.appName}` };
 
-const PROMOTION_TYPES = [
-  { value: 'simple_discount', label: 'Simple Discount' },
-  { value: 'spend_x_discount', label: 'Spend X Discount' },
-  { value: 'buy_x_get_y', label: 'Buy X Get Y' },
-];
-
-const DISCOUNT_TYPES = [
-  { value: 'percentage', label: 'Percentage (%)' },
-  { value: 'fixed', label: 'Fixed Amount' },
-];
-
 export default function CreatePage() {
   const { t } = useTranslation('table');
+
+  const PROMOTION_TYPES = [
+    { value: 'simple_discount', label: t('promotionTypes.simpleDiscount') },
+    { value: 'spend_x_discount', label: t('promotionTypes.spendXDiscount') },
+    { value: 'buy_x_get_y', label: t('promotionTypes.buyXGetY') },
+  ];
+
+  const DISCOUNT_TYPES = [
+    { value: 'percentage', label: t('promotionTypes.percentage') },
+    { value: 'fixed', label: t('promotionTypes.fixedAmount') },
+  ];
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
   const isEditMode = !!id;

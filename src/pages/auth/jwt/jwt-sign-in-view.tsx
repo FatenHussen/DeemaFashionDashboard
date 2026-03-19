@@ -1,6 +1,7 @@
 import { z as zod } from 'zod';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
 import { useBoolean } from 'minimal-shared/hooks';
 import { zodResolver } from '@hookform/resolvers/zod';
 
@@ -24,21 +25,35 @@ import { signInWithPassword } from '../context/jwt';
 
 export type SignInSchemaType = zod.infer<typeof SignInSchema>;
 
+// Schema factory that takes translation function
+const createSignInSchema = (t: any) =>
+  zod.object({
+    email: zod
+      .string()
+      .min(1, { message: t('table:validation.required') })
+      .email({ message: t('table:validation.email') }),
+    password: zod
+      .string()
+      .min(1, { message: t('table:validation.required') })
+      .min(6, { message: t('table:validation.minLength', { min: 6 }) }),
+  });
+
+// Default schema for initialization
 export const SignInSchema = zod.object({
   email: zod
     .string()
-    .min(1, { message: 'Email is required!' })
-    .email({ message: 'Email must be a valid email address!' }),
+    .min(1)
+    .email(),
   password: zod
     .string()
-    .min(1, { message: 'Password is required!' })
-    .min(6, { message: 'Password must be at least 6 characters!' }),
+    .min(1)
+    .min(6),
 });
 
 // ----------------------------------------------------------------------
 
 export function JwtSignInView() {
-
+  const { t } = useTranslation('table');
   const showPassword = useBoolean();
 
   useAuthContext();
@@ -51,7 +66,7 @@ export function JwtSignInView() {
   };
 
   const methods = useForm<SignInSchemaType>({
-    resolver: zodResolver(SignInSchema),
+    resolver: zodResolver(createSignInSchema(t)),
     defaultValues,
   });
 
@@ -99,8 +114,8 @@ export function JwtSignInView() {
         <Box className="pl-10 sm:pl-12">
           <Field.Text
             name="email"
-            label="Email address"
-            placeholder="Enter your email"
+            label={t('auth.emailAddress')}
+            placeholder={t('auth.emailPlaceholder')}
             className="transition-all duration-200"
           />
         </Box>
@@ -118,8 +133,8 @@ export function JwtSignInView() {
         <Box className="pl-10 sm:pl-12">
           <Field.Text
             name="password"
-            label="Password"
-            placeholder="Enter your password"
+            label={t('auth.password')}
+            placeholder={t('auth.passwordPlaceholder')}
             type={showPassword.value ? 'text' : 'password'}
             className="transition-all duration-200"
             endAdornment={
@@ -146,7 +161,7 @@ export function JwtSignInView() {
           className="text-sm font-medium text-primary hover:text-primary/80 transition-colors inline-flex items-center gap-1"
         >
           <Iconify icon="solar:info-circle-bold" width={16} />
-          Forgot password?
+          {t('auth.forgotPassword')}
         </RouterLink>
       </Box>
 
@@ -160,7 +175,7 @@ export function JwtSignInView() {
         className="mt-2 h-12 text-base font-semibold bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
       >
         {!isSubmitting && <Iconify icon="solar:check-circle-bold" width={20} />}
-        {isSubmitting ? 'Logging in...' : 'Sign In'}
+        {isSubmitting ? t('auth.loggingIn') : t('auth.signIn')}
       </Button>
     </Box>
   );
@@ -176,10 +191,10 @@ export function JwtSignInView() {
           variant="h4"
           className="mb-2 text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent"
         >
-          Welcome Back
+          {t('auth.welcomeBack')}
         </Typography>
         <Typography variant="body2" className="text-muted-foreground text-sm sm:text-base">
-          Sign in to continue to your account
+          {t('auth.signInSubtitle')}
         </Typography>
       </Box>
 

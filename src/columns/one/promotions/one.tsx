@@ -19,12 +19,6 @@ const typeColors: Record<string, string> = {
   buy_x_get_y: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
 };
 
-const typeLabels: Record<string, string> = {
-  simple_discount: 'Simple Discount',
-  spend_x_discount: 'Spend X Discount',
-  buy_x_get_y: 'Buy X Get Y',
-};
-
 export const promotionColumns = (
   permissions: { update: boolean; delete: boolean },
   t: TFunction<'table'>,
@@ -35,7 +29,14 @@ export const promotionColumns = (
   onDeleteCancel?: () => void,
   deletingId?: number | null,
   onEdit?: (row: any) => void
-): ColumnDef<PromotionListItem>[] => [
+): ColumnDef<PromotionListItem>[] => {
+  const typeLabels: Record<string, string> = {
+    simple_discount: t('promotionTypes.simpleDiscount'),
+    spend_x_discount: t('promotionTypes.spendXDiscount'),
+    buy_x_get_y: t('promotionTypes.buyXGetY'),
+  };
+
+  return [
   {
     id: 'id',
     accessorKey: 'id',
@@ -101,4 +102,5 @@ export const promotionColumns = (
       />
     ),
   },
-];
+  ];
+};
