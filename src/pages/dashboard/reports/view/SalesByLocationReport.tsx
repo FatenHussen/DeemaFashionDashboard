@@ -34,13 +34,20 @@ export default function SalesByLocationReportPage() {
   const lang = (i18n.language || 'en').startsWith('ar') ? 'ar' : 'en';
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
+  const [appliedFrom, setAppliedFrom] = useState('');
+  const [appliedTo, setAppliedTo] = useState('');
   const [isExporting, setIsExporting] = useState(false);
 
   const params = {
-    from_date: fromDate || undefined,
-    to_date: toDate || undefined,
+    from_date: appliedFrom || undefined,
+    to_date: appliedTo || undefined,
   };
-  const { data, isLoading, refetch } = useFetchSalesByLocationReport(params);
+  const { data, isLoading } = useFetchSalesByLocationReport(params);
+
+  const handleApply = () => {
+    setAppliedFrom(fromDate);
+    setAppliedTo(toDate);
+  };
   const reportData = (data?.data ?? data) as
     | {
         by_governorate?: {
@@ -102,7 +109,7 @@ export default function SalesByLocationReportPage() {
               onChange={(e) => setToDate(e.target.value)}
               className="h-9 rounded-lg border border-input bg-background px-3 text-sm"
             />
-            <Button variant="outlined" size="small" onClick={() => refetch()}>
+            <Button variant="outlined" size="small" onClick={handleApply}>
               Apply
             </Button>
             <Box className="h-5 w-px bg-border/60" />

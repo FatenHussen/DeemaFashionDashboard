@@ -22,12 +22,9 @@ export const _CityApi = {
     return response.data;
   },
   getCityById: async (id: number | string): Promise<CityData> => {
-    const response = await axiosInstance.get<CityListResponse>(apiRoutes.city.list);
-    // Find the city by ID from the list
-    const city = response.data.data.items.find((item) => item.id === Number(id));
-    if (!city) {
-      throw new Error('City not found');
-    }
-    return city;
+    const response = await axiosInstance.get<{ status: boolean; message: string; data: CityData }>(
+      apiRoutes.city.details(id)
+    );
+    return response.data.data;
   },
 };

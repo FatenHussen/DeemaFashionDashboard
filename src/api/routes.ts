@@ -77,6 +77,7 @@ export const apiRoutes = {
     create: `${ROOTS.ADMIN}/cities`,
     update: (id: number | string) => `${ROOTS.ADMIN}/cities/${id}`,
     delete: (id: number | string) => `${ROOTS.ADMIN}/cities/${id}`,
+    details: (id: number | string) => `${ROOTS.ADMIN}/cities/${id}`,
   },
   // Area routes
   area: {
@@ -189,6 +190,7 @@ export const apiRoutes = {
     update: (id: number | string) => `${ROOTS.ADMIN}/users/${id}`,
     delete: (id: number | string) => `${ROOTS.ADMIN}/users/${id}`,
     details: (id: number | string) => `${ROOTS.ADMIN}/users/${id}`,
+    marketers: `${ROOTS.ADMIN}/users/markters`,
   },
   product: {
     list: `${ROOTS.ADMIN}/products`,
@@ -347,14 +349,93 @@ export const apiRoutes = {
     productMovementExport: `${ROOTS.ADMIN}/reports/export/product-movement`,
     vendorPerformance: (id: number | string) => `${ROOTS.ADMIN}/reports/vendor-performance/${id}`,
     vendorPerformanceExport: (id: number | string) =>
-      `${ROOTS.ADMIN}/reports/vendor-performance/${id}/export`,
+      `/api/reports/export/vendor-performance/${id}`,
     driverPerformance: (id: number | string) => `${ROOTS.ADMIN}/reports/driver-performance/${id}`,
     driverPerformanceExport: (id: number | string) =>
-      `${ROOTS.ADMIN}/reports/driver-performance/${id}/export`,
+      `/api/reports/export/driver-performance/${id}`,
     salesByLocation: `${ROOTS.ADMIN}/reports/sales-by-location`,
-    salesByLocationExport: `${ROOTS.ADMIN}/reports/export/sales-by-location`,
+    salesByLocationExport: `/api/reports/export/sales`,
     salesByCategory: `${ROOTS.ADMIN}/reports/sales-by-category`,
     salesByCategoryExport: `${ROOTS.ADMIN}/reports/export/sales-by-category`,
+  },
+  // Setting routes
+  setting: {
+    list: `${ROOTS.ADMIN}/settings`,
+    details: (key: string) => `${ROOTS.ADMIN}/settings/${key}`,
+    update: (key: string) => `${ROOTS.ADMIN}/settings/${key}`,
+  },
+  // Badge routes
+  badge: {
+    list: `${ROOTS.ADMIN}/badges`,
+    create: `${ROOTS.ADMIN}/badges`,
+    update: (id: number | string) => `${ROOTS.ADMIN}/badges/${id}`,
+    delete: (id: number | string) => `${ROOTS.ADMIN}/badges/${id}`,
+    details: (id: number | string) => `${ROOTS.ADMIN}/badges/${id}`,
+  },
+  // Activity Log routes
+  activityLog: {
+    list: `${ROOTS.ADMIN}/activity-logs`,
+  },
+  // Affiliate Withdraw Request routes
+  affiliateWithdraw: {
+    list: `${ROOTS.ADMIN}/affiliate-withdraw-requests`,
+    details: (id: number | string) => `${ROOTS.ADMIN}/affiliate-withdraw-requests/${id}`,
+    update: (id: number | string) => `${ROOTS.ADMIN}/affiliate-withdraw-requests/${id}`,
+  },
+  // Icon routes
+  icon: {
+    list: `${ROOTS.ADMIN}/icons`,
+    create: `${ROOTS.ADMIN}/icons`,
+    update: (id: number | string) => `${ROOTS.ADMIN}/icons/${id}`,
+    delete: (id: number | string) => `${ROOTS.ADMIN}/icons/${id}`,
+    details: (id: number | string) => `${ROOTS.ADMIN}/icons/${id}`,
+  },
+  // Promotion routes
+  promotion: {
+    list: `${ROOTS.ADMIN}/promotions`,
+    create: `${ROOTS.ADMIN}/promotions`,
+    update: (id: number | string) => `${ROOTS.ADMIN}/promotions/${id}`,
+    delete: (id: number | string) => `${ROOTS.ADMIN}/promotions/${id}`,
+    details: (id: number | string) => `${ROOTS.ADMIN}/promotions/${id}`,
+  },
+  // Country routes
+  country: {
+    list: `${ROOTS.ADMIN}/countries`,
+    create: `${ROOTS.ADMIN}/countries`,
+    update: (id: number | string) => `${ROOTS.ADMIN}/countries/${id}`,
+    delete: (id: number | string) => `${ROOTS.ADMIN}/countries/${id}`,
+    details: (id: number | string) => `${ROOTS.ADMIN}/countries/${id}`,
+  },
+  // Promotion Request routes
+  promotionRequest: {
+    list: `${ROOTS.ADMIN}/promotion-requests`,
+    details: (id: number | string) => `${ROOTS.ADMIN}/promotion-requests/${id}`,
+    approve: (id: number | string) => `${ROOTS.ADMIN}/promotion-requests/${id}/approve`,
+    reject: (id: number | string) => `${ROOTS.ADMIN}/promotion-requests/${id}/reject`,
+  },
+  // Point Rule routes
+  pointRule: {
+    list: `${ROOTS.ADMIN}/point-rules`,
+    create: `${ROOTS.ADMIN}/point-rules`,
+    update: (id: number | string) => `${ROOTS.ADMIN}/point-rules/${id}`,
+    delete: (id: number | string) => `${ROOTS.ADMIN}/point-rules/${id}`,
+    details: (id: number | string) => `${ROOTS.ADMIN}/point-rules/${id}`,
+  },
+  // Schedule routes
+  schedule: {
+    list: `${ROOTS.ADMIN}/schedules`,
+    create: `${ROOTS.ADMIN}/schedules`,
+    update: (id: number | string) => `${ROOTS.ADMIN}/schedules/${id}`,
+    delete: (id: number | string) => `${ROOTS.ADMIN}/schedules/${id}`,
+    details: (id: number | string) => `${ROOTS.ADMIN}/schedules/${id}`,
+  },
+  // User Basket Schedule routes
+  userBasketSchedule: {
+    list: `${ROOTS.ADMIN}/user-basket-schedules`,
+    create: `${ROOTS.ADMIN}/user-basket-schedules`,
+    update: (id: number | string) => `${ROOTS.ADMIN}/user-basket-schedules/${id}`,
+    delete: (id: number | string) => `${ROOTS.ADMIN}/user-basket-schedules/${id}`,
+    details: (id: number | string) => `${ROOTS.ADMIN}/user-basket-schedules/${id}`,
   },
   // Statistics routes
   statistics: {

@@ -9,7 +9,6 @@ import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-
 const RecipeSchema = z.object({
   id: z.number(),
   name: z.any(),
-  is_active: z.boolean(),
   created_at: z.string(),
 });
 
@@ -39,41 +38,92 @@ export const recipeColumns = (
     ),
   },
   {
+    id: 'image',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.image')} />,
+    cell: ({ row }) => {
+      const image = row.original.image;
+      return image ? (
+        <img src={image} alt="" className="w-12 h-12 rounded-lg object-cover border border-border/60" />
+      ) : (
+        <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center text-muted-foreground text-xs">—</div>
+      );
+    },
+  },
+  {
     id: 'name',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.name')} />,
     cell: ({ row }) => {
       const name = row.original.name;
       const display = typeof name === 'object' ? (name as any)?.en || (name as any)?.ar : name;
-      return <div className="font-semibold text-foreground truncate">{display || '-'}</div>;
+      return <div className="font-semibold text-foreground truncate max-w-[200px]">{display || '-'}</div>;
     },
   },
   {
-    id: 'prep_time',
-    accessorKey: 'prep_time',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.prepTime')} />,
-    cell: ({ row }) => <span className="text-sm text-muted-foreground">{row.original.prep_time || '-'}</span>,
+    id: 'description',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.description')} />,
+    cell: ({ row }) => {
+      const desc = row.original.description;
+      const display = typeof desc === 'object' ? (desc as any)?.en || (desc as any)?.ar : desc;
+      return <div className="text-sm text-muted-foreground truncate max-w-[200px]">{display || '-'}</div>;
+    },
   },
   {
-    id: 'cook_time',
-    accessorKey: 'cook_time',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.cookTime')} />,
-    cell: ({ row }) => <span className="text-sm text-muted-foreground">{row.original.cook_time || '-'}</span>,
-  },
-  {
-    id: 'servings',
-    accessorKey: 'servings',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.servings')} />,
-    cell: ({ row }) => <span className="text-sm">{row.original.servings ?? '-'}</span>,
-  },
-  {
-    id: 'is_active',
-    accessorKey: 'is_active',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.status')} />,
+    id: 'price',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.price')} />,
     cell: ({ row }) => (
-      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${row.original.is_active ? 'bg-green-500/20 text-green-600' : 'bg-red-500/20 text-red-600'}`}>
-        {row.original.is_active ? 'Active' : 'Inactive'}
-      </span>
+      <div className="text-sm">
+        {row.original.price_after_discount != null && row.original.price_after_discount !== row.original.price ? (
+          <div className="flex flex-col">
+            <span className="line-through text-muted-foreground text-xs">{row.original.price_formatted}</span>
+            <span className="font-semibold text-foreground">{row.original.price_after_discount_formatted}</span>
+          </div>
+        ) : (
+          <span className="font-semibold text-foreground">{row.original.price_formatted || '-'}</span>
+        )}
+      </div>
     ),
+  },
+  {
+    id: 'discount',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.discount')} />,
+    cell: ({ row }) => {
+      const discount = row.original.discount;
+      if (!discount || Number(discount) === 0) return <span className="text-sm text-muted-foreground">—</span>;
+      return (
+        <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+          {Number(discount).toFixed(0)}%
+        </span>
+      );
+    },
+  },
+  {
+    id: 'rating',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.rating')} />,
+    cell: ({ row }) => {
+      const rating = row.original.rating;
+      if (rating == null) return <span className="text-sm text-muted-foreground">—</span>;
+      return (
+        <div className="flex items-center gap-1">
+          <span className="text-yellow-500">★</span>
+          <span className="text-sm font-medium">{rating}</span>
+        </div>
+      );
+    },
+  },
+  {
+    id: 'orders_count',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.orders')} />,
+    cell: ({ row }) => <span className="text-sm">{row.original.orders_count ?? 0}</span>,
+  },
+  {
+    id: 'created_at',
+    accessorKey: 'created_at',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.createdAt')} />,
+    cell: ({ row }) => {
+      const date = row.original.created_at;
+      if (!date) return <span className="text-sm text-muted-foreground">—</span>;
+      return <span className="text-sm text-muted-foreground">{new Date(date).toLocaleDateString()}</span>;
+    },
   },
   {
     id: 'actions',

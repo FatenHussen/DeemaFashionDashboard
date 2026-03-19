@@ -1,13 +1,17 @@
 import { z } from 'zod';
 
+import i18n from 'src/lib/i18n';
+
+const t = (key: string) => i18n.t(key, { ns: 'validation' });
+
 export const LegalDocumentSchema = z.object({
   title: z.object({
-    en: z.string().min(1, 'Title (EN) is required'),
-    ar: z.string().min(1, 'Title (AR) is required'),
+    en: z.string().min(1, t('legalDocument.titleEnRequired')),
+    ar: z.string().min(1, t('legalDocument.titleArRequired')),
   }),
   content: z.object({
-    en: z.string().min(1, 'Content (EN) is required'),
-    ar: z.string().min(1, 'Content (AR) is required'),
+    en: z.string().min(1, t('legalDocument.contentEnRequired')),
+    ar: z.string().min(1, t('legalDocument.contentArRequired')),
   }),
 });
 

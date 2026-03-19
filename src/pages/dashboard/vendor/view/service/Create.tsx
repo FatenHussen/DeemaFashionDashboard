@@ -4,15 +4,16 @@ import { useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Iconify } from '@/shared/components/iconify';
-import { useParams, useNavigate, useLocation } from 'react-router';
+import { useParams, useNavigate } from 'react-router';
 
 import { CONFIG } from 'src/global-config';
 import { Box, Typography } from 'src/shared/ui';
+import { LoadingScreen } from 'src/shared/components/loading-screen';
 import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
 import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
 
-import { useCreateService, useUpdateService } from '../../hooks/service';
 import { ServiceSchema, type ServiceFormValues } from '../../validation/service.validation';
+import { useCreateService, useUpdateService, useFetchServiceById } from '../../hooks/service';
 
 // ----------------------------------------------------------------------
 
@@ -22,12 +23,9 @@ export default function CreatePage() {
   const { t } = useTranslation('table');
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
-  const location = useLocation();
   const isEditMode = !!id;
 
-  // Get data passed from the list page via navigation state
-  const serviceFromState = location.state?.service;
-
+  const { data: serviceResponse, isLoading: isLoadingService } = useFetchServiceById(id || '');
   const createServiceMutation = useCreateService();
   const updateServiceMutation = useUpdateService();
 
@@ -45,21 +43,20 @@ export default function CreatePage() {
 
   const { handleSubmit, reset } = methods;
 
-  // Load service data from navigation state if in edit mode
   useEffect(() => {
-    if (isEditMode && serviceFromState) {
+    if (isEditMode && serviceResponse?.data) {
+      const service = serviceResponse.data;
+      const name = service.name;
       reset({
         name: {
-          en: serviceFromState.name,
-          ar: serviceFromState.name,
+          en: typeof name === 'object' ? name.en ?? '' : String(name ?? ''),
+          ar: typeof name === 'object' ? name.ar ?? '' : String(name ?? ''),
         },
       });
-    } else if (isEditMode && !serviceFromState) {
-      // If no service data passed, redirect back to list
-      toast.error('Service data not found. Please select a service to edit.');
-      // navigate('/services');
     }
-  }, [isEditMode, serviceFromState, reset, navigate]);
+  }, [isEditMode, serviceResponse, reset]);
+
+  if (isEditMode && isLoadingService) return <LoadingScreen />;
 
   const isSubmitting = createServiceMutation.isPending || updateServiceMutation.isPending;
   const errorMessage =

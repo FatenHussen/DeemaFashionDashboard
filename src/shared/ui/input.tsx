@@ -54,21 +54,21 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         case 'sm':
           return {
             input: 'h-9 text-sm',
-            pad: startAdornment ? 'pl-10 pr-3' : endAdornment ? 'pl-3 pr-10' : 'px-3',
+            pad: startAdornment ? 'ps-10 pe-3' : endAdornment ? 'ps-3 pe-10' : 'px-3',
             label: 'text-xs',
             helper: 'text-xs',
           };
         case 'lg':
           return {
             input: 'h-12 text-base',
-            pad: startAdornment ? 'pl-11 pr-4' : endAdornment ? 'pl-4 pr-11' : 'px-4',
+            pad: startAdornment ? 'ps-11 pe-4' : endAdornment ? 'ps-4 pe-11' : 'px-4',
             label: 'text-sm',
             helper: 'text-sm',
           };
         default:
           return {
             input: 'h-10 text-sm',
-            pad: startAdornment ? 'pl-10 pr-3.5' : endAdornment ? 'pl-3.5 pr-10' : 'px-3.5',
+            pad: startAdornment ? 'ps-10 pe-3.5' : endAdornment ? 'ps-3.5 pe-10' : 'px-3.5',
             label: 'text-sm',
             helper: 'text-xs',
           };
@@ -143,7 +143,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         <div className={wrapperClasses}>
           {/* Start adornment */}
           {startAdornment && (
-            <div className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground">
+            <div className="pointer-events-none absolute start-3.5 top-1/2 -translate-y-1/2 text-muted-foreground">
               {startAdornment}
             </div>
           )}
@@ -164,8 +164,8 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             <label
               htmlFor={inputId}
               className={mergeClasses([
-                'pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2',
-                'origin-left transition-all duration-200',
+                'pointer-events-none absolute start-3.5 top-1/2 -translate-y-1/2',
+                'origin-[inline-start] transition-all duration-200',
                 'text-muted-foreground',
                 // when focused or has value -> float up
                 'peer-focus:-translate-y-[1.9rem] peer-focus:scale-[0.85] peer-focus:text-foreground/80',
@@ -187,7 +187,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
 
           {/* End adornment */}
           {endAdornment && (
-            <div className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground">
+            <div className="absolute end-3.5 top-1/2 -translate-y-1/2 text-muted-foreground">
               {endAdornment}
             </div>
           )}
@@ -197,11 +197,11 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             <label
               htmlFor={inputId}
               className={mergeClasses([
-                'pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2',
-                'origin-left transition-all duration-200',
+                'pointer-events-none absolute start-3.5 top-1/2 -translate-y-1/2',
+                'origin-[inline-start] transition-all duration-200',
                 'text-muted-foreground',
                 // match padding when startAdornment exists
-                startAdornment ? 'left-10' : 'left-3.5',
+                startAdornment ? 'start-10' : 'start-3.5',
                 // floating rules
                 // if placeholder shown and no value -> centered
                 !hasValue ? 'scale-100' : '-translate-y-[1.75rem] scale-[0.85] text-foreground/80',

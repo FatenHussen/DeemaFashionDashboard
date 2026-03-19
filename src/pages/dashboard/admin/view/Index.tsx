@@ -79,8 +79,11 @@ export default function Page() {
     setPasswordDialogOpen(false);
   };
 
-  // Extract data from API response
-  const adminData: AdminFormValues[] = adminsResponse?.data?.items || [];
+  // Extract data from API response (map roles from API shape to form shape)
+  const adminData: AdminFormValues[] = (adminsResponse?.data?.items || []).map((admin) => ({
+    ...admin,
+    roles: admin.roles?.map((r) => (typeof r === 'object' ? r.name : r)) ?? [],
+  }));
   const apiPagination = adminsResponse?.data?.pagination;
   const pagination = apiPagination
     ? {

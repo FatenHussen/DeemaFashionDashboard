@@ -15,7 +15,10 @@ export interface CityInfo {
 
 export interface AreaData {
   id: number;
-  name: string;
+  name: {
+    ar: string;
+    en: string;
+  };
   city: CityInfo;
   lat?: string;
   lng?: string;

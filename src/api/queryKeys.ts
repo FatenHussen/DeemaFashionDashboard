@@ -245,6 +245,63 @@ export const queryKeys = {
       ['sellerRegistration', 'list', params] as const,
     details: (id: number | string) => ['sellerRegistration', 'details', id] as const,
   },
+  // Setting query keys
+  setting: {
+    list: (params?: { page?: number; per_page?: number }) => ['setting', 'list', params] as const,
+    details: (key: string) => ['setting', 'details', key] as const,
+  },
+  // Badge query keys
+  badge: {
+    list: (params?: { page?: number; per_page?: number }) => ['badge', 'list', params] as const,
+    details: (id: number | string) => ['badge', 'details', id] as const,
+  },
+  // Activity Log query keys
+  activityLog: {
+    list: (params?: { page?: number; per_page?: number; action?: string; model?: string }) =>
+      ['activityLog', 'list', params] as const,
+  },
+  // Affiliate Withdraw Request query keys
+  affiliateWithdraw: {
+    list: (params?: Record<string, any>) => ['affiliateWithdraw', 'list', params] as const,
+    details: (id: number | string) => ['affiliateWithdraw', 'details', id] as const,
+  },
+  // Icon query keys
+  icon: {
+    list: (params?: { page?: number; per_page?: number }) => ['icon', 'list', params] as const,
+    details: (id: number | string) => ['icon', 'details', id] as const,
+  },
+  // Promotion query keys
+  promotion: {
+    list: (params?: { page?: number; per_page?: number }) => ['promotion', 'list', params] as const,
+    details: (id: number | string) => ['promotion', 'details', id] as const,
+  },
+  // Country query keys
+  country: {
+    list: (params?: { page?: number; per_page?: number }) => ['country', 'list', params] as const,
+    details: (id: number | string) => ['country', 'details', id] as const,
+  },
+  // Promotion Request query keys
+  promotionRequest: {
+    list: (params?: { page?: number; per_page?: number; status?: string }) =>
+      ['promotionRequest', 'list', params] as const,
+    details: (id: number | string) => ['promotionRequest', 'details', id] as const,
+  },
+  // Point Rule query keys
+  pointRule: {
+    list: (params?: { page?: number; per_page?: number }) => ['pointRule', 'list', params] as const,
+    details: (id: number | string) => ['pointRule', 'details', id] as const,
+  },
+  // Schedule query keys
+  schedule: {
+    list: (params?: { page?: number; per_page?: number }) => ['schedule', 'list', params] as const,
+    details: (id: number | string) => ['schedule', 'details', id] as const,
+  },
+  // User Basket Schedule query keys
+  userBasketSchedule: {
+    list: (params?: { page?: number; per_page?: number }) =>
+      ['userBasketSchedule', 'list', params] as const,
+    details: (id: number | string) => ['userBasketSchedule', 'details', id] as const,
+  },
   // Report query keys
   report: {
     sales: (params?: object) => ['report', 'sales', params] as const,
@@ -259,24 +316,24 @@ export const queryKeys = {
   // Statistics query keys
   statistics: {
     dashboard: (params?: Record<string, unknown>) => ['statistics', 'dashboard', params] as const,
-    counts: () => ['statistics', 'counts'] as const,
+    counts: (params?: Record<string, unknown>) => ['statistics', 'counts', params] as const,
     monthlyPerformance: (params?: Record<string, unknown>) =>
       ['statistics', 'monthlyPerformance', params] as const,
-    ordersByStatus: () => ['statistics', 'ordersByStatus'] as const,
+    ordersByStatus: (params?: Record<string, unknown>) => ['statistics', 'ordersByStatus', params] as const,
     topShops: (params?: Record<string, unknown>) => ['statistics', 'topShops', params] as const,
     revenueTrend: (params?: Record<string, unknown>) =>
       ['statistics', 'revenueTrend', params] as const,
-    ordersByHour: () => ['statistics', 'ordersByHour'] as const,
-    ordersByDay: () => ['statistics', 'ordersByDay'] as const,
+    ordersByHour: (params?: Record<string, unknown>) => ['statistics', 'ordersByHour', params] as const,
+    ordersByDay: (params?: Record<string, unknown>) => ['statistics', 'ordersByDay', params] as const,
     topCategories: (params?: Record<string, unknown>) =>
       ['statistics', 'topCategories', params] as const,
     userGrowth: (params?: Record<string, unknown>) => ['statistics', 'userGrowth', params] as const,
-    orderFunnel: () => ['statistics', 'orderFunnel'] as const,
+    orderFunnel: (params?: Record<string, unknown>) => ['statistics', 'orderFunnel', params] as const,
     avgOrderValueTrend: (params?: Record<string, unknown>) =>
       ['statistics', 'avgOrderValueTrend', params] as const,
     driverComparison: (params?: Record<string, unknown>) =>
       ['statistics', 'driverComparison', params] as const,
-    stockLevels: () => ['statistics', 'stockLevels'] as const,
-    salesHeatmap: () => ['statistics', 'salesHeatmap'] as const,
+    stockLevels: (params?: Record<string, unknown>) => ['statistics', 'stockLevels', params] as const,
+    salesHeatmap: (params?: Record<string, unknown>) => ['statistics', 'salesHeatmap', params] as const,
   },
 } as const;

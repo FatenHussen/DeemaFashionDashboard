@@ -5,13 +5,11 @@ import type { MainSectionProps, LayoutSectionProps, HeaderSectionProps } from '.
 import { merge } from 'es-toolkit';
 
 import { paths } from 'src/routes/paths';
-import { RouterLink } from 'src/routes/components';
 
 import { CONFIG } from 'src/global-config';
 
 import { AuthSplitSection } from './section';
 import { AuthSplitContent } from './content';
-import { SettingsButton } from '../components/settings-button';
 import { MainSection, LayoutSection, HeaderSection } from '../core';
 
 // ----------------------------------------------------------------------

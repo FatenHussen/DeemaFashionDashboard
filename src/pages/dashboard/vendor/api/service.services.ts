@@ -22,6 +22,10 @@ export const _ServiceApi = {
     const response = await axiosInstance.patch(apiRoutes.service.update(id), data);
     return response.data;
   },
+  getServiceById: async (id: number | string): Promise<any> => {
+    const response = await axiosInstance.get(apiRoutes.service.details(id));
+    return response.data;
+  },
   deleteService: async (id: number | string): Promise<any> => {
     const response = await axiosInstance.delete(apiRoutes.service.delete(id));
     return response.data;

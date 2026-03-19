@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
+import { formatTranslated } from '@/utils/format-translated';
 import { _CityApi } from '@/pages/dashboard/locations/api/city.services';
 import {
   AreaSchema,
@@ -33,7 +34,7 @@ const metadata = { title: `Area ${CONFIG.appName}` };
 const cityFetcher = (_page: number, _limit: number) =>
   _CityApi.getListCities().then((r) => ({
     data: {
-      items: r.data.items.map((city) => ({ id: city.id, label: city.name })),
+      items: r.data.items.map((city) => ({ id: city.id, label: formatTranslated(city.name) })),
       pagination: r.data.pagination,
     },
   }));
@@ -72,12 +73,7 @@ export default function CreatePage() {
   // Fetch area data if in edit mode
   useEffect(() => {
     if (isEditMode && areaData && !isLoadingArea) {
-      // API returns name as string or {ar, en}
-      const rawName = areaData.name as string | { ar?: string; en?: string };
-      const nameValue =
-        typeof rawName === 'string'
-          ? { ar: rawName, en: rawName }
-          : { ar: rawName?.ar ?? '', en: rawName?.en ?? '' };
+      const nameValue = areaData.name;
 
       const baseFee =
         areaData.base_fee != null ? String(areaData.base_fee) : '';

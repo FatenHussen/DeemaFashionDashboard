@@ -1,8 +1,12 @@
-import { useMemo } from 'react';
-import { Box, Typography } from '@/shared/ui';
+import type { DateFilter } from '../api/statistics.services';
+
+import { useMemo, useState } from 'react';
+import { Button } from '@/shared/ui/button';
 import { useTranslation } from 'react-i18next';
+import { Box, Input, Typography } from '@/shared/ui';
 import { Iconify } from '@/shared/components/iconify';
 import { LoadingScreen } from '@/shared/components/loading-screen';
+import { useLocalizationStore } from '@/store/useLocalizationStore';
 import {
   Pie,
   Bar,
@@ -61,21 +65,44 @@ const CHART_COLORS = [
 export default function StatisticsPage() {
   const { i18n } = useTranslation();
   const lang = (i18n.language || 'en').startsWith('ar') ? 'ar' : 'en';
+  const { direction } = useLocalizationStore();
+  const isRtl = direction === 'rtl';
   const currentYear = new Date().getFullYear();
 
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [appliedFilter, setAppliedFilter] = useState<DateFilter | undefined>(undefined);
+
+  const handleApply = () => {
+    if (dateFrom || dateTo) {
+      setAppliedFilter({
+        ...(dateFrom ? { date_from: dateFrom } : {}),
+        ...(dateTo ? { date_to: dateTo } : {}),
+      });
+    } else {
+      setAppliedFilter(undefined);
+    }
+  };
+
+  const handleReset = () => {
+    setDateFrom('');
+    setDateTo('');
+    setAppliedFilter(undefined);
+  };
+
   const { data: dashboardData, isLoading: isLoadingDashboard } =
-    useFetchDashboardStatistics(currentYear);
-  const { data: revenueTrendData } = useFetchRevenueTrend(30);
-  const { data: ordersByStatusData } = useFetchOrdersByStatus();
-  const { data: topCategoriesData } = useFetchTopCategories(8);
-  const { data: ordersByHourData } = useFetchOrdersByHour();
-  const { data: ordersByDayData } = useFetchOrdersByDay();
-  const { data: userGrowthData } = useFetchUserGrowth(12);
-  const { data: orderFunnelData } = useFetchOrderFunnel();
-  const { data: avgOrderValueData } = useFetchAvgOrderValueTrend(6);
-  const { data: driverComparisonData } = useFetchDriverComparison(5);
-  const { data: stockLevelsData } = useFetchStockLevels();
-  const { data: salesHeatmapData } = useFetchSalesHeatmap();
+    useFetchDashboardStatistics(currentYear, appliedFilter);
+  const { data: revenueTrendData } = useFetchRevenueTrend(30, appliedFilter);
+  const { data: ordersByStatusData } = useFetchOrdersByStatus(appliedFilter);
+  const { data: topCategoriesData } = useFetchTopCategories(8, appliedFilter);
+  const { data: ordersByHourData } = useFetchOrdersByHour(appliedFilter);
+  const { data: ordersByDayData } = useFetchOrdersByDay(appliedFilter);
+  const { data: userGrowthData } = useFetchUserGrowth(12, appliedFilter);
+  const { data: orderFunnelData } = useFetchOrderFunnel(appliedFilter);
+  const { data: avgOrderValueData } = useFetchAvgOrderValueTrend(6, appliedFilter);
+  const { data: driverComparisonData } = useFetchDriverComparison(5, appliedFilter);
+  const { data: stockLevelsData } = useFetchStockLevels(appliedFilter);
+  const { data: salesHeatmapData } = useFetchSalesHeatmap(appliedFilter);
 
   const counts = dashboardData?.data?.counts;
   const topShops = dashboardData?.data?.top_shops ?? [];
@@ -173,7 +200,7 @@ export default function StatisticsPage() {
       <title>{metadata.title}</title>
       <div className="flex w-full flex-col">
         {/* Header - same style as table toolbar area */}
-        <div className="mx-6 mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-border/40 bg-card/60 px-4 py-3 shadow-sm rtl:flex-row-reverse">
+        <div className="mx-6 mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/40 bg-card/60 px-4 py-3 shadow-sm">
           <Box className="flex items-center gap-3">
             <Box className="w-10 h-10 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
               <Iconify icon="solar:chart-2-bold" className="text-primary" width={22} height={22} />
@@ -186,6 +213,50 @@ export default function StatisticsPage() {
                 Admin dashboard overview
               </Typography>
             </Box>
+          </Box>
+
+          <Box className="flex flex-wrap items-center gap-2">
+            <Box className="flex items-center gap-1.5">
+              <Typography variant="caption" className="text-muted-foreground font-medium whitespace-nowrap">
+                From
+              </Typography>
+              <Input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                className="h-9 w-[150px] text-sm"
+              />
+            </Box>
+            <Box className="flex items-center gap-1.5">
+              <Typography variant="caption" className="text-muted-foreground font-medium whitespace-nowrap">
+                To
+              </Typography>
+              <Input
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                className="h-9 w-[150px] text-sm"
+              />
+            </Box>
+            <Button
+              variant="contained"
+              onClick={handleApply}
+              disabled={!dateFrom && !dateTo}
+              className="h-9 px-4 text-sm gap-1.5"
+            >
+              <Iconify icon="solar:filter-bold" width={16} />
+              Apply
+            </Button>
+            {appliedFilter && (
+              <Button
+                variant="outlined"
+                onClick={handleReset}
+                className="h-9 px-3 text-sm gap-1.5"
+              >
+                <Iconify icon="solar:restart-bold" width={16} />
+                Reset
+              </Button>
+            )}
           </Box>
         </div>
 
@@ -250,7 +321,7 @@ export default function StatisticsPage() {
               <Typography variant="subtitle1" className="font-semibold mb-4 text-foreground">
                 Revenue Trend (Last 30 Days)
               </Typography>
-              <Box className="h-[280px]">
+              <Box className="h-[280px]" dir="ltr">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={revenueChartData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
@@ -295,7 +366,7 @@ export default function StatisticsPage() {
                 <Typography variant="subtitle1" className="font-semibold mb-4 text-foreground">
                   Orders by Status
                 </Typography>
-                <Box className="h-[260px]">
+                <Box className="h-[260px]" dir="ltr">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
@@ -333,7 +404,7 @@ export default function StatisticsPage() {
                 <Typography variant="subtitle1" className="font-semibold mb-4 text-foreground">
                   Top Categories by Revenue
                 </Typography>
-                <Box className="h-[260px]">
+                <Box className="h-[260px]" dir="ltr">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={categoriesPieData} layout="vertical" margin={{ left: 90 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} horizontal={false} />
@@ -366,9 +437,9 @@ export default function StatisticsPage() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-border/30 bg-muted/20">
-                      <th className="text-left py-3 px-5 font-medium text-muted-foreground">Shop</th>
-                      <th className="text-right py-3 px-5 font-medium text-muted-foreground">Orders</th>
-                      <th className="text-right py-3 px-5 font-medium text-muted-foreground">Rating</th>
+                      <th className="text-start py-3 px-5 font-medium text-muted-foreground">Shop</th>
+                      <th className="text-end py-3 px-5 font-medium text-muted-foreground">Orders</th>
+                      <th className="text-end py-3 px-5 font-medium text-muted-foreground">Rating</th>
                       <th className="text-center py-3 px-5 font-medium text-muted-foreground">Status</th>
                     </tr>
                   </thead>
@@ -378,8 +449,8 @@ export default function StatisticsPage() {
                         <td className="py-3 px-5 font-medium">
                           {shop.name?.[lang as 'ar' | 'en'] ?? shop.name?.en ?? '-'}
                         </td>
-                        <td className="text-right py-3 px-5">{shop.total_orders}</td>
-                        <td className="text-right py-3 px-5">{shop.average_rating?.toFixed(1) ?? '-'}</td>
+                        <td className="text-end py-3 px-5">{shop.total_orders}</td>
+                        <td className="text-end py-3 px-5">{shop.average_rating?.toFixed(1) ?? '-'}</td>
                         <td className="text-center py-3 px-5">
                           {shop.is_active ? (
                             <span className="inline-flex items-center rounded-full bg-green-500/10 px-2.5 py-0.5 text-xs font-medium text-green-700 dark:text-green-400">
@@ -406,7 +477,7 @@ export default function StatisticsPage() {
                 <Typography variant="subtitle1" className="font-semibold mb-4 text-foreground">
                   Orders by Hour
                 </Typography>
-                <Box className="h-[260px]">
+                <Box className="h-[260px]" dir="ltr">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={ordersByHourChartData} layout="vertical" margin={{ left: 50 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} horizontal={false} />
@@ -424,7 +495,7 @@ export default function StatisticsPage() {
                 <Typography variant="subtitle1" className="font-semibold mb-4 text-foreground">
                   Orders by Day of Week
                 </Typography>
-                <Box className="h-[260px]">
+                <Box className="h-[260px]" dir="ltr">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={ordersByDayChartData}>
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
@@ -446,7 +517,7 @@ export default function StatisticsPage() {
                 <Typography variant="subtitle1" className="font-semibold mb-4 text-foreground">
                   User Growth (Last 12 Months)
                 </Typography>
-                <Box className="h-[260px]">
+                <Box className="h-[260px]" dir="ltr">
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={userGrowthChartData}>
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
@@ -470,7 +541,7 @@ export default function StatisticsPage() {
                 <Typography variant="subtitle1" className="font-semibold mb-4 text-foreground">
                   Order Status Funnel
                 </Typography>
-                <Box className="h-[260px]">
+                <Box className="h-[260px]" dir="ltr">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={orderFunnelChartData} layout="vertical" margin={{ left: 80 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} horizontal={false} />
@@ -488,7 +559,7 @@ export default function StatisticsPage() {
                 <Typography variant="subtitle1" className="font-semibold mb-4 text-foreground">
                   Average Order Value Trend
                 </Typography>
-                <Box className="h-[260px]">
+                <Box className="h-[260px]" dir="ltr">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={avgOrderValueChartData}>
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
@@ -510,7 +581,7 @@ export default function StatisticsPage() {
                 <Typography variant="subtitle1" className="font-semibold mb-4 text-foreground">
                   Driver Performance Comparison
                 </Typography>
-                <Box className="h-[280px]">
+                <Box className="h-[280px]" dir="ltr">
                   <ResponsiveContainer width="100%" height="100%">
                     <RadarChart data={driverComparisonChartData}>
                       <PolarGrid stroke="hsl(var(--border))" />

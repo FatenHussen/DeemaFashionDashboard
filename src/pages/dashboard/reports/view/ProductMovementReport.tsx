@@ -36,14 +36,23 @@ export default function ProductMovementReportPage() {
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [categoryId, setCategoryId] = useState('');
+  const [appliedFrom, setAppliedFrom] = useState('');
+  const [appliedTo, setAppliedTo] = useState('');
+  const [appliedCategoryId, setAppliedCategoryId] = useState('');
   const [isExporting, setIsExporting] = useState(false);
 
   const params = {
-    from_date: fromDate || undefined,
-    to_date: toDate || undefined,
-    category_id: categoryId ? Number(categoryId) : undefined,
+    from_date: appliedFrom || undefined,
+    to_date: appliedTo || undefined,
+    category_id: appliedCategoryId ? Number(appliedCategoryId) : undefined,
   };
   const { data, isLoading } = useFetchProductMovementReport(params);
+
+  const handleApply = () => {
+    setAppliedFrom(fromDate);
+    setAppliedTo(toDate);
+    setAppliedCategoryId(categoryId);
+  };
   const reportData = data?.data;
 
   const handleExport = async (format: ExportFormat) => {
@@ -84,6 +93,9 @@ export default function ProductMovementReportPage() {
             <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="h-9 rounded-lg border border-input bg-background px-3 text-sm" />
             <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="h-9 rounded-lg border border-input bg-background px-3 text-sm" />
             <input type="number" placeholder={t('form.categoryIdPlaceholder')} value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className="h-9 w-28 rounded-lg border border-input bg-background px-3 text-sm" />
+            <Button variant="outlined" size="small" onClick={handleApply}>
+              Apply
+            </Button>
             <Box className="h-5 w-px bg-border/60" />
             <Button variant="outlined" size="small" onClick={() => handleExport('excel')} disabled={isExporting}>
               <Iconify icon="solar:file-spreadsheet-bold" width={18} className="mr-1" /> Excel

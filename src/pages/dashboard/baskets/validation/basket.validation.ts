@@ -1,10 +1,14 @@
 import { z } from 'zod';
 
+import i18n from 'src/lib/i18n';
+
+const t = (key: string) => i18n.t(key, { ns: 'validation' });
+
 export const BasketSchema = z.object({
-  category_id: z.coerce.number().min(1, 'Category is required'),
+  category_id: z.coerce.number().min(1, t('basket.categoryRequired')),
   name: z.object({
-    en: z.string().min(1, 'English name is required'),
-    ar: z.string().min(1, 'Arabic name is required'),
+    en: z.string().min(1, t('basket.nameEnRequired')),
+    ar: z.string().min(1, t('basket.nameArRequired')),
   }),
   offer_ends_at: z.string().optional(),
   discount: z.coerce.number().min(0).optional(),
@@ -14,11 +18,11 @@ export const BasketSchema = z.object({
   items: z
     .array(
       z.object({
-        shop_product_variant_id: z.coerce.number().min(1, 'Product variant is required'),
-        quantity: z.coerce.number().min(1, 'Quantity must be at least 1'),
+        shop_product_variant_id: z.coerce.number().min(1, t('basket.productVariantRequired')),
+        quantity: z.coerce.number().min(1, t('basket.quantityMin')),
       })
     )
-    .min(1, 'At least one item is required'),
+    .min(1, t('basket.atLeastOneItem')),
 });
 
 export type BasketFormValues = z.infer<typeof BasketSchema>;

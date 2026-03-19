@@ -1,10 +1,11 @@
-import { useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { useForm } from 'react-hook-form';
+import { useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
+import { useFetchRoles } from '@/pages/dashboard/roles/hooks/role';
 import {
   AdminSchema,
   type AdminFormValues,
@@ -18,6 +19,7 @@ import {
 import { CONFIG } from 'src/global-config';
 import { Box, Typography } from 'src/shared/ui';
 import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
+import { RHFMultiSelect } from 'src/shared/components/hook-form/rhf-multi-select';
 import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
 
 // ----------------------------------------------------------------------
@@ -32,12 +34,23 @@ export default function CreatePage() {
 
   // Hooks for fetching and mutations
   const { data: adminData, isLoading: isLoadingAdmin } = useFetchAdminById(id || '');
+  const { data: rolesResponse } = useFetchRoles(1, 200);
   const createAdminMutation = useCreateAdmin();
   const updateAdminMutation = useUpdateAdmin();
+
+  const roleOptions = useMemo(
+    () =>
+      (rolesResponse?.data?.items ?? []).map((r) => ({
+        value: r.id,
+        label: r.name,
+      })),
+    [rolesResponse]
+  );
 
   const defaultValues: AdminFormValues = {
     name: '',
     email: '',
+    role_ids: [],
     ...(isEditMode ? {} : { password: '' }),
   };
 
@@ -51,9 +64,13 @@ export default function CreatePage() {
   // Fetch admin data if in edit mode
   useEffect(() => {
     if (isEditMode && adminData && !isLoadingAdmin) {
+      const roleIds = (adminData.roles ?? []).map((r) =>
+        typeof r === 'object' ? r.id : 0
+      ).filter(Boolean);
       reset({
         name: adminData.name,
         email: adminData.email,
+        role_ids: roleIds,
       });
     }
   }, [adminData, isEditMode, isLoadingAdmin, reset]);
@@ -68,15 +85,16 @@ export default function CreatePage() {
         name: data.name,
         email: data.email,
         ...(!isEditMode && data.password && { password: data.password }),
+        roles: data.role_ids.map((rid) => ({ id: rid })),
       };
 
       if (isEditMode && id) {
         await updateAdminMutation.mutateAsync({ id, data: payload });
-        toast.success('Admin updated successfully');
+        toast.success(t('form.adminUpdatedSuccess'));
         navigate('/admin');
       } else {
         await createAdminMutation.mutateAsync(payload);
-        toast.success('Admin created successfully');
+        toast.success(t('form.adminCreatedSuccess'));
         navigate('/admin');
       }
     } catch (error: any) {
@@ -178,6 +196,23 @@ export default function CreatePage() {
             />
           </Box>
         )}
+
+        {/* Roles */}
+        <Box className="group">
+          <Box className="flex items-center gap-2 mb-2">
+            <Iconify icon="solar:shield-user-bold" className="text-primary" width={24} height={24} />
+            <Typography variant="subtitle2" className="font-semibold text-foreground">
+              Roles
+            </Typography>
+          </Box>
+          <RHFMultiSelect
+            name="role_ids"
+            options={roleOptions}
+            placeholder="Search and select roles..."
+            helperText="Assign one or more roles to this admin"
+            fullWidth
+          />
+        </Box>
       </CreateFormLayout>
     </>
   );

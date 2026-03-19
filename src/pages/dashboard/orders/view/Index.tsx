@@ -94,77 +94,69 @@ export default function Page() {
     [handleStatusChange, changingOrderId]
   );
 
+  const filterContent = (
+    <>
+      <input
+        type="text"
+        placeholder={t('searchOrders')}
+        value={search ?? ''}
+        onChange={(e) => {
+          setSearch(e.target.value || undefined);
+          setCurrentPage(1);
+        }}
+        className="h-10 w-52 rounded-xl border border-input bg-background px-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+      />
+      <div className="flex flex-wrap gap-1.5">
+        {(['all', 'pending', 'preparing', 'out_delivery', 'delivered'] as const).map((s) => {
+          const labels: Record<string, string> = {
+            all: t('all'),
+            pending: t('statusPending'),
+            preparing: t('statusPreparing'),
+            out_delivery: t('statusOutDelivery'),
+            delivered: t('statusDelivered'),
+          };
+          return (
+            <button
+              key={s}
+              onClick={() => {
+                setStatusFilter(s === 'all' ? undefined : s);
+                setCurrentPage(1);
+              }}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                (s === 'all' && !statusFilter) || statusFilter === s
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'bg-muted text-muted-foreground hover:bg-muted/70'
+              }`}
+            >
+              {labels[s]}
+            </button>
+          );
+        })}
+      </div>
+      {(statusFilter || search) && (
+        <button
+          onClick={() => {
+            setStatusFilter(undefined);
+            setSearch(undefined);
+            setCurrentPage(1);
+          }}
+          className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+        >
+          {t('clearFilters')} ×
+        </button>
+      )}
+    </>
+  );
+
   return (
     <>
       <title>{metadata.title}</title>
-
-      <div className="flex w-full flex-col">
-
-      {/* Filter bar */}
-      <div className="mx-6 mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-border/40 bg-card/60 px-4 py-3 shadow-sm rtl:flex-row-reverse">
-        {/* Search */}
-        <input
-          type="text"
-          placeholder={t('searchOrders')}
-          value={search ?? ''}
-          onChange={(e) => {
-            setSearch(e.target.value || undefined);
-            setCurrentPage(1);
-          }}
-          className="h-8 w-52 rounded-lg border border-input bg-background px-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
-        />
-
-        {/* Divider */}
-        <div className="h-5 w-px bg-border/60" />
-
-        {/* Status pills */}
-        <div className="flex flex-wrap gap-1.5 rtl:flex-row-reverse">
-          {(['all', 'pending', 'preparing', 'out_delivery', 'delivered'] as const).map((s) => {
-            const labels: Record<string, string> = {
-              all: t('all'),
-              pending: t('statusPending'),
-              preparing: t('statusPreparing'),
-              out_delivery: t('statusOutDelivery'),
-              delivered: t('statusDelivered'),
-            };
-            return (
-              <button
-                key={s}
-                onClick={() => {
-                  setStatusFilter(s === 'all' ? undefined : s);
-                  setCurrentPage(1);
-                }}
-                className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                  (s === 'all' && !statusFilter) || statusFilter === s
-                    ? 'bg-primary text-primary-foreground shadow-sm'
-                    : 'bg-muted text-muted-foreground hover:bg-muted/70'
-                }`}
-              >
-                {labels[s]}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Active filter indicator */}
-        {(statusFilter || search) && (
-          <button
-            onClick={() => {
-              setStatusFilter(undefined);
-              setSearch(undefined);
-              setCurrentPage(1);
-            }}
-            className="ms-auto text-xs text-muted-foreground hover:text-foreground transition-colors"
-          >
-            {t('clearFilters')} ×
-          </button>
-        )}
-      </div>
 
       <DataTable
         tableName="Order"
         columns={columns}
         data={orderData}
+        toolbarFilter={filterContent}
         permissions={{
           create: false,
           update: hasPermission('update', 'order'),
@@ -186,8 +178,6 @@ export default function Page() {
         onPageChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}
       />
-
-      </div>
     </>
   );
 }

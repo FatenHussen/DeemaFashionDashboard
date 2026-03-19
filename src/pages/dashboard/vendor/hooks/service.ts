@@ -9,6 +9,13 @@ export const useFetchServices = (page: number = 1, limit: number = 25) =>
     queryFn: () => _ServiceApi.getListServices(page, limit),
   });
 
+export const useFetchServiceById = (id: number | string) =>
+  useQuery({
+    queryKey: queryKeys.service.details(id),
+    queryFn: () => _ServiceApi.getServiceById(id),
+    enabled: !!id,
+  });
+
 export const useCreateService = () => {
   const queryClient = useQueryClient();
 

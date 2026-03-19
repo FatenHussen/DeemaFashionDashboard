@@ -28,6 +28,7 @@ export function MapDisplay({ lat, lng, title, height = '300px', className = '' }
   useEffect(() => {
     if (!containerRef.current) return () => {};
 
+
     const numLat = typeof lat === 'string' ? parseFloat(lat) : lat;
     const numLng = typeof lng === 'string' ? parseFloat(lng) : lng;
 

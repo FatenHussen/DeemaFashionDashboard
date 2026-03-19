@@ -136,11 +136,11 @@ export default function CreatePage() {
 
       if (isEditMode && id) {
         await updateDriverMutation.mutateAsync({ id, data: payload });
-        toast.success('Driver updated successfully');
+        toast.success(t('form.driverUpdatedSuccess'));
         navigate('/driver');
       } else {
         await createDriverMutation.mutateAsync(payload);
-        toast.success('Driver created successfully');
+        toast.success(t('form.driverCreatedSuccess'));
         navigate('/driver');
       }
     } catch (error: any) {
@@ -293,8 +293,8 @@ export default function CreatePage() {
                   helperText={
                     error?.message ||
                     (isEditMode
-                      ? 'Leave empty to keep current photo'
-                      : 'Upload driver photo (optional, max 2MB)')
+                      ? t('form.imageHelperEdit')
+                      : t('form.imageHelper'))
                   }
                   fullWidth
                   className="transition-all duration-200"

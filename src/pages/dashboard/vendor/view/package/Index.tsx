@@ -20,14 +20,12 @@ export default function Page() {
   const { t } = useTranslation('table');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [search, setSearch] = useState('');
   const [isActiveFilter, setIsActiveFilter] = useState<string>('');
   const [minPrice, setMinPrice] = useState<string>('');
   const [maxPrice, setMaxPrice] = useState<string>('');
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
   const filters: Record<string, any> = {};
-  if (search) filters.search = search;
   if (isActiveFilter !== '') filters.is_active = parseInt(isActiveFilter, 10);
   if (minPrice !== '') filters.min_price = parseFloat(minPrice);
   if (maxPrice !== '') filters.max_price = parseFloat(maxPrice);
@@ -76,72 +74,63 @@ export default function Page() {
   const hasPermission = (action: string, resource: string) => can(`${resource}.${action}`);
 
   const resetFilters = () => {
-    setSearch('');
     setIsActiveFilter('');
     setMinPrice('');
     setMaxPrice('');
     setCurrentPage(1);
   };
 
-  const hasActiveFilters = search || isActiveFilter !== '' || minPrice !== '' || maxPrice !== '';
+  const hasActiveFilters = isActiveFilter !== '' || minPrice !== '' || maxPrice !== '';
+
+  const filterContent = (
+    <>
+      <select
+        value={isActiveFilter}
+        onChange={(e) => {
+          setIsActiveFilter(e.target.value);
+          setCurrentPage(1);
+        }}
+        className="h-10 min-w-[120px] rounded-xl border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+      >
+        <option value="">{t('allStatus')}</option>
+        <option value="1">{t('active')}</option>
+        <option value="0">{t('inactive')}</option>
+      </select>
+      <input
+        type="number"
+        placeholder={t('minPrice')}
+        value={minPrice}
+        onChange={(e) => {
+          setMinPrice(e.target.value);
+          setCurrentPage(1);
+        }}
+        className="h-10 w-28 rounded-xl border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+      />
+      <input
+        type="number"
+        placeholder={t('maxPrice')}
+        value={maxPrice}
+        onChange={(e) => {
+          setMaxPrice(e.target.value);
+          setCurrentPage(1);
+        }}
+        className="h-10 w-28 rounded-xl border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+      />
+      {hasActiveFilters && (
+        <button
+          type="button"
+          onClick={resetFilters}
+          className="h-10 rounded-xl border border-border px-4 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted"
+        >
+          {t('resetFilter')}
+        </button>
+      )}
+    </>
+  );
 
   return (
     <>
       <title>{metadata.title}</title>
-
-      <div className="mb-4 flex flex-wrap gap-3 rounded-xl border border-border bg-card p-4 shadow-sm rtl:flex-row-reverse">
-        <input
-          type="text"
-          placeholder={t('search')}
-          value={search}
-          onChange={(e) => {
-            setSearch(e.target.value);
-            setCurrentPage(1);
-          }}
-          className="h-9 min-w-[160px] rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-        />
-        <select
-          value={isActiveFilter}
-          onChange={(e) => {
-            setIsActiveFilter(e.target.value);
-            setCurrentPage(1);
-          }}
-          className="h-9 min-w-[120px] rounded-md border border-input bg-background px-3 text-sm"
-        >
-          <option value="">{t('allStatus')}</option>
-          <option value="1">{t('active')}</option>
-          <option value="0">{t('inactive')}</option>
-        </select>
-        <input
-          type="number"
-          placeholder={t('minPrice')}
-          value={minPrice}
-          onChange={(e) => {
-            setMinPrice(e.target.value);
-            setCurrentPage(1);
-          }}
-          className="h-9 w-24 rounded-md border border-input bg-background px-3 text-sm"
-        />
-        <input
-          type="number"
-          placeholder={t('maxPrice')}
-          value={maxPrice}
-          onChange={(e) => {
-            setMaxPrice(e.target.value);
-            setCurrentPage(1);
-          }}
-          className="h-9 w-24 rounded-md border border-input bg-background px-3 text-sm"
-        />
-        {hasActiveFilters && (
-          <button
-            type="button"
-            onClick={resetFilters}
-            className="h-9 rounded-md border border-border px-4 text-sm font-medium text-foreground hover:bg-muted"
-          >
-            {t('resetFilter')}
-          </button>
-        )}
-      </div>
 
       <DataTable
         tableName="Vendor Package"
@@ -159,6 +148,7 @@ export default function Page() {
         hasDetails
         detailsLink="/vendor-packages/details"
         createPath="/vendor-packages/create"
+        toolbarFilter={filterContent}
         permissions={{
           create: hasPermission('create', 'vendorpackage'),
           update: hasPermission('update', 'vendorpackage'),

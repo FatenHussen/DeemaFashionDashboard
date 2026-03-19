@@ -6,6 +6,7 @@ import { hasKeys } from 'minimal-shared/utils';
 
 import { themeConfig } from 'src/theme/theme-config';
 import { primaryColorPresets } from 'src/theme/with-settings';
+import { useLocalizationStore } from 'src/store/useLocalizationStore';
 import { Box, Badge, Drawer, Tooltip, IconButton, Typography } from 'src/shared/ui';
 
 import { settingIcons } from './icons';
@@ -94,7 +95,7 @@ export function SettingsDrawer({ defaultSettings }: SettingsDrawerProps) {
   }, [defaultSettings.colorScheme, setMode, settings]);
 
   const renderHead = () => (
-    <Box className="py-2 pr-2 pl-5 flex items-center">
+    <Box className="py-2 pe-2 ps-5 flex items-center">
       <Typography variant="h6" className="grow">
         Settings
       </Typography>
@@ -150,13 +151,15 @@ export function SettingsDrawer({ defaultSettings }: SettingsDrawerProps) {
     />
   );
 
+  const { direction, setLanguage } = useLocalizationStore();
+
   const renderRtl = () => (
     <BaseOption
       label="Right to left"
-      selected={settings.state.direction === 'rtl'}
+      selected={direction === 'rtl'}
       icon={<span className="w-6 h-6">{settingIcons.alignRight}</span>}
       onChangeOption={() => {
-        settings.setState({ direction: settings.state.direction === 'ltr' ? 'rtl' : 'ltr' });
+        setLanguage(direction === 'ltr' ? 'ar' : 'en');
       }}
     />
   );
@@ -308,7 +311,7 @@ export function SettingsDrawer({ defaultSettings }: SettingsDrawerProps) {
 
   return (
     <Drawer
-      anchor="right"
+      anchor={direction === 'rtl' ? 'left' : 'right'}
       open={settings.openDrawer}
       onClose={settings.onCloseDrawer}
       width="360px"

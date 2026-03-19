@@ -1,94 +1,96 @@
+import type { DateFilter } from '../api/statistics.services';
+
 import { queryKeys } from '@/api';
 import { useQuery } from '@tanstack/react-query';
 
 import { _StatisticsApi } from '../api/statistics.services';
 
-export const useFetchDashboardStatistics = (year?: number) =>
+export const useFetchDashboardStatistics = (year?: number, dateFilter?: DateFilter) =>
   useQuery({
-    queryKey: queryKeys.statistics.dashboard({ year }),
-    queryFn: () => _StatisticsApi.getDashboard({ year }),
+    queryKey: queryKeys.statistics.dashboard({ year, ...dateFilter }),
+    queryFn: () => _StatisticsApi.getDashboard({ year, ...dateFilter }),
   });
 
-export const useFetchStatCounts = () =>
+export const useFetchStatCounts = (dateFilter?: DateFilter) =>
   useQuery({
-    queryKey: queryKeys.statistics.counts(),
-    queryFn: () => _StatisticsApi.getCounts(),
+    queryKey: queryKeys.statistics.counts(dateFilter),
+    queryFn: () => _StatisticsApi.getCounts(dateFilter),
   });
 
-export const useFetchMonthlyPerformance = (year?: number) =>
+export const useFetchMonthlyPerformance = (year?: number, dateFilter?: DateFilter) =>
   useQuery({
-    queryKey: queryKeys.statistics.monthlyPerformance({ year }),
-    queryFn: () => _StatisticsApi.getMonthlyPerformance({ year }),
+    queryKey: queryKeys.statistics.monthlyPerformance({ year, ...dateFilter }),
+    queryFn: () => _StatisticsApi.getMonthlyPerformance({ year, ...dateFilter }),
   });
 
-export const useFetchOrdersByStatus = () =>
+export const useFetchOrdersByStatus = (dateFilter?: DateFilter) =>
   useQuery({
-    queryKey: queryKeys.statistics.ordersByStatus(),
-    queryFn: () => _StatisticsApi.getOrdersByStatus(),
+    queryKey: queryKeys.statistics.ordersByStatus(dateFilter),
+    queryFn: () => _StatisticsApi.getOrdersByStatus(dateFilter),
   });
 
-export const useFetchTopShops = (limit?: number) =>
+export const useFetchTopShops = (limit?: number, dateFilter?: DateFilter) =>
   useQuery({
-    queryKey: queryKeys.statistics.topShops({ limit }),
-    queryFn: () => _StatisticsApi.getTopShops({ limit }),
+    queryKey: queryKeys.statistics.topShops({ limit, ...dateFilter }),
+    queryFn: () => _StatisticsApi.getTopShops({ limit, ...dateFilter }),
   });
 
-export const useFetchRevenueTrend = (days?: number) =>
+export const useFetchRevenueTrend = (days?: number, dateFilter?: DateFilter) =>
   useQuery({
-    queryKey: queryKeys.statistics.revenueTrend({ days }),
-    queryFn: () => _StatisticsApi.getRevenueTrend({ days }),
+    queryKey: queryKeys.statistics.revenueTrend({ days, ...dateFilter }),
+    queryFn: () => _StatisticsApi.getRevenueTrend({ days, ...dateFilter }),
   });
 
-export const useFetchOrdersByHour = () =>
+export const useFetchOrdersByHour = (dateFilter?: DateFilter) =>
   useQuery({
-    queryKey: queryKeys.statistics.ordersByHour(),
-    queryFn: () => _StatisticsApi.getOrdersByHour(),
+    queryKey: queryKeys.statistics.ordersByHour(dateFilter),
+    queryFn: () => _StatisticsApi.getOrdersByHour(dateFilter),
   });
 
-export const useFetchOrdersByDay = () =>
+export const useFetchOrdersByDay = (dateFilter?: DateFilter) =>
   useQuery({
-    queryKey: queryKeys.statistics.ordersByDay(),
-    queryFn: () => _StatisticsApi.getOrdersByDay(),
+    queryKey: queryKeys.statistics.ordersByDay(dateFilter),
+    queryFn: () => _StatisticsApi.getOrdersByDay(dateFilter),
   });
 
-export const useFetchTopCategories = (limit?: number) =>
+export const useFetchTopCategories = (limit?: number, dateFilter?: DateFilter) =>
   useQuery({
-    queryKey: queryKeys.statistics.topCategories({ limit }),
-    queryFn: () => _StatisticsApi.getTopCategories({ limit }),
+    queryKey: queryKeys.statistics.topCategories({ limit, ...dateFilter }),
+    queryFn: () => _StatisticsApi.getTopCategories({ limit, ...dateFilter }),
   });
 
-export const useFetchUserGrowth = (months?: number) =>
+export const useFetchUserGrowth = (months?: number, dateFilter?: DateFilter) =>
   useQuery({
-    queryKey: queryKeys.statistics.userGrowth({ months }),
-    queryFn: () => _StatisticsApi.getUserGrowth({ months }),
+    queryKey: queryKeys.statistics.userGrowth({ months, ...dateFilter }),
+    queryFn: () => _StatisticsApi.getUserGrowth({ months, ...dateFilter }),
   });
 
-export const useFetchOrderFunnel = () =>
+export const useFetchOrderFunnel = (dateFilter?: DateFilter) =>
   useQuery({
-    queryKey: queryKeys.statistics.orderFunnel(),
-    queryFn: () => _StatisticsApi.getOrderFunnel(),
+    queryKey: queryKeys.statistics.orderFunnel(dateFilter),
+    queryFn: () => _StatisticsApi.getOrderFunnel(dateFilter),
   });
 
-export const useFetchAvgOrderValueTrend = (months?: number) =>
+export const useFetchAvgOrderValueTrend = (months?: number, dateFilter?: DateFilter) =>
   useQuery({
-    queryKey: queryKeys.statistics.avgOrderValueTrend({ months }),
-    queryFn: () => _StatisticsApi.getAvgOrderValueTrend({ months }),
+    queryKey: queryKeys.statistics.avgOrderValueTrend({ months, ...dateFilter }),
+    queryFn: () => _StatisticsApi.getAvgOrderValueTrend({ months, ...dateFilter }),
   });
 
-export const useFetchDriverComparison = (limit?: number) =>
+export const useFetchDriverComparison = (limit?: number, dateFilter?: DateFilter) =>
   useQuery({
-    queryKey: queryKeys.statistics.driverComparison({ limit }),
-    queryFn: () => _StatisticsApi.getDriverComparison({ limit }),
+    queryKey: queryKeys.statistics.driverComparison({ limit, ...dateFilter }),
+    queryFn: () => _StatisticsApi.getDriverComparison({ limit, ...dateFilter }),
   });
 
-export const useFetchStockLevels = () =>
+export const useFetchStockLevels = (dateFilter?: DateFilter) =>
   useQuery({
-    queryKey: queryKeys.statistics.stockLevels(),
-    queryFn: () => _StatisticsApi.getStockLevels(),
+    queryKey: queryKeys.statistics.stockLevels(dateFilter),
+    queryFn: () => _StatisticsApi.getStockLevels(dateFilter),
   });
 
-export const useFetchSalesHeatmap = () =>
+export const useFetchSalesHeatmap = (dateFilter?: DateFilter) =>
   useQuery({
-    queryKey: queryKeys.statistics.salesHeatmap(),
-    queryFn: () => _StatisticsApi.getSalesHeatmap(),
+    queryKey: queryKeys.statistics.salesHeatmap(dateFilter),
+    queryFn: () => _StatisticsApi.getSalesHeatmap(dateFilter),
   });

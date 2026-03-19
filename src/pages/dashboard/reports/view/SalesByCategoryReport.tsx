@@ -19,8 +19,9 @@ import { useFetchSalesByCategoryReport } from '../hooks/report';
 
 const metadata = { title: `Sales by Category | Dashboard - ${CONFIG.appName}` };
 
-function getLocalName(obj: { ar?: string; en?: string } | undefined, lang: string) {
+function getLocalName(obj: string | { ar?: string; en?: string } | undefined, lang: string) {
   if (!obj) return '-';
+  if (typeof obj === 'string') return obj;
   return (lang === 'ar' ? obj.ar : obj.en) || obj.en || obj.ar || '-';
 }
 
@@ -30,13 +31,20 @@ export default function SalesByCategoryReportPage() {
   const lang = (i18n.language || 'en').startsWith('ar') ? 'ar' : 'en';
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
+  const [appliedFrom, setAppliedFrom] = useState('');
+  const [appliedTo, setAppliedTo] = useState('');
   const [isExporting, setIsExporting] = useState(false);
 
   const params = {
-    from_date: fromDate || undefined,
-    to_date: toDate || undefined,
+    from_date: appliedFrom || undefined,
+    to_date: appliedTo || undefined,
   };
-  const { data, isLoading, refetch } = useFetchSalesByCategoryReport(params);
+  const { data, isLoading } = useFetchSalesByCategoryReport(params);
+
+  const handleApply = () => {
+    setAppliedFrom(fromDate);
+    setAppliedTo(toDate);
+  };
   const reportData = data?.data;
 
   const handleExport = async (format: ExportFormat) => {
@@ -86,7 +94,7 @@ export default function SalesByCategoryReportPage() {
               onChange={(e) => setToDate(e.target.value)}
               className="h-9 rounded-lg border border-input bg-background px-3 text-sm"
             />
-            <Button variant="outlined" size="small" onClick={() => refetch()}>
+            <Button variant="outlined" size="small" onClick={handleApply}>
               Apply
             </Button>
             <Box className="h-5 w-px bg-border/60" />

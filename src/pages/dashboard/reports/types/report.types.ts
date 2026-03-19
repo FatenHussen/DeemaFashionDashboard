@@ -103,7 +103,7 @@ export interface SalesByLocationReportResponse {
 }
 
 export interface SalesByCategoryItem {
-  category: { ar: string; en: string };
+  category: string | { ar: string; en: string };
   total_quantity: number;
   total_revenue: number;
 }

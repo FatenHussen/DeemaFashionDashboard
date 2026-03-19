@@ -91,11 +91,11 @@ export default function CreatePage() {
 
       if (isEditMode && id) {
         await updateRoleMutation.mutateAsync({ id, data: payload });
-        toast.success('Role updated successfully');
+        toast.success(t('form.roleUpdatedSuccess'));
         navigate('/role');
       } else {
         await createRoleMutation.mutateAsync(payload);
-        toast.success('Role created successfully');
+        toast.success(t('form.roleCreatedSuccess'));
         navigate('/role');
       }
     } catch (error: any) {

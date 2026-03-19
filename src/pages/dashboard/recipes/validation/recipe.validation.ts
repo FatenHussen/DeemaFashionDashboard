@@ -1,5 +1,9 @@
 import { z } from 'zod';
 
+import i18n from 'src/lib/i18n';
+
+const t = (key: string) => i18n.t(key, { ns: 'validation' });
+
 const translationField = z.object({
   ar: z.string().optional().default(''),
   en: z.string().optional().default(''),
@@ -7,8 +11,8 @@ const translationField = z.object({
 
 export const RecipeSchema = z.object({
   name: z.object({
-    en: z.string().min(1, 'English name is required'),
-    ar: z.string().min(1, 'Arabic name is required'),
+    en: z.string().min(1, t('recipe.nameEnRequired')),
+    ar: z.string().min(1, t('recipe.nameArRequired')),
   }),
   description: translationField.optional(),
   image: z.instanceof(File).optional().or(z.literal(null)).or(z.undefined()),
@@ -19,7 +23,7 @@ export const RecipeSchema = z.object({
   prepare_time: z.string().optional().default(''),
   items: z.array(
     z.object({
-      shop_product_variant_id: z.number().min(1, 'Product variant is required'),
+      shop_product_variant_id: z.number().min(1, t('recipe.productVariantRequired')),
       switchable_category_id: z.number().optional(),
       quantity: z.coerce.number().min(1).default(1),
       is_required: z.boolean().default(true),

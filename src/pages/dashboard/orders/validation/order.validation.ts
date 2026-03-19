@@ -1,11 +1,15 @@
 import { z } from 'zod';
 
+import i18n from 'src/lib/i18n';
+
+const t = (key: string) => i18n.t(key, { ns: 'validation' });
+
 export const ChangeOrderStatusSchema = z.object({
   status: z.enum(['pending', 'preparing', 'out_delivery', 'delivered']),
 });
 
 export const AssignDriverSchema = z.object({
-  driver_id: z.coerce.number().min(1, 'Driver is required'),
+  driver_id: z.coerce.number().min(1, t('order.driverRequired')),
 });
 
 export type ChangeOrderStatusFormValues = z.infer<typeof ChangeOrderStatusSchema>;

@@ -103,7 +103,9 @@ export function getNavData(t: TFunction<'nav'>): NavSectionProps['data'] {
       ) as any,
       items: [
         { title: t('baskets'), path: paths.dashboard.baskets, icon: ICONS.ecommerce, requiredPermission: 'basket.view' },
-        { title: t('scheduledBaskets'), path: paths.dashboard.scheduledBaskets, icon: ICONS.calendar, requiredPermission: 'scheduledbasket.view' },
+        { title: t('scheduledBaskets'), path: paths.dashboard.scheduledBaskets, icon: ICONS.calendar, requiredPermission: 'schedulebasket.view' },
+        { title: t('schedules'), path: paths.dashboard.schedules, icon: ICONS.calendar, requiredPermission: 'schedule.view' },
+        { title: t('userBasketSchedules'), path: paths.dashboard.userBasketSchedules, icon: ICONS.calendar, requiredPermission: 'userbasketschedule.view' },
       ],
     },
     /**
@@ -120,6 +122,7 @@ export function getNavData(t: TFunction<'nav'>): NavSectionProps['data'] {
         { title: t('government'), path: paths.dashboard.locations, icon: ICONS.tour, requiredPermission: 'governorate.view' },
         { title: t('city'), path: paths.dashboard.city, icon: ICONS.tour, requiredPermission: 'city.view' },
         { title: t('area'), path: paths.dashboard.area, icon: ICONS.label, requiredPermission: 'area.view' },
+        { title: t('countries'), path: paths.dashboard.countries, icon: ICONS.tour, requiredPermission: 'country.view' },
       ],
     },
     /**
@@ -187,6 +190,7 @@ export function getNavData(t: TFunction<'nav'>): NavSectionProps['data'] {
         { title: t('userGifts'), path: paths.dashboard.userGifts, icon: ICONS.ecommerce, requiredPermission: 'gift.view' },
         { title: t('userPoints'), path: paths.dashboard.userPoints, icon: ICONS.analytics, requiredPermission: 'pointwallet.view' },
         { title: t('pointExchanges'), path: paths.dashboard.pointExchanges, icon: ICONS.banking, requiredPermission: 'pointexchange.view' },
+        { title: t('pointRules'), path: paths.dashboard.pointRules, icon: ICONS.params, requiredPermission: 'pointrule.view' },
       ],
     },
     /**
@@ -201,6 +205,8 @@ export function getNavData(t: TFunction<'nav'>): NavSectionProps['data'] {
       ) as any,
       items: [
         { title: t('coupons'), path: paths.dashboard.coupons, icon: ICONS.invoice, requiredPermission: 'coupon.view' },
+        { title: t('promotions'), path: paths.dashboard.promotions, icon: ICONS.label, requiredPermission: 'promotion.view' },
+        { title: t('promotionRequests'), path: paths.dashboard.promotionRequests, icon: ICONS.file, requiredPermission: 'promotionrequest.view' },
         { title: t('services'), path: paths.dashboard.services, icon: ICONS.course, requiredPermission: 'service.view' },
       ],
     },
@@ -221,6 +227,11 @@ export function getNavData(t: TFunction<'nav'>): NavSectionProps['data'] {
         { title: t('faqs'), path: paths.dashboard.faqs, icon: ICONS.blog, requiredPermission: 'faq.view' },
         { title: t('complaints'), path: paths.dashboard.complaints, icon: ICONS.chat, requiredPermission: 'complaint.view' },
         { title: t('adminNotifications'), path: paths.dashboard.adminNotifications, icon: <Iconify icon="solar:bell-bold" width={22} height={22} />, requiredPermission: 'notification.view' },
+        { title: t('settings'), path: paths.dashboard.settings, icon: ICONS.params, requiredPermission: 'setting.view' },
+        { title: t('badges'), path: paths.dashboard.badges, icon: ICONS.label, requiredPermission: 'badge.view' },
+        { title: t('icons'), path: paths.dashboard.icons, icon: ICONS.folder, requiredPermission: 'icon.view' },
+        { title: t('activityLogs'), path: paths.dashboard.activityLogs, icon: ICONS.file, requiredPermission: 'activitylog.view' },
+        { title: t('affiliateWithdrawRequests'), path: paths.dashboard.affiliateWithdrawRequests, icon: ICONS.banking, requiredPermission: 'affiliatewithdrawrequest.view' },
       ],
     },
     /**

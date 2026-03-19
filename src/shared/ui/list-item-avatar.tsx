@@ -7,7 +7,7 @@ export interface ListItemAvatarProps {
 
 export function ListItemAvatar({ children, className }: ListItemAvatarProps) {
   return (
-    <div className={mergeClasses(['flex-shrink-0 mr-3', className])}>
+    <div className={mergeClasses(['flex-shrink-0 me-3', className])}>
       {children}
     </div>
   );

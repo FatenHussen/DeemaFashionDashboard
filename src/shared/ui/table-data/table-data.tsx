@@ -172,7 +172,7 @@ export function DataTable<TData, TValue>({
                 className="hover:bg-transparent border-b border-border/20 bg-linear-to-r from-muted/40 via-muted/20 to-muted/40"
               >
                 {expandedRowRender && (
-                  <TableHead className="w-12 sticky left-0 z-20 bg-background/95 backdrop-blur">
+                  <TableHead className="w-12 sticky start-0 z-20 bg-background/95 backdrop-blur">
                     {/* Empty header for expand/collapse column */}
                   </TableHead>
                 )}
@@ -184,7 +184,7 @@ export function DataTable<TData, TValue>({
                   return (
                     <TableHead
                       key={header.id}
-                      className="transition-all duration-200 hover:bg-muted/30 first:pl-6 last:pr-6"
+                      className="transition-all duration-200 hover:bg-muted/30 first:ps-6 last:pe-6"
                       style={columnWidth ? { width: columnWidth } : undefined}
                     >
                       {header.isPlaceholder
@@ -235,14 +235,14 @@ export function DataTable<TData, TValue>({
                           group ${rowClickToDetails ? 'cursor-pointer' : 'cursor-default'}
                           table-modern-row table-row-gradient-hover
                           hover:bg-linear-to-r hover:from-primary/8 hover:via-primary/4 hover:to-transparent
-                          hover:shadow-[inset_4px_0_0_0_rgb(var(--primary)),0_4px_12px_-4px_rgba(var(--primary),0.15)]
+                          hover:shadow-[inset_4px_0_0_0_rgb(var(--primary)),0_4px_12px_-4px_rgba(var(--primary),0.15)] rtl:hover:shadow-[inset_-4px_0_0_0_rgb(var(--primary)),0_4px_12px_-4px_rgba(var(--primary),0.15)]
                           active:scale-[0.995] active:bg-muted/50
-                          ${isSelected ? 'bg-primary/10 shadow-[inset_4px_0_0_0_rgb(var(--primary))] scale-[1.002]' : ''}
+                          ${isSelected ? 'bg-primary/10 shadow-[inset_4px_0_0_0_rgb(var(--primary))] rtl:shadow-[inset_-4px_0_0_0_rgb(var(--primary))] scale-[1.002]' : ''}
                           ${rowIndex % 2 === 0 ? 'bg-background' : 'bg-muted/10'}
                         `}
                     >
                       {expandedRowRender && (
-                        <TableCell className="w-12 sticky left-0 z-10 bg-background/95 backdrop-blur">
+                        <TableCell className="w-12 sticky start-0 z-10 bg-background/95 backdrop-blur">
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
@@ -287,9 +287,9 @@ export function DataTable<TData, TValue>({
                               } as React.CSSProperties
                             }
                             className={`
-                                transition-all duration-200 first:pl-6 last:pr-6
+                                transition-all duration-200 first:ps-6 last:pe-6
                                 table-cell-animated
-                                ${isActionsColumn ? 'sticky right-0 z-10 bg-background/95 backdrop-blur' : ''}
+                                ${isActionsColumn ? 'sticky end-0 z-10 bg-background/95 backdrop-blur' : ''}
                                 group-hover:text-foreground
                               `}
                           >
@@ -312,7 +312,7 @@ export function DataTable<TData, TValue>({
                     {expandedRowRender && isExpanded && (
                       <TableRow className="bg-linear-to-r from-primary/5 via-muted/30 to-transparent table-expanded-content">
                         <TableCell colSpan={table.getAllColumns().length + 1} className="p-6">
-                          <div className="border-l-4 border-l-primary pl-6 py-2 bg-linear-to-r from-muted/30 to-transparent rounded-r-lg animate-[tableRowFadeIn_0.4s_ease-out]">
+                          <div className="border-s-4 border-s-primary ps-6 py-2 bg-linear-to-r from-muted/30 to-transparent rounded-r-lg animate-[tableRowFadeIn_0.4s_ease-out]">
                             {expandedRowRender(row.original)}
                           </div>
                         </TableCell>

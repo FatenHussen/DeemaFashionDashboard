@@ -5,7 +5,7 @@ export interface AdminData {
   name: string;
   email: string;
   is_active: number;
-  roles: string[];
+  roles: (string | { id: number; name: string })[];
   created_at: string;
 }
 
@@ -28,4 +28,5 @@ export interface AdminCreateUpdatePayload {
   email: string;
   password?: string;
   password_confirmation?: string;
+  roles?: { id: number }[];
 }

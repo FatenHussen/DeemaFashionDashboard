@@ -97,11 +97,11 @@ export default function CreatePage() {
 
       if (isEditMode && id) {
         await updateLanguageMutation.mutateAsync({ id, data: payload });
-        toast.success('Language updated successfully');
+        toast.success(t('form.languageUpdatedSuccess'));
         navigate('/languages');
       } else {
         await createLanguageMutation.mutateAsync(payload);
-        toast.success('Language created successfully');
+        toast.success(t('form.languageCreatedSuccess'));
         navigate('/languages');
       }
     } catch (error: any) {

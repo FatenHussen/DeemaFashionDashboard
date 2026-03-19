@@ -85,7 +85,7 @@ export default function Page() {
           delete: hasPermission('delete', 'scheduled-basket'),
         }}
         isLoading={isLoading}
-        columnTranslations={{ id: 'ID', name: 'Name', discount: 'Discount', scheduled_at: 'Scheduled At', is_active: 'Status', items_count: 'Items', created_at: 'Created', actions: 'Actions' }}
+        columnTranslations={{ id: 'ID', image: 'Image', name: 'Name', category: 'Category', original_price: 'Original Price', final_price: 'Final Price', discount: 'Discount', rating: 'Rating', num_sold: 'Sold', is_active: 'Status', actions: 'Actions' }}
         pagination={pagination}
         currentPage={currentPage}
         pageSize={pageSize}

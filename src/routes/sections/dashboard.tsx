@@ -240,6 +240,53 @@ const SalesByCategoryReportPage = lazy(
   () => import('@/pages/dashboard/reports/view/SalesByCategoryReport')
 );
 
+// Settings
+const SettingsIndexPage = lazy(() => import('@/pages/dashboard/settings/view/Index'));
+
+// Badges
+const BadgeIndexPage = lazy(() => import('@/pages/dashboard/badges/view/Index'));
+const BadgeCreatePage = lazy(() => import('@/pages/dashboard/badges/view/Create'));
+
+// Activity Logs
+const ActivityLogIndexPage = lazy(() => import('@/pages/dashboard/activity-logs/view/Index'));
+
+// Affiliate Withdraw Requests
+const AffiliateWithdrawIndexPage = lazy(
+  () => import('@/pages/dashboard/affiliate-withdraw-requests/view/Index')
+);
+const AffiliateWithdrawDetailsPage = lazy(
+  () => import('@/pages/dashboard/affiliate-withdraw-requests/view/Details')
+);
+
+// Icons
+const IconIndexPage = lazy(() => import('@/pages/dashboard/icons/view/Index'));
+const IconCreatePage = lazy(() => import('@/pages/dashboard/icons/view/Create'));
+
+// Promotions
+const PromotionIndexPage = lazy(() => import('@/pages/dashboard/promotions/view/Index'));
+const PromotionCreatePage = lazy(() => import('@/pages/dashboard/promotions/view/Create'));
+const PromotionDetailsPage = lazy(() => import('@/pages/dashboard/promotions/view/Details'));
+
+// Countries
+const CountryIndexPage = lazy(() => import('@/pages/dashboard/countries/view/Index'));
+const CountryCreatePage = lazy(() => import('@/pages/dashboard/countries/view/Create'));
+
+// Promotion Requests
+const PromotionRequestIndexPage = lazy(() => import('@/pages/dashboard/promotion-requests/view/Index'));
+const PromotionRequestDetailsPage = lazy(() => import('@/pages/dashboard/promotion-requests/view/Details'));
+
+// Point Rules
+const PointRuleIndexPage = lazy(() => import('@/pages/dashboard/point-rules/view/Index'));
+const PointRuleCreatePage = lazy(() => import('@/pages/dashboard/point-rules/view/Create'));
+
+// Schedules
+const ScheduleIndexPage = lazy(() => import('@/pages/dashboard/schedules/view/Index'));
+const ScheduleCreatePage = lazy(() => import('@/pages/dashboard/schedules/view/Create'));
+
+// User Basket Schedules
+const UserBasketScheduleIndexPage = lazy(() => import('@/pages/dashboard/user-basket-schedules/view/Index'));
+const UserBasketScheduleCreatePage = lazy(() => import('@/pages/dashboard/user-basket-schedules/view/Create'));
+
 const Page403 = lazy(() => import('src/pages/error/403'));
 
 // ----------------------------------------------------------------------
@@ -1035,7 +1082,7 @@ export const dashboardRoutes: RouteObject[] = [
     children: [
       {
         element: (
-          <RequirePermission permission="scheduledbasket.view">
+          <RequirePermission permission="schedulebasket.view">
             <ScheduledBasketIndexPage />
           </RequirePermission>
         ),
@@ -1044,7 +1091,7 @@ export const dashboardRoutes: RouteObject[] = [
       {
         path: 'create',
         element: (
-          <RequirePermission permission="scheduledbasket.create">
+          <RequirePermission permission="schedulebasket.create">
             <ScheduledBasketCreatePage />
           </RequirePermission>
         ),
@@ -1052,7 +1099,7 @@ export const dashboardRoutes: RouteObject[] = [
       {
         path: 'update/:id',
         element: (
-          <RequirePermission permission="scheduledbasket.update">
+          <RequirePermission permission="schedulebasket.update">
             <ScheduledBasketCreatePage />
           </RequirePermission>
         ),
@@ -1060,7 +1107,7 @@ export const dashboardRoutes: RouteObject[] = [
       {
         path: 'details/:id',
         element: (
-          <RequirePermission permission="scheduledbasket.view">
+          <RequirePermission permission="schedulebasket.view">
             <ScheduledBasketDetailsPage />
           </RequirePermission>
         ),
@@ -1550,6 +1597,302 @@ export const dashboardRoutes: RouteObject[] = [
       { path: 'driver-performance', element: <DriverPerformanceReportPage /> },
       { path: 'sales-by-location', element: <SalesByLocationReportPage /> },
       { path: 'sales-by-category', element: <SalesByCategoryReportPage /> },
+    ],
+  },
+  // Settings
+  {
+    path: 'settings',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: (
+          <RequirePermission permission="setting.view">
+            <SettingsIndexPage />
+          </RequirePermission>
+        ),
+        index: true,
+      },
+    ],
+  },
+  // Badges
+  {
+    path: 'badges',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: (
+          <RequirePermission permission="badge.view">
+            <BadgeIndexPage />
+          </RequirePermission>
+        ),
+        index: true,
+      },
+      {
+        path: 'create',
+        element: (
+          <RequirePermission permission="badge.create">
+            <BadgeCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'update/:id',
+        element: (
+          <RequirePermission permission="badge.update">
+            <BadgeCreatePage />
+          </RequirePermission>
+        ),
+      },
+    ],
+  },
+  // Activity Logs
+  {
+    path: 'activity-logs',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: (
+          <RequirePermission permission="activitylog.view">
+            <ActivityLogIndexPage />
+          </RequirePermission>
+        ),
+        index: true,
+      },
+    ],
+  },
+  // Affiliate Withdraw Requests
+  {
+    path: 'affiliate-withdraw-requests',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: (
+          <RequirePermission permission="affiliatewithdrawrequest.view">
+            <AffiliateWithdrawIndexPage />
+          </RequirePermission>
+        ),
+        index: true,
+      },
+      {
+        path: ':id',
+        element: (
+          <RequirePermission permission="affiliatewithdrawrequest.view">
+            <AffiliateWithdrawDetailsPage />
+          </RequirePermission>
+        ),
+      },
+    ],
+  },
+  // Icons
+  {
+    path: 'icons',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: (
+          <RequirePermission permission="icon.view">
+            <IconIndexPage />
+          </RequirePermission>
+        ),
+        index: true,
+      },
+      {
+        path: 'create',
+        element: (
+          <RequirePermission permission="icon.create">
+            <IconCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'update/:id',
+        element: (
+          <RequirePermission permission="icon.update">
+            <IconCreatePage />
+          </RequirePermission>
+        ),
+      },
+    ],
+  },
+  // Promotions
+  {
+    path: 'promotions',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: (
+          <RequirePermission permission="promotion.view">
+            <PromotionIndexPage />
+          </RequirePermission>
+        ),
+        index: true,
+      },
+      {
+        path: 'create',
+        element: (
+          <RequirePermission permission="promotion.create">
+            <PromotionCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'update/:id',
+        element: (
+          <RequirePermission permission="promotion.update">
+            <PromotionCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: ':id',
+        element: (
+          <RequirePermission permission="promotion.view">
+            <PromotionDetailsPage />
+          </RequirePermission>
+        ),
+      },
+    ],
+  },
+  {
+    path: 'countries',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: (
+          <RequirePermission permission="country.view">
+            <CountryIndexPage />
+          </RequirePermission>
+        ),
+        index: true,
+      },
+      {
+        path: 'create',
+        element: (
+          <RequirePermission permission="country.create">
+            <CountryCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'update/:id',
+        element: (
+          <RequirePermission permission="country.update">
+            <CountryCreatePage />
+          </RequirePermission>
+        ),
+      },
+    ],
+  },
+  {
+    path: 'promotion-requests',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: (
+          <RequirePermission permission="promotionrequest.view">
+            <PromotionRequestIndexPage />
+          </RequirePermission>
+        ),
+        index: true,
+      },
+      {
+        path: ':id',
+        element: (
+          <RequirePermission permission="promotionrequest.view">
+            <PromotionRequestDetailsPage />
+          </RequirePermission>
+        ),
+      },
+    ],
+  },
+  {
+    path: 'point-rules',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: (
+          <RequirePermission permission="pointrule.view">
+            <PointRuleIndexPage />
+          </RequirePermission>
+        ),
+        index: true,
+      },
+      {
+        path: 'create',
+        element: (
+          <RequirePermission permission="pointrule.create">
+            <PointRuleCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'update/:id',
+        element: (
+          <RequirePermission permission="pointrule.update">
+            <PointRuleCreatePage />
+          </RequirePermission>
+        ),
+      },
+    ],
+  },
+  {
+    path: 'schedules',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: (
+          <RequirePermission permission="schedule.view">
+            <ScheduleIndexPage />
+          </RequirePermission>
+        ),
+        index: true,
+      },
+      {
+        path: 'create',
+        element: (
+          <RequirePermission permission="schedule.create">
+            <ScheduleCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'update/:id',
+        element: (
+          <RequirePermission permission="schedule.update">
+            <ScheduleCreatePage />
+          </RequirePermission>
+        ),
+      },
+    ],
+  },
+  {
+    path: 'user-basket-schedules',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: (
+          <RequirePermission permission="userbasketschedule.view">
+            <UserBasketScheduleIndexPage />
+          </RequirePermission>
+        ),
+        index: true,
+      },
+      {
+        path: 'create',
+        element: (
+          <RequirePermission permission="userbasketschedule.create">
+            <UserBasketScheduleCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'update/:id',
+        element: (
+          <RequirePermission permission="userbasketschedule.update">
+            <UserBasketScheduleCreatePage />
+          </RequirePermission>
+        ),
+      },
     ],
   },
   {

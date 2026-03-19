@@ -74,7 +74,7 @@ export default function CreatePage() {
         category_id: source.category?.id || 0,
         name: { en: (name as any)?.en || '', ar: (name as any)?.ar || '' },
         offer_ends_at: source.offer_ends_at || '',
-        discount: source.discount || 0,
+        discount: Number(source.discount) || 0,
         discount_type: source.discount_type || 'percentage',
         delivery_price: source.delivery_price || 0,
         image: null,

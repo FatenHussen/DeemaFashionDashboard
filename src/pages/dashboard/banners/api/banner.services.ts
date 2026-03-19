@@ -16,7 +16,8 @@ export const _BannerApi = {
     const formData = new FormData();
     formData.append('title[en]', data.title.en);
     formData.append('title[ar]', data.title.ar);
-    formData.append('description', data.description);
+    formData.append('description[en]', data.description.en);
+    formData.append('description[ar]', data.description.ar);
     formData.append('link', data.link);
     if (data.image instanceof File) {
       formData.append('image', data.image);
@@ -35,7 +36,8 @@ export const _BannerApi = {
     formData.append('_method', 'PATCH');
     formData.append('title[en]', data.title.en);
     formData.append('title[ar]', data.title.ar);
-    formData.append('description[en]', data.description);
+    formData.append('description[en]', data.description.en);
+    formData.append('description[ar]', data.description.ar);
     formData.append('link', data.link);
     if (data.image instanceof File) {
       formData.append('image', data.image);

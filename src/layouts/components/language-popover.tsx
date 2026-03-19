@@ -48,7 +48,7 @@ export function LanguagePopover({ data = [], className, ...other }: LanguagePopo
             <button
               type="button"
               onClick={() => handleChangeLang(option.value)}
-              className={`w-full px-3 py-2 text-left flex items-center gap-2 hover:bg-muted transition-colors ${
+              className={`w-full px-3 py-2 text-start flex items-center gap-2 hover:bg-muted transition-colors ${
                 option.value === currentLang?.value ? 'bg-muted' : ''
               }`}
             >

@@ -11,7 +11,7 @@ export function DownloadButton({ className, ...other }: React.ButtonHTMLAttribut
     <button
       type="button"
       className={mergeClasses([
-        'p-0 top-0 right-0 w-full h-full z-[9] opacity-0 absolute text-white rounded-inherit transition-opacity',
+        'p-0 top-0 end-0 w-full h-full z-[9] opacity-0 absolute text-white rounded-inherit transition-opacity',
         'hover:opacity-100 hover:backdrop-blur-sm hover:bg-black/64',
         className,
       ])}
@@ -29,7 +29,7 @@ export function RemoveButton({ className, ...other }: Omit<React.ButtonHTMLAttri
     <IconButton
       size="small"
       className={mergeClasses([
-        'p-1.5 top-1 right-1 absolute text-white bg-black/48 hover:bg-black/72',
+        'p-1.5 top-1 end-1 absolute text-white bg-black/48 hover:bg-black/72',
         className,
       ])}
       {...other}

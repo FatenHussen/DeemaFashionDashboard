@@ -62,7 +62,7 @@ export default function Page() {
         detailsLink="/recipes/details"
         permissions={{ create: hasPermission('create', 'recipe'), update: hasPermission('update', 'recipe'), delete: hasPermission('delete', 'recipe') }}
         isLoading={isLoading}
-        columnTranslations={{ id: 'ID', name: 'Name', prep_time: 'Prep', cook_time: 'Cook', servings: 'Servings', is_active: 'Status', actions: 'Actions' }}
+        columnTranslations={{ id: 'ID', image: 'Image', name: 'Name', description: 'Description', price: 'Price', discount: 'Discount', rating: 'Rating', orders_count: 'Orders', created_at: 'Created', actions: 'Actions' }}
         pagination={pagination}
         currentPage={currentPage}
         pageSize={pageSize}

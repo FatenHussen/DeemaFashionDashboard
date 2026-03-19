@@ -59,5 +59,16 @@
   "legalDocuments": "المستندات القانونية",
   "faqs": "الأسئلة الشائعة",
   "vendorUsers": "مستخدمو البائعين",
-  "sellerRegistrations": "طلبات تسجيل البائعين"
+  "sellerRegistrations": "طلبات تسجيل البائعين",
+  "settings": "الإعدادات",
+  "badges": "الشارات",
+  "icons": "الأيقونات",
+  "activityLogs": "سجل النشاطات",
+  "affiliateWithdrawRequests": "طلبات سحب العمولة",
+  "promotions": "العروض الترويجية",
+  "countries": "الدول",
+  "promotionRequests": "طلبات الترقية",
+  "pointRules": "قواعد النقاط",
+  "schedules": "الجداول",
+  "userBasketSchedules": "جداول سلة المستخدم"
 }

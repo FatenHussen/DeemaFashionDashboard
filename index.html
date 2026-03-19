@@ -6,6 +6,15 @@
     <meta name="theme-color" content="#000000" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Minimal UI Kit</title>
+    <script>
+      // Apply saved language direction before React mounts to prevent flash
+      (function () {
+        var lang = localStorage.getItem('app-language') || 'en';
+        var dir = lang === 'ar' ? 'rtl' : 'ltr';
+        document.documentElement.lang = lang;
+        document.documentElement.dir = dir;
+      })();
+    </script>
   </head>
 
   <body>

@@ -1,18 +1,22 @@
 import { z as zod } from 'zod';
 
+import i18n from 'src/lib/i18n';
+
+const t = (key: string) => i18n.t(key, { ns: 'validation' });
+
 // ----------------------------------------------------------------------
 // Use coerce for numeric fields - inputs/API often return strings
 
 export const ProductSchema = zod.object({
-  category_id: zod.coerce.number().min(1, { message: 'Category is required!' }),
+  category_id: zod.coerce.number().min(1, { message: t('product.categoryRequired') }),
   brand_id: zod.coerce.number().min(0).optional(),
   name: zod.object({
-    en: zod.string().min(1, { message: 'English name is required!' }),
-    ar: zod.string().min(1, { message: 'Arabic name is required!' }),
+    en: zod.string().min(1, { message: t('product.nameEnRequired') }),
+    ar: zod.string().min(1, { message: t('product.nameArRequired') }),
   }),
   description: zod.object({
-    en: zod.string().min(1, { message: 'English description is required!' }),
-    ar: zod.string().min(1, { message: 'Arabic description is required!' }),
+    en: zod.string().min(1, { message: t('product.descriptionEnRequired') }),
+    ar: zod.string().min(1, { message: t('product.descriptionArRequired') }),
   }),
   full_description: zod
     .object({
@@ -26,12 +30,12 @@ export const ProductSchema = zod.object({
       ar: zod.string(),
     })
     .optional(),
-  price: zod.coerce.number().min(0, { message: 'Price must be positive!' }),
+  price: zod.coerce.number().min(0, { message: t('product.pricePositive') }),
   price_after_discount: zod.preprocess(
     (v) => (v === '' || v === null || v === undefined ? undefined : v),
     zod.coerce.number().min(0).optional()
   ),
-  quantity: zod.coerce.number().min(0, { message: 'Quantity must be positive!' }),
+  quantity: zod.coerce.number().min(0, { message: t('product.quantityPositive') }),
   sku: zod.string().optional(),
   model: zod.string().optional(),
   barcode: zod.string().optional(),

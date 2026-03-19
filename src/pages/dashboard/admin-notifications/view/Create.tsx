@@ -40,7 +40,7 @@ export default function CreatePage() {
   const onSubmit = async (data: NotificationFormValues) => {
     try {
       await createMutation.mutateAsync(data);
-      toast.success('Notification sent successfully');
+      toast.success(t('form.notificationSentSuccess'));
       navigate('/admin-notifications');
     } catch { return; }
   };
@@ -62,7 +62,7 @@ export default function CreatePage() {
           className="mb-4 -ml-2 text-muted-foreground hover:text-foreground"
         >
           <Iconify icon="solar:arrow-left-bold" width={20} className="mr-2" />
-          Back to Notifications
+          {t('form.backToNotifications')}
         </Button>
 
         <CreateFormLayout
@@ -76,18 +76,18 @@ export default function CreatePage() {
           isEditMode={false}
           maxWidth="2xl"
           submitLabel={t('form.sendNotificationSubmit')}
-          submittingLabel="Sending..."
+          submittingLabel={t('form.sending')}
         >
           <Box className="col-span-2">
             <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
-              Title <span className="text-destructive">*</span>
+              {t('form.titleLabel')} <span className="text-destructive">*</span>
             </Typography>
             <RHFTextField name="title" placeholder={t('form.notificationTitlePlaceholder')} fullWidth />
           </Box>
 
           <Box className="col-span-2">
             <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
-              Body <span className="text-destructive">*</span>
+              {t('form.bodyLabel')} <span className="text-destructive">*</span>
             </Typography>
             <Controller
               name="body"

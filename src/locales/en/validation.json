@@ -1,0 +1,318 @@
+{
+  "required": "This field is required",
+  "email": "Invalid email format",
+  "invalidEmail": "Email must be a valid email address",
+  "minLength": "Must be at least {{min}} characters",
+  "maxLength": "Must be at most {{max}} characters",
+  "minValue": "Must be at least {{min}}",
+  "positiveNumber": "Must be a positive number",
+  "hexColor": "Must be a valid hex color (e.g. #FFAA00)",
+  "passwordsDoNotMatch": "Passwords do not match",
+  "confirmPassword": "Confirm password",
+  "nameEnRequired": "English name is required",
+  "nameArRequired": "Arabic name is required",
+  "descriptionEnRequired": "English description is required",
+  "descriptionArRequired": "Arabic description is required",
+  "titleEnRequired": "English title is required",
+  "titleArRequired": "Arabic title is required",
+  "addressEnRequired": "English address is required",
+  "addressArRequired": "Arabic address is required",
+  "categoryRequired": "Category is required",
+  "typeRequired": "Type is required",
+  "imageMaxSize": "Image must be less than {{size}}",
+  "imageFormat": "Image must be JPEG, PNG, GIF or WebP",
+  "fileMaxSize": "File size must be less than {{size}}",
+  "fileFormat": "Only .jpg, .jpeg, .png, .webp and .svg formats are supported",
+  "admin": {
+    "nameRequired": "Name is required",
+    "emailRequired": "Email is required",
+    "emailInvalid": "Email must be a valid email address",
+    "passwordMin": "Password must be at least 6 characters",
+    "atLeastOneRole": "At least one role is required"
+  },
+  "category": {
+    "nameEnRequired": "English name is required",
+    "nameArRequired": "Arabic name is required"
+  },
+  "categoryAttribute": {
+    "categoryRequired": "Category is required",
+    "nameEnRequired": "English name is required",
+    "nameArRequired": "Arabic name is required",
+    "typeRequired": "Type is required",
+    "valueNameEnRequired": "English value name is required",
+    "valueNameArRequired": "Arabic value name is required",
+    "atLeastOneValue": "At least one value is required"
+  },
+  "categoryDetail": {
+    "categoryRequired": "Category is required",
+    "nameEnRequired": "English name is required",
+    "nameArRequired": "Arabic name is required"
+  },
+  "language": {
+    "codeRequired": "Language code is required (min 2 characters)",
+    "nativeNameRequired": "Native name is required",
+    "directionRequired": "Direction must be ltr or rtl",
+    "fileMaxSize": "File size must be less than 5MB",
+    "fileFormat": "Only .jpg, .jpeg, .png, .webp and .svg formats are supported"
+  },
+  "city": {
+    "nameEnRequired": "English name is required",
+    "nameArRequired": "Arabic name is required",
+    "governorateRequired": "Governorate is required"
+  },
+  "governorate": {
+    "nameEnRequired": "English name is required",
+    "nameArRequired": "Arabic name is required"
+  },
+  "area": {
+    "nameEnRequired": "English name is required",
+    "nameArRequired": "Arabic name is required",
+    "cityRequired": "City is required"
+  },
+  "brand": {
+    "nameEnRequired": "English name is required",
+    "nameArRequired": "Arabic name is required"
+  },
+  "role": {
+    "nameRequired": "Role name is required",
+    "atLeastOnePermission": "At least one permission is required"
+  },
+  "pageSection": {
+    "nameEnRequired": "English name is required",
+    "nameArRequired": "Arabic name is required",
+    "sectionRequired": "Section is required",
+    "pageRequired": "Page is required",
+    "displayTypeRequired": "Display type is required",
+    "positionRequired": "Position is required"
+  },
+  "section": {
+    "nameEnRequired": "English name is required",
+    "nameArRequired": "Arabic name is required",
+    "manualModelRequired": "Manual model is required"
+  },
+  "service": {
+    "nameEnRequired": "English name is required",
+    "nameArRequired": "Arabic name is required"
+  },
+  "vendor": {
+    "nameEnRequired": "English name is required",
+    "nameArRequired": "Arabic name is required",
+    "ownerNameRequired": "Owner name is required",
+    "ownerPhoneRequired": "Owner phone is required",
+    "invalidPhoneFormat": "Invalid phone number format",
+    "commercialRegisterRequired": "Commercial register is required",
+    "contractDateRequired": "Contract date is required",
+    "contractNumberRequired": "Contract number is required",
+    "contractDurationMin": "Contract duration must be at least 1 month",
+    "commissionRateMin": "Commission rate must be 0 or greater",
+    "commissionRateMax": "Commission rate cannot exceed 100%"
+  },
+  "notification": {
+    "titleRequired": "Title is required",
+    "bodyRequired": "Body is required",
+    "typeRequired": "Type is required",
+    "typeInvalid": "Type must be all, user, driver, or vendor"
+  },
+  "basket": {
+    "categoryRequired": "Category is required",
+    "nameEnRequired": "English name is required",
+    "nameArRequired": "Arabic name is required",
+    "productVariantRequired": "Product variant is required",
+    "quantityMin": "Quantity must be at least 1",
+    "atLeastOneItem": "At least one item is required"
+  },
+  "scheduledBasket": {
+    "categoryRequired": "Category is required",
+    "nameEnRequired": "English name is required",
+    "nameArRequired": "Arabic name is required",
+    "productVariantRequired": "Product variant is required",
+    "quantityMin": "Quantity must be at least 1",
+    "atLeastOneItem": "At least one item is required",
+    "scheduledDateRequired": "Scheduled date is required"
+  },
+  "complaint": {
+    "adminResponseRequired": "Admin response is required"
+  },
+  "faq": {
+    "questionEnRequired": "Question (EN) is required",
+    "questionArRequired": "Question (AR) is required",
+    "answerEnRequired": "Answer (EN) is required",
+    "answerArRequired": "Answer (AR) is required",
+    "typeRequired": "Type is required"
+  },
+  "legalDocument": {
+    "titleEnRequired": "Title (EN) is required",
+    "titleArRequired": "Title (AR) is required",
+    "contentEnRequired": "Content (EN) is required",
+    "contentArRequired": "Content (AR) is required"
+  },
+  "coupon": {
+    "nameEnRequired": "English name is required",
+    "nameArRequired": "Arabic name is required",
+    "codeRequired": "Code is required",
+    "discountValueRequired": "Discount value is required",
+    "startDateRequired": "Start date is required",
+    "endDateRequired": "End date is required",
+    "maxUsesMin": "Max uses must be >= 0",
+    "selectAtLeastOneProduct": "Please select at least one product",
+    "selectAtLeastOneVendor": "Please select at least one vendor"
+  },
+  "currency": {
+    "codeLength": "Code must be exactly 3 characters",
+    "nameEnRequired": "English name is required",
+    "nameArRequired": "Arabic name is required",
+    "symbolRequired": "Symbol is required",
+    "exchangeRateMin": "Exchange rate must be greater than 0"
+  },
+  "driver": {
+    "nameRequired": "Name is required",
+    "phoneRequired": "Phone is required",
+    "addressRequired": "Address is required",
+    "atLeastOneArea": "At least one area is required",
+    "vehicleNumberRequired": "Vehicle number is required",
+    "imageMaxSize": "Image must be less than 2MB",
+    "imageFormat": "Image must be JPEG, PNG, GIF or WebP",
+    "passwordMin": "Password must be at least 8 characters",
+    "passwordRequired": "Password is required! (min 8 characters)"
+  },
+  "order": {
+    "driverRequired": "Driver is required"
+  },
+  "package": {
+    "nameEnRequired": "English name is required",
+    "nameArRequired": "Arabic name is required",
+    "priceMin": "Price must be at least 0",
+    "durationMin": "Duration must be at least 1 day",
+    "durationInteger": "Duration must be an integer",
+    "monthlyOrdersLimitMin": "Monthly orders limit must be at least 0",
+    "monthlyOrdersLimitInteger": "Monthly orders limit must be an integer",
+    "freeDeliveryCountMin": "Free delivery count must be at least 0",
+    "freeDeliveryCountInteger": "Free delivery count must be an integer",
+    "discountMin": "Discount must be at least 0",
+    "discountMax": "Discount cannot exceed 100",
+    "pointsBonusMin": "Points bonus must be at least 0",
+    "pointsBonusInteger": "Points bonus must be an integer"
+  },
+  "pointExchange": {
+    "statusRequired": "Status is required"
+  },
+  "recipe": {
+    "nameEnRequired": "English name is required",
+    "nameArRequired": "Arabic name is required",
+    "productVariantRequired": "Product variant is required"
+  },
+  "subscription": {
+    "userRequired": "User is required",
+    "packageRequired": "Package is required",
+    "startDateRequired": "Start date is required",
+    "endDateRequired": "End date is required",
+    "statusRequired": "Status is required"
+  },
+  "userPoints": {
+    "pointsMin": "Points must be at least 1",
+    "reasonRequired": "Reason is required"
+  },
+  "user": {
+    "nameRequired": "Name is required",
+    "emailInvalid": "Invalid email",
+    "passwordMin": "Password must be at least 6 characters",
+    "confirmPassword": "Confirm password",
+    "areaRequired": "Area is required",
+    "passwordsDoNotMatch": "Passwords do not match",
+    "affiliateIdRequired": "Affiliate ID is required when making affiliate",
+    "affiliateRateRequired": "Affiliate rate is required when making affiliate",
+    "affiliateIdMin": "Affiliate ID is required",
+    "affiliateRateMin": "Affiliate rate is required"
+  },
+  "shop": {
+    "vendorRequired": "Vendor is required",
+    "logoMaxSize": "Logo must be less than 2MB",
+    "logoFormat": "Logo must be JPEG, PNG, GIF or WebP",
+    "nameEnRequired": "English name is required",
+    "nameArRequired": "Arabic name is required",
+    "descriptionEnRequired": "English description is required",
+    "descriptionArRequired": "Arabic description is required",
+    "addressEnRequired": "English address is required",
+    "addressArRequired": "Arabic address is required",
+    "latRequired": "Latitude is required",
+    "lngRequired": "Longitude is required",
+    "phoneRequired": "Phone is required",
+    "mobileRequired": "Mobile is required",
+    "invalidMobileFormat": "Invalid mobile number format",
+    "emailRequired": "Email is required",
+    "emailInvalid": "Email must be a valid email address",
+    "areaRequired": "Area is required",
+    "atLeastOneService": "At least one service is required"
+  },
+  "vendorPackage": {
+    "nameEnRequired": "Name (EN) is required",
+    "nameArRequired": "Name (AR) is required",
+    "priceMin": "Price must be >= 0",
+    "durationMin": "Duration must be >= 1",
+    "maxProductsMin": "Max products must be >= 0",
+    "commissionRateMin": "Commission rate must be >= 0",
+    "commissionPerOrderMin": "Commission per order must be >= 0"
+  },
+  "vendorUser": {
+    "nameRequired": "Name is required",
+    "emailRequired": "Email is required",
+    "emailInvalid": "Invalid email format",
+    "vendorRequired": "Vendor is required"
+  },
+  "badge": {
+    "nameEnRequired": "English name is required",
+    "nameArRequired": "Arabic name is required",
+    "colorRequired": "Color is required",
+    "hexColorInvalid": "Must be a valid hex color (e.g. #FFAA00)"
+  },
+  "icon": {
+    "nameEnRequired": "English name is required",
+    "nameArRequired": "Arabic name is required"
+  },
+  "promotion": {
+    "nameEnRequired": "English name is required",
+    "nameArRequired": "Arabic name is required",
+    "descriptionEnRequired": "English description is required",
+    "descriptionArRequired": "Arabic description is required"
+  },
+  "product": {
+    "categoryRequired": "Category is required",
+    "nameEnRequired": "English name is required",
+    "nameArRequired": "Arabic name is required",
+    "descriptionEnRequired": "English description is required",
+    "descriptionArRequired": "Arabic description is required",
+    "pricePositive": "Price must be positive",
+    "quantityPositive": "Quantity must be positive"
+  },
+  "userGift": {
+    "userRequired": "User is required",
+    "giftRequired": "Gift is required"
+  },
+  "gift": {
+    "nameArRequired": "Arabic name is required",
+    "pointsRequiredMin": "Points required must be at least 1"
+  },
+  "banner": {
+    "titleEnRequired": "English title is required"
+  },
+  "country": {
+    "nameEnRequired": "English name is required",
+    "nameArRequired": "Arabic name is required",
+    "codeRequired": "Country code is required",
+    "codeMax": "Code must be 5 characters or less"
+  },
+  "schedule": {
+    "nameEnRequired": "English name is required",
+    "nameArRequired": "Arabic name is required",
+    "dayRequired": "Day is required",
+    "startTimeRequired": "Start time is required",
+    "endTimeRequired": "End time is required"
+  },
+  "pointRule": {
+    "titleEnRequired": "English title is required",
+    "titleArRequired": "Arabic title is required",
+    "typeRequired": "Type is required",
+    "valueMin": "Value must be at least 1",
+    "expiryDaysRequired": "Expiry days is required"
+  }
+}

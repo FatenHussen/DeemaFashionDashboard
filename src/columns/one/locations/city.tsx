@@ -10,7 +10,7 @@ import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-
 // Schema for city validation
 const CitySchema = z.object({
   id: z.number(),
-  name: z.string(),
+  name: z.object({ ar: z.string(), en: z.string() }),
   governorate: z.object({
     id: z.number(),
     name: z.string(),
@@ -22,7 +22,7 @@ const CitySchema = z.object({
 // Type for city data
 export interface CityFormValues {
   id: number;
-  name: string;
+  name: { ar: string; en: string };
   governorate: {
     id: number;
     name: string;
@@ -59,7 +59,7 @@ export const cityColumns = (
   },
   {
     id: 'name',
-    accessorKey: 'name',
+    accessorFn: (row) => formatTranslated(row.name),
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.name')} />,
     cell: ({ row }) => (
       <div className="flex items-center gap-2.5 min-w-0">

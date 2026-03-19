@@ -9,11 +9,9 @@ import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-
 const ScheduledBasketSchema = z.object({
   id: z.number(),
   name: z.any(),
-  discount: z.number(),
+  discount: z.any(),
   discount_type: z.string(),
-  scheduled_at: z.string(),
   is_active: z.boolean(),
-  created_at: z.string(),
 });
 
 export interface ScheduledBasketFormValues extends ScheduledBasketData {
@@ -36,12 +34,22 @@ export const scheduledBasketColumns = (
     accessorKey: 'id',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
     cell: ({ row }) => (
-      <div className="flex items-center gap-2">
-        <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
-          <span className="text-xs font-semibold text-primary">{row.original.id}</span>
-        </div>
+      <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
+        <span className="text-xs font-semibold text-primary">{row.original.id}</span>
       </div>
     ),
+  },
+  {
+    id: 'image',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.image')} />,
+    cell: ({ row }) => {
+      const img = row.original.image;
+      return img ? (
+        <img src={img} alt="" className="w-10 h-10 rounded-lg object-cover border border-border/50" />
+      ) : (
+        <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center text-muted-foreground text-xs">—</div>
+      );
+    },
   },
   {
     id: 'name',
@@ -50,8 +58,34 @@ export const scheduledBasketColumns = (
     cell: ({ row }) => {
       const name = row.original.name;
       const display = typeof name === 'object' ? (name as any)?.en || (name as any)?.ar : name;
-      return <div className="font-semibold text-foreground truncate">{display || '-'}</div>;
+      return <div className="font-semibold text-foreground truncate max-w-[180px]">{display || '—'}</div>;
     },
+  },
+  {
+    id: 'category',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.category')} />,
+    cell: ({ row }) => {
+      const cat = row.original.category;
+      if (!cat) return <span className="text-muted-foreground">—</span>;
+      const catName = typeof cat.name === 'object' ? (cat.name as any)?.en || (cat.name as any)?.ar : cat.name;
+      return <span className="text-sm">{catName || '—'}</span>;
+    },
+  },
+  {
+    id: 'original_price',
+    accessorKey: 'original_price',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.originalPrice')} />,
+    cell: ({ row }) => (
+      <span className="text-sm">{row.original.original_price ?? '—'}</span>
+    ),
+  },
+  {
+    id: 'final_price',
+    accessorKey: 'final_price',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.finalPrice')} />,
+    cell: ({ row }) => (
+      <span className="text-sm font-semibold text-primary">{row.original.final_price ?? '—'}</span>
+    ),
   },
   {
     id: 'discount',
@@ -59,18 +93,35 @@ export const scheduledBasketColumns = (
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.discount')} />,
     cell: ({ row }) => {
       const d = row.original;
-      const text = d.discount_type === 'percentage' ? `${d.discount}%` : `Fixed: ${d.discount}`;
-      return <span className="text-sm">{text}</span>;
+      const text = d.discount_type === 'percentage' ? `${d.discount}%` : d.discount;
+      return (
+        <span className="px-2 py-0.5 rounded-md bg-orange-100 text-orange-700 text-xs font-medium">
+          {text}
+        </span>
+      );
     },
   },
   {
-    id: 'scheduled_at',
-    accessorKey: 'scheduled_at',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.scheduledAt')} />,
+    id: 'rating',
+    accessorKey: 'average_rating',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.rating')} />,
+    cell: ({ row }) => {
+      const rating = row.original.average_rating ?? row.original.rating;
+      return rating != null ? (
+        <span className="flex items-center gap-1 text-sm">
+          <span className="text-yellow-500">★</span> {rating}
+        </span>
+      ) : (
+        <span className="text-muted-foreground">—</span>
+      );
+    },
+  },
+  {
+    id: 'num_sold',
+    accessorKey: 'num_sold',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.numSold')} />,
     cell: ({ row }) => (
-      <span className="text-sm text-muted-foreground">
-        {row.original.scheduled_at ? new Date(row.original.scheduled_at).toLocaleString() : '-'}
-      </span>
+      <span className="text-sm">{row.original.num_sold ?? '—'}</span>
     ),
   },
   {
@@ -87,27 +138,10 @@ export const scheduledBasketColumns = (
               : 'bg-red-500/20 text-red-600'
           }`}
         >
-          {isActive ? 'Active' : 'Inactive'}
+          {isActive ? t('active') : t('inactive')}
         </span>
       );
     },
-  },
-  {
-    id: 'items_count',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.items')} />,
-    cell: ({ row }) => (
-      <span className="text-sm">{row.original.items?.length || 0}</span>
-    ),
-  },
-  {
-    id: 'created_at',
-    accessorKey: 'created_at',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.created')} />,
-    cell: ({ row }) => (
-      <span className="text-sm text-muted-foreground">
-        {new Date(row.original.created_at).toLocaleDateString()}
-      </span>
-    ),
   },
   {
     id: 'actions',

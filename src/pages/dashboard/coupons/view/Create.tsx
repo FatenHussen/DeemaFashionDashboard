@@ -4,6 +4,7 @@ import type { CouponDetailsData } from '@/pages/dashboard/coupons/types/coupon.t
 import { toast } from 'react-toastify';
 import { useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { apiRoutes, axiosInstance } from '@/api';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Iconify } from '@/shared/components/iconify';
@@ -11,6 +12,7 @@ import { formatTranslated } from '@/utils/format-translated';
 import { useParams, useNavigate, useLocation } from 'react-router';
 import { useFetchVendors } from '@/pages/dashboard/vendor/hooks/vendor';
 import { useFetchProducts } from '@/pages/dashboard/products/hooks/product';
+import { RHFInfiniteSelect } from '@/shared/components/hook-form/rhf-infinite-select';
 import {
   CouponSchema,
   type CouponFormValues,
@@ -31,6 +33,23 @@ import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout
 // ----------------------------------------------------------------------
 
 const metadata = { title: `Coupon ${CONFIG.appName}` };
+
+const marketersFetcher = async () => {
+  const response = await axiosInstance.get<{
+    status: boolean;
+    data: { id: number; label: string }[];
+  }>(apiRoutes.user.marketers);
+  const items = (response.data?.data ?? []).map((m) => ({
+    id: m.id,
+    label: m.label,
+  }));
+  return {
+    data: {
+      items: [{ id: 0, label: '—' }, ...items],
+      pagination: { current_page: 1, last_page: 1, per_page: items.length + 1, total: items.length + 1 },
+    },
+  };
+};
 
 function toISODateTimeLocal(d: string): string {
   if (!d) return '';
@@ -217,17 +236,16 @@ export default function CreatePage() {
               {t('form.affiliateId')} (optional)
             </Typography>
           </Box>
-          <RHFTextField
+          <RHFInfiniteSelect
             name="affiliate_id"
-            type="number"
+            queryKey={['marketers', 'list']}
+            fetcher={() => marketersFetcher()}
             placeholder={t('form.leaveEmptyNonAffiliate')}
-            fullWidth
+            helperText={hasAffiliateId ? 'Product/Vendor selection is managed by the affiliate system.' : undefined}
+            onValueChange={(val) => {
+              if (val === 0) methods.setValue('affiliate_id', undefined as any);
+            }}
           />
-          {hasAffiliateId && (
-            <Typography variant="caption" className="text-muted-foreground mt-1 block">
-              Product/Vendor selection is managed by the affiliate system.
-            </Typography>
-          )}
         </Box>
 
         {/* Coupon Type */}

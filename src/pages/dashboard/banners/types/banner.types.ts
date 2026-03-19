@@ -2,8 +2,8 @@
 
 export interface BannerItem {
   id: number;
-  title: string;
-  description: string | { en?: string; ar?: string } | null;
+  title: string | { en?: string; ar?: string };
+  description: string | { en?: string; ar?: string } | any[] | null;
   image_url: string;
   link?: string;
   is_active: number;
@@ -28,7 +28,8 @@ export interface BannerListResponse {
 export interface BannerCreatePayload {
   'title.en': string;
   'title.ar': string;
-  description: string;
+  'description.en': string;
+  'description.ar': string;
   image: File;
   link: string;
 }
@@ -38,6 +39,7 @@ export interface BannerUpdatePayload {
   'title.en': string;
   'title.ar': string;
   'description.en': string;
+  'description.ar': string;
   image?: File;
   link: string;
 }
@@ -47,7 +49,10 @@ export interface BannerFormValues {
     en: string;
     ar: string;
   };
-  description: string;
+  description: {
+    en: string;
+    ar: string;
+  };
   image: File | null;
   link: string;
 }

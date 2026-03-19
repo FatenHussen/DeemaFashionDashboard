@@ -63,14 +63,8 @@ export default function CreatePage() {
   // Fetch city data if in edit mode
   useEffect(() => {
     if (isEditMode && cityData && !isLoadingCity) {
-      // API returns name as string, but form expects {ar, en}
-      const nameValue =
-        typeof cityData.name === 'string'
-          ? { ar: cityData.name, en: cityData.name }
-          : cityData.name;
-
       reset({
-        name: nameValue,
+        name: cityData.name,
         governorate_id: cityData.governorate?.id || 0,
       });
     }

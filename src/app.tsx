@@ -10,6 +10,7 @@ import { usePathname } from 'src/routes/hooks';
 
 import { AuthProvider } from 'src/pages/auth/context/jwt';
 import { ProgressBar } from 'src/shared/components/progress-bar';
+import { useLocalizationStore } from 'src/store/useLocalizationStore';
 import { MotionLazy } from 'src/shared/components/animate/motion-lazy';
 import {
   SettingsDrawer,
@@ -39,6 +40,7 @@ type AppProps = {
 
 export default function App({ children }: AppProps) {
   useScrollToTop();
+  const { direction } = useLocalizationStore();
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -47,7 +49,7 @@ export default function App({ children }: AppProps) {
           <SettingsEffects />
           <MotionLazy>
             <ProgressBar />
-            <ToastContainer position="top-right" autoClose={3000} theme="colored" rtl={false} />
+            <ToastContainer position="top-right" autoClose={3000} theme="colored" rtl={direction === 'rtl'} />
             <SettingsDrawer defaultSettings={defaultSettings} />
             {children}
           </MotionLazy>

@@ -96,7 +96,7 @@ export default function DetailsPage() {
   const handleAddPoints = async (data: UserPointsAddDeductFormValues) => {
     try {
       await addPointsMutation.mutateAsync({ userId: id!, data: { points: data.points, reason: data.reason } });
-      toast.success('Points added successfully');
+      toast.success(t('form.pointsAddedSuccess'));
       addMethods.reset();
       setActiveForm(null);
     } catch { return; }

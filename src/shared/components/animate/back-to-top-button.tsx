@@ -36,7 +36,7 @@ export function BackToTopButton({
       aria-label="Back to top"
       onClick={onBackToTop}
       className={mergeClasses([
-        'w-12 h-12 fixed scale-0 right-6 md:right-8 bottom-6 md:bottom-8 z-1050 transition-transform',
+        'w-12 h-12 fixed scale-0 end-6 md:end-8 bottom-6 md:bottom-8 z-1050 transition-transform',
         isVisible ? 'scale-100' : '',
         className,
       ])}

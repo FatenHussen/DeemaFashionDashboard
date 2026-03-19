@@ -5,10 +5,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { _ScheduledBasketApi } from '../api/scheduled-basket.services';
 
-export const useFetchScheduledBaskets = (page: number = 1, perPage: number = 10) =>
+export const useFetchScheduledBaskets = (page: number = 1, perPage: number = 10, filters?: { is_active?: string; search?: string }) =>
   useQuery({
-    queryKey: queryKeys.scheduledBasket.list({ page, per_page: perPage }),
-    queryFn: () => _ScheduledBasketApi.getListScheduledBaskets({ page, per_page: perPage }),
+    queryKey: queryKeys.scheduledBasket.list({ page, per_page: perPage, ...filters }),
+    queryFn: () => _ScheduledBasketApi.getListScheduledBaskets({ page, per_page: perPage, ...filters }),
   });
 
 export const useFetchScheduledBasketById = (id: number | string) =>

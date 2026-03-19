@@ -59,5 +59,16 @@
   "legalDocuments": "Legal Documents",
   "faqs": "FAQs",
   "vendorUsers": "Vendor Users",
-  "sellerRegistrations": "Seller Registrations"
+  "sellerRegistrations": "Seller Registrations",
+  "settings": "Settings",
+  "badges": "Badges",
+  "icons": "Icons",
+  "activityLogs": "Activity Logs",
+  "affiliateWithdrawRequests": "Affiliate Withdraw Requests",
+  "promotions": "Promotions",
+  "countries": "Countries",
+  "promotionRequests": "Promotion Requests",
+  "pointRules": "Point Rules",
+  "schedules": "Schedules",
+  "userBasketSchedules": "User Basket Schedules"
 }

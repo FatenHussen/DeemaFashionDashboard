@@ -124,7 +124,7 @@ export default function DetailsPage() {
         data: { status },
         queryId: id,
       });
-      toast.success(`Order status changed to ${status}`);
+      toast.success(t('statusChangedSuccess'));
     } catch { return; }
   };
 
@@ -137,7 +137,7 @@ export default function DetailsPage() {
         data: { driver_id: Number(driverId) },
         queryId: id,
       });
-      toast.success('Driver assigned successfully');
+      toast.success(t('form.driverAssignedSuccess'));
       resetDriverForm({ driver_id: 0 });
     } catch { return; }
   };
@@ -150,7 +150,7 @@ export default function DetailsPage() {
         orderId: order.id,
         queryId: id,
       });
-      toast.success('Item status updated');
+      toast.success(t('form.itemStatusUpdated'));
     } catch { return; }
   };
 

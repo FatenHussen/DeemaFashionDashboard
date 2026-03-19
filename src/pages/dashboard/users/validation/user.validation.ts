@@ -1,20 +1,24 @@
 import { z } from 'zod';
 
+import i18n from 'src/lib/i18n';
+
+const t = (key: string) => i18n.t(key, { ns: 'validation' });
+
 export const UserCreateSchema = z
   .object({
-    name: z.string().min(1, 'Name is required'),
+    name: z.string().min(1, t('user.nameRequired')),
     last_name: z.string().optional().default(''),
-    email: z.string().email('Invalid email'),
+    email: z.string().email(t('user.emailInvalid')),
     phone: z.string().optional().default(''),
-    password: z.string().min(6, 'Password must be at least 6 characters'),
-    password_confirmation: z.string().min(1, 'Confirm password'),
-    area_id: z.coerce.number().min(1, 'Area is required'),
+    password: z.string().min(6, t('user.passwordMin')),
+    password_confirmation: z.string().min(1, t('user.confirmPassword')),
+    area_id: z.coerce.number().min(1, t('user.areaRequired')),
     make_affiliate: z.boolean().optional().default(false),
     affiliate_id: z.coerce.number().optional(),
     affiliate_rate: z.coerce.number().optional(),
   })
   .refine((data) => data.password === data.password_confirmation, {
-    message: 'Passwords do not match',
+    message: t('user.passwordsDoNotMatch'),
     path: ['password_confirmation'],
   })
   .superRefine((data, ctx) => {
@@ -22,7 +26,7 @@ export const UserCreateSchema = z
       if (!data.affiliate_id || data.affiliate_id <= 0) {
         ctx.addIssue({
           code: 'custom',
-          message: 'Affiliate ID is required when making affiliate',
+          message: t('user.affiliateIdRequired'),
           path: ['affiliate_id'],
         });
       }
@@ -33,7 +37,7 @@ export const UserCreateSchema = z
       ) {
         ctx.addIssue({
           code: 'custom',
-          message: 'Affiliate rate is required when making affiliate',
+          message: t('user.affiliateRateRequired'),
           path: ['affiliate_rate'],
         });
       }
@@ -42,25 +46,25 @@ export const UserCreateSchema = z
 
 export const UserUpdateSchema = z
   .object({
-    name: z.string().min(1, 'Name is required'),
+    name: z.string().min(1, t('user.nameRequired')),
     last_name: z.string().optional().default(''),
-    email: z.string().email('Invalid email'),
+    email: z.string().email(t('user.emailInvalid')),
     phone: z.string().optional().default(''),
     password: z.string().optional(),
     password_confirmation: z.string().optional(),
-    area_id: z.coerce.number().min(1, 'Area is required'),
+    area_id: z.coerce.number().min(1, t('user.areaRequired')),
   })
   .refine(
     (data) => {
       if (data.password) return data.password === data.password_confirmation;
       return true;
     },
-    { message: 'Passwords do not match', path: ['password_confirmation'] }
+    { message: t('user.passwordsDoNotMatch'), path: ['password_confirmation'] }
   );
 
 export const UserConvertAffiliateSchema = z.object({
-  affiliate_id: z.coerce.number().min(1, 'Affiliate ID is required'),
-  affiliate_rate: z.coerce.number().min(0, 'Affiliate rate is required'),
+  affiliate_id: z.coerce.number().min(1, t('user.affiliateIdMin')),
+  affiliate_rate: z.coerce.number().min(0, t('user.affiliateRateMin')),
 });
 
 export type UserCreateFormValues = z.infer<typeof UserCreateSchema>;

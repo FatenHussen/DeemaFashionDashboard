@@ -79,11 +79,11 @@ export default function CreatePage() {
 
       if (isEditMode && id) {
         await updateGovernorateMutation.mutateAsync({ id, data: payload });
-        toast.success('Governorate updated successfully');
+        toast.success(t('form.governorateUpdatedSuccess'));
         navigate('/locations');
       } else {
         await createGovernorateMutation.mutateAsync(payload);
-        toast.success('Governorate created successfully');
+        toast.success(t('form.governorateCreatedSuccess'));
         navigate('/locations');
       }
     } catch (error: any) {
@@ -96,8 +96,8 @@ export default function CreatePage() {
   };
 
   const infoText = isEditMode
-    ? 'You can update any field. Make sure both Arabic and English names are provided.'
-    : 'Fill in both Arabic and English names to create a new governorate.';
+    ? t('form.governorateEditInfo')
+    : t('form.governorateCreateInfo');
 
   return (
     <>
@@ -113,24 +113,24 @@ export default function CreatePage() {
         onCancel={handleCancel}
         isSubmitting={isSubmitting}
         errorMessage={errorMessage}
-        title={isEditMode ? 'Edit Governorate' : 'Create New Governorate'}
+        title={isEditMode ? t('form.editGovernorate') : t('form.createGovernorate')}
         description={
-          isEditMode ? 'Update governorate information' : 'Add a new governorate to your system'
+          isEditMode ? t('form.editGovernorateDesc') : t('form.createGovernorateDesc')
         }
         isEditMode={isEditMode}
         isLoading={isLoadingGovernorate}
         loadingText={t('form.loadingGovernorate')}
         maxWidth="3xl"
         infoText={infoText}
-        submitLabel={isEditMode ? 'Update Governorate' : 'Create Governorate'}
-        submittingLabel={isEditMode ? 'Updating...' : 'Creating...'}
+        submitLabel={isEditMode ? t('form.updateGovernorate') : t('form.createGovernorateSubmit')}
+        submittingLabel={isEditMode ? t('updating') : t('form.creating')}
       >
         {/* Name Field - Arabic */}
         <Box className="group">
           <Box className="flex items-center gap-2 mb-2">
             <Iconify icon="solar:flag-bold" className="text-primary" width={24} height={24} />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Name (Arabic)
+              {t('form.nameAr')}
             </Typography>
           </Box>
           <RHFTextField
@@ -147,7 +147,7 @@ export default function CreatePage() {
           <Box className="flex items-center gap-2 mb-2">
             <Iconify icon="solar:flag-bold" className="text-primary" width={24} height={24} />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Name (English)
+              {t('form.nameEn')}
             </Typography>
           </Box>
           <RHFTextField

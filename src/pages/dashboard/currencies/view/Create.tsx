@@ -67,7 +67,7 @@ export default function CreatePage() {
     try {
       if (isEditMode && id) {
         await updateMutation.mutateAsync({ id, data });
-        toast.success('Currency updated successfully');
+        toast.success(t('form.currencyUpdatedSuccess'));
       } else {
         await createMutation.mutateAsync(data);
         toast.success('Currency created successfully');

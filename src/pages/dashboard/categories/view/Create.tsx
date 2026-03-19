@@ -28,7 +28,7 @@ import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout
 const metadata = { title: `Category ${CONFIG.appName}` };
 
 const parentCategoryFetcher = (page: number, limit: number) =>
-  _CategoryApi.getListCategoriesPaginated({ page, per_page: limit, parent_id: 0 }).then((r) => {
+  _CategoryApi.getListCategoriesPaginated({ page, per_page: limit }).then((r) => {
     const items = (r.data?.items ?? []).map((cat) => ({
       id: cat.id,
       label: typeof cat.name === 'object' ? formatTranslated(cat.name) : String(cat.name ?? ''),
@@ -59,10 +59,6 @@ export default function CreatePage() {
       en: '',
       ar: '',
     },
-    description: {
-      en: '',
-      ar: '',
-    },
     icon: null,
     parent_id: null,
   };
@@ -81,7 +77,6 @@ export default function CreatePage() {
       const category = categoryData.data;
       reset({
         name: category.name,
-        description: category.description,
         icon: null, // Don't pre-fill file input
         parent_id: category.parent_id,
       });
@@ -117,21 +112,17 @@ export default function CreatePage() {
           en: data.name.en,
           ar: data.name.ar,
         },
-        description: {
-          en: data.description.en,
-          ar: data.description.ar,
-        },
         icon: data.icon || null,
         parent_id: data.parent_id || null,
       };
 
       if (isEditMode && id) {
         await updateCategoryMutation.mutateAsync({ id, data: payload });
-        toast.success('Category updated successfully');
+        toast.success(t('form.categoryUpdatedSuccess'));
         navigate('/categories');
       } else {
         await createCategoryMutation.mutateAsync(payload);
-        toast.success('Category created successfully');
+        toast.success(t('form.categoryCreatedSuccess'));
         navigate('/categories');
       }
     } catch (error: any) {
@@ -144,8 +135,8 @@ export default function CreatePage() {
   };
 
   const infoText = isEditMode
-    ? 'You can update any field. Make sure both Arabic and English names and descriptions are provided.'
-    : 'Fill in both Arabic and English names and descriptions to create a new category. You can optionally select a parent category and upload an icon.';
+    ? 'You can update any field. Make sure both Arabic and English names are provided.'
+    : 'Fill in both Arabic and English names to create a new category. You can optionally select a parent category and upload an icon.';
 
   const parentCategoryLabel =
     categoryData?.data?.parent &&
@@ -207,69 +198,6 @@ export default function CreatePage() {
             placeholder={t('form.namePlaceholder')}
             helperText={t('form.categoryNameEnHelper')}
             className="transition-all duration-200"
-          />
-        </Box>
-
-        {/* Description Field - Arabic */}
-        <Box className="group">
-          <Box className="flex items-center gap-2 mb-2">
-            <Iconify icon="solar:document-bold" className="text-primary" width={24} height={24} />
-            <Typography variant="subtitle2" className="font-semibold text-foreground">
-              {t('form.descriptionAr')}
-            </Typography>
-          </Box>
-          <Controller
-            name="description.ar"
-            control={control}
-            render={({ field, fieldState: { error } }) => (
-              <div className="w-full">
-                <textarea
-                  {...field}
-                  placeholder="e.g., أجهزة وإكسسوارات"
-                  dir="rtl"
-                  rows={3}
-                  className={`w-full rounded-lg border bg-transparent px-3 py-2 text-sm transition-all duration-200 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-0 ${
-                    error
-                      ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
-                      : 'border-input focus:border-blue-500 focus:ring-blue-500'
-                  }`}
-                />
-                <p className={`mt-1 text-xs ${error ? 'text-red-600' : 'text-muted-foreground'}`}>
-                  {error?.message ?? 'Enter the category description in Arabic'}
-                </p>
-              </div>
-            )}
-          />
-        </Box>
-
-        {/* Description Field - English */}
-        <Box className="group">
-          <Box className="flex items-center gap-2 mb-2">
-            <Iconify icon="solar:document-bold" className="text-primary" width={24} height={24} />
-            <Typography variant="subtitle2" className="font-semibold text-foreground">
-              {t('form.descriptionEn')}
-            </Typography>
-          </Box>
-          <Controller
-            name="description.en"
-            control={control}
-            render={({ field, fieldState: { error } }) => (
-              <div className="w-full">
-                <textarea
-                  {...field}
-                  placeholder={t('form.devicesGadgetsPlaceholder')}
-                  rows={3}
-                  className={`w-full rounded-lg border bg-transparent px-3 py-2 text-sm transition-all duration-200 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-0 ${
-                    error
-                      ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
-                      : 'border-input focus:border-blue-500 focus:ring-blue-500'
-                  }`}
-                />
-                <p className={`mt-1 text-xs ${error ? 'text-red-600' : 'text-muted-foreground'}`}>
-                  {error?.message ?? 'Enter the category description in English'}
-                </p>
-              </div>
-            )}
           />
         </Box>
 

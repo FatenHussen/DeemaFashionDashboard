@@ -27,6 +27,7 @@ import { CONFIG } from 'src/global-config';
 import { Box, Typography } from 'src/shared/ui';
 import { RHFSelect } from 'src/shared/components/hook-form/rhf-select';
 import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
+import { RHFColorPicker } from 'src/shared/components/hook-form/rhf-color-picker';
 import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
 import { InfiniteScrollSelect } from 'src/shared/components/infinite-scroll-select';
 
@@ -224,7 +225,9 @@ export default function CreatePage() {
 
       <CreateFormLayout
         methods={methods}
-        onSubmit={handleSubmit(onSubmit)}
+        onSubmit={handleSubmit(onSubmit, (errors) => {
+          console.log('PageSection form validation errors:', errors);
+        })}
         onCancel={handleCancel}
         isSubmitting={isSubmitting}
         errorMessage={errorMessage}
@@ -326,6 +329,7 @@ export default function CreatePage() {
             null
           }
           selectedSection={selectedSection}
+          sectionId={sectionIdForDetails || null}
           helperText={t('form.selectDisplayHelper')}
           currentDisplayTypeId={pageSectionData?.data?.display_type_id}
         />
@@ -377,12 +381,7 @@ export default function CreatePage() {
               Background Color (Optional)
             </Typography>
           </Box>
-          <RHFTextField
-            name="background_color"
-            placeholder={t('form.bgColorPlaceholder')}
-            helperText={t('form.bgColorHelper')}
-            className="transition-all duration-200"
-          />
+          <RHFColorPicker name="background_color" helperText={t('form.bgColorHelper')} />
         </Box>
 
         {/* Background Card Color */}
@@ -393,12 +392,7 @@ export default function CreatePage() {
               Background Card Color (Optional)
             </Typography>
           </Box>
-          <RHFTextField
-            name="background_card_color"
-            placeholder={t('form.bgCardColorPlaceholder')}
-            helperText={t('form.bgCardColorHelper')}
-            className="transition-all duration-200"
-          />
+          <RHFColorPicker name="background_card_color" helperText={t('form.bgCardColorHelper')} />
         </Box>
 
         {/* Dynamic Filters Section */}
@@ -432,12 +426,14 @@ function DisplayTypeImageSelect({
   name,
   manualModel,
   selectedSection,
+  sectionId,
   helperText,
   currentDisplayTypeId,
 }: {
   name: string;
   manualModel?: string | null;
   selectedSection: SectionItem | null;
+  sectionId?: number | null;
   helperText?: string;
   currentDisplayTypeId?: number;
 }) {
@@ -445,7 +441,8 @@ function DisplayTypeImageSelect({
   const displayTypesQuery = useQuery({
     queryKey: ['pageSection', 'displayTypes', manualModel || ''],
     queryFn: () => _PageSectionApi.getDisplayTypes(manualModel || undefined),
-    enabled: !!selectedSection,
+    // Enable as long as a section is selected (either found in list or by id)
+    enabled: !!(selectedSection || sectionId),
   });
 
   const displayTypes = displayTypesQuery.data?.data ?? [];
@@ -461,9 +458,9 @@ function DisplayTypeImageSelect({
       <Controller
         name={name}
         control={control}
-        render={({ field }) => (
+        render={({ field, fieldState: { error } }) => (
           <Box>
-            {!selectedSection ? (
+            {!(selectedSection || sectionId) ? (
               <Box className="p-6 border border-dashed rounded-lg text-center">
                 <Iconify
                   icon="solar:widget-bold"
@@ -492,9 +489,10 @@ function DisplayTypeImageSelect({
             ) : (
               <Box className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                 {displayTypes.map((dt: { id: number; image_url: string }) => {
-                  const value = typeof field.value === 'string' ? parseInt(field.value, 10) : field.value;
-                  const currentVal = value || currentDisplayTypeId;
-                  const isSelected = currentVal === dt.id;
+                  const parsedValue = typeof field.value === 'string'
+                    ? parseInt(field.value, 10)
+                    : Number(field.value);
+                  const isSelected = parsedValue > 0 && parsedValue === dt.id;
                   return (
                     <button
                       key={dt.id}
@@ -522,7 +520,12 @@ function DisplayTypeImageSelect({
                 })}
               </Box>
             )}
-            {helperText && (
+            {error && (
+              <Typography variant="caption" className="text-destructive mt-1 block">
+                {error.message}
+              </Typography>
+            )}
+            {!error && helperText && (
               <Typography variant="caption" className="text-muted-foreground mt-1 block">
                 {helperText}
               </Typography>

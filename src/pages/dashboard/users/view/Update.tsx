@@ -175,7 +175,7 @@ export default function UpdatePage() {
                     <option value={0}>{t('form.selectArea')}</option>
                     {areas.map((a) => (
                       <option key={a.id} value={a.id}>
-                        {a.name}
+                        {typeof a.name === 'object' ? (a.name.en || a.name.ar) : a.name}
                       </option>
                     ))}
                   </select>

@@ -80,14 +80,16 @@ export default function DetailsPage() {
                   Section Details
                 </Typography>
               </Box>
-              <Button
-                variant="contained"
-                onClick={() => navigate(`/sections/update/${id}`)}
-                className="gap-2"
-              >
-                <Iconify icon="solar:pen-bold" width={18} />
-                Edit Section
-              </Button>
+              {section.type !== 'api' && (
+                <Button
+                  variant="contained"
+                  onClick={() => navigate(`/sections/update/${id}`)}
+                  className="gap-2"
+                >
+                  <Iconify icon="solar:pen-bold" width={18} />
+                  Edit Section
+                </Button>
+              )}
             </Box>
           </Box>
 
@@ -162,36 +164,6 @@ export default function DetailsPage() {
                 </Box>
               </Box>
 
-              {section.api && Object.keys(section.api).length > 0 && (
-                <>
-                  <Separator />
-                  {/* API Configuration */}
-                  <Box>
-                    <Typography
-                      variant="h6"
-                      className="font-semibold text-foreground mb-4 flex items-center gap-2"
-                    >
-                      <Iconify icon="solar:code-square-bold" width={20} />
-                      API Configuration
-                    </Typography>
-                    <Box className="space-y-2">
-                      {Object.entries(section.api).map(([key, value]) => (
-                        <Box key={key} className="flex items-start gap-2">
-                          <Typography
-                            variant="body2"
-                            className="text-muted-foreground font-medium min-w-[120px]"
-                          >
-                            {key}:
-                          </Typography>
-                          <Typography variant="body2" className="text-foreground break-all">
-                            {typeof value === 'object' ? JSON.stringify(value) : String(value)}
-                          </Typography>
-                        </Box>
-                      ))}
-                    </Box>
-                  </Box>
-                </>
-              )}
 
               <Separator />
 
@@ -248,7 +220,8 @@ export default function DetailsPage() {
                           )}
                           {/* Display any other properties */}
                           {Object.entries(item).map(([key, value]) => {
-                            if (key !== 'id' && key !== 'desc' && key !== 'price') {
+                            const excludedKeys = ['id', 'desc', 'price', 'is_favorite', 'top_badges', 'bottom_badges'];
+                            if (!excludedKeys.includes(key)) {
                               return (
                                 <Box key={key} className="space-y-1">
                                   <Typography

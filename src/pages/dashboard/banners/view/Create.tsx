@@ -42,7 +42,7 @@ export default function CreatePage() {
 
   const defaultValues: BannerUpdateFormValues = {
     title: { en: '', ar: '' },
-    description: '',
+    description: { en: '', ar: '' },
     image: null,
     link: '',
   };
@@ -61,14 +61,22 @@ export default function CreatePage() {
     if (source) {
       setPreviewImage(source.image_url || null);
       const desc = source.description;
-      const descriptionStr: string =
-        typeof desc === 'object' && desc !== null ? (desc as any)?.en ?? (desc as any)?.ar ?? '' : (desc ?? '');
+      const descObj = typeof desc === 'object' && desc !== null && !Array.isArray(desc)
+        ? (desc as { en?: string; ar?: string })
+        : null;
+      const titleObj = typeof source.title === 'object' && source.title !== null
+        ? (source.title as { en?: string; ar?: string })
+        : null;
+      const titleStr = typeof source.title === 'string' ? source.title : '';
       reset({
         title: {
-          en: source.title || '',
-          ar: source.title || '',
+          en: titleObj?.en ?? titleStr,
+          ar: titleObj?.ar ?? titleStr,
         },
-        description: descriptionStr,
+        description: {
+          en: descObj?.en ?? '',
+          ar: descObj?.ar ?? '',
+        },
         image: null,
         link: source.link ?? '',
       });
@@ -99,22 +107,22 @@ export default function CreatePage() {
     try {
       const payload = {
         title: { en: data.title.en, ar: data.title.ar },
-        description: data.description,
+        description: { en: data.description.en, ar: data.description.ar },
         image: data.image instanceof File ? data.image : null,
         link: data.link,
       };
 
       if (isEditMode && id) {
         await updateBannerMutation.mutateAsync({ id, data: payload });
-        toast.success('Banner updated successfully');
+        toast.success(t('form.bannerUpdatedSuccess'));
         navigate('/sections/banners');
       } else {
         if (!(payload.image instanceof File)) {
-          toast.error('Image is required for new banners');
+          toast.error(t('form.imageRequiredForNew'));
           return;
         }
         await createBannerMutation.mutateAsync(payload);
-        toast.success('Banner created successfully');
+        toast.success(t('form.bannerCreatedSuccess'));
         navigate('/sections/banners');
       }
     } catch (error: any) {
@@ -189,19 +197,36 @@ export default function CreatePage() {
           />
         </Box>
 
-        {/* Description */}
+        {/* Description English */}
         <Box className="group">
           <Box className="flex items-center gap-2 mb-2">
             <Iconify icon="solar:document-text-bold" className="text-primary" width={24} height={24} />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Description
+              {t('form.descriptionEn')}
             </Typography>
           </Box>
           <RHFTextField
-            name="description"
+            name="description.en"
             placeholder={t('form.optionalDescription')}
             helperText={t('form.bannerDescHelper')}
             className="transition-all duration-200"
+          />
+        </Box>
+
+        {/* Description Arabic */}
+        <Box className="group">
+          <Box className="flex items-center gap-2 mb-2">
+            <Iconify icon="solar:document-text-bold" className="text-primary" width={24} height={24} />
+            <Typography variant="subtitle2" className="font-semibold text-foreground">
+              {t('form.descriptionAr')}
+            </Typography>
+          </Box>
+          <RHFTextField
+            name="description.ar"
+            placeholder={t('form.optionalDescription')}
+            helperText={t('form.bannerDescHelper')}
+            className="transition-all duration-200"
+            dir="rtl"
           />
         </Box>
 
@@ -232,7 +257,7 @@ export default function CreatePage() {
                     onChange(file || null);
                   }}
                   error={!!error}
-                  helperText={error?.message || (isEditMode ? 'Leave empty to keep current image' : 'Upload a banner image')}
+                  helperText={error?.message || (isEditMode ? t('form.imageHelperEdit') : t('form.imageHelper'))}
                   fullWidth
                   className="transition-all duration-200"
                 />

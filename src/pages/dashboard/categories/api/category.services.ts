@@ -41,17 +41,11 @@ export const _CategoryApi = {
     
     formData.append('name[en]', data.name.en);
     formData.append('name[ar]', data.name.ar);
-    formData.append('description[en]', data.description.en);
-    formData.append('description[ar]', data.description.ar);
-    
+
     if (data.icon) {
       formData.append('icon', data.icon);
     }
-    
-    if (data.parent_id) {
-      formData.append('parent_id', data.parent_id.toString());
-    }
-    
+
     const response = await axiosInstance.post(apiRoutes.category.create, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
@@ -67,8 +61,6 @@ export const _CategoryApi = {
     
     formData.append('name[en]', data.name.en);
     formData.append('name[ar]', data.name.ar);
-    formData.append('description[en]', data.description.en);
-    formData.append('description[ar]', data.description.ar);
     
     if (data.icon) {
       formData.append('icon', data.icon);
@@ -76,10 +68,8 @@ export const _CategoryApi = {
     
     if (data.parent_id) {
       formData.append('parent_id', data.parent_id.toString());
-    } else {
-      formData.append('parent_id', '');
     }
-    
+
     const response = await axiosInstance.put(apiRoutes.category.update(id), formData, {
       headers: {
         'Content-Type': 'multipart/form-data',

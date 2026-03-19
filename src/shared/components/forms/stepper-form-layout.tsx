@@ -2,6 +2,7 @@ import type { UseFormReturn } from 'react-hook-form';
 import type { ReactNode, BaseSyntheticEvent } from 'react';
 
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Iconify } from '@/shared/components/iconify';
 
 import { Box, Button, Typography } from 'src/shared/ui';
@@ -58,16 +59,17 @@ export function StepperFormLayout<T extends Record<string, any>>({
   icon,
   isEditMode = false,
   isLoading = false,
-  loadingText = 'Loading data...',
+  loadingText,
   maxWidth = '4xl',
   steps,
   defaultStep = 0,
   submitLabel,
-  cancelLabel = 'Cancel',
+  cancelLabel,
   submittingLabel,
-  nextLabel = 'Next',
-  backLabel = 'Back',
+  nextLabel,
+  backLabel,
 }: StepperFormLayoutProps<T>) {
+  const { t } = useTranslation('table');
   const [activeStep, setActiveStep] = useState(defaultStep);
 
   const maxWidthClasses = {
@@ -80,8 +82,12 @@ export function StepperFormLayout<T extends Record<string, any>>({
     '4xl': 'max-w-4xl',
   };
 
-  const defaultSubmitLabel = isEditMode ? 'Update' : 'Create';
-  const defaultSubmittingLabel = isEditMode ? 'Updating...' : 'Creating...';
+  const resolvedLoadingText = loadingText ?? t('loading');
+  const resolvedCancelLabel = cancelLabel ?? t('cancel');
+  const resolvedNextLabel = nextLabel ?? t('next');
+  const resolvedBackLabel = backLabel ?? t('form.backLabel');
+  const defaultSubmitLabel = isEditMode ? t('edit') : t('create');
+  const defaultSubmittingLabel = isEditMode ? t('updating') : t('form.creating');
 
   const isLastStep = activeStep === steps.length - 1;
   const isFirstStep = activeStep === 0;
@@ -123,7 +129,7 @@ export function StepperFormLayout<T extends Record<string, any>>({
             <Box className="p-5 flex items-center gap-3">
               <Box className="w-5 h-5 border-2 border-primary/20 border-t-primary rounded-full animate-spin flex-shrink-0" />
               <Typography variant="body2" className="text-foreground flex-1">
-                {loadingText}
+                {resolvedLoadingText}
               </Typography>
             </Box>
           </Box>
@@ -171,7 +177,7 @@ export function StepperFormLayout<T extends Record<string, any>>({
                             : 'text-emerald-700 dark:text-emerald-300'
                         }`}
                       >
-                        {isEditMode ? 'Edit' : 'Create'}
+                        {isEditMode ? t('edit') : t('create')}
                       </Typography>
                     </Box>
                   </Box>
@@ -217,7 +223,7 @@ export function StepperFormLayout<T extends Record<string, any>>({
                   variant="caption"
                   className="text-red-700 dark:text-red-300 font-semibold block mb-1"
                 >
-                  Error
+                  {t('error')}
                 </Typography>
                 <Typography
                   variant="body2"
@@ -317,7 +323,7 @@ export function StepperFormLayout<T extends Record<string, any>>({
             <Box className="md:hidden">
               <Box className="flex items-center justify-between mb-4">
                 <Typography variant="subtitle2" className="font-semibold text-foreground">
-                  Step {activeStep + 1} of {steps.length}
+                  {t('stepOf', { current: activeStep + 1, total: steps.length })}
                 </Typography>
                 <Typography variant="caption" className="text-muted-foreground">
                   {steps[activeStep].label}
@@ -361,7 +367,7 @@ export function StepperFormLayout<T extends Record<string, any>>({
                 <Box className="flex items-center gap-2 text-xs text-muted-foreground">
                   <Box className="h-1.5 w-1.5 rounded-full bg-primary/60" />
                   <span>
-                    Step {activeStep + 1} of {steps.length}
+                    {t('stepOf', { current: activeStep + 1, total: steps.length })}
                   </span>
                 </Box>
 

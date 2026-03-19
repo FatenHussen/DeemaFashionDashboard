@@ -1,11 +1,15 @@
 import { z } from 'zod';
 
+import i18n from 'src/lib/i18n';
+
+const t = (key: string) => i18n.t(key, { ns: 'validation' });
+
 export const SubscriptionSchema = z.object({
-  user_id: z.coerce.number().min(1, 'User is required'),
-  package_id: z.coerce.number().min(1, 'Package is required'),
-  start_date: z.string().min(1, 'Start date is required'),
-  end_date: z.string().min(1, 'End date is required'),
-  status: z.string().min(1, 'Status is required'),
+  user_id: z.coerce.number().min(1, t('subscription.userRequired')),
+  package_id: z.coerce.number().min(1, t('subscription.packageRequired')),
+  start_date: z.string().min(1, t('subscription.startDateRequired')),
+  end_date: z.string().min(1, t('subscription.endDateRequired')),
+  status: z.string().min(1, t('subscription.statusRequired')),
   is_active: z.boolean(),
 });
 

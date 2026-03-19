@@ -30,17 +30,26 @@ export default function VendorPerformanceReportPage() {
   const [vendorId, setVendorId] = useState('');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
+  const [appliedVendorId, setAppliedVendorId] = useState('');
+  const [appliedFrom, setAppliedFrom] = useState('');
+  const [appliedTo, setAppliedTo] = useState('');
   const [isExporting, setIsExporting] = useState(false);
 
   const { data: vendorsData } = useFetchVendors(1, 200);
   const vendors = vendorsData?.data?.items ?? [];
 
   const params = {
-    from_date: fromDate || undefined,
-    to_date: toDate || undefined,
+    from_date: appliedFrom || undefined,
+    to_date: appliedTo || undefined,
   };
 
-  const { data, isLoading } = useFetchVendorPerformanceReport(vendorId, params, !!vendorId);
+  const { data, isLoading } = useFetchVendorPerformanceReport(appliedVendorId, params, !!appliedVendorId);
+
+  const handleApply = () => {
+    setAppliedVendorId(vendorId);
+    setAppliedFrom(fromDate);
+    setAppliedTo(toDate);
+  };
 
   const reportData = data?.data;
 
@@ -140,7 +149,11 @@ export default function VendorPerformanceReportPage() {
               className="h-9 rounded-lg border border-input bg-background px-3 text-sm"
             />
 
-            {vendorId && (
+            <Button variant="outlined" size="small" onClick={handleApply} disabled={!vendorId}>
+              Apply
+            </Button>
+
+            {appliedVendorId && (
               <>
                 <Box className="h-5 w-px bg-border/60" />
 
@@ -170,7 +183,7 @@ export default function VendorPerformanceReportPage() {
 
         {/* Content */}
         <div className="w-full space-y-4 transition-opacity duration-500 p-6">
-          {reportData && vendorId && (
+          {reportData && appliedVendorId && (
             <Box className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {[
                 { label: 'Total Sales', value: reportData.total_sales != null ? Number(reportData.total_sales).toFixed(2) : '-' },
@@ -203,7 +216,7 @@ export default function VendorPerformanceReportPage() {
             </Box>
           )}
 
-          {!vendorId && (
+          {!appliedVendorId && (
             <Box className={`${tableContainerClass} p-12 text-center`}>
               <Typography variant="body2" className="text-muted-foreground">
                 Select a vendor to view performance report

@@ -140,6 +140,61 @@ export default function Page() {
     setCurrentPage(1);
   };
 
+  const hasActiveFilters = isAffiliateFilter || affiliateApprovedFilter || areaFilter;
+
+  const filterContent = (
+    <>
+      <select
+        value={isAffiliateFilter}
+        onChange={(e) => {
+          setIsAffiliateFilter(e.target.value);
+          setCurrentPage(1);
+        }}
+        className="h-10 min-w-[120px] rounded-xl border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+      >
+        <option value="">{t('isAffiliateLabel')}</option>
+        <option value="0">{t('no')}</option>
+        <option value="1">{t('yes')}</option>
+      </select>
+      <select
+        value={affiliateApprovedFilter}
+        onChange={(e) => {
+          setAffiliateApprovedFilter(e.target.value);
+          setCurrentPage(1);
+        }}
+        className="h-10 min-w-[120px] rounded-xl border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+      >
+        <option value="">{t('affiliateApprovedLabel')}</option>
+        <option value="0">{t('no')}</option>
+        <option value="1">{t('yes')}</option>
+      </select>
+      <select
+        value={areaFilter}
+        onChange={(e) => {
+          setAreaFilter(e.target.value);
+          setCurrentPage(1);
+        }}
+        className="h-10 min-w-[140px] rounded-xl border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+      >
+        <option value="">{t('areaLabel')}</option>
+        {areas.map((a) => (
+          <option key={a.id} value={a.id}>
+            {typeof a.name === 'object' ? (a.name.en || a.name.ar) : a.name}
+          </option>
+        ))}
+      </select>
+      {hasActiveFilters && (
+        <button
+          type="button"
+          onClick={resetFilters}
+          className="h-10 rounded-xl border border-border px-4 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted"
+        >
+          {t('resetFilter')}
+        </button>
+      )}
+    </>
+  );
+
   return (
     <>
       <title>{metadata.title}</title>
@@ -153,112 +208,49 @@ export default function Page() {
         minLength={6}
       />
 
-      <div className="w-full flex flex-col gap-4">
-        <div className="flex flex-wrap items-center gap-3 p-4 bg-linear-to-r from-muted/30 via-transparent to-muted/30 rounded-xl border border-border/30 rtl:flex-row-reverse">
-          <div className="flex items-center gap-2 shrink-0 rtl:flex-row-reverse">
-            <label className="text-sm font-medium text-foreground">{t('isAffiliateLabel')}:</label>
-            <select
-              value={isAffiliateFilter}
-              onChange={(e) => {
-                setIsAffiliateFilter(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="h-9 min-w-[100px] rounded-md border border-input bg-background px-3 text-sm"
-            >
-              <option value="">{t('all')}</option>
-              <option value="0">{t('no')}</option>
-              <option value="1">{t('yes')}</option>
-            </select>
-          </div>
-          <div className="flex items-center gap-2 shrink-0 rtl:flex-row-reverse">
-            <label className="text-sm font-medium text-foreground">
-              {t('affiliateApprovedLabel')}:
-            </label>
-            <select
-              value={affiliateApprovedFilter}
-              onChange={(e) => {
-                setAffiliateApprovedFilter(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="h-9 min-w-[100px] rounded-md border border-input bg-background px-3 text-sm"
-            >
-              <option value="">{t('all')}</option>
-              <option value="0">{t('no')}</option>
-              <option value="1">{t('yes')}</option>
-            </select>
-          </div>
-          <div className="flex items-center gap-2 shrink-0 rtl:flex-row-reverse">
-            <label className="text-sm font-medium text-foreground">{t('areaLabel')}:</label>
-            <select
-              value={areaFilter}
-              onChange={(e) => {
-                setAreaFilter(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="h-9 min-w-[140px] rounded-md border border-input bg-background px-3 text-sm"
-            >
-              <option value="">{t('all')}</option>
-              {areas.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          {(isAffiliateFilter || affiliateApprovedFilter || areaFilter) && (
-            <button
-              type="button"
-              onClick={resetFilters}
-              className="text-sm text-primary hover:underline"
-            >
-              {t('resetFilter')}
-            </button>
-          )}
-        </div>
-
-        <DataTable
-          tableName="User"
-          columns={userColumns(
-            {
-              update: hasPermission('update', 'user'),
-              delete: hasPermission('delete', 'user'),
-            },
-            t,
-            onDelete,
-            deleteUserMutation.isPending,
-            deletingId !== null,
-            onDeleteConfirm,
+      <DataTable
+        tableName="User"
+        columns={userColumns(
+          {
+            update: hasPermission('update', 'user'),
+            delete: hasPermission('delete', 'user'),
+          },
+          t,
+          onDelete,
+          deleteUserMutation.isPending,
+          deletingId !== null,
+          onDeleteConfirm,
           onDeleteCancel,
           deletingId,
           handleEdit,
           onUpdatePassword
-          )}
-          data={userData}
-          createPath="/users/create"
-          hasDetails
-          detailsLink="/users/details"
-          permissions={{
-            create: hasPermission('create', 'user'),
-            update: hasPermission('update', 'user'),
-            delete: hasPermission('delete', 'user'),
-          }}
-          isLoading={isLoading}
-          columnTranslations={{
-            id: 'ID',
-            name: 'Name',
-            email: 'Email',
-            phone: 'Phone',
-            affiliate: 'Affiliate',
-            created_at: 'Created',
-            actions: 'Actions',
-          }}
-          pagination={pagination}
-          currentPage={currentPage}
-          pageSize={pageSize}
-          onPageChange={handlePageChange}
-          onPageSizeChange={handlePageSizeChange}
-        />
-      </div>
+        )}
+        data={userData}
+        createPath="/users/create"
+        hasDetails
+        detailsLink="/users/details"
+        toolbarFilter={filterContent}
+        permissions={{
+          create: hasPermission('create', 'user'),
+          update: hasPermission('update', 'user'),
+          delete: hasPermission('delete', 'user'),
+        }}
+        isLoading={isLoading}
+        columnTranslations={{
+          id: 'ID',
+          name: 'Name',
+          email: 'Email',
+          phone: 'Phone',
+          affiliate: 'Affiliate',
+          created_at: 'Created',
+          actions: 'Actions',
+        }}
+        pagination={pagination}
+        currentPage={currentPage}
+        pageSize={pageSize}
+        onPageChange={handlePageChange}
+        onPageSizeChange={handlePageSizeChange}
+      />
     </>
   );
 }

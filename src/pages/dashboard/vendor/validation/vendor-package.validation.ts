@@ -1,21 +1,25 @@
 import { z } from 'zod';
 
+import i18n from 'src/lib/i18n';
+
+const t = (key: string) => i18n.t(key, { ns: 'validation' });
+
 export const REPORT_LEVELS = ['basic', 'advanced', 'full'] as const;
 
 export const VendorPackageSchema = z.object({
   name: z.object({
-    ar: z.string().min(1, 'Name (AR) is required'),
-    en: z.string().min(1, 'Name (EN) is required'),
+    ar: z.string().min(1, t('vendorPackage.nameArRequired')),
+    en: z.string().min(1, t('vendorPackage.nameEnRequired')),
   }),
   description: z.object({
     ar: z.string().default(''),
     en: z.string().default(''),
   }),
-  price: z.number().min(0, 'Price must be >= 0'),
-  duration_days: z.number().min(1, 'Duration must be >= 1'),
-  max_products: z.number().min(0, 'Max products must be >= 0'),
-  commission_rate: z.number().min(0, 'Commission rate must be >= 0'),
-  commission_per_order: z.number().min(0, 'Commission per order must be >= 0'),
+  price: z.number().min(0, t('vendorPackage.priceMin')),
+  duration_days: z.number().min(1, t('vendorPackage.durationMin')),
+  max_products: z.number().min(0, t('vendorPackage.maxProductsMin')),
+  commission_rate: z.number().min(0, t('vendorPackage.commissionRateMin')),
+  commission_per_order: z.number().min(0, t('vendorPackage.commissionPerOrderMin')),
   is_active: z.boolean(),
   is_featured: z.boolean(),
   has_premium_badge: z.boolean(),

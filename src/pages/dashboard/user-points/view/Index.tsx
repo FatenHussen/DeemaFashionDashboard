@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Button } from '@/shared/ui/button';
 import { useTranslation } from 'react-i18next';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { usePermissions } from '@/auth/hooks/use-permissions';
@@ -83,51 +84,46 @@ export default function Page() {
   const { can } = usePermissions();
   const hasPermission = (action: string, resource: string) => can(`${resource}.${action}`);
 
+  const hasActiveFilters = Object.keys(appliedFilters).length > 0;
+
+  const filterContent = (
+    <>
+      <input
+        type="text"
+        placeholder={t('form.searchByNameOrEmail')}
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        onKeyDown={(e) => e.key === 'Enter' && handleApplyFilters()}
+        className="h-10 w-64 rounded-xl border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+      />
+      <input
+        type="number"
+        placeholder={t('form.balanceMin')}
+        value={balanceMin}
+        onChange={(e) => setBalanceMin(e.target.value)}
+        className="h-10 w-28 rounded-xl border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+      />
+      <input
+        type="number"
+        placeholder={t('form.balanceMax')}
+        value={balanceMax}
+        onChange={(e) => setBalanceMax(e.target.value)}
+        className="h-10 w-28 rounded-xl border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+      />
+      <Button variant="outlined" size="small" onClick={handleApplyFilters} className="h-10 px-4 rounded-xl">
+        {t('apply')}
+      </Button>
+      {hasActiveFilters && (
+        <Button variant="text" size="small" onClick={handleResetFilters} className="h-10 px-4 rounded-xl text-muted-foreground hover:text-foreground">
+          {t('resetFilter')}
+        </Button>
+      )}
+    </>
+  );
+
   return (
     <>
       <title>{metadata.title}</title>
-
-      {/* Filters */}
-      <div className="mb-4 flex flex-wrap gap-3 rounded-xl border border-border bg-card p-4 shadow-sm">
-        <input
-          type="text"
-          placeholder={t('form.searchByNameOrEmail')}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && handleApplyFilters()}
-          className="h-9 w-64 rounded-md border px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-        />
-        <input
-          type="number"
-          placeholder={t('form.balanceMin')}
-          value={balanceMin}
-          onChange={(e) => setBalanceMin(e.target.value)}
-          className="h-9 w-32 rounded-md border px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-        />
-        <input
-          type="number"
-          placeholder={t('form.balanceMax')}
-          value={balanceMax}
-          onChange={(e) => setBalanceMax(e.target.value)}
-          className="h-9 w-32 rounded-md border px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-        />
-        <button
-          type="button"
-          onClick={handleApplyFilters}
-          className="h-9 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-        >
-          Apply
-        </button>
-        {Object.keys(appliedFilters).length > 0 && (
-          <button
-            type="button"
-            onClick={handleResetFilters}
-            className="h-9 rounded-md border border-border px-4 text-sm font-medium text-foreground hover:bg-muted"
-          >
-            Reset
-          </button>
-        )}
-      </div>
 
       <DataTable
         tableName="User Points"
@@ -135,6 +131,7 @@ export default function Page() {
         data={userPointsData}
         hasDetails
         detailsLink="/user-points/details"
+        toolbarFilter={filterContent}
         permissions={{
           create: false,
           update: hasPermission('update', 'user-points'),

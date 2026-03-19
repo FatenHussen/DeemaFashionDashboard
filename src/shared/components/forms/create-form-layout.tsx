@@ -1,6 +1,7 @@
 import type { UseFormReturn } from 'react-hook-form';
 import type { ReactNode, BaseSyntheticEvent } from 'react';
 
+import { useTranslation } from 'react-i18next';
 import { Iconify } from '@/shared/components/iconify';
 import React, { useRef, useMemo, useEffect } from 'react';
 
@@ -52,14 +53,16 @@ export function CreateFormLayout<T extends Record<string, any>>({
   icon,
   isEditMode = false,
   isLoading = false,
-  loadingText = 'Loading...',
+  loadingText,
   maxWidth = '6xl',
   children,
   submitLabel,
-  cancelLabel = 'Cancel',
+  cancelLabel,
   submittingLabel,
   showUnsavedGuard = true,
 }: CreateFormLayoutProps<T>) {
+  const { t } = useTranslation('table');
+
   const maxWidthClasses = {
     sm: 'max-w-sm',
     md: 'max-w-md',
@@ -73,11 +76,13 @@ export function CreateFormLayout<T extends Record<string, any>>({
     '7xl': 'max-w-7xl',
   };
 
-  const defaultSubmitLabel = isEditMode ? 'Update' : 'Create';
-  const defaultSubmittingLabel = isEditMode ? 'Updating...' : 'Creating...';
+  const defaultSubmitLabel = isEditMode ? t('updating') : t('form.creating');
+  const defaultSubmittingLabel = isEditMode ? t('updating') : t('form.creating');
 
-  const resolvedSubmitLabel = submitLabel ?? defaultSubmitLabel;
+  const resolvedSubmitLabel = submitLabel ?? (isEditMode ? t('edit') : t('create'));
   const resolvedSubmittingLabel = submittingLabel ?? defaultSubmittingLabel;
+  const resolvedCancelLabel = cancelLabel ?? t('cancel');
+  const resolvedLoadingText = loadingText ?? t('loading');
 
   const errorRef = useRef<HTMLDivElement | null>(null);
 
@@ -106,7 +111,7 @@ export function CreateFormLayout<T extends Record<string, any>>({
 
   const handleCancel = () => {
     if (showUnsavedGuard && methods.formState.isDirty && !isSubmitting) {
-      const ok = window.confirm('You have unsaved changes. Leave anyway?');
+      const ok = window.confirm(t('unsavedChanges'));
       if (!ok) return;
     }
     onCancel();
@@ -161,12 +166,12 @@ export function CreateFormLayout<T extends Record<string, any>>({
                         {title}
                       </Typography>
 
-                      <span className={modePillClasses}>{isEditMode ? 'Edit' : 'Create'}</span>
+                      <span className={modePillClasses}>{isEditMode ? t('edit') : t('create')}</span>
 
                       {methods.formState.isDirty && (
                         <span className="inline-flex items-center gap-1.5 rounded-full border border-border/50 bg-muted/40 px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
                           <span className="h-1.5 w-1.5 rounded-full bg-primary/60" />
-                          Unsaved
+                          {t('unsaved')}
                         </span>
                       )}
                     </Box>
@@ -182,7 +187,7 @@ export function CreateFormLayout<T extends Record<string, any>>({
                           <Box className="h-full w-1/3 bg-primary/40 animate-[shimmer_1.5s_ease-in-out_infinite] [background-image:linear-gradient(90deg,transparent,rgba(255,255,255,0.4),transparent)]" />
                         </Box>
                         <Typography variant="caption" className="text-muted-foreground mt-2 block">
-                          {loadingText}
+                          {resolvedLoadingText}
                         </Typography>
                       </Box>
                     )}
@@ -197,7 +202,7 @@ export function CreateFormLayout<T extends Record<string, any>>({
                     disabled={isSubmitting}
                     className="min-w-[100px]"
                   >
-                    {cancelLabel}
+                    {resolvedCancelLabel}
                   </Button>
                 </Box>
               </Box>
@@ -244,7 +249,7 @@ export function CreateFormLayout<T extends Record<string, any>>({
               <Box className="px-6 md:px-8 lg:px-10 py-4 flex items-center justify-between gap-4 flex-wrap">
                 <Box className="flex items-center gap-2 text-xs text-muted-foreground">
                   <span className="h-1.5 w-1.5 rounded-full bg-primary/50" />
-                  <span>Review your information before submitting</span>
+                  <span>{t('reviewBeforeSubmit')}</span>
                 </Box>
 
                 <Box className="flex items-center gap-2">
@@ -254,7 +259,7 @@ export function CreateFormLayout<T extends Record<string, any>>({
                     disabled={isSubmitting}
                     className="min-w-[100px]"
                   >
-                    {cancelLabel}
+                    {resolvedCancelLabel}
                   </Button>
 
                   <Button type="submit" disabled={isSubmitting} className="min-w-[120px]">

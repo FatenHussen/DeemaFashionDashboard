@@ -13,13 +13,8 @@ import { useSettingsContext } from './context/use-settings-context';
 export function SettingsEffects() {
   const { state } = useSettingsContext();
 
-  // Direction: set dir attribute on document
-  useEffect(() => {
-    document.documentElement.setAttribute('dir', state.direction);
-    return () => {
-      document.documentElement.removeAttribute('dir');
-    };
-  }, [state.direction]);
+  // Direction is handled by useLocalizationStore (driven by language selection).
+  // Do NOT set dir here — it would overwrite the language-based direction on reload.
 
   // Font family: apply to html element
   useEffect(() => {

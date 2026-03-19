@@ -11,9 +11,9 @@ import { Form, Field } from 'src/shared/components/hook-form';
 import { Box, Alert, Button, IconButton, Typography } from 'src/shared/ui';
 
 import {
+  fetchPermissionsFromMe,
   getPostLoginRedirectPath,
   extractPermissionsFromLoginResponse,
-  fetchPermissionsFromMe,
 } from 'src/auth/post-login-redirect';
 
 import { useAuthContext } from '../hooks';

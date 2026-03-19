@@ -1,6 +1,7 @@
 import { Button } from '@/shared/ui/button';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
+import { formatTranslated } from '@/utils/format-translated';
 import { MapDisplay } from '@/shared/components/map/map-display';
 import { useFetchAreaById } from '@/pages/dashboard/locations/hooks/area';
 
@@ -77,7 +78,7 @@ export default function DetailsPage() {
               </Box>
               <Box className="flex-1">
                 <Typography variant="h4" className="font-bold text-foreground mb-1">
-                  {area.name}
+                  {formatTranslated(area.name)}
                 </Typography>
                 <Typography variant="body2" className="text-muted-foreground">
                   {area.city?.name} - {area.city?.governorate?.name}
@@ -144,7 +145,7 @@ export default function DetailsPage() {
               <MapDisplay
                 lat={area.lat ?? ''}
                 lng={area.lng ?? ''}
-                title={area.name}
+                title={formatTranslated(area.name)}
                 height="320px"
               />
             </Box>

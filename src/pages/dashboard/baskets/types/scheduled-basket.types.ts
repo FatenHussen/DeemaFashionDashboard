@@ -12,17 +12,27 @@ export interface ScheduledBasketItem {
 
 export interface ScheduledBasketData {
   id: number;
-  name: { ar?: string; en?: string } | string;
+  name: string | { ar?: string; en?: string };
   category?: { id: number; name: string | { ar?: string; en?: string } };
-  discount: number;
-  discount_type: 'fixed' | 'percentage';
-  offer_ends_at?: string;
-  delivery_price?: number;
   image?: string;
-  items: ScheduledBasketItem[];
-  scheduled_at: string;
+  num_varieties?: number;
+  original_price?: number;
+  discount: string | number;
+  discount_type: 'fixed' | 'percentage';
+  discount_amount?: number;
+  final_price?: number;
+  rating?: number;
+  average_rating?: number;
+  num_sold?: number;
+  delivery_price?: number;
+  is_schedule?: boolean;
+  has_schedule?: boolean;
+  schedule_count?: number;
+  offer_ends_at?: string;
+  items?: ScheduledBasketItem[];
+  scheduled_at?: string;
   scheduled_end_at?: string;
-  is_recurring: boolean;
+  is_recurring?: boolean;
   recurrence_type?: 'daily' | 'weekly' | 'monthly';
   is_active: boolean;
   created_at: string;
@@ -58,9 +68,9 @@ export interface ScheduledBasketCreateUpdatePayload {
   delivery_price?: number;
   image?: File | string | null;
   items: Array<{ shop_product_variant_id: number; quantity: number }>;
-  scheduled_at: string;
+  scheduled_at?: string;
   scheduled_end_at?: string;
-  is_recurring: boolean;
+  is_recurring?: boolean;
   recurrence_type?: 'daily' | 'weekly' | 'monthly';
   is_active: boolean;
 }

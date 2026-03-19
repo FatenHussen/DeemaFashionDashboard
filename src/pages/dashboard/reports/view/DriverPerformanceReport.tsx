@@ -27,20 +27,29 @@ export default function DriverPerformanceReportPage() {
   const [driverId, setDriverId] = useState('');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
+  const [appliedDriverId, setAppliedDriverId] = useState('');
+  const [appliedFrom, setAppliedFrom] = useState('');
+  const [appliedTo, setAppliedTo] = useState('');
   const [isExporting, setIsExporting] = useState(false);
 
   const { data: driversData } = useFetchDrivers(1, 200);
   const drivers = driversData?.data?.items ?? [];
 
   const params = {
-    from_date: fromDate || undefined,
-    to_date: toDate || undefined,
+    from_date: appliedFrom || undefined,
+    to_date: appliedTo || undefined,
   };
   const { data, isLoading } = useFetchDriverPerformanceReport(
-    driverId,
+    appliedDriverId,
     params,
-    !!driverId
+    !!appliedDriverId
   );
+
+  const handleApply = () => {
+    setAppliedDriverId(driverId);
+    setAppliedFrom(fromDate);
+    setAppliedTo(toDate);
+  };
   const reportData = data?.data;
 
   const handleExport = async (format: ExportFormat) => {
@@ -57,7 +66,7 @@ export default function DriverPerformanceReportPage() {
     }
   };
 
-  if (isLoading && driverId && !reportData) return <LoadingScreen />;
+  if (isLoading && appliedDriverId && !reportData) return <LoadingScreen />;
 
   const tableContainerClass =
     'w-full border border-border/30 bg-background overflow-hidden rounded-xl shadow-sm hover:shadow-md transition-shadow duration-300';
@@ -109,7 +118,10 @@ export default function DriverPerformanceReportPage() {
                 onChange={(e) => setToDate(e.target.value)}
                 className="h-9 rounded-lg border border-input bg-background px-3 text-sm"
               />
-              {driverId && (
+              <Button variant="outlined" size="small" onClick={handleApply} disabled={!driverId}>
+                Apply
+              </Button>
+              {appliedDriverId && (
                 <>
                   <Box className="h-5 w-px bg-border/60" />
                   <Button
@@ -136,7 +148,7 @@ export default function DriverPerformanceReportPage() {
         </div>
 
         <div className="w-full space-y-4 transition-opacity duration-500 p-6">
-          {reportData && driverId && (
+          {reportData && appliedDriverId && (
             <Box className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {[
                   { label: 'Total Orders', value: reportData.total_orders },
@@ -158,7 +170,7 @@ export default function DriverPerformanceReportPage() {
               </Box>
           )}
 
-          {!driverId && (
+          {!appliedDriverId && (
             <Box className={`${tableContainerClass} p-12 text-center`}>
               <Typography variant="body2" className="text-muted-foreground">
                 Select a driver to view performance report

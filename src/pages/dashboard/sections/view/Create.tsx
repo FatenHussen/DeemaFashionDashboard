@@ -129,11 +129,11 @@ export default function CreatePage() {
 
       if (isEditMode && id) {
         await updateSectionMutation.mutateAsync({ id, data: payload });
-        toast.success('Section updated successfully');
+        toast.success(t('form.sectionUpdatedSuccess'));
         navigate('/sections');
       } else {
         await createSectionMutation.mutateAsync(payload);
-        toast.success('Section created successfully');
+        toast.success(t('form.sectionCreatedSuccess'));
         navigate('/sections');
       }
     } catch (error: any) {
@@ -191,8 +191,8 @@ export default function CreatePage() {
         onCancel={handleCancel}
         isSubmitting={isSubmitting}
         errorMessage={errorMessage}
-        title={isEditMode ? 'Edit Section' : 'Create New Section'}
-        description={isEditMode ? 'Update section information' : 'Add a new section to your system'}
+        title={isEditMode ? t('form.editSection') : t('form.createSection')}
+        description={isEditMode ? t('form.editSectionDesc') : t('form.createSectionDesc')}
         isEditMode={isEditMode}
         isLoading={isLoadingSection}
         loadingText={t('form.loadingSection')}
@@ -356,6 +356,7 @@ export default function CreatePage() {
                             type="checkbox"
                             checked={isSelected}
                             onChange={() => handleToggleItem(item.id)}
+                            onClick={(e) => e.stopPropagation()}
                             className="w-5 h-5 rounded border-border text-primary focus:ring-primary cursor-pointer"
                           />
                           <Box className="flex-1 min-w-0">

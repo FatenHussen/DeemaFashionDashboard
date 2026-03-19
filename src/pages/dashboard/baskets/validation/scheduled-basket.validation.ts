@@ -1,10 +1,14 @@
 import { z } from 'zod';
 
+import i18n from 'src/lib/i18n';
+
+const t = (key: string) => i18n.t(key, { ns: 'validation' });
+
 export const ScheduledBasketSchema = z.object({
-  category_id: z.coerce.number().min(1, 'Category is required'),
+  category_id: z.coerce.number().min(1, t('scheduledBasket.categoryRequired')),
   name: z.object({
-    en: z.string().min(1, 'English name is required'),
-    ar: z.string().min(1, 'Arabic name is required'),
+    en: z.string().min(1, t('scheduledBasket.nameEnRequired')),
+    ar: z.string().min(1, t('scheduledBasket.nameArRequired')),
   }),
   offer_ends_at: z.string().optional(),
   discount: z.coerce.number().min(0).optional(),
@@ -14,12 +18,12 @@ export const ScheduledBasketSchema = z.object({
   items: z
     .array(
       z.object({
-        shop_product_variant_id: z.coerce.number().min(1, 'Product variant is required'),
-        quantity: z.coerce.number().min(1, 'Quantity must be at least 1'),
+        shop_product_variant_id: z.coerce.number().min(1, t('scheduledBasket.productVariantRequired')),
+        quantity: z.coerce.number().min(1, t('scheduledBasket.quantityMin')),
       })
     )
-    .min(1, 'At least one item is required'),
-  scheduled_at: z.string().min(1, 'Scheduled date is required'),
+    .min(1, t('scheduledBasket.atLeastOneItem')),
+  scheduled_at: z.string().min(1, t('scheduledBasket.scheduledDateRequired')),
   scheduled_end_at: z.string().optional(),
   is_recurring: z.boolean(),
   recurrence_type: z.enum(['daily', 'weekly', 'monthly']).optional(),

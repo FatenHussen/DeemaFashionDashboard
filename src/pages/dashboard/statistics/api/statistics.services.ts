@@ -18,8 +18,10 @@ import type {
 
 import { apiRoutes, axiosInstance } from '@/api';
 
+export type DateFilter = { date_from?: string; date_to?: string };
+
 export const _StatisticsApi = {
-  getDashboard: async (params?: { year?: number }): Promise<DashboardStatisticsResponse> => {
+  getDashboard: async (params?: { year?: number } & DateFilter): Promise<DashboardStatisticsResponse> => {
     const response = await axiosInstance.get<DashboardStatisticsResponse>(
       apiRoutes.statistics.dashboard,
       { params }
@@ -27,13 +29,13 @@ export const _StatisticsApi = {
     return response.data;
   },
 
-  getCounts: async (): Promise<CountsResponse> => {
-    const response = await axiosInstance.get<CountsResponse>(apiRoutes.statistics.counts);
+  getCounts: async (params?: DateFilter): Promise<CountsResponse> => {
+    const response = await axiosInstance.get<CountsResponse>(apiRoutes.statistics.counts, { params });
     return response.data;
   },
 
   getMonthlyPerformance: async (
-    params?: { year?: number }
+    params?: { year?: number } & DateFilter
   ): Promise<MonthlyPerformanceResponse> => {
     const response = await axiosInstance.get<MonthlyPerformanceResponse>(
       apiRoutes.statistics.monthlyPerformance,
@@ -42,14 +44,15 @@ export const _StatisticsApi = {
     return response.data;
   },
 
-  getOrdersByStatus: async (): Promise<OrdersByStatusResponse> => {
+  getOrdersByStatus: async (params?: DateFilter): Promise<OrdersByStatusResponse> => {
     const response = await axiosInstance.get<OrdersByStatusResponse>(
-      apiRoutes.statistics.ordersByStatus
+      apiRoutes.statistics.ordersByStatus,
+      { params }
     );
     return response.data;
   },
 
-  getTopShops: async (params?: { limit?: number }): Promise<TopShopsResponse> => {
+  getTopShops: async (params?: { limit?: number } & DateFilter): Promise<TopShopsResponse> => {
     const response = await axiosInstance.get<TopShopsResponse>(
       apiRoutes.statistics.topShops,
       { params }
@@ -57,7 +60,7 @@ export const _StatisticsApi = {
     return response.data;
   },
 
-  getRevenueTrend: async (params?: { days?: number }): Promise<RevenueTrendResponse> => {
+  getRevenueTrend: async (params?: { days?: number } & DateFilter): Promise<RevenueTrendResponse> => {
     const response = await axiosInstance.get<RevenueTrendResponse>(
       apiRoutes.statistics.revenueTrend,
       { params }
@@ -65,21 +68,23 @@ export const _StatisticsApi = {
     return response.data;
   },
 
-  getOrdersByHour: async (): Promise<OrdersByHourResponse> => {
+  getOrdersByHour: async (params?: DateFilter): Promise<OrdersByHourResponse> => {
     const response = await axiosInstance.get<OrdersByHourResponse>(
-      apiRoutes.statistics.ordersByHour
+      apiRoutes.statistics.ordersByHour,
+      { params }
     );
     return response.data;
   },
 
-  getOrdersByDay: async (): Promise<OrdersByDayResponse> => {
+  getOrdersByDay: async (params?: DateFilter): Promise<OrdersByDayResponse> => {
     const response = await axiosInstance.get<OrdersByDayResponse>(
-      apiRoutes.statistics.ordersByDay
+      apiRoutes.statistics.ordersByDay,
+      { params }
     );
     return response.data;
   },
 
-  getTopCategories: async (params?: { limit?: number }): Promise<TopCategoriesResponse> => {
+  getTopCategories: async (params?: { limit?: number } & DateFilter): Promise<TopCategoriesResponse> => {
     const response = await axiosInstance.get<TopCategoriesResponse>(
       apiRoutes.statistics.topCategories,
       { params }
@@ -87,7 +92,7 @@ export const _StatisticsApi = {
     return response.data;
   },
 
-  getUserGrowth: async (params?: { months?: number }): Promise<UserGrowthResponse> => {
+  getUserGrowth: async (params?: { months?: number } & DateFilter): Promise<UserGrowthResponse> => {
     const response = await axiosInstance.get<UserGrowthResponse>(
       apiRoutes.statistics.userGrowth,
       { params }
@@ -95,15 +100,16 @@ export const _StatisticsApi = {
     return response.data;
   },
 
-  getOrderFunnel: async (): Promise<OrderFunnelResponse> => {
+  getOrderFunnel: async (params?: DateFilter): Promise<OrderFunnelResponse> => {
     const response = await axiosInstance.get<OrderFunnelResponse>(
-      apiRoutes.statistics.orderFunnel
+      apiRoutes.statistics.orderFunnel,
+      { params }
     );
     return response.data;
   },
 
   getAvgOrderValueTrend: async (
-    params?: { months?: number }
+    params?: { months?: number } & DateFilter
   ): Promise<AvgOrderValueTrendResponse> => {
     const response = await axiosInstance.get<AvgOrderValueTrendResponse>(
       apiRoutes.statistics.avgOrderValueTrend,
@@ -112,7 +118,7 @@ export const _StatisticsApi = {
     return response.data;
   },
 
-  getDriverComparison: async (params?: { limit?: number }): Promise<DriverComparisonResponse> => {
+  getDriverComparison: async (params?: { limit?: number } & DateFilter): Promise<DriverComparisonResponse> => {
     const response = await axiosInstance.get<DriverComparisonResponse>(
       apiRoutes.statistics.driverComparison,
       { params }
@@ -120,16 +126,18 @@ export const _StatisticsApi = {
     return response.data;
   },
 
-  getStockLevels: async (): Promise<StockLevelsResponse> => {
+  getStockLevels: async (params?: DateFilter): Promise<StockLevelsResponse> => {
     const response = await axiosInstance.get<StockLevelsResponse>(
-      apiRoutes.statistics.stockLevels
+      apiRoutes.statistics.stockLevels,
+      { params }
     );
     return response.data;
   },
 
-  getSalesHeatmap: async (): Promise<SalesHeatmapResponse> => {
+  getSalesHeatmap: async (params?: DateFilter): Promise<SalesHeatmapResponse> => {
     const response = await axiosInstance.get<SalesHeatmapResponse>(
-      apiRoutes.statistics.salesHeatmap
+      apiRoutes.statistics.salesHeatmap,
+      { params }
     );
     return response.data;
   },

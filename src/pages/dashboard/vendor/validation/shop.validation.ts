@@ -1,5 +1,9 @@
 import { z as zod } from 'zod';
 
+import i18n from 'src/lib/i18n';
+
+const t = (key: string) => i18n.t(key, { ns: 'validation' });
+
 // ----------------------------------------------------------------------
 
 const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
@@ -28,7 +32,7 @@ const WorkingHoursSchema = zod.object({
 });
 
 export const ShopSchema = zod.object({
-  vendor_id: zod.number().min(1, { message: 'Vendor is required!' }),
+  vendor_id: zod.number().min(1, { message: t('shop.vendorRequired') }),
   logo: zod
     .instanceof(File)
     .nullable()
@@ -36,32 +40,31 @@ export const ShopSchema = zod.object({
     .refine((file) => {
       if (file === null || file === undefined) return true;
       return file.size <= MAX_FILE_SIZE;
-    }, 'Logo must be less than 2MB')
+    }, t('shop.logoMaxSize'))
     .refine((file) => {
       if (file === null || file === undefined) return true;
       return ACCEPTED_IMAGE_TYPES.includes(file.type);
-    }, 'Logo must be JPEG, PNG, GIF or WebP'),
-  name: bilingualSchema('Arabic name is required!', 'English name is required!'),
-  description: bilingualSchema('Arabic description is required!', 'English description is required!'),
-  address: bilingualSchema('Arabic address is required!', 'English address is required!'),
-  lat: zod.coerce.number({ required_error: 'Latitude is required!' }),
-  lng: zod.coerce.number({ required_error: 'Longitude is required!' }),
-  phone: zod.string().min(1, { message: 'Phone is required!' }),
+    }, t('shop.logoFormat')),
+  name: bilingualSchema(t('shop.nameArRequired'), t('shop.nameEnRequired')),
+  description: bilingualSchema(t('shop.descriptionArRequired'), t('shop.descriptionEnRequired')),
+  address: bilingualSchema(t('shop.addressArRequired'), t('shop.addressEnRequired')),
+  lat: zod.coerce.number({ required_error: t('shop.latRequired') }),
+  lng: zod.coerce.number({ required_error: t('shop.lngRequired') }),
+  phone: zod.string().min(1, { message: t('shop.phoneRequired') }),
   mobile: zod
     .string()
-    .min(1, { message: 'Mobile is required!' })
-    .regex(/^\+?[1-9]\d{1,14}$/, { message: 'Invalid mobile number format!' }),
+    .min(1, { message: t('shop.mobileRequired') })
+    .regex(/^\+?[1-9]\d{1,14}$/, { message: t('shop.invalidMobileFormat') }),
   email: zod
     .string()
-    .min(1, { message: 'Email is required!' })
-    .email({ message: 'Email must be a valid email address!' }),
+    .min(1, { message: t('shop.emailRequired') })
+    .email({ message: t('shop.emailInvalid') }),
   working_hours: WorkingHoursSchema,
   is_active: zod.boolean(),
-  area_id: zod.number().min(1, { message: 'Area is required!' }),
+  area_id: zod.number().min(1, { message: t('shop.areaRequired') }),
   service_ids: zod
     .array(zod.object({ id: zod.number() }))
-    .min(1, { message: 'At least one service is required!' }),
+    .min(1, { message: t('shop.atLeastOneService') }),
 });
 
 export type ShopFormValues = zod.infer<typeof ShopSchema>;
-

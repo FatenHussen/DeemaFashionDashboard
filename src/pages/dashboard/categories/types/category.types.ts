@@ -60,10 +60,6 @@ export interface CategoryCreateUpdatePayload {
     en: string;
     ar: string;
   };
-  description: {
-    en: string;
-    ar: string;
-  };
   icon?: File | null;
   parent_id?: number | null;
 }

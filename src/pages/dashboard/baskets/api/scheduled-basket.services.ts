@@ -8,7 +8,7 @@ import { apiRoutes, axiosInstance } from '@/api';
 
 export const _ScheduledBasketApi = {
   getListScheduledBaskets: async (
-    params?: { page?: number; per_page?: number }
+    params?: { page?: number; per_page?: number; is_active?: string; search?: string }
   ): Promise<ScheduledBasketListResponse> => {
     const response = await axiosInstance.get<ScheduledBasketListResponse>(apiRoutes.scheduledBasket.list, {
       params,
@@ -31,7 +31,7 @@ export const _ScheduledBasketApi = {
     if (data.offer_ends_at) formData.append('offer_ends_at', data.offer_ends_at);
     if (data.delivery_price !== undefined) formData.append('delivery_price', String(data.delivery_price));
     if (data.image instanceof File) formData.append('image', data.image);
-    formData.append('scheduled_at', data.scheduled_at);
+    if (data.scheduled_at) formData.append('scheduled_at', data.scheduled_at);
     if (data.scheduled_end_at) formData.append('scheduled_end_at', data.scheduled_end_at);
     formData.append('is_recurring', String(data.is_recurring));
     if (data.recurrence_type) formData.append('recurrence_type', data.recurrence_type);
@@ -58,7 +58,7 @@ export const _ScheduledBasketApi = {
     if (data.offer_ends_at) formData.append('offer_ends_at', data.offer_ends_at);
     if (data.delivery_price !== undefined) formData.append('delivery_price', String(data.delivery_price));
     if (data.image instanceof File) formData.append('image', data.image);
-    formData.append('scheduled_at', data.scheduled_at);
+    if (data.scheduled_at) formData.append('scheduled_at', data.scheduled_at);
     if (data.scheduled_end_at) formData.append('scheduled_end_at', data.scheduled_end_at);
     formData.append('is_recurring', String(data.is_recurring));
     if (data.recurrence_type) formData.append('recurrence_type', data.recurrence_type);

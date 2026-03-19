@@ -3,6 +3,7 @@ import type { PointExchangeStatus } from '@/pages/dashboard/point-exchanges/type
 import { useState } from 'react';
 import { toast } from 'react-toastify';
 import { Button } from '@/shared/ui/button';
+import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
 import {
@@ -20,6 +21,7 @@ import { LoadingScreen } from 'src/shared/components/loading-screen';
 const metadata = { title: `Point Exchange Details | Dashboard - ${CONFIG.appName}` };
 
 export default function DetailsPage() {
+  const { t } = useTranslation('table');
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: exchangeResponse, isLoading, error } = useFetchPointExchangeById(id || '');
@@ -56,7 +58,7 @@ export default function DetailsPage() {
   const handleStatusUpdate = async (status: PointExchangeStatus) => {
     try {
       await updateStatusMutation.mutateAsync({ id: exchange.id, data: { status } });
-      toast.success(`Status updated to ${status} successfully`);
+      toast.success(t('form.pointExchangeUpdatedSuccess'));
       setSelectedStatus('');
     } catch { return; }
   };

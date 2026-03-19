@@ -8,6 +8,7 @@ import { usePathname } from 'src/routes/hooks';
 import { Box, Drawer } from 'src/shared/ui';
 import { Logo } from 'src/shared/components/logo';
 import { Scrollbar } from 'src/shared/components/scrollbar';
+import { useLocalizationStore } from 'src/store/useLocalizationStore';
 import { NavSectionVertical } from 'src/shared/components/nav-section';
 
 import { layoutClasses } from '../core';
@@ -38,6 +39,7 @@ export function NavMobile({
   ...other
 }: NavMobileProps) {
   const pathname = usePathname();
+  const { direction } = useLocalizationStore();
 
   useEffect(() => {
     if (open) {
@@ -50,7 +52,7 @@ export function NavMobile({
     <Drawer
       open={open}
       onClose={onClose}
-      anchor="left"
+      anchor={direction === 'rtl' ? 'right' : 'left'}
       width="var(--layout-nav-mobile-width)"
       className={mergeClasses([
         layoutClasses.nav.root,
@@ -60,7 +62,7 @@ export function NavMobile({
       ])}
     >
       {slots?.topArea ?? (
-        <Box className="pl-7 pt-5 pb-2">
+        <Box className="ps-7 pt-5 pb-2">
           <Logo href="/" />
         </Box>
       )}

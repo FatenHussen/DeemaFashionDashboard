@@ -73,6 +73,12 @@ export interface RecipeData {
   video_url?: string;
   discount?: number | string;
   rating?: number;
+  price?: number;
+  currency?: string;
+  currency_symbol?: string;
+  price_formatted?: string;
+  price_after_discount?: number;
+  price_after_discount_formatted?: string;
   orders_count?: number;
   delivery_price?: number;
   serves?: number | null;

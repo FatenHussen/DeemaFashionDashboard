@@ -69,43 +69,41 @@ export default function Page() {
       }
     : { current_page: 1, last_page: 1, per_page: 10, total: 0, from: 0, to: 0 };
 
+  const filterContent = (
+    <>
+      <select
+        value={typeFilter}
+        onChange={(e) => {
+          setTypeFilter(e.target.value);
+          setCurrentPage(1);
+        }}
+        className="h-10 min-w-[140px] rounded-xl border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+      >
+        <option value="">{t('all')}</option>
+        {FAQ_TYPES.map((type) => (
+          <option key={type} value={type}>
+            {type === 'stores&drivers' ? 'Stores & Drivers' : type.charAt(0).toUpperCase() + type.slice(1)}
+          </option>
+        ))}
+      </select>
+      {typeFilter && (
+        <button
+          type="button"
+          onClick={() => {
+            setTypeFilter('');
+            setCurrentPage(1);
+          }}
+          className="h-10 rounded-xl border border-border px-4 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted"
+        >
+          {t('resetFilter')}
+        </button>
+      )}
+    </>
+  );
+
   return (
     <>
       <title>{metadata.title}</title>
-
-      {/* Type filter - matches Users/Index style */}
-      <div className="mb-4 flex flex-wrap items-center gap-3 p-4 bg-linear-to-r from-muted/30 via-transparent to-muted/30 rounded-xl border border-border/30 rtl:flex-row-reverse">
-        <div className="flex items-center gap-2 shrink-0 rtl:flex-row-reverse">
-          <label className="text-sm font-medium text-foreground">{t('typeLabel', 'Type')}:</label>
-          <select
-            value={typeFilter}
-            onChange={(e) => {
-              setTypeFilter(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="h-9 min-w-[140px] rounded-md border border-input bg-background px-3 text-sm"
-          >
-            <option value="">{t('all')}</option>
-            {FAQ_TYPES.map((type) => (
-              <option key={type} value={type}>
-                {type === 'stores&drivers' ? 'Stores & Drivers' : type.charAt(0).toUpperCase() + type.slice(1)}
-              </option>
-            ))}
-          </select>
-        </div>
-        {typeFilter && (
-          <button
-            type="button"
-            onClick={() => {
-              setTypeFilter('');
-              setCurrentPage(1);
-            }}
-            className="text-sm text-primary hover:underline"
-          >
-            {t('resetFilter')}
-          </button>
-        )}
-      </div>
 
       <DataTable
         tableName="FAQs"
@@ -122,6 +120,7 @@ export default function Page() {
         hasDetails
         detailsLink="/faqs/update"
         createPath="/faqs/create"
+        toolbarFilter={filterContent}
         permissions={{
           create: true,
           update: true,
