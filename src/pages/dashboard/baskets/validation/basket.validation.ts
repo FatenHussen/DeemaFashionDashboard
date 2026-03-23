@@ -23,6 +23,14 @@ export const BasketSchema = z.object({
       })
     )
     .min(1, t('basket.atLeastOneItem')),
+  badges: z
+    .array(
+      z.object({
+        id: z.number(),
+        position: z.enum(['top', 'bottom']),
+      })
+    )
+    .default([]),
 });
 
 export type BasketFormValues = z.infer<typeof BasketSchema>;

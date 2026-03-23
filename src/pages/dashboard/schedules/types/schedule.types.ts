@@ -2,12 +2,13 @@
 
 export interface ScheduleItem {
   id: number;
-  name: { en: string; ar: string };
-  day: string;
-  start_time: string;
-  end_time: string;
-  is_active: number;
+  name: { en: string; ar: string } | string;
+  interval_days: number;
+  is_active: boolean;
+  discount_type: 'percentage' | 'fixed' | null;
+  discount_value: number | null;
   created_at: string;
+  updated_at?: string;
 }
 
 export interface ScheduleListResponse {
@@ -32,8 +33,8 @@ export interface ScheduleDetailsResponse {
 
 export interface ScheduleCreatePayload {
   name: { en: string; ar: string };
-  day: string;
-  start_time: string;
-  end_time: string;
+  interval_days: number;
   is_active: boolean;
+  discount_type: 'percentage' | 'fixed' | null;
+  discount_value: number | null;
 }

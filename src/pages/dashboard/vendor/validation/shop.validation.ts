@@ -65,6 +65,14 @@ export const ShopSchema = zod.object({
   service_ids: zod
     .array(zod.object({ id: zod.number() }))
     .min(1, { message: t('shop.atLeastOneService') }),
+  badges: zod
+    .array(
+      zod.object({
+        id: zod.number(),
+        position: zod.enum(['top', 'bottom']),
+      })
+    )
+    .default([]),
 });
 
 export type ShopFormValues = zod.infer<typeof ShopSchema>;

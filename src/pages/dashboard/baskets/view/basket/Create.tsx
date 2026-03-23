@@ -24,6 +24,7 @@ import { Box, Typography } from 'src/shared/ui';
 import { LoadingScreen } from 'src/shared/components/loading-screen';
 import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
 import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
+import { RHFBadgeSelector } from 'src/shared/components/hook-form/rhf-badge-selector';
 
 // ----------------------------------------------------------------------
 
@@ -48,6 +49,7 @@ export default function CreatePage() {
     delivery_price: 0,
     image: null,
     items: [{ shop_product_variant_id: 0, quantity: 1 }],
+    badges: [],
   };
 
   const methods = useForm<BasketFormValues>({
@@ -79,6 +81,12 @@ export default function CreatePage() {
               quantity: it.quantity,
             }))
           : [{ shop_product_variant_id: 0, quantity: 1 }],
+        badges: source.badges?.length
+          ? source.badges.map((b: any) => ({
+              id: b.id,
+              position: b.postion || b.position || 'top',
+            }))
+          : [],
       });
     }
   }, [basketResponse?.data, isEditMode, reset]);
@@ -249,6 +257,11 @@ export default function CreatePage() {
               )}
             </Box>
           ))}
+        </Box>
+
+        {/* Badges */}
+        <Box className="border-t border-border pt-6">
+          <RHFBadgeSelector name="badges" />
         </Box>
       </CreateFormLayout>
     </>

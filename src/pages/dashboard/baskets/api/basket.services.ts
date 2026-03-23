@@ -37,6 +37,13 @@ export const _BasketApi = {
       formData.append(`items[${i}][quantity]`, String(item.quantity));
     });
 
+    if (data.badges && data.badges.length > 0) {
+      data.badges.forEach((badge, index) => {
+        formData.append(`badges[${index}][id]`, String(badge.id));
+        formData.append(`badges[${index}][position]`, badge.position);
+      });
+    }
+
     const response = await axiosInstance.post(apiRoutes.basket.create, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
@@ -58,6 +65,13 @@ export const _BasketApi = {
       formData.append(`items[${i}][shop_product_variant_id]`, String(item.shop_product_variant_id));
       formData.append(`items[${i}][quantity]`, String(item.quantity));
     });
+
+    if (data.badges && data.badges.length > 0) {
+      data.badges.forEach((badge, index) => {
+        formData.append(`badges[${index}][id]`, String(badge.id));
+        formData.append(`badges[${index}][position]`, badge.position);
+      });
+    }
 
     const response = await axiosInstance.patch(apiRoutes.basket.update(id), formData, {
       headers: { 'Content-Type': 'multipart/form-data' },

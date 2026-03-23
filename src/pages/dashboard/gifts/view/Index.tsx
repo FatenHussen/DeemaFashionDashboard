@@ -64,7 +64,7 @@ export default function Page() {
     <>
       <title>{metadata.title}</title>
       <DataTable
-        tableName="Gift"
+        tableName={t("tableNames.gift")}
         columns={giftColumns(
           { update: hasPermission('update', 'gift'), delete: hasPermission('delete', 'gift') },
           t, onDelete, deleteMutation.isPending, deletingId !== null, onDeleteConfirm, onDeleteCancel, deletingId, handleEdit

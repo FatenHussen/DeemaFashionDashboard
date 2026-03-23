@@ -122,7 +122,7 @@ export default function Page() {
       />
 
       <DataTable
-        tableName="Driver"
+        tableName={t("tableNames.driver")}
         columns={driverColumns(
           {
             update: hasPermission('update', 'driver'),

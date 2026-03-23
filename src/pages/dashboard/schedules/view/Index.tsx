@@ -60,7 +60,7 @@ export default function Page() {
     <>
       <title>{metadata.title}</title>
       <DataTable
-        tableName="Schedule"
+        tableName={t("tableNames.schedule")}
         columns={scheduleColumns(
           { update: hasPermission('update', 'schedule'), delete: hasPermission('delete', 'schedule') },
           t, onDelete, deleteMutation.isPending, deletingId !== null,

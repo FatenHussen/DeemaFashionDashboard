@@ -128,7 +128,8 @@
     "productVariantRequired": "Product variant is required",
     "quantityMin": "Quantity must be at least 1",
     "atLeastOneItem": "At least one item is required",
-    "scheduledDateRequired": "Scheduled date is required"
+    "scheduledDateRequired": "Scheduled date is required",
+    "numberOfDaysMin": "Number of days between deliveries must be at least 1"
   },
   "complaint": {
     "adminResponseRequired": "Admin response is required"

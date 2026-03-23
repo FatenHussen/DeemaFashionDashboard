@@ -89,7 +89,7 @@ export default function DetailsPage() {
         <Box className="flex flex-col items-center gap-3">
           <Iconify icon="solar:refresh-bold" className="w-8 h-8 text-primary animate-spin" />
           <Typography variant="body2" className="text-muted-foreground">
-            Loading order details...
+            {t('orders.loadingOrderDetails')}
           </Typography>
         </Box>
       </Box>
@@ -103,14 +103,14 @@ export default function DetailsPage() {
           <Box className="flex items-center gap-2 mb-2">
             <Iconify icon="solar:danger-bold" className="w-5 h-5 text-destructive" />
             <Typography variant="h6" className="text-destructive">
-              Order Not Found
+              {t('orders.orderNotFound')}
             </Typography>
           </Box>
           <Typography variant="body2" className="text-muted-foreground mb-4">
-            Failed to load order details.
+            {t('orders.failedToLoadOrderDetails')}
           </Typography>
           <Button variant="outlined" onClick={() => navigate('/orders')}>
-            Back to Orders
+            {t('orders.backToOrders')}
           </Button>
         </Box>
       </Box>
@@ -169,7 +169,7 @@ export default function DetailsPage() {
               className="mb-4 -ml-2 text-muted-foreground hover:text-foreground"
             >
               <Iconify icon="solar:arrow-left-bold" width={20} className="mr-2" />
-              Back to Orders
+              {t('orders.backToOrders')}
             </Button>
 
             <Box className="flex items-center gap-4 mb-2">
@@ -196,7 +196,7 @@ export default function DetailsPage() {
           <Box className="rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm shadow-sm overflow-hidden mb-4">
             <Box className="p-6">
               <Typography variant="h6" className="font-semibold mb-4">
-                Change Order Status
+                {t('orders.changeOrderStatus')}
               </Typography>
               <Box className="flex items-center gap-3 flex-wrap">
                 <span
@@ -221,7 +221,7 @@ export default function DetailsPage() {
                   </>
                 ) : (
                   <Typography variant="caption" className="text-muted-foreground">
-                    Final status — no further changes allowed
+                    {t('orders.finalStatusNoChanges')}
                   </Typography>
                 )}
               </Box>
@@ -232,11 +232,11 @@ export default function DetailsPage() {
           <Box className="rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm shadow-sm overflow-hidden mb-4">
             <Box className="p-6">
               <Typography variant="h6" className="font-semibold mb-4">
-                Assign Driver
+                {t('orders.assignDriver')}
               </Typography>
               {order.driver && (
                 <Typography variant="body2" className="mb-3 text-muted-foreground">
-                  Current driver:{' '}
+                  {t('orders.currentDriver')}{' '}
                   <span className="font-medium text-foreground">{order.driver.name}</span>{' '}
                   <span className="text-muted-foreground">({order.driver.phone})</span>
                 </Typography>
@@ -263,7 +263,7 @@ export default function DetailsPage() {
                       !selectedDriverId || selectedDriverId === 0 || assignDriverMutation.isPending
                     }
                   >
-                    Assign
+                    {t('orders.assign')}
                   </Button>
                 </form>
               </FormProvider>
@@ -274,12 +274,12 @@ export default function DetailsPage() {
           <Box className="rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm shadow-sm overflow-hidden mb-4">
             <Box className="p-6">
               <Typography variant="h6" className="font-semibold mb-4">
-                Order Information
+                {t('orders.orderInformation')}
               </Typography>
               <Box className="grid gap-4 sm:grid-cols-2">
                 <Box>
                   <Typography variant="caption" className="text-muted-foreground">
-                    Order Code
+                    {t('orders.orderCode')}
                   </Typography>
                   <Typography variant="body1" className="font-medium">
                     {order.order_code}
@@ -287,7 +287,7 @@ export default function DetailsPage() {
                 </Box>
                 <Box>
                   <Typography variant="caption" className="text-muted-foreground">
-                    Cart Type
+                    {t('orders.cartType')}
                   </Typography>
                   <Typography variant="body1" className="font-medium capitalize">
                     {order.cart_type}
@@ -295,15 +295,15 @@ export default function DetailsPage() {
                 </Box>
                 <Box>
                   <Typography variant="caption" className="text-muted-foreground">
-                    Instant Delivery
+                    {t('orders.instantDelivery')}
                   </Typography>
                   <Typography variant="body1" className="font-medium">
-                    {order.is_instant_delivery ? 'Yes' : 'No'}
+                    {order.is_instant_delivery ? t('common.yes') : t('common.no')}
                   </Typography>
                 </Box>
                 <Box>
                   <Typography variant="caption" className="text-muted-foreground">
-                    Assigned By
+                    {t('orders.assignedBy')}
                   </Typography>
                   <Typography variant="body1" className="font-medium capitalize">
                     {order.assigned_by || '-'}
@@ -311,7 +311,7 @@ export default function DetailsPage() {
                 </Box>
                 <Box>
                   <Typography variant="caption" className="text-muted-foreground">
-                    Total Quantity
+                    {t('orders.totalQuantity')}
                   </Typography>
                   <Typography variant="body1" className="font-medium">
                     {order.total_quantity}
@@ -319,7 +319,7 @@ export default function DetailsPage() {
                 </Box>
                 <Box>
                   <Typography variant="caption" className="text-muted-foreground">
-                    Created At
+                    {t('orders.createdAt')}
                   </Typography>
                   <Typography variant="body1" className="font-medium">
                     {formatDate(order.created_at)}
@@ -333,12 +333,12 @@ export default function DetailsPage() {
           <Box className="rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm shadow-sm overflow-hidden mb-4">
             <Box className="p-6">
               <Typography variant="h6" className="font-semibold mb-4">
-                Customer
+                {t('orders.customer')}
               </Typography>
               <Box className="grid gap-4 sm:grid-cols-2">
                 <Box>
                   <Typography variant="caption" className="text-muted-foreground">
-                    Name
+                    {t('orders.name')}
                   </Typography>
                   <Typography variant="body1" className="font-medium">
                     {order.user?.name || '-'}
@@ -346,7 +346,7 @@ export default function DetailsPage() {
                 </Box>
                 <Box>
                   <Typography variant="caption" className="text-muted-foreground">
-                    Email
+                    {t('orders.email')}
                   </Typography>
                   <Typography variant="body1" className="font-medium">
                     {order.user?.email || '-'}
@@ -354,7 +354,7 @@ export default function DetailsPage() {
                 </Box>
                 <Box>
                   <Typography variant="caption" className="text-muted-foreground">
-                    Phone
+                    {t('orders.phone')}
                   </Typography>
                   <Typography variant="body1" className="font-medium">
                     {order.user?.phone || '-'}
@@ -362,7 +362,7 @@ export default function DetailsPage() {
                 </Box>
                 <Box>
                   <Typography variant="caption" className="text-muted-foreground">
-                    Member Since
+                    {t('orders.memberSince')}
                   </Typography>
                   <Typography variant="body1" className="font-medium">
                     {formatDate(order.user?.created_at)}
@@ -371,7 +371,7 @@ export default function DetailsPage() {
                 {order.user?.affiliate?.is_affiliate && (
                   <Box className="sm:col-span-2">
                     <Typography variant="caption" className="text-muted-foreground">
-                      Affiliate ID
+                      {t('orders.affiliateId')}
                     </Typography>
                     <Typography variant="body1" className="font-medium">
                       {order.user.affiliate.affiliate_id}
@@ -387,12 +387,12 @@ export default function DetailsPage() {
             <Box className="rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm shadow-sm overflow-hidden mb-4">
               <Box className="p-6">
                 <Typography variant="h6" className="font-semibold mb-4">
-                  Delivery Address
+                  {t('orders.deliveryAddress')}
                 </Typography>
                 <Box className="grid gap-4 sm:grid-cols-2">
                   <Box>
                     <Typography variant="caption" className="text-muted-foreground">
-                      Label
+                      {t('orders.label')}
                     </Typography>
                     <Typography variant="body1" className="font-medium">
                       {order.user_address.label || '-'}
@@ -400,7 +400,7 @@ export default function DetailsPage() {
                   </Box>
                   <Box>
                     <Typography variant="caption" className="text-muted-foreground">
-                      Area
+                      {t('orders.area')}
                     </Typography>
                     <Typography variant="body1" className="font-medium">
                       {order.user_address.area || '-'}
@@ -408,7 +408,7 @@ export default function DetailsPage() {
                   </Box>
                   <Box>
                     <Typography variant="caption" className="text-muted-foreground">
-                      Street Name
+                      {t('orders.streetName')}
                     </Typography>
                     <Typography variant="body1" className="font-medium">
                       {order.user_address.street_name || '-'}
@@ -416,7 +416,7 @@ export default function DetailsPage() {
                   </Box>
                   <Box>
                     <Typography variant="caption" className="text-muted-foreground">
-                      Building Number
+                      {t('orders.buildingNumber')}
                     </Typography>
                     <Typography variant="body1" className="font-medium">
                       {order.user_address.building_number || '-'}
@@ -424,7 +424,7 @@ export default function DetailsPage() {
                   </Box>
                   <Box>
                     <Typography variant="caption" className="text-muted-foreground">
-                      Floor / Apartment
+                      {t('orders.floorApartment')}
                     </Typography>
                     <Typography variant="body1" className="font-medium">
                       {order.user_address.floor_apartment || '-'}
@@ -432,7 +432,7 @@ export default function DetailsPage() {
                   </Box>
                   <Box>
                     <Typography variant="caption" className="text-muted-foreground">
-                      Nearest Landmark
+                      {t('orders.nearestLandmark')}
                     </Typography>
                     <Typography variant="body1" className="font-medium">
                       {order.user_address.nearest_landmark || '-'}
@@ -440,7 +440,7 @@ export default function DetailsPage() {
                   </Box>
                   <Box>
                     <Typography variant="caption" className="text-muted-foreground">
-                      Contact Phone
+                      {t('orders.contactPhone')}
                     </Typography>
                     <Typography variant="body1" className="font-medium">
                       {order.user_address.contact_phone || '-'}
@@ -449,7 +449,7 @@ export default function DetailsPage() {
                   {(order.user_address.lat != null || order.user_address.lng != null) && (
                     <Box>
                       <Typography variant="caption" className="text-muted-foreground">
-                        Coordinates
+                        {t('orders.coordinates')}
                       </Typography>
                       <Typography variant="body1" className="font-medium">
                         {order.user_address.lat}, {order.user_address.lng}
@@ -465,12 +465,12 @@ export default function DetailsPage() {
           <Box className="rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm shadow-sm overflow-hidden mb-4">
             <Box className="p-6">
               <Typography variant="h6" className="font-semibold mb-4">
-                Pricing
+                {t('orders.pricing')}
               </Typography>
               <Box className="grid gap-4 sm:grid-cols-2">
                 <Box>
                   <Typography variant="caption" className="text-muted-foreground">
-                    Subtotal
+                    {t('orders.subtotal')}
                   </Typography>
                   <Typography variant="body1" className="font-medium">
                     {order.subtotal}
@@ -478,7 +478,7 @@ export default function DetailsPage() {
                 </Box>
                 <Box>
                   <Typography variant="caption" className="text-muted-foreground">
-                    Delivery Price
+                    {t('orders.deliveryPrice')}
                   </Typography>
                   <Typography variant="body1" className="font-medium">
                     {order.delivery_price}
@@ -486,7 +486,7 @@ export default function DetailsPage() {
                 </Box>
                 <Box>
                   <Typography variant="caption" className="text-muted-foreground">
-                    Total with Delivery
+                    {t('orders.totalWithDelivery')}
                   </Typography>
                   <Typography variant="body1" className="font-medium">
                     {order.total_with_delivery}
@@ -494,7 +494,7 @@ export default function DetailsPage() {
                 </Box>
                 <Box>
                   <Typography variant="caption" className="text-muted-foreground">
-                    Basket Discount
+                    {t('orders.basketDiscount')}
                   </Typography>
                   <Typography variant="body1" className="font-medium">
                     {order.basket_discount}
@@ -503,7 +503,7 @@ export default function DetailsPage() {
                 {order.coupon_discount != null && order.coupon_discount !== 0 && (
                   <Box>
                     <Typography variant="caption" className="text-muted-foreground">
-                      Coupon Discount
+                      {t('orders.couponDiscount')}
                     </Typography>
                     <Typography variant="body1" className="font-medium">
                       {order.coupon_discount}
@@ -515,7 +515,7 @@ export default function DetailsPage() {
                   order.coupon_discount_from_points !== '0.00' && (
                     <Box>
                       <Typography variant="caption" className="text-muted-foreground">
-                        Coupon Discount from Points
+                        {t('orders.couponDiscountFromPoints')}
                       </Typography>
                       <Typography variant="body1" className="font-medium">
                         {order.coupon_discount_from_points}
@@ -526,7 +526,7 @@ export default function DetailsPage() {
                   order.free_delivery_from_points !== 0 && (
                     <Box>
                       <Typography variant="caption" className="text-muted-foreground">
-                        Free Delivery from Points
+                        {t('orders.freeDeliveryFromPoints')}
                       </Typography>
                       <Typography variant="body1" className="font-medium">
                         {order.free_delivery_from_points}
@@ -535,7 +535,7 @@ export default function DetailsPage() {
                   )}
                 <Box>
                   <Typography variant="caption" className="text-muted-foreground">
-                    Total
+                    {t('orders.total')}
                   </Typography>
                   <Typography variant="body1" className="font-bold text-primary">
                     {order.total}
@@ -549,12 +549,12 @@ export default function DetailsPage() {
           <Box className="rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm shadow-sm overflow-hidden mb-4">
             <Box className="p-6">
               <Typography variant="h6" className="font-semibold mb-4">
-                Status Timeline
+                {t('orders.statusTimeline')}
               </Typography>
               <Box className="grid gap-4 sm:grid-cols-2">
                 <Box>
                   <Typography variant="caption" className="text-muted-foreground">
-                    Pending At
+                    {t('orders.pendingAt')}
                   </Typography>
                   <Typography variant="body1" className="font-medium">
                     {formatDate(order.timestamps.pending_at)}
@@ -562,7 +562,7 @@ export default function DetailsPage() {
                 </Box>
                 <Box>
                   <Typography variant="caption" className="text-muted-foreground">
-                    Preparing At
+                    {t('orders.preparingAt')}
                   </Typography>
                   <Typography variant="body1" className="font-medium">
                     {formatDate(order.timestamps.preparing_at)}
@@ -570,7 +570,7 @@ export default function DetailsPage() {
                 </Box>
                 <Box>
                   <Typography variant="caption" className="text-muted-foreground">
-                    Out for Delivery At
+                    {t('orders.outForDeliveryAt')}
                   </Typography>
                   <Typography variant="body1" className="font-medium">
                     {formatDate(order.timestamps.out_delivery_at)}
@@ -578,7 +578,7 @@ export default function DetailsPage() {
                 </Box>
                 <Box>
                   <Typography variant="caption" className="text-muted-foreground">
-                    Delivered At
+                    {t('orders.deliveredAt')}
                   </Typography>
                   <Typography variant="body1" className="font-medium">
                     {formatDate(order.timestamps.delivered_at)}
@@ -593,12 +593,12 @@ export default function DetailsPage() {
             <Box className="rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm shadow-sm overflow-hidden mb-4">
               <Box className="p-6">
                 <Typography variant="h6" className="font-semibold mb-4">
-                  Affiliate
+                  {t('orders.affiliate')}
                 </Typography>
                 <Box className="grid gap-4 sm:grid-cols-3">
                   <Box>
                     <Typography variant="caption" className="text-muted-foreground">
-                      Rate
+                      {t('orders.rate')}
                     </Typography>
                     <Typography variant="body1" className="font-medium">
                       {order.affiliate.affiliate_rate}
@@ -606,7 +606,7 @@ export default function DetailsPage() {
                   </Box>
                   <Box>
                     <Typography variant="caption" className="text-muted-foreground">
-                      Source
+                      {t('orders.source')}
                     </Typography>
                     <Typography variant="body1" className="font-medium">
                       {order.affiliate.affiliate_source}
@@ -614,7 +614,7 @@ export default function DetailsPage() {
                   </Box>
                   <Box>
                     <Typography variant="caption" className="text-muted-foreground">
-                      Commission
+                      {t('orders.commission')}
                     </Typography>
                     <Typography variant="body1" className="font-medium">
                       {order.affiliate.affiliate_commission}
@@ -630,12 +630,12 @@ export default function DetailsPage() {
             <Box className="rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm shadow-sm overflow-hidden mb-4">
               <Box className="p-6">
                 <Typography variant="h6" className="font-semibold mb-4">
-                  Driver
+                  {t('orders.driver')}
                 </Typography>
                 <Box className="grid gap-4 sm:grid-cols-2">
                   <Box>
                     <Typography variant="caption" className="text-muted-foreground">
-                      Name
+                      {t('orders.name')}
                     </Typography>
                     <Typography variant="body1" className="font-medium">
                       {order.driver.name}
@@ -643,7 +643,7 @@ export default function DetailsPage() {
                   </Box>
                   <Box>
                     <Typography variant="caption" className="text-muted-foreground">
-                      Phone
+                      {t('orders.phone')}
                     </Typography>
                     <Typography variant="body1" className="font-medium">
                       {order.driver.phone}
@@ -651,7 +651,7 @@ export default function DetailsPage() {
                   </Box>
                   <Box>
                     <Typography variant="caption" className="text-muted-foreground">
-                      Status
+                      {t('orders.status')}
                     </Typography>
                     <Typography variant="body1" className="font-medium capitalize">
                       {order.driver.status}
@@ -659,7 +659,7 @@ export default function DetailsPage() {
                   </Box>
                   <Box>
                     <Typography variant="caption" className="text-muted-foreground">
-                      Average Rating
+                      {t('orders.averageRating')}
                     </Typography>
                     <Typography variant="body1" className="font-medium">
                       {order.driver.average_rating}
@@ -667,7 +667,7 @@ export default function DetailsPage() {
                   </Box>
                   <Box>
                     <Typography variant="caption" className="text-muted-foreground">
-                      Total Orders
+                      {t('orders.totalOrders')}
                     </Typography>
                     <Typography variant="body1" className="font-medium">
                       {order.driver.total_orders}
@@ -675,7 +675,7 @@ export default function DetailsPage() {
                   </Box>
                   <Box>
                     <Typography variant="caption" className="text-muted-foreground">
-                      Completed Orders
+                      {t('orders.completedOrders')}
                     </Typography>
                     <Typography variant="body1" className="font-medium">
                       {order.driver.completed_orders}
@@ -683,7 +683,7 @@ export default function DetailsPage() {
                   </Box>
                   <Box>
                     <Typography variant="caption" className="text-muted-foreground">
-                      Total Earnings
+                      {t('orders.totalEarnings')}
                     </Typography>
                     <Typography variant="body1" className="font-medium">
                       {order.driver.total_earnings}
@@ -691,7 +691,7 @@ export default function DetailsPage() {
                   </Box>
                   <Box>
                     <Typography variant="caption" className="text-muted-foreground">
-                      Rate per Order
+                      {t('orders.ratePerOrder')}
                     </Typography>
                     <Typography variant="body1" className="font-medium">
                       {order.driver.rate_per_order}

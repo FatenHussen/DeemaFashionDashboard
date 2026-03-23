@@ -42,10 +42,10 @@ const buildProductFormData = (data: ProductCreateUpdatePayload): FormData => {
   if (data.barcode) formData.append('barcode', data.barcode);
   if (data.time_prepare) formData.append('time_prepare', data.time_prepare);
 
-  // Product images - use indexed notation as required by API
+  // Product images/media - use indexed notation as required by API
   if (data.images && data.images.length > 0) {
     data.images.forEach((file, index) => {
-      formData.append(`images[${index}]`, file);
+      formData.append(`media[${index}]`, file);
     });
   }
 
@@ -124,6 +124,14 @@ const buildProductFormData = (data: ProductCreateUpdatePayload): FormData => {
       );
       formData.append(`shop_variants[${index}][price]`, shopVariant.price.toString());
       formData.append(`shop_variants[${index}][quantity]`, shopVariant.quantity.toString());
+    });
+  }
+
+  // Badges
+  if (data.badges && data.badges.length > 0) {
+    data.badges.forEach((badge, index) => {
+      formData.append(`badges[${index}][id]`, badge.id.toString());
+      formData.append(`badges[${index}][position]`, badge.position);
     });
   }
 

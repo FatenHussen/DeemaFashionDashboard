@@ -26,6 +26,7 @@ import {
 import { CONFIG } from 'src/global-config';
 import { Box, Input, Checkbox, Typography } from 'src/shared/ui';
 import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
+import { RHFBadgeSelector } from 'src/shared/components/hook-form/rhf-badge-selector';
 import { StepperFormLayout } from 'src/shared/components/forms/stepper-form-layout';
 import { RHFInfiniteSelect } from 'src/shared/components/hook-form/rhf-infinite-select';
 
@@ -110,6 +111,7 @@ export default function CreatePage() {
     is_active: true,
     area_id: 0,
     service_ids: [],
+    badges: [],
   };
 
   const methods = useForm<ShopFormValues>({
@@ -170,6 +172,12 @@ export default function CreatePage() {
         is_active: shop.is_active,
         area_id: shop.area?.id ?? shop.area_id ?? 0,
         service_ids: serviceIds,
+        badges: shop.badges?.length
+          ? shop.badges.map((b: any) => ({
+              id: b.id,
+              position: b.postion || b.position || 'top',
+            }))
+          : [],
       });
     }
   }, [shopData, isEditMode, isLoadingShop, reset]);
@@ -493,6 +501,27 @@ export default function CreatePage() {
                   )}
                 </div>
               )}
+            />
+          </Box>
+
+          {/* Badges */}
+          <Box className="group">
+            <Box className="flex items-center gap-2.5 mb-3">
+              <Box className="w-7 h-7 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
+                <Iconify
+                  icon="solar:star-bold"
+                  className="text-primary"
+                  width={16}
+                  height={16}
+                />
+              </Box>
+              <Typography variant="subtitle2" className="font-semibold text-foreground">
+                Badges
+              </Typography>
+            </Box>
+            <RHFBadgeSelector
+              name="badges"
+              helperText="Select badges to display with this shop"
             />
           </Box>
         </Box>

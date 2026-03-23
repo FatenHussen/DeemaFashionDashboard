@@ -121,7 +121,7 @@ export default function Page() {
       />
 
       <DataTable
-        tableName="Admin"
+        tableName={t("tableNames.admin")}
         columns={adminColumns(
           {
             update: hasPermission('update', 'admin'),

@@ -153,7 +153,7 @@ export default function Page() {
       <title>{metadata.title}</title>
 
       <DataTable
-        tableName="Order"
+        tableName={t("tableNames.order")}
         columns={columns}
         data={orderData}
         toolbarFilter={filterContent}

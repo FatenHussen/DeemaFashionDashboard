@@ -65,7 +65,7 @@ export default function Page() {
     <>
       <title>{metadata.title}</title>
       <DataTable
-        tableName="Basket"
+        tableName={t("tableNames.basket")}
         columns={basketColumns(
           { update: hasPermission('update', 'basket'), delete: hasPermission('delete', 'basket') },
           t,

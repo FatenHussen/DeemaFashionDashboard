@@ -129,9 +129,8 @@ const PackageIndexPage = lazy(() => import('@/pages/dashboard/packages/view/Inde
 const PackageCreatePage = lazy(() => import('@/pages/dashboard/packages/view/Create'));
 const PackageDetailsPage = lazy(() => import('@/pages/dashboard/packages/view/Details'));
 
-// Subscriptions
+// Subscriptions (read-only: list + details)
 const SubscriptionIndexPage = lazy(() => import('@/pages/dashboard/subscriptions/view/Index'));
-const SubscriptionCreatePage = lazy(() => import('@/pages/dashboard/subscriptions/view/Create'));
 const SubscriptionDetailsPage = lazy(() => import('@/pages/dashboard/subscriptions/view/Details'));
 
 // Gifts
@@ -1163,22 +1162,6 @@ export const dashboardRoutes: RouteObject[] = [
           </RequirePermission>
         ),
         index: true,
-      },
-      {
-        path: 'create',
-        element: (
-          <RequirePermission permission="subscription.create">
-            <SubscriptionCreatePage />
-          </RequirePermission>
-        ),
-      },
-      {
-        path: 'update/:id',
-        element: (
-          <RequirePermission permission="subscription.update">
-            <SubscriptionCreatePage />
-          </RequirePermission>
-        ),
       },
       {
         path: 'details/:id',

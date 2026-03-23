@@ -1,11 +1,18 @@
-import type { ScheduledBasketCreateUpdatePayload } from '../types/scheduled-basket.types';
+import type {
+  ScheduledBasketCreateUpdatePayload,
+  ScheduledBasketListParams,
+} from '../types/scheduled-basket.types';
 
 import { queryKeys } from '@/api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { _ScheduledBasketApi } from '../api/scheduled-basket.services';
 
-export const useFetchScheduledBaskets = (page: number = 1, perPage: number = 10, filters?: { is_active?: string; search?: string }) =>
+export const useFetchScheduledBaskets = (
+  page: number = 1,
+  perPage: number = 10,
+  filters?: Omit<ScheduledBasketListParams, 'page' | 'per_page'>
+) =>
   useQuery({
     queryKey: queryKeys.scheduledBasket.list({ page, per_page: perPage, ...filters }),
     queryFn: () => _ScheduledBasketApi.getListScheduledBaskets({ page, per_page: perPage, ...filters }),

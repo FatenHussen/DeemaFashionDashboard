@@ -60,7 +60,7 @@ export default function Page() {
     <>
       <title>{metadata.title}</title>
       <DataTable
-        tableName="Package"
+        tableName={t("tableNames.package")}
         columns={packageColumns(
           { update: hasPermission('update', 'package'), delete: hasPermission('delete', 'package') },
           t, onDelete, deletePackageMutation.isPending, deletingId !== null, onDeleteConfirm, onDeleteCancel, deletingId, handleEdit

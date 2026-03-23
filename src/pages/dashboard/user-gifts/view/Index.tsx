@@ -50,7 +50,7 @@ export default function Page() {
     <>
       <title>{metadata.title}</title>
       <DataTable
-        tableName="User Gift"
+        tableName={t("tableNames.userGift")}
         columns={userGiftColumns(t)}
         data={items}
         createPath="/user-gifts/create"

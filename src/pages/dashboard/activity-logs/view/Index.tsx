@@ -35,7 +35,7 @@ export default function Page() {
     <>
       <title>{metadata.title}</title>
       <DataTable
-        tableName="Activity Log"
+        tableName={t("tableNames.activityLog")}
         columns={activityLogColumns(t)}
         data={items}
         hasDetails={false}

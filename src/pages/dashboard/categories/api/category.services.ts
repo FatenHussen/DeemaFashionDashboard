@@ -38,13 +38,23 @@ export const _CategoryApi = {
   },
   createCategory: async (data: CategoryCreateUpdatePayload): Promise<any> => {
     const formData = new FormData();
-    
+
     formData.append('name[en]', data.name.en);
     formData.append('name[ar]', data.name.ar);
 
     if (data.icon) {
       formData.append('icon', data.icon);
     }
+
+    if (data.parent_id) {
+      formData.append('parent_id', data.parent_id.toString());
+    }
+
+    if (data.order !== undefined && data.order !== null) {
+      formData.append('order', data.order.toString());
+    }
+
+    formData.append('is_active', data.is_active ? '1' : '0');
 
     const response = await axiosInstance.post(apiRoutes.category.create, formData, {
       headers: {
@@ -58,17 +68,23 @@ export const _CategoryApi = {
     data: CategoryCreateUpdatePayload
   ): Promise<any> => {
     const formData = new FormData();
-    
+
     formData.append('name[en]', data.name.en);
     formData.append('name[ar]', data.name.ar);
-    
+
     if (data.icon) {
       formData.append('icon', data.icon);
     }
-    
+
     if (data.parent_id) {
       formData.append('parent_id', data.parent_id.toString());
     }
+
+    if (data.order !== undefined && data.order !== null) {
+      formData.append('order', data.order.toString());
+    }
+
+    formData.append('is_active', data.is_active ? '1' : '0');
 
     const response = await axiosInstance.put(apiRoutes.category.update(id), formData, {
       headers: {

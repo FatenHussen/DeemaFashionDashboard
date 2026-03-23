@@ -8,19 +8,19 @@ import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-
 const ScheduleSchema = z.object({
   id: z.number(),
   name: z.any(),
-  day: z.string(),
-  start_time: z.string(),
-  end_time: z.string(),
-  is_active: z.number(),
+  interval_days: z.number(),
+  is_active: z.any(),
+  discount_type: z.any(),
+  discount_value: z.any(),
 });
 
 export interface ScheduleTableItem {
   id: number;
   name: any;
-  day: string;
-  start_time: string;
-  end_time: string;
-  is_active: number;
+  interval_days: number;
+  is_active: boolean;
+  discount_type: 'percentage' | 'fixed' | null;
+  discount_value: number | null;
 }
 
 export const scheduleColumns = (
@@ -55,28 +55,36 @@ export const scheduleColumns = (
     },
   },
   {
-    id: 'day',
-    accessorKey: 'day',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('form.dayLabel')} />,
+    id: 'interval_days',
+    accessorKey: 'interval_days',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('form.intervalDays')} />,
     cell: ({ row }) => (
-      <span className="px-2 py-1 rounded-md bg-muted text-sm capitalize">{row.original.day}</span>
+      <span className="px-2 py-1 rounded-md bg-muted text-sm">
+        {row.original.interval_days} {t('days')}
+      </span>
     ),
   },
   {
-    id: 'time',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('form.timeRange')} />,
-    cell: ({ row }) => (
-      <span className="text-sm text-muted-foreground">
-        {row.original.start_time} - {row.original.end_time}
-      </span>
-    ),
+    id: 'discount',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('form.discount')} />,
+    cell: ({ row }) => {
+      const { discount_type, discount_value } = row.original;
+      if (!discount_type || discount_value == null) {
+        return <span className="text-muted-foreground">—</span>;
+      }
+      return (
+        <span className="px-2 py-1 rounded-md bg-blue-50 text-blue-700 text-sm font-medium dark:bg-blue-950 dark:text-blue-300">
+          {discount_type === 'percentage' ? `${discount_value}%` : `${discount_value}`}
+        </span>
+      );
+    },
   },
   {
     id: 'status',
     accessorKey: 'is_active',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.status')} />,
     cell: ({ row }) => (
-      <span className={`px-2 py-1 rounded-full text-xs font-medium ${row.original.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+      <span className={`px-2 py-1 rounded-full text-xs font-medium ${row.original.is_active ? 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300' : 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300'}`}>
         {row.original.is_active ? t('active') : t('inactive')}
       </span>
     ),

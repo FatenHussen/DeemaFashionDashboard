@@ -106,7 +106,7 @@ export default function Page() {
       <title>{metadata.title}</title>
 
       <DataTable
-        tableName="FAQs"
+        tableName={t("tableNames.faq")}
         columns={faqColumns(
           t,
           handleDeleteRequest,

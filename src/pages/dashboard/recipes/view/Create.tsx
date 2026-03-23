@@ -19,6 +19,7 @@ import { CONFIG } from 'src/global-config';
 import { Box, Switch, Typography } from 'src/shared/ui';
 import { LoadingScreen } from 'src/shared/components/loading-screen';
 import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
+import { RHFBadgeSelector } from 'src/shared/components/hook-form/rhf-badge-selector';
 import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
 
 // ----------------------------------------------------------------------
@@ -64,6 +65,7 @@ export default function CreatePage() {
     delivery_price: 0,
     serves: '',
     prepare_time: '',
+    badges: [],
     items: [{ shop_product_variant_id: 0, switchable_category_id: undefined, quantity: 1, is_required: true, min_quantity: 1, max_quantity: 1 }],
     steps: [],
   };
@@ -90,6 +92,12 @@ export default function CreatePage() {
         delivery_price: source.delivery_price || 0,
         serves: (source as any).serves ?? '',
         prepare_time: (source as any).prepare_time ?? '',
+        badges: source.badges?.length
+          ? source.badges.map((b: any) => ({
+              id: b.id,
+              position: b.postion || b.position || 'top',
+            }))
+          : [],
         items: source.items?.length
           ? source.items.map((it: any) => ({
               // API returns nested: terms + main_item
@@ -289,6 +297,15 @@ export default function CreatePage() {
             <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('columns.prepTime')}</Typography>
             <RHFTextField name="prepare_time" placeholder={t('form.prepareTimePlaceholder')} fullWidth />
           </Box>
+        </Box>
+
+        {/* Badges */}
+        <Box className="group">
+          <RHFBadgeSelector
+            name="badges"
+            label="Badges"
+            helperText="Select badges to display with this recipe"
+          />
         </Box>
 
         {/* ── Items ── */}

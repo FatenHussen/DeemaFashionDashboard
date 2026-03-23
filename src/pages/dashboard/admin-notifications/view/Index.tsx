@@ -78,7 +78,7 @@ export default function Page() {
       </div>
 
       <DataTable
-        tableName="Admin Notifications"
+        tableName={t("tableNames.adminNotifications")}
         columns={adminNotificationColumns(t)}
         data={items}
         hasDetails={false}

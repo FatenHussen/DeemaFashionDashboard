@@ -109,6 +109,16 @@ export const ProductSchema = zod.object({
       })
     )
     .optional(),
+
+  // Badges
+  badges: zod
+    .array(
+      zod.object({
+        id: zod.number(),
+        position: zod.enum(['top', 'bottom']),
+      })
+    )
+    .default([]),
 });
 
 export type ProductFormValues = zod.infer<typeof ProductSchema>;

@@ -12,6 +12,8 @@ export interface CategoryData {
   icon: string | null;
   parent_id: number | null;
   parent: ParentCategory | null;
+  order: number | null;
+  is_active: boolean;
   children_count: number;
   created_at: string;
   updated_at: string;
@@ -44,6 +46,8 @@ export interface CategoryDetailData {
   icon: string | null;
   parent_id: number | null;
   parent: ParentCategory | null;
+  order: number | null;
+  is_active: boolean;
   children: CategoryData[];
   created_at: string;
   updated_at: string;
@@ -62,5 +66,7 @@ export interface CategoryCreateUpdatePayload {
   };
   icon?: File | null;
   parent_id?: number | null;
+  order?: number | null;
+  is_active?: boolean;
 }
 

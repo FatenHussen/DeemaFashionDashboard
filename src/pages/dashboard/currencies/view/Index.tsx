@@ -51,7 +51,7 @@ export default function Page() {
     <>
       <title>{metadata.title}</title>
       <DataTable
-        tableName="Currency"
+        tableName={t("tableNames.currency")}
         columns={currencyColumns(
           { update: hasPermission('update', 'currency'), delete: hasPermission('delete', 'currency') },
           t, onDelete, deleteMutation.isPending, deletingId !== null, onDeleteConfirm, onDeleteCancel, deletingId, handleEdit

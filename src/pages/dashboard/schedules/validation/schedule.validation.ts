@@ -11,10 +11,10 @@ export const ScheduleSchema = zod.object({
     en: zod.string().min(1, { message: t('schedule.nameEnRequired') }),
     ar: zod.string().min(1, { message: t('schedule.nameArRequired') }),
   }),
-  day: zod.string().min(1, { message: t('schedule.dayRequired') }),
-  start_time: zod.string().min(1, { message: t('schedule.startTimeRequired') }),
-  end_time: zod.string().min(1, { message: t('schedule.endTimeRequired') }),
-  is_active: zod.boolean(),
+  interval_days: zod.coerce.number().min(1, { message: t('schedule.intervalDaysRequired') }),
+  is_active: zod.boolean().default(true),
+  discount_type: zod.enum(['percentage', 'fixed']).nullable().optional(),
+  discount_value: zod.coerce.number().min(0).nullable().optional(),
 });
 
 export type ScheduleFormValues = zod.infer<typeof ScheduleSchema>;

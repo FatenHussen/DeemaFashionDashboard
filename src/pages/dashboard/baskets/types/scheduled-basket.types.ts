@@ -1,13 +1,57 @@
 // ----------------------------------------------------------------------
 
-export interface ScheduledBasketItem {
+export interface ScheduledBasketSchedule {
+  id?: number;
+  title: { en: string; ar: string } | string;
+  number_of_days: number;
+  discount_type: 'percentage' | 'fixed' | null;
+  discount_value: number | null;
+  is_active: boolean;
+  is_default?: boolean;
+  created_at?: string;
+}
+
+export interface ScheduledBasketItemAlternative {
+  product_id?: number;
   shop_product_variant_id: number;
+  name?: string;
+  image_url?: string;
+  price?: number;
+}
+
+export interface ScheduledBasketItem {
+  id?: number;
+  product_id?: number;
+  variant_id?: number;
+  shop_product_variant_id: number;
+  shop_product_variant_ids?: number[];
   quantity: number;
+  unit_price?: number;
+  subtotal?: number;
+  is_required?: boolean;
+  is_extra?: boolean;
+  min_quantity?: number;
+  max_quantity?: number;
   product?: {
     id: number;
     name: string | { ar?: string; en?: string };
-    price?: number;
+    image?: string;
+    brand?: string;
   };
+  variant?: {
+    id: number;
+    attributes?: Array<{ name: string; value: string }>;
+  };
+  alternatives?: ScheduledBasketItemAlternative[];
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface ScheduledBasketBadge {
+  id: number;
+  name?: string;
+  icon?: string;
+  position: string;
 }
 
 export interface ScheduledBasketData {
@@ -28,20 +72,31 @@ export interface ScheduledBasketData {
   is_schedule?: boolean;
   has_schedule?: boolean;
   schedule_count?: number;
-  offer_ends_at?: string;
   items?: ScheduledBasketItem[];
-  scheduled_at?: string;
-  scheduled_end_at?: string;
-  is_recurring?: boolean;
-  recurrence_type?: 'daily' | 'weekly' | 'monthly';
+  schedules?: ScheduledBasketSchedule[];
+  extras?: ScheduledBasketItem[];
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  badges?: ScheduledBasketBadge[];
+}
+
+export type ScheduledBasketSortField = 'id' | 'name' | 'price' | 'rating' | 'num_sold' | 'created_at';
+export type ScheduledBasketSortOrder = 'asc' | 'desc';
+
+export interface ScheduledBasketListParams {
+  page?: number;
+  per_page?: number;
+  search?: string;
+  category_id?: number;
+  sort_field?: ScheduledBasketSortField;
+  sort_order?: ScheduledBasketSortOrder;
 }
 
 export interface ScheduledBasketListResponse {
-  status: boolean;
-  message: string;
+  success?: boolean;
+  status?: boolean;
+  message?: string;
   data: {
     items: ScheduledBasketData[];
     pagination: {
@@ -54,23 +109,35 @@ export interface ScheduledBasketListResponse {
 }
 
 export interface ScheduledBasketDetailsResponse {
-  status: boolean;
-  message: string;
+  success?: boolean;
+  status?: boolean;
+  message?: string;
   data: ScheduledBasketData;
 }
 
 export interface ScheduledBasketCreateUpdatePayload {
   category_id: number;
   name: { ar: string; en: string };
-  offer_ends_at?: string;
   discount?: number;
   discount_type: 'fixed' | 'percentage';
   delivery_price?: number;
   image?: File | string | null;
-  items: Array<{ shop_product_variant_id: number; quantity: number }>;
-  scheduled_at?: string;
-  scheduled_end_at?: string;
-  is_recurring?: boolean;
-  recurrence_type?: 'daily' | 'weekly' | 'monthly';
+  items: Array<{
+    shop_product_variant_id: number;
+    shop_product_variant_ids?: number[];
+    quantity: number;
+    is_required?: boolean;
+    is_extra?: boolean;
+    min_quantity?: number;
+    max_quantity?: number;
+  }>;
+  schedule: {
+    title: { en: string; ar: string };
+    number_of_days: number;
+    discount_type: 'percentage' | 'fixed' | null;
+    discount_value: number | null;
+    is_active: boolean;
+  };
   is_active: boolean;
+  badges?: Array<{ id: number; position: string }>;
 }

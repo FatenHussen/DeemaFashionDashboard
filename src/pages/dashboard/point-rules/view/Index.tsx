@@ -60,7 +60,7 @@ export default function Page() {
     <>
       <title>{metadata.title}</title>
       <DataTable
-        tableName="PointRule"
+        tableName={t("tableNames.pointRule")}
         columns={pointRuleColumns(
           { update: hasPermission('update', 'pointrule'), delete: hasPermission('delete', 'pointrule') },
           t, onDelete, deleteMutation.isPending, deletingId !== null,

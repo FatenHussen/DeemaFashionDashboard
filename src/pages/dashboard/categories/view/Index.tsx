@@ -90,7 +90,7 @@ export default function Page() {
       <title>{metadata.title}</title>
 
       <DataTable
-        tableName="Categories"
+        tableName={t("tableNames.category")}
         columns={categoryColumns(
           {
             update: hasPermission('update', 'category'),

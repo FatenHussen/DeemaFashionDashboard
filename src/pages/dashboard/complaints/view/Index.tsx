@@ -97,7 +97,7 @@ export default function Page() {
       <title>{metadata.title}</title>
 
       <DataTable
-        tableName="Complaint"
+        tableName={t("tableNames.complaint")}
         columns={complaintColumns(
           { update: hasPermission('update', 'complaint') },
           t,

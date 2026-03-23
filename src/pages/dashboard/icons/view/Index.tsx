@@ -62,7 +62,7 @@ export default function Page() {
     <>
       <title>{metadata.title}</title>
       <DataTable
-        tableName="Icon"
+        tableName={t("tableNames.icon")}
         columns={iconColumns(
           { update: hasPermission('update', 'icon'), delete: hasPermission('delete', 'icon') },
           t, onDelete, deleteMutation.isPending, deletingId !== null,

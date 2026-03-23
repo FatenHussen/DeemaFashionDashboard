@@ -236,9 +236,6 @@ export const apiRoutes = {
   // Subscription routes
   subscription: {
     list: `${ROOTS.ADMIN}/subscriptions`,
-    create: `${ROOTS.ADMIN}/subscriptions`,
-    update: (id: number | string) => `${ROOTS.ADMIN}/subscriptions/${id}`,
-    delete: (id: number | string) => `${ROOTS.ADMIN}/subscriptions/${id}`,
     details: (id: number | string) => `${ROOTS.ADMIN}/subscriptions/${id}`,
   },
   // Gift routes
@@ -349,12 +346,12 @@ export const apiRoutes = {
     productMovementExport: `${ROOTS.ADMIN}/reports/export/product-movement`,
     vendorPerformance: (id: number | string) => `${ROOTS.ADMIN}/reports/vendor-performance/${id}`,
     vendorPerformanceExport: (id: number | string) =>
-      `/api/reports/export/vendor-performance/${id}`,
+      `${ROOTS.ADMIN}/reports/export/vendor-performance/${id}`,
     driverPerformance: (id: number | string) => `${ROOTS.ADMIN}/reports/driver-performance/${id}`,
     driverPerformanceExport: (id: number | string) =>
-      `/api/reports/export/driver-performance/${id}`,
+      `${ROOTS.ADMIN}/reports/export/driver-performance/${id}`,
     salesByLocation: `${ROOTS.ADMIN}/reports/sales-by-location`,
-    salesByLocationExport: `/api/reports/export/sales`,
+    salesByLocationExport: `${ROOTS.ADMIN}/reports/export/sales-by-location`,
     salesByCategory: `${ROOTS.ADMIN}/reports/sales-by-category`,
     salesByCategoryExport: `${ROOTS.ADMIN}/reports/export/sales-by-category`,
   },

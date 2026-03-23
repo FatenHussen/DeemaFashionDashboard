@@ -9,7 +9,17 @@
       "Bash(grep -E \"\\\\.\\(ts|tsx|json\\)$\")",
       "Bash(find /Users/mhmd/Desktop/tikmool/tikmool-admin-dashboard -name i18n* -type f)",
       "Bash(wc -l /Users/mhmd/Desktop/tikmool/tikmool-admin-dashboard/src/locales/*/table.json)",
-      "Bash(wc -l /Users/mhmd/Desktop/tikmool/tikmool-admin-dashboard/src/locales/*/nav.json)"
+      "Bash(wc -l /Users/mhmd/Desktop/tikmool/tikmool-admin-dashboard/src/locales/*/nav.json)",
+      "Bash(npm run:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(python3 -c \":*)",
+      "Bash(python3:*)",
+      "Bash(grep -l tableName=\"\" /Users/mhmd/Desktop/tikmool/tikmool-admin-dashboard/src/pages/dashboard/*/view/Index.tsx)",
+      "Bash(grep -h tableName=\"\" /Users/mhmd/Desktop/tikmool/tikmool-admin-dashboard/src/pages/dashboard/*/view/Index.tsx)",
+      "Bash(grep -r badges: /Users/mhmd/Desktop/tikmool/tikmool-admin-dashboard/src/pages/dashboard/*/validation/*.validation.ts)",
+      "Bash(xargs ls:*)",
+      "Bash(find /Users/mhmd/Desktop/tikmool/tikmool-admin-dashboard/src/pages/dashboard/schedules -type f -name *.tsx -o -name *.ts)"
     ]
   }
 }

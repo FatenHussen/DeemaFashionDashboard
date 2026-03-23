@@ -145,7 +145,14 @@ export const queryKeys = {
   },
   // Scheduled Basket query keys
   scheduledBasket: {
-    list: (params?: { page?: number; per_page?: number }) => ['scheduledBasket', 'list', params] as const,
+    list: (params?: {
+      page?: number;
+      per_page?: number;
+      search?: string;
+      category_id?: number;
+      sort_field?: string;
+      sort_order?: string;
+    }) => ['scheduledBasket', 'list', params] as const,
     details: (id: number | string) => ['scheduledBasket', 'details', id] as const,
   },
   // Package query keys
@@ -153,9 +160,20 @@ export const queryKeys = {
     list: (params?: { page?: number; per_page?: number }) => ['package', 'list', params] as const,
     details: (id: number | string) => ['package', 'details', id] as const,
   },
-  // Subscription query keys
+  // Subscription query keys (GET /admin/subscriptions — list + show only)
   subscription: {
-    list: (params?: { page?: number; per_page?: number }) => ['subscription', 'list', params] as const,
+    list: (params?: {
+      page?: number;
+      per_page?: number;
+      user_id?: number;
+      package_id?: number;
+      status?: string;
+      start_date_from?: string;
+      start_date_to?: string;
+      search?: string;
+      sortField?: string;
+      sortOrder?: 'asc' | 'desc';
+    }) => ['subscription', 'list', params] as const,
     details: (id: number | string) => ['subscription', 'details', id] as const,
   },
   // Gift query keys

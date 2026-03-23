@@ -21,6 +21,12 @@ export const RecipeSchema = z.object({
   delivery_price: z.coerce.number().min(0).optional().default(0),
   serves: z.string().optional().default(''),
   prepare_time: z.string().optional().default(''),
+  badges: z.array(
+    z.object({
+      id: z.number(),
+      position: z.enum(['top', 'bottom']),
+    })
+  ).default([]),
   items: z.array(
     z.object({
       shop_product_variant_id: z.number().min(1, t('recipe.productVariantRequired')),

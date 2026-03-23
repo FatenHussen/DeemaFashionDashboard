@@ -62,7 +62,7 @@ export default function Page() {
     <>
       <title>{metadata.title}</title>
       <DataTable
-        tableName="Promotion"
+        tableName={t("tableNames.promotion")}
         columns={promotionColumns(
           { update: hasPermission('update', 'promotion'), delete: hasPermission('delete', 'promotion') },
           t, onDelete, deleteMutation.isPending, deletingId !== null,

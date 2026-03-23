@@ -35,7 +35,7 @@ export default function Page() {
     <>
       <title>{metadata.title}</title>
       <DataTable
-        tableName="Affiliate Withdraw Request"
+        tableName={t("tableNames.affiliateWithdraw")}
         columns={affiliateWithdrawColumns(t)}
         data={items}
         hasDetails

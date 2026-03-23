@@ -49,7 +49,7 @@ export default function Page() {
       <title>{metadata.title}</title>
 
       <DataTable
-        tableName="Legal Documents"
+        tableName={t("tableNames.legalDocument")}
         columns={legalDocumentColumns(t)}
         data={items}
         hasDetails

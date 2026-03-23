@@ -3,7 +3,7 @@ import type { ScheduleListResponse, ScheduleCreatePayload, ScheduleDetailsRespon
 import { apiRoutes, axiosInstance } from '@/api';
 
 export const _ScheduleApi = {
-  getList: async (params?: { page?: number; per_page?: number; is_active?: string; search?: string }): Promise<ScheduleListResponse> => {
+  getList: async (params?: { page?: number; per_page?: number; is_active?: string; search?: string; discount_type?: string; sort_field?: string; sort_order?: string }): Promise<ScheduleListResponse> => {
     const response = await axiosInstance.get<ScheduleListResponse>(apiRoutes.schedule.list, { params });
     return response.data;
   },

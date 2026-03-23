@@ -1,24 +1,71 @@
 // ----------------------------------------------------------------------
 
-export interface SubscriptionData {
+/** GET /api/admin/subscriptions query params */
+export type SubscriptionListParams = {
+  page?: number;
+  per_page?: number;
+  user_id?: number;
+  package_id?: number;
+  status?: 'active' | 'expired' | 'cancelled' | string;
+  start_date_from?: string;
+  start_date_to?: string;
+  search?: string;
+  sortField?: 'id' | 'start_date' | 'end_date' | 'created_at' | 'status' | string;
+  sortOrder?: 'asc' | 'desc';
+};
+
+export interface SubscriptionUserNested {
   id: number;
-  user_id: number;
-  package_id: number;
+  name: string;
+  email?: string;
+  phone?: string;
+}
+
+export interface SubscriptionPackageList {
+  id: number;
+  name: string | { ar?: string; en?: string };
+  price?: number;
+}
+
+/** Package fields on single-subscription response */
+export interface SubscriptionPackageDetail extends SubscriptionPackageList {
+  duration_days?: number;
+  monthly_orders_limit?: number | null;
+  free_delivery_count?: number | null;
+  discount_percentage?: number | null;
+  points_bonus?: number | null;
+}
+
+export type SubscriptionStatus = 'active' | 'expired' | 'cancelled';
+
+export interface SubscriptionListItem {
+  id: number;
+  user_id?: number;
+  package_id?: number;
+  user: SubscriptionUserNested;
+  package: SubscriptionPackageList;
+  status: SubscriptionStatus | string;
   start_date: string;
   end_date: string;
-  status: string;
+  remaining_orders: number | null;
+  remaining_free_deliveries: number | null;
   is_active: boolean;
-  user?: { id: number; name: string; email?: string };
-  package?: { id: number; name: string | { ar?: string; en?: string } };
   created_at: string;
-  updated_at: string;
+}
+
+export interface SubscriptionDetail extends SubscriptionListItem {
+  package: SubscriptionPackageDetail;
+  user: SubscriptionUserNested;
+  days_remaining: number | null;
+  updated_at?: string;
 }
 
 export interface SubscriptionListResponse {
-  status: boolean;
-  message: string;
+  success?: boolean;
+  status?: boolean;
+  message?: string;
   data: {
-    items: SubscriptionData[];
+    items: SubscriptionListItem[];
     pagination: {
       current_page: number;
       last_page: number;
@@ -29,16 +76,8 @@ export interface SubscriptionListResponse {
 }
 
 export interface SubscriptionDetailsResponse {
-  status: boolean;
-  message: string;
-  data: SubscriptionData;
-}
-
-export interface SubscriptionCreateUpdatePayload {
-  user_id: number;
-  package_id: number;
-  start_date: string;
-  end_date: string;
-  status: string;
-  is_active: boolean;
+  success?: boolean;
+  status?: boolean;
+  message?: string;
+  data: SubscriptionDetail;
 }

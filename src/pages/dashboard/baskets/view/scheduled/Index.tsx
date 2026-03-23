@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
@@ -8,6 +8,7 @@ import { scheduledBasketColumns, type ScheduledBasketFormValues } from '@/column
 import { useFetchScheduledBaskets, useDeleteScheduledBasket } from '@/pages/dashboard/baskets/hooks/scheduled-basket';
 
 import { CONFIG } from 'src/global-config';
+import { Input } from 'src/shared/ui';
 
 const metadata = { title: `Scheduled Baskets | Dashboard - ${CONFIG.appName}` };
 
@@ -17,8 +18,17 @@ export default function Page() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [searchInput, setSearchInput] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
 
-  const { data: scheduledBasketsResponse, isLoading, error } = useFetchScheduledBaskets(currentPage, pageSize);
+  useEffect(() => {
+    const id = window.setTimeout(() => setDebouncedSearch(searchInput.trim()), 400);
+    return () => window.clearTimeout(id);
+  }, [searchInput]);
+
+  const { data: scheduledBasketsResponse, isLoading, error } = useFetchScheduledBaskets(currentPage, pageSize, {
+    ...(debouncedSearch ? { search: debouncedSearch } : {}),
+  });
   const deleteScheduledBasketMutation = useDeleteScheduledBasket();
 
   if (error) console.error('Error fetching scheduled baskets:', error);
@@ -63,7 +73,7 @@ export default function Page() {
     <>
       <title>{metadata.title}</title>
       <DataTable
-        tableName="Scheduled Basket"
+        tableName={t("tableNames.scheduledBasket")}
         columns={scheduledBasketColumns(
           { update: hasPermission('update', 'scheduled-basket'), delete: hasPermission('delete', 'scheduled-basket') },
           t,
@@ -76,6 +86,7 @@ export default function Page() {
           handleEdit
         )}
         data={scheduledBasketData}
+        searchColumns={[]}
         createPath="/scheduled-baskets/create"
         hasDetails
         detailsLink="/scheduled-baskets/details"
@@ -85,7 +96,31 @@ export default function Page() {
           delete: hasPermission('delete', 'scheduled-basket'),
         }}
         isLoading={isLoading}
-        columnTranslations={{ id: 'ID', image: 'Image', name: 'Name', category: 'Category', original_price: 'Original Price', final_price: 'Final Price', discount: 'Discount', rating: 'Rating', num_sold: 'Sold', is_active: 'Status', actions: 'Actions' }}
+        toolbarFilter={
+          <Input
+            placeholder={t('search')}
+            value={searchInput}
+            onChange={(e) => {
+              setSearchInput(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="max-w-xs"
+          />
+        }
+        columnTranslations={{
+          id: 'ID',
+          image: 'Image',
+          name: 'Name',
+          category: 'Category',
+          original_price: 'Original Price',
+          final_price: 'Final Price',
+          discount: 'Discount',
+          rating: 'Rating',
+          num_sold: 'Sold',
+          schedule_count: t('columns.scheduleCount'),
+          is_active: 'Status',
+          actions: 'Actions',
+        }}
         pagination={pagination}
         currentPage={currentPage}
         pageSize={pageSize}

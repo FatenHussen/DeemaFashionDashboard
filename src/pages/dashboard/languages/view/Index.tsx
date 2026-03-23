@@ -81,7 +81,7 @@ export default function Page() {
       <title>{metadata.title}</title>
 
       <DataTable
-        tableName="Language"
+        tableName={t("tableNames.language")}
         columns={languageColumns(
           {
             update: hasPermission('update', 'language'),

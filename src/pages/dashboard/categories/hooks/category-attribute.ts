@@ -9,8 +9,8 @@ import {
 export const useFetchCategoryAttributes = (categoryId: number | string | undefined, page: number = 1, limit: number = 25) =>
   useQuery({
     queryKey: queryKeys.categoryAttribute.list({ categoryId, page, limit }),
-    queryFn: () => _CategoryAttributeApi.getListCategoryAttributes(page, limit, categoryId),
-    enabled: !!categoryId,
+    queryFn: () => _CategoryAttributeApi.getListCategoryAttributes(page, limit),
+    // enabled: !!categoryId,
   });
 
 export const useFetchCategoryAttributeById = (id: number | string) =>

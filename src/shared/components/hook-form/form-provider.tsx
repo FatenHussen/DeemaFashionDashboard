@@ -13,7 +13,7 @@ export type FormProps = {
 export function Form({ children, onSubmit, methods }: FormProps) {
   return (
     <RHFForm {...methods}>
-      <form onSubmit={onSubmit} noValidate autoComplete="off">
+      <form onSubmit={onSubmit || ((e) => e.preventDefault())} noValidate autoComplete="off">
         {children}
       </form>
     </RHFForm>

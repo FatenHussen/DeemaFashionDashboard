@@ -16,14 +16,14 @@ import {
 
 // ----------------------------------------------------------------------
 
-function createSchema(minLength: number) {
+function createSchema(minLength: number, t: any) {
   return z
     .object({
-      password: z.string().min(minLength, `Password must be at least ${minLength} characters`),
-      password_confirmation: z.string().min(minLength, `Password must be at least ${minLength} characters`),
+      password: z.string().min(minLength, t('dialog.passwordMustBeAtLeast', { length: minLength })),
+      password_confirmation: z.string().min(minLength, t('dialog.passwordMustBeAtLeast', { length: minLength })),
     })
     .refine((data) => data.password === data.password_confirmation, {
-      message: 'Passwords do not match',
+      message: t('dialog.passwordsDoNotMatch'),
       path: ['password_confirmation'],
     });
 }
@@ -53,7 +53,7 @@ export function UpdatePasswordDialog({
   const { t } = useTranslation('table');
 
   const methods = useForm<UpdatePasswordFormValues>({
-    resolver: zodResolver(createSchema(minLength)),
+    resolver: zodResolver(createSchema(minLength, t)),
     defaultValues: { password: '', password_confirmation: '' },
   });
 
@@ -81,7 +81,7 @@ export function UpdatePasswordDialog({
             {t('updatePassword', 'Update Password')}
           </DialogTitle>
           <DialogDescription>
-            {`Set a new password for this ${entityName.toLowerCase()}.`}
+            {t('dialog.setNewPasswordFor', { entity: entityName.toLowerCase() })}
           </DialogDescription>
         </DialogHeader>
 
@@ -89,16 +89,16 @@ export function UpdatePasswordDialog({
           <form onSubmit={handleSubmit} className="space-y-4 pt-2">
             <RHFTextField
               name="password"
-              label="New Password"
+              label={t('dialog.newPassword')}
               type="password"
-              placeholder="Enter new password"
+              placeholder={t('dialog.enterNewPassword')}
               fullWidth
             />
             <RHFTextField
               name="password_confirmation"
-              label="Confirm Password"
+              label={t('dialog.confirmPassword')}
               type="password"
-              placeholder="Confirm new password"
+              placeholder={t('dialog.confirmNewPassword')}
               fullWidth
             />
 

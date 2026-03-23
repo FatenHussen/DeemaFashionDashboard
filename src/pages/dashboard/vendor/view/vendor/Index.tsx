@@ -62,7 +62,7 @@ export default function Page() {
       <title>{metadata.title}</title>
 
       <DataTable
-        tableName="Vendor"
+        tableName={t("tableNames.vendor")}
         columns={vendorColumns(
           {
             update: hasPermission('update', 'vendor'),

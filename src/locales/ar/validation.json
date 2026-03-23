@@ -128,7 +128,8 @@
     "productVariantRequired": "متغير المنتج مطلوب",
     "quantityMin": "الكمية يجب أن تكون 1 على الأقل",
     "atLeastOneItem": "يجب إضافة عنصر واحد على الأقل",
-    "scheduledDateRequired": "تاريخ الجدولة مطلوب"
+    "scheduledDateRequired": "تاريخ الجدولة مطلوب",
+    "numberOfDaysMin": "عدد الأيام بين كل توصيل يجب أن يكون 1 على الأقل"
   },
   "complaint": {
     "adminResponseRequired": "رد المسؤول مطلوب"

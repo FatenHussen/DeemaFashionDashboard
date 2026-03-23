@@ -61,7 +61,7 @@ export default function Page() {
       <title>{metadata.title}</title>
 
       <DataTable
-        tableName="Point Exchange"
+        tableName={t("tableNames.pointExchange")}
         columns={pointExchangeColumns(t)}
         data={exchangeData}
         hasDetails

@@ -29,6 +29,7 @@ import { Label } from 'src/shared/components/label';
 import { Box, Input, Button, Typography } from 'src/shared/ui';
 import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
 import { RHFInfiniteSelect } from 'src/shared/components/hook-form/rhf-infinite-select';
+import { RHFBadgeSelector } from 'src/shared/components/hook-form/rhf-badge-selector';
 
 // ----------------------------------------------------------------------
 
@@ -87,6 +88,7 @@ export default function CreatePage() {
     time_prepare: '',
     is_instant_delivery: 0,
     images: [],
+    badges: [],
     variants: [],
     category_details: [],
     extra_details: [],
@@ -201,6 +203,12 @@ export default function CreatePage() {
               quantity: Number(s.quantity) || 0,
             }))
           ) ?? [],
+        badges: p.badges?.length
+          ? p.badges.map((b: any) => ({
+              id: b.id,
+              position: b.postion || b.position || 'top',
+            }))
+          : [],
       });
     }
   }, [productResponse, isEditMode, isLoadingProduct, reset]);
@@ -1385,6 +1393,15 @@ export default function CreatePage() {
                 })}
             </Box>
           )}
+        </Box>
+
+        {/* ─── Badges ────────────────────────────────────────────── */}
+        <Box className="border-t border-border pt-6">
+
+             <Typography variant="h6" className="font-semibold text-foreground">
+              Badges
+            </Typography>
+          <RHFBadgeSelector name="badges" />
         </Box>
 
         {/* ─── Shop Variants ────────────────────────────────────── */}

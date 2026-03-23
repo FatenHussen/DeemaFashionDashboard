@@ -24,8 +24,6 @@ import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout
 
 const metadata = { title: `Schedule ${CONFIG.appName}` };
 
-const DAYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-
 export default function CreatePage() {
   const { t } = useTranslation('table');
   const { id } = useParams<{ id?: string }>();
@@ -38,10 +36,10 @@ export default function CreatePage() {
 
   const defaultValues: ScheduleFormValues = {
     name: { en: '', ar: '' },
-    day: '',
-    start_time: '',
-    end_time: '',
+    interval_days: 1,
     is_active: true,
+    discount_type: null,
+    discount_value: null,
   };
 
   const methods = useForm<ScheduleFormValues>({
@@ -49,17 +47,18 @@ export default function CreatePage() {
     defaultValues,
   });
 
-  const { handleSubmit, reset, control } = methods;
+  const { handleSubmit, reset, control, watch } = methods;
+  const discountType = watch('discount_type');
 
   useEffect(() => {
     if (isEditMode && scheduleResponse?.data) {
       const d = scheduleResponse.data;
       reset({
         name: typeof d.name === 'object' ? d.name : { en: '', ar: '' },
-        day: d.day || '',
-        start_time: d.start_time || '',
-        end_time: d.end_time || '',
+        interval_days: d.interval_days || 1,
         is_active: !!d.is_active,
+        discount_type: d.discount_type || null,
+        discount_value: d.discount_value ?? null,
       });
     }
   }, [scheduleResponse, isEditMode, reset]);
@@ -69,12 +68,18 @@ export default function CreatePage() {
 
   const onSubmit = async (data: ScheduleFormValues) => {
     try {
+      const payload = {
+        ...data,
+        discount_type: data.discount_type || null,
+        discount_value: data.discount_type ? (data.discount_value ?? null) : null,
+      };
+
       if (isEditMode && id) {
-        await updateMutation.mutateAsync({ id, data });
+        await updateMutation.mutateAsync({ id, data: payload });
         toast.success(t('form.scheduleUpdatedSuccess'));
         navigate('/schedules');
       } else {
-        await createMutation.mutateAsync(data);
+        await createMutation.mutateAsync(payload);
         toast.success(t('form.scheduleCreatedSuccess'));
         navigate('/schedules');
       }
@@ -113,7 +118,7 @@ export default function CreatePage() {
           <Box className="flex items-center gap-2 mb-2">
             <Iconify icon="solar:calendar-bold" className="text-primary" width={24} height={24} />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              {t('form.nameEn')}
+              {t('form.nameEn')} *
             </Typography>
           </Box>
           <RHFTextField name="name.en" placeholder={t('form.scheduleNameEnPlaceholder')} fullWidth />
@@ -124,60 +129,71 @@ export default function CreatePage() {
           <Box className="flex items-center gap-2 mb-2">
             <Iconify icon="solar:calendar-bold" className="text-primary" width={24} height={24} />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              {t('form.nameAr')}
+              {t('form.nameAr')} *
             </Typography>
           </Box>
           <RHFTextField name="name.ar" placeholder={t('form.scheduleNameArPlaceholder')} dir="rtl" fullWidth />
         </Box>
 
-        {/* Day */}
+        {/* Interval Days */}
         <Box className="group">
           <Box className="flex items-center gap-2 mb-2">
-            <Iconify icon="solar:calendar-date-bold" className="text-primary" width={24} height={24} />
+            <Iconify icon="solar:clock-circle-bold" className="text-primary" width={24} height={24} />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              {t('form.dayLabel')}
+              {t('form.intervalDays')} *
+            </Typography>
+          </Box>
+          <RHFTextField name="interval_days" type="number" placeholder="3" fullWidth />
+          <Typography variant="caption" className="text-muted-foreground mt-1">
+            {t('form.intervalDaysHelper')}
+          </Typography>
+        </Box>
+
+        {/* Discount Type */}
+        <Box className="group">
+          <Box className="flex items-center gap-2 mb-2">
+            <Iconify icon="solar:tag-price-bold" className="text-primary" width={24} height={24} />
+            <Typography variant="subtitle2" className="font-semibold text-foreground">
+              {t('form.discountType')}
             </Typography>
           </Box>
           <Controller
-            name="day"
+            name="discount_type"
             control={control}
             render={({ field }) => (
               <select
-                {...field}
+                value={field.value ?? ''}
+                onChange={(e) => field.onChange(e.target.value || null)}
                 className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
               >
-                <option value="">{t('form.selectDay')}</option>
-                {DAYS.map((day) => (
-                  <option key={day} value={day} className="capitalize">
-                    {day.charAt(0).toUpperCase() + day.slice(1)}
-                  </option>
-                ))}
+                <option value="">{t('form.noDiscount')}</option>
+                <option value="percentage">{t('form.percentageDiscount')}</option>
+                <option value="fixed">{t('form.fixedDiscount')}</option>
               </select>
             )}
           />
         </Box>
 
-        {/* Start Time & End Time */}
-        <Box className="flex gap-4 flex-wrap">
-          <Box className="flex-1 min-w-[140px]">
+        {/* Discount Value - only show when discount_type is selected */}
+        {discountType && (
+          <Box className="group">
             <Box className="flex items-center gap-2 mb-2">
-              <Iconify icon="solar:clock-circle-bold" className="text-primary" width={24} height={24} />
+              <Iconify icon="solar:dollar-bold" className="text-primary" width={24} height={24} />
               <Typography variant="subtitle2" className="font-semibold text-foreground">
-                {t('form.startTime')}
+                {t('form.discountValue')}
               </Typography>
             </Box>
-            <RHFTextField name="start_time" type="time" fullWidth />
+            <RHFTextField
+              name="discount_value"
+              type="number"
+              placeholder={discountType === 'percentage' ? '10' : '5'}
+              fullWidth
+            />
+            <Typography variant="caption" className="text-muted-foreground mt-1">
+              {discountType === 'percentage' ? t('form.percentageHelper') : t('form.fixedHelper')}
+            </Typography>
           </Box>
-          <Box className="flex-1 min-w-[140px]">
-            <Box className="flex items-center gap-2 mb-2">
-              <Iconify icon="solar:clock-circle-bold" className="text-primary" width={24} height={24} />
-              <Typography variant="subtitle2" className="font-semibold text-foreground">
-                {t('form.endTime')}
-              </Typography>
-            </Box>
-            <RHFTextField name="end_time" type="time" fullWidth />
-          </Box>
-        </Box>
+        )}
 
         {/* Active */}
         <Box className="group">
@@ -185,12 +201,19 @@ export default function CreatePage() {
             name="is_active"
             control={control}
             render={({ field }) => (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3 p-3 rounded-lg border border-border">
                 <Switch
                   checked={field.value}
                   onChange={(e) => field.onChange((e.target as HTMLInputElement).checked)}
                 />
-                <Typography variant="body2">{t('active')}</Typography>
+                <Box>
+                  <Typography variant="subtitle2" className="font-semibold text-foreground">
+                    {t('active')}
+                  </Typography>
+                  <Typography variant="caption" className="text-muted-foreground">
+                    {t('form.scheduleActiveHelper')}
+                  </Typography>
+                </Box>
               </div>
             )}
           />

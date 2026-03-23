@@ -10,7 +10,6 @@ export const ScheduledBasketSchema = z.object({
     en: z.string().min(1, t('scheduledBasket.nameEnRequired')),
     ar: z.string().min(1, t('scheduledBasket.nameArRequired')),
   }),
-  offer_ends_at: z.string().optional(),
   discount: z.coerce.number().min(0).optional(),
   discount_type: z.enum(['fixed', 'percentage']),
   delivery_price: z.coerce.number().min(0).optional(),
@@ -19,15 +18,34 @@ export const ScheduledBasketSchema = z.object({
     .array(
       z.object({
         shop_product_variant_id: z.coerce.number().min(1, t('scheduledBasket.productVariantRequired')),
+        shop_product_variant_ids: z.array(z.coerce.number()).optional().default([]),
         quantity: z.coerce.number().min(1, t('scheduledBasket.quantityMin')),
+        is_required: z.boolean().default(false),
+        is_extra: z.boolean().default(false),
+        min_quantity: z.coerce.number().min(0).optional(),
+        max_quantity: z.coerce.number().min(0).optional(),
       })
     )
     .min(1, t('scheduledBasket.atLeastOneItem')),
-  scheduled_at: z.string().min(1, t('scheduledBasket.scheduledDateRequired')),
-  scheduled_end_at: z.string().optional(),
-  is_recurring: z.boolean(),
-  recurrence_type: z.enum(['daily', 'weekly', 'monthly']).optional(),
+  schedule: z.object({
+    title: z.object({
+      en: z.string().optional().default(''),
+      ar: z.string().optional().default(''),
+    }),
+    number_of_days: z.coerce.number().min(1, t('scheduledBasket.numberOfDaysMin')),
+    discount_type: z.enum(['percentage', 'fixed']).nullable().optional(),
+    discount_value: z.coerce.number().min(0).nullable().optional(),
+    is_active: z.boolean().default(true),
+  }),
   is_active: z.boolean(),
+  badges: z
+    .array(
+      z.object({
+        id: z.number(),
+        position: z.enum(['top', 'bottom']),
+      })
+    )
+    .default([]),
 });
 
 export type ScheduledBasketFormValues = z.infer<typeof ScheduledBasketSchema>;

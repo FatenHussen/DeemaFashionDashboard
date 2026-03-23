@@ -126,7 +126,7 @@ export default function Page() {
       <title>{metadata.title}</title>
 
       <DataTable
-        tableName="User Points"
+        tableName={t("tableNames.userPoints")}
         columns={userPointsColumns(t)}
         data={userPointsData}
         hasDetails

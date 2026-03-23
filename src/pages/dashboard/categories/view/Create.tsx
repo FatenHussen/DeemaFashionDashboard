@@ -19,7 +19,7 @@ import {
 } from '@/pages/dashboard/categories/hooks/category';
 
 import { CONFIG } from 'src/global-config';
-import { Box, Input, Typography } from 'src/shared/ui';
+import { Box, Input, Switch, Typography } from 'src/shared/ui';
 import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
 import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
 
@@ -61,6 +61,8 @@ export default function CreatePage() {
     },
     icon: null,
     parent_id: null,
+    order: 0,
+    is_active: true,
   };
 
   const methods = useForm<CategoryFormValues>({
@@ -79,6 +81,8 @@ export default function CreatePage() {
         name: category.name,
         icon: null, // Don't pre-fill file input
         parent_id: category.parent_id,
+        order: (category as any).order ?? 0,
+        is_active: (category as any).is_active ?? true,
       });
 
       // Set preview image if icon exists
@@ -114,6 +118,8 @@ export default function CreatePage() {
         },
         icon: data.icon || null,
         parent_id: data.parent_id || null,
+        order: data.order ?? 0,
+        is_active: data.is_active ?? true,
       };
 
       if (isEditMode && id) {
@@ -216,6 +222,46 @@ export default function CreatePage() {
             placeholder={t('form.parentCategoryPlaceholder')}
             helperText={t('form.selectParentCategoryHelper')}
             initialLabel={parentCategoryLabel ?? undefined}
+          />
+        </Box>
+
+        {/* Order */}
+        <Box className="group">
+          <Box className="flex items-center gap-2 mb-2">
+            <Iconify icon="solar:sort-bold" className="text-primary" width={24} height={24} />
+            <Typography variant="subtitle2" className="font-semibold text-foreground">
+              {t('form.order')}
+            </Typography>
+          </Box>
+          <RHFTextField
+            name="order"
+            type="number"
+            placeholder="0"
+            helperText={t('form.orderHelper')}
+          />
+        </Box>
+
+        {/* Is Active */}
+        <Box className="group">
+          <Controller
+            name="is_active"
+            control={control}
+            render={({ field }) => (
+              <div className="flex items-center gap-3 p-3 rounded-lg border border-border">
+                <Switch
+                  checked={field.value}
+                  onChange={(e) => field.onChange((e.target as HTMLInputElement).checked)}
+                />
+                <Box>
+                  <Typography variant="subtitle2" className="font-semibold text-foreground">
+                    {t('active')}
+                  </Typography>
+                  <Typography variant="caption" className="text-muted-foreground">
+                    {t('form.isActiveHelper')}
+                  </Typography>
+                </Box>
+              </div>
+            )}
           />
         </Box>
 

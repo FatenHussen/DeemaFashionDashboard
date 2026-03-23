@@ -125,6 +125,14 @@ export const scheduledBasketColumns = (
     ),
   },
   {
+    id: 'schedule_count',
+    accessorKey: 'schedule_count',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.scheduleCount')} />,
+    cell: ({ row }) => (
+      <span className="text-sm">{row.original.schedule_count ?? '—'}</span>
+    ),
+  },
+  {
     id: 'is_active',
     accessorKey: 'is_active',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.status')} />,

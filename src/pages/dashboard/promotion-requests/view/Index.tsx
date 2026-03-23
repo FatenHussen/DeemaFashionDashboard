@@ -44,7 +44,7 @@ export default function Page() {
     <>
       <title>{metadata.title}</title>
       <DataTable
-        tableName="PromotionRequest"
+        tableName={t("tableNames.promotionRequest")}
         columns={promotionRequestColumns(t, onViewDetails)}
         data={rawItems as PromotionRequestTableItem[]}
         hasDetails={false}

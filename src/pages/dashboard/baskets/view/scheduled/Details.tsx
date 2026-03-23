@@ -10,13 +10,21 @@ import { LoadingScreen } from 'src/shared/components/loading-screen';
 
 const metadata = { title: `Scheduled Basket Details | Dashboard - ${CONFIG.appName}` };
 
+function formatName(name: unknown): string {
+  if (name && typeof name === 'object') {
+    const o = name as { en?: string; ar?: string };
+    return o.en || o.ar || '—';
+  }
+  return String(name ?? '—');
+}
+
 export default function DetailsPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { t } = useTranslation('table');
-  const { data: scheduledBasketResponse, isLoading, error } = useFetchScheduledBasketById(id || '');
+  const { data: apiResponse, isLoading, error } = useFetchScheduledBasketById(id || '');
 
-  const scheduledBasket = scheduledBasketResponse?.data;
+  const scheduledBasket = apiResponse?.data;
 
   if (isLoading) return <LoadingScreen />;
 
@@ -31,13 +39,10 @@ export default function DetailsPage() {
     );
   }
 
-  const nameStr = typeof scheduledBasket.name === 'object' ? (scheduledBasket.name as any)?.en || (scheduledBasket.name as any)?.ar || '—' : String(scheduledBasket.name || '—');
-  const catName = scheduledBasket.category
-    ? typeof scheduledBasket.category.name === 'object'
-      ? (scheduledBasket.category.name as any)?.en || (scheduledBasket.category.name as any)?.ar
-      : scheduledBasket.category.name
-    : '—';
-  const discountText = scheduledBasket.discount_type === 'percentage' ? `${scheduledBasket.discount}%` : `${scheduledBasket.discount}`;
+  const nameStr = formatName(scheduledBasket.name);
+  const catName = scheduledBasket.category ? formatName(scheduledBasket.category.name) : '—';
+  const discountText =
+    scheduledBasket.discount_type === 'percentage' ? `${scheduledBasket.discount}%` : `${scheduledBasket.discount}`;
 
   return (
     <>
@@ -76,7 +81,7 @@ export default function DetailsPage() {
           {/* Pricing Info */}
           <Box className="mb-4 overflow-hidden rounded-2xl border border-border/50 bg-card/80 shadow-sm backdrop-blur-sm">
             <Box className="p-6">
-              <Typography variant="h6" className="mb-4 font-semibold">Pricing</Typography>
+              <Typography variant="h6" className="mb-4 font-semibold">{t('orderDetails.pricing') || 'Pricing'}</Typography>
               <Box className="grid gap-4 sm:grid-cols-3">
                 <Box>
                   <Typography variant="caption" className="text-muted-foreground">Original Price</Typography>
@@ -85,7 +90,9 @@ export default function DetailsPage() {
                 <Box>
                   <Typography variant="caption" className="text-muted-foreground">Discount</Typography>
                   <Typography variant="body1" className="font-medium">
-                    <span className="px-2 py-0.5 rounded-md bg-orange-100 text-orange-700 text-xs font-medium">{discountText} ({scheduledBasket.discount_type})</span>
+                    <span className="px-2 py-0.5 rounded-md bg-orange-100 text-orange-700 text-xs font-medium">
+                      {discountText} ({scheduledBasket.discount_type})
+                    </span>
                   </Typography>
                 </Box>
                 <Box>
@@ -129,61 +136,142 @@ export default function DetailsPage() {
                   <Typography variant="h5" className="font-bold">{scheduledBasket.schedule_count ?? '—'}</Typography>
                 </Box>
               </Box>
-            </Box>
-          </Box>
-
-          {/* Schedule Info */}
-          <Box className="mb-4 overflow-hidden rounded-2xl border border-border/50 bg-card/80 shadow-sm backdrop-blur-sm">
-            <Box className="p-6">
-              <Typography variant="h6" className="mb-4 font-semibold">Schedule Details</Typography>
-              <Box className="grid gap-4 sm:grid-cols-2">
-                <Box>
-                  <Typography variant="caption" className="text-muted-foreground">Is Scheduled</Typography>
-                  <Typography variant="body1" className="font-medium">{scheduledBasket.is_schedule ? 'Yes' : 'No'}</Typography>
-                </Box>
-                <Box>
-                  <Typography variant="caption" className="text-muted-foreground">Has Schedule</Typography>
-                  <Typography variant="body1" className="font-medium">{scheduledBasket.has_schedule ? 'Yes' : 'No'}</Typography>
-                </Box>
-                <Box>
-                  <Typography variant="caption" className="text-muted-foreground">Offer Ends At</Typography>
-                  <Typography variant="body1" className="font-medium">{scheduledBasket.offer_ends_at || '—'}</Typography>
-                </Box>
-                <Box>
-                  <Typography variant="caption" className="text-muted-foreground">Scheduled At</Typography>
-                  <Typography variant="body1" className="font-medium">
-                    {scheduledBasket.scheduled_at ? new Date(scheduledBasket.scheduled_at).toLocaleString() : '—'}
-                  </Typography>
-                </Box>
-                <Box>
-                  <Typography variant="caption" className="text-muted-foreground">Scheduled End At</Typography>
-                  <Typography variant="body1" className="font-medium">
-                    {scheduledBasket.scheduled_end_at ? new Date(scheduledBasket.scheduled_end_at).toLocaleString() : '—'}
-                  </Typography>
-                </Box>
-                <Box>
-                  <Typography variant="caption" className="text-muted-foreground">Recurring</Typography>
-                  <Typography variant="body1" className="font-medium">
-                    {scheduledBasket.is_recurring ? `Yes (${scheduledBasket.recurrence_type || '—'})` : 'No'}
-                  </Typography>
-                </Box>
+              <Box className="mt-4 flex flex-wrap gap-4 text-sm">
+                <span>
+                  <span className="text-muted-foreground">is_schedule: </span>
+                  {scheduledBasket.is_schedule ? 'Yes' : 'No'}
+                </span>
+                <span>
+                  <span className="text-muted-foreground">has_schedule: </span>
+                  {scheduledBasket.has_schedule ? 'Yes' : 'No'}
+                </span>
               </Box>
             </Box>
           </Box>
 
-          {/* Items */}
+          {/* Delivery schedules (API: schedules[]) */}
+          {scheduledBasket.schedules && scheduledBasket.schedules.length > 0 && (
+            <Box className="mb-4 overflow-hidden rounded-2xl border border-border/50 bg-card/80 shadow-sm backdrop-blur-sm">
+              <Box className="p-6">
+                <Typography variant="h6" className="mb-4 font-semibold">
+                  {t('form.scheduleSection') || 'Delivery schedules'}
+                </Typography>
+                <Box className="space-y-4">
+                  {scheduledBasket.schedules.map((sch) => (
+                    <Box key={sch.id ?? `${sch.number_of_days}-${formatName(sch.title)}`} className="rounded-xl border border-border/50 bg-background p-4">
+                      <Typography variant="subtitle1" className="font-semibold">{formatName(sch.title)}</Typography>
+                      <Box className="mt-2 grid gap-2 sm:grid-cols-2 text-sm">
+                        <span>
+                          <span className="text-muted-foreground">{t('form.numberOfDays') || 'Days'}: </span>
+                          {sch.number_of_days}
+                        </span>
+                        <span>
+                          <span className="text-muted-foreground">{t('form.scheduleDiscountType') || 'Schedule discount'}: </span>
+                          {sch.discount_type ? `${sch.discount_type} ${sch.discount_value ?? ''}` : '—'}
+                        </span>
+                        <span>
+                          <span className="text-muted-foreground">{t('form.scheduleActive') || 'Active'}: </span>
+                          {sch.is_active ? t('active') : t('inactive')}
+                        </span>
+                        {sch.is_default != null && (
+                          <span>
+                            <span className="text-muted-foreground">Default: </span>
+                            {sch.is_default ? 'Yes' : 'No'}
+                          </span>
+                        )}
+                      </Box>
+                    </Box>
+                  ))}
+                </Box>
+              </Box>
+            </Box>
+          )}
+
+          {/* Badges */}
+          {scheduledBasket.badges && scheduledBasket.badges.length > 0 && (
+            <Box className="mb-4 overflow-hidden rounded-2xl border border-border/50 bg-card/80 shadow-sm backdrop-blur-sm">
+              <Box className="p-6">
+                <Typography variant="h6" className="mb-4 font-semibold">Badges</Typography>
+                <Box className="flex flex-wrap gap-3">
+                  {scheduledBasket.badges.map((b) => (
+                    <Box key={b.id} className="flex items-center gap-2 rounded-lg border border-border/50 bg-background px-3 py-2">
+                      {b.icon ? <img src={b.icon} alt="" className="h-8 w-8 rounded object-cover" /> : null}
+                      <Box>
+                        <Typography variant="body2" className="font-medium">{b.name ?? `#${b.id}`}</Typography>
+                        <Typography variant="caption" className="text-muted-foreground">{b.position}</Typography>
+                      </Box>
+                    </Box>
+                  ))}
+                </Box>
+              </Box>
+            </Box>
+          )}
+
+          {/* Line items (required + extras) */}
           {scheduledBasket.items && scheduledBasket.items.length > 0 && (
-            <Box className="overflow-hidden rounded-2xl border border-border/50 bg-card/80 shadow-sm backdrop-blur-sm">
+            <Box className="mb-4 overflow-hidden rounded-2xl border border-border/50 bg-card/80 shadow-sm backdrop-blur-sm">
               <Box className="p-6">
                 <Typography variant="h6" className="mb-4 font-semibold">Items ({scheduledBasket.items.length})</Typography>
-                <Box className="space-y-3">
+                <Box className="space-y-4">
                   {scheduledBasket.items.map((item, i) => (
-                    <Box key={i} className="flex items-center gap-4 rounded-xl border border-border/50 bg-background p-3">
-                      <Box className="flex-1">
-                        <Typography variant="subtitle2" className="font-semibold">
-                          {typeof item.product?.name === 'object' ? (item.product.name as any)?.en || (item.product.name as any)?.ar : item.product?.name || `Variant #${item.shop_product_variant_id}`}
-                        </Typography>
+                    <Box key={item.id ?? i} className="rounded-xl border border-border/50 bg-background p-4">
+                      <Box className="flex flex-wrap items-start justify-between gap-2">
+                        <Box>
+                          <Typography variant="subtitle2" className="font-semibold">
+                            {formatName(item.product?.name) || `Variant #${item.shop_product_variant_id}`}
+                          </Typography>
+                          {item.product?.brand ? (
+                            <Typography variant="caption" className="text-muted-foreground">{item.product.brand}</Typography>
+                          ) : null}
+                          {item.variant?.attributes && item.variant.attributes.length > 0 ? (
+                            <Typography variant="caption" className="mt-1 block text-muted-foreground">
+                              {item.variant.attributes.map((a) => `${a.name}: ${a.value}`).join(' · ')}
+                            </Typography>
+                          ) : null}
+                        </Box>
+                        <Box className="text-end text-sm">
+                          <div>Qty {item.quantity}</div>
+                          {item.unit_price != null && <div className="text-muted-foreground">Unit {item.unit_price}</div>}
+                          {item.subtotal != null && <div className="font-medium">Subtotal {item.subtotal}</div>}
+                        </Box>
                       </Box>
+                      <Box className="mt-2 flex flex-wrap gap-2 text-xs">
+                        <span className="rounded bg-muted px-2 py-0.5">required: {String(item.is_required)}</span>
+                        <span className="rounded bg-muted px-2 py-0.5">extra: {String(item.is_extra)}</span>
+                        {item.min_quantity != null && <span className="rounded bg-muted px-2 py-0.5">min {item.min_quantity}</span>}
+                        {item.max_quantity != null && <span className="rounded bg-muted px-2 py-0.5">max {item.max_quantity}</span>}
+                      </Box>
+                      {item.alternatives && item.alternatives.length > 0 && (
+                        <Box className="mt-3 border-t border-border/40 pt-3">
+                          <Typography variant="caption" className="text-muted-foreground">Alternatives</Typography>
+                          <Box className="mt-1 flex flex-wrap gap-2">
+                            {item.alternatives.map((alt) => (
+                              <span key={alt.shop_product_variant_id} className="rounded-md border border-border/50 px-2 py-1 text-xs">
+                                {alt.name || `#${alt.shop_product_variant_id}`}
+                                {alt.price != null ? ` — ${alt.price}` : ''}
+                              </span>
+                            ))}
+                          </Box>
+                        </Box>
+                      )}
+                    </Box>
+                  ))}
+                </Box>
+              </Box>
+            </Box>
+          )}
+
+          {/* Extras (when API returns separately) */}
+          {scheduledBasket.extras && scheduledBasket.extras.length > 0 && (
+            <Box className="overflow-hidden rounded-2xl border border-border/50 bg-card/80 shadow-sm backdrop-blur-sm">
+              <Box className="p-6">
+                <Typography variant="h6" className="mb-4 font-semibold">Extras ({scheduledBasket.extras.length})</Typography>
+                <Box className="space-y-3">
+                  {scheduledBasket.extras.map((item, i) => (
+                    <Box key={item.id ?? `ex-${i}`} className="flex items-center justify-between rounded-xl border border-border/50 bg-background p-3">
+                      <Typography variant="subtitle2" className="font-semibold">
+                        {formatName(item.product?.name) || `Variant #${item.shop_product_variant_id}`}
+                      </Typography>
                       <Typography variant="body2" className="text-muted-foreground">Qty: {item.quantity}</Typography>
                     </Box>
                   ))}

@@ -209,7 +209,7 @@ export default function Page() {
       />
 
       <DataTable
-        tableName="User"
+        tableName={t("tableNames.user")}
         columns={userColumns(
           {
             update: hasPermission('update', 'user'),
