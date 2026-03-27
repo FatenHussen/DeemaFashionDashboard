@@ -1,6 +1,11 @@
 import type { ICategory } from '@/types/items/categories';
 import type { RecycleBinType } from '@/types/recycleBin/recycleBin';
-import type { ColumnDef, SortingState, ColumnFiltersState } from '@tanstack/react-table';
+import type {
+  ColumnDef,
+  SortingState,
+  ColumnFiltersState,
+  Table as TanStackTable,
+} from '@tanstack/react-table';
 
 import * as React from 'react';
 import { useNavigate } from 'react-router';
@@ -60,9 +65,11 @@ interface DataTableProps<TData, TValue> {
   pageSize?: number;
   onPageChange?: (page: number) => void;
   onPageSizeChange?: (size: number) => void;
+  /** When set, replaces default pagination row-count options (e.g. cap at API `per_page` max). */
+  pageSizeOptions?: number[];
   defaultHiddenColumns?: string[];
-  /** Custom filter content rendered in the toolbar (top of table) */
-  toolbarFilter?: React.ReactNode;
+  /** Custom filter content rendered in the toolbar (top of table), or render fn with table instance */
+  toolbarFilter?: React.ReactNode | ((ctx: { table: TanStackTable<TData> }) => React.ReactNode);
 }
 
 export function DataTable<TData, TValue>({
@@ -88,6 +95,7 @@ export function DataTable<TData, TValue>({
   pageSize = 10,
   onPageChange,
   onPageSizeChange,
+  pageSizeOptions,
   defaultHiddenColumns = [],
   toolbarFilter,
 }: DataTableProps<TData, TValue>) {
@@ -336,6 +344,7 @@ export function DataTable<TData, TValue>({
           pageSize={pageSize}
           onPageChange={onPageChange}
           onPageSizeChange={onPageSizeChange}
+          pageSizeOptions={pageSizeOptions}
         />
       </div>
     </div>

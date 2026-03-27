@@ -5,6 +5,12 @@ import type { ComplaintItem } from '@/pages/dashboard/complaints/types/complaint
 import { z } from 'zod';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
+import {
+  translateComplaintType,
+  translateComplaintStatus,
+} from '@/pages/dashboard/complaints/utils/labels';
+
+import i18n from 'src/lib/i18n';
 
 const ComplaintSchema = z.object({
   id: z.number(),
@@ -70,7 +76,7 @@ export const complaintColumns = (
     accessorKey: 'type',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.type')} />,
     cell: ({ row }) => (
-      <span className="text-sm capitalize">{row.original.type}</span>
+      <span className="text-sm">{translateComplaintType(row.original.type, t)}</span>
     ),
   },
   {
@@ -98,7 +104,7 @@ export const complaintColumns = (
             : 'bg-red-500/20 text-red-600';
       return (
         <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${variant}`}>
-          {status}
+          {translateComplaintStatus(status, t)}
         </span>
       );
     },
@@ -109,7 +115,10 @@ export const complaintColumns = (
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.created')} />,
     cell: ({ row }) => (
       <span className="text-sm text-muted-foreground">
-        {new Date(row.original.created_at).toLocaleDateString()}
+        {new Date(row.original.created_at).toLocaleDateString(
+          i18n.language === 'ar' ? 'ar' : undefined,
+          { dateStyle: 'medium' }
+        )}
       </span>
     ),
   },

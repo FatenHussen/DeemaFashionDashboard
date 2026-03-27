@@ -39,21 +39,30 @@ export interface OrderDriver {
 
 export interface OrderData {
   id: number;
-  order_number: string;
+  /** Human-readable reference from API (e.g. ORD-260325-00022) */
+  order_code?: string;
+  /** @deprecated Some responses used this name; prefer `order_code` */
+  order_number?: string;
   status: OrderStatus;
   total: number;
+  /** Sum of line items before delivery (often after basket/coupon discounts) */
   subtotal?: number;
   delivery_price?: number;
+  /** Legacy combined discount; list API may use `basket_discount` / `coupon_discount` instead */
   discount?: number;
+  /** List API: basket line discount total */
+  basket_discount?: number;
+  coupon_discount?: number | null;
+  subscription_discount?: string | number;
   price_after_discount?: number;
   rating?: number;
   user: OrderUser;
   driver?: OrderDriver;
-  items: OrderItem[];
+  items?: OrderItem[];
   address?: string;
   notes?: string;
   created_at: string;
-  updated_at: string;
+  updated_at?: string;
 }
 
 export interface OrderListResponse {

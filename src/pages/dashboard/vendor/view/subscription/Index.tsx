@@ -1,3 +1,5 @@
+import type { TFunction } from 'i18next';
+
 import { useState } from 'react';
 import { Button } from '@/shared/ui/button';
 import { useTranslation } from 'react-i18next';
@@ -11,7 +13,14 @@ import {
 
 import { CONFIG } from 'src/global-config';
 
-const metadata = { title: `Vendor Subscriptions | Dashboard - ${CONFIG.appName}` };
+function vendorSubscriptionStatusOptionLabel(status: string, t: TFunction<'table'>): string {
+  const s = String(status).toLowerCase();
+  if (s === 'active') return t('active');
+  if (s === 'expired') return t('expired');
+  if (s === 'cancelled') return t('statusCancelled');
+  if (s === 'pending') return t('columns.pending');
+  return status;
+}
 
 export default function Page() {
   const { t } = useTranslation('table');
@@ -87,7 +96,7 @@ export default function Page() {
         <option value="">{t('allStatuses')}</option>
         {VENDOR_SUBSCRIPTION_STATUSES.map((s) => (
           <option key={s} value={s}>
-            {s.charAt(0).toUpperCase() + s.slice(1)}
+            {vendorSubscriptionStatusOptionLabel(s, t)}
           </option>
         ))}
       </select>
@@ -104,10 +113,10 @@ export default function Page() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.vendorSubscriptionsIndexDocumentTitle', { appName: CONFIG.appName })}</title>
 
       <DataTable
-        tableName="Vendor Subscriptions"
+        tableName={t('tableNames.vendorSubscription')}
         columns={vendorSubscriptionColumns(t)}
         data={items}
         hasDetails
@@ -120,14 +129,14 @@ export default function Page() {
         }}
         isLoading={isLoading}
         columnTranslations={{
-          id: 'ID',
-          shop_name: 'Shop',
-          package: 'Package',
-          starts_at: 'Starts',
-          ends_at: 'Ends',
-          auto_renew: 'Auto Renew',
-          status: 'Status',
-          created_at: 'Created',
+          id: t('columns.id'),
+          shop_name: t('columns.shop'),
+          package: t('columns.package'),
+          starts_at: t('vendorSubscriptionStartsAt'),
+          ends_at: t('vendorSubscriptionEndsAt'),
+          auto_renew: t('columns.autoRenew'),
+          status: t('columns.status'),
+          created_at: t('columns.created'),
         }}
         pagination={pagination}
         currentPage={currentPage}

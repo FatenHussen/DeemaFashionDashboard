@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Iconify } from '@/shared/components/iconify';
 import { useParams, useNavigate } from 'react-router';
+import { formatTranslated } from '@/utils/format-translated';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { InfiniteScrollSelect } from '@/shared/components/infinite-scroll-select';
 import { _CategoryApi } from '@/pages/dashboard/categories/api/category.services';
@@ -27,8 +28,6 @@ import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout
 import { RHFBadgeSelector } from 'src/shared/components/hook-form/rhf-badge-selector';
 
 // ----------------------------------------------------------------------
-
-const metadata = { title: `Basket ${CONFIG.appName}` };
 
 export default function CreatePage() {
   const { t } = useTranslation('table');
@@ -99,10 +98,10 @@ export default function CreatePage() {
       const payload = { ...data } as any;
       if (isEditMode && id) {
         await updateBasketMutation.mutateAsync({ id, data: payload });
-        toast.success('Basket updated successfully');
+        toast.success(t('form.basketUpdatedSuccess'));
       } else {
         await createBasketMutation.mutateAsync(payload);
-        toast.success('Basket created successfully');
+        toast.success(t('form.basketCreatedSuccess'));
       }
       navigate('/baskets');
     } catch (error: any) {
@@ -116,7 +115,11 @@ export default function CreatePage() {
 
   return (
     <>
-      <title>{isEditMode ? `Edit Basket | ${metadata.title}` : `Create Basket | ${metadata.title}`}</title>
+      <title>
+        {isEditMode
+          ? t('form.basketEditDocumentTitle', { appName: CONFIG.appName })
+          : t('form.basketCreateDocumentTitle', { appName: CONFIG.appName })}
+      </title>
 
       <CreateFormLayout
         methods={methods as any}
@@ -129,14 +132,14 @@ export default function CreatePage() {
         onCancel={handleCancel}
         isSubmitting={isSubmitting}
         errorMessage={errorMessage}
-        title={isEditMode ? 'Edit Basket' : 'Create New Basket'}
-        description={isEditMode ? 'Update basket details' : 'Add a new basket with products'}
+        title={isEditMode ? t('form.editBasketTitle') : t('form.createNewBasket')}
+        description={isEditMode ? t('form.editBasketDesc') : t('form.createBasketDesc')}
         isEditMode={isEditMode}
         isLoading={isEditMode && isLoadingBasket}
         loadingText={t('form.loadingBasket')}
         maxWidth="2xl"
-        submitLabel={isEditMode ? 'Update Basket' : 'Create Basket'}
-        submittingLabel={isEditMode ? 'Updating...' : 'Creating...'}
+        submitLabel={isEditMode ? t('form.updateBasketSubmit') : t('form.createBasketSubmit')}
+        submittingLabel={isEditMode ? t('form.updatingBasket') : t('form.creatingBasket')}
       >
         {/* Category */}
         <Box className="group">
@@ -154,8 +157,17 @@ export default function CreatePage() {
                     data: {
                       items:
                         page === 1
-                          ? [{ id: 0, label: 'Select category...' }, ...res.data.items.map((c: any) => ({ id: c.id, label: typeof c.name === 'object' ? c.name : c.name || '' }))]
-                          : res.data.items.map((c: any) => ({ id: c.id, label: typeof c.name === 'object' ? c.name : c.name || '' })),
+                          ? [
+                              { id: 0, label: t('form.selectCategoryPlaceholder') },
+                              ...res.data.items.map((c: any) => ({
+                                id: c.id,
+                                label: formatTranslated(c.name as Parameters<typeof formatTranslated>[0]),
+                              })),
+                            ]
+                          : res.data.items.map((c: any) => ({
+                              id: c.id,
+                              label: formatTranslated(c.name as Parameters<typeof formatTranslated>[0]),
+                            })),
                       pagination: res.data.pagination,
                     },
                   }))
@@ -164,7 +176,9 @@ export default function CreatePage() {
                 initialLabel={(() => {
                   const src = basketResponse?.data;
                   const cat = src?.category;
-                  return cat?.name ? (typeof cat.name === 'object' ? (cat.name as any)?.en || (cat.name as any)?.ar : cat.name) : undefined;
+                  return cat?.name
+                    ? formatTranslated(cat.name as Parameters<typeof formatTranslated>[0])
+                    : undefined;
                 })()}
               />
             )}
@@ -186,21 +200,23 @@ export default function CreatePage() {
         {/* Discount */}
         <Box className="flex flex-wrap gap-4">
           <Box className="min-w-[140px] flex-1">
-            <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">Discount Type</Typography>
+            <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
+              {t('form.discountType')}
+            </Typography>
             <Controller
               name="discount_type"
               control={control}
               render={({ field }) => (
                 <select {...field} className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm">
-                  <option value="percentage">Percentage</option>
-                  <option value="fixed">Fixed</option>
+                  <option value="percentage">{t('form.discountTypePercentage')}</option>
+                  <option value="fixed">{t('form.discountTypeFixed')}</option>
                 </select>
               )}
             />
           </Box>
           <Box className="min-w-[140px] flex-1">
             <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.discountValue')}</Typography>
-            <RHFTextField name="discount" type="number" placeholder="0" fullWidth />
+            <RHFTextField name="discount" type="number" placeholder={t('form.placeholderZero')} fullWidth />
           </Box>
         </Box>
 
@@ -213,13 +229,15 @@ export default function CreatePage() {
         {/* Delivery Price */}
         <Box className="group">
           <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.deliveryPrice')}</Typography>
-          <RHFTextField name="delivery_price" type="number" placeholder="0" fullWidth />
+          <RHFTextField name="delivery_price" type="number" placeholder={t('form.placeholderZero')} fullWidth />
         </Box>
 
         {/* Items */}
         <Box className="group">
           <Box className="mb-2 flex items-center justify-between">
-            <Typography variant="subtitle2" className="font-semibold text-foreground">Basket Items</Typography>
+            <Typography variant="subtitle2" className="font-semibold text-foreground">
+              {t('form.basketItems')}
+            </Typography>
             <Button
               type="button"
               variant="outlined"
@@ -227,7 +245,7 @@ export default function CreatePage() {
               className="text-xs"
             >
               <Iconify icon="solar:add-circle-bold" width={16} className="mr-1" />
-              Add Item
+              {t('form.addBasketItem')}
             </Button>
           </Box>
           {fields.map((field, index) => (
@@ -261,7 +279,7 @@ export default function CreatePage() {
 
         {/* Badges */}
         <Box className="border-t border-border pt-6">
-          <RHFBadgeSelector name="badges" />
+          <RHFBadgeSelector name="badges" label={t('form.badgesLabel')} />
         </Box>
       </CreateFormLayout>
     </>

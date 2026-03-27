@@ -1,5 +1,7 @@
-import { useEffect } from 'react';
+import type { DiscountType } from '@/pages/dashboard/promotions/types/promotion.types';
+
 import { toast } from 'react-toastify';
+import { useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -21,7 +23,14 @@ import { LoadingScreen } from 'src/shared/components/loading-screen';
 import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
 import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
 
-const metadata = { title: `Promotion | ${CONFIG.appName}` };
+/** Map API variants to form values so the select shows the current type on edit. */
+function normalizePromotionDiscountType(raw: unknown): DiscountType | null {
+  if (raw == null || raw === '') return null;
+  const s = String(raw).toLowerCase().trim().replace(/-/g, '_');
+  if (s === 'percentage' || s === 'percent' || s === 'pct') return 'percentage';
+  if (s === 'fixed' || s === 'amount' || s === 'fixed_amount') return 'fixed';
+  return null;
+}
 
 export default function CreatePage() {
   const { t } = useTranslation('table');
@@ -43,6 +52,9 @@ export default function CreatePage() {
   const { data: detailsResponse, isLoading: isLoadingDetails } = useFetchPromotionById(id || '');
   const createMutation = useCreatePromotion();
   const updateMutation = useUpdatePromotion();
+
+  /** Server value for discount_type on edit (API may not accept changing it; also safe if disabled fields are omitted). */
+  const originalDiscountTypeRef = useRef<DiscountType | null>(null);
 
   const defaultValues: PromotionFormValues = {
     name: { en: '', ar: '' },
@@ -69,6 +81,8 @@ export default function CreatePage() {
   useEffect(() => {
     if (isEditMode && detailsResponse?.data) {
       const item = detailsResponse.data;
+      const discountType = normalizePromotionDiscountType(item.discount_type);
+      originalDiscountTypeRef.current = discountType;
       reset({
         name: { en: item.name?.en ?? '', ar: item.name?.ar ?? '' },
         description: { en: item.description?.en ?? '', ar: item.description?.ar ?? '' },
@@ -80,7 +94,7 @@ export default function CreatePage() {
         buy_quantity: item.buy_quantity ?? null,
         get_quantity: item.get_quantity ?? null,
         discount_value: item.discount_value ?? null,
-        discount_type: item.discount_type ?? null,
+        discount_type: discountType,
       });
     }
   }, [detailsResponse?.data, isEditMode, reset]);
@@ -96,7 +110,11 @@ export default function CreatePage() {
       if (data.starts_at) payload.starts_at = data.starts_at;
       if (data.ends_at) payload.ends_at = data.ends_at;
       if (data.discount_value != null) payload.discount_value = data.discount_value;
-      if (data.discount_type) payload.discount_type = data.discount_type;
+      const discountTypeForPayload =
+        isEditMode && (data.type === 'simple_discount' || data.type === 'spend_x_discount')
+          ? data.discount_type ?? originalDiscountTypeRef.current
+          : data.discount_type;
+      if (discountTypeForPayload) payload.discount_type = discountTypeForPayload;
       if (data.min_spend != null) payload.min_spend = data.min_spend;
       if (data.buy_quantity != null) payload.buy_quantity = data.buy_quantity;
       if (data.get_quantity != null) payload.get_quantity = data.get_quantity;
@@ -119,7 +137,11 @@ export default function CreatePage() {
 
   return (
     <>
-      <title>{isEditMode ? `Edit Promotion | ${metadata.title}` : `Create Promotion | ${metadata.title}`}</title>
+      <title>
+        {isEditMode
+          ? t('form.promotionEditDocumentTitle', { appName: CONFIG.appName })
+          : t('form.promotionCreateDocumentTitle', { appName: CONFIG.appName })}
+      </title>
       <CreateFormLayout
         methods={methods as any}
         onSubmit={handleSubmit(onSubmit as any)}
@@ -130,8 +152,8 @@ export default function CreatePage() {
         isEditMode={isEditMode}
         isLoading={isEditMode && isLoadingDetails}
         loadingText={t('form.loadingPromotion')}
-        submitLabel={isEditMode ? t('updating') : t('form.createPromotion')}
-        submittingLabel={isEditMode ? t('updating') : t('create')}
+        submitLabel={isEditMode ? t('form.updatePromotionSubmit') : t('form.createPromotionSubmit')}
+        submittingLabel={isEditMode ? t('form.updatingPromotionSubmit') : t('form.creatingPromotionSubmit')}
       >
         {/* Name EN */}
         <Box className="group">
@@ -206,6 +228,11 @@ export default function CreatePage() {
                 <Iconify icon="solar:tag-price-bold" className="text-primary" width={24} />
                 <Typography variant="subtitle2" className="font-semibold">{t('form.discountTypeLabel')}</Typography>
               </Box>
+              {isEditMode && (
+                <Typography variant="caption" className="text-muted-foreground block mb-2">
+                  {t('form.discountTypeLockedOnEdit')}
+                </Typography>
+              )}
               <Controller
                 name="discount_type"
                 control={control}
@@ -213,7 +240,8 @@ export default function CreatePage() {
                   <select
                     {...field}
                     value={field.value ?? ''}
-                    className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    disabled={isEditMode}
+                    className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     <option value="">{t('form.selectDiscountType')}</option>
                     {DISCOUNT_TYPES.map((dt) => (

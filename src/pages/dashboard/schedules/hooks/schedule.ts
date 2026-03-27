@@ -1,15 +1,17 @@
-import type { ScheduleCreatePayload } from '../types/schedule.types';
+import type { ScheduleListParams, ScheduleCreatePayload, ScheduleUpdatePayload } from '../types/schedule.types';
 
 import { queryKeys } from '@/api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { _ScheduleApi } from '../api/schedule.services';
 
-export const useFetchSchedules = (page: number = 1, perPage: number = 10, filters?: { is_active?: string; search?: string }) =>
-  useQuery({
-    queryKey: queryKeys.schedule.list({ page, per_page: perPage, ...filters }),
-    queryFn: () => _ScheduleApi.getList({ page, per_page: perPage, ...filters }),
+export const useFetchSchedules = (params: ScheduleListParams = {}) => {
+  const { page = 1, per_page = 10, ...rest } = params;
+  return useQuery({
+    queryKey: queryKeys.schedule.list({ page, per_page, ...rest }),
+    queryFn: () => _ScheduleApi.getList({ page, per_page, ...rest }),
   });
+};
 
 export const useFetchScheduleById = (id: number | string) =>
   useQuery({
@@ -31,7 +33,7 @@ export const useCreateSchedule = () => {
 export const useUpdateSchedule = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: number | string; data: Partial<ScheduleCreatePayload> }) =>
+    mutationFn: ({ id, data }: { id: number | string; data: ScheduleUpdatePayload }) =>
       _ScheduleApi.update(id, data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['schedule', 'list'] });

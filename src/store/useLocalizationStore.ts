@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 
+import { queryClient } from 'src/lib/query-client';
 import i18n, { LANGUAGE_STORAGE_KEY } from 'src/lib/i18n';
 
 // ----------------------------------------------------------------------
@@ -53,5 +54,10 @@ export const useLocalizationStore = create<LocalizationState>((set) => ({
     applyLangToDOM(language);
 
     set({ language, direction });
+
+    // After the current task: i18n + React have applied; refetch uses getActiveLanguageCode() (localStorage-first)
+    queueMicrotask(() => {
+      queryClient.invalidateQueries();
+    });
   },
 }));

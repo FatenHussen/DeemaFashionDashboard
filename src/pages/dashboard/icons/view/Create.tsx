@@ -21,8 +21,6 @@ import { LoadingScreen } from 'src/shared/components/loading-screen';
 import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
 import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
 
-const metadata = { title: `Icon | ${CONFIG.appName}` };
-
 export default function CreatePage() {
   const { t } = useTranslation('table');
   const { id } = useParams<{ id?: string }>();
@@ -102,7 +100,11 @@ export default function CreatePage() {
 
   return (
     <>
-      <title>{isEditMode ? `Edit Icon | ${metadata.title}` : `Create Icon | ${metadata.title}`}</title>
+      <title>
+        {isEditMode
+          ? t('form.iconEditDocumentTitle', { appName: CONFIG.appName })
+          : t('form.iconCreateDocumentTitle', { appName: CONFIG.appName })}
+      </title>
       <CreateFormLayout
         methods={methods as any}
         onSubmit={handleSubmit(onSubmit as any)}
@@ -113,8 +115,8 @@ export default function CreatePage() {
         isEditMode={isEditMode}
         isLoading={isEditMode && isLoadingDetails}
         loadingText={t('form.loadingIcon')}
-        submitLabel={isEditMode ? t('updating') : t('form.createIcon')}
-        submittingLabel={isEditMode ? t('updating') : t('create')}
+        submitLabel={isEditMode ? t('form.updateIconSubmit') : t('form.createIconSubmit')}
+        submittingLabel={isEditMode ? t('form.updatingIconSubmit') : t('form.creatingIconSubmit')}
       >
         <Box className="group">
           <Box className="flex items-center gap-2 mb-2">
@@ -159,7 +161,7 @@ export default function CreatePage() {
                 />
                 {previewImage && (
                   <Box className="mt-3">
-                    <img src={previewImage} alt="Preview" className="w-16 h-16 object-cover rounded-lg border border-border" />
+                    <img src={previewImage} alt={t('form.iconPreviewAlt')} className="w-16 h-16 object-cover rounded-lg border border-border" />
                   </Box>
                 )}
               </div>
@@ -170,17 +172,17 @@ export default function CreatePage() {
         <Box className="group">
           <Box className="flex items-center gap-2 mb-2">
             <Iconify icon="solar:document-text-bold" className="text-primary" width={24} />
-            <Typography variant="subtitle2" className="font-semibold">{t('form.descriptionEn')} (optional)</Typography>
+            <Typography variant="subtitle2" className="font-semibold">{t('form.descriptionEn')} {t('form.descriptionOptionalSuffix')}</Typography>
           </Box>
-          <RHFTextField name="description.en" placeholder="Description in English" />
+          <RHFTextField name="description.en" placeholder={t('form.descriptionEnPlaceholder')} />
         </Box>
 
         <Box className="group">
           <Box className="flex items-center gap-2 mb-2">
             <Iconify icon="solar:document-text-bold" className="text-primary" width={24} />
-            <Typography variant="subtitle2" className="font-semibold">{t('form.descriptionAr')} (optional)</Typography>
+            <Typography variant="subtitle2" className="font-semibold">{t('form.descriptionAr')} {t('form.descriptionOptionalSuffix')}</Typography>
           </Box>
-          <RHFTextField name="description.ar" placeholder="الوصف بالعربية" dir="rtl" />
+          <RHFTextField name="description.ar" placeholder={t('form.descriptionArPlaceholder')} dir="rtl" />
         </Box>
       </CreateFormLayout>
     </>

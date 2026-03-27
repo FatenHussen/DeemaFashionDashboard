@@ -46,7 +46,7 @@ export function NavVertical({
         <Box className="flex justify-center items-center pt-6 pb-4 relative z-10">
           <Box className="transition-all duration-300">
             <RouterLink href="/" className="block">
-              <img src="/logo/logo.png" alt="Logo" className="h-12 w-auto object-contain" />
+              <img src="/logo/logo.png" alt="Logo" className="h-22 w-42 object-contain" />
             </RouterLink>
           </Box>
         </Box>

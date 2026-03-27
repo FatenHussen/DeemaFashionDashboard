@@ -1,6 +1,18 @@
-import type { RecipeListResponse, RecipeDetailsResponse, RecipeCreateUpdatePayload } from '../types/recipe.types';
+import type {
+  LocalizedField,
+  RecipeListResponse,
+  RecipeDetailsResponse,
+  RecipeCreateUpdatePayload,
+} from '../types/recipe.types';
 
 import { apiRoutes, axiosInstance } from '@/api';
+
+function localizedEnAr(field: LocalizedField): { en: string; ar: string } {
+  if (typeof field === 'string') {
+    return { en: field, ar: field };
+  }
+  return { en: field?.en ?? '', ar: field?.ar ?? '' };
+}
 
 const buildFormData = (data: RecipeCreateUpdatePayload): FormData => {
   const fd = new FormData();
@@ -33,13 +45,16 @@ const buildFormData = (data: RecipeCreateUpdatePayload): FormData => {
   });
 
   data.steps?.forEach((step, i) => {
+    const heat = localizedEnAr(step.heat_level);
+    const time = localizedEnAr(step.time_minutes);
+    const instr = localizedEnAr(step.instruction);
     fd.append(`steps[${i}][step_number]`, String(step.step_number));
-    fd.append(`steps[${i}][heat_level][en]`, step.heat_level.en || '');
-    fd.append(`steps[${i}][heat_level][ar]`, step.heat_level.ar || '');
-    fd.append(`steps[${i}][time_minutes][en]`, step.time_minutes.en || '');
-    fd.append(`steps[${i}][time_minutes][ar]`, step.time_minutes.ar || '');
-    fd.append(`steps[${i}][instruction][en]`, step.instruction.en || '');
-    fd.append(`steps[${i}][instruction][ar]`, step.instruction.ar || '');
+    fd.append(`steps[${i}][heat_level][en]`, heat.en);
+    fd.append(`steps[${i}][heat_level][ar]`, heat.ar);
+    fd.append(`steps[${i}][time_minutes][en]`, time.en);
+    fd.append(`steps[${i}][time_minutes][ar]`, time.ar);
+    fd.append(`steps[${i}][instruction][en]`, instr.en);
+    fd.append(`steps[${i}][instruction][ar]`, instr.ar);
   });
 
   if (data.badges && data.badges.length > 0) {

@@ -22,8 +22,6 @@ import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout
 
 // ----------------------------------------------------------------------
 
-const metadata = { title: `Government ${CONFIG.appName}` };
-
 export default function CreatePage() {
   const { t } = useTranslation('table');
   const { id } = useParams<{ id?: string }>();
@@ -103,8 +101,8 @@ export default function CreatePage() {
     <>
       <title>
         {isEditMode
-          ? `Edit Government | ${metadata.title}`
-          : `Create Government | ${metadata.title}`}
+          ? t('form.governorateEditDocumentTitle', { appName: CONFIG.appName })
+          : t('form.governorateCreateDocumentTitle', { appName: CONFIG.appName })}
       </title>
 
       <CreateFormLayout
@@ -123,7 +121,7 @@ export default function CreatePage() {
         maxWidth="3xl"
         infoText={infoText}
         submitLabel={isEditMode ? t('form.updateGovernorate') : t('form.createGovernorateSubmit')}
-        submittingLabel={isEditMode ? t('updating') : t('form.creating')}
+        submittingLabel={isEditMode ? t('form.updatingGovernorate') : t('form.creatingGovernorate')}
       >
         {/* Name Field - Arabic */}
         <Box className="group">

@@ -5,11 +5,15 @@ export type VendorSubscriptionStatus = (typeof VENDOR_SUBSCRIPTION_STATUSES)[num
 
 export interface VendorSubscriptionListItem {
   id: number;
-  shop_id: number;
-  shop_name: string;
+  /** Admin list API (`/admin/vendor-subscriptions`) */
+  vendor_id?: number;
+  vendor_name?: string;
+  /** Legacy/alternate API shape */
+  shop_id?: number;
+  shop_name?: string;
   package: {
     id: number;
-    name: string;
+    name: string | Record<string, string>;
   };
   starts_at: string;
   ends_at: string;
@@ -20,15 +24,21 @@ export interface VendorSubscriptionListItem {
 
 export interface VendorSubscriptionDetails {
   id: number;
-  shop: {
+  vendor_id?: number;
+  vendor_name?: string;
+  vendor?: {
+    id: number;
+    name: string;
+  };
+  shop?: {
     id: number;
     name: string;
   };
   package: {
     id: number;
-    name: string;
-    max_products: number;
-    commission_rate: string;
+    name: string | Record<string, string>;
+    max_products?: number;
+    commission_rate?: string;
   };
   starts_at: string;
   ends_at: string;

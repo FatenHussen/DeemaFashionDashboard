@@ -74,12 +74,27 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 }
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, color, size, loading, disabled, fullWidth, children, ...props }, ref) => {
+  (
+    {
+      className,
+      variant,
+      color,
+      size,
+      loading,
+      disabled,
+      fullWidth,
+      children,
+      type = 'button',
+      ...props
+    },
+    ref
+  ) => {
     const classes = getButtonClasses(variant, color, size);
     const fullWidthClass = fullWidth ? 'w-full' : '';
 
     return (
       <button
+        type={type}
         className={mergeClasses([classes, fullWidthClass, className])}
         ref={ref}
         disabled={disabled || loading}

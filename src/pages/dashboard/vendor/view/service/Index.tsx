@@ -11,8 +11,6 @@ import { useFetchServices, useDeleteService } from '../../hooks/service';
 
 // ----------------------------------------------------------------------
 
-const metadata = { title: `Services | Dashboard - ${CONFIG.appName}` };
-
 export default function Page() {
   const { t } = useTranslation('table');
   const [currentPage, setCurrentPage] = useState(1);
@@ -37,10 +35,10 @@ export default function Page() {
   };
 
   const onDelete = async (id: number) => {
-    if (window.confirm('Are you sure you want to delete this service?')) {
+    if (window.confirm(t('form.serviceDeleteConfirm'))) {
       try {
         await deleteServiceMutation.mutateAsync(id);
-        toast.success('Service deleted successfully');
+        toast.success(t('deleteSuccess'));
       } catch { return; }
     }
   };
@@ -72,10 +70,10 @@ export default function Page() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.servicesIndexDocumentTitle', { appName: CONFIG.appName })}</title>
 
       <DataTable
-        tableName="Services"
+        tableName={t('tableNames.service')}
         columns={serviceColumns(
           {
             update: hasPermission('update', 'service'),
@@ -95,10 +93,10 @@ export default function Page() {
         }}
         isLoading={isLoading}
         columnTranslations={{
-          id: 'ID',
-          name: 'Name',
-          created_at: 'Created At',
-          actions: 'Actions',
+          id: t('columns.id'),
+          name: t('columns.name'),
+          created_at: t('columns.createdAt'),
+          actions: t('columns.action'),
         }}
         pagination={pagination}
         currentPage={currentPage}

@@ -25,8 +25,6 @@ import { RHFInfiniteSelect } from 'src/shared/components/hook-form/rhf-infinite-
 
 // ----------------------------------------------------------------------
 
-const metadata = { title: `Category Detail ${CONFIG.appName}` };
-
 const categoryFetcher = (page: number, limit: number) =>
   _CategoryApi.getListCategoriesPaginated({ page, per_page: limit }).then((r) => ({
     data: {
@@ -92,11 +90,11 @@ export default function CreatePage() {
 
       if (isEditMode && id) {
         await updateCategoryDetailMutation.mutateAsync({ id, data: payload });
-        toast.success('Category detail updated successfully');
+        toast.success(t('form.categoryDetailUpdatedSuccess'));
         navigate('/categories/details');
       } else {
         await createCategoryDetailMutation.mutateAsync(payload);
-        toast.success('Category detail created successfully');
+        toast.success(t('form.categoryDetailCreatedSuccess'));
         navigate('/categories/details');
       }
     } catch (error: any) {
@@ -109,15 +107,13 @@ export default function CreatePage() {
   };
 
   const infoText = isEditMode
-    ? 'You can update any field. Make sure both Arabic and English names are provided.'
-    : 'Fill in the category and detail name. Make sure both Arabic and English names are provided.';
+    ? t('form.categoryDetailFormInfoEdit')
+    : t('form.categoryDetailFormInfoCreate');
 
   return (
     <>
       <title>
-        {isEditMode
-          ? `Edit Category Detail | ${metadata.title}`
-          : `Create Category Detail | ${metadata.title}`}
+        {`${isEditMode ? t('form.editCategoryDetail') : t('form.createCategoryDetail')} | ${t('form.categoryDetailBrandedTitle', { app: CONFIG.appName })}`}
       </title>
 
       <CreateFormLayout
@@ -126,19 +122,21 @@ export default function CreatePage() {
         onCancel={handleCancel}
         isSubmitting={isSubmitting}
         errorMessage={errorMessage}
-        title={isEditMode ? 'Edit Category Detail' : 'Create New Category Detail'}
+        title={isEditMode ? t('form.editCategoryDetail') : t('form.createCategoryDetail')}
         description={
-          isEditMode
-            ? 'Update category detail information'
-            : 'Add a new category detail to your system'
+          isEditMode ? t('form.editCategoryDetailDesc') : t('form.createCategoryDetailDesc')
         }
         isEditMode={isEditMode}
         isLoading={isLoadingDetail}
         loadingText={t('form.loadingCategoryDetail')}
         maxWidth="3xl"
         infoText={infoText}
-        submitLabel={isEditMode ? 'Update Detail' : 'Create Detail'}
-        submittingLabel={isEditMode ? 'Updating...' : 'Creating...'}
+        submitLabel={
+          isEditMode ? t('form.updateCategoryDetailSubmit') : t('form.createCategoryDetailSubmit')
+        }
+        submittingLabel={
+          isEditMode ? t('form.updatingCategoryDetail') : t('form.creatingCategoryDetail')
+        }
       >
         {/* Category Selection */}
         <Box className="group">

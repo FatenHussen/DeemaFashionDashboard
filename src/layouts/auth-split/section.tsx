@@ -1,5 +1,7 @@
 import type { HTMLAttributes } from 'react';
 
+import { useTranslation } from 'react-i18next';
+
 import { RouterLink } from 'src/routes/components';
 
 import { CONFIG } from 'src/global-config';
@@ -23,12 +25,16 @@ export function AuthSplitSection({
   method,
   methods,
   layoutQuery = 'md',
-  title = 'Manage the job',
+  title: titleProp,
   imgUrl = `${CONFIG.assetsDir}/assets/illustrations/illustration-dashboard.webp`,
-  subtitle = 'More effectively with optimized workflows.',
+  subtitle: subtitleProp,
   className,
   ...other
 }: AuthSplitSectionProps) {
+  const { t } = useTranslation('common');
+  const title = titleProp ?? t('authMarketingTitle');
+  const subtitle = subtitleProp ?? t('authMarketingSubtitle');
+
   const displayClass = layoutQuery === 'md' 
     ? 'hidden md:flex' 
     : layoutQuery === 'lg' 
@@ -68,7 +74,7 @@ export function AuthSplitSection({
       </div>
 
       <img
-        alt="Dashboard illustration"
+        alt={t('dashboardIllustrationAlt')}
         src={imgUrl}
         className="w-full aspect-[4/3] object-cover"
       />

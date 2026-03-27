@@ -1,6 +1,6 @@
 import type {
-  ScheduledBasketCreateUpdatePayload,
   ScheduledBasketListParams,
+  ScheduledBasketCreateUpdatePayload,
 } from '../types/scheduled-basket.types';
 
 import { queryKeys } from '@/api';

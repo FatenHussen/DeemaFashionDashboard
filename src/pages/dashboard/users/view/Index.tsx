@@ -237,13 +237,13 @@ export default function Page() {
         }}
         isLoading={isLoading}
         columnTranslations={{
-          id: 'ID',
-          name: 'Name',
-          email: 'Email',
-          phone: 'Phone',
-          affiliate: 'Affiliate',
-          created_at: 'Created',
-          actions: 'Actions',
+          id: t('columns.id'),
+          name: t('columns.name'),
+          email: t('columns.email'),
+          phone: t('columns.phone'),
+          affiliate: t('columns.affiliate'),
+          created_at: t('columns.created'),
+          actions: t('columns.action'),
         }}
         pagination={pagination}
         currentPage={currentPage}

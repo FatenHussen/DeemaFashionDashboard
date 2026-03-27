@@ -6,7 +6,8 @@ import { Iconify, iconifyClasses } from '../../iconify';
 
 // ----------------------------------------------------------------------
 
-export type NavSubheaderProps = React.ComponentProps<'div'> & {
+export type NavSubheaderProps = Omit<React.ComponentProps<'div'>, 'children'> & {
+  children?: React.ReactNode;
   open?: boolean;
   'data-title'?: string;
 };

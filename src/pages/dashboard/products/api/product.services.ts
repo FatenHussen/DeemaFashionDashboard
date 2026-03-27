@@ -42,10 +42,15 @@ const buildProductFormData = (data: ProductCreateUpdatePayload): FormData => {
   if (data.barcode) formData.append('barcode', data.barcode);
   if (data.time_prepare) formData.append('time_prepare', data.time_prepare);
 
-  // Product images/media - use indexed notation as required by API
+  // Product gallery: keep existing media IDs + append new files (Laravel-style keys)
+  if (data.existing_media_ids && data.existing_media_ids.length > 0) {
+    data.existing_media_ids.forEach((mediaId) => {
+      formData.append('existing_media_ids[]', mediaId.toString());
+    });
+  }
   if (data.images && data.images.length > 0) {
-    data.images.forEach((file, index) => {
-      formData.append(`media[${index}]`, file);
+    data.images.forEach((file) => {
+      formData.append('media[]', file);
     });
   }
 
@@ -68,15 +73,15 @@ const buildProductFormData = (data: ProductCreateUpdatePayload): FormData => {
       if (variant.id) {
         formData.append(`variants[${vIndex}][id]`, variant.id.toString());
       }
-      (variant.attributes_values_ids ?? []).forEach((attrValueId, aIndex) => {
-        formData.append(
-          `variants[${vIndex}][attributes_values_ids][${aIndex}]`,
-          attrValueId.toString()
-        );
+      (variant.attributes_values_ids ?? []).forEach((attrValueId) => {
+        formData.append(`variants[${vIndex}][attributes_values_ids][]`, attrValueId.toString());
+      });
+      (variant.existing_images_ids ?? []).forEach((imgId) => {
+        formData.append(`variants[${vIndex}][existing_images_ids][]`, imgId.toString());
       });
       if (variant.images && variant.images.length > 0) {
-        variant.images.forEach((file, iIndex) => {
-          formData.append(`variants[${vIndex}][images][${iIndex}]`, file);
+        variant.images.forEach((file) => {
+          formData.append(`variants[${vIndex}][images][]`, file);
         });
       }
     });
@@ -179,6 +184,16 @@ export const _ProductApi = {
 
   deleteProduct: async (id: number | string): Promise<any> => {
     const response = await axiosInstance.delete(apiRoutes.product.delete(id));
+    return response.data;
+  },
+
+  approveProduct: async (id: number | string): Promise<any> => {
+    const response = await axiosInstance.post(apiRoutes.product.approve(id));
+    return response.data;
+  },
+
+  rejectProduct: async (id: number | string, rejection_reason: string): Promise<any> => {
+    const response = await axiosInstance.post(apiRoutes.product.reject(id), { rejection_reason });
     return response.data;
   },
 };

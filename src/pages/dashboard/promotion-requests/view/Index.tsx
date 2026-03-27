@@ -8,8 +8,6 @@ import { promotionRequestColumns, type PromotionRequestTableItem } from '@/colum
 
 import { CONFIG } from 'src/global-config';
 
-const metadata = { title: `Promotion Requests | Dashboard - ${CONFIG.appName}` };
-
 export default function Page() {
   const { t } = useTranslation('table');
   const navigate = useNavigate();
@@ -42,7 +40,7 @@ export default function Page() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.promotionRequestsIndexDocumentTitle', { appName: CONFIG.appName })}</title>
       <DataTable
         tableName={t("tableNames.promotionRequest")}
         columns={promotionRequestColumns(t, onViewDetails)}

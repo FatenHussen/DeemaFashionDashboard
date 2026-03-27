@@ -27,14 +27,12 @@ export const useCreateCategoryAttribute = () => {
     mutationFn: (data: CategoryAttributeCreateUpdatePayload) =>
       _CategoryAttributeApi.createCategoryAttribute(data),
     onSuccess: () => {
-      // Invalidate all category attribute list queries (matches all queries starting with ['category-attribute', 'list'])
       queryClient.invalidateQueries({
-        queryKey: ['category-attribute', 'list'],
+        queryKey: ['categoryattribute', 'list'],
         refetchType: 'active',
       });
-      // Explicitly refetch all active category attribute list queries
       queryClient.refetchQueries({
-        queryKey: ['category-attribute', 'list'],
+        queryKey: ['categoryattribute', 'list'],
         type: 'active',
       });
     },
@@ -53,19 +51,14 @@ export const useUpdateCategoryAttribute = () => {
       data: CategoryAttributeCreateUpdatePayload;
     }) => _CategoryAttributeApi.updateCategoryAttribute(id, data),
     onSuccess: (_, variables) => {
-      // Invalidate all category attribute list queries (matches all queries starting with ['category-attribute', 'list'])
       queryClient.invalidateQueries({
-        queryKey: ['category-attribute', 'list'],
+        queryKey: ['categoryattribute', 'list'],
         refetchType: 'active',
       });
-
-      // Explicitly refetch all active category attribute list queries
       queryClient.refetchQueries({
-        queryKey: ['category-attribute', 'list'],
+        queryKey: ['categoryattribute', 'list'],
         type: 'active',
       });
-
-      // Invalidate the specific category attribute details query
       queryClient.invalidateQueries({
         queryKey: queryKeys.categoryAttribute.details(variables.id),
       });
@@ -79,19 +72,14 @@ export const useDeleteCategoryAttribute = () => {
   return useMutation({
     mutationFn: (id: number | string) => _CategoryAttributeApi.deleteCategoryAttribute(id),
     onSuccess: (_, id) => {
-      // Invalidate all category attribute list queries (matches all queries starting with ['category-attribute', 'list'])
       queryClient.invalidateQueries({
-        queryKey: ['category-attribute', 'list'],
+        queryKey: ['categoryattribute', 'list'],
         refetchType: 'active',
       });
-
-      // Explicitly refetch all active category attribute list queries
       queryClient.refetchQueries({
-        queryKey: ['category-attribute', 'list'],
+        queryKey: ['categoryattribute', 'list'],
         type: 'active',
       });
-
-      // Invalidate the specific category attribute details query
       queryClient.invalidateQueries({
         queryKey: queryKeys.categoryAttribute.details(id),
       });

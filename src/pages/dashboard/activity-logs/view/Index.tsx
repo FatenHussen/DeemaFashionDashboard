@@ -1,17 +1,21 @@
-import { useState } from 'react';
+import type { ActivityLogItem } from '@/pages/dashboard/activity-logs/types/activity-log.types';
+
+import { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { activityLogColumns } from '@/columns/one/activity-logs/one';
 import { useFetchActivityLogs } from '@/pages/dashboard/activity-logs/hooks/activity-log';
+import { ActivityLogChangesModal } from '@/pages/dashboard/activity-logs/components/activity-log-changes-modal';
 
 import { CONFIG } from 'src/global-config';
-
-const metadata = { title: `Activity Logs | Dashboard - ${CONFIG.appName}` };
 
 export default function Page() {
   const { t } = useTranslation('table');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [changesLog, setChangesLog] = useState<ActivityLogItem | null>(null);
+
+  const openChanges = useCallback((item: ActivityLogItem) => setChangesLog(item), []);
 
   const { data: response, isLoading } = useFetchActivityLogs(currentPage, pageSize);
 
@@ -33,19 +37,35 @@ export default function Page() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.activityLogsIndexDocumentTitle', { appName: CONFIG.appName })}</title>
       <DataTable
         tableName={t("tableNames.activityLog")}
-        columns={activityLogColumns(t)}
+        columns={activityLogColumns(t, { onViewChanges: openChanges })}
         data={items}
         hasDetails={false}
+        rowClickToDetails={false}
         permissions={{ create: false, update: false, delete: false }}
         isLoading={isLoading}
+        columnTranslations={{
+          id: t('columns.id'),
+          user: t('columns.user'),
+          action: t('columns.action'),
+          model: t('columns.model'),
+          message: t('columns.message'),
+          changes_detail: t('form.activityLogChangesColumn'),
+          date: t('columns.date'),
+        }}
         pagination={pagination}
         currentPage={currentPage}
         pageSize={pageSize}
         onPageChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}
+      />
+
+      <ActivityLogChangesModal
+        open={!!changesLog}
+        onClose={() => setChangesLog(null)}
+        log={changesLog}
       />
     </>
   );

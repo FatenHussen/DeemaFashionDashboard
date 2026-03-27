@@ -3,12 +3,14 @@ import type { SubscriptionListParams } from '@/pages/dashboard/subscriptions/typ
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DataTable } from '@/shared/ui/table-data/table-data';
-import { subscriptionColumns, type SubscriptionRow } from '@/columns/one/subscriptions/one';
 import { useFetchSubscriptions } from '@/pages/dashboard/subscriptions/hooks/subscription';
+import { subscriptionColumns, type SubscriptionRow } from '@/columns/one/subscriptions/one';
 
 import { CONFIG } from 'src/global-config';
 
-const metadata = { title: `Subscriptions | Dashboard - ${CONFIG.appName}` };
+/** Admin API: `per_page` default 10, max 100 */
+const SUBSCRIPTION_PER_PAGE_MAX = 100;
+const SUBSCRIPTION_PAGE_SIZE_OPTIONS = [10, 25, 50, 100] as const;
 
 const SORT_FIELDS = ['id', 'start_date', 'end_date', 'created_at', 'status'] as const;
 
@@ -30,7 +32,7 @@ export default function Page() {
     const pid = packageId.trim() ? Number(packageId) : undefined;
     return {
       page: currentPage,
-      per_page: pageSize,
+      per_page: Math.min(pageSize, SUBSCRIPTION_PER_PAGE_MAX),
       ...(statusFilter ? { status: statusFilter } : {}),
       ...(search.trim() ? { search: search.trim() } : {}),
       ...(uid !== undefined && !Number.isNaN(uid) && uid > 0 ? { user_id: uid } : {}),
@@ -178,7 +180,7 @@ export default function Page() {
         >
           {SORT_FIELDS.map((f) => (
             <option key={f} value={f}>
-              {t('subscriptionSortField')}: {f}
+              {t('subscriptionSortField')}: {t(`form.subscriptionSortField_${f}`)}
             </option>
           ))}
         </select>
@@ -218,13 +220,14 @@ export default function Page() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.subscriptionsIndexDocumentTitle', { appName: CONFIG.appName })}</title>
       <DataTable
         tableName={t('tableNames.subscription')}
         columns={columns}
         data={items}
         hasDetails
         detailsLink="/subscriptions/details"
+        pageSizeOptions={[...SUBSCRIPTION_PAGE_SIZE_OPTIONS]}
         toolbarFilter={filterContent}
         permissions={{
           create: false,
@@ -233,16 +236,16 @@ export default function Page() {
         }}
         isLoading={isLoading}
         columnTranslations={{
-          id: 'ID',
-          user: 'User',
-          package: 'Package',
-          start_date: 'Start',
-          end_date: 'End',
+          id: t('columns.id'),
+          user: t('columns.user'),
+          package: t('columns.package'),
+          start_date: t('columns.start'),
+          end_date: t('columns.end'),
           remaining_orders: t('columns.remainingOrders'),
           remaining_free_deliveries: t('columns.remainingFreeDeliveries'),
-          status: 'Status',
-          is_active: 'Active',
-          created_at: 'Created',
+          status: t('columns.status'),
+          is_active: t('columns.active'),
+          created_at: t('columns.created'),
         }}
         pagination={pagination}
         currentPage={currentPage}

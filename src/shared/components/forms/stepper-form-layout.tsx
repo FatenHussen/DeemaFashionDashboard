@@ -37,6 +37,10 @@ export interface StepperFormLayoutProps<T extends Record<string, any>> {
   // Stepper configuration
   steps: StepperStep[];
   defaultStep?: number;
+  /** When moving to the next step, validate these react-hook-form paths first (same order as `steps`). */
+  stepValidationFields?: string[][];
+  /** Short hint under the step indicator (e.g. review before submit). */
+  reviewHint?: string;
 
   // Button labels
   submitLabel?: string;
@@ -63,6 +67,8 @@ export function StepperFormLayout<T extends Record<string, any>>({
   maxWidth = '4xl',
   steps,
   defaultStep = 0,
+  stepValidationFields,
+  reviewHint,
   submitLabel,
   cancelLabel,
   submittingLabel,
@@ -93,11 +99,15 @@ export function StepperFormLayout<T extends Record<string, any>>({
   const isFirstStep = activeStep === 0;
 
   const handleNext = async () => {
-    // Allow navigation to next step
-    // Final validation will happen on submit
-    if (activeStep < steps.length - 1) {
-      setActiveStep((prev) => prev + 1);
+    if (activeStep >= steps.length - 1) return;
+
+    const fields = stepValidationFields?.[activeStep];
+    if (fields?.length) {
+      const ok = await methods.trigger(fields as any);
+      if (!ok) return;
     }
+
+    setActiveStep((prev) => prev + 1);
   };
 
   const handleBack = () => {
@@ -189,12 +199,13 @@ export function StepperFormLayout<T extends Record<string, any>>({
               </Box>
 
               <Button
+                type="button"
                 variant="outlined"
                 onClick={onCancel}
-                disabled={isSubmitting}
+                disabled={isSubmitting || isLoading}
                 className="border-border hover:bg-muted/50 min-w-[100px] flex-shrink-0"
               >
-                {cancelLabel}
+                {resolvedCancelLabel}
               </Button>
             </Box>
             {/* </Box> */}
@@ -353,9 +364,20 @@ export function StepperFormLayout<T extends Record<string, any>>({
           <Form methods={methods} onSubmit={onSubmit}>
             {/* Content */}
             <Box className="p-6 md:p-8 min-h-[400px]">
+              {reviewHint && (
+                <Box className="mb-6 flex items-start gap-3 rounded-xl border border-primary/15 bg-primary/5 px-4 py-3">
+                  <Box className="mt-0.5 h-2 w-2 shrink-0 rounded-full bg-primary/70" />
+                  <Typography variant="body2" className="text-muted-foreground leading-relaxed">
+                    {reviewHint}
+                  </Typography>
+                </Box>
+              )}
               <Box className="flex flex-col gap-6">
                 {/* Step Content */}
-                <Box className="animate-in fade-in slide-in-from-right-4 duration-300">
+                <Box
+                  key={activeStep}
+                  className="animate-in fade-in slide-in-from-right-4 duration-300"
+                >
                   {steps[activeStep].content}
                 </Box>
               </Box>
@@ -373,37 +395,40 @@ export function StepperFormLayout<T extends Record<string, any>>({
 
                 <Box className="flex items-center gap-3">
                   <Button
+                    type="button"
                     variant="outlined"
                     onClick={onCancel}
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || isLoading}
                     className="min-w-[100px] border-border hover:bg-muted/50 transition-colors"
                   >
-                    {cancelLabel}
+                    {resolvedCancelLabel}
                   </Button>
 
                   {!isFirstStep && (
                     <Button
+                      type="button"
                       variant="outlined"
                       onClick={handleBack}
-                      disabled={isSubmitting}
+                      disabled={isSubmitting || isLoading}
                       className="min-w-[100px] border-border hover:bg-muted/50 transition-colors"
                     >
-                      {backLabel}
+                      {resolvedBackLabel}
                     </Button>
                   )}
 
                   {!isLastStep ? (
                     <Button
-                      onClick={handleNext}
-                      disabled={isSubmitting}
+                      type="button"
+                      onClick={() => void handleNext()}
+                      disabled={isSubmitting || isLoading}
                       className="min-w-[100px] bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm hover:shadow-md transition-all duration-200"
                     >
-                      {nextLabel}
+                      {resolvedNextLabel}
                     </Button>
                   ) : (
                     <Button
                       type="submit"
-                      disabled={isSubmitting}
+                      disabled={isSubmitting || isLoading}
                       className="min-w-[140px] bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm hover:shadow-md transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {isSubmitting ? (

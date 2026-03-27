@@ -2,10 +2,12 @@
 
 export interface CountryItem {
   id: number;
-  name: { en: string; ar: string };
+  /** API may return a plain string or bilingual object */
+  name: string | { en: string; ar: string };
   code: string;
-  is_active: number;
-  created_at: string;
+  is_active?: number;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface CountryListResponse {

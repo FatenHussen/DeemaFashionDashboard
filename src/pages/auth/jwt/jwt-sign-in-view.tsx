@@ -1,5 +1,5 @@
 import { z as zod } from 'zod';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { useBoolean } from 'minimal-shared/hooks';
@@ -7,6 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 
 import { RouterLink } from 'src/routes/components';
 
+import i18n from 'src/lib/i18n';
 import { Iconify } from 'src/shared/components/iconify';
 import { Form, Field } from 'src/shared/components/hook-form';
 import { Box, Alert, Button, IconButton, Typography } from 'src/shared/ui';
@@ -25,17 +26,16 @@ import { signInWithPassword } from '../context/jwt';
 
 export type SignInSchemaType = zod.infer<typeof SignInSchema>;
 
-// Schema factory that takes translation function
-const createSignInSchema = (t: any) =>
+const createSignInSchema = () =>
   zod.object({
     email: zod
       .string()
-      .min(1, { message: t('table:validation.required') })
-      .email({ message: t('table:validation.email') }),
+      .min(1, { message: i18n.t('required', { ns: 'validation' }) })
+      .email({ message: i18n.t('email', { ns: 'validation' }) }),
     password: zod
       .string()
-      .min(1, { message: t('table:validation.required') })
-      .min(6, { message: t('table:validation.minLength', { min: 6 }) }),
+      .min(1, { message: i18n.t('required', { ns: 'validation' }) })
+      .min(6, { message: i18n.t('minLength', { ns: 'validation', min: 6 }) }),
   });
 
 // Default schema for initialization
@@ -53,12 +53,15 @@ export const SignInSchema = zod.object({
 // ----------------------------------------------------------------------
 
 export function JwtSignInView() {
-  const { t } = useTranslation('table');
+  const { t, i18n: i18nInstance } = useTranslation('table');
+  const { t: tc } = useTranslation('common');
   const showPassword = useBoolean();
 
   useAuthContext();
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const signInSchema = useMemo(() => createSignInSchema(), [i18nInstance.language]);
 
   const defaultValues: SignInSchemaType = {
     email: 'employee@admin.com',
@@ -66,7 +69,7 @@ export function JwtSignInView() {
   };
 
   const methods = useForm<SignInSchemaType>({
-    resolver: zodResolver(createSignInSchema(t)),
+    resolver: zodResolver(signInSchema),
     defaultValues,
   });
 
@@ -104,14 +107,14 @@ export function JwtSignInView() {
     <Box className="gap-6 flex flex-col">
       {/* Email Field with Icon */}
       <Box className="group relative">
-        <Box className="absolute left-3 sm:left-4 top-[38px] z-10 flex items-center pointer-events-none">
+        <Box className="absolute start-3 sm:start-4 top-[38px] z-10 flex items-center pointer-events-none">
           <Iconify
             icon="solar:letter-bold"
             className="text-muted-foreground group-focus-within:text-primary transition-colors"
             width={20}
           />
         </Box>
-        <Box className="pl-10 sm:pl-12">
+        <Box className="ps-10 sm:ps-12">
           <Field.Text
             name="email"
             label={t('auth.emailAddress')}
@@ -123,14 +126,14 @@ export function JwtSignInView() {
 
       {/* Password Field with Icon */}
       <Box className="group relative">
-        <Box className="absolute left-3 sm:left-4 top-[38px] z-10 flex items-center pointer-events-none">
+        <Box className="absolute start-3 sm:start-4 top-[38px] z-10 flex items-center pointer-events-none">
           <Iconify
             icon="solar:lock-password-outline"
             className="text-muted-foreground group-focus-within:text-primary transition-colors"
             width={20}
           />
         </Box>
-        <Box className="pl-10 sm:pl-12">
+        <Box className="ps-10 sm:ps-12">
           <Field.Text
             name="password"
             label={t('auth.password')}
@@ -185,7 +188,11 @@ export function JwtSignInView() {
       {/* Header Section */}
       <Box className="mb-6 sm:mb-8 text-center">
         <Box className="mb-6 inline-flex items-center justify-center p-3 sm:p-4 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 shadow-sm">
-          <img src="/logo/logo.png" alt="Logo" className="h-12 w-auto sm:h-14 object-contain" />
+          <img
+            src="/logo/logo.png"
+            alt={tc('logoAlt')}
+            className="h-12 w-auto sm:h-14 object-contain"
+          />
         </Box>
         <Typography
           variant="h4"

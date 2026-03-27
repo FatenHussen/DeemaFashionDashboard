@@ -29,7 +29,7 @@ export default function Page() {
     data: categoryAttributesResponse,
     isLoading,
     error,
-  } = useFetchCategoryAttributes(currentPage, pageSize);
+  } = useFetchCategoryAttributes(undefined, currentPage, pageSize);
   const deleteCategoryAttributeMutation = useDeleteCategoryAttribute();
 
   // Log error for debugging

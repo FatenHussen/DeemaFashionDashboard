@@ -1,16 +1,14 @@
 import type { SubscriptionPackageDetail } from '@/pages/dashboard/subscriptions/types/subscription.types';
 
 import { Button } from '@/shared/ui/button';
+import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
-import { useTranslation } from 'react-i18next';
 import { useFetchSubscriptionById } from '@/pages/dashboard/subscriptions/hooks/subscription';
 
 import { CONFIG } from 'src/global-config';
 import { Box, Typography } from 'src/shared/ui';
 import { LoadingScreen } from 'src/shared/components/loading-screen';
-
-const metadata = { title: `Subscription Details | Dashboard - ${CONFIG.appName}` };
 
 const pkgName = (p?: SubscriptionPackageDetail | null): string => {
   if (!p?.name) return '';
@@ -46,7 +44,7 @@ export default function DetailsPage() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.subscriptionDetailsDocumentTitle', { appName: CONFIG.appName })}</title>
       <Box className="relative min-h-screen overflow-hidden bg-background p-6">
         <Box className="pointer-events-none fixed inset-0 bg-gradient-to-br from-background via-background to-muted/30" />
         <Box className="relative max-w-4xl mx-auto">
@@ -184,8 +182,14 @@ export default function DetailsPage() {
                   <Typography variant="caption" className="text-muted-foreground">
                     {t('columns.status')}
                   </Typography>
-                  <Typography variant="body1" className="font-medium capitalize">
-                    {item.status}
+                  <Typography variant="body1" className="font-medium">
+                    {item.status === 'active'
+                      ? t('active')
+                      : item.status === 'expired'
+                        ? t('expired')
+                        : item.status === 'cancelled'
+                          ? t('statusCancelled')
+                          : item.status}
                   </Typography>
                 </Box>
                 <Box>
@@ -213,7 +217,9 @@ export default function DetailsPage() {
                     {t('columns.endDate')}
                   </Typography>
                   <Typography variant="body1" className="font-medium">
-                    {item.end_date ? new Date(item.end_date).toLocaleDateString() : '—'}
+                    {item.end_date != null && item.end_date !== ''
+                      ? new Date(item.end_date).toLocaleDateString()
+                      : '—'}
                   </Typography>
                 </Box>
                 <Box>

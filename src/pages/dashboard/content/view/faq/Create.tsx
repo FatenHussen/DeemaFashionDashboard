@@ -7,6 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Iconify } from '@/shared/components/iconify';
 import { useParams, useNavigate } from 'react-router';
 import { FAQ_TYPES } from '@/pages/dashboard/content/types/faq.types';
+import { faqTypeLabel } from '@/pages/dashboard/content/utils/faq-type-label';
 import { FaqSchema, type FaqFormValues } from '@/pages/dashboard/content/validation/faq.validation';
 import {
   useCreateFaq,
@@ -21,10 +22,6 @@ import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
 import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
 
 // ----------------------------------------------------------------------
-
-const metadata = (isEdit: boolean) => ({
-  title: `${isEdit ? 'Edit' : 'Create'} FAQ | Dashboard - ${CONFIG.appName}`,
-});
 
 export default function CreatePage() {
   const { t } = useTranslation('table');
@@ -64,10 +61,10 @@ export default function CreatePage() {
     try {
       if (isEditMode) {
         await updateMutation.mutateAsync({ id: id!, data });
-        toast.success('FAQ updated successfully');
+        toast.success(t('form.faqUpdatedSuccess'));
       } else {
         await createMutation.mutateAsync(data);
-        toast.success('FAQ created successfully');
+        toast.success(t('form.faqCreatedSuccess'));
       }
       navigate('/faqs');
     } catch { return; }
@@ -78,7 +75,11 @@ export default function CreatePage() {
 
   return (
     <>
-      <title>{metadata(isEditMode).title}</title>
+      <title>
+        {isEditMode
+          ? t('form.faqEditDocumentTitle', { appName: CONFIG.appName })
+          : t('form.faqCreateDocumentTitle', { appName: CONFIG.appName })}
+      </title>
 
       <Box className="p-6">
         <Button
@@ -87,7 +88,7 @@ export default function CreatePage() {
           className="-ml-2 mb-4 text-muted-foreground hover:text-foreground"
         >
           <Iconify icon="solar:arrow-left-bold" width={20} className="mr-2" />
-          Back to FAQs
+          {t('form.backToFaqs')}
         </Button>
 
         <CreateFormLayout
@@ -96,21 +97,17 @@ export default function CreatePage() {
           onCancel={() => navigate('/faqs')}
           isSubmitting={isSubmitting}
           errorMessage={mutationError}
-          title={isEditMode ? 'Edit FAQ' : 'Create FAQ'}
-          description={
-            isEditMode
-              ? 'Update the question and answer in both languages'
-              : 'Add a new FAQ with question and answer in both languages'
-          }
+          title={isEditMode ? t('form.editFaq') : t('form.createFaq')}
+          description={isEditMode ? t('form.editFaqDesc') : t('form.createFaqDesc')}
           isEditMode={isEditMode}
           maxWidth="2xl"
-          submitLabel={isEditMode ? 'Save Changes' : 'Create FAQ'}
-          submittingLabel={isEditMode ? 'Saving...' : 'Creating...'}
+          submitLabel={isEditMode ? t('form.updateFaqSubmit') : t('form.createFaqSubmit')}
+          submittingLabel={isEditMode ? t('form.savingFaqSubmit') : t('form.creatingFaqSubmit')}
         >
           {/* Type */}
           <Box className="col-span-2">
             <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
-              Type <span className="text-destructive">*</span>
+              {t('form.faqTypeLabel')} <span className="text-destructive">*</span>
             </Typography>
             <Controller
               name="type"
@@ -125,7 +122,7 @@ export default function CreatePage() {
                   >
                     {FAQ_TYPES.map((type) => (
                       <option key={type} value={type}>
-                        {type === 'stores&drivers' ? 'Stores & Drivers' : type.charAt(0).toUpperCase() + type.slice(1)}
+                        {faqTypeLabel(t, type)}
                       </option>
                     ))}
                   </select>
@@ -145,15 +142,15 @@ export default function CreatePage() {
             <Box className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <Box>
                 <Typography variant="subtitle2" className="mb-1 text-xs text-muted-foreground">
-                  English <span className="text-destructive">*</span>
+                  {t('form.labelEnglishShort')} <span className="text-destructive">*</span>
                 </Typography>
                 <RHFTextField name="question.en" placeholder={t('form.faqQuestionPlaceholder')} fullWidth />
               </Box>
               <Box>
                 <Typography variant="subtitle2" className="mb-1 text-xs text-muted-foreground">
-                  Arabic <span className="text-destructive">*</span>
+                  {t('form.labelArabicShort')} <span className="text-destructive">*</span>
                 </Typography>
-                <RHFTextField name="question.ar" placeholder="مثال: كيف يمكنني تقديم طلب؟" fullWidth />
+                <RHFTextField name="question.ar" placeholder={t('form.faqQuestionArExample')} fullWidth />
               </Box>
             </Box>
           </Box>
@@ -167,7 +164,7 @@ export default function CreatePage() {
               {/* English */}
               <Box>
                 <Typography variant="subtitle2" className="mb-1 text-xs text-muted-foreground">
-                  English <span className="text-destructive">*</span>
+                  {t('form.labelEnglishShort')} <span className="text-destructive">*</span>
                 </Typography>
                 <Controller
                   name="answer.en"
@@ -193,7 +190,7 @@ export default function CreatePage() {
               {/* Arabic */}
               <Box>
                 <Typography variant="subtitle2" className="mb-1 text-xs text-muted-foreground">
-                  Arabic <span className="text-destructive">*</span>
+                  {t('form.labelArabicShort')} <span className="text-destructive">*</span>
                 </Typography>
                 <Controller
                   name="answer.ar"
@@ -204,7 +201,7 @@ export default function CreatePage() {
                         {...field}
                         rows={5}
                         dir="rtl"
-                        placeholder="أدخل الإجابة بالعربية..."
+                        placeholder={t('form.faqAnswerArPlaceholder')}
                         className={`w-full resize-y rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary ${
                           fieldError ? 'border-destructive' : 'border-input'
                         }`}

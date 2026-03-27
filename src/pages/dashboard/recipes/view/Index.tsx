@@ -58,11 +58,11 @@ export default function Page() {
         )}
         data={items}
         createPath="/recipes/create"
-        hasDetails
-        detailsLink="/recipes/details"
+        hasDetails={false}
+        rowClickToDetails={false}
         permissions={{ create: hasPermission('create', 'recipe'), update: hasPermission('update', 'recipe'), delete: hasPermission('delete', 'recipe') }}
         isLoading={isLoading}
-        columnTranslations={{ id: 'ID', image: 'Image', name: 'Name', description: 'Description', price: 'Price', discount: 'Discount', rating: 'Rating', orders_count: 'Orders', created_at: 'Created', actions: 'Actions' }}
+        columnTranslations={{ id: t('columns.id'), image: t('columns.image'), name: t('columns.name'), description: t('columns.description'), price: t('columns.price'), discount: t('columns.discount'), rating: t('columns.rating'), orders_count: t('columns.orders'), created_at: t('columns.created'), actions: t('columns.action') }}
         pagination={pagination}
         currentPage={currentPage}
         pageSize={pageSize}

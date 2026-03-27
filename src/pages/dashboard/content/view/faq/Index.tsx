@@ -4,11 +4,10 @@ import { useTranslation } from 'react-i18next';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { FAQ_TYPES } from '@/pages/dashboard/content/types/faq.types';
 import { faqColumns, type FaqFormValues } from '@/columns/one/faqs/one';
+import { faqTypeLabel } from '@/pages/dashboard/content/utils/faq-type-label';
 import { useFetchFaqs, useDeleteFaq } from '@/pages/dashboard/content/hooks/faq';
 
 import { CONFIG } from 'src/global-config';
-
-const metadata = { title: `FAQs | Dashboard - ${CONFIG.appName}` };
 
 export default function Page() {
   const { t } = useTranslation('table');
@@ -44,7 +43,7 @@ export default function Page() {
     if (!deletingId) return;
     try {
       await deleteMutation.mutateAsync(deletingId);
-      toast.success('FAQ deleted successfully');
+      toast.success(t('form.faqDeletedSuccess'));
     } catch { return; } finally {
       setDeleteDialogOpen(false);
       setDeletingId(null);
@@ -82,7 +81,7 @@ export default function Page() {
         <option value="">{t('all')}</option>
         {FAQ_TYPES.map((type) => (
           <option key={type} value={type}>
-            {type === 'stores&drivers' ? 'Stores & Drivers' : type.charAt(0).toUpperCase() + type.slice(1)}
+            {faqTypeLabel(t, type)}
           </option>
         ))}
       </select>
@@ -103,7 +102,7 @@ export default function Page() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.faqsIndexDocumentTitle', { appName: CONFIG.appName })}</title>
 
       <DataTable
         tableName={t("tableNames.faq")}
@@ -128,10 +127,10 @@ export default function Page() {
         }}
         isLoading={isLoading}
         columnTranslations={{
-          id: 'ID',
-          type: 'Type',
-          question: 'Question',
-          answer: 'Answer',
+          id: t('columns.id'),
+          type: t('columns.type'),
+          question: t('columns.question'),
+          answer: t('columns.answer'),
         }}
         pagination={pagination}
         currentPage={currentPage}

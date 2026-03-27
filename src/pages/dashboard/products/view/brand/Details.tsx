@@ -1,6 +1,8 @@
 import { Button } from '@/shared/ui/button';
+import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
+import { formatTranslated } from '@/utils/format-translated';
 import { useFetchBrandById } from '@/pages/dashboard/products/hooks/brand';
 
 import { CONFIG } from 'src/global-config';
@@ -10,9 +12,8 @@ import { LoadingScreen } from 'src/shared/components/loading-screen';
 
 // ----------------------------------------------------------------------
 
-const metadata = { title: `Brand Details | Dashboard - ${CONFIG.appName}` };
-
 export default function DetailsPage() {
+  const { t } = useTranslation('table');
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: brandResponse, isLoading, error } = useFetchBrandById(id || '');
@@ -28,14 +29,14 @@ export default function DetailsPage() {
           <Box className="flex items-center gap-2 mb-2">
             <Iconify icon="solar:danger-bold" className="w-5 h-5 text-destructive" />
             <Typography variant="h6" className="text-destructive">
-              Error Loading Brand
+              {t('form.brandLoadErrorTitle')}
             </Typography>
           </Box>
           <Typography variant="body2" className="text-muted-foreground mb-4">
-            {error instanceof Error ? error.message : 'Failed to load brand information'}
+            {error instanceof Error ? error.message : t('form.brandLoadErrorFallback')}
           </Typography>
           <Button variant="outlined" onClick={() => navigate('/products/brands')}>
-            Back to Brands
+            {t('form.backToBrands')}
           </Button>
         </Box>
       </Box>
@@ -43,11 +44,17 @@ export default function DetailsPage() {
   }
 
   const brand = brandResponse.data;
-  const imageUrl = brand.image ? `${CONFIG.serverUrl}/${brand.image}` : null;
+  const img = brand.image;
+  const imageUrl = img
+    ? String(img).startsWith('http')
+      ? img
+      : `${CONFIG.serverUrl}/${img}`
+    : null;
+  const brandName = formatTranslated(brand.name as Parameters<typeof formatTranslated>[0]);
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.brandDetailsDocTitle', { app: CONFIG.appName })}</title>
       <Box className="relative min-h-screen overflow-hidden bg-background p-6">
         {/* Subtle background gradient */}
         <Box className="pointer-events-none fixed inset-0 bg-gradient-to-br from-background via-background to-muted/30" />
@@ -66,14 +73,14 @@ export default function DetailsPage() {
               className="mb-4 -ml-2 text-muted-foreground hover:text-foreground"
             >
               <Iconify icon="solar:arrow-left-bold" width={20} className="mr-2" />
-              Back to Brands
+              {t('form.backToBrands')}
             </Button>
 
             <Box className="flex items-center gap-4 mb-2">
               {imageUrl ? (
                 <img
                   src={imageUrl}
-                  alt={brand.name}
+                  alt={brandName}
                   className="w-16 h-16 rounded-xl object-cover border border-border/60"
                 />
               ) : (
@@ -88,10 +95,10 @@ export default function DetailsPage() {
               )}
               <Box className="flex-1">
                 <Typography variant="h4" className="font-bold text-foreground mb-1">
-                  {brand.name}
+                  {brandName}
                 </Typography>
                 <Typography variant="body2" className="text-muted-foreground">
-                  Brand Details
+                  {t('form.brandDetailsSubtitle')}
                 </Typography>
               </Box>
               <Button
@@ -100,7 +107,7 @@ export default function DetailsPage() {
                 className="gap-2"
               >
                 <Iconify icon="solar:pen-bold" width={18} />
-                Edit Brand
+                {t('form.editBrand')}
               </Button>
             </Box>
           </Box>
@@ -115,12 +122,12 @@ export default function DetailsPage() {
                   className="font-semibold text-foreground mb-4 flex items-center gap-2"
                 >
                   <Iconify icon="solar:info-circle-bold" width={20} />
-                  Basic Information
+                  {t('form.brandDetailSectionBasic')}
                 </Typography>
                 <Box className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Box className="space-y-2">
                     <Typography variant="body2" className="text-muted-foreground font-medium">
-                      Brand ID
+                      {t('form.brandDetailIdLabel')}
                     </Typography>
                     <Box className="flex items-center gap-2">
                       <Box className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
@@ -131,19 +138,19 @@ export default function DetailsPage() {
 
                   <Box className="space-y-2">
                     <Typography variant="body2" className="text-muted-foreground font-medium">
-                      Brand Name
+                      {t('form.brandDetailNameLabel')}
                     </Typography>
                     <Box className="flex items-center gap-2">
                       <Iconify icon="solar:flag-bold" className="text-primary" width={18} />
                       <Typography variant="body1" className="text-foreground">
-                        {brand.name}
+                        {brandName}
                       </Typography>
                     </Box>
                   </Box>
 
                   <Box className="space-y-2">
                     <Typography variant="body2" className="text-muted-foreground font-medium">
-                      Created At
+                      {t('columns.createdAt')}
                     </Typography>
                     <Box className="flex items-center gap-2">
                       <Iconify
@@ -159,7 +166,7 @@ export default function DetailsPage() {
 
                   <Box className="space-y-2">
                     <Typography variant="body2" className="text-muted-foreground font-medium">
-                      Updated At
+                      {t('columns.updatedAt')}
                     </Typography>
                     <Box className="flex items-center gap-2">
                       <Iconify
@@ -184,13 +191,13 @@ export default function DetailsPage() {
                   className="font-semibold text-foreground mb-4 flex items-center gap-2"
                 >
                   <Iconify icon="solar:gallery-add-bold" width={20} />
-                  Brand Image
+                  {t('form.brandImageSection')}
                 </Typography>
                 {imageUrl ? (
                   <Box className="flex items-center gap-4">
                     <img
                       src={imageUrl}
-                      alt={brand.name}
+                      alt={brandName}
                       className="w-48 h-48 object-cover rounded-lg border border-border/60"
                     />
                   </Box>
@@ -201,7 +208,7 @@ export default function DetailsPage() {
                       className="w-12 h-12 text-muted-foreground/50 mx-auto mb-2"
                     />
                     <Typography variant="body2" className="text-muted-foreground">
-                      No image uploaded for this brand
+                      {t('form.brandNoImage')}
                     </Typography>
                   </Box>
                 )}

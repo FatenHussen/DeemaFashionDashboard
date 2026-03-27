@@ -2,15 +2,17 @@ import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { apiRoutes, axiosInstance } from '@/api';
-import { useRef, useState, useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
+import { compressImages } from '@/utils/compress-image';
+import { useId, useRef, useState, useEffect } from 'react';
 import { formatTranslated } from '@/utils/format-translated';
 import { useFetchShops } from '@/pages/dashboard/vendor/hooks/shop';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { _BrandApi } from '@/pages/dashboard/products/api/brand.services';
 import { _CategoryApi } from '@/pages/dashboard/categories/api/category.services';
+import { RichTextEditor } from '@/shared/components/rich-text-editor/rich-text-editor';
 import { useFetchCategoryAttributes } from '@/pages/dashboard/categories/hooks/category-attribute';
 import {
   ProductSchema,
@@ -26,10 +28,10 @@ import { paths } from 'src/routes/paths';
 
 import { CONFIG } from 'src/global-config';
 import { Label } from 'src/shared/components/label';
-import { Box, Input, Button, Typography } from 'src/shared/ui';
+import { Box, Button, Typography } from 'src/shared/ui';
 import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
-import { RHFInfiniteSelect } from 'src/shared/components/hook-form/rhf-infinite-select';
 import { RHFBadgeSelector } from 'src/shared/components/hook-form/rhf-badge-selector';
+import { RHFInfiniteSelect } from 'src/shared/components/hook-form/rhf-infinite-select';
 
 // ----------------------------------------------------------------------
 
@@ -54,6 +56,54 @@ const brandFetcher = (page: number, limit: number) =>
 const inputCls =
   'w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary';
 
+/** API returns `attribute` in one locale (often AR); category `name` may be {en, ar} — match any. */
+function categoryAttrLabelMatches(attr: any, apiAttributeLabel: string): boolean {
+  const api = String(apiAttributeLabel ?? '').trim();
+  if (!api) return false;
+  if (typeof attr?.name === 'object' && attr.name) {
+    const en = String(attr.name.en ?? '').trim();
+    const ar = String(attr.name.ar ?? '').trim();
+    if (api === en || api === ar) return true;
+  }
+  return api === String(attr?.name ?? '').trim();
+}
+
+function normalizeHexForCompare(s: string) {
+  const t = String(s).trim();
+  return /^#[0-9a-fA-F]{3,8}$/.test(t) ? t.toLowerCase() : t;
+}
+
+/** Resolve category attribute value id from API string (value or hex color, any locale). */
+function findAttributeValueId(attr: any, rawVal: string): number | undefined {
+  const vals = attr?.values ?? [];
+  const target = String(rawVal ?? '').trim();
+  const targetNorm = normalizeHexForCompare(target);
+  const targetIsHex = /^#[0-9a-fA-F]{3,8}$/.test(target);
+
+  for (const x of vals) {
+    const candidates: string[] = [];
+    if (typeof x?.value === 'string') candidates.push(x.value);
+    else if (x?.value && typeof x.value === 'object') {
+      if (x.value.en != null) candidates.push(String(x.value.en));
+      if (x.value.ar != null) candidates.push(String(x.value.ar));
+    }
+    if (typeof x?.name === 'string') candidates.push(x.name);
+    else if (x?.name && typeof x.name === 'object') {
+      if (x.name.en != null) candidates.push(String(x.name.en));
+      if (x.name.ar != null) candidates.push(String(x.name.ar));
+    }
+    for (const c of candidates) {
+      const cTrim = String(c).trim();
+      if (targetIsHex && /^#[0-9a-fA-F]{3,8}$/.test(cTrim)) {
+        if (normalizeHexForCompare(cTrim) === targetNorm && x.id != null) return Number(x.id);
+      } else if (cTrim.toLowerCase() === target.toLowerCase() && x.id != null) {
+        return Number(x.id);
+      }
+    }
+  }
+  return undefined;
+}
+
 export default function CreatePage() {
   const { t } = useTranslation('table');
   const { id } = useParams<{ id?: string }>();
@@ -61,7 +111,7 @@ export default function CreatePage() {
   const isEditMode = !!id;
 
   const [previewImages, setPreviewImages] = useState<string[]>([]);
-  const [existingImageUrls, setExistingImageUrls] = useState<string[]>([]);
+  const productImagesInputId = useId();
 
   // Fetch dependencies
   const { data: shopsResponse } = useFetchShops(1, 100);
@@ -88,6 +138,7 @@ export default function CreatePage() {
     time_prepare: '',
     is_instant_delivery: 0,
     images: [],
+    existing_media_ids: [],
     badges: [],
     variants: [],
     category_details: [],
@@ -101,9 +152,10 @@ export default function CreatePage() {
     defaultValues,
   });
 
-  const { handleSubmit, reset, control, watch, setValue } = methods;
+  const { handleSubmit, reset, control, watch, setValue, getValues } = methods;
   const categoryId = watch('category_id');
   const imagesFiles = watch('images');
+  const existingMediaIds = watch('existing_media_ids') ?? [];
   const watchedVariants = watch('variants') || [];
   const watchedBoughtWith = watch('bought_with') || [];
 
@@ -172,11 +224,15 @@ export default function CreatePage() {
         time_prepare: p.time_prepare ?? '',
         is_instant_delivery: p.is_instant_delivery ? 1 : 0,
         images: [],
+        existing_media_ids:
+          p.images?.map((img: any) => Number(img.id)).filter((mediaId) => !Number.isNaN(mediaId)) ?? [],
         variants:
           p.variants?.map((v) => ({
             id: v.id,
             attributes_values_ids: [],
             images: [],
+            existing_images_ids:
+              (v.images ?? []).map((img: any) => Number(img.id)).filter((mediaId) => !Number.isNaN(mediaId)) ?? [],
           })) ?? [],
         category_details:
           p.category_details?.map((cd) => ({
@@ -212,17 +268,6 @@ export default function CreatePage() {
       });
     }
   }, [productResponse, isEditMode, isLoadingProduct, reset]);
-
-  // Show existing product images in edit mode
-  useEffect(() => {
-    if (isEditMode && productResponse?.images?.length) {
-      setExistingImageUrls(
-        productResponse.images.map((img: any) => img.url ?? img)
-      );
-    } else {
-      setExistingImageUrls([]);
-    }
-  }, [isEditMode, productResponse?.images]);
 
   const categoryDetailsFixedRef = useRef<string | null>(null);
 
@@ -278,31 +323,21 @@ export default function CreatePage() {
     const mappedVariants = p.variants!.map((v) => {
       const ids: number[] = [];
       categoryAttributes.forEach((attr: any) => {
-        const attrName = String(typeof attr.name === 'object' ? attr.name?.en ?? attr.name?.ar : attr.name).trim();
-        const vAttr = (v.attributes ?? []).find(
-          (a: any) => String((a as any).attribute ?? a).trim() === attrName
+        const vAttr = (v.attributes ?? []).find((a: any) =>
+          categoryAttrLabelMatches(attr, String((a as any).attribute ?? a))
         );
         if (vAttr) {
           const vVal = typeof vAttr === 'object' ? (vAttr as any).value : vAttr;
-          const vals = attr?.values ?? [];
-          const match =
-            vals.find(
-              (x: any) =>
-                String(typeof x.value === 'string' ? x.value : x.value?.en ?? x.value?.ar ?? '').trim() ===
-                String(vVal).trim()
-            ) ??
-            vals.find(
-              (x: any) =>
-                String(typeof x.name === 'object' ? x.name?.en ?? x.name?.ar : x.name).trim() ===
-                String(vVal).trim()
-            );
-          if (match?.id) ids.push(match.id);
+          const idFound = findAttributeValueId(attr, String(vVal ?? ''));
+          if (idFound != null && !Number.isNaN(idFound)) ids.push(idFound);
         }
       });
       return {
         id: v.id,
         attributes_values_ids: ids,
         images: [] as File[],
+        existing_images_ids:
+          (v.images ?? []).map((img: any) => Number(img.id)).filter((mediaId) => !Number.isNaN(mediaId)) ?? [],
       };
     });
     setValue('variants', mappedVariants);
@@ -340,28 +375,13 @@ export default function CreatePage() {
     variants.map((v) => {
       const ids: number[] = [];
       attrs.forEach((attr: any) => {
-        const attrName = String(
-          typeof attr.name === 'object' ? attr.name?.en ?? attr.name?.ar : attr.name
-        ).trim();
-        const vAttr = (v.attributes ?? []).find(
-          (a: any) => String((a as any).attribute ?? a).trim() === attrName
+        const vAttr = (v.attributes ?? []).find((a: any) =>
+          categoryAttrLabelMatches(attr, String((a as any).attribute ?? a))
         );
         if (vAttr) {
           const vVal = typeof vAttr === 'object' ? (vAttr as any).value : vAttr;
-          const vals = attr?.values ?? [];
-          const match =
-            vals.find(
-              (x: any) =>
-                String(typeof x.value === 'string' ? x.value : x.value?.en ?? x.value?.ar ?? '').trim() ===
-                String(vVal).trim()
-            ) ??
-            vals.find(
-              (x: any) =>
-                String(
-                  typeof x.name === 'object' ? x.name?.en ?? x.name?.ar : x.name ?? ''
-                ).trim() === String(vVal).trim()
-            );
-          if (match?.id) ids.push(match.id);
+          const idFound = findAttributeValueId(attr, String(vVal ?? ''));
+          if (idFound != null && !Number.isNaN(idFound)) ids.push(idFound);
         }
       });
       return { id: v.id, attributes_values_ids: ids, images: (v as any).images ?? [] };
@@ -369,8 +389,25 @@ export default function CreatePage() {
 
   const onSubmit = async (data: ProductFormValues) => {
     try {
-      console.log('[Product Form] Validation passed, submitting:', data);
-      let payload: ProductFormValues = { ...data };
+      const live = getValues();
+      // Nested File[] in field arrays is sometimes missing from `data` — use live state for uploads
+      let payload: ProductFormValues = {
+        ...data,
+        images: live.images ?? data.images,
+        existing_media_ids: live.existing_media_ids ?? data.existing_media_ids,
+        variants: (data.variants ?? []).map((dv, i) => {
+          const lv = live.variants?.[i];
+          if (!lv) return dv;
+          return {
+            ...dv,
+            ...lv,
+            images: lv.images?.length ? lv.images : dv.images,
+            existing_images_ids: lv.existing_images_ids ?? dv.existing_images_ids,
+          };
+        }),
+      };
+
+      console.log('[Product Form] Validation passed, submitting:', payload);
 
       // In edit mode: ensure variants have attributes_values_ids (full payload - changed + unchanged)
       if (isEditMode && productResponse && (payload.variants?.length ?? 0) > 0 && categoryAttributes.length > 0) {
@@ -433,7 +470,19 @@ export default function CreatePage() {
         };
       }
 
-      // Filter variants with empty attributes_values_ids (backend requires it)
+      // Variants without attributes_values_ids are dropped entirely — API keys like variants[0][images][] are never sent.
+      const orphanVariantImages = payload.variants?.some(
+        (v) =>
+          ((v.images?.length ?? 0) > 0 || (v.existing_images_ids?.length ?? 0) > 0) &&
+          (!Array.isArray(v.attributes_values_ids) || v.attributes_values_ids.length === 0)
+      );
+      if (orphanVariantImages) {
+        toast.error(
+          'Each variant with images must have at least one attribute selected (e.g. size or color). Otherwise variant images are not sent.'
+        );
+        return;
+      }
+
       const validVariants =
         payload.variants?.filter(
           (v) => Array.isArray(v.attributes_values_ids) && v.attributes_values_ids.length > 0
@@ -454,13 +503,28 @@ export default function CreatePage() {
         ),
       };
 
+      const productImagesCompressed = finalPayload.images?.length
+        ? await compressImages(finalPayload.images)
+        : finalPayload.images;
+      const variantsCompressed = await Promise.all(
+        (finalPayload.variants ?? []).map(async (v) => ({
+          ...v,
+          images: v.images?.length ? await compressImages(v.images) : v.images,
+        }))
+      );
+      const uploadPayload: ProductFormValues = {
+        ...finalPayload,
+        images: productImagesCompressed,
+        variants: variantsCompressed,
+      };
+
       if (isEditMode && id) {
-        console.log('[Product Form] Sending update payload:', { id, data: finalPayload });
-        await updateProductMutation.mutateAsync({ id, data: finalPayload });
+        console.log('[Product Form] Sending update payload:', { id, data: uploadPayload });
+        await updateProductMutation.mutateAsync({ id, data: uploadPayload });
         toast.success('Product updated successfully');
       } else {
-        console.log('[Product Form] Sending create payload:', finalPayload);
-        await createProductMutation.mutateAsync(finalPayload);
+        console.log('[Product Form] Sending create payload:', uploadPayload);
+        await createProductMutation.mutateAsync(uploadPayload);
         toast.success('Product created successfully');
       }
       navigate('/products');
@@ -702,11 +766,12 @@ export default function CreatePage() {
               name="full_description.en"
               control={control}
               render={({ field }) => (
-                <textarea
-                  {...field}
-                  rows={4}
+                <RichTextEditor
+                  value={field.value ?? ''}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
                   placeholder={t('form.fullDescPlaceholder')}
-                  className={inputCls}
+                  dir="ltr"
                 />
               )}
             />
@@ -722,12 +787,12 @@ export default function CreatePage() {
               name="full_description.ar"
               control={control}
               render={({ field }) => (
-                <textarea
-                  {...field}
-                  rows={4}
-                  dir="rtl"
+                <RichTextEditor
+                  value={field.value ?? ''}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
                   placeholder="الوصف الكامل بالعربية"
-                  className={inputCls}
+                  dir="rtl"
                 />
               )}
             />
@@ -931,28 +996,74 @@ export default function CreatePage() {
           <Controller
             name="images"
             control={control}
-            render={({ field: { onChange, value, ...field }, fieldState: { error } }) => (
+            render={({ field: { onChange, value, ref, name, onBlur }, fieldState: { error } }) => (
               <div className="w-full">
-                <Input
-                  {...field}
+                {/* Native file inputs are unreliable when styled as text fields; use label + sr-only input */}
+                <input
+                  id={productImagesInputId}
+                  ref={ref}
+                  name={name}
+                  onBlur={onBlur}
                   type="file"
                   accept="image/*"
                   multiple
-                  onChange={(e) => onChange(e.target.files ? Array.from(e.target.files) : [])}
-                  error={!!error}
-                  helperText={error?.message || 'Upload product images (multiple allowed)'}
-                  fullWidth
+                  className="sr-only"
+                  tabIndex={-1}
+                  onChange={(e) => {
+                    const picked = e.target.files ? Array.from(e.target.files) : [];
+                    const prev = Array.isArray(value) ? value : [];
+                    onChange([...prev, ...picked]);
+                    e.currentTarget.value = '';
+                  }}
                 />
-                {(existingImageUrls.length > 0 || previewImages.length > 0) && (
+                <div className="flex flex-wrap items-center gap-3">
+                  <label
+                    htmlFor={productImagesInputId}
+                    className="inline-flex cursor-pointer rounded-lg border border-border bg-background px-3 py-2 text-sm font-medium text-foreground hover:bg-muted"
+                  >
+                    Choose files
+                  </label>
+                  <Typography component="span" variant="body2" color="secondary">
+                    {Array.isArray(value) && value.length > 0
+                      ? `${value.length} file(s) selected`
+                      : 'No file chosen'}
+                  </Typography>
+                </div>
+                <Typography
+                  variant="caption"
+                  className={error ? 'text-destructive mt-1 block' : 'text-muted-foreground mt-1 block'}
+                >
+                  {error?.message ||
+                    'Select multiple images (Ctrl/Cmd+click or Shift+click). You can choose again to add more files.'}
+                </Typography>
+                {(isEditMode && existingMediaIds.length > 0) || previewImages.length > 0 ? (
                   <Box className="mt-4 grid grid-cols-4 gap-4">
-                    {existingImageUrls.map((src, i) => (
-                      <img
-                        key={`ex-${i}`}
-                        src={src}
-                        alt={`Current ${i + 1}`}
-                        className="w-full h-32 object-cover rounded-lg border border-border/60"
-                      />
-                    ))}
+                    {isEditMode &&
+                      productResponse?.images
+                        ?.filter((img: any) => existingMediaIds.includes(Number(img.id)))
+                        .map((img: any) => (
+                          <Box key={`ex-${img.id}`} className="relative group">
+                            <img
+                              src={img.url ?? img}
+                              alt=""
+                              className="w-full h-32 object-cover rounded-lg border border-border/60"
+                            />
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setValue(
+                                  'existing_media_ids',
+                                  existingMediaIds.filter((mid) => mid !== Number(img.id)),
+                                  { shouldDirty: true }
+                                )
+                              }
+                              className="absolute top-1 right-1 rounded-full bg-destructive text-destructive-foreground p-1 opacity-90 hover:opacity-100"
+                              aria-label="Remove image"
+                            >
+                              <Iconify icon="solar:close-circle-bold" width={20} />
+                            </button>
+                          </Box>
+                        ))}
                     {previewImages.map((src, i) => (
                       <img
                         key={`new-${i}`}
@@ -962,7 +1073,7 @@ export default function CreatePage() {
                       />
                     ))}
                   </Box>
-                )}
+                ) : null}
               </div>
             )}
           />
@@ -1003,7 +1114,9 @@ export default function CreatePage() {
               variant="outlined"
               size="small"
               disabled={!categoryId || categoryId === 0 || categoryAttributes.length === 0}
-              onClick={() => appendVariant({ attributes_values_ids: [], images: [] })}
+              onClick={() =>
+                appendVariant({ attributes_values_ids: [], images: [], existing_images_ids: [] })
+              }
             >
               <Iconify icon="solar:add-circle-bold" width={16} className="mr-1" />
               Add Variant
@@ -1154,20 +1267,87 @@ export default function CreatePage() {
                     <Controller
                       name={`variants.${variantIndex}.images`}
                       control={control}
-                      render={({ field: { onChange, ...field } }) => (
-                        <input
-                          {...field}
-                          type="file"
-                          accept="image/*"
-                          multiple
-                          value=""
-                          onChange={(e) =>
-                            onChange(e.target.files ? Array.from(e.target.files) : [])
-                          }
-                          className={inputCls}
-                        />
-                      )}
+                      render={({ field: { onChange, value, ref, name, onBlur } }) => {
+                        const variantFileInputId = `variant-images-${variantIndex}-${variant.id}`;
+                        return (
+                          <>
+                            <input
+                              id={variantFileInputId}
+                              ref={ref}
+                              name={name}
+                              onBlur={onBlur}
+                              type="file"
+                              accept="image/*"
+                              multiple
+                              className="sr-only"
+                              tabIndex={-1}
+                              onChange={(e) => {
+                                const picked = e.target.files ? Array.from(e.target.files) : [];
+                                const prev = Array.isArray(value) ? value : [];
+                                onChange([...prev, ...picked]);
+                                e.currentTarget.value = '';
+                              }}
+                            />
+                            <div className="flex flex-wrap items-center gap-3">
+                              <label
+                                htmlFor={variantFileInputId}
+                                className="inline-flex cursor-pointer rounded-lg border border-border bg-background px-3 py-2 text-sm font-medium text-foreground hover:bg-muted"
+                              >
+                                Choose files
+                              </label>
+                              <Typography component="span" variant="body2" color="secondary">
+                                {Array.isArray(value) && value.length > 0
+                                  ? `${value.length} file(s) selected`
+                                  : 'No file chosen'}
+                              </Typography>
+                            </div>
+                          </>
+                        );
+                      }}
                     />
+                    <Typography variant="caption" className="text-muted-foreground mt-1 block">
+                      Multiple images: Ctrl/Cmd+click in the file dialog, or pick again to append more.
+                    </Typography>
+                    {(() => {
+                      const vRowId = watch(`variants.${variantIndex}.id`);
+                      const keepVIds = watch(`variants.${variantIndex}.existing_images_ids`) ?? [];
+                      const fromApi =
+                        isEditMode && vRowId && productResponse?.variants
+                          ? productResponse.variants
+                              .find((x: any) => Number(x.id) === Number(vRowId))
+                              ?.images?.filter((im: any) =>
+                                keepVIds.includes(Number(im.id))
+                              ) ?? []
+                          : [];
+                      if (!fromApi.length) return null;
+                      return (
+                        <Box className="mt-2 flex flex-wrap gap-2">
+                          {fromApi.map((im: any) => (
+                            <Box key={im.id} className="relative group/vimg">
+                              <img
+                                src={im.url ?? im}
+                                alt=""
+                                className="h-20 w-20 object-cover rounded-lg border border-border/60"
+                              />
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setValue(
+                                    `variants.${variantIndex}.existing_images_ids`,
+                                    keepVIds.filter((x) => x !== Number(im.id)),
+                                    { shouldDirty: true }
+                                  )
+                                }
+                                className="absolute -top-1 -right-1 rounded-full bg-destructive text-destructive-foreground p-0.5 opacity-90 hover:opacity-100"
+                                aria-label="Remove variant image"
+                              >
+                                <Iconify icon="solar:close-circle-bold" width={18} />
+                              </button>
+                            </Box>
+                          ))}
+                        </Box>
+                      );
+                    })()}
                   </Box>
                 </Box>
               ))}

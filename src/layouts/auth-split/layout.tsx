@@ -3,6 +3,7 @@ import type { AuthSplitContentProps } from './content';
 import type { MainSectionProps, LayoutSectionProps, HeaderSectionProps } from '../core';
 
 import { merge } from 'es-toolkit';
+import { useTranslation } from 'react-i18next';
 
 import { paths } from 'src/routes/paths';
 
@@ -11,6 +12,13 @@ import { CONFIG } from 'src/global-config';
 import { AuthSplitSection } from './section';
 import { AuthSplitContent } from './content';
 import { MainSection, LayoutSection, HeaderSection } from '../core';
+
+// ----------------------------------------------------------------------
+
+function AuthSplitHeaderInfoSlot() {
+  const { t } = useTranslation('common');
+  return <div className="hidden rounded-none">{t('authLayoutInfoAlert')}</div>;
+}
 
 // ----------------------------------------------------------------------
 
@@ -41,7 +49,7 @@ export function AuthSplitLayout({
     const headerSlotProps: HeaderSectionProps['slotProps'] = {};
 
     const headerSlots: HeaderSectionProps['slots'] = {
-      topArea: <div className="hidden rounded-none">This is an info Alert.</div>,
+      topArea: <AuthSplitHeaderInfoSlot />,
       leftArea: (
         // <>
         //   {/** @slot Logo */}

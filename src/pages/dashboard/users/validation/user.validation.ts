@@ -7,7 +7,6 @@ const t = (key: string) => i18n.t(key, { ns: 'validation' });
 export const UserCreateSchema = z
   .object({
     name: z.string().min(1, t('user.nameRequired')),
-    last_name: z.string().optional().default(''),
     email: z.string().email(t('user.emailInvalid')),
     phone: z.string().optional().default(''),
     password: z.string().min(6, t('user.passwordMin')),
@@ -47,7 +46,6 @@ export const UserCreateSchema = z
 export const UserUpdateSchema = z
   .object({
     name: z.string().min(1, t('user.nameRequired')),
-    last_name: z.string().optional().default(''),
     email: z.string().email(t('user.emailInvalid')),
     phone: z.string().optional().default(''),
     password: z.string().optional(),

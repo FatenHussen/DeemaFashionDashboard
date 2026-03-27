@@ -3,9 +3,15 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { _CategoryApi, type CategoryCreateUpdatePayload } from '../api/category.services';
 
-export const useFetchCategories = (page: number = 1, limit: number = 25, parentId?: number) => useQuery({
+export const useFetchCategories = (page: number = 1, limit: number = 25, parentId?: number) =>
+  useQuery({
     queryKey: queryKeys.category.list({ page, limit, parent_id: parentId }),
-    queryFn: () => _CategoryApi.getListCategories(parentId),
+    queryFn: () =>
+      _CategoryApi.getListCategoriesPaginated({
+        page,
+        per_page: limit,
+        parent_id: parentId,
+      }),
   });
 
 export const useFetchCategoryById = (id: number | string) => useQuery({

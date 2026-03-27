@@ -15,14 +15,12 @@ import {
   useFetchBrandById,
 } from '@/pages/dashboard/products/hooks/brand';
 
+import { CONFIG } from 'src/global-config';
 import { Box, Input, Typography } from 'src/shared/ui';
-import { CONFIG, CONFIG as GLOBAL_CONFIG } from 'src/global-config';
 import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
 import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
 
 // ----------------------------------------------------------------------
-
-const metadata = { title: `Brand ${CONFIG.appName}` };
 
 export default function CreatePage() {
   const { t } = useTranslation('table');
@@ -56,9 +54,13 @@ export default function CreatePage() {
   useEffect(() => {
     if (isEditMode && brandResponse?.data && !isLoadingBrand) {
       const brand = brandResponse.data;
-      const imageUrl = brand.image ? `${GLOBAL_CONFIG.serverUrl}/${brand.image}` : null;
+      const img = brand.image;
+      const imageUrl = img
+        ? String(img).startsWith('http')
+          ? img
+          : `${CONFIG.serverUrl}/${String(img).replace(/^\//, '')}`
+        : null;
       setPreviewImage(imageUrl);
-      console.log(brand);
       const nameValue =
         typeof brand.name === 'object' && brand.name !== null && 'en' in brand.name
           ? { en: (brand.name as { en?: string }).en ?? '', ar: (brand.name as { ar?: string }).ar ?? '' }
@@ -99,11 +101,11 @@ export default function CreatePage() {
 
       if (isEditMode && id) {
         await updateBrandMutation.mutateAsync({ id, data: payload });
-        toast.success('Brand updated successfully');
+        toast.success(t('form.brandUpdatedSuccess'));
         navigate('/products/brands');
       } else {
         await createBrandMutation.mutateAsync(payload);
-        toast.success('Brand created successfully');
+        toast.success(t('form.brandCreatedSuccess'));
         navigate('/products/brands');
       }
     } catch (error: any) {
@@ -115,14 +117,12 @@ export default function CreatePage() {
     navigate('/products/brands');
   };
 
-  const infoText = isEditMode
-    ? 'You can update any field. Leave image unchanged or upload a new one.'
-    : 'Fill in the brand name in both English and Arabic, and upload a brand image.';
+  const infoText = isEditMode ? t('form.brandFormInfoEdit') : t('form.brandFormInfoCreate');
 
   return (
     <>
       <title>
-        {isEditMode ? `Edit Brand | ${metadata.title}` : `Create Brand | ${metadata.title}`}
+        {`${isEditMode ? t('form.editBrand') : t('form.createBrand')} | ${t('form.brandBrandedTitle', { app: CONFIG.appName })}`}
       </title>
 
       <CreateFormLayout
@@ -131,24 +131,22 @@ export default function CreatePage() {
         onCancel={handleCancel}
         isSubmitting={isSubmitting}
         errorMessage={errorMessage}
-        title={isEditMode ? 'Edit Brand' : 'Create New Brand'}
-        description={
-          isEditMode ? 'Update brand information and image' : 'Add a new brand to your system'
-        }
+        title={isEditMode ? t('form.editBrand') : t('form.createBrand')}
+        description={isEditMode ? t('form.editBrandDesc') : t('form.createBrandDesc')}
         isEditMode={isEditMode}
         isLoading={isLoadingBrand}
         loadingText={t('form.loadingBrand')}
         maxWidth="3xl"
         infoText={infoText}
-        submitLabel={isEditMode ? 'Update Brand' : 'Create Brand'}
-        submittingLabel={isEditMode ? 'Updating...' : 'Creating...'}
+        submitLabel={isEditMode ? t('form.updateBrandSubmit') : t('form.createBrandSubmit')}
+        submittingLabel={isEditMode ? t('form.updatingBrand') : t('form.creatingBrand')}
       >
         {/* English Name Field */}
         <Box className="group">
           <Box className="flex items-center gap-2 mb-2">
             <Iconify icon="solar:letter-bold" className="text-primary" width={24} height={24} />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              English Name
+              {t('form.nameEn')}
             </Typography>
           </Box>
           <RHFTextField
@@ -164,12 +162,12 @@ export default function CreatePage() {
           <Box className="flex items-center gap-2 mb-2">
             <Iconify icon="solar:letter-bold" className="text-primary" width={24} height={24} />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Arabic Name
+              {t('form.nameAr')}
             </Typography>
           </Box>
           <RHFTextField
             name="name.ar"
-            placeholder="e.g., شانيل"
+            placeholder={t('form.brandNameArExample')}
             helperText={t('form.brandNameArHelper')}
             className="transition-all duration-200"
             dir="rtl"
@@ -186,7 +184,7 @@ export default function CreatePage() {
               height={24}
             />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Brand Image
+              {t('form.brandImageSection')}
             </Typography>
           </Box>
           <Controller
@@ -203,7 +201,7 @@ export default function CreatePage() {
                     onChange(file || null);
                   }}
                   error={!!error}
-                  helperText={error?.message || 'Upload a brand logo or image'}
+                  helperText={error?.message || t('form.brandImageUploadHelper')}
                   fullWidth
                   className="transition-all duration-200"
                 />
@@ -211,7 +209,7 @@ export default function CreatePage() {
                   <Box className="mt-4">
                     <img
                       src={previewImage}
-                      alt="Brand preview"
+                      alt={t('form.brandImagePreviewAlt')}
                       className="w-32 h-32 object-cover rounded-lg border border-border/60"
                     />
                   </Box>

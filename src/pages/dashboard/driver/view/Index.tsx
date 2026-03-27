@@ -78,7 +78,7 @@ export default function Page() {
         password_confirmation: data.password_confirmation,
       } as any,
     });
-    toast.success('Password updated successfully');
+    toast.success(t('passwordUpdatedSuccess'));
     setPasswordDialogTargetId(null);
     setPasswordDialogOpen(false);
   };
@@ -117,7 +117,7 @@ export default function Page() {
         onOpenChange={setPasswordDialogOpen}
         onSubmit={handlePasswordSubmit}
         isSubmitting={updateDriverMutation.isPending}
-        entityName="Driver"
+        entityName={t('tableNames.driver')}
         minLength={8}
       />
 
@@ -147,19 +147,19 @@ export default function Page() {
         }}
         isLoading={isLoading}
         columnTranslations={{
-          id: 'ID',
-          name: 'Name',
-          phone: 'Phone',
-          address: 'Address',
-          status: 'Status',
-          is_active: 'Active',
-          rate_per_order: 'Rate per Order',
-          average_rating: 'Avg Rating',
-          total_orders: 'Total Orders',
-          completed_orders: 'Completed',
-          total_earnings: 'Total Earnings',
-          created_at: 'Created At',
-          actions: 'Actions',
+          id: t('columns.id'),
+          name: t('columns.name'),
+          phone: t('columns.phone'),
+          address: t('columns.address'),
+          status: t('columns.status'),
+          is_active: t('columns.active'),
+          rate_per_order: t('columns.ratePerOrder'),
+          average_rating: t('columns.avgRating'),
+          total_orders: t('columns.totalOrders'),
+          completed_orders: t('columns.completed'),
+          total_earnings: t('columns.totalEarnings'),
+          created_at: t('columns.createdAt'),
+          actions: t('columns.action'),
         }}
         pagination={pagination}
         currentPage={currentPage}

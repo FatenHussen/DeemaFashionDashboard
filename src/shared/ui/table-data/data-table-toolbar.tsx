@@ -1,33 +1,17 @@
 import type { Table } from '@tanstack/react-table';
 import type { RecycleBinType } from '@/types/recycleBin/recycleBin';
-import type { ExportType } from '@/types/ExportExcelPdf/exportExcelPdf';
 
-import { useState } from 'react';
 import { Input } from '@/shared/ui/input';
 import { useNavigate } from 'react-router';
 import { Button } from '@/shared/ui/button';
 import { useTranslation } from 'react-i18next';
+import { useState, type ReactNode } from 'react';
 import { X, Plus, Search, Download, Sparkles } from 'lucide-react';
 
 import { Import } from './import';
 import DataTableFilterButtons from './data-table-filter-buttons';
-import { DataTableViewOptions } from './data-table-view-options';
 import { CustomizeColumnsModal } from './customize-columns-modal';
-import { DataTableViewOptionsCustom } from './data-table-view-custom';
 import DataTableRecycleFilterButton from './data-Table-RecycleFilter-Button ';
-
-const VALID_EXPORT_TYPES: ExportType[] = [
-  'brands',
-  'categories',
-  'taxes',
-  'warranties',
-  'units',
-  'sales',
-  'purchases',
-  'jobcards',
-  'order-request',
-  'sales-order',
-];
 
 const VALID_IMPORT_TYPES = ['products'];
 
@@ -59,8 +43,8 @@ interface DataTableToolbarProps<TData> {
   onImportSuccess?: () => void;
   defaultColumns?: ColumnItem[];
   columnTranslations?: Record<string, string>;
-  /** Custom filter content rendered in the toolbar */
-  toolbarFilter?: React.ReactNode;
+  /** Custom filter content rendered in the toolbar (or a render function that receives the table instance) */
+  toolbarFilter?: ReactNode | ((ctx: { table: Table<TData> }) => ReactNode);
 }
 
 export function DataTableToolbar<TData>({
@@ -125,7 +109,7 @@ export function DataTableToolbar<TData>({
   return (
     <div className="flex items-center justify-between flex-wrap space-y-3 md:space-y-0 md:flex-nowrap gap-3 p-4 bg-linear-to-r from-muted/30 via-transparent to-muted/30 rounded-xl border border-border/30 backdrop-blur-sm animate-[tableRowSlideUp_0.4s_ease-out] rtl:flex-row-reverse">
       {/* Search Section */}
-      <div className="flex flex-1 items-center gap-3 text-foreground">
+      <div className="flex min-w-0 flex-1 flex-col gap-3 text-foreground md:flex-row md:items-center">
         {availableColumns.length > 0 && (
           <div
             className={`
@@ -177,8 +161,8 @@ export function DataTableToolbar<TData>({
 
         {/* Custom toolbar filters (e.g. status, search) */}
         {toolbarFilter && (
-          <div className="flex items-center gap-2">
-            {toolbarFilter}
+          <div className="flex min-w-0 w-full flex-1 items-stretch gap-2">
+            {typeof toolbarFilter === 'function' ? toolbarFilter({ table }) : toolbarFilter}
           </div>
         )}
 
@@ -230,17 +214,6 @@ export function DataTableToolbar<TData>({
             />
           </div>
         )}
-
-        {/* Export Options */}
-        {VALID_EXPORT_TYPES.includes(tableName as ExportType) && (
-          <div className="animate-[tableCellReveal_0.3s_ease-out_0.2s_both]">
-            <DataTableViewOptionsCustom table={table} tableName={tableName as ExportType} />
-          </div>
-        )}
-
-        <div className="animate-[tableCellReveal_0.3s_ease-out_0.25s_both]">
-          <DataTableViewOptions table={table} tableName={tableName} />
-        </div>
 
         {/* Import Section */}
         {canImport && (

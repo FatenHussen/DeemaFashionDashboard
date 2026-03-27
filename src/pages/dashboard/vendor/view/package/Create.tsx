@@ -84,8 +84,6 @@ function mapDetailsToForm(source: VendorPackageDetails): VendorPackageFormValues
   };
 }
 
-const metadata = { title: `Vendor Package | ${CONFIG.appName}` };
-
 export default function CreatePage() {
   const { t } = useTranslation('table');
   const { id } = useParams<{ id?: string }>();
@@ -123,10 +121,10 @@ export default function CreatePage() {
       const payload = { ...data };
       if (isEditMode && id) {
         await updateMutation.mutateAsync({ id, data: payload });
-        toast.success('Vendor package updated successfully');
+        toast.success(t('form.vendorPackageUpdatedSuccess'));
       } else {
         await createMutation.mutateAsync(payload);
-        toast.success('Vendor package created successfully');
+        toast.success(t('form.vendorPackageCreatedSuccess'));
       }
       navigate('/vendor-packages');
     } catch { return; }
@@ -158,7 +156,11 @@ export default function CreatePage() {
 
   return (
     <>
-      <title>{isEditMode ? `Edit Vendor Package | ${metadata.title}` : `Create Vendor Package | ${metadata.title}`}</title>
+      <title>
+        {isEditMode
+          ? t('form.vendorPackageEditDocumentTitle', { appName: CONFIG.appName })
+          : t('form.vendorPackageCreateDocumentTitle', { appName: CONFIG.appName })}
+      </title>
 
       <CreateFormLayout
         methods={methods as any}
@@ -166,38 +168,38 @@ export default function CreatePage() {
         onCancel={() => navigate('/vendor-packages')}
         isSubmitting={isSubmitting}
         errorMessage={errorMessage}
-        title={isEditMode ? 'Edit Vendor Package' : 'Create Vendor Package'}
-        description={isEditMode ? 'Update vendor package details' : 'Add a new vendor subscription package'}
+        title={isEditMode ? t('form.editVendorPackage') : t('form.createVendorPackage')}
+        description={isEditMode ? t('form.editVendorPackageDesc') : t('form.createVendorPackageDesc')}
         isEditMode={isEditMode}
         isLoading={isEditMode && isLoadingDetails}
         loadingText={t('form.loadingVendorPackage')}
         maxWidth="4xl"
-        submitLabel={isEditMode ? 'Update Package' : 'Create Package'}
-        submittingLabel={isEditMode ? 'Updating...' : 'Creating...'}
+        submitLabel={isEditMode ? t('form.updateVendorPackageSubmit') : t('form.createVendorPackageSubmit')}
+        submittingLabel={isEditMode ? t('form.updatingVendorPackage') : t('form.creatingVendorPackage')}
       >
         <Box className="col-span-2">
           <Typography variant="subtitle1" className="mb-3 font-semibold">
-            Name
+            {t('form.vendorPkgSectionName')}
           </Typography>
           <Box className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <Box>
-              <Typography variant="caption" className="text-muted-foreground">English *</Typography>
+              <Typography variant="caption" className="text-muted-foreground">{t('form.vendorPkgLabelEnglishRequired')}</Typography>
               <RHFTextField name="name.en" placeholder={t('form.packageNameEnPlaceholder')} fullWidth />
             </Box>
             <Box>
-              <Typography variant="caption" className="text-muted-foreground">Arabic *</Typography>
-              <RHFTextField name="name.ar" placeholder="اسم الباقة بالعربي" dir="rtl" fullWidth />
+              <Typography variant="caption" className="text-muted-foreground">{t('form.vendorPkgLabelArabicRequired')}</Typography>
+              <RHFTextField name="name.ar" placeholder={t('form.packageNameArShort')} dir="rtl" fullWidth />
             </Box>
           </Box>
         </Box>
 
         <Box className="col-span-2">
           <Typography variant="subtitle1" className="mb-3 font-semibold">
-            Description
+            {t('form.vendorPkgSectionDescription')}
           </Typography>
           <Box className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <Box>
-              <Typography variant="caption" className="text-muted-foreground">English</Typography>
+              <Typography variant="caption" className="text-muted-foreground">{t('form.descriptionEn')}</Typography>
               <Controller
                 name="description.en"
                 control={control}
@@ -212,7 +214,7 @@ export default function CreatePage() {
               />
             </Box>
             <Box>
-              <Typography variant="caption" className="text-muted-foreground">Arabic</Typography>
+              <Typography variant="caption" className="text-muted-foreground">{t('form.descriptionAr')}</Typography>
               <Controller
                 name="description.ar"
                 control={control}
@@ -221,7 +223,7 @@ export default function CreatePage() {
                     {...field}
                     rows={3}
                     dir="rtl"
-                    placeholder="الوصف بالعربي"
+                    placeholder={t('form.packageDescriptionAr')}
                     className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                   />
                 )}
@@ -231,44 +233,44 @@ export default function CreatePage() {
         </Box>
 
         <Box>
-          <Typography variant="subtitle2" className="mb-2 font-semibold">Price *</Typography>
-          <RHFTextField name="price" type="number" placeholder="99.99" fullWidth />
+          <Typography variant="subtitle2" className="mb-2 font-semibold">{t('form.vendorPkgFieldPrice')}</Typography>
+          <RHFTextField name="price" type="number" placeholder={t('form.placeholderPrice99')} fullWidth />
         </Box>
         <Box>
-          <Typography variant="subtitle2" className="mb-2 font-semibold">Duration (Days) *</Typography>
-          <RHFTextField name="duration_days" type="number" placeholder="30" fullWidth />
+          <Typography variant="subtitle2" className="mb-2 font-semibold">{t('form.vendorPkgFieldDurationDays')}</Typography>
+          <RHFTextField name="duration_days" type="number" placeholder={t('form.placeholderThirty')} fullWidth />
         </Box>
         <Box>
-          <Typography variant="subtitle2" className="mb-2 font-semibold">Max Products</Typography>
-          <RHFTextField name="max_products" type="number" placeholder="50" fullWidth />
+          <Typography variant="subtitle2" className="mb-2 font-semibold">{t('form.vendorPkgFieldMaxProducts')}</Typography>
+          <RHFTextField name="max_products" type="number" placeholder={t('form.placeholderFifty')} fullWidth />
         </Box>
         <Box>
-          <Typography variant="subtitle2" className="mb-2 font-semibold">Commission Rate (%)</Typography>
-          <RHFTextField name="commission_rate" type="number" placeholder="5" fullWidth />
+          <Typography variant="subtitle2" className="mb-2 font-semibold">{t('form.vendorPkgFieldCommissionRate')}</Typography>
+          <RHFTextField name="commission_rate" type="number" placeholder={t('form.placeholderFive')} fullWidth />
         </Box>
         <Box>
-          <Typography variant="subtitle2" className="mb-2 font-semibold">Commission Per Order</Typography>
-          <RHFTextField name="commission_per_order" type="number" placeholder="0" fullWidth />
+          <Typography variant="subtitle2" className="mb-2 font-semibold">{t('form.vendorPkgFieldCommissionPerOrder')}</Typography>
+          <RHFTextField name="commission_per_order" type="number" placeholder={t('form.placeholderZero')} fullWidth />
         </Box>
 
         <Box>
-          <Typography variant="subtitle2" className="mb-2 font-semibold">Sort Order</Typography>
-          <RHFTextField name="sort_order" type="number" placeholder="0" fullWidth />
+          <Typography variant="subtitle2" className="mb-2 font-semibold">{t('form.vendorPkgFieldSortOrder')}</Typography>
+          <RHFTextField name="sort_order" type="number" placeholder={t('form.placeholderZero')} fullWidth />
         </Box>
         <Box>
-          <Typography variant="subtitle2" className="mb-2 font-semibold">Search Priority</Typography>
-          <RHFTextField name="search_priority" type="number" placeholder="1" fullWidth />
+          <Typography variant="subtitle2" className="mb-2 font-semibold">{t('form.vendorPkgFieldSearchPriority')}</Typography>
+          <RHFTextField name="search_priority" type="number" placeholder={t('form.placeholderOne')} fullWidth />
         </Box>
         <Box>
-          <Typography variant="subtitle2" className="mb-2 font-semibold">Max Campaigns</Typography>
-          <RHFTextField name="max_campaigns" type="number" placeholder="0" fullWidth />
+          <Typography variant="subtitle2" className="mb-2 font-semibold">{t('form.vendorPkgFieldMaxCampaigns')}</Typography>
+          <RHFTextField name="max_campaigns" type="number" placeholder={t('form.placeholderZero')} fullWidth />
         </Box>
         <Box>
-          <Typography variant="subtitle2" className="mb-2 font-semibold">Order Priority</Typography>
-          <RHFTextField name="order_priority" type="number" placeholder="1" fullWidth />
+          <Typography variant="subtitle2" className="mb-2 font-semibold">{t('form.vendorPkgFieldOrderPriority')}</Typography>
+          <RHFTextField name="order_priority" type="number" placeholder={t('form.placeholderOne')} fullWidth />
         </Box>
         <Box>
-          <Typography variant="subtitle2" className="mb-2 font-semibold">Report Level</Typography>
+          <Typography variant="subtitle2" className="mb-2 font-semibold">{t('form.vendorPkgFieldReportLevel')}</Typography>
           <Controller
             name="report_level"
             control={control}
@@ -278,7 +280,9 @@ export default function CreatePage() {
                 className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
               >
                 {REPORT_LEVELS.map((l) => (
-                  <option key={l} value={l}>{l}</option>
+                  <option key={l} value={l}>
+                    {t(`form.reportLevelOption_${l}`)}
+                  </option>
                 ))}
               </select>
             )}
@@ -287,7 +291,7 @@ export default function CreatePage() {
 
         <Box className="col-span-2">
           <Typography variant="subtitle1" className="mb-3 font-semibold">
-            Features (Toggle)
+            {t('form.vendorPkgFeaturesSection')}
           </Typography>
           <Box className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             <SwitchField name="is_active" label={t('active')} />

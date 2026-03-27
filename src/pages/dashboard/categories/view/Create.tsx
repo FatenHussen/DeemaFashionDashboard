@@ -1,10 +1,10 @@
 import { toast } from 'react-toastify';
-import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
+import { useState, useEffect, useCallback } from 'react';
 import { formatTranslated } from '@/utils/format-translated';
 import { _CategoryApi } from '@/pages/dashboard/categories/api/category.services';
 import { RHFInfiniteSelect } from '@/shared/components/hook-form/rhf-infinite-select';
@@ -25,29 +25,30 @@ import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout
 
 // ----------------------------------------------------------------------
 
-const metadata = { title: `Category ${CONFIG.appName}` };
-
-const parentCategoryFetcher = (page: number, limit: number) =>
-  _CategoryApi.getListCategoriesPaginated({ page, per_page: limit }).then((r) => {
-    const items = (r.data?.items ?? []).map((cat) => ({
-      id: cat.id,
-      label: typeof cat.name === 'object' ? formatTranslated(cat.name) : String(cat.name ?? ''),
-    }));
-    return {
-      data: {
-        items: page === 1 ? [{ id: 0, label: 'No parent' }, ...items] : items,
-        pagination:
-          r.data?.pagination ?? { current_page: 1, last_page: 1, per_page: limit, total: 0 },
-      },
-    };
-  });
-
 export default function CreatePage() {
   const { t } = useTranslation('table');
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
   const isEditMode = !!id;
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+
+  const parentCategoryFetcher = useCallback(
+    (page: number, limit: number) =>
+      _CategoryApi.getListCategoriesPaginated({ page, per_page: limit }).then((r) => {
+        const items = (r.data?.items ?? []).map((cat) => ({
+          id: cat.id,
+          label: typeof cat.name === 'object' ? formatTranslated(cat.name) : String(cat.name ?? ''),
+        }));
+        return {
+          data: {
+            items: page === 1 ? [{ id: 0, label: t('form.noParent') }, ...items] : items,
+            pagination:
+              r.data?.pagination ?? { current_page: 1, last_page: 1, per_page: limit, total: 0 },
+          },
+        };
+      }),
+    [t]
+  );
 
   // Hooks for fetching and mutations
   const { data: categoryData, isLoading: isLoadingCategory } = useFetchCategoryById(id || '');
@@ -140,9 +141,7 @@ export default function CreatePage() {
     navigate('/categories');
   };
 
-  const infoText = isEditMode
-    ? 'You can update any field. Make sure both Arabic and English names are provided.'
-    : 'Fill in both Arabic and English names to create a new category. You can optionally select a parent category and upload an icon.';
+  const infoText = isEditMode ? t('form.categoryFormInfoEdit') : t('form.categoryFormInfoCreate');
 
   const parentCategoryLabel =
     categoryData?.data?.parent &&
@@ -153,7 +152,7 @@ export default function CreatePage() {
   return (
     <>
       <title>
-        {isEditMode ? `Edit Category | ${metadata.title}` : `Create Category | ${metadata.title}`}
+        {`${isEditMode ? t('form.editCategory') : t('form.createCategory')} | ${t('form.categoryBrandedTitle', { app: CONFIG.appName })}`}
       </title>
 
       <CreateFormLayout
@@ -162,17 +161,15 @@ export default function CreatePage() {
         onCancel={handleCancel}
         isSubmitting={isSubmitting}
         errorMessage={errorMessage}
-        title={isEditMode ? 'Edit Category' : 'Create New Category'}
-        description={
-          isEditMode ? 'Update category information' : 'Add a new category to your system'
-        }
+        title={isEditMode ? t('form.editCategory') : t('form.createCategory')}
+        description={isEditMode ? t('form.editCategoryDesc') : t('form.createCategoryDesc')}
         isEditMode={isEditMode}
         isLoading={isLoadingCategory}
         loadingText={t('form.loadingCategory')}
         maxWidth="4xl"
         infoText={infoText}
-        submitLabel={isEditMode ? 'Update Category' : 'Create Category'}
-        submittingLabel={isEditMode ? 'Updating...' : 'Creating...'}
+        submitLabel={isEditMode ? t('form.updateCategorySubmit') : t('form.createCategorySubmit')}
+        submittingLabel={isEditMode ? t('form.updatingCategory') : t('form.creatingCategory')}
       >
         {/* Name Field - Arabic */}
         <Box className="group">
@@ -212,7 +209,7 @@ export default function CreatePage() {
           <Box className="flex items-center gap-2 mb-2">
             <Iconify icon="solar:diagram-bold" className="text-primary" width={24} height={24} />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Parent Category (Optional)
+              {t('form.parentCategorySection')}
             </Typography>
           </Box>
           <RHFInfiniteSelect
@@ -236,7 +233,7 @@ export default function CreatePage() {
           <RHFTextField
             name="order"
             type="number"
-            placeholder="0"
+            placeholder={t('form.placeholderZero')}
             helperText={t('form.orderHelper')}
           />
         </Box>
@@ -275,7 +272,7 @@ export default function CreatePage() {
               height={24}
             />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Category Icon (Optional)
+              {t('form.categoryIconSection')}
             </Typography>
           </Box>
           <Controller
@@ -292,7 +289,7 @@ export default function CreatePage() {
                     onChange(file || null);
                   }}
                   error={!!error}
-                  helperText={error?.message || 'Upload a category icon image'}
+                  helperText={error?.message || t('form.categoryIconUploadHelper')}
                   fullWidth
                   className="transition-all duration-200"
                 />
@@ -300,7 +297,7 @@ export default function CreatePage() {
                   <Box className="mt-4">
                     <img
                       src={previewImage}
-                      alt="Category icon preview"
+                      alt={t('form.categoryIconPreviewAlt')}
                       className="w-32 h-32 object-cover rounded-lg border border-border/60"
                     />
                   </Box>

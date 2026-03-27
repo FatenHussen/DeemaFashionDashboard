@@ -12,8 +12,6 @@ import { CONFIG } from 'src/global-config';
 import { Box, Button, Typography } from 'src/shared/ui';
 import { LoadingScreen } from 'src/shared/components/loading-screen';
 
-const metadata = { title: `Affiliate Withdraw Request | ${CONFIG.appName}` };
-
 const statusColors: Record<string, string> = {
   pending: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
   approved: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
@@ -57,11 +55,11 @@ export default function DetailsPage() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.affiliateWithdrawDetailsDocumentTitle', { appName: CONFIG.appName })}</title>
       <Box className="max-w-2xl mx-auto p-6">
         <Button variant="text" onClick={() => navigate('/affiliate-withdraw-requests')} className="mb-4">
           <Iconify icon="solar:arrow-left-bold" width={20} className="mr-2" />
-          {t('form.backLabel')}
+          {t('form.backToAffiliateWithdrawRequests')}
         </Button>
 
         <Typography variant="h5" className="font-bold mb-6">
@@ -88,8 +86,8 @@ export default function DetailsPage() {
               <Typography variant="body2" className="text-muted-foreground text-xs uppercase mb-1">
                 {t('columns.status')}
               </Typography>
-              <span className={`text-xs px-2 py-1 rounded-full font-medium capitalize ${statusColors[item.status] ?? 'bg-muted text-muted-foreground'}`}>
-                {item.status}
+              <span className={`text-xs px-2 py-1 rounded-full font-medium ${statusColors[item.status] ?? 'bg-muted text-muted-foreground'}`}>
+                {t(`form.affiliateWithdrawStatus_${item.status}`, { defaultValue: item.status })}
               </span>
             </Box>
             <Box>

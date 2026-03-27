@@ -1,4 +1,5 @@
 import { Button } from '@/shared/ui/button';
+import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
 import { useFetchDriverById } from '@/pages/dashboard/driver/hooks/driver';
@@ -10,9 +11,8 @@ import { LoadingScreen } from 'src/shared/components/loading-screen';
 
 // ----------------------------------------------------------------------
 
-const metadata = { title: `Driver Details | Dashboard - ${CONFIG.appName}` };
-
 export default function DetailsPage() {
+  const { t } = useTranslation('table');
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: driverResponse, isLoading, error } = useFetchDriverById(id || '');
@@ -28,14 +28,14 @@ export default function DetailsPage() {
           <Box className="flex items-center gap-2 mb-2">
             <Iconify icon="solar:danger-bold" className="w-5 h-5 text-destructive" />
             <Typography variant="h6" className="text-destructive">
-              Error Loading Driver
+              {t('form.driverLoadErrorTitle')}
             </Typography>
           </Box>
           <Typography variant="body2" className="text-muted-foreground mb-4">
-            {error instanceof Error ? error.message : 'Failed to load driver information'}
+            {error instanceof Error ? error.message : t('form.driverLoadErrorFallback')}
           </Typography>
           <Button variant="outlined" onClick={() => navigate('/driver')}>
-            Back to Drivers
+            {t('form.backToDrivers')}
           </Button>
         </Box>
       </Box>
@@ -63,9 +63,16 @@ export default function DetailsPage() {
   };
   const statusColor = statusColors[driver.status] || statusColors.offline;
 
+  const driverStatusLabelKey: Record<string, 'form.driverStatusAvailable' | 'form.driverStatusBusy' | 'form.driverStatusOffline'> = {
+    available: 'form.driverStatusAvailable',
+    busy: 'form.driverStatusBusy',
+    offline: 'form.driverStatusOffline',
+  };
+  const statusLabelKey = driverStatusLabelKey[driver.status];
+
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.driverDetailsDocumentTitle', { appName: CONFIG.appName })}</title>
       <Box className="relative min-h-screen overflow-hidden bg-background p-6">
         {/* Subtle background gradient */}
         <Box className="pointer-events-none fixed inset-0 bg-gradient-to-br from-background via-background to-muted/30" />
@@ -84,14 +91,14 @@ export default function DetailsPage() {
               className="mb-4 -ml-2 text-muted-foreground hover:text-foreground"
             >
               <Iconify icon="solar:arrow-left-bold" width={20} className="mr-2" />
-              Back to Drivers
+              {t('form.backToDrivers')}
             </Button>
 
             <Box className="flex items-center gap-4 mb-2">
               {driver.image ? (
                 <img
                   src={driver.image}
-                  alt={driver.name || 'Driver'}
+                  alt={driver.name || t('form.driverAltFallback')}
                   className="w-16 h-16 rounded-xl object-cover border border-primary/20"
                 />
               ) : (
@@ -101,10 +108,11 @@ export default function DetailsPage() {
               )}
               <Box className="flex-1">
                 <Typography variant="h4" className="font-bold text-foreground mb-1">
-                  {driver.name || `Driver #${driver.id}`}
+                  {driver.name || t('driverFallback', { id: driver.id })}
                 </Typography>
                 <Typography variant="body2" className="text-muted-foreground">
-                  Driver #{driver.id} {driver.name && '· Driver Details'}
+                  {t('form.driverIdChip', { id: driver.id })}
+                  {driver.name ? ` · ${t('form.driverDetailsSubtitle')}` : ''}
                 </Typography>
               </Box>
               <Button
@@ -113,7 +121,7 @@ export default function DetailsPage() {
                 className="gap-2"
               >
                 <Iconify icon="solar:pen-bold" width={18} />
-                Edit Driver
+                {t('form.editDriverButton')}
               </Button>
             </Box>
           </Box>
@@ -125,12 +133,12 @@ export default function DetailsPage() {
               <Box>
                 <Typography variant="h6" className="font-semibold text-foreground mb-4 flex items-center gap-2">
                   <Iconify icon="solar:info-circle-bold" width={20} />
-                  Basic Information
+                  {t('form.userDetailsBasicInfo')}
                 </Typography>
                 <Box className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Box className="space-y-2">
                     <Typography variant="body2" className="text-muted-foreground font-medium">
-                      Driver ID
+                      {t('form.driverIdLabel')}
                     </Typography>
                     <Box className="flex items-center gap-2">
                       <Box className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
@@ -141,7 +149,7 @@ export default function DetailsPage() {
 
                   <Box className="space-y-2">
                     <Typography variant="body2" className="text-muted-foreground font-medium">
-                      Phone
+                      {t('columns.phone')}
                     </Typography>
                     <Box className="flex items-center gap-2">
                       <Iconify icon="solar:phone-bold" className="text-primary" width={18} />
@@ -153,7 +161,7 @@ export default function DetailsPage() {
 
                   <Box className="space-y-2">
                     <Typography variant="body2" className="text-muted-foreground font-medium">
-                      Address
+                      {t('columns.address')}
                     </Typography>
                     <Box className="flex items-center gap-2">
                       <Iconify icon="solar:map-point-bold" className="text-primary" width={18} />
@@ -165,7 +173,7 @@ export default function DetailsPage() {
 
                   <Box className="space-y-2">
                     <Typography variant="body2" className="text-muted-foreground font-medium">
-                      Status
+                      {t('columns.status')}
                     </Typography>
                     <Box className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border w-fit ${statusColor.bg} ${statusColor.border} ${statusColor.text}`}>
                       <Iconify
@@ -173,13 +181,15 @@ export default function DetailsPage() {
                         width={14}
                         height={14}
                       />
-                      <span className="text-xs font-medium capitalize">{driver.status}</span>
+                      <span className="text-xs font-medium capitalize">
+                        {statusLabelKey ? t(statusLabelKey) : driver.status}
+                      </span>
                     </Box>
                   </Box>
 
                   <Box className="space-y-2">
                     <Typography variant="body2" className="text-muted-foreground font-medium">
-                      Active Status
+                      {t('form.driverActiveStatusLabel')}
                     </Typography>
                     <Box
                       className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border w-fit ${
@@ -193,13 +203,15 @@ export default function DetailsPage() {
                         width={14}
                         height={14}
                       />
-                      <span className="text-xs font-medium">{driver.is_active === 1 || driver.is_active === true ? 'Active' : 'Inactive'}</span>
+                      <span className="text-xs font-medium">
+                        {driver.is_active === 1 || driver.is_active === true ? t('active') : t('inactive')}
+                      </span>
                     </Box>
                   </Box>
 
                   <Box className="space-y-2">
                     <Typography variant="body2" className="text-muted-foreground font-medium">
-                      Name
+                      {t('columns.name')}
                     </Typography>
                     <Box className="flex items-center gap-2">
                       <Iconify icon="solar:user-rounded-bold" className="text-primary" width={18} />
@@ -211,7 +223,7 @@ export default function DetailsPage() {
 
                   <Box className="space-y-2">
                     <Typography variant="body2" className="text-muted-foreground font-medium">
-                      Rate per Order
+                      {t('form.driverRatePerOrderField')}
                     </Typography>
                     <Box className="flex items-center gap-2">
                       <Iconify icon="solar:dollar-bold" className="text-primary" width={18} />
@@ -226,7 +238,7 @@ export default function DetailsPage() {
                       {driver.vehicle_type && (
                         <Box className="space-y-2">
                           <Typography variant="body2" className="text-muted-foreground font-medium">
-                            Vehicle Type
+                            {t('form.driverVehicleTypeField')}
                           </Typography>
                           <Box className="flex items-center gap-2">
                             <Iconify icon="solar:delivery-bold" className="text-primary" width={18} />
@@ -239,7 +251,7 @@ export default function DetailsPage() {
                       {driver.vehicle_number && (
                         <Box className="space-y-2">
                           <Typography variant="body2" className="text-muted-foreground font-medium">
-                            Vehicle Number
+                            {t('form.driverVehicleNumberField')}
                           </Typography>
                           <Box className="flex items-center gap-2">
                             <Iconify icon="solar:card-recive-bold" className="text-primary" width={18} />
@@ -254,7 +266,7 @@ export default function DetailsPage() {
 
                   <Box className="space-y-2">
                     <Typography variant="body2" className="text-muted-foreground font-medium">
-                      Created At
+                      {t('columns.createdAt')}
                     </Typography>
                     <Box className="flex items-center gap-2">
                       <Iconify icon="solar:calendar-date-bold" className="text-primary" width={18} />
@@ -273,12 +285,12 @@ export default function DetailsPage() {
                   <Box>
                     <Typography variant="h6" className="font-semibold text-foreground mb-4 flex items-center gap-2">
                       <Iconify icon="solar:chart-2-bold" width={20} />
-                      Statistics
+                      {t('form.driverStatisticsSection')}
                     </Typography>
                     <Box className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       {driver.average_rating != null && (
                         <Box className="p-4 rounded-lg bg-muted/50 border border-border/50">
-                          <Typography variant="caption" className="text-muted-foreground">Average Rating</Typography>
+                          <Typography variant="caption" className="text-muted-foreground">{t('form.driverAvgRatingLabel')}</Typography>
                           <Typography variant="h6" className="font-semibold mt-1 flex items-center gap-1">
                             <Iconify icon="solar:star-bold" className="text-amber-500" width={18} />
                             {driver.average_rating}
@@ -287,19 +299,19 @@ export default function DetailsPage() {
                       )}
                       {driver.total_orders != null && (
                         <Box className="p-4 rounded-lg bg-muted/50 border border-border/50">
-                          <Typography variant="caption" className="text-muted-foreground">Total Orders</Typography>
+                          <Typography variant="caption" className="text-muted-foreground">{t('form.driverTotalOrdersLabel')}</Typography>
                           <Typography variant="h6" className="font-semibold mt-1">{driver.total_orders}</Typography>
                         </Box>
                       )}
                       {driver.completed_orders != null && (
                         <Box className="p-4 rounded-lg bg-muted/50 border border-border/50">
-                          <Typography variant="caption" className="text-muted-foreground">Completed Orders</Typography>
+                          <Typography variant="caption" className="text-muted-foreground">{t('form.driverCompletedOrdersLabel')}</Typography>
                           <Typography variant="h6" className="font-semibold mt-1">{driver.completed_orders}</Typography>
                         </Box>
                       )}
                       {driver.total_earnings != null && (
                         <Box className="p-4 rounded-lg bg-muted/50 border border-border/50">
-                          <Typography variant="caption" className="text-muted-foreground">Total Earnings</Typography>
+                          <Typography variant="caption" className="text-muted-foreground">{t('form.driverTotalEarningsLabel')}</Typography>
                           <Typography variant="h6" className="font-semibold mt-1 flex items-center gap-1">
                             <Iconify icon="solar:wallet-money-bold" className="text-primary" width={18} />
                             {driver.total_earnings}
@@ -318,9 +330,11 @@ export default function DetailsPage() {
                   <Box>
                     <Typography variant="h6" className="font-semibold text-foreground mb-4 flex items-center gap-2">
                       <Iconify icon="solar:map-point-bold" width={20} />
-                      Areas
+                      {t('form.driverAreasSection')}
                       <Typography variant="body2" className="text-muted-foreground font-normal ml-2">
-                        ({driver.areas.length} area{driver.areas.length !== 1 ? 's' : ''})
+                        {driver.areas.length === 1
+                          ? t('form.driverAreasCountOne', { count: driver.areas.length })
+                          : t('form.driverAreasCount', { count: driver.areas.length })}
                       </Typography>
                     </Typography>
 
@@ -339,18 +353,18 @@ export default function DetailsPage() {
                             <Box className="space-y-1 text-sm text-muted-foreground">
                               <Box className="flex items-center gap-2">
                                 <Iconify icon="solar:city-bold" className="text-primary" width={16} />
-                                <span>City: {area.city.name}</span>
+                                <span>{t('form.driverAreaCityLine', { name: area.city.name })}</span>
                               </Box>
                               {area.city.governorate && (
                                 <Box className="flex items-center gap-2">
                                   <Iconify icon="solar:global-bold" className="text-primary" width={16} />
-                                  <span>Governorate: {area.city.governorate.name}</span>
+                                  <span>{t('form.driverAreaGovernorateLine', { name: area.city.governorate.name })}</span>
                                 </Box>
                               )}
                               {area.created_at && (
                                 <Box className="flex items-center gap-2">
                                   <Iconify icon="solar:calendar-date-bold" className="text-primary" width={16} />
-                                  <span>Created: {area.created_at}</span>
+                                  <span>{t('form.driverAreaCreatedLine', { date: area.created_at })}</span>
                                 </Box>
                               )}
                             </Box>

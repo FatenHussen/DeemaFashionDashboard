@@ -1,11 +1,11 @@
-import { useEffect } from 'react';
 import { toast } from 'react-toastify';
+import { useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
 import { formatTranslated } from '@/utils/format-translated';
-import { useForm, Controller, useFieldArray } from 'react-hook-form';
+import { useForm, useWatch, Controller, useFieldArray } from 'react-hook-form';
 import { useFetchCategories } from '@/pages/dashboard/categories/hooks/category';
 import { _CategoryApi } from '@/pages/dashboard/categories/api/category.services';
 import { RHFInfiniteSelect } from '@/shared/components/hook-form/rhf-infinite-select';
@@ -22,11 +22,10 @@ import {
 import { CONFIG } from 'src/global-config';
 import { Box, Button, Typography, SimpleSelect } from 'src/shared/ui';
 import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
+import { RHFColorPicker } from 'src/shared/components/hook-form/rhf-color-picker';
 import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
 
 // ----------------------------------------------------------------------
-
-const metadata = { title: `Category Attribute ${CONFIG.appName}` };
 
 const categoryFetcher = (page: number, limit: number) =>
   _CategoryApi.getListCategoriesPaginated({ page, per_page: limit }).then((r) => ({
@@ -39,17 +38,20 @@ const categoryFetcher = (page: number, limit: number) =>
     },
   }));
 
-const TYPE_OPTIONS = [
-  { value: 'color', label: 'Color' },
-  { value: 'square', label: 'Square' },
-  { value: 'circle', label: 'Circle' },
-];
-
 export default function CreatePage() {
   const { t } = useTranslation('table');
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
   const isEditMode = !!id;
+
+  const typeOptions = useMemo(
+    () => [
+      { value: 'color', label: t('form.attributeTypeColor') },
+      { value: 'square', label: t('form.attributeTypeSquare') },
+      { value: 'circle', label: t('form.attributeTypeCircle') },
+    ],
+    [t]
+  );
 
   // Hooks for fetching and mutations
   const { data: categoryAttributeData, isLoading: isLoadingAttribute } =
@@ -73,7 +75,9 @@ export default function CreatePage() {
     defaultValues,
   });
 
-  const { handleSubmit, reset, control } = methods;
+  const { handleSubmit, reset, control, setValue } = methods;
+  const attributeType = useWatch({ control, name: 'type' });
+  const watchedValues = useWatch({ control, name: 'values' });
   const { fields, append, remove } = useFieldArray({
     control,
     name: 'values',
@@ -111,6 +115,18 @@ export default function CreatePage() {
     categoriesResponse?.data?.items,
   ]);
 
+  // When type is color, keep AR value in sync with EN (hex from picker) for API / both locales
+  useEffect(() => {
+    if (attributeType !== 'color' || !watchedValues?.length) return;
+    watchedValues.forEach((row, i) => {
+      const en = row?.name?.en?.trim();
+      if (!en) return;
+      if (row?.name?.ar !== en) {
+        setValue(`values.${i}.name.ar`, en, { shouldValidate: true, shouldDirty: true });
+      }
+    });
+  }, [attributeType, watchedValues, setValue]);
+
   const isSubmitting =
     createCategoryAttributeMutation.isPending || updateCategoryAttributeMutation.isPending;
   const errorMessage =
@@ -137,11 +153,11 @@ export default function CreatePage() {
 
       if (isEditMode && id) {
         await updateCategoryAttributeMutation.mutateAsync({ id, data: payload });
-        toast.success('Category attribute updated successfully');
+        toast.success(t('form.categoryAttributeUpdatedSuccess'));
         navigate('/categories/attributes');
       } else {
         await createCategoryAttributeMutation.mutateAsync(payload);
-        toast.success('Category attribute created successfully');
+        toast.success(t('form.categoryAttributeCreatedSuccess'));
         navigate('/categories/attributes');
       }
     } catch (error: any) {
@@ -154,15 +170,13 @@ export default function CreatePage() {
   };
 
   const infoText = isEditMode
-    ? 'You can update any field. Make sure both Arabic and English names are provided for the attribute and all values.'
-    : 'Fill in the category, attribute name, type, and values. Make sure both Arabic and English names are provided.';
+    ? t('form.categoryAttributeFormInfoEdit')
+    : t('form.categoryAttributeFormInfoCreate');
 
   return (
     <>
       <title>
-        {isEditMode
-          ? `Edit Category Attribute | ${metadata.title}`
-          : `Create Category Attribute | ${metadata.title}`}
+        {`${isEditMode ? t('form.editCategoryAttribute') : t('form.createCategoryAttribute')} | ${t('form.categoryAttributeBrandedTitle', { app: CONFIG.appName })}`}
       </title>
 
       <CreateFormLayout
@@ -171,19 +185,21 @@ export default function CreatePage() {
         onCancel={handleCancel}
         isSubmitting={isSubmitting}
         errorMessage={errorMessage}
-        title={isEditMode ? 'Edit Category Attribute' : 'Create New Category Attribute'}
+        title={isEditMode ? t('form.editCategoryAttribute') : t('form.createCategoryAttribute')}
         description={
-          isEditMode
-            ? 'Update category attribute information'
-            : 'Add a new category attribute to your system'
+          isEditMode ? t('form.editCategoryAttributeDesc') : t('form.createCategoryAttributeDesc')
         }
         isEditMode={isEditMode}
         isLoading={isLoadingAttribute}
         loadingText={t('form.loadingCategoryAttribute')}
         maxWidth="4xl"
         infoText={infoText}
-        submitLabel={isEditMode ? 'Update Attribute' : 'Create Attribute'}
-        submittingLabel={isEditMode ? 'Updating...' : 'Creating...'}
+        submitLabel={
+          isEditMode ? t('form.updateCategoryAttributeSubmit') : t('form.createCategoryAttributeSubmit')
+        }
+        submittingLabel={
+          isEditMode ? t('form.updatingCategoryAttribute') : t('form.creatingCategoryAttribute')
+        }
       >
         {/* Category Selection */}
         <Box className="group">
@@ -241,7 +257,7 @@ export default function CreatePage() {
           <Box className="flex items-center gap-2 mb-2">
             <Iconify icon="solar:settings-bold" className="text-primary" width={24} height={24} />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Type
+              {t('form.attributeTypeLabel')}
             </Typography>
           </Box>
           <Controller
@@ -251,12 +267,10 @@ export default function CreatePage() {
               <SimpleSelect
                 value={value || ''}
                 onChange={onChange}
-                options={TYPE_OPTIONS}
+                options={typeOptions}
                 placeholder={t('form.selectAttributeType')}
                 error={!!error}
-                helperText={
-                  error?.message || 'Select the type of attribute (color, square, circle)'
-                }
+                helperText={error?.message || t('form.attributeTypeHelperText')}
                 fullWidth
                 className="transition-all duration-200"
               />
@@ -270,7 +284,7 @@ export default function CreatePage() {
             <Box className="flex items-center gap-2">
               <Iconify icon="solar:list-bold" className="text-primary" width={24} height={24} />
               <Typography variant="subtitle2" className="font-semibold text-foreground">
-                Attribute Values
+                {t('form.attributeValuesSection')}
               </Typography>
             </Box>
             <Button
@@ -281,7 +295,7 @@ export default function CreatePage() {
               className="flex items-center gap-2"
             >
               <Iconify icon="solar:add-circle-bold" width={20} height={20} />
-              Add Value
+              {t('form.addAttributeValue')}
             </Button>
           </Box>
 
@@ -289,7 +303,7 @@ export default function CreatePage() {
             <Box key={field.id} className="mb-4 p-4 border border-border/60 rounded-lg">
               <Box className="flex items-center justify-between mb-3">
                 <Typography variant="body2" className="font-medium text-foreground">
-                  Value {index + 1}
+                  {t('form.attributeValueIndex', { n: index + 1 })}
                 </Typography>
                 {fields.length > 1 && (
                   <Button
@@ -301,26 +315,41 @@ export default function CreatePage() {
                     className="flex items-center gap-2"
                   >
                     <Iconify icon="solar:trash-bin-trash-bold" width={16} height={16} />
-                    Remove
+                    {t('form.removeAttributeValue')}
                   </Button>
                 )}
               </Box>
 
-              <Box className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <RHFTextField
-                  name={`values.${index}.name.en`}
-                  placeholder={t('form.valueEn')}
-                  label={t('form.nameEn')}
-                  className="transition-all duration-200"
-                />
-                <RHFTextField
-                  name={`values.${index}.name.ar`}
-                  placeholder={t('form.valueAr')}
-                  label={t('form.nameAr')}
-                  className="transition-all duration-200"
-                  dir="rtl"
-                />
-              </Box>
+              {attributeType === 'color' ? (
+                <Box className="space-y-2 md:col-span-2">
+                  <Typography variant="body2" className="font-medium text-foreground">
+                    {t('form.attributeValueColor')}
+                  </Typography>
+                  <RHFColorPicker
+                    name={`values.${index}.name.en`}
+                    helperText={t('form.colorHelper')}
+                  />
+                  <Typography variant="caption" className="text-muted-foreground block">
+                    {t('form.attributeColorSyncedToAr')}
+                  </Typography>
+                </Box>
+              ) : (
+                <Box className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <RHFTextField
+                    name={`values.${index}.name.en`}
+                    placeholder={t('form.valueEn')}
+                    label={t('form.nameEn')}
+                    className="transition-all duration-200"
+                  />
+                  <RHFTextField
+                    name={`values.${index}.name.ar`}
+                    placeholder={t('form.valueAr')}
+                    label={t('form.nameAr')}
+                    className="transition-all duration-200"
+                    dir="rtl"
+                  />
+                </Box>
+              )}
             </Box>
           ))}
         </Box>

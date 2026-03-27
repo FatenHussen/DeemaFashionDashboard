@@ -41,7 +41,13 @@ export const ProductSchema = zod.object({
   barcode: zod.string().optional(),
   time_prepare: zod.string().optional(),
   is_instant_delivery: zod.coerce.number().min(0).max(1),
-  images: zod.array(zod.instanceof(File)).optional(),
+  images: zod
+    .preprocess(
+      (val) =>
+        Array.isArray(val) ? val.filter((x): x is File => x instanceof File) : undefined,
+      zod.array(zod.instanceof(File)).optional()
+    ),
+  existing_media_ids: zod.array(zod.coerce.number()).optional(),
 
   // Variants - id optional (for update), images optional per variant
   variants: zod
@@ -49,7 +55,13 @@ export const ProductSchema = zod.object({
       zod.object({
         id: zod.coerce.number().optional(),
         attributes_values_ids: zod.array(zod.coerce.number()),
-        images: zod.array(zod.instanceof(File)).optional(),
+        images: zod
+          .preprocess(
+            (val) =>
+              Array.isArray(val) ? val.filter((x): x is File => x instanceof File) : undefined,
+            zod.array(zod.instanceof(File)).optional()
+          ),
+        existing_images_ids: zod.array(zod.coerce.number()).optional(),
       })
     )
     .optional(),

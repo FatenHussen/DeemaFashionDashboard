@@ -31,14 +31,18 @@ export interface ShopService {
 }
 
 export interface ShopBadge {
-  name: string;
-  color: string;
+  id?: number;
+  name?: string;
+  color?: string;
+  position?: string;
+  postion?: string;
 }
 
 export interface ShopData {
   id: number;
   name: string | { ar: string; en: string };
-  description?: string | { ar: string; en: string };
+  /** API may return `[]` when empty */
+  description?: string | { ar: string; en: string } | unknown[];
   address?: string | { ar: string; en: string };
   logo_url?: string | null;
   is_active: boolean;
@@ -50,10 +54,11 @@ export interface ShopData {
   vendor_id?: number;
   lat?: number | null;
   lng?: number | null;
-  phone?: string;
-  mobile?: string;
-  email?: string;
-  working_hours?: WorkingHours;
+  phone?: string | null;
+  mobile?: string | null;
+  email?: string | null;
+  /** Per-day schedule and/or compact keys e.g. `{ "sat-sun": "08:00-20:00" }` */
+  working_hours?: WorkingHours | Record<string, string>;
   area_id?: number;
   area?: ShopArea;
   services?: ShopService[];
@@ -89,13 +94,14 @@ export interface WorkingHours {
 export interface DaySchedule {
   open?: string;
   close?: string;
-  closed?: boolean;
+  /** API may send boolean, 0/1, or string flags. */
+  closed?: boolean | number | string;
 }
 
 export interface ShopCreateUpdatePayload {
   vendor_id: number;
-  /** File for new upload, or string URL when keeping existing logo on update */
-  logo?: File | string | null;
+  /** New image file only. Omit (undefined) on update to keep the current logo — do not send the old URL as text. */
+  logo?: File | null;
   name: {
     ar: string;
     en: string;
@@ -117,4 +123,5 @@ export interface ShopCreateUpdatePayload {
   is_active: boolean;
   area_id: number;
   service_ids: Array<{ id: number }>;
+  badges?: Array<{ id: number; position: 'top' | 'bottom' }>;
 }

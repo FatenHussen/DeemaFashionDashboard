@@ -1,5 +1,6 @@
 import type { NavSectionProps } from 'src/shared/components/nav-section';
 
+import { useTranslation } from 'react-i18next';
 import parse from 'autosuggest-highlight/parse';
 import match from 'autosuggest-highlight/match';
 import { useBoolean } from 'minimal-shared/hooks';
@@ -24,6 +25,8 @@ export type SearchbarProps = React.HTMLAttributes<HTMLDivElement> & {
 const breakpoint = 'sm';
 
 export function Searchbar({ data: navItems = [], className, ...other }: SearchbarProps) {
+  const { t: tTable } = useTranslation('table');
+  const { t: tCommon } = useTranslation('common');
   const [isSmUp, setIsSmUp] = useState(false);
 
   useEffect(() => {
@@ -84,7 +87,7 @@ export function Searchbar({ data: navItems = [], className, ...other }: Searchba
       onClick={onOpen}
       className={`flex items-center ${
         isSmUp
-          ? 'pr-1 rounded-xl cursor-pointer bg-muted hover:bg-muted/80 transition-colors'
+          ? 'pe-1 rounded-xl cursor-pointer bg-muted hover:bg-muted/80 transition-colors'
           : ''
       } ${className || ''}`}
       {...other}
@@ -143,13 +146,15 @@ export function Searchbar({ data: navItems = [], className, ...other }: Searchba
             <Input
               fullWidth
               autoFocus={open}
-              placeholder="Search..."
+              placeholder={tTable('searchPlaceholder')}
               value={searchQuery}
               onChange={handleSearch}
               startAdornment={
                 <Iconify icon="eva:search-fill" width={24} className="text-muted-foreground" />
               }
-              endAdornment={<Label className="tracking-wider text-muted-foreground">esc</Label>}
+              endAdornment={
+                <Label className="tracking-wider text-muted-foreground">{tCommon('searchEsc')}</Label>
+              }
               id="search-input"
               className="text-lg"
             />

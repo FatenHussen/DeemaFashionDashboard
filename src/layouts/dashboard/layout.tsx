@@ -53,6 +53,7 @@ export function DashboardLayout({
 }: DashboardLayoutProps) {
   const { user } = useMockedUser();
   const { t } = useTranslation('nav');
+  const { t: tc } = useTranslation('common');
 
   const settings = useSettingsContext();
 
@@ -116,9 +117,9 @@ export function DashboardLayout({
           'relative z-10',
           'px-4 md:px-6 lg:px-8',
           // Creative visual enhancements
-          'before:absolute before:left-0 before:top-0 before:bottom-0 before:w-px',
+          'before:absolute before:start-0 before:top-0 before:bottom-0 before:w-px',
           'before:bg-gradient-to-b before:from-transparent before:via-indigo-200/30 before:to-transparent',
-          'after:absolute after:right-0 after:top-0 after:bottom-0 after:w-px',
+          'after:absolute after:end-0 after:top-0 after:bottom-0 after:w-px',
           'after:bg-gradient-to-b after:from-transparent after:via-indigo-200/30 after:to-transparent',
           // Responsive padding based on nav layout
           isNavVertical ? 'lg:pl-10 lg:pr-10' : '',
@@ -132,7 +133,7 @@ export function DashboardLayout({
     const headerSlots: HeaderSectionProps['slots'] = {
       topArea: (
         <Alert severity="info" className="hidden rounded-none">
-          This is an info Alert.
+          {tc('infoAlertSample')}
         </Alert>
       ),
       bottomArea: isNavHorizontal ? (
@@ -148,7 +149,7 @@ export function DashboardLayout({
       leftArea: (
         <Box className="flex items-center gap-2 md:gap-4 relative z-10">
           {/** @slot Nav mobile */}
-          <MenuButton onClick={onOpen} className="mr-2 -ml-2 lg:hidden" />
+          <MenuButton onClick={onOpen} className="me-2 -ms-2 lg:hidden" />
           <NavMobile
             data={navData}
             open={open}
@@ -190,7 +191,7 @@ export function DashboardLayout({
           </Box>
 
           {/** @slot Divider for visual separation */}
-          <Box className="hidden sm:block h-6 w-px bg-gradient-to-b from-transparent via-border to-transparent mx-1" />
+          <Box className="hidden sm:block h-6 w-px bg-gradient-to-b from-transparent via-border to-transparent mx-1 shrink-0" />
 
           {/** @slot Notifications popover */}
           <Box className="flex items-center">
@@ -208,7 +209,7 @@ export function DashboardLayout({
           </Box>
 
           {/** @slot Divider before account */}
-          <Box className="hidden md:block h-6 w-px bg-gradient-to-b from-transparent via-border to-transparent mx-1" />
+          <Box className="hidden md:block h-6 w-px bg-gradient-to-b from-transparent via-border to-transparent mx-1 shrink-0" />
 
           {/** @slot Logout button */}
           <Box className="flex items-center">
@@ -219,8 +220,8 @@ export function DashboardLayout({
           <Box className="flex items-center gap-1">
             <LanguagePopover
               data={[
-                { value: 'en', label: 'English', countryCode: 'GB' },
-                { value: 'ar', label: 'العربية', countryCode: 'SA' },
+                { value: 'en', label: tc('languageEnglish'), countryCode: 'GB' },
+                { value: 'ar', label: tc('languageArabic'), countryCode: 'SA' },
               ]}
             />
           </Box>

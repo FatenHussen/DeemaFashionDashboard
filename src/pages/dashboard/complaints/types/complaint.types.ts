@@ -13,7 +13,8 @@ export interface ComplaintItem {
   order_id: number;
   message: string;
   status: 'new' | 'rejected' | 'resolved';
-  type: 'product' | 'order';
+  /** API may add values; unknown types fall back to a formatted raw string in the UI. */
+  type: string;
   admin_response: string | null;
   images: string[];
   user: ComplaintUser;

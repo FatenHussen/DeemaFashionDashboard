@@ -22,8 +22,6 @@ import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout
 
 // ----------------------------------------------------------------------
 
-const metadata = { title: `Point Rule ${CONFIG.appName}` };
-
 export default function CreatePage() {
   const { t } = useTranslation('table');
   const { id } = useParams<{ id?: string }>();
@@ -95,7 +93,9 @@ export default function CreatePage() {
   return (
     <>
       <title>
-        {isEditMode ? `Edit Point Rule | ${metadata.title}` : `Create Point Rule | ${metadata.title}`}
+        {isEditMode
+          ? t('form.pointRuleEditDocumentTitle', { appName: CONFIG.appName })
+          : t('form.pointRuleCreateDocumentTitle', { appName: CONFIG.appName })}
       </title>
 
       <CreateFormLayout
@@ -113,7 +113,7 @@ export default function CreatePage() {
         loadingText={t('form.loadingPointRule')}
         maxWidth="2xl"
         submitLabel={isEditMode ? t('form.updatePointRule') : t('form.createPointRuleSubmit')}
-        submittingLabel={isEditMode ? t('updating') : t('form.creating')}
+        submittingLabel={isEditMode ? t('form.updatingPointRuleSubmit') : t('form.creatingPointRuleSubmit')}
       >
         {/* Title EN */}
         <Box className="group">
@@ -154,8 +154,8 @@ export default function CreatePage() {
                   {...field}
                   className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
                 >
-                  <option value="fixed">Fixed</option>
-                  <option value="percentage">Percentage</option>
+                  <option value="fixed">{t('form.pointRuleTypeFixed')}</option>
+                  <option value="percentage">{t('form.pointRuleTypePercentage')}</option>
                 </select>
               )}
             />
@@ -167,7 +167,7 @@ export default function CreatePage() {
                 {t('form.pointsLabel')}
               </Typography>
             </Box>
-            <RHFTextField name="value" type="number" placeholder="e.g., 100" fullWidth />
+            <RHFTextField name="value" type="number" placeholder={t('form.pointRuleValueExample')} fullWidth />
           </Box>
         </Box>
 
@@ -189,7 +189,7 @@ export default function CreatePage() {
                 {t('form.expiresAfterDays')}
               </Typography>
             </Box>
-            <RHFTextField name="expires_after_days" type="number" placeholder="e.g., 365" fullWidth />
+            <RHFTextField name="expires_after_days" type="number" placeholder={t('form.pointRuleExpiryExample')} fullWidth />
           </Box>
         </Box>
 

@@ -9,8 +9,6 @@ import { useFetchCoupons, useDeleteCoupon } from '@/pages/dashboard/coupons/hook
 
 import { CONFIG } from 'src/global-config';
 
-const metadata = { title: `Coupons | Dashboard - ${CONFIG.appName}` };
-
 export default function Page() {
   const { t } = useTranslation('table');
   const navigate = useNavigate();
@@ -83,7 +81,7 @@ export default function Page() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.couponsIndexDocumentTitle', { appName: CONFIG.appName })}</title>
 
       <DataTable
         tableName={t("tableNames.coupon")}
@@ -112,15 +110,15 @@ export default function Page() {
         }}
         isLoading={isLoading}
         columnTranslations={{
-          id: 'ID',
-          name: 'Name',
-          code: 'Code',
-          discount: 'Discount',
-          start_at: 'Start',
-          end_at: 'End',
-          used_count: 'Used',
-          is_active: 'Status',
-          actions: 'Actions',
+          id: t('columns.id'),
+          name: t('columns.name'),
+          code: t('columns.code'),
+          discount: t('columns.discount'),
+          start_at: t('columns.start'),
+          end_at: t('columns.end'),
+          used_count: t('columns.used'),
+          is_active: t('columns.status'),
+          actions: t('columns.action'),
         }}
         pagination={pagination}
         currentPage={currentPage}

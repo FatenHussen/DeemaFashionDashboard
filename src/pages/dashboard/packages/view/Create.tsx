@@ -24,8 +24,6 @@ import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout
 
 // ----------------------------------------------------------------------
 
-const metadata = { title: `Package ${CONFIG.appName}` };
-
 export default function CreatePage() {
   const { t } = useTranslation('table');
   const { id } = useParams<{ id?: string }>();
@@ -81,10 +79,10 @@ export default function CreatePage() {
       const payload = { ...data } as any;
       if (isEditMode && id) {
         await updatePackageMutation.mutateAsync({ id, data: payload });
-        toast.success('Package updated successfully');
+        toast.success(t('form.packageUpdatedSuccess'));
       } else {
         await createPackageMutation.mutateAsync(payload);
-        toast.success('Package created successfully');
+        toast.success(t('form.packageCreatedSuccess'));
       }
       navigate('/packages');
     } catch (error: any) {
@@ -98,7 +96,11 @@ export default function CreatePage() {
 
   return (
     <>
-      <title>{isEditMode ? `Edit Package | ${metadata.title}` : `Create Package | ${metadata.title}`}</title>
+      <title>
+        {isEditMode
+          ? t('form.packageEditDocumentTitle', { appName: CONFIG.appName })
+          : t('form.packageCreateDocumentTitle', { appName: CONFIG.appName })}
+      </title>
 
       <CreateFormLayout
         methods={methods as any}
@@ -106,61 +108,61 @@ export default function CreatePage() {
         onCancel={handleCancel}
         isSubmitting={isSubmitting}
         errorMessage={errorMessage}
-        title={isEditMode ? 'Edit Package' : 'Create New Package'}
-        description={isEditMode ? 'Update package details' : 'Add a new subscription package'}
+        title={isEditMode ? t('form.editPackage') : t('form.createPackage')}
+        description={isEditMode ? t('form.packageEditPageDesc') : t('form.packageCreatePageDesc')}
         isEditMode={isEditMode}
         isLoading={isEditMode && isLoadingPackage}
         loadingText={t('form.loadingPackage')}
         maxWidth="2xl"
-        submitLabel={isEditMode ? 'Update Package' : 'Create Package'}
-        submittingLabel={isEditMode ? 'Updating...' : 'Creating...'}
+        submitLabel={isEditMode ? t('form.packageSubmitUpdate') : t('form.packageSubmitCreate')}
+        submittingLabel={isEditMode ? t('form.updatingPackage') : t('form.creatingPackage')}
       >
         {/* Name EN */}
         <Box className="group">
-          <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">Name (English)</Typography>
+          <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.packageFieldNameEnglish')}</Typography>
           <RHFTextField name="name.en" placeholder={t('form.packageNameEnPlaceholder')} fullWidth />
         </Box>
 
         {/* Name AR */}
         <Box className="group">
-          <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">Name (Arabic)</Typography>
-          <RHFTextField name="name.ar" placeholder="اسم الباقة بالعربي" dir="rtl" fullWidth />
+          <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.packageFieldNameArabic')}</Typography>
+          <RHFTextField name="name.ar" placeholder={t('form.packageNameArShort')} dir="rtl" fullWidth />
         </Box>
 
         {/* Price */}
         <Box className="group">
-          <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">Price</Typography>
-          <RHFTextField name="price" type="number" placeholder="0" fullWidth />
+          <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.packageFieldPrice')}</Typography>
+          <RHFTextField name="price" type="number" placeholder={t('form.placeholderZero')} fullWidth />
         </Box>
 
         {/* Duration Days */}
         <Box className="group">
-          <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">Duration (Days)</Typography>
-          <RHFTextField name="duration_days" type="number" placeholder="30" fullWidth />
+          <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.packageFieldDurationDays')}</Typography>
+          <RHFTextField name="duration_days" type="number" placeholder={t('form.placeholderThirty')} fullWidth />
         </Box>
 
         {/* Monthly Orders Limit */}
         <Box className="group">
-          <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">Monthly Orders Limit</Typography>
-          <RHFTextField name="monthly_orders_limit" type="number" placeholder="0" fullWidth />
+          <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.packageFieldMonthlyOrdersLimit')}</Typography>
+          <RHFTextField name="monthly_orders_limit" type="number" placeholder={t('form.placeholderZero')} fullWidth />
         </Box>
 
         {/* Free Delivery Count */}
         <Box className="group">
-          <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">Free Delivery Count</Typography>
-          <RHFTextField name="free_delivery_count" type="number" placeholder="0" fullWidth />
+          <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.packageFieldFreeDeliveryCount')}</Typography>
+          <RHFTextField name="free_delivery_count" type="number" placeholder={t('form.placeholderZero')} fullWidth />
         </Box>
 
         {/* Discount Percentage */}
         <Box className="group">
-          <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">Discount Percentage</Typography>
-          <RHFTextField name="discount_percentage" type="number" placeholder="0" fullWidth />
+          <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.packageFieldDiscountPercentage')}</Typography>
+          <RHFTextField name="discount_percentage" type="number" placeholder={t('form.placeholderZero')} fullWidth />
         </Box>
 
         {/* Points Bonus */}
         <Box className="group">
-          <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">Points Bonus</Typography>
-          <RHFTextField name="points_bonus" type="number" placeholder="0" fullWidth />
+          <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.packageFieldPointsBonus')}</Typography>
+          <RHFTextField name="points_bonus" type="number" placeholder={t('form.placeholderZero')} fullWidth />
         </Box>
 
         {/* Active */}
@@ -174,7 +176,7 @@ export default function CreatePage() {
                   checked={field.value}
                   onChange={(e) => field.onChange((e.target as HTMLInputElement).checked)}
                 />
-                <Typography variant="body2">Active</Typography>
+                <Typography variant="body2">{t('active')}</Typography>
               </div>
             )}
           />

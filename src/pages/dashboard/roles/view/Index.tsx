@@ -10,8 +10,6 @@ import { CONFIG } from 'src/global-config';
 
 // ----------------------------------------------------------------------
 
-const metadata = { title: `Roles | Dashboard - ${CONFIG.appName}` };
-
 export default function Page() {
   const { t } = useTranslation('table');
   const [currentPage, setCurrentPage] = useState(1);
@@ -44,7 +42,7 @@ export default function Page() {
     if (deletingId) {
       try {
         await deleteRoleMutation.mutateAsync(deletingId);
-        toast.success(t('deleteSuccess') || 'Role deleted successfully');
+        toast.success(t('deleteSuccess'));
         setDeletingId(null);
       } catch { return; }
     }
@@ -81,7 +79,7 @@ export default function Page() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.rolesIndexDocumentTitle', { appName: CONFIG.appName })}</title>
 
       <DataTable
         tableName={t("tableNames.role")}
@@ -100,7 +98,8 @@ export default function Page() {
         )}
         data={roleData}
         createPath="/role/create"
-        hasDetails={false}
+        hasDetails
+        detailsLink="/role/details"
         permissions={{
           create: hasPermission('create', 'role'),
           update: hasPermission('update', 'role'),
@@ -108,11 +107,11 @@ export default function Page() {
         }}
         isLoading={isLoading}
         columnTranslations={{
-          id: 'ID',
-          name: 'Role Name',
-          guard_name: 'Guard',
-          created_at: 'Created At',
-          actions: 'Actions',
+          id: t('columns.id'),
+          name: t('columns.roleName'),
+          guard_name: t('columns.guard'),
+          created_at: t('columns.createdAt'),
+          actions: t('columns.action'),
         }}
         pagination={pagination}
         currentPage={currentPage}

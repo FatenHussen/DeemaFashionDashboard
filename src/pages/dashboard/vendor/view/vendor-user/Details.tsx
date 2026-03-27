@@ -1,4 +1,5 @@
 import { Button } from '@/shared/ui/button';
+import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
 import { formatTranslated } from '@/utils/format-translated';
@@ -8,9 +9,8 @@ import { CONFIG } from 'src/global-config';
 import { Box, Typography } from 'src/shared/ui';
 import { LoadingScreen } from 'src/shared/components/loading-screen';
 
-const metadata = { title: `Vendor User Details | Dashboard - ${CONFIG.appName}` };
-
 export default function DetailsPage() {
+  const { t } = useTranslation('table');
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: response, isLoading, error } = useFetchVendorUserById(id || '');
@@ -22,13 +22,13 @@ export default function DetailsPage() {
       <Box className="flex items-center justify-center min-h-[400px] p-6">
         <Box className="w-full max-w-md rounded-xl border border-border/50 shadow-lg bg-background p-6">
           <Typography variant="h6" className="text-destructive mb-2">
-            Error Loading Vendor User
+            {t('form.vendorUserLoadErrorTitle')}
           </Typography>
           <Typography variant="body2" className="text-muted-foreground mb-4">
-            {error instanceof Error ? error.message : 'Failed to load vendor user information'}
+            {error instanceof Error ? error.message : t('form.vendorUserLoadErrorFallback')}
           </Typography>
           <Button variant="outlined" onClick={() => navigate('/vendor-users')}>
-            Back to Vendor Users
+            {t('form.backToVendorUsers')}
           </Button>
         </Box>
       </Box>
@@ -39,7 +39,7 @@ export default function DetailsPage() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.vendorUserDetailsDocumentTitle', { appName: CONFIG.appName })}</title>
       <Box className="relative min-h-screen overflow-hidden bg-background p-6">
         <Box className="pointer-events-none fixed inset-0 bg-gradient-to-br from-background via-background to-muted/30" />
         <Box className="relative max-w-4xl mx-auto">
@@ -49,7 +49,7 @@ export default function DetailsPage() {
               onClick={() => navigate('/vendor-users')}
               className="mb-4 -ml-2 text-muted-foreground hover:text-foreground"
             >
-              <Iconify icon="solar:arrow-left-bold" width={20} className="mr-2" /> Back to Vendor Users
+              <Iconify icon="solar:arrow-left-bold" width={20} className="mr-2" /> {t('form.backToVendorUsers')}
             </Button>
             <Box className="flex items-center gap-4 mb-2">
               <Box className="w-16 h-16 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
@@ -68,14 +68,14 @@ export default function DetailsPage() {
                   isActive ? 'bg-green-500/20 text-green-600' : 'bg-red-500/20 text-red-600'
                 }`}
               >
-                {isActive ? 'Active' : 'Inactive'}
+                {isActive ? t('active') : t('inactive')}
               </span>
               <Button
                 variant="contained"
                 onClick={() => navigate(`/vendor-users/update/${id}`)}
                 className="gap-2"
               >
-                <Iconify icon="solar:pen-bold" width={18} /> Edit
+                <Iconify icon="solar:pen-bold" width={18} /> {t('edit')}
               </Button>
             </Box>
           </Box>
@@ -83,12 +83,12 @@ export default function DetailsPage() {
           <Box className="rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm shadow-sm overflow-hidden mb-4">
             <Box className="p-6">
               <Typography variant="h6" className="font-semibold mb-4">
-                User Information
+                {t('form.vendorUserInformationTitle')}
               </Typography>
               <Box className="grid gap-4 sm:grid-cols-2">
                 <Box>
                   <Typography variant="caption" className="text-muted-foreground">
-                    Name
+                    {t('columns.name')}
                   </Typography>
                   <Typography variant="body1" className="font-medium">
                     {item.name || '-'}
@@ -96,7 +96,7 @@ export default function DetailsPage() {
                 </Box>
                 <Box>
                   <Typography variant="caption" className="text-muted-foreground">
-                    Email
+                    {t('columns.email')}
                   </Typography>
                   <Typography variant="body1" className="font-medium">
                     {item.email || '-'}
@@ -104,7 +104,7 @@ export default function DetailsPage() {
                 </Box>
                 <Box>
                   <Typography variant="caption" className="text-muted-foreground">
-                    Vendor
+                    {t('columns.vendor')}
                   </Typography>
                   <Typography variant="body1" className="font-medium">
                     {item.vendor
@@ -116,10 +116,10 @@ export default function DetailsPage() {
                 </Box>
                 <Box>
                   <Typography variant="caption" className="text-muted-foreground">
-                    Status
+                    {t('columns.status')}
                   </Typography>
                   <Typography variant="body1" className="font-medium">
-                    {isActive ? 'Active' : 'Inactive'}
+                    {isActive ? t('active') : t('inactive')}
                   </Typography>
                 </Box>
                 {(item.created_at || item.updated_at) && (
@@ -127,7 +127,7 @@ export default function DetailsPage() {
                     {item.created_at && (
                       <Box>
                         <Typography variant="caption" className="text-muted-foreground">
-                          Created
+                          {t('columns.createdAt')}
                         </Typography>
                         <Typography variant="body2" className="font-medium">
                           {new Date(item.created_at).toLocaleString()}
@@ -137,7 +137,7 @@ export default function DetailsPage() {
                     {item.updated_at && (
                       <Box>
                         <Typography variant="caption" className="text-muted-foreground">
-                          Updated
+                          {t('columns.updatedAt')}
                         </Typography>
                         <Typography variant="body2" className="font-medium">
                           {new Date(item.updated_at).toLocaleString()}
@@ -154,7 +154,7 @@ export default function DetailsPage() {
             <Box className="rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm shadow-sm overflow-hidden">
               <Box className="p-6">
                 <Typography variant="h6" className="font-semibold mb-4">
-                  Assigned Shops ({item.shops.length})
+                  {t('form.vendorUserAssignedShops', { count: item.shops.length })}
                 </Typography>
                 <Box className="space-y-3">
                   {item.shops.map((shop) => (
@@ -175,7 +175,7 @@ export default function DetailsPage() {
                           shop.is_active ? 'bg-green-500/20 text-green-600' : 'bg-red-500/20 text-red-600'
                         }`}
                       >
-                        {shop.is_active ? 'Active' : 'Inactive'}
+                        {shop.is_active ? t('active') : t('inactive')}
                       </span>
                     </Box>
                   ))}

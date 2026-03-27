@@ -221,7 +221,7 @@ export function getNavData(t: TFunction<'nav'>): NavSectionProps['data'] {
         </span>
       ) as any,
       items: [
-        { title: t('translationManager'), path: `${paths.dashboard.languages}/translations`, icon: ICONS.file, requiredPermission: 'language.view' },
+        // { title: t('translationManager'), path: `${paths.dashboard.languages}/translations`, icon: ICONS.file, requiredPermission: 'language.view' },
         { title: t('currencies'), path: paths.dashboard.currencies, icon: ICONS.banking, requiredPermission: 'currency.view' },
         { title: t('legalDocuments'), path: paths.dashboard.legalDocuments, icon: ICONS.lock, requiredPermission: 'legaldocument.view' },
         { title: t('faqs'), path: paths.dashboard.faqs, icon: ICONS.blog, requiredPermission: 'faq.view' },

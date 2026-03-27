@@ -32,6 +32,8 @@ export interface SectionDetailsItem {
 export interface SectionDetails {
   id: number;
   name: string;
+  /** Admin-facing bilingual name when API returns it separately from `name`. */
+  admin_name?: string | { en: string; ar: string };
   type: 'api' | 'manual';
   api?: Record<string, any>;
   manual?: {

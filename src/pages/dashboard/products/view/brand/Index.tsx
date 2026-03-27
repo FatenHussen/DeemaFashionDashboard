@@ -85,12 +85,12 @@ export default function Page() {
         isLoading={isLoading}
         searchColumns={['name']}
         columnTranslations={{
-          id: 'ID',
-          image: 'Image',
-          name: 'Name',
-          created_at: 'Created At',
-          updated_at: 'Updated At',
-          actions: 'Actions',
+          id: t('columns.id'),
+          image: t('columns.image'),
+          name: t('columns.name'),
+          created_at: t('columns.createdAt'),
+          updated_at: t('columns.updatedAt'),
+          actions: t('columns.action'),
         }}
       />
     </>

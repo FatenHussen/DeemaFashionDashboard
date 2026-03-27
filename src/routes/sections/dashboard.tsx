@@ -284,7 +284,6 @@ const ScheduleCreatePage = lazy(() => import('@/pages/dashboard/schedules/view/C
 
 // User Basket Schedules
 const UserBasketScheduleIndexPage = lazy(() => import('@/pages/dashboard/user-basket-schedules/view/Index'));
-const UserBasketScheduleCreatePage = lazy(() => import('@/pages/dashboard/user-basket-schedules/view/Create'));
 
 const Page403 = lazy(() => import('src/pages/error/403'));
 
@@ -779,44 +778,44 @@ export const dashboardRoutes: RouteObject[] = [
       },
     ],
   },
-  {
-    path: 'languages',
-    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
-    children: [
-      {
-        element: (
-          <RequirePermission permission="language.view">
-            <LanguageIndexPage />
-          </RequirePermission>
-        ),
-        index: true,
-      },
-      {
-        path: 'create',
-        element: (
-          <RequirePermission permission="language.create">
-            <LanguageCreatePage />
-          </RequirePermission>
-        ),
-      },
-      {
-        path: 'update/:id',
-        element: (
-          <RequirePermission permission="language.update">
-            <LanguageCreatePage />
-          </RequirePermission>
-        ),
-      },
-      {
-        path: 'translations',
-        element: (
-          <RequirePermission permission="language.view">
-            <TranslationManagerPage />
-          </RequirePermission>
-        ),
-      },
-    ],
-  },
+  // {
+  //   path: 'languages',
+  //   element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+  //   children: [
+  //     {
+  //       element: (
+  //         <RequirePermission permission="language.view">
+  //           <LanguageIndexPage />
+  //         </RequirePermission>
+  //       ),
+  //       index: true,
+  //     },
+  //     {
+  //       path: 'create',
+  //       element: (
+  //         <RequirePermission permission="language.create">
+  //           <LanguageCreatePage />
+  //         </RequirePermission>
+  //       ),
+  //     },
+  //     {
+  //       path: 'update/:id',
+  //       element: (
+  //         <RequirePermission permission="language.update">
+  //           <LanguageCreatePage />
+  //         </RequirePermission>
+  //       ),
+  //     },
+  //     {
+  //       path: 'translations',
+  //       element: (
+  //         <RequirePermission permission="language.view">
+  //           <TranslationManagerPage />
+  //         </RequirePermission>
+  //       ),
+  //     },
+  //   ],
+  // },
   {
     path: 'sections',
     element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
@@ -1433,6 +1432,14 @@ export const dashboardRoutes: RouteObject[] = [
           </RequirePermission>
         ),
       },
+      {
+        path: 'update/:id',
+        element: (
+          <RequirePermission permission="notification.create">
+            <AdminNotificationCreatePage />
+          </RequirePermission>
+        ),
+      },
     ],
   },
   {
@@ -1859,22 +1866,6 @@ export const dashboardRoutes: RouteObject[] = [
           </RequirePermission>
         ),
         index: true,
-      },
-      {
-        path: 'create',
-        element: (
-          <RequirePermission permission="userbasketschedule.create">
-            <UserBasketScheduleCreatePage />
-          </RequirePermission>
-        ),
-      },
-      {
-        path: 'update/:id',
-        element: (
-          <RequirePermission permission="userbasketschedule.update">
-            <UserBasketScheduleCreatePage />
-          </RequirePermission>
-        ),
       },
     ],
   },

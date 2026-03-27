@@ -26,8 +26,6 @@ import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout
 
 // ----------------------------------------------------------------------
 
-const metadata = { title: `Driver ${CONFIG.appName}` };
-
 export default function CreatePage() {
   const { t } = useTranslation('table');
   const { id } = useParams<{ id?: string }>();
@@ -152,9 +150,7 @@ export default function CreatePage() {
     navigate('/driver');
   };
 
-  const infoText = isEditMode
-    ? 'You can update any field. Use the table action to change password.'
-    : 'Make sure to use a strong password and valid information for the driver account.';
+  const infoText = isEditMode ? t('form.driverFormInfoEdit') : t('form.driverFormInfoCreate');
 
   // TODO: Add area selection component here
   // For now, using a simple text input for area_ids
@@ -163,7 +159,9 @@ export default function CreatePage() {
   return (
     <>
       <title>
-        {isEditMode ? `Edit Driver | ${metadata.title}` : `Create Driver | ${metadata.title}`}
+        {isEditMode
+          ? t('form.driverEditDocumentTitle', { appName: CONFIG.appName })
+          : t('form.driverCreateDocumentTitle', { appName: CONFIG.appName })}
       </title>
 
       <CreateFormLayout
@@ -172,19 +170,15 @@ export default function CreatePage() {
         onCancel={handleCancel}
         isSubmitting={isSubmitting}
         errorMessage={errorMessage}
-        title={isEditMode ? 'Edit Driver Account' : 'Create New Driver'}
-        description={
-          isEditMode
-            ? 'Update driver information and assigned areas'
-            : 'Add a new driver to your system'
-        }
+        title={isEditMode ? t('form.editDriver') : t('form.createDriver')}
+        description={isEditMode ? t('form.driverEditPageDesc') : t('form.driverCreatePageDesc')}
         isEditMode={isEditMode}
         isLoading={isLoadingDriver}
         loadingText={t('form.loadingDriver')}
         maxWidth="3xl"
         infoText={infoText}
-        submitLabel={isEditMode ? 'Update Driver' : 'Create Driver'}
-        submittingLabel={isEditMode ? 'Updating...' : 'Creating...'}
+        submitLabel={isEditMode ? t('form.updateDriverSubmit') : t('form.createDriverSubmit')}
+        submittingLabel={isEditMode ? t('form.updatingDriver') : t('form.creatingDriver')}
       >
         {/* Name Field with Icon */}
         <Box className="group">
@@ -273,7 +267,7 @@ export default function CreatePage() {
               height={24}
             />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Driver Photo
+              {t('form.driverPhotoLabel')}
             </Typography>
           </Box>
           <Controller
@@ -303,7 +297,7 @@ export default function CreatePage() {
                   <Box className="mt-4">
                     <img
                       src={imagePreviewUrl}
-                      alt="Driver photo preview"
+                      alt={t('form.driverPhotoPreviewAlt')}
                       className="w-24 h-24 rounded-xl object-cover border border-border/60"
                     />
                   </Box>
@@ -318,7 +312,7 @@ export default function CreatePage() {
           <Box className="flex items-center gap-2 mb-2">
             <Iconify icon="solar:map-point-bold" className="text-primary" width={24} height={24} />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Areas *
+              {t('form.driverAreasRequired')}
             </Typography>
           </Box>
           <Controller
@@ -354,12 +348,12 @@ export default function CreatePage() {
           <Box className="flex items-center gap-2 mb-2">
             <Iconify icon="solar:wallet-money-bold" className="text-primary" width={24} height={24} />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Rate per Order
+              {t('form.driverRatePerOrderField')}
             </Typography>
           </Box>
           <RHFTextField
             name="rate_per_order"
-            placeholder="e.g., 5.00"
+            placeholder={t('form.driverCommissionRateExample')}
             className="transition-all duration-200"
           />
         </Box>
@@ -369,7 +363,7 @@ export default function CreatePage() {
           <Box className="flex items-center gap-2 mb-2">
             <Iconify icon="solar:delivery-bold" className="text-primary" width={24} height={24} />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Vehicle Type
+              {t('form.driverVehicleTypeField')}
             </Typography>
           </Box>
           <RHFTextField
@@ -384,7 +378,7 @@ export default function CreatePage() {
           <Box className="flex items-center gap-2 mb-2">
             <Iconify icon="solar:card-recive-bold" className="text-primary" width={24} height={24} />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Vehicle Number
+              {t('form.driverVehicleNumberField')}
             </Typography>
           </Box>
           <RHFTextField

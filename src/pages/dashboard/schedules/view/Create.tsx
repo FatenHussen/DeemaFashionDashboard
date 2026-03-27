@@ -1,3 +1,5 @@
+import type { ScheduleCreatePayload } from '@/pages/dashboard/schedules/types/schedule.types';
+
 import { useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
@@ -21,8 +23,6 @@ import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
 import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
 
 // ----------------------------------------------------------------------
-
-const metadata = { title: `Schedule ${CONFIG.appName}` };
 
 export default function CreatePage() {
   const { t } = useTranslation('table');
@@ -53,8 +53,12 @@ export default function CreatePage() {
   useEffect(() => {
     if (isEditMode && scheduleResponse?.data) {
       const d = scheduleResponse.data;
+      const name =
+        typeof d.name === 'object' && d.name !== null
+          ? { en: (d.name as { en?: string }).en ?? '', ar: (d.name as { ar?: string }).ar ?? '' }
+          : { en: typeof d.name === 'string' ? d.name : '', ar: typeof d.name === 'string' ? d.name : '' };
       reset({
-        name: typeof d.name === 'object' ? d.name : { en: '', ar: '' },
+        name,
         interval_days: d.interval_days || 1,
         is_active: !!d.is_active,
         discount_type: d.discount_type || null,
@@ -68,8 +72,10 @@ export default function CreatePage() {
 
   const onSubmit = async (data: ScheduleFormValues) => {
     try {
-      const payload = {
-        ...data,
+      const payload: ScheduleCreatePayload = {
+        name: data.name,
+        interval_days: data.interval_days,
+        is_active: data.is_active,
         discount_type: data.discount_type || null,
         discount_value: data.discount_type ? (data.discount_value ?? null) : null,
       };
@@ -93,7 +99,9 @@ export default function CreatePage() {
   return (
     <>
       <title>
-        {isEditMode ? `Edit Schedule | ${metadata.title}` : `Create Schedule | ${metadata.title}`}
+        {isEditMode
+          ? t('form.scheduleEditDocumentTitle', { appName: CONFIG.appName })
+          : t('form.scheduleCreateDocumentTitle', { appName: CONFIG.appName })}
       </title>
 
       <CreateFormLayout
@@ -111,7 +119,7 @@ export default function CreatePage() {
         loadingText={t('form.loadingSchedule')}
         maxWidth="2xl"
         submitLabel={isEditMode ? t('form.updateSchedule') : t('form.createScheduleSubmit')}
-        submittingLabel={isEditMode ? t('updating') : t('form.creating')}
+        submittingLabel={isEditMode ? t('form.updatingSchedule') : t('form.creatingSchedule')}
       >
         {/* Name EN */}
         <Box className="group">
@@ -143,7 +151,7 @@ export default function CreatePage() {
               {t('form.intervalDays')} *
             </Typography>
           </Box>
-          <RHFTextField name="interval_days" type="number" placeholder="3" fullWidth />
+          <RHFTextField name="interval_days" type="number" placeholder={t('form.placeholderThree')} fullWidth />
           <Typography variant="caption" className="text-muted-foreground mt-1">
             {t('form.intervalDaysHelper')}
           </Typography>
@@ -186,7 +194,11 @@ export default function CreatePage() {
             <RHFTextField
               name="discount_value"
               type="number"
-              placeholder={discountType === 'percentage' ? '10' : '5'}
+              placeholder={
+                discountType === 'percentage'
+                  ? t('form.scheduleDiscountPlaceholderPercentage')
+                  : t('form.scheduleDiscountPlaceholderFixed')
+              }
               fullWidth
             />
             <Typography variant="caption" className="text-muted-foreground mt-1">

@@ -1,8 +1,8 @@
 import type {
+  ScheduledBasketListParams,
   ScheduledBasketListResponse,
   ScheduledBasketDetailsResponse,
   ScheduledBasketCreateUpdatePayload,
-  ScheduledBasketListParams,
 } from '../types/scheduled-basket.types';
 
 import { apiRoutes, axiosInstance } from '@/api';
@@ -18,29 +18,27 @@ function buildScheduledBasketFormData(data: ScheduledBasketCreateUpdatePayload):
   if (data.image instanceof File) formData.append('image', data.image);
   formData.append('is_active', String(data.is_active));
 
-  // Schedule object (required by API for create; same shape for update)
-  formData.append('schedule[title][en]', data.schedule.title.en || '');
-  formData.append('schedule[title][ar]', data.schedule.title.ar || '');
-  formData.append('schedule[number_of_days]', String(data.schedule.number_of_days || 1));
-  if (data.schedule.discount_type) {
-    formData.append('schedule[discount_type]', data.schedule.discount_type);
-  }
-  if (data.schedule.discount_value != null) {
-    formData.append('schedule[discount_value]', String(data.schedule.discount_value));
-  }
-  formData.append('schedule[is_active]', String(data.schedule.is_active));
+  data.schedules.forEach((sch, i) => {
+    formData.append(`schedules[${i}][title][en]`, sch.title.en || '');
+    formData.append(`schedules[${i}][title][ar]`, sch.title.ar || '');
+    formData.append(`schedules[${i}][number_of_days]`, String(sch.number_of_days || 1));
+    if (sch.discount_type) {
+      formData.append(`schedules[${i}][discount_type]`, sch.discount_type);
+    }
+    if (sch.discount_value != null) {
+      formData.append(`schedules[${i}][discount_value]`, String(sch.discount_value));
+    }
+    formData.append(`schedules[${i}][is_active]`, sch.is_active ? '1' : '0');
+    formData.append(`schedules[${i}][is_default]`, sch.is_default ? '1' : '0');
+  });
 
-  // Items with enhanced fields
+  // Items — Laravel expects boolean fields as 0/1 in multipart
   data.items.forEach((item, i) => {
     formData.append(`items[${i}][shop_product_variant_id]`, String(item.shop_product_variant_id));
     formData.append(`items[${i}][quantity]`, String(item.quantity));
 
-    if (item.is_required !== undefined) {
-      formData.append(`items[${i}][is_required]`, String(item.is_required));
-    }
-    if (item.is_extra !== undefined) {
-      formData.append(`items[${i}][is_extra]`, String(item.is_extra));
-    }
+    formData.append(`items[${i}][is_required]`, item.is_required ? '1' : '0');
+    formData.append(`items[${i}][is_extra]`, item.is_extra ? '1' : '0');
     if (item.min_quantity !== undefined) {
       formData.append(`items[${i}][min_quantity]`, String(item.min_quantity));
     }

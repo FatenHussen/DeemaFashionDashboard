@@ -19,8 +19,6 @@ import {
 
 // ----------------------------------------------------------------------
 
-const metadata = { title: `Seller Registrations | Dashboard - ${CONFIG.appName}` };
-
 export default function Page() {
   const { t } = useTranslation('table');
   const [currentPage, setCurrentPage] = useState(1);
@@ -55,18 +53,18 @@ export default function Page() {
   const hasPermission = (action: string, resource: string) => can(`${resource}.${action}`);
 
   const onApprove = async (id: number) => {
-    if (!window.confirm('Approve this seller registration? A vendor account will be created and credentials sent via email.')) return;
+    if (!window.confirm(t('form.sellerRegApproveConfirm'))) return;
     try {
       await approveMutation.mutateAsync({ id });
-      toast.success('Registration approved and credentials sent via email');
+      toast.success(t('form.sellerRegApprovedToast'));
     } catch { return; }
   };
 
   const onReject = async (id: number) => {
-    if (!window.confirm('Reject this seller registration?')) return;
+    if (!window.confirm(t('form.sellerRegRejectConfirm'))) return;
     try {
       await rejectMutation.mutateAsync(id);
-      toast.success('Registration rejected');
+      toast.success(t('form.sellerRegRejectedToast'));
     } catch { return; }
   };
 
@@ -80,7 +78,7 @@ export default function Page() {
     if (!pendingDeleteId) return;
     try {
       await deleteMutation.mutateAsync(pendingDeleteId);
-      toast.success('Registration deleted successfully');
+      toast.success(t('form.sellerRegDeletedToast'));
     } catch { return; } finally {
       setIsDeleteDialogOpen(false);
       setPendingDeleteId(null);
@@ -96,10 +94,10 @@ export default function Page() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.sellerRegistrationsPageTitle', { appName: CONFIG.appName })}</title>
 
       <DataTable
-        tableName="Seller Registrations"
+        tableName={t('form.sellerRegistrationsTableName')}
         columns={sellerRegistrationColumns(
           t,
           onDelete,
@@ -121,13 +119,13 @@ export default function Page() {
         }}
         isLoading={isLoading}
         columnTranslations={{
-          id: 'ID',
-          seller_name: 'Seller',
-          store_name: 'Store',
-          country: 'Location',
-          status: 'Status',
-          registered_at: 'Registered',
-          actions: 'Actions',
+          id: t('form.sellerRegColId'),
+          seller_name: t('form.sellerRegColSeller'),
+          store_name: t('form.sellerRegColStore'),
+          country: t('form.sellerRegColLocation'),
+          status: t('form.sellerRegColStatus'),
+          registered_at: t('form.sellerRegColRegistered'),
+          actions: t('form.sellerRegColActions'),
         }}
         pagination={pagination}
         currentPage={currentPage}

@@ -25,7 +25,7 @@ export default function TranslationManagerPage() {
 
         <Box className="flex-1 w-full rounded-lg overflow-hidden border border-border bg-background shadow-sm">
           <iframe
-            src="https://tikmool.octopus-software.online/translations"
+            src="https://tickdash.tickmartsy.com/translations"
             className="w-full h-full border-0"
             title={t('form.translationManager')}
             style={{ minHeight: 'calc(100vh - 200px)' }}

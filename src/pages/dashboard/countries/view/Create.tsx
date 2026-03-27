@@ -1,7 +1,9 @@
+import type { CountryItem } from '@/pages/dashboard/countries/types/country.types';
+
 import { useEffect } from 'react';
 import { toast } from 'react-toastify';
+import { useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
-import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
@@ -16,13 +18,23 @@ import {
 } from '@/pages/dashboard/countries/hooks/country';
 
 import { CONFIG } from 'src/global-config';
-import { Box, Switch, Typography } from 'src/shared/ui';
+import { Box, Typography } from 'src/shared/ui';
 import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
 import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
 
 // ----------------------------------------------------------------------
 
-const metadata = { title: `Country ${CONFIG.appName}` };
+function countryNameToForm(name: CountryItem['name']): { en: string; ar: string } {
+  if (name != null && typeof name === 'object' && !Array.isArray(name)) {
+    const o = name as { en?: string; ar?: string };
+    return {
+      en: String(o.en ?? ''),
+      ar: String(o.ar ?? ''),
+    };
+  }
+  const s = name == null ? '' : String(name);
+  return { en: s, ar: s };
+}
 
 export default function CreatePage() {
   const { t } = useTranslation('table');
@@ -45,15 +57,15 @@ export default function CreatePage() {
     defaultValues,
   });
 
-  const { handleSubmit, reset, control } = methods;
+  const { handleSubmit, reset } = methods;
 
   useEffect(() => {
     if (isEditMode && countryResponse?.data) {
       const d = countryResponse.data;
       reset({
-        name: typeof d.name === 'object' ? d.name : { en: '', ar: '' },
-        code: d.code || '',
-        is_active: !!d.is_active,
+        name: countryNameToForm(d.name),
+        code: d.code ?? '',
+        is_active: true,
       });
     }
   }, [countryResponse, isEditMode, reset]);
@@ -82,7 +94,9 @@ export default function CreatePage() {
   return (
     <>
       <title>
-        {isEditMode ? `Edit Country | ${metadata.title}` : `Create Country | ${metadata.title}`}
+        {isEditMode
+          ? t('form.countryEditDocumentTitle', { appName: CONFIG.appName })
+          : t('form.countryCreateDocumentTitle', { appName: CONFIG.appName })}
       </title>
 
       <CreateFormLayout
@@ -102,7 +116,7 @@ export default function CreatePage() {
         loadingText={t('form.loadingCountry')}
         maxWidth="2xl"
         submitLabel={isEditMode ? t('form.updateCountry') : t('form.createCountrySubmit')}
-        submittingLabel={isEditMode ? t('updating') : t('form.creating')}
+        submittingLabel={isEditMode ? t('form.updatingCountry') : t('form.creatingCountry')}
       >
         {/* Name EN */}
         <Box className="group">
@@ -135,23 +149,6 @@ export default function CreatePage() {
             </Typography>
           </Box>
           <RHFTextField name="code" placeholder={t('form.countryCodePlaceholder')} helperText={t('form.countryCodeHelper')} fullWidth />
-        </Box>
-
-        {/* Active */}
-        <Box className="group">
-          <Controller
-            name="is_active"
-            control={control}
-            render={({ field }) => (
-              <div className="flex items-center gap-2">
-                <Switch
-                  checked={field.value}
-                  onChange={(e) => field.onChange((e.target as HTMLInputElement).checked)}
-                />
-                <Typography variant="body2">{t('active')}</Typography>
-              </div>
-            )}
-          />
         </Box>
       </CreateFormLayout>
     </>

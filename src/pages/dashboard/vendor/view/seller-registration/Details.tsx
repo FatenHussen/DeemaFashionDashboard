@@ -17,8 +17,6 @@ import {
 
 // ----------------------------------------------------------------------
 
-const metadata = { title: `Seller Registration Details | Dashboard - ${CONFIG.appName}` };
-
 const STATUS_COLORS: Record<string, string> = {
   pending: 'bg-yellow-500/15 text-yellow-700 dark:text-yellow-400 border border-yellow-500/30',
   approved: 'bg-green-500/15 text-green-700 dark:text-green-400 border border-green-500/30',
@@ -57,10 +55,10 @@ export default function DetailsPage() {
       <Box className="flex min-h-[400px] items-center justify-center p-6">
         <Box className="w-full max-w-md rounded-xl border border-border/50 bg-background p-6 shadow-lg">
           <Typography variant="h6" className="mb-2 text-destructive">
-            Error Loading Registration
+            {t('form.sellerRegLoadErrorTitle')}
           </Typography>
           <Button variant="outlined" onClick={() => navigate('/seller-registrations')}>
-            Back to Registrations
+            {t('form.backToSellerRegistrations')}
           </Button>
         </Box>
       </Box>
@@ -69,6 +67,13 @@ export default function DetailsPage() {
 
   const isPending = item.status === 'pending';
 
+  const sellerRegStatusKey: Record<string, 'form.sellerRegStatusPending' | 'form.sellerRegStatusApproved' | 'form.sellerRegStatusRejected'> = {
+    pending: 'form.sellerRegStatusPending',
+    approved: 'form.sellerRegStatusApproved',
+    rejected: 'form.sellerRegStatusRejected',
+  };
+  const statusLabelKey = sellerRegStatusKey[item.status];
+
   const handleApprove = async () => {
     try {
       const payload: Record<string, number> = {};
@@ -76,23 +81,23 @@ export default function DetailsPage() {
       if (contractMonths) payload.contract_duration_months = parseInt(contractMonths, 10);
 
       await approveMutation.mutateAsync({ id: item.id, payload });
-      toast.success('Registration approved and credentials sent via email');
+      toast.success(t('form.sellerRegApprovedToast'));
       navigate('/seller-registrations');
     } catch { return; }
   };
 
   const handleReject = async () => {
-    if (!window.confirm('Reject this seller registration?')) return;
+    if (!window.confirm(t('form.sellerRegRejectConfirm'))) return;
     try {
       await rejectMutation.mutateAsync(item.id);
-      toast.success('Registration rejected');
+      toast.success(t('form.sellerRegRejectedToast'));
       navigate('/seller-registrations');
     } catch { return; }
   };
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.sellerRegDetailsDocumentTitle', { appName: CONFIG.appName })}</title>
       <Box className="min-h-screen bg-background p-6">
         <Box className="mx-auto max-w-3xl">
           {/* Back button */}
@@ -102,7 +107,7 @@ export default function DetailsPage() {
             className="-ml-2 mb-6 text-muted-foreground hover:text-foreground"
           >
             <Iconify icon="solar:arrow-left-bold" width={20} className="mr-2" />
-            Back to Registrations
+            {t('form.backToSellerRegistrations')}
           </Button>
 
           {/* Header card */}
@@ -129,14 +134,16 @@ export default function DetailsPage() {
                       STATUS_COLORS[item.status] ?? STATUS_COLORS.pending
                     }`}
                   >
-                    {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
+                    {statusLabelKey ? t(statusLabelKey) : item.status}
                   </span>
                 </div>
                 <Typography variant="body2" className="text-muted-foreground mt-1">
                   {item.seller_name} — {item.email}
                 </Typography>
                 <Typography variant="caption" className="text-muted-foreground">
-                  Registered: {new Date(item.registered_at).toLocaleString()}
+                  {t('form.sellerRegRegisteredAt', {
+                    date: new Date(item.registered_at).toLocaleString(),
+                  })}
                 </Typography>
               </div>
             </div>
@@ -146,7 +153,7 @@ export default function DetailsPage() {
             {/* Registration Details */}
             <Box className="rounded-xl border border-border/60 bg-card p-6 shadow-sm">
               <Typography variant="subtitle1" className="font-semibold mb-4 text-foreground">
-                Registration Details
+                {t('form.sellerRegRegistrationDetails')}
               </Typography>
               <InfoRow label={t('form.sellerName')} value={item.seller_name} />
               <InfoRow label={t('columns.email')} value={item.email} />
@@ -174,7 +181,7 @@ export default function DetailsPage() {
             {/* Commercial Register */}
             <Box className="rounded-xl border border-border/60 bg-card p-6 shadow-sm">
               <Typography variant="subtitle1" className="font-semibold mb-4 text-foreground">
-                Commercial Register
+                {t('form.sellerRegCommercialRegister')}
               </Typography>
               <InfoRow
                 label={t('form.registerNumber')}
@@ -195,14 +202,16 @@ export default function DetailsPage() {
           {isPending && (
             <Box className="mt-6 rounded-xl border border-border/60 bg-card p-6 shadow-sm">
               <Typography variant="subtitle1" className="font-semibold mb-4 text-foreground">
-                Review Registration
+                {t('form.sellerRegReviewSection')}
               </Typography>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-foreground">
-                    Commission Rate (%)
-                    <span className="text-muted-foreground font-normal ml-1 text-xs">optional</span>
+                    {t('form.sellerRegCommissionRateOptional')}
+                    <span className="text-muted-foreground font-normal ml-1 text-xs">
+                      {t('form.optionalTag')}
+                    </span>
                   </label>
                   <input
                     type="number"
@@ -211,14 +220,16 @@ export default function DetailsPage() {
                     step="0.1"
                     value={commissionRate}
                     onChange={(e) => setCommissionRate(e.target.value)}
-                    placeholder="e.g. 10.5"
+                    placeholder={t('form.sellerRegCommissionPlaceholder')}
                     className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
                   />
                 </div>
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-foreground">
-                    Contract Duration (months)
-                    <span className="text-muted-foreground font-normal ml-1 text-xs">optional</span>
+                    {t('form.sellerRegContractMonthsOptional')}
+                    <span className="text-muted-foreground font-normal ml-1 text-xs">
+                      {t('form.optionalTag')}
+                    </span>
                   </label>
                   <input
                     type="number"
@@ -226,7 +237,7 @@ export default function DetailsPage() {
                     step="1"
                     value={contractMonths}
                     onChange={(e) => setContractMonths(e.target.value)}
-                    placeholder="e.g. 12"
+                    placeholder={t('form.sellerRegContractMonthsPlaceholder')}
                     className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
                   />
                 </div>
@@ -241,7 +252,7 @@ export default function DetailsPage() {
                   className="bg-green-600 hover:bg-green-700 text-white"
                 >
                   <Iconify icon="solar:check-circle-bold" width={18} className="mr-2" />
-                  {approveMutation.isPending ? 'Approving...' : 'Approve Registration'}
+                  {approveMutation.isPending ? t('form.sellerRegApproving') : t('form.sellerRegApproveButton')}
                 </Button>
 
                 <Button
@@ -251,13 +262,12 @@ export default function DetailsPage() {
                   disabled={rejectMutation.isPending}
                 >
                   <Iconify icon="solar:close-circle-bold" width={18} className="mr-2" />
-                  {rejectMutation.isPending ? 'Rejecting...' : 'Reject Registration'}
+                  {rejectMutation.isPending ? t('form.sellerRegRejecting') : t('form.sellerRegRejectButton')}
                 </Button>
               </div>
 
               <Typography variant="caption" className="mt-3 block text-muted-foreground">
-                Approving will create a Vendor account, a Shop, and a VendorUser, then send login
-                credentials to <strong>{item.email}</strong> via email.
+                {t('form.sellerRegApproveHint', { email: item.email })}
               </Typography>
             </Box>
           )}

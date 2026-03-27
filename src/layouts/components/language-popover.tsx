@@ -1,6 +1,6 @@
-
 import { m } from 'framer-motion';
 import { useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { usePopover } from 'minimal-shared/hooks';
 
 import { FlagIcon } from 'src/shared/components/flag-icon';
@@ -21,7 +21,9 @@ export type LanguagePopoverProps = React.ComponentPropsWithoutRef<'button'> & {
 export function LanguagePopover({ data = [], className, ...other }: LanguagePopoverProps) {
   const { open, anchorEl, onClose, onOpen } = usePopover();
 
-  const { language, setLanguage } = useLocalizationStore();
+  const { language, setLanguage, direction } = useLocalizationStore();
+  const { t } = useTranslation('common');
+  const isRtl = direction === 'rtl';
 
   const currentLang = data.find((lang) => lang.value === language) ?? data[0];
 
@@ -38,9 +40,9 @@ export function LanguagePopover({ data = [], className, ...other }: LanguagePopo
       open={open}
       anchorEl={anchorEl}
       onClose={onClose}
-      anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-      transformOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-      slotProps={{ arrow: { offset: 2, placement: 'bottom-left' } }}
+      anchorOrigin={{ vertical: 'top', horizontal: isRtl ? 'left' : 'right' }}
+      transformOrigin={{ vertical: 'bottom', horizontal: isRtl ? 'left' : 'right' }}
+      slotProps={{ arrow: { offset: 2, placement: isRtl ? 'bottom-right' : 'bottom-left' } }}
     >
       <ul className="w-40 min-h-[72px] p-0 m-0 list-none">
         {data?.map((option) => (
@@ -70,7 +72,7 @@ export function LanguagePopover({ data = [], className, ...other }: LanguagePopo
         whileTap={varTap(0.96)}
         whileHover={varHover(1.04)}
         transition={transitionTap()}
-        aria-label="Languages button"
+        aria-label={t('languageSwitcherAria')}
         onClick={(e) => onOpen(e as any)}
         className={`p-0 w-10 h-10 inline-flex items-center justify-center rounded-lg hover:bg-muted transition-colors ${
           open ? 'bg-muted' : ''

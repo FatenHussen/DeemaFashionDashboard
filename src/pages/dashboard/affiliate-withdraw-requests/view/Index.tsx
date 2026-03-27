@@ -6,8 +6,6 @@ import { useFetchAffiliateWithdrawRequests } from '@/pages/dashboard/affiliate-w
 
 import { CONFIG } from 'src/global-config';
 
-const metadata = { title: `Affiliate Withdraw Requests | Dashboard - ${CONFIG.appName}` };
-
 export default function Page() {
   const { t } = useTranslation('table');
   const [currentPage, setCurrentPage] = useState(1);
@@ -33,12 +31,13 @@ export default function Page() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.affiliateWithdrawIndexDocumentTitle', { appName: CONFIG.appName })}</title>
       <DataTable
         tableName={t("tableNames.affiliateWithdraw")}
         columns={affiliateWithdrawColumns(t)}
         data={items}
         hasDetails
+        detailsLink="/affiliate-withdraw-requests"
         permissions={{ create: false, update: true, delete: false }}
         isLoading={isLoading}
         pagination={pagination}

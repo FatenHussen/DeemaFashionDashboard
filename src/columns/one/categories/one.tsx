@@ -110,18 +110,18 @@ export const categoryColumns = (
       </div>
     ),
   },
-  {
-    id: 'description',
-    accessorKey: 'description',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.description')} />,
-    cell: ({ row }) => (
-      <div className="flex items-center gap-2 min-w-0">
-        <span className="text-sm text-muted-foreground truncate">
-          {formatTranslated(row.original.description) || '-'}
-        </span>
-      </div>
-    ),
-  },
+  // {
+  //   id: 'description',
+  //   accessorKey: 'description',
+  //   header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.description')} />,
+  //   cell: ({ row }) => (
+  //     <div className="flex items-center gap-2 min-w-0">
+  //       <span className="text-sm text-muted-foreground truncate">
+  //         {formatTranslated(row.original.description) || '-'}
+  //       </span>
+  //     </div>
+  //   ),
+  // },
   {
     id: 'parent',
     accessorKey: 'parent.name',

@@ -109,14 +109,14 @@ export default function Page() {
         }}
         isLoading={isLoading}
         columnTranslations={{
-          id: 'ID',
-          name: 'Name',
-          vendor: 'Vendor',
-          rating: 'Rating',
-          is_open_now: 'Open Now',
-          status: 'Status',
-          created_at: 'Created At',
-          actions: 'Actions',
+          id: t('columns.id'),
+          name: t('columns.name'),
+          vendor: t('columns.vendor'),
+          rating: t('columns.rating'),
+          is_open_now: t('columns.openNow'),
+          status: t('columns.status'),
+          created_at: t('columns.createdAt'),
+          actions: t('columns.action'),
         }}
         pagination={pagination}
         currentPage={currentPage}

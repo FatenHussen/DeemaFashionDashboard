@@ -10,6 +10,8 @@ export interface NotificationItem {
   title: string;
   body: string;
   type: NotificationType;
+  /** When true, notification is fixed/pinned (API-dependent). */
+  is_fixed?: boolean;
   created_at: string;
 }
 
@@ -27,10 +29,19 @@ export interface NotificationListResponse {
   };
 }
 
+export interface NotificationDetailsResponse {
+  status: boolean;
+  message: string;
+  data: NotificationItem;
+}
+
 // ── Create payload  POST /admin/notifications ──────────────────────────
 
 export interface NotificationCreatePayload {
   title: string;
   body: string;
   type: NotificationType;
+  is_fixed: boolean;
 }
+
+export type NotificationUpdatePayload = NotificationCreatePayload;

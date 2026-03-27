@@ -11,8 +11,6 @@ import { CONFIG } from 'src/global-config';
 
 // ----------------------------------------------------------------------
 
-const metadata = { title: `Admins | Dashboard - ${CONFIG.appName}` };
-
 export default function Page() {
   const { t } = useTranslation('table');
   const [currentPage, setCurrentPage] = useState(1);
@@ -47,7 +45,7 @@ export default function Page() {
     if (deletingId) {
       try {
         await deleteAdminMutation.mutateAsync(deletingId);
-        toast.success(t('deleteSuccess') || 'Admin deleted successfully');
+        toast.success(t('deleteSuccess'));
         setDeletingId(null);
       } catch { return; }
     }
@@ -74,7 +72,7 @@ export default function Page() {
         password_confirmation: data.password_confirmation,
       },
     });
-    toast.success('Password updated successfully');
+    toast.success(t('form.passwordUpdatedSuccess'));
     setPasswordDialogTargetId(null);
     setPasswordDialogOpen(false);
   };
@@ -109,14 +107,14 @@ export default function Page() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.adminsIndexDocumentTitle', { appName: CONFIG.appName })}</title>
 
       <UpdatePasswordDialog
         open={passwordDialogOpen}
         onOpenChange={setPasswordDialogOpen}
         onSubmit={handlePasswordSubmit}
         isSubmitting={updateAdminMutation.isPending}
-        entityName="Admin"
+        entityName={t('tableNames.admin')}
         minLength={6}
       />
 
@@ -146,13 +144,13 @@ export default function Page() {
         }}
         isLoading={isLoading}
         columnTranslations={{
-          id: 'ID',
-          name: 'Name',
-          email: 'Email',
-          roles: 'Roles',
-          status: 'Status',
-          created_at: 'Created At',
-          actions: 'Actions',
+          id: t('columns.id'),
+          name: t('columns.name'),
+          email: t('columns.email'),
+          roles: t('columns.roles'),
+          status: t('columns.status'),
+          created_at: t('columns.createdAt'),
+          actions: t('columns.action'),
         }}
         pagination={pagination}
         currentPage={currentPage}

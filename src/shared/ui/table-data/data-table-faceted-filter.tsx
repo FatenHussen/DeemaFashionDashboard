@@ -1,10 +1,10 @@
 import type { Column } from '@tanstack/react-table';
 
 import * as React from 'react';
-import { useTranslation } from 'react-i18next';
 import { cn } from '@/utils/utils';
 import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
+import { useTranslation } from 'react-i18next';
 import { Separator } from '@/shared/ui/separator';
 import { CheckIcon, PlusCircle } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/shared/ui/popover';

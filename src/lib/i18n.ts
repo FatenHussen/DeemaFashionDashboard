@@ -1,16 +1,12 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 
-import enNav from '../locales/en/nav.json';
-import arNav from '../locales/ar/nav.json';
-import enTable from '../locales/en/table.json';
-import arTable from '../locales/ar/table.json';
-import enValidation from '../locales/en/validation.json';
-import arValidation from '../locales/ar/validation.json';
+import en from '../locales/en.json';
+import ar from '../locales/ar.json';
 
 // ----------------------------------------------------------------------
 
-const LANGUAGE_STORAGE_KEY = 'app-language';
+export const LANGUAGE_STORAGE_KEY = 'app-language';
 
 const savedLanguage = localStorage.getItem(LANGUAGE_STORAGE_KEY) || 'en';
 
@@ -19,23 +15,31 @@ const savedLanguage = localStorage.getItem(LANGUAGE_STORAGE_KEY) || 'en';
 i18n.use(initReactI18next).init({
   resources: {
     en: {
-      table: enTable,
-      nav: enNav,
-      validation: enValidation,
+      nav: en.nav,
+      table: en.table,
+      validation: en.validation,
+      common: en.common,
     },
     ar: {
-      table: arTable,
-      nav: arNav,
-      validation: arValidation,
+      nav: ar.nav,
+      table: ar.table,
+      validation: ar.validation,
+      common: ar.common,
     },
   },
   lng: savedLanguage,
   fallbackLng: 'en',
+  defaultNS: 'table',
+  ns: ['table', 'nav', 'validation', 'common'],
   interpolation: {
     escapeValue: false,
   },
 });
 
-export { LANGUAGE_STORAGE_KEY };
+// Keep persistence aligned with i18n so axios and the next page load use the same code.
+i18n.on('languageChanged', (lng) => {
+  const code = String(lng).split(/[-_]/)[0]?.toLowerCase() || 'en';
+  localStorage.setItem(LANGUAGE_STORAGE_KEY, code);
+});
 
 export default i18n;

@@ -14,42 +14,26 @@ import { useFetchVendors } from '@/pages/dashboard/vendor/hooks/vendor';
 import { useFetchProducts } from '@/pages/dashboard/products/hooks/product';
 import { RHFInfiniteSelect } from '@/shared/components/hook-form/rhf-infinite-select';
 import {
-  CouponSchema,
-  type CouponFormValues,
-} from '@/pages/dashboard/coupons/validation/coupon.validation';
-import {
   useCreateCoupon,
   useUpdateCoupon,
   useFetchCouponById,
 } from '@/pages/dashboard/coupons/hooks/coupon';
+import {
+  CouponCreateSchema,
+  CouponUpdateSchema,
+  type CouponFormValues,
+  couponLocalDateTimeToISO,
+} from '@/pages/dashboard/coupons/validation/coupon.validation';
 
 import { CONFIG } from 'src/global-config';
 import { Box, Switch, Typography } from 'src/shared/ui';
 import { LoadingScreen } from 'src/shared/components/loading-screen';
+import { RHFSelect } from 'src/shared/components/hook-form/rhf-select';
 import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
 import { RHFMultiSelect } from 'src/shared/components/hook-form/rhf-multi-select';
 import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
 
 // ----------------------------------------------------------------------
-
-const metadata = { title: `Coupon ${CONFIG.appName}` };
-
-const marketersFetcher = async () => {
-  const response = await axiosInstance.get<{
-    status: boolean;
-    data: { id: number; label: string }[];
-  }>(apiRoutes.user.marketers);
-  const items = (response.data?.data ?? []).map((m) => ({
-    id: m.id,
-    label: m.label,
-  }));
-  return {
-    data: {
-      items: [{ id: 0, label: '—' }, ...items],
-      pagination: { current_page: 1, last_page: 1, per_page: items.length + 1, total: items.length + 1 },
-    },
-  };
-};
 
 function toISODateTimeLocal(d: string): string {
   if (!d) return '';
@@ -60,6 +44,22 @@ function toISODateTimeLocal(d: string): string {
 
 export default function CreatePage() {
   const { t } = useTranslation('table');
+  const marketersFetcher = async () => {
+    const response = await axiosInstance.get<{
+      status: boolean;
+      data: { id: number; label: string }[];
+    }>(apiRoutes.user.marketers);
+    const items = (response.data?.data ?? []).map((m) => ({
+      id: m.id,
+      label: m.label,
+    }));
+    return {
+      data: {
+        items: [{ id: 0, label: t('form.marketerNoneOption') }, ...items],
+        pagination: { current_page: 1, last_page: 1, per_page: items.length + 1, total: items.length + 1 },
+      },
+    };
+  };
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
   const location = useLocation();
@@ -85,18 +85,22 @@ export default function CreatePage() {
     () =>
       products.map((p: { id: number; name: unknown }) => ({
         value: p.id,
-        label: formatTranslated(p.name as Parameters<typeof formatTranslated>[0]) || `Product #${p.id}`,
+        label:
+          formatTranslated(p.name as Parameters<typeof formatTranslated>[0]) ||
+          t('form.productFallbackLabel', { id: p.id }),
       })),
-    [products]
+    [products, t]
   );
 
   const vendorOptions: MultiSelectOption[] = useMemo(
     () =>
       vendors.map((v: { id: number; name: unknown }) => ({
         value: v.id,
-        label: formatTranslated(v.name as Parameters<typeof formatTranslated>[0]) || `Vendor #${v.id}`,
+        label:
+          formatTranslated(v.name as Parameters<typeof formatTranslated>[0]) ||
+          t('form.vendorFallbackLabel', { id: v.id }),
       })),
-    [vendors]
+    [vendors, t]
   );
 
   const defaultValues: CouponFormValues = {
@@ -107,15 +111,20 @@ export default function CreatePage() {
     discount_value: '',
     start_at: '',
     end_at: '',
-    max_uses: 0,
+    max_uses: 1,
     is_active: true,
     coupon_type: 'general',
     product_ids: [],
     vendor_ids: [],
   };
 
+  const couponSchema = useMemo(
+    () => (isEditMode ? CouponUpdateSchema : CouponCreateSchema),
+    [isEditMode]
+  );
+
   const methods = useForm<CouponFormValues>({
-    resolver: zodResolver(CouponSchema) as any,
+    resolver: zodResolver(couponSchema) as any,
     defaultValues,
   });
 
@@ -123,6 +132,14 @@ export default function CreatePage() {
   const couponType = watch('coupon_type');
   const affiliateId = watch('affiliate_id');
   const hasAffiliateId = !!affiliateId && affiliateId > 0;
+
+  const loadedAffiliateId = useMemo(() => {
+    const s = couponResponse?.data ?? couponFromState;
+    if (!s) return undefined;
+    return (s as { affiliate_id?: number | null }).affiliate_id ?? undefined;
+  }, [couponResponse?.data, couponFromState]);
+  const lockAffiliateSelect =
+    isEditMode && loadedAffiliateId != null && loadedAffiliateId > 0;
 
   // Determine coupon type from API response
   const inferCouponType = (data: CouponDetailsData): 'general' | 'product' | 'vendor' => {
@@ -147,7 +164,7 @@ export default function CreatePage() {
         discount_value: discount?.value?.toString() || '',
         start_at: source.start_at ? toISODateTimeLocal(source.start_at) : '',
         end_at: source.end_at ? toISODateTimeLocal(source.end_at) : '',
-        max_uses: source.max_uses ?? 0,
+        max_uses: Math.max(1, source.max_uses ?? 1),
         is_active: source.is_active ?? true,
         coupon_type: type,
         product_ids: source.products?.map((p) => p.id) || [],
@@ -168,8 +185,8 @@ export default function CreatePage() {
         ...(data.affiliate_id && data.affiliate_id > 0 && { affiliate_id: data.affiliate_id }),
         discount_type: data.discount_type,
         discount_value: data.discount_value,
-        start_at: data.start_at,
-        end_at: data.end_at,
+        start_at: couponLocalDateTimeToISO(data.start_at),
+        end_at: couponLocalDateTimeToISO(data.end_at),
         max_uses: data.max_uses,
         is_active: data.is_active,
       };
@@ -183,11 +200,11 @@ export default function CreatePage() {
 
       if (isEditMode && id) {
         await updateCouponMutation.mutateAsync({ id, data: payload });
-        toast.success('Coupon updated successfully');
+        toast.success(t('form.couponUpdatedSuccess'));
         navigate('/coupons');
       } else {
         await createCouponMutation.mutateAsync(payload);
-        toast.success('Coupon created successfully');
+        toast.success(t('form.couponCreatedSuccess'));
         navigate('/coupons');
       }
     } catch (error: any) {
@@ -206,7 +223,9 @@ export default function CreatePage() {
   return (
     <>
       <title>
-        {isEditMode ? `Edit Coupon | ${metadata.title}` : `Create Coupon | ${metadata.title}`}
+        {isEditMode
+          ? t('form.couponEditDocumentTitle', { appName: CONFIG.appName })
+          : t('form.couponCreateDocumentTitle', { appName: CONFIG.appName })}
       </title>
 
       <CreateFormLayout
@@ -215,25 +234,21 @@ export default function CreatePage() {
         onCancel={handleCancel}
         isSubmitting={isSubmitting}
         errorMessage={errorMessage}
-        title={isEditMode ? 'Edit Coupon' : 'Create New Coupon'}
-        description={
-          isEditMode
-            ? 'Update coupon details and scope'
-            : 'Add a new coupon (general, product-specific, or vendor-specific)'
-        }
+        title={isEditMode ? t('form.editCoupon') : t('form.createCoupon')}
+        description={isEditMode ? t('form.editCouponDesc') : t('form.createCouponDesc')}
         isEditMode={isEditMode}
         isLoading={isEditMode && isLoadingCoupon}
         loadingText={t('form.loadingCoupon')}
         maxWidth="2xl"
-        submitLabel={isEditMode ? 'Update Coupon' : 'Create Coupon'}
-        submittingLabel={isEditMode ? 'Updating...' : 'Creating...'}
+        submitLabel={isEditMode ? t('form.updateCouponSubmit') : t('form.createCouponSubmit')}
+        submittingLabel={isEditMode ? t('form.updatingCouponSubmit') : t('form.creatingCouponSubmit')}
       >
         {/* Affiliate ID */}
         <Box className="group">
           <Box className="flex items-center gap-2 mb-2">
             <Iconify icon="solar:user-id-bold" className="text-primary" width={24} height={24} />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              {t('form.affiliateId')} (optional)
+              {t('form.affiliateIdOptional')}
             </Typography>
           </Box>
           <RHFInfiniteSelect
@@ -241,9 +256,17 @@ export default function CreatePage() {
             queryKey={['marketers', 'list']}
             fetcher={() => marketersFetcher()}
             placeholder={t('form.leaveEmptyNonAffiliate')}
-            helperText={hasAffiliateId ? 'Product/Vendor selection is managed by the affiliate system.' : undefined}
+            helperText={hasAffiliateId ? t('form.couponAffiliateScopeHelper') : undefined}
+            disabled={lockAffiliateSelect}
             onValueChange={(val) => {
-              if (val === 0) methods.setValue('affiliate_id', undefined as any);
+              if (val === 0) {
+                methods.setValue('affiliate_id', undefined as any);
+              } else if (val > 0) {
+                // Avoid stuck state: product/vendor type + empty scope when UI locks multi-selects.
+                methods.setValue('coupon_type', 'general');
+                methods.setValue('product_ids', []);
+                methods.setValue('vendor_ids', []);
+              }
             }}
           />
         </Box>
@@ -253,7 +276,7 @@ export default function CreatePage() {
           <Box className="flex items-center gap-2 mb-2">
             <Iconify icon="solar:tag-bold" className="text-primary" width={24} height={24} />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Coupon Type
+              {t('form.couponTypeLabel')}
             </Typography>
           </Box>
           <Controller
@@ -263,9 +286,9 @@ export default function CreatePage() {
               <div className="flex gap-4">
                 {(
                   [
-                    { value: 'general', label: 'General' },
-                    { value: 'product', label: 'Products' },
-                    { value: 'vendor', label: 'Vendors' },
+                    { value: 'general', label: t('form.couponTypeGeneral') },
+                    { value: 'product', label: t('form.couponTypeProducts') },
+                    { value: 'vendor', label: t('form.couponTypeVendors') },
                   ] as const
                 ).map((opt) => (
                   <label
@@ -298,14 +321,14 @@ export default function CreatePage() {
                 height={24}
               />
               <Typography variant="subtitle2" className="font-semibold text-foreground">
-                Products
+                {t('form.couponTypeProducts')}
               </Typography>
             </Box>
             <RHFMultiSelect
               name="product_ids"
               options={productOptions}
               label={t('form.selectProducts')}
-              placeholder={hasAffiliateId ? 'Managed by affiliate' : 'Search and select products...'}
+              placeholder={hasAffiliateId ? t('form.couponManagedByAffiliate') : t('form.couponSearchSelectProducts')}
               fullWidth
               isDisabled={hasAffiliateId}
             />
@@ -323,14 +346,14 @@ export default function CreatePage() {
                 height={24}
               />
               <Typography variant="subtitle2" className="font-semibold text-foreground">
-                Vendors
+                {t('form.couponTypeVendors')}
               </Typography>
             </Box>
             <RHFMultiSelect
               name="vendor_ids"
               options={vendorOptions}
               label={t('form.selectVendors')}
-              placeholder={hasAffiliateId ? 'Managed by affiliate' : 'Search and select vendors...'}
+              placeholder={hasAffiliateId ? t('form.couponManagedByAffiliate') : t('form.couponSearchSelectVendors')}
               fullWidth
               isDisabled={hasAffiliateId}
             />
@@ -365,20 +388,15 @@ export default function CreatePage() {
         <Box className="flex gap-4 flex-wrap">
           <Box className="flex-1 min-w-[140px]">
             <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
-              Discount Type
+              {t('form.discountType')}
             </Typography>
-            <Controller
+            <RHFSelect
               name="discount_type"
-              control={control}
-              render={({ field }) => (
-                <select
-                  {...field}
-                  className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
-                >
-                  <option value="percentage">Percentage</option>
-                  <option value="fixed">Fixed</option>
-                </select>
-              )}
+              placeholder={t('form.discountType')}
+              options={[
+                { value: 'percentage', label: t('form.discountTypePercentage') },
+                { value: 'fixed', label: t('form.discountTypeFixed') },
+              ]}
             />
           </Box>
           <Box className="flex-1 min-w-[140px]">
@@ -429,7 +447,7 @@ export default function CreatePage() {
                   checked={field.value}
                   onChange={(e) => field.onChange((e.target as HTMLInputElement).checked)}
                 />
-                <Typography variant="body2">Active</Typography>
+                <Typography variant="body2">{t('active')}</Typography>
               </div>
             )}
           />

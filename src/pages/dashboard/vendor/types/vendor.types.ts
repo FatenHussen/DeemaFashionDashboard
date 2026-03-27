@@ -13,6 +13,8 @@ export interface VendorData {
   owner_name: string;
   owner_phone?: string;
   commercial_register?: string;
+  /** Some API responses use this key instead of `commercial_register`. */
+  commercial_register_number?: string;
   contract_date?: string;
   contract_number?: string;
   contract_duration_months?: number;

@@ -20,8 +20,6 @@ import { RHFInfiniteSelect } from 'src/shared/components/hook-form/rhf-infinite-
 
 // ----------------------------------------------------------------------
 
-const metadata = { title: `Assign Gift | Dashboard - ${CONFIG.appName}` };
-
 const toStr = (val: string | { ar?: string; en?: string } | undefined): string => {
   if (!val) return '';
   if (typeof val === 'string') return val;
@@ -38,24 +36,6 @@ const userFetcher = (page: number, limit: number) =>
       pagination: r.data.pagination,
     },
   }));
-
-const giftFetcher = (page: number, limit: number) =>
-  _GiftApi.getListGifts({ page, per_page: limit }).then((r) => {
-    const items = Array.isArray(r.data)
-      ? r.data
-      : (r.data as { items?: any[] })?.items ?? [];
-    const pagination = Array.isArray(r.data)
-      ? (r as any).meta
-        ? { current_page: (r as any).meta.current_page, last_page: Math.ceil((r as any).meta.total / limit) || 1, per_page: limit, total: (r as any).meta.total }
-        : { current_page: 1, last_page: 1, per_page: limit, total: items.length }
-      : (r.data as { pagination?: any })?.pagination ?? { current_page: 1, last_page: 1, per_page: limit, total: items.length };
-    return {
-      data: {
-        items: items.map((g: any) => ({ id: g.id, label: toStr(g.name) || `Gift #${g.id}` })),
-        pagination,
-      },
-    };
-  });
 
 export default function CreatePage() {
   const { t } = useTranslation('table');
@@ -79,10 +59,31 @@ export default function CreatePage() {
   const isSubmitting = createMutation.isPending;
   const errorMessage = createMutation.error?.message || null;
 
+  const giftFetcher = (page: number, limit: number) =>
+    _GiftApi.getListGifts({ page, per_page: limit }).then((r) => {
+      const items = Array.isArray(r.data)
+        ? r.data
+        : (r.data as { items?: any[] })?.items ?? [];
+      const pagination = Array.isArray(r.data)
+        ? (r as any).meta
+          ? { current_page: (r as any).meta.current_page, last_page: Math.ceil((r as any).meta.total / limit) || 1, per_page: limit, total: (r as any).meta.total }
+          : { current_page: 1, last_page: 1, per_page: limit, total: items.length }
+        : (r.data as { pagination?: any })?.pagination ?? { current_page: 1, last_page: 1, per_page: limit, total: items.length };
+      return {
+        data: {
+          items: items.map((g: any) => ({
+            id: g.id,
+            label: toStr(g.name) || t('form.userGiftFallbackLabel', { id: g.id }),
+          })),
+          pagination,
+        },
+      };
+    });
+
   const onSubmit = async (data: UserGiftCreateFormValues) => {
     try {
       if (!data.user_id || !data.gift_id) {
-        toast.error('Please select both user and gift');
+        toast.error(t('form.selectBothUserAndGift'));
         return;
       }
       await createMutation.mutateAsync({
@@ -92,7 +93,7 @@ export default function CreatePage() {
         status: data.status || 'pending',
         admin_notes: data.admin_notes || undefined,
       });
-      toast.success('Gift assigned to user successfully');
+      toast.success(t('form.userGiftAssignedSuccess'));
       navigate('/user-gifts');
     } catch {
       return;
@@ -101,7 +102,7 @@ export default function CreatePage() {
 
   return (
     <>
-      <title>Assign Gift | {metadata.title}</title>
+      <title>{t('form.userGiftAssignDocumentTitle', { appName: CONFIG.appName })}</title>
       <CreateFormLayout
         methods={methods as any}
         onSubmit={handleSubmit(onSubmit as any)}
@@ -112,12 +113,12 @@ export default function CreatePage() {
         description={t('form.assignGiftDesc')}
         maxWidth="2xl"
         submitLabel={t('form.assignGiftSubmit')}
-        submittingLabel="Assigning..."
+        submittingLabel={t('form.assigning')}
       >
         <Box className="space-y-4">
           <Box>
             <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
-              User (required)
+              {t('form.userGiftFieldUserRequired')}
             </Typography>
             <RHFInfiniteSelect
               name="user_id"
@@ -129,7 +130,7 @@ export default function CreatePage() {
 
           <Box>
             <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
-              Gift (required)
+              {t('form.userGiftFieldGiftRequired')}
             </Typography>
             <RHFInfiniteSelect
               name="gift_id"
@@ -141,7 +142,7 @@ export default function CreatePage() {
 
           <Box>
             <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
-              Address ID (optional)
+              {t('form.userGiftFieldAddressOptional')}
             </Typography>
             <RHFTextField
               name="address_id"
@@ -153,16 +154,16 @@ export default function CreatePage() {
 
           <Box>
             <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
-              Status
+              {t('columns.status')}
             </Typography>
             <RHFSelect
               name="status"
               options={[
-                { value: 'pending', label: 'Pending' },
-                { value: 'processing', label: 'Processing' },
-                { value: 'shipped', label: 'Shipped' },
-                { value: 'delivered', label: 'Delivered' },
-                { value: 'cancelled', label: 'Cancelled' },
+                { value: 'pending', label: t('form.userGiftStatus_pending') },
+                { value: 'processing', label: t('form.userGiftStatus_processing') },
+                { value: 'shipped', label: t('form.userGiftStatus_shipped') },
+                { value: 'delivered', label: t('form.userGiftStatus_delivered') },
+                { value: 'cancelled', label: t('form.userGiftStatus_cancelled') },
               ]}
               placeholder={t('form.selectStatus')}
             />

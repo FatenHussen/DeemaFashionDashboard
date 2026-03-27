@@ -25,8 +25,6 @@ import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout
 
 // ----------------------------------------------------------------------
 
-const metadata = { title: `Banner ${CONFIG.appName}` };
-
 export default function CreatePage() {
   const { t } = useTranslation('table');
   const { id } = useParams<{ id?: string }>();
@@ -134,16 +132,16 @@ export default function CreatePage() {
     navigate('/sections/banners');
   };
 
-  const infoText = isEditMode
-    ? 'You can update any field. Leave image unchanged or upload a new one.'
-    : 'Fill in the banner title, description, upload an image and optionally add a link.';
+  const infoText = isEditMode ? t('form.bannerFormInfoEdit') : t('form.bannerFormInfoCreate');
 
   if (isEditMode && isLoadingDetails && !bannerFromState) return <LoadingScreen />;
 
   return (
     <>
       <title>
-        {isEditMode ? `Edit Banner | ${metadata.title}` : `Create Banner | ${metadata.title}`}
+        {isEditMode
+          ? t('form.bannerEditDocumentTitle', { appName: CONFIG.appName })
+          : t('form.bannerCreateDocumentTitle', { appName: CONFIG.appName })}
       </title>
 
       <CreateFormLayout
@@ -152,24 +150,22 @@ export default function CreatePage() {
         onCancel={handleCancel}
         isSubmitting={isSubmitting}
         errorMessage={errorMessage}
-        title={isEditMode ? 'Edit Banner' : 'Create New Banner'}
-        description={
-          isEditMode ? 'Update banner information and image' : 'Add a new banner to your system'
-        }
+        title={isEditMode ? t('form.editBanner') : t('form.createBanner')}
+        description={isEditMode ? t('form.editBannerDesc') : t('form.createBannerDesc')}
         isEditMode={isEditMode}
         isLoading={isEditMode && isLoadingDetails}
         loadingText={t('form.loadingBanner')}
         maxWidth="3xl"
         infoText={infoText}
-        submitLabel={isEditMode ? 'Update Banner' : 'Create Banner'}
-        submittingLabel={isEditMode ? 'Updating...' : 'Creating...'}
+        submitLabel={isEditMode ? t('form.updateBannerSubmit') : t('form.createBannerSubmit')}
+        submittingLabel={isEditMode ? t('form.updatingBanner') : t('form.creatingBanner')}
       >
         {/* English Title */}
         <Box className="group">
           <Box className="flex items-center gap-2 mb-2">
             <Iconify icon="solar:letter-bold" className="text-primary" width={24} height={24} />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              English Title
+              {t('form.bannerEnglishTitleLabel')}
             </Typography>
           </Box>
           <RHFTextField
@@ -185,12 +181,12 @@ export default function CreatePage() {
           <Box className="flex items-center gap-2 mb-2">
             <Iconify icon="solar:letter-bold" className="text-primary" width={24} height={24} />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Arabic Title
+              {t('form.bannerArabicTitleLabel')}
             </Typography>
           </Box>
           <RHFTextField
             name="title.ar"
-            placeholder="e.g., وصل حديثًا"
+            placeholder={t('form.bannerTitleArExample')}
             helperText={t('form.bannerTitleArHelper')}
             className="transition-all duration-200"
             dir="rtl"
@@ -240,7 +236,7 @@ export default function CreatePage() {
               height={24}
             />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Banner Image {!isEditMode && '(Required)'}
+              {isEditMode ? t('form.bannerImageLabel') : t('form.bannerImageLabelRequired')}
             </Typography>
           </Box>
           <Controller
@@ -265,7 +261,7 @@ export default function CreatePage() {
                   <Box className="mt-4">
                     <img
                       src={previewImage}
-                      alt="Banner preview"
+                      alt={t('form.bannerPreviewAlt')}
                       className="w-full max-w-md h-32 object-cover rounded-lg border border-border/60"
                     />
                   </Box>
@@ -280,7 +276,7 @@ export default function CreatePage() {
           <Box className="flex items-center gap-2 mb-2">
             <Iconify icon="solar:link-bold" className="text-primary" width={24} height={24} />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Link
+              {t('form.linkLabelShort')}
             </Typography>
           </Box>
           <RHFTextField

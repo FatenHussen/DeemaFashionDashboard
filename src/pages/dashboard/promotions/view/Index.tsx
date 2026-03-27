@@ -11,8 +11,6 @@ import { useFetchPromotions, useDeletePromotion } from '@/pages/dashboard/promot
 
 import { CONFIG } from 'src/global-config';
 
-const metadata = { title: `Promotions | Dashboard - ${CONFIG.appName}` };
-
 export default function Page() {
   const { t } = useTranslation('table');
   const navigate = useNavigate();
@@ -60,7 +58,7 @@ export default function Page() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.promotionsIndexDocumentTitle', { appName: CONFIG.appName })}</title>
       <DataTable
         tableName={t("tableNames.promotion")}
         columns={promotionColumns(
@@ -71,6 +69,7 @@ export default function Page() {
         data={items}
         createPath="/promotions/create"
         hasDetails
+        detailsLink="/promotions"
         permissions={{
           create: hasPermission('create', 'promotion'),
           update: hasPermission('update', 'promotion'),

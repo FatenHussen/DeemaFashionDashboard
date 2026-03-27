@@ -1,13 +1,37 @@
-import { useEffect, useState } from 'react';
-import { useFormContext, Controller } from 'react-hook-form';
-import { useTranslation } from 'react-i18next';
-import { Box, Typography } from '@/shared/ui';
-import { Button } from '@/shared/ui/button';
-import { Badge } from '@/shared/ui/badge';
-import { Checkbox } from '@/shared/ui/checkbox';
-import { _BadgeApi } from 'src/pages/dashboard/badges/api/badge.services';
 import type { BadgeItem } from '@/pages/dashboard/badges/types/badge.types';
+
+import { Badge } from '@/shared/ui/badge';
+import { useState, useEffect } from 'react';
+import { Box, Typography } from '@/shared/ui';
+import { useTranslation } from 'react-i18next';
+import { Checkbox } from '@/shared/ui/checkbox';
 import { Iconify } from '@/shared/components/iconify';
+import { Controller, useFormContext } from 'react-hook-form';
+import { formatTranslated } from '@/utils/format-translated';
+
+import { useLocalizationStore } from 'src/store/useLocalizationStore';
+import { _BadgeApi } from 'src/pages/dashboard/badges/api/badge.services';
+
+/** API often sends MUI-style tokens; CSS backgroundColor only accepts real colors. */
+const SEMANTIC_BADGE_HEX: Record<string, string> = {
+  success: '#16a34a',
+  warning: '#ca8a04',
+  danger: '#dc2626',
+  error: '#dc2626',
+  info: '#2563eb',
+  primary: '#2563eb',
+  secondary: '#52525b',
+  default: '#71717a',
+};
+
+function resolveBadgeBackgroundHex(color: string | undefined | null): string {
+  const raw = (color ?? '').trim();
+  if (!raw) return SEMANTIC_BADGE_HEX.default;
+  const lower = raw.toLowerCase();
+  if (lower.startsWith('#')) return raw;
+  if (lower.startsWith('rgb')) return raw;
+  return SEMANTIC_BADGE_HEX[lower] ?? SEMANTIC_BADGE_HEX.default;
+}
 
 // Badge with position
 export interface BadgeWithPosition {
@@ -23,15 +47,19 @@ interface RHFBadgeSelectorProps {
 
 export function RHFBadgeSelector({ name, label, helperText }: RHFBadgeSelectorProps) {
   const { t } = useTranslation('table');
+  const uiLanguage = useLocalizationStore((s) => s.language);
   const { control } = useFormContext();
   const [allBadges, setAllBadges] = useState<BadgeItem[]>([]);
   const [isLoadingBadges, setIsLoadingBadges] = useState(true);
 
   useEffect(() => {
     const loadBadges = async () => {
+      setIsLoadingBadges(true);
       try {
         const response = await _BadgeApi.getListBadges({ per_page: 100 });
-        setAllBadges(response.data.items);
+        const raw = response.data as { items?: BadgeItem[] } | BadgeItem[];
+        const items = Array.isArray(raw) ? raw : raw?.items ?? [];
+        setAllBadges(items);
       } catch (error) {
         console.error('Failed to load badges:', error);
       } finally {
@@ -40,7 +68,7 @@ export function RHFBadgeSelector({ name, label, helperText }: RHFBadgeSelectorPr
     };
 
     loadBadges();
-  }, []);
+  }, [uiLanguage]);
 
   return (
     <Controller
@@ -62,13 +90,14 @@ export function RHFBadgeSelector({ name, label, helperText }: RHFBadgeSelectorPr
             </Typography>
           ) : allBadges.length === 0 ? (
             <Typography variant="body2" className="text-muted-foreground">
-              No badges available
+              {t('form.noBadgesAvailable')}
             </Typography>
           ) : (
             <Box className="space-y-3">
               {allBadges.map((badge) => {
                 const isSelected = selectedBadges.some((b: BadgeWithPosition) => b.id === badge.id);
                 const selectedBadge = selectedBadges.find((b: BadgeWithPosition) => b.id === badge.id);
+                const bgHex = resolveBadgeBackgroundHex(badge.color);
 
                 return (
                   <Box
@@ -77,7 +106,8 @@ export function RHFBadgeSelector({ name, label, helperText }: RHFBadgeSelectorPr
                   >
                     <Checkbox
                       checked={isSelected}
-                      onCheckedChange={(checked) => {
+                      onChange={(e) => {
+                        const checked = (e.target as HTMLInputElement).checked;
                         if (checked) {
                           field.onChange([
                             ...selectedBadges,
@@ -96,12 +126,13 @@ export function RHFBadgeSelector({ name, label, helperText }: RHFBadgeSelectorPr
                       <Box className="flex items-center gap-2 mb-1">
                         <Badge
                           color="default"
+                          className="rounded-md px-2 py-0.5 text-xs font-medium"
                           style={{
-                            backgroundColor: badge.color,
-                            color: getContrastColor(badge.color),
+                            backgroundColor: bgHex,
+                            color: getContrastColor(bgHex),
                           }}
                         >
-                          {typeof badge.name === 'string' ? badge.name : badge.name.en}
+                          {formatTranslated(badge.name as Parameters<typeof formatTranslated>[0])}
                         </Badge>
                       </Box>
                     </Box>
@@ -118,8 +149,8 @@ export function RHFBadgeSelector({ name, label, helperText }: RHFBadgeSelectorPr
                           }}
                           className="h-8 rounded border border-border bg-background px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                         >
-                          <option value="top">Top</option>
-                          <option value="bottom">Bottom</option>
+                          <option value="top">{t('form.badgePositionTop')}</option>
+                          <option value="bottom">{t('form.badgePositionBottom')}</option>
                         </select>
                       </Box>
                     )}
@@ -145,17 +176,19 @@ export function RHFBadgeSelector({ name, label, helperText }: RHFBadgeSelectorPr
                   const badgeData = allBadges.find((b) => b.id === badge.id);
                   if (!badgeData) return null;
 
+                  const summaryBg = resolveBadgeBackgroundHex(badgeData.color);
+
                   return (
                     <Box key={badge.id} className="flex items-center gap-1 bg-muted px-2 py-1 rounded-md text-xs">
                       <Badge
                         color="default"
+                        className="rounded-md px-1.5 py-0.5 text-[11px] font-medium"
                         style={{
-                          backgroundColor: badgeData.color,
-                          color: getContrastColor(badgeData.color),
-                          fontSize: '11px',
+                          backgroundColor: summaryBg,
+                          color: getContrastColor(summaryBg),
                         }}
                       >
-                        {typeof badgeData.name === 'string' ? badgeData.name : badgeData.name.en}
+                        {formatTranslated(badgeData.name as Parameters<typeof formatTranslated>[0])}
                       </Badge>
                       <span className="text-muted-foreground">({badge.position})</span>
                       <button
@@ -180,12 +213,28 @@ export function RHFBadgeSelector({ name, label, helperText }: RHFBadgeSelectorPr
   );
 }
 
-// Helper function to determine text color based on background
-function getContrastColor(hexColor: string): string {
-  const hex = hexColor.replace('#', '');
+// Helper function to determine text color based on background (expects #rrggbb or rgb())
+function getContrastColor(cssColor: string): string {
+  const raw = cssColor.trim();
+  if (raw.toLowerCase().startsWith('rgb')) {
+    const m = raw.match(/\d+(\.\d+)?/g);
+    if (m && m.length >= 3) {
+      const r = Number(m[0]);
+      const g = Number(m[1]);
+      const b = Number(m[2]);
+      if (!Number.isNaN(r + g + b)) {
+        const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+        return luminance > 0.5 ? '#000000' : '#FFFFFF';
+      }
+    }
+    return '#000000';
+  }
+  const hex = raw.replace('#', '');
+  if (hex.length < 6) return '#000000';
   const r = parseInt(hex.substring(0, 2), 16);
   const g = parseInt(hex.substring(2, 4), 16);
   const b = parseInt(hex.substring(4, 6), 16);
+  if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) return '#000000';
   const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
   return luminance > 0.5 ? '#000000' : '#FFFFFF';
 }

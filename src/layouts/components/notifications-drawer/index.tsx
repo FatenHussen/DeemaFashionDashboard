@@ -2,6 +2,7 @@ import type { NotificationItemProps } from './notification-item';
 
 import { m } from 'framer-motion';
 import { queryKeys } from '@/api';
+import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { useBoolean } from 'minimal-shared/hooks';
 import { useMemo, useState, useEffect, useCallback } from 'react';
@@ -39,6 +40,7 @@ export type NotificationsDrawerProps = React.ButtonHTMLAttributes<HTMLButtonElem
 };
 
 export function NotificationsDrawer({ data = [], className, ...other }: NotificationsDrawerProps) {
+  const { t } = useTranslation('common');
   const { value: open, onFalse: onClose, onTrue: onOpen } = useBoolean();
 
   const [currentTab, setCurrentTab] = useState('all');
@@ -67,11 +69,11 @@ export function NotificationsDrawer({ data = [], className, ...other }: Notifica
 
   const tabs = useMemo(
     () => [
-      { value: 'all', label: 'All', count: notifications.length },
-      { value: 'unread', label: 'Unread', count: totalUnRead },
-      { value: 'archived', label: 'Archived', count: totalArchived },
+      { value: 'all', label: t('notificationsTabAll'), count: notifications.length },
+      { value: 'unread', label: t('notificationsTabUnread'), count: totalUnRead },
+      { value: 'archived', label: t('notificationsTabArchived'), count: totalArchived },
     ],
-    [notifications.length, totalUnRead, totalArchived]
+    [notifications.length, totalUnRead, totalArchived, t]
   );
 
   const filteredNotifications = useMemo(() => {
@@ -91,13 +93,13 @@ export function NotificationsDrawer({ data = [], className, ...other }: Notifica
   };
 
   const renderHead = () => (
-    <Box className="py-2 pr-1 pl-2.5 min-h-[68px] flex items-center">
+    <Box className="py-2 pe-1 ps-2.5 min-h-[68px] flex items-center">
       <Typography variant="h6" className="flex-grow">
-        Notifications
+        {t('notificationsDrawerTitle')}
       </Typography>
 
       {!!totalUnRead && (
-        <Tooltip title="Mark all as read">
+        <Tooltip title={t('markAllRead')}>
           <IconButton color="primary" onClick={handleMarkAllAsRead}>
             <Iconify icon="eva:done-all-fill" />
           </IconButton>
@@ -148,7 +150,7 @@ export function NotificationsDrawer({ data = [], className, ...other }: Notifica
           </Box>
         ) : filteredNotifications.length === 0 ? (
           <Box className="flex justify-center py-8 text-sm text-muted-foreground">
-            No notifications
+            {t('notificationsEmpty')}
           </Box>
         ) : (
           filteredNotifications.map((notification) => (
@@ -167,7 +169,7 @@ export function NotificationsDrawer({ data = [], className, ...other }: Notifica
         whileTap={varTap(0.96)}
         whileHover={varHover(1.04)}
         transition={transitionTap()}
-        aria-label="Notifications button"
+        aria-label={t('notificationsButton')}
         onClick={onOpen}
         className={`inline-flex items-center justify-center rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 h-9 w-9 text-foreground hover:bg-muted active:bg-muted ${className || ''}`}
         {...(other as any)}

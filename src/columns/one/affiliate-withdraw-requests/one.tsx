@@ -56,8 +56,8 @@ export const affiliateWithdrawColumns = (
     accessorKey: 'status',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.status')} />,
     cell: ({ row }) => (
-      <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${statusColors[row.original.status] ?? 'bg-muted text-muted-foreground'}`}>
-        {row.original.status}
+      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusColors[row.original.status] ?? 'bg-muted text-muted-foreground'}`}>
+        {t(`form.affiliateWithdrawStatus_${row.original.status}`, { defaultValue: row.original.status })}
       </span>
     ),
   },

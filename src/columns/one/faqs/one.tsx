@@ -4,6 +4,7 @@ import type { FaqItem } from '@/pages/dashboard/content/types/faq.types';
 
 import { z } from 'zod';
 import { formatTranslated } from '@/utils/format-translated';
+import { faqTypeLabel } from '@/pages/dashboard/content/utils/faq-type-label';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 
@@ -22,11 +23,6 @@ const TYPE_COLORS: Record<string, string> = {
   'stores & drivers': 'bg-orange-500/10 text-orange-600 border-orange-500/20',
   other: 'bg-muted text-muted-foreground border-border',
 };
-
-const formatTypeLabel = (type: string) =>
-  type === 'stores&drivers' || type === 'stores & drivers'
-    ? 'Stores & Drivers'
-    : type.charAt(0).toUpperCase() + type.slice(1);
 
 export const faqColumns = (
   t: TFunction<'table'>,
@@ -57,7 +53,7 @@ export const faqColumns = (
         <span
           className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${TYPE_COLORS[type] ?? TYPE_COLORS.other}`}
         >
-          {formatTypeLabel(type)}
+          {faqTypeLabel(t, type)}
         </span>
       );
     },

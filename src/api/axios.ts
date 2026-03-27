@@ -3,8 +3,9 @@ import { toast } from 'react-toastify';
 
 import { paths } from 'src/routes/paths';
 
+import i18n from 'src/lib/i18n';
 import { CONFIG } from 'src/global-config';
-import { LANGUAGE_STORAGE_KEY } from 'src/lib/i18n';
+import { getActiveLanguageCode } from 'src/lib/language-code';
 import { JWT_STORAGE_KEY } from 'src/pages/auth/context/jwt/constant';
 
 // ----------------------------------------------------------------------
@@ -13,9 +14,6 @@ const LOGIN_PATH = paths.auth.jwt.signIn;
 
 const axiosInstance = axios.create({
   baseURL: CONFIG.serverUrl,
-  headers: {
-    'Content-Type': 'application/json',
-  },
 });
 
 // If a token already exists (e.g., after refresh), set it on defaults
@@ -25,6 +23,7 @@ if (bootstrapToken) {
 }
 
 // Attach Authorization and Accept-Language headers
+// Attach Authorization and Accept-Language headers
 axiosInstance.interceptors.request.use(
   (config) => {
     const token = sessionStorage.getItem(JWT_STORAGE_KEY);
@@ -32,8 +31,7 @@ axiosInstance.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
 
-    const lang = localStorage.getItem(LANGUAGE_STORAGE_KEY) || 'en';
-    config.headers['Accept-Language'] = lang;
+    config.headers['Accept-Language'] = getActiveLanguageCode();
 
     return config;
   },
@@ -56,7 +54,9 @@ axiosInstance.interceptors.response.use(
   (error) => {
     const status = error?.response?.status;
     const message =
-      error?.response?.data?.message || error?.message || 'Something went wrong!';
+      error?.response?.data?.message ||
+      error?.message ||
+      i18n.t('genericError', { ns: 'common' });
 
     // 401 Unauthorized: token expired or invalid -> redirect to login
     if (status === 401) {
@@ -84,7 +84,7 @@ export const fetcher = async <T = unknown>(
 
     return res.data;
   } catch (error) {
-    console.error('Fetcher failed:', error);
+    console.error(i18n.t('fetcherFailed', { ns: 'common' }), error);
     throw error;
   }
 };

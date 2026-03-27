@@ -7,8 +7,6 @@ import { complaintColumns, type ComplaintFormValues } from '@/columns/one/compla
 
 import { CONFIG } from 'src/global-config';
 
-const metadata = { title: `Complaints | Dashboard - ${CONFIG.appName}` };
-
 export default function Page() {
   const { t } = useTranslation('table');
   const [currentPage, setCurrentPage] = useState(1);
@@ -94,7 +92,7 @@ export default function Page() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.complaintsIndexDocumentTitle', { appName: CONFIG.appName })}</title>
 
       <DataTable
         tableName={t("tableNames.complaint")}
@@ -114,14 +112,14 @@ export default function Page() {
         }}
         isLoading={isLoading}
         columnTranslations={{
-          id: 'ID',
-          order_id: 'Order',
-          message: 'Message',
-          type: 'Type',
-          user: 'User',
-          status: 'Status',
-          created_at: 'Created',
-          actions: 'Actions',
+          id: t('columns.id'),
+          order_id: t('columns.orderRef'),
+          message: t('columns.message'),
+          type: t('columns.type'),
+          user: t('columns.user'),
+          status: t('columns.status'),
+          created_at: t('columns.created'),
+          actions: t('columns.action'),
         }}
         pagination={pagination}
         currentPage={currentPage}

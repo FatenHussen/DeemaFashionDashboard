@@ -24,8 +24,6 @@ import { RHFInfiniteSelect } from 'src/shared/components/hook-form/rhf-infinite-
 
 // ----------------------------------------------------------------------
 
-const metadata = { title: `City ${CONFIG.appName}` };
-
 const governorateFetcher = (page: number, limit: number) =>
   _GovernorateApi.getListGovernorates({ page, per_page: limit }).then((r) => ({
     data: {
@@ -86,11 +84,11 @@ export default function CreatePage() {
 
       if (isEditMode && id) {
         await updateCityMutation.mutateAsync({ id, data: payload });
-        toast.success('City updated successfully');
+        toast.success(t('form.cityUpdatedSuccess'));
         navigate('/locations/city');
       } else {
         await createCityMutation.mutateAsync(payload);
-        toast.success('City created successfully');
+        toast.success(t('form.cityCreatedSuccess'));
         navigate('/locations/city');
       }
     } catch (error: any) {
@@ -102,14 +100,14 @@ export default function CreatePage() {
     navigate('/locations/city');
   };
 
-  const infoText = isEditMode
-    ? 'You can update any field. Make sure both Arabic and English names are provided and a governorate is selected.'
-    : 'Fill in both Arabic and English names and select a governorate to create a new city.';
+  const infoText = isEditMode ? t('form.cityFormInfoEdit') : t('form.cityFormInfoCreate');
 
   return (
     <>
       <title>
-        {isEditMode ? `Edit City | ${metadata.title}` : `Create City | ${metadata.title}`}
+        {isEditMode
+          ? t('form.cityEditDocumentTitle', { appName: CONFIG.appName })
+          : t('form.cityCreateDocumentTitle', { appName: CONFIG.appName })}
       </title>
 
       <CreateFormLayout
@@ -118,15 +116,15 @@ export default function CreatePage() {
         onCancel={handleCancel}
         isSubmitting={isSubmitting}
         errorMessage={errorMessage}
-        title={isEditMode ? 'Edit City' : 'Create New City'}
-        description={isEditMode ? 'Update city information' : 'Add a new city to your system'}
+        title={isEditMode ? t('form.editCity') : t('form.createCity')}
+        description={isEditMode ? t('form.editCityDesc') : t('form.createCityDesc')}
         isEditMode={isEditMode}
         isLoading={isLoadingCity}
         loadingText={t('form.loadingCity')}
         maxWidth="3xl"
         infoText={infoText}
-        submitLabel={isEditMode ? 'Update City' : 'Create City'}
-        submittingLabel={isEditMode ? 'Updating...' : 'Creating...'}
+        submitLabel={isEditMode ? t('form.updateCity') : t('form.createCitySubmit')}
+        submittingLabel={isEditMode ? t('form.updatingCity') : t('form.creatingCity')}
       >
         {/* Name Field - Arabic */}
         <Box className="group">

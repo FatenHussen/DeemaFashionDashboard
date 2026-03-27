@@ -9,8 +9,6 @@ import { useDeleteCurrency, useFetchCurrencies } from '@/pages/dashboard/currenc
 
 import { CONFIG } from 'src/global-config';
 
-const metadata = { title: `Currencies | Dashboard - ${CONFIG.appName}` };
-
 export default function Page() {
   const { t } = useTranslation('table');
   const navigate = useNavigate();
@@ -49,7 +47,7 @@ export default function Page() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.currenciesIndexDocumentTitle', { appName: CONFIG.appName })}</title>
       <DataTable
         tableName={t("tableNames.currency")}
         columns={currencyColumns(
@@ -62,7 +60,7 @@ export default function Page() {
         detailsLink="/currencies/details"
         permissions={{ create: hasPermission('create', 'currency'), update: hasPermission('update', 'currency'), delete: hasPermission('delete', 'currency') }}
         isLoading={isLoading}
-        columnTranslations={{ id: 'ID', code: 'Code', name: 'Name', symbol: 'Symbol', exchange_rate: 'Rate', is_default: 'Default', is_active: 'Status', actions: 'Actions' }}
+        columnTranslations={{ id: t('columns.id'), code: t('columns.code'), name: t('columns.name'), symbol: t('columns.symbol'), exchange_rate: t('columns.rate'), is_default: t('columns.default'), is_active: t('columns.status'), actions: t('columns.action') }}
         pagination={pagination}
         currentPage={currentPage}
         pageSize={pageSize}

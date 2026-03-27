@@ -198,6 +198,8 @@ export const apiRoutes = {
     update: (id: number | string) => `${ROOTS.ADMIN}/products/${id}`,
     delete: (id: number | string) => `${ROOTS.ADMIN}/products/${id}`,
     details: (id: number | string) => `${ROOTS.ADMIN}/products/${id}`,
+    approve: (id: number | string) => `${ROOTS.ADMIN}/products/${id}/approve`,
+    reject: (id: number | string) => `${ROOTS.ADMIN}/products/${id}/reject`,
   },
   // Order routes
   order: {
@@ -233,7 +235,10 @@ export const apiRoutes = {
     delete: (id: number | string) => `${ROOTS.ADMIN}/packages/${id}`,
     details: (id: number | string) => `${ROOTS.ADMIN}/packages/${id}`,
   },
-  // Subscription routes
+  /**
+   * User subscriptions (read-only): GET list + GET by id.
+   * Backend: `/api/admin/subscriptions` when `VITE_SERVER_URL` includes `/api`.
+   */
   subscription: {
     list: `${ROOTS.ADMIN}/subscriptions`,
     details: (id: number | string) => `${ROOTS.ADMIN}/subscriptions/${id}`,
@@ -313,6 +318,8 @@ export const apiRoutes = {
   adminNotification: {
     list: `${ROOTS.ADMIN}/notifications`,
     create: `${ROOTS.ADMIN}/notifications`,
+    details: (id: number | string) => `${ROOTS.ADMIN}/notifications/${id}`,
+    update: (id: number | string) => `${ROOTS.ADMIN}/notifications/${id}`,
   },
   // Vendor Packages
   vendorPackage: {
@@ -419,6 +426,7 @@ export const apiRoutes = {
     details: (id: number | string) => `${ROOTS.ADMIN}/point-rules/${id}`,
   },
   // Schedule routes
+  /** Delivery schedules (subscriptions discounts). Backend: `/api/admin/schedules`. */
   schedule: {
     list: `${ROOTS.ADMIN}/schedules`,
     create: `${ROOTS.ADMIN}/schedules`,

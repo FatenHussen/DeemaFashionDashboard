@@ -10,9 +10,23 @@ const pkgDisplayName = (name: SubscriptionListItem['package']['name']): string =
   return name.en || name.ar || '';
 };
 
-const formatRemaining = (value: number | null | undefined): string => {
+/** `remaining_orders`: null = unlimited per API */
+const formatRemainingOrders = (value: number | null | undefined): string => {
   if (value === null || value === undefined) return '∞';
   return String(value);
+};
+
+/** `remaining_free_deliveries`: null = not applicable / unknown */
+const formatRemainingFreeDeliveries = (value: number | null | undefined): string => {
+  if (value === null || value === undefined) return '—';
+  return String(value);
+};
+
+const subscriptionStatusLabel = (status: string, t: TFunction<'table'>): string => {
+  if (status === 'active') return t('active');
+  if (status === 'expired') return t('expired');
+  if (status === 'cancelled') return t('statusCancelled');
+  return status;
 };
 
 export type SubscriptionRow = SubscriptionListItem;
@@ -76,7 +90,9 @@ export const subscriptionColumns = (t: TFunction<'table'>): ColumnDef<Subscripti
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.endDate')} />,
     cell: ({ row }) => (
       <span className="text-sm text-muted-foreground">
-        {row.original.end_date ? new Date(row.original.end_date).toLocaleDateString() : '—'}
+        {row.original.end_date != null && row.original.end_date !== ''
+          ? new Date(row.original.end_date).toLocaleDateString()
+          : '—'}
       </span>
     ),
   },
@@ -87,7 +103,7 @@ export const subscriptionColumns = (t: TFunction<'table'>): ColumnDef<Subscripti
       <DataTableColumnHeader column={column} title={t('columns.remainingOrders')} />
     ),
     cell: ({ row }) => (
-      <span className="text-sm tabular-nums">{formatRemaining(row.original.remaining_orders)}</span>
+      <span className="text-sm tabular-nums">{formatRemainingOrders(row.original.remaining_orders)}</span>
     ),
   },
   {
@@ -98,7 +114,7 @@ export const subscriptionColumns = (t: TFunction<'table'>): ColumnDef<Subscripti
     ),
     cell: ({ row }) => (
       <span className="text-sm tabular-nums">
-        {formatRemaining(row.original.remaining_free_deliveries)}
+        {formatRemainingFreeDeliveries(row.original.remaining_free_deliveries)}
       </span>
     ),
   },
@@ -118,9 +134,9 @@ export const subscriptionColumns = (t: TFunction<'table'>): ColumnDef<Subscripti
               : 'bg-yellow-500/20 text-yellow-600';
       return (
         <span
-          className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize ${colorClass}`}
+          className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${colorClass}`}
         >
-          {status}
+          {subscriptionStatusLabel(String(status), t)}
         </span>
       );
     },

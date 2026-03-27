@@ -24,8 +24,6 @@ import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout
 
 // ----------------------------------------------------------------------
 
-const metadata = { title: `Section ${CONFIG.appName}` };
-
 export default function CreatePage() {
   const { t } = useTranslation('table');
   const { id } = useParams<{ id?: string }>();
@@ -74,7 +72,7 @@ export default function CreatePage() {
     defaultValues,
   });
 
-  const { handleSubmit, reset, watch } = methods;
+  const { handleSubmit, reset, watch, setValue } = methods;
 
   const watchedManualModel = watch('manual_model');
 
@@ -87,20 +85,30 @@ export default function CreatePage() {
   useEffect(() => {
     if (isEditMode && sectionData?.data && !isLoadingSection) {
       const section = sectionData.data;
+      const nameObj = section.admin_name || section.name;
+      const nameEn = typeof nameObj === 'object' && nameObj !== null ? (nameObj as any).en || '' : String(nameObj || '');
+      const nameAr = typeof nameObj === 'object' && nameObj !== null ? (nameObj as any).ar || '' : String(nameObj || '');
+
+      const manualModel = section.manual?.manual_model || '';
+
       reset({
         name: {
-          en: section.name,
-          ar: section.name,
+          en: nameEn,
+          ar: nameAr,
         },
-        manual_model: section.manual?.manual_model || '',
-        item_ids: section.items.map((item, index) => ({
-          item_id: item.id,
-          link: `/item/${item.id}`,
-          order: index + 1,
+        manual_model: manualModel,
+        item_ids: section.items.map((item: any, index: number) => ({
+          item_id: item.item?.id ?? item.id,
+          link: item.link || `/item/${item.item?.id ?? item.id}`,
+          order: item.order ?? index + 1,
         })),
       });
-      // Set selected items from existing section
-      const existingItemIds = new Set(section.items.map((item) => item.id));
+      // Set selected model directly so items list loads immediately
+      if (manualModel) {
+        setSelectedModel(manualModel);
+      }
+      // Set selected items from existing section — use the actual item id, not the pivot id
+      const existingItemIds = new Set(section.items.map((item: any) => item.item?.id ?? item.id));
       setSelectedItems(existingItemIds);
     }
   }, [sectionData, isEditMode, isLoadingSection, reset]);
@@ -123,7 +131,7 @@ export default function CreatePage() {
           en: data.name.en,
           ar: data.name.ar,
         },
-        manual_model: data.manual_model,
+        manual_model: data.manual_model || selectedModel,
         item_ids,
       };
 
@@ -175,14 +183,21 @@ export default function CreatePage() {
         }))
     : [];
 
-  const infoText = isEditMode
-    ? 'You can update any field. Make sure all required fields are filled.'
-    : 'Fill in all required fields to create a new section. Add items by specifying item IDs, links, and order.';
+  // In edit mode, re-set manual_model when options load to ensure Select displays it
+  useEffect(() => {
+    if (isEditMode && selectedModel && itemTypeOptions.length > 0) {
+      setValue('manual_model', selectedModel, { shouldValidate: true });
+    }
+  }, [isEditMode, selectedModel, itemTypeOptions.length, setValue]);
+
+  const infoText = isEditMode ? t('form.sectionFormInfoEdit') : t('form.sectionFormInfoCreate');
 
   return (
     <>
       <title>
-        {isEditMode ? `Edit Section | ${metadata.title}` : `Create Section | ${metadata.title}`}
+        {isEditMode
+          ? t('form.sectionEditDocumentTitle', { appName: CONFIG.appName })
+          : t('form.sectionCreateDocumentTitle', { appName: CONFIG.appName })}
       </title>
 
       <CreateFormLayout
@@ -198,15 +213,15 @@ export default function CreatePage() {
         loadingText={t('form.loadingSection')}
         maxWidth="4xl"
         infoText={infoText}
-        submitLabel={isEditMode ? 'Update Section' : 'Create Section'}
-        submittingLabel={isEditMode ? 'Updating...' : 'Creating...'}
+        submitLabel={isEditMode ? t('form.updateSectionSubmit') : t('form.createSectionSubmit')}
+        submittingLabel={isEditMode ? t('form.updatingSection') : t('form.creatingSection')}
       >
         {/* English Name */}
         <Box className="group">
           <Box className="flex items-center gap-2 mb-2">
             <Iconify icon="solar:text-bold" className="text-primary" width={24} height={24} />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Name (English)
+              {t('form.sectionNameEnglishLabel')}
             </Typography>
           </Box>
           <RHFTextField
@@ -222,12 +237,12 @@ export default function CreatePage() {
           <Box className="flex items-center gap-2 mb-2">
             <Iconify icon="solar:text-bold" className="text-primary" width={24} height={24} />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Name (Arabic)
+              {t('form.sectionNameArabicLabel')}
             </Typography>
           </Box>
           <RHFTextField
             name="name.ar"
-            placeholder="e.g., منتجات مميزة"
+            placeholder={t('form.sectionNameArPlaceholder')}
             helperText={t('form.sectionNameArHelper2')}
             className="transition-all duration-200"
             dir="rtl"
@@ -239,7 +254,7 @@ export default function CreatePage() {
           <Box className="flex items-center gap-2 mb-2">
             <Iconify icon="solar:widget-bold" className="text-primary" width={24} height={24} />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Manual Model
+              {t('form.manualModelLabel')}
             </Typography>
           </Box>
           <RHFSelect
@@ -248,8 +263,8 @@ export default function CreatePage() {
             placeholder={t('form.selectModelType')}
             helperText={
               isEditMode
-                ? 'Manual model cannot be changed when editing'
-                : 'Select the type of items for this section'
+                ? t('form.manualModelHelperEdit')
+                : t('form.manualModelHelperCreate')
             }
             className="transition-all duration-200"
             disabled={isEditMode}
@@ -263,10 +278,10 @@ export default function CreatePage() {
               <Box className="flex items-center gap-2">
                 <Iconify icon="solar:checklist-bold" className="text-primary" width={24} height={24} />
                 <Typography variant="subtitle2" className="font-semibold text-foreground">
-                  Select Items
+                  {t('form.selectItemsHeading')}
                   {selectedItems.size > 0 && (
                     <Typography component="span" variant="body2" className="text-muted-foreground ml-2">
-                      ({selectedItems.size} selected)
+                      {t('form.itemsSelectedCount', { count: selectedItems.size })}
                     </Typography>
                   )}
                 </Typography>
@@ -279,7 +294,7 @@ export default function CreatePage() {
                   size="small"
                   disabled={!allItems.length}
                 >
-                  Select All
+                  {t('form.selectAllItems')}
                 </Button>
                 <Button
                   type="button"
@@ -288,7 +303,7 @@ export default function CreatePage() {
                   size="small"
                   disabled={selectedItems.size === 0}
                 >
-                  Clear All
+                  {t('form.clearAllItems')}
                 </Button>
               </Box>
             </Box>
@@ -312,7 +327,7 @@ export default function CreatePage() {
                   className="w-12 h-12 text-primary mx-auto mb-2 animate-spin"
                 />
                 <Typography variant="body2" className="text-muted-foreground">
-                  Loading items...
+                  {t('form.loadingItems')}
                 </Typography>
               </Box>
             )}
@@ -322,7 +337,7 @@ export default function CreatePage() {
               <Box className="text-center p-8 border border-destructive/50 rounded-lg bg-destructive/5">
                 <Iconify icon="solar:danger-bold" className="w-12 h-12 text-destructive mx-auto mb-2" />
                 <Typography variant="body2" className="text-destructive">
-                  Failed to load items. Please try again.
+                  {t('form.itemsLoadError')}
                 </Typography>
               </Box>
             )}
@@ -337,7 +352,7 @@ export default function CreatePage() {
                       className="w-12 h-12 text-muted-foreground/50 mx-auto mb-2"
                     />
                     <Typography variant="body2" className="text-muted-foreground">
-                      No items found
+                      {t('form.noItemsFoundShort')}
                     </Typography>
                   </Box>
                 ) : (
@@ -362,10 +377,12 @@ export default function CreatePage() {
                           <Box className="flex-1 min-w-0">
                             <Box className="flex items-center gap-2 mb-1">
                               <Typography variant="body1" className="font-semibold text-foreground">
-                                {item.name || item.title || `Item #${item.id}`}
+                                {item.name ||
+                                  item.title ||
+                                  t('form.itemNumberFallback', { id: item.id })}
                               </Typography>
                               <Box className="px-2 py-0.5 rounded bg-muted text-xs text-muted-foreground">
-                                ID: {item.id}
+                                {t('form.itemIdBadgeShort', { id: item.id })}
                               </Box>
                             </Box>
                             {item.desc && (
@@ -389,7 +406,7 @@ export default function CreatePage() {
                     <div ref={sentinelRef} className="py-2 text-center">
                       {infiniteQuery.isFetchingNextPage && (
                         <Typography variant="body2" className="text-muted-foreground">
-                          Loading more...
+                          {t('form.loadingMoreItems')}
                         </Typography>
                       )}
                     </div>
@@ -408,7 +425,7 @@ export default function CreatePage() {
               className="w-12 h-12 text-muted-foreground/50 mx-auto mb-2"
             />
             <Typography variant="body2" className="text-muted-foreground">
-              Please select a manual model first to view and select items
+              {t('form.selectManualModelFirst')}
             </Typography>
           </Box>
         )}

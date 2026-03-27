@@ -21,6 +21,7 @@ export interface ScheduleTableItem {
   is_active: boolean;
   discount_type: 'percentage' | 'fixed' | null;
   discount_value: number | null;
+  created_at?: string;
 }
 
 export const scheduleColumns = (
@@ -86,6 +87,16 @@ export const scheduleColumns = (
     cell: ({ row }) => (
       <span className={`px-2 py-1 rounded-full text-xs font-medium ${row.original.is_active ? 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300' : 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300'}`}>
         {row.original.is_active ? t('active') : t('inactive')}
+      </span>
+    ),
+  },
+  {
+    id: 'created_at',
+    accessorKey: 'created_at',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.created')} />,
+    cell: ({ row }) => (
+      <span className="text-sm text-muted-foreground">
+        {row.original.created_at ? new Date(row.original.created_at).toLocaleString() : '—'}
       </span>
     ),
   },

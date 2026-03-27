@@ -105,15 +105,15 @@ export default function Page() {
         }}
         isLoading={isLoading}
         columnTranslations={{
-          id: 'ID',
-          flag_icon: 'Flag',
-          code: 'Code',
-          native_name: 'Native Name',
-          direction: 'Direction',
-          order: 'Order',
-          is_default: 'Default',
-          status: 'Status',
-          actions: 'Actions',
+          id: t('columns.id'),
+          flag_icon: t('columns.flag'),
+          code: t('columns.code'),
+          native_name: t('columns.nativeName'),
+          direction: t('columns.direction'),
+          order: t('columns.orderRef'),
+          is_default: t('columns.default'),
+          status: t('columns.status'),
+          actions: t('columns.action'),
         }}
         pagination={pagination}
         currentPage={currentPage}

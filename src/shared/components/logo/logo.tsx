@@ -1,4 +1,5 @@
 import { useId } from 'react';
+import { useTranslation } from 'react-i18next';
 import { mergeClasses } from 'minimal-shared/utils';
 
 import { RouterLink } from 'src/routes/components';
@@ -15,6 +16,7 @@ export type LogoProps = React.ComponentProps<typeof RouterLink> & {
 
 export function Logo({ disabled, className, href = '/', isSingle = true, ...other }: LogoProps) {
   const uniqueId = useId();
+  const { t } = useTranslation('common');
 
   // Using CSS variables for colors that can be customized
   const TEXT_PRIMARY = 'var(--color-text-primary, #111827)';
@@ -122,8 +124,8 @@ export function Logo({ disabled, className, href = '/', isSingle = true, ...othe
       </svg>
       {/* Text */}
       <div className="flex items-center">
-        <span className="text-xl font-bold text-[#FFD700]">SAN</span>
-        <span className="text-xl font-bold text-[#1d4ed8] ml-1">BOOKS</span>
+        <span className="text-xl font-bold text-[#FFD700]">Tik</span>
+        <span className="text-xl font-bold text-[#1d4ed8] ms-1">mool</span>
       </div>
     </div>
   );
@@ -131,7 +133,7 @@ export function Logo({ disabled, className, href = '/', isSingle = true, ...othe
   return (
     <RouterLink
       href={href}
-      aria-label="Logo"
+      aria-label={t('logoAria')}
       className={mergeClasses([
         logoClasses.root,
         'shrink-0 inline-flex align-middle items-center',

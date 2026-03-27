@@ -60,6 +60,7 @@ export interface ProductDetailData {
     value: { en: string; ar: string };
   }>;
   images: Array<{ id: number; url: string }>;
+  badges?: Array<{ id: number; position?: string; postion?: string }>;
 }
 
 export interface ProductListResponse {
@@ -95,13 +96,19 @@ export interface ProductCreateUpdatePayload {
   barcode?: string;
   time_prepare?: string;
   is_instant_delivery: number;
+  /** New product gallery files (multipart `media[]`). */
   images?: File[];
+  /** On update: media record IDs to keep (`existing_media_ids[]`). Omit on create. */
+  existing_media_ids?: number[];
 
   // Variants
   variants?: Array<{
     id?: number;
     attributes_values_ids: number[];
+    /** New variant image files (`variants[i][images][]`). */
     images?: File[];
+    /** On update: variant image IDs to keep (`variants[i][existing_images_ids][]`). */
+    existing_images_ids?: number[];
   }>;
 
   // Category Details
@@ -128,4 +135,6 @@ export interface ProductCreateUpdatePayload {
     price: number;
     quantity: number;
   }>;
+
+  badges?: Array<{ id: number; position: 'top' | 'bottom' }>;
 }

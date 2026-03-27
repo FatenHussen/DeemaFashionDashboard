@@ -24,8 +24,6 @@ import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout
 
 // ----------------------------------------------------------------------
 
-const metadata = { title: `Admin ${CONFIG.appName}` };
-
 export default function CreatePage() {
   const { t } = useTranslation('table');
   const { id } = useParams<{ id?: string }>();
@@ -106,14 +104,14 @@ export default function CreatePage() {
     navigate('/admin');
   };
 
-  const infoText = isEditMode
-    ? 'Update admin information and permissions. Use the table action to change password.'
-    : 'Make sure to use a strong password and a valid email address for the admin account.';
+  const infoText = isEditMode ? t('form.adminFormInfoEdit') : t('form.adminFormInfoCreate');
 
   return (
     <>
       <title>
-        {isEditMode ? `Edit Admin | ${metadata.title}` : `Create Admin | ${metadata.title}`}
+        {isEditMode
+          ? t('form.adminEditDocumentTitle', { appName: CONFIG.appName })
+          : t('form.adminCreateDocumentTitle', { appName: CONFIG.appName })}
       </title>
 
       <CreateFormLayout
@@ -122,19 +120,21 @@ export default function CreatePage() {
         onCancel={handleCancel}
         isSubmitting={isSubmitting}
         errorMessage={errorMessage}
-        title={isEditMode ? 'Edit Admin Account' : 'Create New Admin'}
+        title={isEditMode ? t('form.editAdmin') : t('form.createAdmin')}
         description={
           isEditMode
-            ? 'Update admin information and permissions'
-            : 'Add a new administrator to your system'
+            ? t('form.adminFormLayoutDescriptionEdit')
+            : t('form.adminFormLayoutDescriptionCreate')
         }
         isEditMode={isEditMode}
         isLoading={isLoadingAdmin}
         loadingText={t('form.loadingAdmin')}
         maxWidth="3xl"
         infoText={infoText}
-        submitLabel={isEditMode ? 'Update Admin' : 'Create Admin'}
-        submittingLabel={isEditMode ? 'Updating...' : 'Creating...'}
+        submitLabel={isEditMode ? t('form.updateAdminSubmit') : t('form.createAdminSubmit')}
+        submittingLabel={
+          isEditMode ? t('form.updatingAdminSubmit') : t('form.creatingAdminSubmit')
+        }
       >
         {/* Name Field with Icon */}
         <Box className="group">
@@ -202,14 +202,14 @@ export default function CreatePage() {
           <Box className="flex items-center gap-2 mb-2">
             <Iconify icon="solar:shield-user-bold" className="text-primary" width={24} height={24} />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Roles
+              {t('columns.roles')}
             </Typography>
           </Box>
           <RHFMultiSelect
             name="role_ids"
             options={roleOptions}
-            placeholder="Search and select roles..."
-            helperText="Assign one or more roles to this admin"
+            placeholder={t('form.searchRolesPlaceholder')}
+            helperText={t('form.adminRolesHelper')}
             fullWidth
           />
         </Box>

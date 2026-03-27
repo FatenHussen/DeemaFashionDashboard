@@ -18,8 +18,6 @@ import { RHFInfiniteSelect } from 'src/shared/components/hook-form/rhf-infinite-
 
 // ----------------------------------------------------------------------
 
-const metadata = { title: `User ${CONFIG.appName}` };
-
 // Areas API loads all at once — fake single-page pagination
 const areaFetcher = (_page: number, _limit: number) =>
   _AreaApi.getListAreas().then((r) => ({
@@ -36,7 +34,6 @@ export default function CreatePage() {
 
   const defaultValues: UserCreateFormValues = {
     name: '',
-    last_name: '',
     email: '',
     phone: '',
     password: '',
@@ -62,7 +59,7 @@ export default function CreatePage() {
     try {
       const payload: any = {
         name: data.name,
-        last_name: data.last_name || '',
+        last_name: '',
         email: data.email,
         phone: data.phone || '',
         password: data.password,
@@ -74,7 +71,7 @@ export default function CreatePage() {
         payload.affiliate_rate = data.affiliate_rate;
       }
       await createUserMutation.mutateAsync(payload);
-      toast.success('User created successfully');
+      toast.success(t('form.userCreatedSuccess'));
       navigate('/users');
     } catch { return; }
   };
@@ -85,7 +82,7 @@ export default function CreatePage() {
 
   return (
     <>
-      <title>Create User | {metadata.title}</title>
+      <title>{t('form.userCreateDocumentTitle', { appName: CONFIG.appName })}</title>
 
       <CreateFormLayout
         methods={methods as any}
@@ -96,10 +93,11 @@ export default function CreatePage() {
         title={t('form.createUser')}
         description={t('form.createUserDesc')}
         maxWidth="2xl"
+        submitLabel={t('form.userSubmitCreate')}
+        submittingLabel={t('form.creatingUser')}
       >
         <Box className="space-y-4">
           <RHFTextField name="name" label={t('form.firstName')} placeholder={t('form.namePlaceholder')} fullWidth />
-          <RHFTextField name="last_name" label={t('form.lastName')} placeholder={t('form.namePlaceholder')} fullWidth />
           <RHFTextField name="email" label={t('columns.email')} type="email" placeholder={t('form.emailPlaceholder')} fullWidth />
           <RHFTextField name="phone" label={t('columns.phone')} placeholder={t('form.phonePlaceholder')} fullWidth />
           <RHFTextField name="password" label={t('form.passwordLabel')} type="password" placeholder={t('form.passwordPlaceholder')} fullWidth />
@@ -132,7 +130,7 @@ export default function CreatePage() {
                     onChange={(e) => field.onChange(e.target.checked)}
                     className="rounded accent-primary"
                   />
-                  <Typography variant="subtitle2">Make affiliate on creation</Typography>
+                  <Typography variant="subtitle2">{t('form.makeAffiliateOnCreation')}</Typography>
                 </label>
               )}
             />
@@ -143,13 +141,13 @@ export default function CreatePage() {
                   <Typography variant="caption" className="mb-1 block">
                     {t('form.affiliateId')}
                   </Typography>
-                  <RHFTextField name="affiliate_id" type="number" placeholder="56" fullWidth />
+                  <RHFTextField name="affiliate_id" type="number" placeholder={t('form.placeholderFiftySix')} fullWidth />
                 </Box>
                 <Box className="flex-1">
                   <Typography variant="caption" className="mb-1 block">
-                    Affiliate Rate %
+                    {t('form.affiliateRatePercent')}
                   </Typography>
-                  <RHFTextField name="affiliate_rate" type="number" placeholder="15" fullWidth />
+                  <RHFTextField name="affiliate_rate" type="number" placeholder={t('form.placeholderFifteen')} fullWidth />
                 </Box>
               </Box>
             )}

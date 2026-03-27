@@ -1,5 +1,7 @@
 // ----------------------------------------------------------------------
 
+export type RecipeBadgeRef = { id: number; position: 'top' | 'bottom' };
+
 // ── Payload types (sent to API) ──────────────────────────────────────
 
 export interface RecipeItem {
@@ -11,11 +13,13 @@ export interface RecipeItem {
   max_quantity: number;
 }
 
+export type LocalizedField = { ar?: string; en?: string } | string;
+
 export interface RecipeStep {
   step_number: number;
-  heat_level: { ar: string; en: string };
-  time_minutes: { ar: string; en: string };
-  instruction: { ar: string; en: string };
+  heat_level: LocalizedField;
+  time_minutes: LocalizedField;
+  instruction: LocalizedField;
 }
 
 // ── API response types (returned from API) ──────────────────────────
@@ -35,9 +39,9 @@ export interface RecipeItemMainItem {
   name: string;
   variant: string[];
   price: number;
-  currency: string;
-  currency_symbol: string;
-  price_formatted: string;
+  currency?: string;
+  currency_symbol?: string;
+  price_formatted?: string;
 }
 
 export interface RecipeItemAlternative {
@@ -46,9 +50,9 @@ export interface RecipeItemAlternative {
   name: string;
   image_url?: string | null;
   price: number;
-  currency: string;
-  currency_symbol: string;
-  price_formatted: string;
+  currency?: string;
+  currency_symbol?: string;
+  price_formatted?: string;
   variant: string[];
 }
 
@@ -81,12 +85,13 @@ export interface RecipeData {
   price_after_discount_formatted?: string;
   orders_count?: number;
   delivery_price?: number;
-  serves?: number | null;
+  serves?: number | string | null;
   prepare_time?: string | null;
   totals?: RecipeTotals;
   is_active?: boolean;
   items?: RecipeItemData[];
   steps?: RecipeStep[];
+  badges?: RecipeBadgeRef[];
   created_at: string;
   updated_at?: string;
 }
@@ -122,4 +127,5 @@ export interface RecipeCreateUpdatePayload {
   prepare_time?: string;
   items?: RecipeItem[];
   steps?: RecipeStep[];
+  badges?: RecipeBadgeRef[];
 }

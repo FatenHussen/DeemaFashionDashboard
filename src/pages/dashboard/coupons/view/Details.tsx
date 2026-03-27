@@ -1,6 +1,8 @@
 import { Button } from '@/shared/ui/button';
+import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
+import { formatTranslated } from '@/utils/format-translated';
 import { useFetchCouponById } from '@/pages/dashboard/coupons/hooks/coupon';
 
 import { CONFIG } from 'src/global-config';
@@ -10,9 +12,8 @@ import { LoadingScreen } from 'src/shared/components/loading-screen';
 
 // ----------------------------------------------------------------------
 
-const metadata = { title: `Coupon Details | Dashboard - ${CONFIG.appName}` };
-
 export default function DetailsPage() {
+  const { t } = useTranslation('table');
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: couponResponse, isLoading, error } = useFetchCouponById(id || '');
@@ -30,14 +31,14 @@ export default function DetailsPage() {
           <Box className="flex items-center gap-2 mb-2">
             <Iconify icon="solar:danger-bold" className="w-5 h-5 text-destructive" />
             <Typography variant="h6" className="text-destructive">
-              Error Loading Coupon
+              {t('form.couponLoadErrorTitle')}
             </Typography>
           </Box>
           <Typography variant="body2" className="text-muted-foreground mb-4">
-            {error instanceof Error ? error.message : 'Failed to load coupon information'}
+            {error instanceof Error ? error.message : t('form.couponLoadErrorFallback')}
           </Typography>
           <Button variant="outlined" onClick={() => navigate('/coupons')}>
-            Back to Coupons
+            {t('form.backToCoupons')}
           </Button>
         </Box>
       </Box>
@@ -47,7 +48,7 @@ export default function DetailsPage() {
   const discountText =
     coupon.discount?.type === 'percentage'
       ? `${coupon.discount?.value ?? 0}%`
-      : `Fixed: ${coupon.discount?.value ?? 0}`;
+      : t('form.couponDiscountFixed', { value: coupon.discount?.value ?? 0 });
 
   const nameStr = typeof coupon.name === 'object' && coupon.name !== null
     ? (coupon.name as { en?: string; ar?: string }).en ?? (coupon.name as any)?.ar ?? '-'
@@ -55,7 +56,7 @@ export default function DetailsPage() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.couponDetailsDocumentTitle', { appName: CONFIG.appName })}</title>
       <Box className="relative min-h-screen overflow-hidden bg-background p-6">
         <Box className="pointer-events-none fixed inset-0 bg-gradient-to-br from-background via-background to-muted/30" />
         <Box className="pointer-events-none fixed inset-0 opacity-[0.03] dark:opacity-[0.05]">
@@ -70,7 +71,7 @@ export default function DetailsPage() {
               className="mb-4 -ml-2 text-muted-foreground hover:text-foreground"
             >
               <Iconify icon="solar:arrow-left-bold" width={20} className="mr-2" />
-              Back to Coupons
+              {t('form.backToCoupons')}
             </Button>
 
             <Box className="flex items-center gap-4 mb-2">
@@ -98,7 +99,7 @@ export default function DetailsPage() {
                 className="gap-2"
               >
                 <Iconify icon="solar:pen-bold" width={18} />
-                Edit
+                {t('edit')}
               </Button>
             </Box>
           </Box>
@@ -106,12 +107,12 @@ export default function DetailsPage() {
           <Box className="rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm shadow-sm overflow-hidden">
             <Box className="p-6">
               <Typography variant="h6" className="font-semibold mb-4">
-                Coupon Information
+                {t('form.couponInformationSection')}
               </Typography>
               <Box className="grid gap-4 sm:grid-cols-2">
                 <Box>
                   <Typography variant="caption" className="text-muted-foreground">
-                    Code
+                    {t('columns.code')}
                   </Typography>
                   <Typography variant="body1" className="font-medium font-mono">
                     {coupon.code}
@@ -119,7 +120,7 @@ export default function DetailsPage() {
                 </Box>
                 <Box>
                   <Typography variant="caption" className="text-muted-foreground">
-                    Discount
+                    {t('columns.discount')}
                   </Typography>
                   <Typography variant="body1" className="font-medium">
                     {discountText}
@@ -127,7 +128,7 @@ export default function DetailsPage() {
                 </Box>
                 <Box>
                   <Typography variant="caption" className="text-muted-foreground">
-                    Start Date
+                    {t('columns.start')}
                   </Typography>
                   <Typography variant="body1" className="font-medium">
                     {coupon.start_at
@@ -137,7 +138,7 @@ export default function DetailsPage() {
                 </Box>
                 <Box>
                   <Typography variant="caption" className="text-muted-foreground">
-                    End Date
+                    {t('columns.end')}
                   </Typography>
                   <Typography variant="body1" className="font-medium">
                     {coupon.end_at
@@ -147,7 +148,7 @@ export default function DetailsPage() {
                 </Box>
                 <Box>
                   <Typography variant="caption" className="text-muted-foreground">
-                    Used / Max
+                    {t('form.couponUsedMax')}
                   </Typography>
                   <Typography variant="body1" className="font-medium">
                     {coupon.used_count ?? 0} / {coupon.max_uses ?? 0}
@@ -155,7 +156,7 @@ export default function DetailsPage() {
                 </Box>
                 <Box>
                   <Typography variant="caption" className="text-muted-foreground">
-                    Status
+                    {t('columns.status')}
                   </Typography>
                   <Typography variant="body1" className="font-medium">
                     <span
@@ -168,10 +169,10 @@ export default function DetailsPage() {
                       }`}
                     >
                       {coupon.is_expired
-                        ? 'Expired'
+                        ? t('expired')
                         : coupon.is_active
-                          ? 'Active'
-                          : 'Inactive'}
+                          ? t('active')
+                          : t('inactive')}
                     </span>
                   </Typography>
                 </Box>
@@ -187,7 +188,7 @@ export default function DetailsPage() {
                   {coupon.products?.length > 0 && (
                     <Box className="mb-4">
                       <Typography variant="subtitle2" className="font-semibold mb-2">
-                        Products
+                        {t('form.couponTypeProducts')}
                       </Typography>
                       <Box className="flex flex-wrap gap-2">
                         {coupon.products.map((p) => (
@@ -195,7 +196,8 @@ export default function DetailsPage() {
                             key={p.id}
                             className="inline-flex items-center rounded-md bg-muted px-2 py-1 text-sm"
                           >
-                            {p.name ?? `Product #${p.id}`}
+                            {formatTranslated(p.name as Parameters<typeof formatTranslated>[0]) ||
+                              t('form.productFallbackLabel', { id: p.id })}
                           </span>
                         ))}
                       </Box>
@@ -204,7 +206,7 @@ export default function DetailsPage() {
                   {coupon.vendors?.length > 0 && (
                     <Box className="mb-4">
                       <Typography variant="subtitle2" className="font-semibold mb-2">
-                        Vendors
+                        {t('form.couponTypeVendors')}
                       </Typography>
                       <Box className="flex flex-wrap gap-2">
                         {coupon.vendors.map((v) => (
@@ -212,7 +214,8 @@ export default function DetailsPage() {
                             key={v.id}
                             className="inline-flex items-center rounded-md bg-muted px-2 py-1 text-sm"
                           >
-                            {v.name ?? `Vendor #${v.id}`}
+                            {formatTranslated(v.name as Parameters<typeof formatTranslated>[0]) ||
+                              t('form.vendorFallbackLabel', { id: v.id })}
                           </span>
                         ))}
                       </Box>
@@ -221,7 +224,7 @@ export default function DetailsPage() {
                   {coupon.categories?.length > 0 && (
                     <Box>
                       <Typography variant="subtitle2" className="font-semibold mb-2">
-                        Categories
+                        {t('tableNames.category')}
                       </Typography>
                       <Box className="flex flex-wrap gap-2">
                         {coupon.categories.map((c) => (
@@ -229,7 +232,8 @@ export default function DetailsPage() {
                             key={c.id}
                             className="inline-flex items-center rounded-md bg-muted px-2 py-1 text-sm"
                           >
-                            {c.name ?? `Category #${c.id}`}
+                            {formatTranslated(c.name as Parameters<typeof formatTranslated>[0]) ||
+                              t('form.categoryFallbackLabel', { id: c.id })}
                           </span>
                         ))}
                       </Box>

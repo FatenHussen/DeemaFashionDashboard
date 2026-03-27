@@ -14,8 +14,6 @@ import {
 
 import { CONFIG } from 'src/global-config';
 
-const metadata = { title: `Vendor Packages | Dashboard - ${CONFIG.appName}` };
-
 export default function Page() {
   const { t } = useTranslation('table');
   const [currentPage, setCurrentPage] = useState(1);
@@ -130,10 +128,10 @@ export default function Page() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.vendorPackagesIndexDocumentTitle', { appName: CONFIG.appName })}</title>
 
       <DataTable
-        tableName="Vendor Package"
+        tableName={t('tableNames.vendorPackage')}
         columns={vendorPackageColumns(
           { update: hasPermission('update', 'vendorpackage'), delete: hasPermission('delete', 'vendorpackage') },
           t,
@@ -156,16 +154,16 @@ export default function Page() {
         }}
         isLoading={isLoading}
         columnTranslations={{
-          id: 'ID',
-          name: 'Name',
-          price: 'Price',
-          duration_days: 'Duration (Days)',
-          max_products: 'Max Products',
-          commission_rate: 'Commission %',
-          is_active: 'Status',
-          active_subscriptions_count: 'Active Subs',
-          created_at: 'Created',
-          actions: 'Actions',
+          id: t('columns.id'),
+          name: t('columns.name'),
+          price: t('columns.price'),
+          duration_days: t('columns.durationDays'),
+          max_products: t('columns.maxProducts'),
+          commission_rate: t('columns.commissionPercent'),
+          is_active: t('columns.status'),
+          active_subscriptions_count: t('columns.activeSubs'),
+          created_at: t('columns.created'),
+          actions: t('columns.action'),
         }}
         pagination={pagination}
         currentPage={currentPage}

@@ -2,6 +2,8 @@ import type { TFunction } from 'i18next';
 import type { ColumnDef } from '@tanstack/react-table';
 import type { ActivityLogItem } from '@/pages/dashboard/activity-logs/types/activity-log.types';
 
+import { Button } from '@/shared/ui/button';
+import { Iconify } from '@/shared/components/iconify';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 
 const actionColors: Record<string, string> = {
@@ -13,8 +15,17 @@ const actionColors: Record<string, string> = {
   Deleted: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
 };
 
+export type ActivityLogColumnsOptions = {
+  onViewChanges: (item: ActivityLogItem) => void;
+};
+
+function hasActivityChanges(changes: ActivityLogItem['changes']): boolean {
+  return Boolean(changes && typeof changes === 'object' && Object.keys(changes).length > 0);
+}
+
 export const activityLogColumns = (
-  t: TFunction<'table'>
+  t: TFunction<'table'>,
+  options: ActivityLogColumnsOptions
 ): ColumnDef<ActivityLogItem>[] => [
   {
     id: 'id',
@@ -64,6 +75,33 @@ export const activityLogColumns = (
     cell: ({ row }) => (
       <span className="text-sm text-muted-foreground">{row.original.message}</span>
     ),
+  },
+  {
+    id: 'changes_detail',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title={t('form.activityLogChangesColumn')} />
+    ),
+    cell: ({ row }) => {
+      const item = row.original;
+      const hasChanges = hasActivityChanges(item.changes);
+      return (
+        <Button
+          type="button"
+          variant="outlined"
+          size="small"
+          className="h-8 gap-1.5 border-primary/30 text-primary hover:bg-primary/5 shrink-0"
+          onClick={(e) => {
+            e.stopPropagation();
+            options.onViewChanges(item);
+          }}
+        >
+          <Iconify icon={hasChanges ? 'solar:documents-bold' : 'solar:eye-bold'} width={16} />
+          <span className="hidden sm:inline">
+            {hasChanges ? t('form.activityLogViewChanges') : t('form.activityLogViewDetails')}
+          </span>
+        </Button>
+      );
+    },
   },
   {
     id: 'date',

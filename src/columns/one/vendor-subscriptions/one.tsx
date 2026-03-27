@@ -20,6 +20,10 @@ const STATUS_COLORS: Record<string, string> = {
   pending: 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20',
 };
 
+/** List API returns `vendor_name`; older payloads used `shop_name`. */
+const vendorOrShopLabel = (row: VendorSubscriptionListItem): string =>
+  row.vendor_name ?? row.shop_name ?? '—';
+
 export const vendorSubscriptionColumns = (
   t: TFunction<'table'>
 ): ColumnDef<VendorSubscriptionFormValues>[] => [
@@ -35,10 +39,10 @@ export const vendorSubscriptionColumns = (
   },
   {
     id: 'shop_name',
-    accessorKey: 'shop_name',
+    accessorFn: (row) => vendorOrShopLabel(row),
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.shop')} />,
     cell: ({ row }) => (
-      <span className="font-medium text-foreground">{row.original.shop_name}</span>
+      <span className="font-medium text-foreground">{vendorOrShopLabel(row.original)}</span>
     ),
   },
   {

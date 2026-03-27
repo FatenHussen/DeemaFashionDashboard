@@ -42,12 +42,17 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     const autoId = useId();
     const inputId = id || autoId;
 
+    /** File inputs must stay uncontrolled — setting `value` breaks selection and uploads in React. */
+    const isFileInput = props.type === 'file';
+
     const hasValue =
-      value !== undefined
-        ? String(value).length > 0
-        : defaultValue !== undefined
-          ? String(defaultValue).length > 0
-          : false;
+      isFileInput
+        ? false
+        : value !== undefined
+          ? String(value).length > 0
+          : defaultValue !== undefined
+            ? String(defaultValue).length > 0
+            : false;
 
     const sizeClasses = useMemo(() => {
       switch (size) {
@@ -154,9 +159,8 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             className={inputClasses}
             placeholder={finalPlaceholder}
             disabled={disabled}
-            value={value}
-            defaultValue={defaultValue}
             {...props}
+            {...(isFileInput ? {} : { value, defaultValue })}
           />
 
           {/* Floating label */}

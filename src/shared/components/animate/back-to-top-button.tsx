@@ -1,4 +1,5 @@
 import { cloneElement } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useBackToTop } from 'minimal-shared/hooks';
 import { mergeClasses } from 'minimal-shared/utils';
 
@@ -24,6 +25,7 @@ export function BackToTopButton({
   ...other
 }: BackToTopProps) {
   const { onBackToTop, isVisible } = useBackToTop(scrollThreshold, isDebounce);
+  const { t } = useTranslation('table');
 
   if (renderButton) {
     return cloneElement(renderButton(isVisible) as React.ReactElement<{ onClick?: () => void }>, {
@@ -33,7 +35,7 @@ export function BackToTopButton({
 
   return (
     <IconButton
-      aria-label="Back to top"
+      aria-label={t('common.backToTop')}
       onClick={onBackToTop}
       className={mergeClasses([
         'w-12 h-12 fixed scale-0 end-6 md:end-8 bottom-6 md:bottom-8 z-1050 transition-transform',

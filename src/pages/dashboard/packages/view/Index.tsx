@@ -9,8 +9,6 @@ import { useFetchPackages, useDeletePackage } from '@/pages/dashboard/packages/h
 
 import { CONFIG } from 'src/global-config';
 
-const metadata = { title: `Packages | Dashboard - ${CONFIG.appName}` };
-
 export default function Page() {
   const { t } = useTranslation('table');
   const navigate = useNavigate();
@@ -58,7 +56,7 @@ export default function Page() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.packagesIndexDocumentTitle', { appName: CONFIG.appName })}</title>
       <DataTable
         tableName={t("tableNames.package")}
         columns={packageColumns(
@@ -75,7 +73,7 @@ export default function Page() {
           delete: hasPermission('delete', 'package'),
         }}
         isLoading={isLoading}
-        columnTranslations={{ id: 'ID', name: 'Name', price: 'Price', duration_days: 'Duration (Days)', monthly_orders_limit: 'Monthly Orders', discount_percentage: 'Discount %', is_active: 'Status', created_at: 'Created', actions: 'Actions' }}
+        columnTranslations={{ id: t('columns.id'), name: t('columns.name'), price: t('columns.price'), duration_days: t('columns.durationDays'), monthly_orders_limit: t('columns.monthlyOrders'), discount_percentage: t('columns.discountPercent'), is_active: t('columns.status'), created_at: t('columns.created'), actions: t('columns.action') }}
         pagination={pagination}
         currentPage={currentPage}
         pageSize={pageSize}

@@ -23,8 +23,6 @@ import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout
 
 // ----------------------------------------------------------------------
 
-const metadata = { title: `Edit Legal Document | Dashboard - ${CONFIG.appName}` };
-
 export default function EditPage() {
   const { t } = useTranslation('table');
   const { id } = useParams<{ id: string }>();
@@ -62,14 +60,14 @@ export default function EditPage() {
           <Box className="mb-2 flex items-center gap-2">
             <Iconify icon="solar:danger-bold" className="h-5 w-5 text-destructive" />
             <Typography variant="h6" className="text-destructive">
-              Error Loading Document
+              {t('form.legalDocumentLoadErrorTitle')}
             </Typography>
           </Box>
           <Typography variant="body2" className="mb-4 text-muted-foreground">
-            {error instanceof Error ? error.message : 'Failed to load legal document'}
+            {error instanceof Error ? error.message : t('form.legalDocumentLoadErrorFallback')}
           </Typography>
           <Button variant="outlined" onClick={() => navigate('/legal-documents')}>
-            Back to Legal Documents
+            {t('form.backToLegalDocuments')}
           </Button>
         </Box>
       </Box>
@@ -81,14 +79,14 @@ export default function EditPage() {
   const onSubmit = async (data: LegalDocumentFormValues) => {
     try {
       await updateMutation.mutateAsync({ id: id!, data });
-      toast.success('Legal document updated successfully');
+      toast.success(t('form.legalDocUpdatedSuccess'));
       navigate('/legal-documents');
     } catch { return; }
   };
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.legalDocumentEditDocumentTitle', { appName: CONFIG.appName })}</title>
 
       <Box className="p-6">
         <Button
@@ -97,7 +95,7 @@ export default function EditPage() {
           className="-ml-2 mb-4 text-muted-foreground hover:text-foreground"
         >
           <Iconify icon="solar:arrow-left-bold" width={20} className="mr-2" />
-          Back to Legal Documents
+          {t('form.backToLegalDocuments')}
         </Button>
 
         {/* Document info badge */}
@@ -126,23 +124,23 @@ export default function EditPage() {
           isEditMode
           maxWidth="2xl"
           submitLabel={t('form.saveChanges')}
-          submittingLabel="Saving..."
+          submittingLabel={t('form.savingLegalDocumentSubmit')}
         >
           {/* Title */}
           <Box className="col-span-2">
             <Typography variant="subtitle1" className="mb-3 font-semibold">
-              Title
+              {t('form.legalDocumentSectionTitle')}
             </Typography>
             <Box className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <Box>
                 <Typography variant="subtitle2" className="mb-1 text-muted-foreground text-xs">
-                  English
+                  {t('form.labelEnglishShort')}
                 </Typography>
                 <RHFTextField name="title.en" placeholder={t('form.legalTitleEn')} fullWidth />
               </Box>
               <Box>
                 <Typography variant="subtitle2" className="mb-1 text-muted-foreground text-xs">
-                  Arabic
+                  {t('form.labelArabicShort')}
                 </Typography>
                 <RHFTextField name="title.ar" placeholder={t('form.legalTitleAr')} fullWidth />
               </Box>
@@ -152,13 +150,13 @@ export default function EditPage() {
           {/* Content */}
           <Box className="col-span-2">
             <Typography variant="subtitle1" className="mb-3 font-semibold">
-              Content
+              {t('form.legalDocumentSectionContent')}
             </Typography>
             <Box className="grid grid-cols-1 gap-4 md:grid-cols-2">
               {/* English content */}
               <Box>
                 <Typography variant="subtitle2" className="mb-1 text-muted-foreground text-xs">
-                  English
+                  {t('form.labelEnglishShort')}
                 </Typography>
                 <Controller
                   name="content.en"
@@ -184,7 +182,7 @@ export default function EditPage() {
               {/* Arabic content */}
               <Box>
                 <Typography variant="subtitle2" className="mb-1 text-muted-foreground text-xs">
-                  Arabic
+                  {t('form.labelArabicShort')}
                 </Typography>
                 <Controller
                   name="content.ar"
@@ -195,7 +193,7 @@ export default function EditPage() {
                         {...field}
                         rows={10}
                         dir="rtl"
-                        placeholder="أدخل المحتوى بالعربية..."
+                        placeholder={t('form.legalContentArPlaceholder')}
                         className={`w-full resize-y rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary ${
                           fieldError ? 'border-destructive' : 'border-input'
                         }`}

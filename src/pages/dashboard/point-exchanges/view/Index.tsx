@@ -7,8 +7,6 @@ import { pointExchangeColumns, type PointExchangeFormValues } from '@/columns/on
 
 import { CONFIG } from 'src/global-config';
 
-const metadata = { title: `Point Exchanges | Dashboard - ${CONFIG.appName}` };
-
 export default function Page() {
   const { t } = useTranslation('table');
   const [currentPage, setCurrentPage] = useState(1);
@@ -58,7 +56,7 @@ export default function Page() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.pointExchangesIndexDocumentTitle', { appName: CONFIG.appName })}</title>
 
       <DataTable
         tableName={t("tableNames.pointExchange")}
@@ -73,13 +71,13 @@ export default function Page() {
         }}
         isLoading={isLoading}
         columnTranslations={{
-          id: 'ID',
-          user_name: 'User',
-          exchange_type: 'Type',
-          points_used: 'Points',
-          status: 'Status',
-          delivered_at: 'Delivered',
-          created_at: 'Created At',
+          id: t('columns.id'),
+          user_name: t('columns.user'),
+          exchange_type: t('columns.type'),
+          points_used: t('columns.points'),
+          status: t('columns.status'),
+          delivered_at: t('columns.delivered'),
+          created_at: t('columns.createdAt'),
         }}
         pagination={pagination}
         currentPage={currentPage}

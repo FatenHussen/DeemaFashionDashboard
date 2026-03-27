@@ -14,7 +14,7 @@ export const CategorySchema = zod.object({
   icon: zod.instanceof(File).optional().or(zod.literal('')).or(zod.null()),
   parent_id: zod.number().nullable().optional(),
   order: zod.coerce.number().min(0).optional(),
-  is_active: zod.boolean().default(true),
+  is_active: zod.boolean(),
 });
 
 export type CategoryFormValues = zod.infer<typeof CategorySchema>;

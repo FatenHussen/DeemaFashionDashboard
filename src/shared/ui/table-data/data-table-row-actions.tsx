@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router';
 import { Button } from '@/shared/ui/button';
 import { useTranslation } from 'react-i18next';
 import { Dialog, DialogContent } from '@/shared/ui/dialogTable';
-import { Eye, Trash, Pencil, KeyRound, MoreHorizontal } from 'lucide-react';
+import { Eye, Trash, Pencil, XCircle, KeyRound, CheckCircle2, MoreHorizontal } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuItem,
@@ -33,6 +33,12 @@ interface DataTableRowActionsProps<TData> {
   onDeleteConfirm?: () => void;
   onDeleteCancel?: () => void;
   deletingId?: number | null;
+  /** When set and status is pending, show Approve / Reject in the menu (e.g. products). */
+  approvalStatus?: string | null;
+  onApprove?: (id: number) => void;
+  onReject?: (id: number) => void;
+  approvingId?: number | string | null;
+  rejectingId?: number | string | null;
 }
 
 export function DataTableRowActions<TData>({
@@ -48,6 +54,11 @@ export function DataTableRowActions<TData>({
   onDeleteConfirm,
   onDeleteCancel,
   deletingId,
+  approvalStatus,
+  onApprove,
+  onReject,
+  approvingId,
+  rejectingId,
 }: DataTableRowActionsProps<TData>) {
   const navigate = useNavigate();
 
@@ -70,6 +81,17 @@ export function DataTableRowActions<TData>({
       onDelete(row?.original?.id);
     }
   };
+
+  const rowId = row?.original?.id as number | undefined;
+  const isPendingApproval =
+    String(approvalStatus ?? '').toLowerCase() === 'pending' &&
+    onApprove &&
+    onReject &&
+    rowId != null;
+  const isApprovingRow =
+    approvingId != null && rowId != null && String(approvingId) === String(rowId);
+  const isRejectingRow =
+    rejectingId != null && rowId != null && String(rejectingId) === String(rowId);
 
   // const handleDelete = () => {
   //   if (onDelete && deleteItemRef.current !== null) {
@@ -160,6 +182,34 @@ export function DataTableRowActions<TData>({
                 <KeyRound className="mr-2 h-4 w-4" />
                 {t('updatePassword')}
               </DropdownMenuItem>
+            )}
+
+            {permissions?.update && isPendingApproval && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="hover:bg-muted"
+                  disabled={isApprovingRow || isRejectingRow}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onApprove(rowId);
+                  }}
+                >
+                  <CheckCircle2 className="mr-2 h-4 w-4 text-green-600" />
+                  <span className="text-green-700">{t('approve')}</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="hover:bg-muted"
+                  disabled={isApprovingRow || isRejectingRow}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onReject(rowId);
+                  }}
+                >
+                  <XCircle className="mr-2 h-4 w-4 text-red-600" />
+                  <span className="text-red-600">{t('reject')}</span>
+                </DropdownMenuItem>
+              </>
             )}
 
             {permissions?.delete && (

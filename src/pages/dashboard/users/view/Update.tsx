@@ -28,8 +28,6 @@ import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout
 
 // ----------------------------------------------------------------------
 
-const metadata = { title: `Edit User ${CONFIG.appName}` };
-
 export default function UpdatePage() {
   const { t } = useTranslation('table');
   const { id } = useParams<{ id: string }>();
@@ -59,7 +57,6 @@ export default function UpdatePage() {
 
   const defaultValues: UserUpdateFormValues = {
     name: '',
-    last_name: '',
     email: '',
     phone: '',
     area_id: 0,
@@ -82,7 +79,6 @@ export default function UpdatePage() {
     if (sourceUser) {
       reset({
         name: sourceUser.name || '',
-        last_name: (sourceUser as any).last_name ?? '',
         email: sourceUser.email || '',
         phone: sourceUser.phone || '',
         area_id: (sourceUser as any).area_id ?? 0,
@@ -98,13 +94,13 @@ export default function UpdatePage() {
     try {
       const payload = {
         name: data.name,
-        last_name: data.last_name || '',
+        last_name: '',
         email: data.email,
         phone: data.phone || '',
         area_id: data.area_id,
       };
       await updateUserMutation.mutateAsync({ id: id!, data: payload });
-      toast.success('User updated successfully');
+      toast.success(t('form.userUpdatedSuccess'));
     } catch { return; }
   };
 
@@ -117,7 +113,7 @@ export default function UpdatePage() {
           affiliate_rate: data.affiliate_rate,
         },
       });
-      toast.success('User converted to affiliate successfully');
+      toast.success(t('form.userConvertedAffiliateSuccess'));
       setShowConvertAffiliate(false);
       convertMethods.reset();
     } catch { return; }
@@ -132,7 +128,7 @@ export default function UpdatePage() {
   }
   if (!sourceUser) {
     if (!userFromState) {
-      toast.error('User not found. Please edit from the list.');
+      toast.error(t('form.userNotFound'));
       navigate('/users');
     }
     return null;
@@ -140,7 +136,7 @@ export default function UpdatePage() {
 
   return (
     <>
-      <title>Edit User | {metadata.title}</title>
+      <title>{t('form.userEditDocumentTitle', { appName: CONFIG.appName })}</title>
 
       <CreateFormLayout
         methods={methods as any}
@@ -152,10 +148,11 @@ export default function UpdatePage() {
         description={t('form.editUserDesc')}
         isEditMode
         maxWidth="2xl"
+        submitLabel={t('form.userSubmitUpdate')}
+        submittingLabel={t('form.updatingUser')}
       >
         <Box className="space-y-4">
           <RHFTextField name="name" label={t('form.firstName')} fullWidth />
-          <RHFTextField name="last_name" label={t('form.lastName')} fullWidth />
           <RHFTextField name="email" label={t('columns.email')} type="email" fullWidth />
           <RHFTextField name="phone" label={t('columns.phone')} fullWidth />
 
@@ -197,12 +194,12 @@ export default function UpdatePage() {
                   className="gap-2"
                 >
                   <Iconify icon="solar:user-add-bold" width={18} />
-                  Convert to Affiliate
+                  {t('form.convertToAffiliate')}
                 </Button>
               ) : (
                 <Box>
                   <Typography variant="subtitle2" className="mb-2">
-                    Set Affiliate Details
+                    {t('form.setAffiliateDetails')}
                   </Typography>
                   <div className="space-y-4">
                     <Box className="flex flex-col gap-4 sm:flex-row">
@@ -231,7 +228,7 @@ export default function UpdatePage() {
                       </Box>
                       <Box className="flex-1">
                         <Typography variant="caption" className="mb-1 block">
-                          Affiliate Rate %
+                          {t('form.affiliateRatePercent')}
                         </Typography>
                         <Controller
                           name="affiliate_rate"
@@ -260,14 +257,16 @@ export default function UpdatePage() {
                         disabled={convertAffiliateMutation.isPending}
                         onClick={() => handleConvertSubmit(onConvertSubmit)()}
                       >
-                        {convertAffiliateMutation.isPending ? 'Submitting...' : 'Convert'}
+                        {convertAffiliateMutation.isPending
+                          ? t('form.submittingEllipsis')
+                          : t('form.convertAffiliateAction')}
                       </Button>
                       <Button
                         type="button"
                         variant="text"
                         onClick={() => setShowConvertAffiliate(false)}
                       >
-                        Cancel
+                        {t('cancel')}
                       </Button>
                     </Box>
                   </div>

@@ -7,8 +7,6 @@ import { CONFIG } from 'src/global-config';
 import { Box, Button, Typography } from 'src/shared/ui';
 import { LoadingScreen } from 'src/shared/components/loading-screen';
 
-const metadata = { title: `Promotion | ${CONFIG.appName}` };
-
 const typeColors: Record<string, string> = {
   simple_discount: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
   spend_x_discount: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
@@ -31,11 +29,12 @@ export default function DetailsPage() {
   const navigate = useNavigate();
   const { data: response, isLoading } = useFetchPromotionById(id || '');
 
-  const typeLabels: Record<string, string> = {
-    simple_discount: t('form.promotionType') + ' — Simple',
-    spend_x_discount: t('form.spendXDiscount'),
-    buy_x_get_y: t('form.buyXGetY'),
-  };
+  const promotionTypeLabel = (type: string) =>
+    ({
+      simple_discount: t('promotionTypes.simpleDiscount'),
+      spend_x_discount: t('promotionTypes.spendXDiscount'),
+      buy_x_get_y: t('promotionTypes.buyXGetY'),
+    } as Record<string, string>)[type] ?? type;
 
   const item = response?.data;
 
@@ -48,11 +47,11 @@ export default function DetailsPage() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.promotionDetailsDocumentTitle', { appName: CONFIG.appName })}</title>
       <Box className="max-w-3xl mx-auto p-6">
         <Button variant="text" onClick={() => navigate('/promotions')} className="mb-4">
           <Iconify icon="solar:arrow-left-bold" width={20} className="mr-2" />
-          {t('form.backLabel')}
+          {t('form.backToPromotions')}
         </Button>
 
         <Box className="flex items-start justify-between mb-6">
@@ -61,7 +60,7 @@ export default function DetailsPage() {
             <Typography variant="body2" className="text-muted-foreground">{item.description?.en}</Typography>
           </Box>
           <span className={`text-xs px-3 py-1 rounded-full font-medium ${typeColors[item.type] ?? 'bg-muted text-muted-foreground'}`}>
-            {item.type}
+            {promotionTypeLabel(item.type)}
           </span>
         </Box>
 

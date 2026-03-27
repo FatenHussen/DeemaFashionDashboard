@@ -14,7 +14,7 @@ export const useFetchOrders = (
   sortOrder?: 'asc' | 'desc'
 ) =>
   useQuery({
-    queryKey: queryKeys.order.list({ page, per_page: perPage, status }),
+    queryKey: queryKeys.order.list({ page, per_page: perPage, status, search }),
     queryFn: () =>
       _OrderApi.getListOrders({
         page,

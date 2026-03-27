@@ -25,9 +25,6 @@ import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout
 
 // ----------------------------------------------------------------------
 
-const metadata = { title: `User Points Details | Dashboard - ${CONFIG.appName}` };
-
-const TX_STATUSES = ['', 'earned', 'redeemed'] as const;
 const TX_SOURCES = ['', 'order_completion', 'first_order', 'product_review', 'user_registration', 'admin_adjustment'] as const;
 
 export default function DetailsPage() {
@@ -82,12 +79,12 @@ export default function DetailsPage() {
         <Box className="w-full max-w-md rounded-xl border border-border/50 shadow-lg bg-background p-6">
           <Box className="flex items-center gap-2 mb-2">
             <Iconify icon="solar:danger-bold" className="w-5 h-5 text-destructive" />
-            <Typography variant="h6" className="text-destructive">Error Loading User Points</Typography>
+            <Typography variant="h6" className="text-destructive">{t('form.userPointsLoadErrorTitle')}</Typography>
           </Box>
           <Typography variant="body2" className="text-muted-foreground mb-4">
-            {error instanceof Error ? error.message : 'Failed to load user points information'}
+            {error instanceof Error ? error.message : t('form.userPointsLoadErrorFallback')}
           </Typography>
-          <Button variant="outlined" onClick={() => navigate('/user-points')}>Back to User Points</Button>
+          <Button variant="outlined" onClick={() => navigate('/user-points')}>{t('form.backToUserPoints')}</Button>
         </Box>
       </Box>
     );
@@ -105,7 +102,7 @@ export default function DetailsPage() {
   const handleDeductPoints = async (data: UserPointsAddDeductFormValues) => {
     try {
       await deductPointsMutation.mutateAsync({ userId: id!, data: { points: data.points, reason: data.reason } });
-      toast.success('Points deducted successfully');
+      toast.success(t('form.pointsDeductedSuccess'));
       deductMethods.reset();
       setActiveForm(null);
     } catch { return; }
@@ -121,7 +118,7 @@ export default function DetailsPage() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.userPointsDetailsDocumentTitle', { appName: CONFIG.appName })}</title>
       <Box className="relative min-h-screen overflow-hidden bg-background p-6">
         <Box className="pointer-events-none fixed inset-0 bg-gradient-to-br from-background via-background to-muted/30" />
         <Box className="pointer-events-none fixed inset-0 opacity-[0.03] dark:opacity-[0.05]">
@@ -138,7 +135,7 @@ export default function DetailsPage() {
               className="mb-4 -ml-2 text-muted-foreground hover:text-foreground"
             >
               <Iconify icon="solar:arrow-left-bold" width={20} className="mr-2" />
-              Back to User Points
+              {t('form.backToUserPoints')}
             </Button>
 
             <Box className="flex items-center gap-4 mb-2">
@@ -160,12 +157,38 @@ export default function DetailsPage() {
           {/* Stats */}
           <Box className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
             {[
-              { label: 'Balance', value: details.wallet?.balance ?? 0, color: 'text-primary', sub: details.wallet?.expire_at ? `Exp: ${new Date(details.wallet.expire_at).toLocaleDateString()}` : undefined },
-              { label: 'Total Earned', value: details.statistics?.total_earned ?? 0, color: 'text-green-600' },
-              { label: 'Total Redeemed', value: details.statistics?.total_redeemed ?? 0, color: 'text-orange-600' },
-              { label: 'Transactions', value: details.statistics?.total_transactions ?? 0, color: 'text-foreground', sub: details.statistics?.pending_transactions ? `${details.statistics.pending_transactions} pending` : undefined },
-            ].map(({ label, value, color, sub }) => (
-              <Box key={label} className="rounded-xl border border-border/50 bg-card/80 backdrop-blur-sm shadow-sm p-4">
+              {
+                key: 'balance',
+                label: t('form.userPointsStatBalance'),
+                value: details.wallet?.balance ?? 0,
+                color: 'text-primary',
+                sub: details.wallet?.expire_at
+                  ? t('form.userPointsExpLabel', { date: new Date(details.wallet.expire_at).toLocaleDateString() })
+                  : undefined,
+              },
+              {
+                key: 'earned',
+                label: t('form.userPointsStatTotalEarned'),
+                value: details.statistics?.total_earned ?? 0,
+                color: 'text-green-600',
+              },
+              {
+                key: 'redeemed',
+                label: t('form.userPointsStatTotalRedeemed'),
+                value: details.statistics?.total_redeemed ?? 0,
+                color: 'text-orange-600',
+              },
+              {
+                key: 'tx',
+                label: t('form.userPointsStatTransactions'),
+                value: details.statistics?.total_transactions ?? 0,
+                color: 'text-foreground',
+                sub: details.statistics?.pending_transactions
+                  ? t('form.userPointsPendingSuffix', { count: details.statistics.pending_transactions })
+                  : undefined,
+              },
+            ].map(({ key, label, value, color, sub }) => (
+              <Box key={key} className="rounded-xl border border-border/50 bg-card/80 backdrop-blur-sm shadow-sm p-4">
                 <Typography variant="caption" className="text-muted-foreground">{label}</Typography>
                 <Typography variant="h4" className={`font-bold ${color}`}>{value}</Typography>
                 {sub && <Typography variant="caption" className="text-muted-foreground/70 text-xs mt-1 block">{sub}</Typography>}
@@ -176,7 +199,7 @@ export default function DetailsPage() {
           {/* Manage Points */}
           <Box className="rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm shadow-sm overflow-hidden mb-6">
             <Box className="p-6">
-              <Typography variant="h6" className="font-semibold mb-4">Manage Points</Typography>
+              <Typography variant="h6" className="font-semibold mb-4">{t('form.managePointsSection')}</Typography>
               <Box className="flex gap-3 mb-4">
                 <Button
                   variant={activeForm === 'add' ? 'contained' : 'outlined'}
@@ -184,7 +207,7 @@ export default function DetailsPage() {
                   className="gap-2"
                 >
                   <Iconify icon="solar:add-circle-bold" width={18} />
-                  Add Points
+                  {t('form.addPointsButton')}
                 </Button>
                 <Button
                   variant={activeForm === 'deduct' ? 'contained' : 'outlined'}
@@ -192,7 +215,7 @@ export default function DetailsPage() {
                   className="gap-2"
                 >
                   <Iconify icon="solar:minus-circle-bold" width={18} />
-                  Deduct Points
+                  {t('form.deductPointsButton')}
                 </Button>
               </Box>
 
@@ -207,12 +230,12 @@ export default function DetailsPage() {
                   isEditMode={false} maxWidth="xl" submitLabel={t('form.addPointsSubmit')} submittingLabel={t('form.addingPoints')}
                 >
                   <Box className="group">
-                    <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">Points</Typography>
-                    <RHFTextField name="points" type="number" placeholder="100" fullWidth />
+                    <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.pointsFieldLabel')}</Typography>
+                    <RHFTextField name="points" type="number" placeholder={t('form.pointsAddExample')} fullWidth />
                   </Box>
                   <Box className="group">
                     <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
-                      Reason <span className="text-destructive">*</span>
+                      {t('form.reasonRequiredShort')}
                     </Typography>
                     <RHFTextField name="reason" placeholder={t('form.reasonBonusPlaceholder')} fullWidth />
                   </Box>
@@ -230,12 +253,12 @@ export default function DetailsPage() {
                   isEditMode={false} maxWidth="xl" submitLabel={t('form.deductPointsSubmit')} submittingLabel={t('form.deducting')}
                 >
                   <Box className="group">
-                    <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">Points</Typography>
-                    <RHFTextField name="points" type="number" placeholder="50" fullWidth />
+                    <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.pointsFieldLabel')}</Typography>
+                    <RHFTextField name="points" type="number" placeholder={t('form.pointsDeductExample')} fullWidth />
                   </Box>
                   <Box className="group">
                     <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
-                      Reason <span className="text-destructive">*</span>
+                      {t('form.reasonRequiredShort')}
                     </Typography>
                     <RHFTextField name="reason" placeholder={t('form.reasonCorrectionPlaceholder')} fullWidth />
                   </Box>
@@ -248,11 +271,11 @@ export default function DetailsPage() {
           <Box className="rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm shadow-sm overflow-hidden">
             <Box className="p-6">
               <Box className="flex items-center justify-between mb-4">
-                <Typography variant="h6" className="font-semibold">Transactions</Typography>
+                <Typography variant="h6" className="font-semibold">{t('form.transactionsSection')}</Typography>
                 {(txStatus || txSource || txFromDate || txToDate) && (
                   <Button variant="text" onClick={resetTxFilters} className="text-xs text-muted-foreground gap-1">
                     <Iconify icon="solar:close-circle-bold" width={14} />
-                    Clear filters
+                    {t('form.clearTxFilters')}
                   </Button>
                 )}
               </Box>
@@ -261,36 +284,36 @@ export default function DetailsPage() {
               <Box className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4 p-3 bg-muted/20 rounded-lg border border-border/30">
                 {/* Status filter */}
                 <Box>
-                  <Typography variant="caption" className="text-muted-foreground mb-1 block">Status</Typography>
+                  <Typography variant="caption" className="text-muted-foreground mb-1 block">{t('form.txFilterStatus')}</Typography>
                   <select
                     value={txStatus}
                     onChange={(e) => { setTxStatus(e.target.value); setTxPage(1); }}
                     className="w-full h-8 rounded-md border border-input bg-background px-2 text-xs"
                   >
-                    <option value="">All statuses</option>
-                    <option value="earned">Earned</option>
-                    <option value="redeemed">Redeemed</option>
+                    <option value="">{t('form.txStatusAll')}</option>
+                    <option value="earned">{t('form.txStatusEarned')}</option>
+                    <option value="redeemed">{t('form.txStatusRedeemed')}</option>
                   </select>
                 </Box>
 
                 {/* Source filter */}
                 <Box>
-                  <Typography variant="caption" className="text-muted-foreground mb-1 block">Source</Typography>
+                  <Typography variant="caption" className="text-muted-foreground mb-1 block">{t('form.txFilterSource')}</Typography>
                   <select
                     value={txSource}
                     onChange={(e) => { setTxSource(e.target.value); setTxPage(1); }}
                     className="w-full h-8 rounded-md border border-input bg-background px-2 text-xs"
                   >
-                    <option value="">All sources</option>
+                    <option value="">{t('form.txSourceAll')}</option>
                     {TX_SOURCES.filter(Boolean).map((s) => (
-                      <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>
+                      <option key={s} value={s}>{t(`form.txSource_${s}`)}</option>
                     ))}
                   </select>
                 </Box>
 
                 {/* From date */}
                 <Box>
-                  <Typography variant="caption" className="text-muted-foreground mb-1 block">From date</Typography>
+                  <Typography variant="caption" className="text-muted-foreground mb-1 block">{t('form.txFilterFromDate')}</Typography>
                   <input
                     type="date"
                     value={txFromDate}
@@ -301,7 +324,7 @@ export default function DetailsPage() {
 
                 {/* To date */}
                 <Box>
-                  <Typography variant="caption" className="text-muted-foreground mb-1 block">To date</Typography>
+                  <Typography variant="caption" className="text-muted-foreground mb-1 block">{t('form.txFilterToDate')}</Typography>
                   <input
                     type="date"
                     value={txToDate}
@@ -315,16 +338,18 @@ export default function DetailsPage() {
               {isTxLoading ? (
                 <div className="flex items-center justify-center py-8 text-muted-foreground gap-2">
                   <Iconify icon="svg-spinners:ring-resize" width={20} />
-                  <span className="text-sm">Loading transactions...</span>
+                  <span className="text-sm">{t('form.loadingTransactionsList')}</span>
                 </div>
               ) : transactions.length === 0 ? (
                 <Typography variant="body2" className="text-muted-foreground text-center py-6">
-                  No transactions found.
+                  {t('form.noTransactionsFound')}
                 </Typography>
               ) : (
                 <Box className="space-y-3">
                   {transactions.map((tx) => {
                     const isEarned = tx.status === 'earned';
+                    const sourceKey = `form.txSource_${tx.source}` as const;
+                    const sourceLabel = t(sourceKey, { defaultValue: String(tx.source).replace(/_/g, ' ') });
                     return (
                       <Box
                         key={tx.id}
@@ -347,7 +372,7 @@ export default function DetailsPage() {
                             )}
                             <div className="flex flex-wrap gap-1.5 mt-1">
                               <span className="text-xs text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded">
-                                {tx.source.replace(/_/g, ' ')}
+                                {sourceLabel}
                               </span>
                               {tx.reference_type && (
                                 <span className="text-xs text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded">
@@ -360,7 +385,7 @@ export default function DetailsPage() {
                             </div>
                             {tx.expires_at && (
                               <Typography variant="caption" className="text-muted-foreground/60 text-xs mt-0.5 block">
-                                Exp: {new Date(tx.expires_at).toLocaleDateString()}
+                                {t('form.txExpiresShort', { date: new Date(tx.expires_at).toLocaleDateString() })}
                               </Typography>
                             )}
                           </Box>
@@ -369,7 +394,7 @@ export default function DetailsPage() {
                           variant="body2"
                           className={`font-bold shrink-0 ${isEarned ? 'text-green-600' : 'text-red-600'}`}
                         >
-                          {isEarned ? '+' : '-'}{tx.points} pts
+                          {t('form.txPointsFormat', { sign: isEarned ? '+' : '-', points: tx.points })}
                         </Typography>
                       </Box>
                     );
@@ -381,7 +406,11 @@ export default function DetailsPage() {
               {txPagination && txPagination.last_page > 1 && (
                 <Box className="flex items-center justify-between mt-4 pt-4 border-t border-border/30">
                   <Typography variant="caption" className="text-muted-foreground">
-                    Page {txPagination.current_page} of {txPagination.last_page} · {txPagination.total} total
+                    {t('form.txPaginationSummary', {
+                      current: txPagination.current_page,
+                      last: txPagination.last_page,
+                      total: txPagination.total,
+                    })}
                   </Typography>
                   <Box className="flex gap-2">
                     <Button

@@ -29,31 +29,38 @@ export interface BrandFormValues {
 }
 
 // Schema for product validation
-const ProductSchema = z.object({
-  id: z.number(),
-  category_id: z.string(),
-  name: z.string(),
-  description: z.string(),
-  price: z.number(),
-  quantity: z.number().nullable(),
-  image: z.string().nullable(),
-  sku: z.string().nullable(),
-  barcode: z.string().nullable(),
-  created_at: z.string(),
-});
+const ProductSchema = z
+  .object({
+    id: z.number(),
+    category_id: z.union([z.string(), z.number()]),
+    name: z.string(),
+    description: z.string(),
+    price: z.number(),
+    quantity: z.number().nullable(),
+    image: z.string().nullable(),
+    sku: z.string().nullable(),
+    barcode: z.string().nullable(),
+    created_at: z.string(),
+    approval_status: z.string().optional().nullable(),
+    approval_status_label: z.string().optional().nullable(),
+  })
+  .passthrough();
 
 // Type for product data
 export interface ProductFormValues {
   id: number;
-  category_id: string;
+  category_id: string | number;
   name: string;
   description: string;
   price: number;
   quantity: number | null;
   image: string | null;
+  thumbnail?: string | null;
   sku: string | null;
   barcode: string | null;
   created_at: string;
+  approval_status?: string | null;
+  approval_status_label?: string | null;
   [key: string]: any;
 }
 
@@ -96,7 +103,7 @@ export const brandColumns = (
           {imageUrl ? (
             <img
               src={imageUrl}
-              alt={row.original.name}
+              alt={formatTranslated(row.original.name)}
               className="w-12 h-12 rounded-lg object-cover border border-border/60"
             />
           ) : (
@@ -181,6 +188,13 @@ export const brandColumns = (
   },
 ];
 
+export type ProductApprovalActions = {
+  onApprove: (id: number) => void;
+  onReject: (id: number) => void;
+  approvingId: number | string | null;
+  rejectingId: number | string | null;
+};
+
 export const productColumns = (
   permissions: {
     update: boolean;
@@ -192,7 +206,8 @@ export const productColumns = (
   isDeleteDialogOpen?: boolean,
   onDeleteConfirm?: () => void,
   onDeleteCancel?: () => void,
-  deletingId?: number | null
+  deletingId?: number | null,
+  approvalActions?: ProductApprovalActions | null
 ): ColumnDef<ProductFormValues>[] => [
   {
     id: 'id',
@@ -211,7 +226,7 @@ export const productColumns = (
     accessorKey: 'image',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.image')} />,
     cell: ({ row }) => {
-      const img = row.original.image;
+      const img = row.original.image ?? row.original.thumbnail;
       const imageUrl = img
         ? (String(img).startsWith('http') ? img : `${CONFIG.serverUrl}/${img}`)
         : null;
@@ -360,6 +375,11 @@ export const productColumns = (
         onDeleteCancel={onDeleteCancel}
         deletingId={deletingId}
         permissions={permissions}
+        approvalStatus={row.original.approval_status}
+        onApprove={approvalActions?.onApprove}
+        onReject={approvalActions?.onReject}
+        approvingId={approvalActions?.approvingId}
+        rejectingId={approvalActions?.rejectingId}
       />
     ),
   },

@@ -1,4 +1,5 @@
 import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
 import { useRef, useState, useEffect } from 'react';
 import { formatTranslated } from '@/utils/format-translated';
 
@@ -32,12 +33,15 @@ export function InfiniteScrollSelect({
   onChange,
   queryKey,
   fetcher,
-  placeholder = 'Select...',
+  placeholder: placeholderProp,
   className,
   disabled,
   initialLabel,
   pageSize = 10,
 }: InfiniteScrollSelectProps) {
+  const { t } = useTranslation('table');
+  const placeholder = placeholderProp ?? t('select');
+
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
@@ -53,10 +57,12 @@ export function InfiniteScrollSelect({
     const updatePosition = () => {
       if (!triggerRef.current) return;
       const rect = triggerRef.current.getBoundingClientRect();
+      const width = Math.max(rect.width, 200);
+      const isRtl = document.documentElement.getAttribute('dir') === 'rtl';
       setDropdownPosition({
         top: rect.bottom + 4,
-        left: rect.left,
-        width: Math.max(rect.width, 200),
+        left: isRtl ? rect.right - width : rect.left,
+        width,
       });
     };
     updatePosition();
@@ -116,7 +122,7 @@ export function InfiniteScrollSelect({
         type="button"
         onClick={() => !disabled && setIsOpen((prev) => !prev)}
         disabled={disabled}
-        className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm text-left flex items-center justify-between gap-2 hover:bg-muted/30 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+        className="w-full h-10 rounded-xl border border-border/70 bg-background/30 px-3.5 text-sm text-start shadow-sm flex items-center justify-between gap-2 outline-none transition-all duration-200 hover:border-primary/30 hover:bg-muted/20 focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/25 disabled:cursor-not-allowed disabled:opacity-60"
       >
         <span className={`truncate ${displayLabel ? 'text-foreground' : 'text-muted-foreground'}`}>
           {displayLabel ?? placeholder}
@@ -149,7 +155,7 @@ export function InfiniteScrollSelect({
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search..."
+                placeholder={t('searchPlaceholder')}
                 autoFocus
                 className="w-full h-7 rounded px-2 text-xs border border-input bg-muted/50 placeholder:text-muted-foreground focus:outline-none"
               />
@@ -160,11 +166,11 @@ export function InfiniteScrollSelect({
               {isLoading ? (
                 <div className="flex items-center justify-center gap-2 py-4 text-sm text-muted-foreground">
                   <Iconify icon="svg-spinners:ring-resize" width={16} />
-                  Loading...
+                  {t('loading')}
                 </div>
               ) : filtered.length === 0 ? (
                 <div className="py-4 text-center text-sm text-muted-foreground">
-                  No options found
+                  {t('noOptionsFound')}
                 </div>
               ) : (
                 filtered.map((item: InfiniteSelectOption) => (
@@ -175,7 +181,7 @@ export function InfiniteScrollSelect({
                       onChange(item.id);
                       handleClose();
                     }}
-                    className={`w-full px-3 py-2 text-sm text-left hover:bg-muted transition-colors truncate ${
+                    className={`w-full px-3 py-2 text-sm text-start hover:bg-muted transition-colors truncate ${
                       value === item.id ? 'bg-primary/10 text-primary font-medium' : ''
                     }`}
                   >
@@ -187,7 +193,7 @@ export function InfiniteScrollSelect({
               {isFetchingNextPage && (
                 <div className="flex items-center justify-center gap-1 py-2 text-xs text-muted-foreground">
                   <Iconify icon="svg-spinners:ring-resize" width={12} />
-                  Loading more...
+                  {t('loadingMore')}
                 </div>
               )}
             </div>

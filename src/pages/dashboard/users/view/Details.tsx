@@ -1,6 +1,7 @@
 import type { UserAddress } from '@/pages/dashboard/users/types/user.types';
 
 import { Button } from '@/shared/ui/button';
+import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
 import { formatTranslated } from '@/utils/format-translated';
@@ -13,9 +14,8 @@ import { LoadingScreen } from 'src/shared/components/loading-screen';
 
 // ----------------------------------------------------------------------
 
-const metadata = { title: `User Details | Dashboard - ${CONFIG.appName}` };
-
 export default function DetailsPage() {
+  const { t } = useTranslation('table');
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: userResponse, isLoading, error } = useFetchUserById(id || '');
@@ -31,14 +31,14 @@ export default function DetailsPage() {
           <Box className="flex items-center gap-2 mb-2">
             <Iconify icon="solar:danger-bold" className="w-5 h-5 text-destructive" />
             <Typography variant="h6" className="text-destructive">
-              Error Loading User
+              {t('form.userLoadErrorTitle')}
             </Typography>
           </Box>
           <Typography variant="body2" className="text-muted-foreground mb-4">
-            {error instanceof Error ? error.message : 'Failed to load user information'}
+            {error instanceof Error ? error.message : t('form.userLoadErrorFallback')}
           </Typography>
           <Button variant="outlined" onClick={() => navigate('/users')}>
-            Back to Users
+            {t('form.backToUsers')}
           </Button>
         </Box>
       </Box>
@@ -52,7 +52,7 @@ export default function DetailsPage() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.userDetailsDocumentTitle', { appName: CONFIG.appName })}</title>
       <Box className="relative min-h-screen overflow-hidden bg-background p-6">
         <Box className="pointer-events-none fixed inset-0 bg-gradient-to-br from-background via-background to-muted/30" />
         <Box className="pointer-events-none fixed inset-0 opacity-[0.03] dark:opacity-[0.05]">
@@ -67,7 +67,7 @@ export default function DetailsPage() {
               className="mb-4 -ml-2 text-muted-foreground hover:text-foreground"
             >
               <Iconify icon="solar:arrow-left-bold" width={20} className="mr-2" />
-              Back to Users
+              {t('form.backToUsers')}
             </Button>
 
             <Box className="flex items-center gap-4 mb-2">
@@ -76,10 +76,10 @@ export default function DetailsPage() {
               </Box>
               <Box className="flex-1">
                 <Typography variant="h4" className="font-bold text-foreground mb-1">
-                  {user.name || `User #${user.id}`}
+                  {user.name || t('form.userFallbackTitle', { id: user.id })}
                 </Typography>
                 <Typography variant="body2" className="text-muted-foreground">
-                  User #{user.id}
+                  {t('form.userIdChip', { id: user.id })}
                 </Typography>
               </Box>
               <Button
@@ -88,7 +88,7 @@ export default function DetailsPage() {
                 className="gap-2"
               >
                 <Iconify icon="solar:pen-bold" width={18} />
-                Edit User
+                {t('form.editUserButton')}
               </Button>
             </Box>
           </Box>
@@ -98,12 +98,12 @@ export default function DetailsPage() {
               <Box>
                 <Typography variant="h6" className="font-semibold text-foreground mb-4 flex items-center gap-2">
                   <Iconify icon="solar:info-circle-bold" width={20} />
-                  Basic Information
+                  {t('form.userDetailsBasicInfo')}
                 </Typography>
                 <Box className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Box className="space-y-2">
                     <Typography variant="body2" className="text-muted-foreground font-medium">
-                      User ID
+                      {t('form.userDetailsUserId')}
                     </Typography>
                     <Typography variant="body1" className="text-foreground">
                       {user.id}
@@ -111,7 +111,7 @@ export default function DetailsPage() {
                   </Box>
                   <Box className="space-y-2">
                     <Typography variant="body2" className="text-muted-foreground font-medium">
-                      Name
+                      {t('columns.name')}
                     </Typography>
                     <Typography variant="body1" className="text-foreground">
                       {user.name || '-'}
@@ -119,7 +119,7 @@ export default function DetailsPage() {
                   </Box>
                   <Box className="space-y-2">
                     <Typography variant="body2" className="text-muted-foreground font-medium">
-                      Email
+                      {t('columns.email')}
                     </Typography>
                     <Typography variant="body1" className="text-foreground">
                       {user.email}
@@ -127,7 +127,7 @@ export default function DetailsPage() {
                   </Box>
                   <Box className="space-y-2">
                     <Typography variant="body2" className="text-muted-foreground font-medium">
-                      Phone
+                      {t('columns.phone')}
                     </Typography>
                     <Typography variant="body1" className="text-foreground">
                       {user.phone || '-'}
@@ -142,29 +142,29 @@ export default function DetailsPage() {
                   <Box>
                     <Typography variant="h6" className="font-semibold text-foreground mb-4 flex items-center gap-2">
                       <Iconify icon="solar:users-group-rounded-bold" width={20} />
-                      Affiliate
+                      {t('form.userDetailsAffiliate')}
                     </Typography>
                     <Box className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <Box className="space-y-2">
                         <Typography variant="body2" className="text-muted-foreground font-medium">
-                          Is Affiliate
+                          {t('form.affiliateIsAffiliate')}
                         </Typography>
                         <Typography variant="body1" className="text-foreground">
-                          {aff.is_affiliate ? 'Yes' : 'No'}
+                          {aff.is_affiliate ? t('yes') : t('no')}
                         </Typography>
                       </Box>
                       <Box className="space-y-2">
                         <Typography variant="body2" className="text-muted-foreground font-medium">
-                          Approved
+                          {t('form.affiliateApproved')}
                         </Typography>
                         <Typography variant="body1" className="text-foreground">
-                          {aff.affiliate_approved ? 'Yes' : 'No'}
+                          {aff.affiliate_approved ? t('yes') : t('no')}
                         </Typography>
                       </Box>
                       {aff.affiliate_id != null && aff.affiliate_id !== '' && (
                         <Box className="space-y-2">
                           <Typography variant="body2" className="text-muted-foreground font-medium">
-                            Affiliate ID
+                            {t('form.affiliateIdLabel')}
                           </Typography>
                           <Typography variant="body1" className="text-foreground">
                             {String(aff.affiliate_id)}
@@ -174,7 +174,7 @@ export default function DetailsPage() {
                       {aff.affiliate_rate != null && aff.affiliate_rate !== '' && (
                         <Box className="space-y-2">
                           <Typography variant="body2" className="text-muted-foreground font-medium">
-                            Affiliate Rate
+                            {t('form.affiliateRateLabel')}
                           </Typography>
                           <Typography variant="body1" className="text-foreground">
                             {String(aff.affiliate_rate)}%
@@ -192,13 +192,13 @@ export default function DetailsPage() {
                   <Box>
                     <Typography variant="h6" className="font-semibold text-foreground mb-4 flex items-center gap-2">
                       <Iconify icon="solar:chart-2-bold" width={20} />
-                      Markter Statistics
+                      {t('form.marketerStatistics')}
                     </Typography>
                     <Box className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       {stats.total_orders != null && (
                         <Box className="p-4 rounded-lg bg-muted/50 border border-border/50">
                           <Typography variant="caption" className="text-muted-foreground">
-                            Total Orders
+                            {t('form.statTotalOrders')}
                           </Typography>
                           <Typography variant="h6" className="font-semibold mt-1">
                             {stats.total_orders}
@@ -208,7 +208,7 @@ export default function DetailsPage() {
                       {stats.delivered_orders != null && (
                         <Box className="p-4 rounded-lg bg-muted/50 border border-border/50">
                           <Typography variant="caption" className="text-muted-foreground">
-                            Delivered Orders
+                            {t('form.statDeliveredOrders')}
                           </Typography>
                           <Typography variant="h6" className="font-semibold mt-1">
                             {stats.delivered_orders}
@@ -218,7 +218,7 @@ export default function DetailsPage() {
                       {stats.total_sales != null && (
                         <Box className="p-4 rounded-lg bg-muted/50 border border-border/50">
                           <Typography variant="caption" className="text-muted-foreground">
-                            Total Sales
+                            {t('form.statTotalSales')}
                           </Typography>
                           <Typography variant="h6" className="font-semibold mt-1">
                             {stats.total_sales}
@@ -228,7 +228,7 @@ export default function DetailsPage() {
                       {stats.earned_commission != null && (
                         <Box className="p-4 rounded-lg bg-muted/50 border border-border/50">
                           <Typography variant="caption" className="text-muted-foreground">
-                            Earned Commission
+                            {t('form.statEarnedCommission')}
                           </Typography>
                           <Typography variant="h6" className="font-semibold mt-1">
                             {stats.earned_commission}
@@ -238,7 +238,7 @@ export default function DetailsPage() {
                       {stats.pending_earnings != null && (
                         <Box className="p-4 rounded-lg bg-muted/50 border border-border/50">
                           <Typography variant="caption" className="text-muted-foreground">
-                            Pending Earnings
+                            {t('form.statPendingEarnings')}
                           </Typography>
                           <Typography variant="h6" className="font-semibold mt-1">
                             {stats.pending_earnings}
@@ -248,7 +248,7 @@ export default function DetailsPage() {
                       {stats.withdrawn != null && (
                         <Box className="p-4 rounded-lg bg-muted/50 border border-border/50">
                           <Typography variant="caption" className="text-muted-foreground">
-                            Withdrawn
+                            {t('form.statWithdrawn')}
                           </Typography>
                           <Typography variant="h6" className="font-semibold mt-1">
                             {stats.withdrawn}
@@ -258,7 +258,7 @@ export default function DetailsPage() {
                       {stats.available_balance != null && (
                         <Box className="p-4 rounded-lg bg-muted/50 border border-border/50">
                           <Typography variant="caption" className="text-muted-foreground">
-                            Available Balance
+                            {t('form.statAvailableBalance')}
                           </Typography>
                           <Typography variant="h6" className="font-semibold mt-1">
                             {stats.available_balance}
@@ -276,9 +276,11 @@ export default function DetailsPage() {
                   <Box>
                     <Typography variant="h6" className="font-semibold text-foreground mb-4 flex items-center gap-2">
                       <Iconify icon="solar:map-point-bold" width={20} />
-                      Addresses
+                      {t('form.userDetailsAddresses')}
                       <Typography variant="body2" className="text-muted-foreground font-normal ml-2">
-                        ({addresses.length} address{addresses.length !== 1 ? 'es' : ''})
+                        {addresses.length === 1
+                          ? t('form.userDetailsAddressCountOne', { count: addresses.length })
+                          : t('form.userDetailsAddressCount', { count: addresses.length })}
                       </Typography>
                     </Typography>
                     <Box className="space-y-4">
@@ -289,11 +291,11 @@ export default function DetailsPage() {
                         >
                           <Box className="flex items-start justify-between mb-3">
                             <Typography variant="subtitle2" className="font-semibold text-foreground">
-                              {addr.label || `Address #${addr.id}`}
+                              {addr.label || t('form.addressNumberFallback', { id: addr.id })}
                             </Typography>
                             {addr.is_default && (
                               <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-primary/20 text-primary">
-                                Default
+                                {t('form.addressDefaultBadge')}
                               </span>
                             )}
                           </Box>
@@ -306,19 +308,19 @@ export default function DetailsPage() {
                             )}
                             {addr.building_number && (
                               <Box>
-                                <Typography variant="caption" className="text-muted-foreground">Building</Typography>
+                                <Typography variant="caption" className="text-muted-foreground">{t('form.addressBuildingLabel')}</Typography>
                                 <Typography variant="body2">{addr.building_number}</Typography>
                               </Box>
                             )}
                             {addr.floor_apartment && (
                               <Box>
-                                <Typography variant="caption" className="text-muted-foreground">Floor / Apartment</Typography>
+                                <Typography variant="caption" className="text-muted-foreground">{t('form.addressFloorApartmentLabel')}</Typography>
                                 <Typography variant="body2">{addr.floor_apartment}</Typography>
                               </Box>
                             )}
                             {addr.nearest_landmark && (
                               <Box>
-                                <Typography variant="caption" className="text-muted-foreground">Nearest Landmark</Typography>
+                                <Typography variant="caption" className="text-muted-foreground">{t('form.addressLandmarkLabel')}</Typography>
                                 <Typography variant="body2">{addr.nearest_landmark}</Typography>
                               </Box>
                             )}
@@ -330,7 +332,7 @@ export default function DetailsPage() {
                             )}
                             {addr.lat != null && addr.lng != null && (
                               <Box>
-                                <Typography variant="caption" className="text-muted-foreground">Coordinates</Typography>
+                                <Typography variant="caption" className="text-muted-foreground">{t('form.addressCoordinatesLabel')}</Typography>
                                 <Typography variant="body2">{addr.lat}, {addr.lng}</Typography>
                               </Box>
                             )}
@@ -339,18 +341,18 @@ export default function DetailsPage() {
                             <Box className="mt-3 pt-3 border-t border-border/50 space-y-1 text-sm text-muted-foreground">
                               <Box className="flex items-center gap-2">
                                 <Iconify icon="solar:map-point-bold" className="text-primary" width={16} />
-                                <span>Area: {formatTranslated(addr.area.name)}</span>
+                                <span>{t('form.addressAreaLine', { name: formatTranslated(addr.area.name) })}</span>
                               </Box>
                               {addr.area.city && (
                                 <Box className="flex items-center gap-2">
                                   <Iconify icon="solar:city-bold" className="text-primary" width={16} />
-                                  <span>City: {formatTranslated(addr.area.city.name)}</span>
+                                  <span>{t('form.addressCityLine', { name: formatTranslated(addr.area.city.name) })}</span>
                                 </Box>
                               )}
                               {addr.area.city?.governorate && (
                                 <Box className="flex items-center gap-2">
                                   <Iconify icon="solar:global-bold" className="text-primary" width={16} />
-                                  <span>Governorate: {formatTranslated(addr.area.city.governorate.name)}</span>
+                                  <span>{t('form.addressGovernorateLine', { name: formatTranslated(addr.area.city.governorate.name) })}</span>
                                 </Box>
                               )}
                             </Box>

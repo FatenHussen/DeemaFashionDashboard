@@ -114,14 +114,14 @@ export default function Page() {
         }}
         isLoading={isLoading}
         columnTranslations={{
-          id: 'ID',
-          icon: 'Icon',
-          name: 'Name',
-          description: 'Description',
-          parent: 'Parent',
-          children_count: 'Children',
-          created_at: 'Created At',
-          actions: 'Actions',
+          id: t('columns.id'),
+          icon: t('columns.icon'),
+          name: t('columns.name'),
+          description: t('columns.description'),
+          parent: t('columns.parent'),
+          children_count: t('columns.children'),
+          created_at: t('columns.createdAt'),
+          actions: t('columns.action'),
         }}
         pagination={pagination}
         currentPage={currentPage}

@@ -1,5 +1,5 @@
-
 import { m } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { usePopover } from 'minimal-shared/hooks';
 
 import { fToNow } from 'src/utils/format-time';
@@ -27,6 +27,7 @@ export type ContactsPopoverProps = React.ComponentPropsWithoutRef<'button'> & {
 
 export function ContactsPopover({ data = [], className, ...other }: ContactsPopoverProps) {
   const { open, anchorEl, onClose, onOpen } = usePopover();
+  const { t } = useTranslation('common');
 
   const getStatusColor = (status: string) => {
     if (status === 'online') return 'bg-green-500';
@@ -42,7 +43,7 @@ export function ContactsPopover({ data = [], className, ...other }: ContactsPopo
       slotProps={{ arrow: { offset: 20 } }}
     >
       <h6 className="text-lg font-semibold p-3 mb-0">
-        Contacts <span>({data.length})</span>
+        {t('contactsPopoverTitle')} <span>({data.length})</span>
       </h6>
 
       <Scrollbar style={{ height: 320, width: 320 }}>
@@ -68,11 +69,11 @@ export function ContactsPopover({ data = [], className, ...other }: ContactsPopo
                     )}
                   </div>
                   <span
-                    className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-background ${getStatusColor(contact.status)}`}
+                    className={`absolute bottom-0 end-0 w-3 h-3 rounded-full border-2 border-background ${getStatusColor(contact.status)}`}
                   />
                 </div>
 
-                <div className="flex-1 text-left min-w-0">
+                <div className="flex-1 text-start min-w-0">
                   <div className="text-sm font-medium text-foreground truncate">{contact.name}</div>
                   {contact.status === 'offline' && (
                     <div className="text-xs text-muted-foreground">
@@ -97,7 +98,7 @@ export function ContactsPopover({ data = [], className, ...other }: ContactsPopo
         whileTap={varTap(0.96)}
         whileHover={varHover(1.04)}
         transition={transitionTap()}
-        aria-label="Contacts button"
+        aria-label={t('contactsButton')}
         onClick={onOpen}
         className={`p-0 w-10 h-10 inline-flex items-center justify-center rounded-lg hover:bg-muted transition-colors ${
           open ? 'bg-muted' : ''

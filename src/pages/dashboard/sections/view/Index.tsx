@@ -8,10 +8,8 @@ import { useFetchSections, useDeleteSection } from '@/pages/dashboard/sections/h
 
 import { CONFIG } from 'src/global-config';
 
-const metadata = { title: `Sections | Dashboard - ${CONFIG.appName}` };
-
 export default function Page() {
-  const { t } = useTranslation('table');
+  const { t } = useTranslation(['table', 'nav']);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [deletingId, setDeletingId] = useState<number | null>(null);
@@ -76,10 +74,10 @@ export default function Page() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{`${t('nav:sections')} | Dashboard - ${CONFIG.appName}`}</title>
 
       <DataTable
-        tableName={t("tableNames.section")}
+        tableName={t('tableNames.section')}
         columns={sectionColumns(
           {
             update: hasPermission('update', 'section'),
@@ -103,10 +101,10 @@ export default function Page() {
         }}
         isLoading={isLoading}
         columnTranslations={{
-          id: 'ID',
-          name: 'Name',
-          type: 'Type',
-          actions: 'Actions',
+          id: t('columns.id'),
+          name: t('columns.name'),
+          type: t('columns.type'),
+          actions: t('columns.action'),
         }}
         pagination={pagination}
         currentPage={currentPage}

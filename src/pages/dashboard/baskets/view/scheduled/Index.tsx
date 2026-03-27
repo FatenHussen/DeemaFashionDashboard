@@ -1,14 +1,14 @@
-import { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { usePermissions } from '@/auth/hooks/use-permissions';
 import { scheduledBasketColumns, type ScheduledBasketFormValues } from '@/columns/one/scheduled-baskets/one';
 import { useFetchScheduledBaskets, useDeleteScheduledBasket } from '@/pages/dashboard/baskets/hooks/scheduled-basket';
 
-import { CONFIG } from 'src/global-config';
 import { Input } from 'src/shared/ui';
+import { CONFIG } from 'src/global-config';
 
 const metadata = { title: `Scheduled Baskets | Dashboard - ${CONFIG.appName}` };
 
@@ -75,7 +75,7 @@ export default function Page() {
       <DataTable
         tableName={t("tableNames.scheduledBasket")}
         columns={scheduledBasketColumns(
-          { update: hasPermission('update', 'scheduled-basket'), delete: hasPermission('delete', 'scheduled-basket') },
+          { update: hasPermission('update', 'schedulebasket'), delete: hasPermission('delete', 'schedulebasket') },
           t,
           onDelete,
           deleteScheduledBasketMutation.isPending,
@@ -91,9 +91,9 @@ export default function Page() {
         hasDetails
         detailsLink="/scheduled-baskets/details"
         permissions={{
-          create: hasPermission('create', 'scheduled-basket'),
-          update: hasPermission('update', 'scheduled-basket'),
-          delete: hasPermission('delete', 'scheduled-basket'),
+          create: hasPermission('create', 'schedulebasket'),
+          update: hasPermission('update', 'schedulebasket'),
+          delete: hasPermission('delete', 'schedulebasket'),
         }}
         isLoading={isLoading}
         toolbarFilter={
@@ -108,18 +108,18 @@ export default function Page() {
           />
         }
         columnTranslations={{
-          id: 'ID',
-          image: 'Image',
-          name: 'Name',
-          category: 'Category',
-          original_price: 'Original Price',
-          final_price: 'Final Price',
-          discount: 'Discount',
-          rating: 'Rating',
-          num_sold: 'Sold',
+          id: t('columns.id'),
+          image: t('columns.image'),
+          name: t('columns.name'),
+          category: t('columns.category'),
+          original_price: t('columns.originalPrice'),
+          final_price: t('columns.finalPrice'),
+          discount: t('columns.discount'),
+          rating: t('columns.rating'),
+          num_sold: t('columns.numSold'),
           schedule_count: t('columns.scheduleCount'),
-          is_active: 'Status',
-          actions: 'Actions',
+          is_active: t('columns.status'),
+          actions: t('columns.action'),
         }}
         pagination={pagination}
         currentPage={currentPage}

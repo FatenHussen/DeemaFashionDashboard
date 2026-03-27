@@ -12,7 +12,7 @@ const ShopSchema = z
   .object({
     id: z.number(),
     name: z.union([z.string(), z.record(z.string())]),
-    description: z.union([z.string(), z.record(z.string())]).optional(),
+    description: z.union([z.string(), z.record(z.string()), z.array(z.unknown())]).optional(),
     logo_url: z.string().nullable().optional(),
     is_active: z.boolean(),
     average_rating: z.number().optional(),
@@ -24,9 +24,9 @@ const ShopSchema = z
     address: z.union([z.string(), z.record(z.string())]).optional(),
     lat: z.number().optional(),
     lng: z.number().optional(),
-    phone: z.string().optional(),
-    mobile: z.string().optional(),
-    email: z.string().optional(),
+    phone: z.union([z.string(), z.null()]).optional(),
+    mobile: z.union([z.string(), z.null()]).optional(),
+    email: z.union([z.string(), z.null()]).optional(),
     area_id: z.number().optional(),
   })
   .passthrough();
@@ -35,7 +35,7 @@ const ShopSchema = z
 export interface ShopFormValues {
   id: number;
   name: string | { ar?: string; en?: string };
-  description?: string | { ar?: string; en?: string };
+  description?: string | { ar?: string; en?: string } | unknown[];
   logo_url?: string | null;
   is_active: boolean;
   average_rating?: number;
@@ -47,9 +47,9 @@ export interface ShopFormValues {
   address?: string | { ar?: string; en?: string };
   lat?: number | null;
   lng?: number | null;
-  phone?: string;
-  mobile?: string;
-  email?: string;
+  phone?: string | null;
+  mobile?: string | null;
+  email?: string | null;
   area_id?: number;
   [key: string]: any;
 }

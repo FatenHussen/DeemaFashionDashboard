@@ -131,6 +131,7 @@ export const recipeColumns = (
       <DataTableRowActions
         schema={RecipeSchema}
         row={row}
+        viewDetails={`/recipes/details/${row.original.id}`}
         editItem={onEdit ? undefined : `/recipes/update/${row.original.id}`}
         onEdit={onEdit}
         onDelete={onDelete}

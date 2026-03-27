@@ -7,8 +7,6 @@ import { userGiftColumns, type UserGiftFormValues } from '@/columns/one/user-gif
 
 import { CONFIG } from 'src/global-config';
 
-const metadata = { title: `User Gifts | Dashboard - ${CONFIG.appName}` };
-
 export default function Page() {
   const { t } = useTranslation('table');
   const [currentPage, setCurrentPage] = useState(1);
@@ -48,7 +46,7 @@ export default function Page() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.userGiftsIndexDocumentTitle', { appName: CONFIG.appName })}</title>
       <DataTable
         tableName={t("tableNames.userGift")}
         columns={userGiftColumns(t)}
@@ -63,12 +61,12 @@ export default function Page() {
         }}
         isLoading={isLoading}
         columnTranslations={{
-          id: 'ID',
-          gift_name: 'Gift',
-          user_name: 'User',
-          address: 'Address',
-          status: 'Status',
-          created_at: 'Created',
+          id: t('columns.id'),
+          gift_name: t('columns.gift'),
+          user_name: t('columns.user'),
+          address: t('columns.address'),
+          status: t('columns.status'),
+          created_at: t('columns.created'),
         }}
         pagination={pagination}
         currentPage={currentPage}

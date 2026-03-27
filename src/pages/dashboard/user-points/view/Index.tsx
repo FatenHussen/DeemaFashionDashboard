@@ -8,8 +8,6 @@ import { userPointsColumns, type UserPointsFormValues } from '@/columns/one/user
 
 import { CONFIG } from 'src/global-config';
 
-const metadata = { title: `User Points | Dashboard - ${CONFIG.appName}` };
-
 export default function Page() {
   const { t } = useTranslation('table');
   const [currentPage, setCurrentPage] = useState(1);
@@ -123,7 +121,7 @@ export default function Page() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.userPointsIndexDocumentTitle', { appName: CONFIG.appName })}</title>
 
       <DataTable
         tableName={t("tableNames.userPoints")}
@@ -139,13 +137,13 @@ export default function Page() {
         }}
         isLoading={isLoading}
         columnTranslations={{
-          id: 'ID',
-          name: 'User',
-          balance: 'Balance',
-          total_earned: 'Earned',
-          total_redeemed: 'Redeemed',
-          total_transactions: 'Transactions',
-          expire_at: 'Expires',
+          id: t('columns.id'),
+          name: t('columns.user'),
+          balance: t('columns.balance'),
+          total_earned: t('columns.earned'),
+          total_redeemed: t('columns.redeemed'),
+          total_transactions: t('columns.transactions'),
+          expire_at: t('columns.expires'),
         }}
         pagination={pagination}
         currentPage={currentPage}

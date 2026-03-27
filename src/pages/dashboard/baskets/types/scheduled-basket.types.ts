@@ -115,6 +115,15 @@ export interface ScheduledBasketDetailsResponse {
   data: ScheduledBasketData;
 }
 
+export interface ScheduledBasketSchedulePayload {
+  title: { en: string; ar: string };
+  number_of_days: number;
+  discount_type: 'percentage' | 'fixed' | null;
+  discount_value: number | null;
+  is_active: boolean;
+  is_default?: boolean;
+}
+
 export interface ScheduledBasketCreateUpdatePayload {
   category_id: number;
   name: { ar: string; en: string };
@@ -131,13 +140,16 @@ export interface ScheduledBasketCreateUpdatePayload {
     min_quantity?: number;
     max_quantity?: number;
   }>;
-  schedule: {
-    title: { en: string; ar: string };
-    number_of_days: number;
-    discount_type: 'percentage' | 'fixed' | null;
-    discount_value: number | null;
-    is_active: boolean;
-  };
+  schedules: ScheduledBasketSchedulePayload[];
   is_active: boolean;
   badges?: Array<{ id: number; position: string }>;
+}
+
+export function badgesFormValueFromScheduledBasketResponse(
+  source: ScheduledBasketData
+): Array<{ id: number; position: 'top' | 'bottom' }> {
+  return (source.badges ?? []).map((b) => ({
+    id: b.id,
+    position: b.position === 'bottom' ? 'bottom' : 'top',
+  }));
 }

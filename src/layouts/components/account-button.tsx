@@ -1,6 +1,7 @@
 import type { HTMLAttributes } from 'react';
 
 import { m } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 
 import { varTap, varHover, AnimateBorder, transitionTap } from 'src/shared/components/animate';
 
@@ -12,12 +13,14 @@ export type AccountButtonProps = Omit<HTMLAttributes<HTMLButtonElement>, 'onDrag
 };
 
 export function AccountButton({ photoURL, displayName, className, ...other }: AccountButtonProps) {
+  const { t } = useTranslation('common');
+
   return (
     <m.button
       whileTap={varTap(0.96)}
       whileHover={varHover(1.04)}
       transition={transitionTap()}
-      aria-label="Account button"
+      aria-label={t('accountButton')}
       className={`p-0 inline-flex items-center justify-center ${className || ''}`}
       {...(other as any)}
     >

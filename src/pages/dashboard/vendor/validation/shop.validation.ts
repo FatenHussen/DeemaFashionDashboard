@@ -4,6 +4,23 @@ import i18n from 'src/lib/i18n';
 
 const t = (key: string) => i18n.t(key, { ns: 'validation' });
 
+function normalizePhoneDigits(value: string) {
+  const trimmed = value.trim();
+  if (trimmed.startsWith('+')) {
+    return { e164Prefix: true, digits: trimmed.slice(1).replace(/\D/g, '') };
+  }
+  return { e164Prefix: false, digits: trimmed.replace(/\D/g, '') };
+}
+
+function isValidShopMobile(value: string) {
+  const { e164Prefix, digits } = normalizePhoneDigits(value);
+  if (!digits.length) return false;
+  if (e164Prefix) {
+    return digits.length >= 7 && digits.length <= 15 && digits[0] !== '0';
+  }
+  return digits.length >= 7 && digits.length <= 15 && /^\d+$/.test(digits);
+}
+
 // ----------------------------------------------------------------------
 
 const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
@@ -32,7 +49,7 @@ const WorkingHoursSchema = zod.object({
 });
 
 export const ShopSchema = zod.object({
-  vendor_id: zod.number().min(1, { message: t('shop.vendorRequired') }),
+  vendor_id: zod.coerce.number().min(1, { message: t('shop.vendorRequired') }),
   logo: zod
     .instanceof(File)
     .nullable()
@@ -54,25 +71,23 @@ export const ShopSchema = zod.object({
   mobile: zod
     .string()
     .min(1, { message: t('shop.mobileRequired') })
-    .regex(/^\+?[1-9]\d{1,14}$/, { message: t('shop.invalidMobileFormat') }),
+    .refine(isValidShopMobile, { message: t('shop.invalidMobileFormat') }),
   email: zod
     .string()
     .min(1, { message: t('shop.emailRequired') })
     .email({ message: t('shop.emailInvalid') }),
   working_hours: WorkingHoursSchema,
   is_active: zod.boolean(),
-  area_id: zod.number().min(1, { message: t('shop.areaRequired') }),
+  area_id: zod.coerce.number().min(1, { message: t('shop.areaRequired') }),
   service_ids: zod
     .array(zod.object({ id: zod.number() }))
     .min(1, { message: t('shop.atLeastOneService') }),
-  badges: zod
-    .array(
-      zod.object({
-        id: zod.number(),
-        position: zod.enum(['top', 'bottom']),
-      })
-    )
-    .default([]),
+  badges: zod.array(
+    zod.object({
+      id: zod.number(),
+      position: zod.enum(['top', 'bottom']),
+    })
+  ),
 });
 
 export type ShopFormValues = zod.infer<typeof ShopSchema>;

@@ -157,6 +157,7 @@ export const scheduledBasketColumns = (
       <DataTableRowActions
         schema={ScheduledBasketSchema}
         row={row}
+        viewDetails={`/scheduled-baskets/details/${row.original.id}`}
         editItem={onEdit ? undefined : `/scheduled-baskets/update/${row.original.id}`}
         onEdit={onEdit}
         onDelete={onDelete}

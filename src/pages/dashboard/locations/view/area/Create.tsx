@@ -28,8 +28,6 @@ import { RHFInfiniteSelect } from 'src/shared/components/hook-form/rhf-infinite-
 
 // ----------------------------------------------------------------------
 
-const metadata = { title: `Area ${CONFIG.appName}` };
-
 // Cities API loads all at once — fake single-page pagination
 const cityFetcher = (_page: number, _limit: number) =>
   _CityApi.getListCities().then((r) => ({
@@ -115,11 +113,11 @@ export default function CreatePage() {
 
       if (isEditMode && id) {
         await updateAreaMutation.mutateAsync({ id, data: payload });
-        toast.success('Area updated successfully');
+        toast.success(t('form.areaUpdatedSuccess'));
         navigate('/locations/area');
       } else {
         await createAreaMutation.mutateAsync(payload);
-        toast.success('Area created successfully');
+        toast.success(t('form.areaCreatedSuccess'));
         navigate('/locations/area');
       }
     } catch (error: any) {
@@ -131,14 +129,14 @@ export default function CreatePage() {
     navigate('/locations/area');
   };
 
-  const infoText = isEditMode
-    ? 'You can update any field. Make sure both Arabic and English names are provided and a city is selected.'
-    : 'Fill in both Arabic and English names and select a city to create a new area.';
+  const infoText = isEditMode ? t('form.areaFormInfoEdit') : t('form.areaFormInfoCreate');
 
   return (
     <>
       <title>
-        {isEditMode ? `Edit Area | ${metadata.title}` : `Create Area | ${metadata.title}`}
+        {isEditMode
+          ? t('form.areaEditDocumentTitle', { appName: CONFIG.appName })
+          : t('form.areaCreateDocumentTitle', { appName: CONFIG.appName })}
       </title>
 
       <CreateFormLayout
@@ -147,15 +145,15 @@ export default function CreatePage() {
         onCancel={handleCancel}
         isSubmitting={isSubmitting}
         errorMessage={errorMessage}
-        title={isEditMode ? 'Edit Area' : 'Create New Area'}
-        description={isEditMode ? 'Update area information' : 'Add a new area to your system'}
+        title={isEditMode ? t('form.editArea') : t('form.createArea')}
+        description={isEditMode ? t('form.editAreaDesc') : t('form.createAreaDesc')}
         isEditMode={isEditMode}
         isLoading={isLoadingArea}
         loadingText={t('form.loadingArea')}
         maxWidth="3xl"
         infoText={infoText}
-        submitLabel={isEditMode ? 'Update Area' : 'Create Area'}
-        submittingLabel={isEditMode ? 'Updating...' : 'Creating...'}
+        submitLabel={isEditMode ? t('form.updateArea') : t('form.createAreaSubmit')}
+        submittingLabel={isEditMode ? t('form.updatingArea') : t('form.creatingArea')}
       >
         {/* Name Field - Arabic */}
         <Box className="group">
@@ -213,7 +211,7 @@ export default function CreatePage() {
           <Box className="flex items-center gap-2 mb-2">
             <Iconify icon="solar:map-point-bold" className="text-primary" width={24} height={24} />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Location
+              {t('form.areaMapLocationLabel')}
             </Typography>
           </Box>
           <MapPicker
@@ -226,7 +224,7 @@ export default function CreatePage() {
             height="280px"
           />
           <Typography variant="caption" className="text-muted-foreground mt-1 block">
-            Click on the map to set the area location
+            {t('form.areaMapClickHelper')}
           </Typography>
         </Box>
 

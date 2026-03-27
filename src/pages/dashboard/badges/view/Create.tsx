@@ -22,8 +22,6 @@ import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
 import { RHFColorPicker } from 'src/shared/components/hook-form/rhf-color-picker';
 import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
 
-const metadata = { title: `Badge | ${CONFIG.appName}` };
-
 export default function CreatePage() {
   const { t } = useTranslation('table');
   const { id } = useParams<{ id?: string }>();
@@ -80,7 +78,11 @@ export default function CreatePage() {
 
   return (
     <>
-      <title>{isEditMode ? `Edit Badge | ${metadata.title}` : `Create Badge | ${metadata.title}`}</title>
+      <title>
+        {isEditMode
+          ? t('form.badgeEditDocumentTitle', { appName: CONFIG.appName })
+          : t('form.badgeCreateDocumentTitle', { appName: CONFIG.appName })}
+      </title>
       <CreateFormLayout
         methods={methods as any}
         onSubmit={handleSubmit(onSubmit as any)}
@@ -91,8 +93,8 @@ export default function CreatePage() {
         isEditMode={isEditMode}
         isLoading={isEditMode && isLoadingDetails}
         loadingText={t('form.loadingBadge')}
-        submitLabel={isEditMode ? t('updating') : t('form.createBadge')}
-        submittingLabel={isEditMode ? t('updating') : t('create')}
+        submitLabel={isEditMode ? t('form.updateBadgeSubmit') : t('form.createBadgeSubmit')}
+        submittingLabel={isEditMode ? t('form.updatingBadgeSubmit') : t('form.creatingBadgeSubmit')}
       >
         <Box className="group">
           <Box className="flex items-center gap-2 mb-2">

@@ -1,3 +1,5 @@
+import type { DaySchedule } from '@/pages/dashboard/vendor/types/shop.types';
+
 import { Button } from '@/shared/ui/button';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
@@ -9,6 +11,16 @@ import { Box, Typography } from 'src/shared/ui';
 import { LoadingScreen } from 'src/shared/components/loading-screen';
 
 const metadata = { title: `Shop Details | Dashboard - ${CONFIG.appName}` };
+
+function formatWorkingHoursDay(schedule: string | DaySchedule | undefined): string {
+  if (schedule == null) return '-';
+  if (typeof schedule === 'string') return schedule || '-';
+  const c = schedule.closed;
+  const isClosed = c === true || c === 1 || c === '1' || c === 'true';
+  if (isClosed) return 'Closed';
+  if (schedule.open && schedule.close) return `${schedule.open} - ${schedule.close}`;
+  return '-';
+}
 
 export default function DetailsPage() {
   const { id } = useParams<{ id: string }>();
@@ -76,7 +88,9 @@ export default function DetailsPage() {
                   danger: 'bg-red-500/20 text-red-700 border-red-500/30',
                   primary: 'bg-primary/20 text-primary border-primary/30',
                 };
-                const cls = colorClasses[badge.color] || 'bg-muted text-muted-foreground border-border/50';
+                const cls =
+                  (badge.color != null ? colorClasses[badge.color] : undefined) ||
+                  'bg-muted text-muted-foreground border-border/50';
                 return (
                   <span
                     key={badge.name}
@@ -200,7 +214,7 @@ export default function DetailsPage() {
                       <Box key={day} className="flex items-center justify-between py-1 border-b border-border/30 last:border-0">
                         <Typography variant="body2" className="capitalize font-medium">{day}</Typography>
                         <Typography variant="body2" className="text-muted-foreground">
-                          {schedule?.closed ? 'Closed' : schedule?.open && schedule?.close ? `${schedule.open} - ${schedule.close}` : '-'}
+                          {formatWorkingHoursDay(schedule)}
                         </Typography>
                       </Box>
                     );

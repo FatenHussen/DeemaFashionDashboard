@@ -1,4 +1,5 @@
 import { Button } from '@/shared/ui/button';
+import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
 import { useFetchRoleById } from '@/pages/dashboard/roles/hooks/role';
@@ -10,9 +11,8 @@ import { LoadingScreen } from 'src/shared/components/loading-screen';
 
 // ----------------------------------------------------------------------
 
-const metadata = { title: `Role Details | Dashboard - ${CONFIG.appName}` };
-
 export default function DetailsPage() {
+  const { t } = useTranslation('table');
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: roleResponse, isLoading, error } = useFetchRoleById(id || '');
@@ -28,14 +28,14 @@ export default function DetailsPage() {
           <Box className="flex items-center gap-2 mb-2">
             <Iconify icon="solar:danger-bold" className="w-5 h-5 text-destructive" />
             <Typography variant="h6" className="text-destructive">
-              Error Loading Role
+              {t('form.roleLoadErrorTitle')}
             </Typography>
           </Box>
           <Typography variant="body2" className="text-muted-foreground mb-4">
-            {error instanceof Error ? error.message : 'Failed to load role information'}
+            {error instanceof Error ? error.message : t('form.roleLoadErrorFallback')}
           </Typography>
           <Button variant="outlined" onClick={() => navigate('/role')}>
-            Back to Roles
+            {t('form.backToRoles')}
           </Button>
         </Box>
       </Box>
@@ -58,7 +58,7 @@ export default function DetailsPage() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.roleDetailsDocumentTitle', { appName: CONFIG.appName })}</title>
       <Box className="relative min-h-screen overflow-hidden bg-background p-6">
         {/* Subtle background gradient */}
         <Box className="pointer-events-none fixed inset-0 bg-gradient-to-br from-background via-background to-muted/30" />
@@ -77,7 +77,7 @@ export default function DetailsPage() {
               className="mb-4 -ml-2 text-muted-foreground hover:text-foreground"
             >
               <Iconify icon="solar:arrow-left-bold" width={20} className="mr-2" />
-              Back to Roles
+              {t('form.backToRoles')}
             </Button>
 
             <Box className="flex items-center gap-4 mb-2">
@@ -89,7 +89,7 @@ export default function DetailsPage() {
                   {role.name}
                 </Typography>
                 <Typography variant="body2" className="text-muted-foreground">
-                  Role Details
+                  {t('form.roleDetailsSubtitle')}
                 </Typography>
               </Box>
               <Button
@@ -98,7 +98,7 @@ export default function DetailsPage() {
                 className="gap-2"
               >
                 <Iconify icon="solar:pen-bold" width={18} />
-                Edit Role
+                {t('form.editRole')}
               </Button>
             </Box>
           </Box>
@@ -110,12 +110,12 @@ export default function DetailsPage() {
               <Box>
                 <Typography variant="h6" className="font-semibold text-foreground mb-4 flex items-center gap-2">
                   <Iconify icon="solar:info-circle-bold" width={20} />
-                  Basic Information
+                  {t('form.roleBasicInformationSection')}
                 </Typography>
                 <Box className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Box className="space-y-2">
                     <Typography variant="body2" className="text-muted-foreground font-medium">
-                      Role Name
+                      {t('columns.roleName')}
                     </Typography>
                     <Box className="flex items-center gap-2">
                       <Iconify icon="solar:user-id-bold" className="text-primary" width={18} />
@@ -127,7 +127,7 @@ export default function DetailsPage() {
 
                   <Box className="space-y-2">
                     <Typography variant="body2" className="text-muted-foreground font-medium">
-                      Guard
+                      {t('columns.guard')}
                     </Typography>
                     <Box className="flex items-center gap-2">
                       <Iconify icon="solar:shield-check-bold" className="text-primary" width={18} />
@@ -139,7 +139,7 @@ export default function DetailsPage() {
 
                   <Box className="space-y-2">
                     <Typography variant="body2" className="text-muted-foreground font-medium">
-                      Created At
+                      {t('columns.createdAt')}
                     </Typography>
                     <Box className="flex items-center gap-2">
                       <Iconify icon="solar:calendar-date-bold" className="text-primary" width={18} />
@@ -152,7 +152,7 @@ export default function DetailsPage() {
                   {role.id && (
                     <Box className="space-y-2">
                       <Typography variant="body2" className="text-muted-foreground font-medium">
-                        Role ID
+                        {t('columns.id')}
                       </Typography>
                       <Box className="flex items-center gap-2">
                         <Box className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
@@ -170,10 +170,14 @@ export default function DetailsPage() {
               <Box>
                 <Typography variant="h6" className="font-semibold text-foreground mb-4 flex items-center gap-2">
                   <Iconify icon="solar:lock-password-outline" width={20} />
-                  Permissions
+                  {t('form.rolePermissionsSection')}
                   {role.permissions && Array.isArray(role.permissions) && (
                     <Typography variant="body2" className="text-muted-foreground font-normal ml-2">
-                      ({role.permissions.length} permission{role.permissions.length !== 1 ? 's' : ''})
+                      (
+                      {t('form.roleDetailsPermissionsCount', {
+                        count: role.permissions.length,
+                      })}
+                      )
                     </Typography>
                   )}
                 </Typography>
@@ -202,7 +206,7 @@ export default function DetailsPage() {
                   <Box className="text-center py-8">
                     <Iconify icon="solar:lock-password-outline" className="w-12 h-12 text-muted-foreground/50 mx-auto mb-2" />
                     <Typography variant="body2" className="text-muted-foreground">
-                      No permissions assigned to this role
+                      {t('noPermissions')}
                     </Typography>
                   </Box>
                 )}

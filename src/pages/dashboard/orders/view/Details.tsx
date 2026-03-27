@@ -8,6 +8,7 @@ import { Iconify } from '@/shared/components/iconify';
 import { useParams, useNavigate } from 'react-router';
 import { useForm, FormProvider } from 'react-hook-form';
 import { _DriverApi } from '@/pages/dashboard/driver/api/driver.services';
+import { joinOrderRoom, leaveOrderRoom, useOrderLocation } from '@/lib/socket';
 import { RHFInfiniteSelect } from '@/shared/components/hook-form/rhf-infinite-select';
 import {
   useAssignDriver,
@@ -20,6 +21,8 @@ import { toDisplayString } from 'src/utils/to-display-string';
 
 import { CONFIG } from 'src/global-config';
 import { Box, Typography } from 'src/shared/ui';
+
+import OrderTrackingMap from '../components/OrderTrackingMap';
 
 // ----------------------------------------------------------------------
 
@@ -76,6 +79,16 @@ export default function DetailsPage() {
   const { watch: watchDriverId, reset: resetDriverForm, setValue: setDriverId } = assignDriverForm;
   const selectedDriverId = watchDriverId('driver_id');
   const order = orderResponse?.data;
+
+  // Live order tracking via socket
+  const isTrackable = order?.status === 'out_delivery';
+  const liveLocation = useOrderLocation(isTrackable ? order?.id ?? null : null);
+
+  useEffect(() => {
+    if (!isTrackable || !order?.id) return undefined;
+    joinOrderRoom(order.id);
+    return () => leaveOrderRoom(order.id);
+  }, [isTrackable, order?.id]);
 
   useEffect(() => {
     if (order?.driver?.id) {
@@ -457,6 +470,31 @@ export default function DetailsPage() {
                     </Box>
                   )}
                 </Box>
+              </Box>
+            </Box>
+          )}
+
+          {/* Live Order Tracking Map */}
+          {isTrackable && order.user_address?.lat != null && order.user_address?.lng != null && (
+            <Box className="rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm shadow-sm overflow-hidden mb-4">
+              <Box className="p-6">
+                <Box className="flex items-center gap-2 mb-4">
+                  <span className="relative flex h-2.5 w-2.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500" />
+                  </span>
+                  <Typography variant="h6" className="font-semibold">
+                    {t('orders.liveTracking')}
+                  </Typography>
+                </Box>
+                <OrderTrackingMap
+                  destinationLat={Number(order.user_address.lat)}
+                  destinationLng={Number(order.user_address.lng)}
+                  destinationLabel={order.user_address.label}
+                  driverLocation={liveLocation}
+                  driverName={order.driver?.name}
+                  height="450px"
+                />
               </Box>
             </Box>
           )}

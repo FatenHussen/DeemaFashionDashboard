@@ -49,6 +49,7 @@ export interface BasketData {
   is_schedule?: boolean;
   created_at: string;
   updated_at: string;
+  badges?: Array<{ id: number; position?: string; postion?: string }>;
 }
 
 export interface BasketListResponse {
@@ -80,4 +81,5 @@ export interface BasketCreateUpdatePayload {
   delivery_price?: number;
   image?: File | string | null;
   items: Array<{ shop_product_variant_id: number; quantity: number }>;
+  badges?: Array<{ id: number; position: string }>;
 }

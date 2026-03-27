@@ -9,8 +9,6 @@ import { useFetchPointRules, useDeletePointRule } from '@/pages/dashboard/point-
 
 import { CONFIG } from 'src/global-config';
 
-const metadata = { title: `Point Rules | Dashboard - ${CONFIG.appName}` };
-
 export default function Page() {
   const { t } = useTranslation('table');
   const navigate = useNavigate();
@@ -58,7 +56,7 @@ export default function Page() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.pointRulesIndexDocumentTitle', { appName: CONFIG.appName })}</title>
       <DataTable
         tableName={t("tableNames.pointRule")}
         columns={pointRuleColumns(

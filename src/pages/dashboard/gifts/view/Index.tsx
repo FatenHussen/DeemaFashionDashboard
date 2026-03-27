@@ -9,8 +9,6 @@ import { useFetchGifts, useDeleteGift } from '@/pages/dashboard/gifts/hooks/gift
 
 import { CONFIG } from 'src/global-config';
 
-const metadata = { title: `Gifts | Dashboard - ${CONFIG.appName}` };
-
 export default function Page() {
   const { t } = useTranslation('table');
   const navigate = useNavigate();
@@ -62,7 +60,7 @@ export default function Page() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.giftsIndexDocumentTitle', { appName: CONFIG.appName })}</title>
       <DataTable
         tableName={t("tableNames.gift")}
         columns={giftColumns(
@@ -75,7 +73,7 @@ export default function Page() {
         detailsLink="/gifts/details"
         permissions={{ create: hasPermission('create', 'gift'), update: hasPermission('update', 'gift'), delete: hasPermission('delete', 'gift') }}
         isLoading={isLoading}
-        columnTranslations={{ id: 'ID', name: 'Name', points_required: 'Points', stock_quantity: 'Stock', exchanges_count: 'Exchanges', is_active: 'Status', created_at: 'Created', actions: 'Actions' }}
+        columnTranslations={{ id: t('columns.id'), name: t('columns.name'), points_required: t('columns.points'), stock_quantity: t('columns.stock'), exchanges_count: t('columns.exchanges'), is_active: t('columns.status'), created_at: t('columns.created'), actions: t('columns.action') }}
         pagination={pagination}
         currentPage={currentPage}
         pageSize={pageSize}

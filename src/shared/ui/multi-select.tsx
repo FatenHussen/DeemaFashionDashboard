@@ -26,30 +26,92 @@ export interface MultiSelectProps {
   isSearchable?: boolean;
 }
 
-// Tailwind-friendly styles for react-select
+/**
+ * Tokens in global.css are space-separated RGB triplets, e.g. `--border: 229 231 235`.
+ * Use `rgb(var(--token))` — not `hsl(var(--token))` — or borders/backgrounds disappear.
+ */
 const selectStyles = {
   control: (base: object, state: { isFocused: boolean }) => ({
     ...base,
-    minHeight: 36,
-    borderRadius: 8,
+    cursor: 'default',
+    minHeight: 40,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: state.isFocused ? 'hsl(var(--primary))' : 'hsl(var(--input))',
-    boxShadow: state.isFocused ? '0 0 0 2px hsl(var(--primary) / 0.2)' : 'none',
-    '&:hover': { borderColor: 'hsl(var(--primary) / 0.5)' },
+    borderStyle: 'solid',
+    borderColor: state.isFocused ? 'rgb(var(--primary))' : 'rgb(var(--border))',
+    backgroundColor: 'rgb(var(--background) / 0.3)',
+    boxShadow: state.isFocused
+      ? '0 0 0 4px rgb(var(--primary) / 0.25), 0 1px 2px 0 rgb(0 0 0 / 0.05)'
+      : '0 1px 2px 0 rgb(0 0 0 / 0.05)',
+    '&:hover': {
+      borderColor: state.isFocused ? 'rgb(var(--primary))' : 'rgb(var(--primary) / 0.45)',
+    },
   }),
   menu: (base: object) => ({
     ...base,
     zIndex: 50,
+    borderRadius: 12,
+    border: '1px solid rgb(var(--border))',
+    boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.08)',
+    backgroundColor: 'rgb(var(--popover))',
+  }),
+  menuList: (base: object) => ({
+    ...base,
+    padding: 4,
+  }),
+  option: (base: object, state: { isFocused: boolean; isSelected: boolean }) => ({
+    ...base,
     borderRadius: 8,
+    cursor: 'pointer',
+    backgroundColor: state.isSelected
+      ? 'rgb(var(--primary) / 0.12)'
+      : state.isFocused
+        ? 'rgb(var(--muted))'
+        : 'transparent',
+    color: 'rgb(var(--foreground))',
+  }),
+  placeholder: (base: object) => ({
+    ...base,
+    color: 'rgb(var(--muted-foreground))',
+  }),
+  input: (base: object) => ({
+    ...base,
+    color: 'rgb(var(--foreground))',
+  }),
+  singleValue: (base: object) => ({
+    ...base,
+    color: 'rgb(var(--foreground))',
   }),
   multiValue: (base: object) => ({
     ...base,
-    borderRadius: 6,
-    backgroundColor: 'hsl(var(--primary) / 0.1)',
+    borderRadius: 8,
+    backgroundColor: 'rgb(var(--primary) / 0.12)',
   }),
   multiValueLabel: (base: object) => ({
     ...base,
-    color: 'hsl(var(--foreground))',
+    color: 'rgb(var(--foreground))',
+  }),
+  multiValueRemove: (base: object) => ({
+    ...base,
+    color: 'rgb(var(--muted-foreground))',
+    ':hover': {
+      backgroundColor: 'rgb(220 38 38 / 0.12)',
+      color: 'rgb(220 38 38)',
+    },
+  }),
+  dropdownIndicator: (base: object, state: { isFocused: boolean }) => ({
+    ...base,
+    color: state.isFocused ? 'rgb(var(--primary))' : 'rgb(var(--muted-foreground))',
+    padding: '0 10px',
+    ':hover': { color: 'rgb(var(--primary))' },
+  }),
+  indicatorSeparator: () => ({
+    display: 'none',
+  }),
+  clearIndicator: (base: object) => ({
+    ...base,
+    color: 'rgb(var(--muted-foreground))',
+    ':hover': { color: 'rgb(var(--foreground))' },
   }),
 };
 
@@ -93,28 +155,33 @@ export function MultiSelect({
           ...selectStyles,
           control: (base, state) => ({
             ...selectStyles.control(base, state),
-            ...(error ? { borderColor: 'hsl(var(--destructive))' } : {}),
+            ...(error
+              ? {
+                  borderColor: 'rgb(220 38 38)',
+                  boxShadow: '0 0 0 4px rgb(220 38 38 / 0.15)',
+                }
+              : {}),
           }),
         }}
         theme={(theme) => ({
           ...theme,
           colors: {
             ...theme.colors,
-            primary: 'hsl(var(--primary))',
-            primary75: 'hsl(var(--primary) / 0.75)',
-            primary50: 'hsl(var(--primary) / 0.5)',
-            primary25: 'hsl(var(--primary) / 0.25)',
-            neutral0: 'hsl(var(--background))',
-            neutral5: 'hsl(var(--muted))',
-            neutral10: 'hsl(var(--muted))',
-            neutral20: 'hsl(var(--border))',
-            neutral30: 'hsl(var(--border))',
-            neutral40: 'hsl(var(--muted-foreground))',
-            neutral50: 'hsl(var(--muted-foreground))',
-            neutral60: 'hsl(var(--muted-foreground))',
-            neutral70: 'hsl(var(--foreground))',
-            neutral80: 'hsl(var(--foreground))',
-            neutral90: 'hsl(var(--foreground))',
+            primary: 'rgb(var(--primary))',
+            primary75: 'rgb(var(--primary) / 0.75)',
+            primary50: 'rgb(var(--primary) / 0.5)',
+            primary25: 'rgb(var(--primary) / 0.25)',
+            neutral0: 'rgb(var(--background))',
+            neutral5: 'rgb(var(--muted))',
+            neutral10: 'rgb(var(--muted))',
+            neutral20: 'rgb(var(--border))',
+            neutral30: 'rgb(var(--border))',
+            neutral40: 'rgb(var(--muted-foreground))',
+            neutral50: 'rgb(var(--muted-foreground))',
+            neutral60: 'rgb(var(--muted-foreground))',
+            neutral70: 'rgb(var(--foreground))',
+            neutral80: 'rgb(var(--foreground))',
+            neutral90: 'rgb(var(--foreground))',
           },
         })}
       />

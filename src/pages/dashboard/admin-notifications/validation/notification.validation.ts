@@ -13,6 +13,7 @@ export const NotificationSchema = z.object({
     required_error: t('notification.typeRequired'),
     invalid_type_error: t('notification.typeInvalid'),
   }),
+  is_fixed: z.boolean().default(false),
 });
 
 export type NotificationFormValues = z.infer<typeof NotificationSchema>;

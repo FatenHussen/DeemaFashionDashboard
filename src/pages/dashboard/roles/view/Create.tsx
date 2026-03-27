@@ -25,8 +25,6 @@ import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout
 
 // ----------------------------------------------------------------------
 
-const metadata = { title: `Role ${CONFIG.appName}` };
-
 export default function CreatePage() {
   const { t } = useTranslation('table');
   const { id } = useParams<{ id?: string }>();
@@ -138,14 +136,14 @@ export default function CreatePage() {
     }
   };
 
-  const infoText = isEditMode
-    ? 'Update role name and permissions. Changes will affect all users with this role.'
-    : 'Create a new role and assign permissions. Make sure to select appropriate permissions for the role.';
+  const infoText = isEditMode ? t('form.roleFormInfoEdit') : t('form.roleFormInfoCreate');
 
   return (
     <>
       <title>
-        {isEditMode ? `Edit Role | ${metadata.title}` : `Create Role | ${metadata.title}`}
+        {isEditMode
+          ? t('form.roleEditDocumentTitle', { appName: CONFIG.appName })
+          : t('form.roleCreateDocumentTitle', { appName: CONFIG.appName })}
       </title>
 
       <CreateFormLayout
@@ -154,17 +152,21 @@ export default function CreatePage() {
         onCancel={handleCancel}
         isSubmitting={isSubmitting}
         errorMessage={errorMessage}
-        title={isEditMode ? 'Edit Role' : 'Create New Role'}
+        title={isEditMode ? t('form.editRole') : t('form.createRole')}
         description={
-          isEditMode ? 'Update role information and permissions' : 'Add a new role to your system'
+          isEditMode
+            ? t('form.roleFormLayoutDescriptionEdit')
+            : t('form.roleFormLayoutDescriptionCreate')
         }
         isEditMode={isEditMode}
         isLoading={isLoadingRole || isLoadingPermissions}
         loadingText={t('form.loadingRole')}
         maxWidth="4xl"
         infoText={infoText}
-        submitLabel={isEditMode ? 'Update Role' : 'Create Role'}
-        submittingLabel={isEditMode ? 'Updating...' : 'Creating...'}
+        submitLabel={isEditMode ? t('form.updateRoleSubmit') : t('form.createRoleSubmit')}
+        submittingLabel={
+          isEditMode ? t('form.updatingRoleSubmit') : t('form.creatingRoleSubmit')
+        }
       >
         {/* Role Name Field */}
         <Box className="group">
@@ -176,7 +178,7 @@ export default function CreatePage() {
               height={24}
             />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Role Name
+              {t('columns.roleName')}
             </Typography>
           </Box>
           <RHFTextField
@@ -192,17 +194,17 @@ export default function CreatePage() {
           <Box className="flex items-center gap-2 mb-4">
             <Iconify icon="solar:key-bold" className="text-primary" width={24} height={24} />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Permissions
+              {t('form.rolePermissionsSection')}
             </Typography>
             <Typography variant="caption" className="text-muted-foreground">
-              ({selectedPermissions?.length || 0} selected)
+              {t('form.rolePermissionsSelected', { count: selectedPermissions?.length || 0 })}
             </Typography>
           </Box>
 
           {isLoadingPermissions ? (
             <Box className="p-8 text-center">
               <Typography variant="body2" className="text-muted-foreground">
-                Loading permissions...
+                {t('form.rolePermissionsLoading')}
               </Typography>
             </Box>
           ) : (
@@ -244,7 +246,9 @@ export default function CreatePage() {
                               {resource}
                             </Typography>
                             <Typography variant="caption" className="text-muted-foreground">
-                              ({resourcePermissions.length} permissions)
+                              {t('form.rolePermissionsInGroup', {
+                                count: resourcePermissions.length,
+                              })}
                             </Typography>
                           </Box>
                         </Box>
@@ -284,7 +288,7 @@ export default function CreatePage() {
           {!isLoadingPermissions && permissions.length === 0 && (
             <Box className="p-8 text-center border border-dashed border-border rounded-lg">
               <Typography variant="body2" className="text-muted-foreground">
-                No permissions available
+                {t('form.rolePermissionsNoneAvailable')}
               </Typography>
             </Box>
           )}

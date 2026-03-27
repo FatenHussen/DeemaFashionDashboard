@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { usePermissions } from '@/auth/hooks/use-permissions';
@@ -7,10 +7,9 @@ import {
   adminNotificationColumns,
   type NotificationFormValues,
 } from '@/columns/one/admin-notifications/one';
+import { AdminNotificationTableFilters } from '@/pages/dashboard/admin-notifications/components/notification-table-filters';
 
 import { CONFIG } from 'src/global-config';
-
-const metadata = { title: `Admin Notifications | Dashboard - ${CONFIG.appName}` };
 
 export default function Page() {
   const { t } = useTranslation('table');
@@ -32,6 +31,11 @@ export default function Page() {
     setCurrentPage(1);
   };
 
+  const handleSearchChange = useCallback((value: string) => {
+    setSearch(value);
+    setCurrentPage(1);
+  }, []);
+
   const items: NotificationFormValues[] = response?.data?.items || [];
   const apiPagination = response?.data?.pagination;
   const pagination = apiPagination
@@ -50,51 +54,40 @@ export default function Page() {
 
   return (
     <>
-      <title>{metadata.title}</title>
-
-      <div className="mb-4 flex flex-wrap gap-3 rounded-xl border border-border bg-card p-4 shadow-sm rtl:flex-row-reverse">
-        <input
-          type="text"
-          placeholder={t('search')}
-          value={search}
-          onChange={(e) => {
-            setSearch(e.target.value);
-            setCurrentPage(1);
-          }}
-          className="h-9 min-w-[200px] rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-        />
-        {search && (
-          <button
-            type="button"
-            onClick={() => {
-              setSearch('');
-              setCurrentPage(1);
-            }}
-            className="h-9 rounded-md border border-border px-4 text-sm font-medium text-foreground hover:bg-muted"
-          >
-            {t('clear')}
-          </button>
-        )}
-      </div>
+      <title>{t('form.adminNotificationsIndexDocumentTitle', { appName: CONFIG.appName })}</title>
 
       <DataTable
         tableName={t("tableNames.adminNotifications")}
-        columns={adminNotificationColumns(t)}
+        columns={adminNotificationColumns(
+          { update: hasCreatePermission },
+          t,
+          '/admin-notifications/update'
+        )}
         data={items}
         hasDetails={false}
         createPath="/admin-notifications/create"
         permissions={{
           create: hasCreatePermission,
-          update: false,
+          update: hasCreatePermission,
           delete: false,
         }}
+        searchColumns={[]}
         isLoading={isLoading}
+        toolbarFilter={({ table }) => (
+          <AdminNotificationTableFilters
+            table={table}
+            search={search}
+            onSearchChange={handleSearchChange}
+            t={t}
+          />
+        )}
         columnTranslations={{
-          id: 'ID',
-          title: 'Title',
-          body: 'Body',
-          type: 'Type',
-          created_at: 'Created At',
+          id: t('columns.id'),
+          title: t('columns.title'),
+          body: t('columns.body'),
+          type: t('columns.type'),
+          is_fixed: t('form.notificationIsFixedLabel'),
+          created_at: t('columns.createdAt'),
         }}
         pagination={pagination}
         currentPage={currentPage}

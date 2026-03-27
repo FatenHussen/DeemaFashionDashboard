@@ -9,8 +9,6 @@ import { useFetchBadges, useDeleteBadge } from '@/pages/dashboard/badges/hooks/b
 
 import { CONFIG } from 'src/global-config';
 
-const metadata = { title: `Badges | Dashboard - ${CONFIG.appName}` };
-
 export default function Page() {
   const { t } = useTranslation('table');
   const navigate = useNavigate();
@@ -58,7 +56,7 @@ export default function Page() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.badgesIndexDocumentTitle', { appName: CONFIG.appName })}</title>
       <DataTable
         tableName={t("tableNames.badge")}
         columns={badgeColumns(

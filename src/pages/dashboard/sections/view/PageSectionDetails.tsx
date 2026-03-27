@@ -11,16 +11,15 @@ import { LoadingScreen } from 'src/shared/components/loading-screen';
 
 // ----------------------------------------------------------------------
 
-const metadata = { title: `Page Section Details | Dashboard - ${CONFIG.appName}` };
-
 function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
+  const { t } = useTranslation('table');
   return (
     <Box className="space-y-1">
       <Typography variant="body2" className="text-muted-foreground font-medium">
         {label}
       </Typography>
       <Typography variant="body1" className="text-foreground">
-        {value ?? 'N/A'}
+        {value ?? t('form.valueNotAvailable')}
       </Typography>
     </Box>
   );
@@ -45,14 +44,14 @@ export default function PageSectionDetailsPage() {
           <Box className="flex items-center gap-2 mb-2">
             <Iconify icon="solar:danger-bold" className="w-5 h-5 text-destructive" />
             <Typography variant="h6" className="text-destructive">
-              Error Loading Page Section
+              {t('form.pageSectionErrorLoadingTitle')}
             </Typography>
           </Box>
           <Typography variant="body2" className="text-muted-foreground mb-4">
-            {error instanceof Error ? error.message : 'Failed to load page section information'}
+            {error instanceof Error ? error.message : t('form.pageSectionErrorLoadingFallback')}
           </Typography>
           <Button variant="outlined" onClick={() => navigate('/sections/page-sections')}>
-            Back to Page Sections
+            {t('form.backToPageSections')}
           </Button>
         </Box>
       </Box>
@@ -63,9 +62,14 @@ export default function PageSectionDetailsPage() {
     pageSection.name as Parameters<typeof formatTranslated>[0]
   );
 
+  const nameObj =
+    pageSection.name && typeof pageSection.name === 'object' && !Array.isArray(pageSection.name)
+      ? (pageSection.name as { ar?: string; en?: string })
+      : null;
+
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.pageSectionDetailsDocumentTitle', { appName: CONFIG.appName })}</title>
       <Box className="relative min-h-screen overflow-hidden bg-background p-6">
         <Box className="pointer-events-none fixed inset-0 bg-gradient-to-br from-background via-background to-muted/30" />
         <Box className="pointer-events-none fixed inset-0 opacity-[0.03] dark:opacity-[0.05]">
@@ -80,7 +84,7 @@ export default function PageSectionDetailsPage() {
               className="mb-4 -ml-2 text-muted-foreground hover:text-foreground"
             >
               <Iconify icon="solar:arrow-left-bold" width={20} className="mr-2" />
-              Back to Page Sections
+              {t('form.backToPageSections')}
             </Button>
 
             <Box className="flex items-center gap-4 mb-2">
@@ -89,10 +93,10 @@ export default function PageSectionDetailsPage() {
               </Box>
               <Box className="flex-1">
                 <Typography variant="h4" className="font-bold text-foreground mb-1">
-                  {nameStr || `Page Section #${pageSection.id}`}
+                  {nameStr || t('form.pageSectionDetailsFallbackTitle', { id: pageSection.id })}
                 </Typography>
                 <Typography variant="body2" className="text-muted-foreground">
-                  ID: {pageSection.id}
+                  {t('form.pageSectionIdChip', { id: pageSection.id })}
                 </Typography>
               </Box>
               <Button
@@ -101,7 +105,7 @@ export default function PageSectionDetailsPage() {
                 className="gap-2"
               >
                 <Iconify icon="solar:pen-bold" width={18} />
-                Edit
+                {t('form.editPageSectionButton')}
               </Button>
             </Box>
           </Box>
@@ -109,11 +113,18 @@ export default function PageSectionDetailsPage() {
           <Box className="rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm shadow-sm overflow-hidden">
             <Box className="p-6">
               <Typography variant="h6" className="font-semibold mb-4">
-                Page Section Information
+                {t('form.pageSectionInformationTitle')}
               </Typography>
               <Box className="grid gap-4 sm:grid-cols-2">
                 <DetailRow label={t('columns.id')} value={pageSection.id} />
-                <DetailRow label={t('columns.name')} value={nameStr} />
+                {nameObj ? (
+                  <>
+                    <DetailRow label={`${t('columns.name')} (EN)`} value={nameObj.en || '-'} />
+                    <DetailRow label={`${t('columns.name')} (AR)`} value={nameObj.ar || '-'} />
+                  </>
+                ) : (
+                  <DetailRow label={t('columns.name')} value={nameStr} />
+                )}
                 <DetailRow
                   label={t('columns.position')}
                   value={
@@ -125,10 +136,14 @@ export default function PageSectionDetailsPage() {
                             : 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400'
                         }`}
                       >
-                        {(pageSection as any).position}
+                        {(pageSection as any).position === 'before'
+                          ? t('form.positionBefore')
+                          : (pageSection as any).position === 'after'
+                            ? t('form.positionAfter')
+                            : String((pageSection as any).position)}
                       </span>
                     ) : (
-                      'N/A'
+                      t('form.valueNotAvailable')
                     )
                   }
                 />

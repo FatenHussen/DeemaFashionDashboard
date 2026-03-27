@@ -9,14 +9,14 @@ const CountrySchema = z.object({
   id: z.number(),
   name: z.any(),
   code: z.string(),
-  is_active: z.number(),
+  is_active: z.number().optional(),
 });
 
 export interface CountryTableItem {
   id: number;
   name: any;
   code: string;
-  is_active: number;
+  is_active?: number;
 }
 
 export const countryColumns = (
@@ -58,16 +58,16 @@ export const countryColumns = (
       <span className="px-2 py-1 rounded-md bg-muted text-sm font-mono">{row.original.code}</span>
     ),
   },
-  {
-    id: 'status',
-    accessorKey: 'is_active',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.status')} />,
-    cell: ({ row }) => (
-      <span className={`px-2 py-1 rounded-full text-xs font-medium ${row.original.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-        {row.original.is_active ? t('active') : t('inactive')}
-      </span>
-    ),
-  },
+  // {
+  //   id: 'status',
+  //   accessorKey: 'is_active',
+  //   header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.status')} />,
+  //   cell: ({ row }) => (
+  //     <span className={`px-2 py-1 rounded-full text-xs font-medium ${row.original.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+  //       {row.original.is_active ? t('active') : t('inactive')}
+  //     </span>
+  //   ),
+  // },
   {
     id: 'actions',
     cell: ({ row }: any) => (

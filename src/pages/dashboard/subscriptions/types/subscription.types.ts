@@ -1,4 +1,5 @@
 // ----------------------------------------------------------------------
+// User subscriptions — admin read-only API (list + show).
 
 /** GET /api/admin/subscriptions query params */
 export type SubscriptionListParams = {
@@ -46,7 +47,8 @@ export interface SubscriptionListItem {
   package: SubscriptionPackageList;
   status: SubscriptionStatus | string;
   start_date: string;
-  end_date: string;
+  /** May be null when open-ended (see `days_remaining` on detail). */
+  end_date: string | null;
   remaining_orders: number | null;
   remaining_free_deliveries: number | null;
   is_active: boolean;

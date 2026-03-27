@@ -1,20 +1,16 @@
-import type {
-  ScheduledBasketCreateUpdatePayload,
-  ScheduledBasketData,
-  ScheduledBasketItem,
-} from '@/pages/dashboard/baskets/types/scheduled-basket.types';
-
-import { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import { Button } from '@/shared/ui/button';
 import { useTranslation } from 'react-i18next';
+import { useQuery } from '@tanstack/react-query';
+import { useMemo, useState, useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Iconify } from '@/shared/components/iconify';
+import { MultiSelect } from '@/shared/ui/multi-select';
 import { useParams, useNavigate, useLocation } from 'react-router';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { InfiniteScrollSelect } from '@/shared/components/infinite-scroll-select';
-import { _ShopProductVariantApi } from '@/shared/api/shop-product-variant.services';
 import { _CategoryApi } from '@/pages/dashboard/categories/api/category.services';
+import { _ShopProductVariantApi } from '@/shared/api/shop-product-variant.services';
 import {
   ScheduledBasketSchema,
   type ScheduledBasketFormValues,
@@ -24,6 +20,12 @@ import {
   useUpdateScheduledBasket,
   useFetchScheduledBasketById,
 } from '@/pages/dashboard/baskets/hooks/scheduled-basket';
+import {
+  type ScheduledBasketData,
+  type ScheduledBasketItem,
+  type ScheduledBasketCreateUpdatePayload,
+  badgesFormValueFromScheduledBasketResponse,
+} from '@/pages/dashboard/baskets/types/scheduled-basket.types';
 
 import { CONFIG } from 'src/global-config';
 import { Box, Input, Switch, Typography } from 'src/shared/ui';
@@ -33,8 +35,6 @@ import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout
 import { RHFBadgeSelector } from 'src/shared/components/hook-form/rhf-badge-selector';
 
 // ----------------------------------------------------------------------
-
-const metadata = { title: `Scheduled Basket ${CONFIG.appName}` };
 
 function mapScheduledBasketLineItem(it: ScheduledBasketItem) {
   const fromAlts = (it.alternatives ?? []).map((a) => a.shop_product_variant_id).filter(Boolean);
@@ -51,6 +51,58 @@ function mapScheduledBasketLineItem(it: ScheduledBasketItem) {
     min_quantity: it.min_quantity ?? 0,
     max_quantity: it.max_quantity ?? 0,
   };
+}
+
+/** API may return `title` as string or { en, ar } */
+function normalizeScheduleTitleFromApi(raw: unknown): { en: string; ar: string } {
+  if (raw && typeof raw === 'object' && raw !== null) {
+    const o = raw as { en?: string; ar?: string };
+    if ('en' in o || 'ar' in o) {
+      return { en: o.en ?? '', ar: o.ar ?? '' };
+    }
+  }
+  const str = String(raw ?? '');
+  return { en: str, ar: str };
+}
+
+/** Map API schedules to form rows; drops legacy rows that only linked another basket by id. */
+function schedulesFromApi(source: ScheduledBasketData): ScheduledBasketFormValues['schedules'] {
+  const raw = source.schedules ?? [];
+  const inline = raw.filter((s: any) => {
+    const legacyLink = Number(s?.scheduled_basket_id) > 0 && s?.number_of_days == null;
+    return !legacyLink;
+  });
+  const mapped: ScheduledBasketFormValues['schedules'] = inline.map((s: any) => ({
+    title: normalizeScheduleTitleFromApi(s.title),
+    number_of_days: s.number_of_days ?? 1,
+    discount_type: s.discount_type ?? null,
+    discount_value: s.discount_value ?? null,
+    is_active: s.is_active ?? true,
+    is_default: Boolean(s.is_default),
+  }));
+  if (mapped.length === 0) {
+    return [
+      {
+        title: { en: '', ar: '' },
+        number_of_days: 1,
+        discount_type: null,
+        discount_value: null,
+        is_active: true,
+        is_default: true,
+      },
+    ];
+  }
+  if (!mapped.some((r) => r.is_default)) {
+    mapped[0].is_default = true;
+  }
+  let seenDefault = false;
+  return mapped.map((r) => {
+    if (r.is_default) {
+      if (seenDefault) return { ...r, is_default: false };
+      seenDefault = true;
+    }
+    return r;
+  });
 }
 
 export default function CreatePage() {
@@ -73,13 +125,16 @@ export default function CreatePage() {
     delivery_price: 0,
     image: null,
     items: [{ shop_product_variant_id: 0, quantity: 1, shop_product_variant_ids: [], is_required: false, is_extra: false, min_quantity: 0, max_quantity: 0 }],
-    schedule: {
-      title: { en: '', ar: '' },
-      number_of_days: 1,
-      discount_type: null,
-      discount_value: null,
-      is_active: true,
-    },
+    schedules: [
+      {
+        title: { en: '', ar: '' },
+        number_of_days: 1,
+        discount_type: null,
+        discount_value: null,
+        is_active: true,
+        is_default: true,
+      },
+    ],
     is_active: true,
     badges: [],
   };
@@ -89,10 +144,43 @@ export default function CreatePage() {
     defaultValues,
   });
 
-  const { handleSubmit, reset, control, watch } = methods;
+  const { handleSubmit, reset, control, watch, getValues, setValue } = methods;
   const { fields, append, remove } = useFieldArray({ control, name: 'items' });
-  const scheduleDiscountType = watch('schedule.discount_type');
+  const {
+    fields: scheduleFields,
+    append: appendSchedule,
+    remove: removeScheduleRow,
+  } = useFieldArray({ control, name: 'schedules' });
+  const schedulesWatch = watch('schedules');
   const imageValue = watch('image');
+
+  const { data: shopVariantListResponse } = useQuery({
+    queryKey: ['shopProductVariant', 'scheduled-basket', 'multi-options'],
+    queryFn: () => _ShopProductVariantApi.getList({ page: 1, per_page: 500 }),
+  });
+
+  const shopVariantMultiOptions = useMemo(() => {
+    const items = shopVariantListResponse?.data?.items ?? [];
+    return items.map((v) => ({ value: v.id, label: v.label }));
+  }, [shopVariantListResponse?.data?.items]);
+
+  const handleRemoveScheduleRow = (index: number) => {
+    const wasDefault = getValues(`schedules.${index}.is_default`);
+    removeScheduleRow(index);
+    window.setTimeout(() => {
+      const next = getValues('schedules');
+      if (next.length && wasDefault && !next.some((r) => r.is_default)) {
+        setValue('schedules.0.is_default', true);
+      }
+    }, 0);
+  };
+
+  const setScheduleAsDefault = (index: number) => {
+    const rows = getValues('schedules');
+    rows.forEach((_, i) => {
+      setValue(`schedules.${i}.is_default`, i === index);
+    });
+  };
 
   const [fileImagePreview, setFileImagePreview] = useState<string | null>(null);
   useEffect(() => {
@@ -109,7 +197,6 @@ export default function CreatePage() {
     const source = isEditMode ? (scheduledBasketResponse?.data ?? scheduledBasketFromState) : null;
     if (source) {
       const name = typeof source.name === 'object' ? source.name : { en: String(source.name || ''), ar: String(source.name || '') };
-      const firstSchedule = source.schedules?.[0];
       const combinedLines = [...(source.items ?? []), ...(source.extras ?? [])];
       reset({
         category_id: source.category?.id || 0,
@@ -121,28 +208,9 @@ export default function CreatePage() {
         items: combinedLines.length
           ? combinedLines.map(mapScheduledBasketLineItem)
           : [{ shop_product_variant_id: 0, quantity: 1, shop_product_variant_ids: [], is_required: false, is_extra: false, min_quantity: 0, max_quantity: 0 }],
-        schedule: firstSchedule
-          ? {
-              title: typeof firstSchedule.title === 'object' ? firstSchedule.title : { en: String(firstSchedule.title || ''), ar: '' },
-              number_of_days: firstSchedule.number_of_days || 1,
-              discount_type: firstSchedule.discount_type || null,
-              discount_value: firstSchedule.discount_value ?? null,
-              is_active: firstSchedule.is_active ?? true,
-            }
-          : {
-              title: { en: '', ar: '' },
-              number_of_days: 1,
-              discount_type: null,
-              discount_value: null,
-              is_active: true,
-            },
-        is_active: source.is_active ?? true,
-        badges: (source as any).badges?.length
-          ? (source as any).badges.map((b: any) => ({
-              id: b.id,
-              position: b.position || b.postion || 'top',
-            }))
-          : [],
+        schedules: schedulesFromApi(source),
+        is_active: (source as any).is_active !== undefined ? Boolean((source as any).is_active) : true,
+        badges: badgesFormValueFromScheduledBasketResponse(source),
       });
     }
   }, [scheduledBasketResponse?.data, scheduledBasketFromState, isEditMode, reset]);
@@ -160,22 +228,23 @@ export default function CreatePage() {
         delivery_price: data.delivery_price,
         image: data.image,
         items: data.items,
-        schedule: {
-          title: data.schedule.title,
-          number_of_days: data.schedule.number_of_days,
-          discount_type: data.schedule.discount_type ?? null,
-          discount_value: data.schedule.discount_value ?? null,
-          is_active: data.schedule.is_active,
-        },
+        schedules: data.schedules.map((s) => ({
+          title: s.title,
+          number_of_days: s.number_of_days,
+          discount_type: s.discount_type ?? null,
+          discount_value: s.discount_value ?? null,
+          is_active: s.is_active,
+          is_default: s.is_default,
+        })),
         is_active: data.is_active,
         badges: data.badges,
       };
       if (isEditMode && id) {
         await updateScheduledBasketMutation.mutateAsync({ id, data: payload });
-        toast.success(t('form.scheduledBasketUpdatedSuccess') || 'Scheduled basket updated successfully');
+        toast.success(t('form.scheduledBasketUpdatedSuccess'));
       } else {
         await createScheduledBasketMutation.mutateAsync(payload);
-        toast.success(t('form.scheduledBasketCreatedSuccess') || 'Scheduled basket created successfully');
+        toast.success(t('form.scheduledBasketCreatedSuccess'));
       }
       navigate('/scheduled-baskets');
     } catch (error: any) {
@@ -189,7 +258,11 @@ export default function CreatePage() {
 
   return (
     <>
-      <title>{isEditMode ? `Edit Scheduled Basket | ${metadata.title}` : `Create Scheduled Basket | ${metadata.title}`}</title>
+      <title>
+        {isEditMode
+          ? t('form.scheduledBasketEditDocumentTitle', { appName: CONFIG.appName })
+          : t('form.scheduledBasketCreateDocumentTitle', { appName: CONFIG.appName })}
+      </title>
 
       <CreateFormLayout
         methods={methods as any}
@@ -197,14 +270,20 @@ export default function CreatePage() {
         onCancel={handleCancel}
         isSubmitting={isSubmitting}
         errorMessage={errorMessage}
-        title={isEditMode ? t('form.editScheduledBasket') || 'Edit Scheduled Basket' : t('form.createScheduledBasket') || 'Create New Scheduled Basket'}
-        description={isEditMode ? t('form.editScheduledBasketDesc') || 'Update scheduled basket details' : t('form.createScheduledBasketDesc') || 'Add a new scheduled basket with products'}
+        title={isEditMode ? t('form.editScheduledBasket') : t('form.createScheduledBasket')}
+        description={
+          isEditMode ? t('form.editScheduledBasketDesc') : t('form.createScheduledBasketDesc')
+        }
         isEditMode={isEditMode}
         isLoading={isEditMode && isLoadingScheduledBasket}
         loadingText={t('form.loadingScheduledBasket')}
         maxWidth="2xl"
-        submitLabel={isEditMode ? t('form.updateScheduledBasket') || 'Update Scheduled Basket' : t('form.createScheduledBasketSubmit') || 'Create Scheduled Basket'}
-        submittingLabel={isEditMode ? t('updating') || 'Updating...' : t('form.creating') || 'Creating...'}
+        submitLabel={
+          isEditMode ? t('form.updateScheduledBasket') : t('form.createScheduledBasketSubmit')
+        }
+        submittingLabel={
+          isEditMode ? t('form.updatingScheduledBasket') : t('form.creatingScheduledBasket')
+        }
       >
         {/* Category */}
         <Box className="group">
@@ -222,7 +301,13 @@ export default function CreatePage() {
                     data: {
                       items:
                         page === 1
-                          ? [{ id: 0, label: 'Select category...' }, ...res.data.items.map((c: any) => ({ id: c.id, label: typeof c.name === 'object' ? c.name : c.name || '' }))]
+                          ? [
+                              { id: 0, label: t('form.selectCategoryPlaceholder') },
+                              ...res.data.items.map((c: any) => ({
+                                id: c.id,
+                                label: typeof c.name === 'object' ? c.name : c.name || '',
+                              })),
+                            ]
                           : res.data.items.map((c: any) => ({ id: c.id, label: typeof c.name === 'object' ? c.name : c.name || '' })),
                       pagination: res.data.pagination,
                     },
@@ -268,14 +353,14 @@ export default function CreatePage() {
           </Box>
           <Box className="min-w-[140px] flex-1">
             <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.discountValue')}</Typography>
-            <RHFTextField name="discount" type="number" placeholder="0" fullWidth />
+            <RHFTextField name="discount" type="number" placeholder={t('form.placeholderZero')} fullWidth />
           </Box>
         </Box>
 
         {/* Delivery Price */}
         <Box className="group">
           <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.deliveryPrice')}</Typography>
-          <RHFTextField name="delivery_price" type="number" placeholder="0" fullWidth />
+          <RHFTextField name="delivery_price" type="number" placeholder={t('form.placeholderZero')} fullWidth />
         </Box>
 
         {/* Basket image (optional, multipart) */}
@@ -283,7 +368,7 @@ export default function CreatePage() {
           <Box className="flex items-center gap-2 mb-2">
             <Iconify icon="solar:gallery-add-bold" className="text-primary" width={24} height={24} />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              {t('form.basketImage') || 'Basket image'}
+              {t('form.basketImage')}
             </Typography>
           </Box>
           <Controller
@@ -300,7 +385,7 @@ export default function CreatePage() {
                     onChange(file || null);
                   }}
                   error={!!error}
-                  helperText={error?.message || (t('form.basketImageHelper') as string) || 'JPEG, PNG, GIF — max 2MB on server'}
+                  helperText={error?.message || t('form.basketImageHelper')}
                   fullWidth
                 />
                 {(() => {
@@ -319,83 +404,177 @@ export default function CreatePage() {
           />
         </Box>
 
-        {/* Schedule Section */}
+        {/* Delivery schedules — `schedules[]` in API (title, number_of_days, discounts, is_default, …) */}
         <Box className="rounded-xl border border-border p-4 space-y-4">
-          <Box className="flex items-center gap-2 mb-2">
-            <Iconify icon="solar:calendar-bold" className="text-primary" width={24} height={24} />
-            <Typography variant="h6" className="font-semibold text-foreground">{t('form.scheduleSection') || 'Schedule'}</Typography>
-          </Box>
-
-          {/* Schedule Title EN */}
-          <Box className="group">
-            <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.scheduleTitleEn') || 'Schedule Title (EN)'}</Typography>
-            <RHFTextField name="schedule.title.en" placeholder={t('form.scheduleTitleEnPlaceholder') || 'Schedule title in English'} fullWidth />
-          </Box>
-
-          {/* Schedule Title AR */}
-          <Box className="group">
-            <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.scheduleTitleAr') || 'Schedule Title (AR)'}</Typography>
-            <RHFTextField name="schedule.title.ar" placeholder={t('form.scheduleTitleArPlaceholder') || 'Schedule title in Arabic'} dir="rtl" fullWidth />
-          </Box>
-
-          {/* Number of Days */}
-          <Box className="group">
-            <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.numberOfDays') || 'Number of Days'}</Typography>
-            <RHFTextField name="schedule.number_of_days" type="number" placeholder="1" fullWidth />
-            <Typography variant="caption" className="text-muted-foreground mt-1">
-              {t('form.numberOfDaysHelper') || 'The interval in days for this schedule'}
-            </Typography>
-          </Box>
-
-          {/* Schedule Discount */}
-          <Box className="flex flex-wrap gap-4">
-            <Box className="min-w-[140px] flex-1">
-              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.scheduleDiscountType') || 'Schedule Discount Type'}</Typography>
-              <Controller
-                name="schedule.discount_type"
-                control={control}
-                render={({ field }) => (
-                  <select
-                    value={field.value ?? ''}
-                    onChange={(e) => field.onChange(e.target.value || null)}
-                    className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
-                  >
-                    <option value="">{t('form.noDiscount')}</option>
-                    <option value="percentage">{t('form.percentageDiscount')}</option>
-                    <option value="fixed">{t('form.fixedDiscount')}</option>
-                  </select>
-                )}
-              />
+          <Box className="mb-2 flex items-center justify-between gap-2">
+            <Box className="flex items-center gap-2">
+              <Iconify icon="solar:calendar-bold" className="text-primary" width={24} height={24} />
+              <Typography variant="h6" className="font-semibold text-foreground">
+                {t('form.scheduleSection')}
+              </Typography>
             </Box>
-            {scheduleDiscountType && (
-              <Box className="min-w-[140px] flex-1">
-                <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.scheduleDiscountValue') || 'Schedule Discount Value'}</Typography>
-                <RHFTextField name="schedule.discount_value" type="number" placeholder={scheduleDiscountType === 'percentage' ? '10' : '5'} fullWidth />
-              </Box>
-            )}
+            <Button
+              type="button"
+              variant="outlined"
+              onClick={() =>
+                appendSchedule({
+                  title: { en: '', ar: '' },
+                  number_of_days: 1,
+                  discount_type: null,
+                  discount_value: null,
+                  is_active: true,
+                  is_default: false,
+                })
+              }
+              className="text-xs"
+            >
+              <Iconify icon="solar:add-circle-bold" width={16} className="mr-1" />
+              {t('form.addSchedule')}
+            </Button>
           </Box>
 
-          {/* Schedule Active */}
-          <Controller
-            name="schedule.is_active"
-            control={control}
-            render={({ field }) => (
-              <div className="flex items-center gap-3 p-3 rounded-lg border border-border">
-                <Switch
-                  checked={field.value}
-                  onChange={(e) => field.onChange((e.target as HTMLInputElement).checked)}
-                />
-                <Box>
-                  <Typography variant="subtitle2" className="font-semibold text-foreground">
-                    {t('form.scheduleActive') || 'Schedule Active'}
+          {scheduleFields.map((scheduleField, index) => {
+            const rowDiscountType = schedulesWatch?.[index]?.discount_type;
+            return (
+              <Box key={scheduleField.id} className="rounded-xl border border-border/50 p-4 space-y-4">
+                <Box className="flex items-center justify-between">
+                  <Typography variant="subtitle2" className="text-muted-foreground">
+                    {t('form.scheduledBasketScheduleHeading', { number: index + 1 })}
                   </Typography>
-                  <Typography variant="caption" className="text-muted-foreground">
-                    {t('form.scheduleActiveHelper') || 'Enable or disable this schedule'}
+                  {scheduleFields.length > 1 && (
+                    <Button
+                      type="button"
+                      variant="text"
+                      onClick={() => handleRemoveScheduleRow(index)}
+                      className="text-destructive"
+                    >
+                      <Iconify icon="solar:trash-bin-trash-bold" width={18} />
+                    </Button>
+                  )}
+                </Box>
+
+                <Box className="group">
+                  <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
+                    {t('form.scheduleTitleEn')}
+                  </Typography>
+                  <RHFTextField name={`schedules.${index}.title.en`} placeholder={t('form.scheduleTitleEnPlaceholder')} fullWidth />
+                </Box>
+
+                <Box className="group">
+                  <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
+                    {t('form.scheduleTitleAr')}
+                  </Typography>
+                  <RHFTextField name={`schedules.${index}.title.ar`} placeholder={t('form.scheduleTitleArPlaceholder')} dir="rtl" fullWidth />
+                </Box>
+
+                <Box className="group">
+                  <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
+                    {t('form.numberOfDays')}
+                  </Typography>
+                  <RHFTextField name={`schedules.${index}.number_of_days`} type="number" placeholder={t('form.placeholderOne')} fullWidth />
+                  <Typography variant="caption" className="text-muted-foreground mt-1">
+                    {t('form.numberOfDaysHelper')}
                   </Typography>
                 </Box>
-              </div>
-            )}
-          />
+
+                <Box className="flex flex-wrap gap-4">
+                  <Box className="min-w-[140px] flex-1">
+                    <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
+                      {t('form.scheduleDiscountType')}
+                    </Typography>
+                    <Controller
+                      name={`schedules.${index}.discount_type`}
+                      control={control}
+                      render={({ field }) => (
+                        <select
+                          value={field.value ?? ''}
+                          onChange={(e) => field.onChange(e.target.value || null)}
+                          className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
+                        >
+                          <option value="">{t('form.noDiscount')}</option>
+                          <option value="percentage">{t('form.percentageDiscount')}</option>
+                          <option value="fixed">{t('form.fixedDiscount')}</option>
+                        </select>
+                      )}
+                    />
+                  </Box>
+                  {rowDiscountType ? (
+                    <Box className="min-w-[140px] flex-1">
+                      <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
+                        {t('form.scheduleDiscountValue')}
+                      </Typography>
+                      <RHFTextField
+                        name={`schedules.${index}.discount_value`}
+                        type="number"
+                        placeholder={
+                          rowDiscountType === 'percentage'
+                            ? t('form.scheduleDiscountPlaceholderPercentage')
+                            : t('form.scheduleDiscountPlaceholderFixed')
+                        }
+                        fullWidth
+                      />
+                    </Box>
+                  ) : null}
+                </Box>
+
+                <Controller
+                  name={`schedules.${index}.is_active`}
+                  control={control}
+                  render={({ field }) => (
+                    <div className="flex items-center gap-3 p-3 rounded-lg border border-border">
+                      <Switch
+                        checked={field.value}
+                        onChange={(e) => field.onChange((e.target as HTMLInputElement).checked)}
+                      />
+                      <Box>
+                        <Typography variant="subtitle2" className="font-semibold text-foreground">
+                          {t('form.scheduleActive')}
+                        </Typography>
+                        <Typography variant="caption" className="text-muted-foreground">
+                          {t('form.scheduleActiveHelper')}
+                        </Typography>
+                      </Box>
+                    </div>
+                  )}
+                />
+
+                <Controller
+                  name={`schedules.${index}.is_default`}
+                  control={control}
+                  render={({ field }) => (
+                    <div className="flex items-center gap-3 p-3 rounded-lg border border-border">
+                      <Switch
+                        checked={field.value}
+                        onChange={(e) => {
+                          const on = (e.target as HTMLInputElement).checked;
+                          if (on) {
+                            setScheduleAsDefault(index);
+                          } else {
+                            field.onChange(false);
+                            window.setTimeout(() => {
+                              const next = getValues('schedules');
+                              if (next.length && !next.some((r) => r.is_default)) {
+                                const other = next.findIndex((_, i) => i !== index);
+                                if (other >= 0) setValue(`schedules.${other}.is_default`, true);
+                              }
+                            }, 0);
+                          }
+                        }}
+                      />
+                      <Box>
+                        <Typography variant="subtitle2" className="font-semibold text-foreground">
+                          {t('form.scheduledBasketDetailScheduleDefault')}
+                        </Typography>
+                        <Typography variant="caption" className="text-muted-foreground">
+                          {t('form.scheduleDefaultHelper')}
+                        </Typography>
+                      </Box>
+                    </div>
+                  )}
+                />
+              </Box>
+            );
+          })}
         </Box>
 
         {/* Is Active */}
@@ -412,7 +591,7 @@ export default function CreatePage() {
                 <Box>
                   <Typography variant="subtitle2" className="font-semibold text-foreground">{t('active')}</Typography>
                   <Typography variant="caption" className="text-muted-foreground">
-                    {t('form.basketActiveHelper') || 'Enable or disable this basket'}
+                    {t('form.basketActiveHelper')}
                   </Typography>
                 </Box>
               </div>
@@ -425,7 +604,9 @@ export default function CreatePage() {
           <Box className="mb-2 flex items-center justify-between">
             <Box className="flex items-center gap-2">
               <Iconify icon="solar:box-bold" className="text-primary" width={24} height={24} />
-              <Typography variant="h6" className="font-semibold text-foreground">{t('form.basketItems') || 'Basket Items'}</Typography>
+              <Typography variant="h6" className="font-semibold text-foreground">
+                {t('form.basketItems')}
+              </Typography>
             </Box>
             <Button
               type="button"
@@ -434,14 +615,14 @@ export default function CreatePage() {
               className="text-xs"
             >
               <Iconify icon="solar:add-circle-bold" width={16} className="mr-1" />
-              {t('form.addItem') || 'Add Item'}
+              {t('form.addItem')}
             </Button>
           </Box>
           {fields.map((field, index) => (
             <Box key={field.id} className="mb-4 rounded-xl border border-border/50 p-4 space-y-3">
               <Box className="flex items-center justify-between">
                 <Typography variant="subtitle2" className="text-muted-foreground">
-                  {t('form.item') || 'Item'} #{index + 1}
+                  {t('form.scheduledBasketItemHeading', { number: index + 1 })}
                 </Typography>
                 {fields.length > 1 && (
                   <Button type="button" variant="text" onClick={() => remove(index)} className="text-destructive">
@@ -469,39 +650,46 @@ export default function CreatePage() {
                 </Box>
                 <Box className="w-24">
                   <Typography variant="caption" className="mb-1 text-muted-foreground">{t('form.quantity')}</Typography>
-                  <RHFTextField name={`items.${index}.quantity`} placeholder="1" type="number" fullWidth />
+                  <RHFTextField name={`items.${index}.quantity`} placeholder={t('form.placeholderOne')} type="number" fullWidth />
                 </Box>
                 <Box className="w-24">
-                  <Typography variant="caption" className="mb-1 text-muted-foreground">{t('form.minQuantity') || 'Min Qty'}</Typography>
-                  <RHFTextField name={`items.${index}.min_quantity`} placeholder="0" type="number" fullWidth />
+                  <Typography variant="caption" className="mb-1 text-muted-foreground">
+                    {t('form.minQuantity')}
+                  </Typography>
+                  <RHFTextField name={`items.${index}.min_quantity`} placeholder={t('form.placeholderZero')} type="number" fullWidth />
                 </Box>
                 <Box className="w-24">
-                  <Typography variant="caption" className="mb-1 text-muted-foreground">{t('form.maxQuantity') || 'Max Qty'}</Typography>
-                  <RHFTextField name={`items.${index}.max_quantity`} placeholder="0" type="number" fullWidth />
+                  <Typography variant="caption" className="mb-1 text-muted-foreground">
+                    {t('form.maxQuantity')}
+                  </Typography>
+                  <RHFTextField name={`items.${index}.max_quantity`} placeholder={t('form.placeholderZero')} type="number" fullWidth />
                 </Box>
               </Box>
 
               <Box className="w-full">
                 <Typography variant="caption" className="mb-1 text-muted-foreground">
-                  {t('form.alternativeVariantIds')}
+                  {t('form.alternativeScheduledBaskets')}
                 </Typography>
                 <Controller
                   name={`items.${index}.shop_product_variant_ids`}
                   control={control}
-                  render={({ field }) => (
-                    <Input
-                      value={Array.isArray(field.value) ? field.value.filter(Boolean).join(', ') : ''}
-                      onChange={(e) => {
-                        const nums = e.target.value
-                          .split(/[,،\s]+/)
-                          .map((s) => parseInt(s.trim(), 10))
-                          .filter((n) => !Number.isNaN(n) && n > 0);
-                        field.onChange(nums);
-                      }}
-                      placeholder={t('form.alternativeVariantIdsPlaceholder') as string}
-                      fullWidth
-                    />
-                  )}
+                  render={({ field: f }) => {
+                    const ids = Array.isArray(f.value) ? f.value.filter(Boolean).map(Number) : [];
+                    const extraOpts = ids
+                      .filter((v) => !shopVariantMultiOptions.some((o) => Number(o.value) === v))
+                      .map((v) => ({ value: v, label: `#${v}` }));
+                    const options = [...extraOpts, ...shopVariantMultiOptions];
+                    return (
+                      <MultiSelect
+                        options={options}
+                        value={ids}
+                        onChange={(vals) => f.onChange((vals as (string | number)[]).map((x) => Number(x)))}
+                        placeholder={t('form.alternativeScheduledBasketsPlaceholder')}
+                        noOptionsMessage={t('noOptionsFound')}
+                        fullWidth
+                      />
+                    );
+                  }}
                 />
               </Box>
 
@@ -515,7 +703,7 @@ export default function CreatePage() {
                         checked={f.value}
                         onChange={(e) => f.onChange((e.target as HTMLInputElement).checked)}
                       />
-                      <Typography variant="body2">{t('form.isRequired') || 'Required'}</Typography>
+                      <Typography variant="body2">{t('form.isRequired')}</Typography>
                     </div>
                   )}
                 />
@@ -528,7 +716,7 @@ export default function CreatePage() {
                         checked={f.value}
                         onChange={(e) => f.onChange((e.target as HTMLInputElement).checked)}
                       />
-                      <Typography variant="body2">{t('form.isExtra') || 'Extra'}</Typography>
+                      <Typography variant="body2">{t('form.isExtra')}</Typography>
                     </div>
                   )}
                 />
@@ -539,7 +727,7 @@ export default function CreatePage() {
 
         {/* Badges */}
         <Box className="border-t border-border pt-6">
-          <RHFBadgeSelector name="badges" />
+          <RHFBadgeSelector name="badges" label={t('form.badgesLabel')} />
         </Box>
       </CreateFormLayout>
     </>

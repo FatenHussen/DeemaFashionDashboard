@@ -19,12 +19,10 @@ import { CONFIG } from 'src/global-config';
 import { Box, Switch, Typography } from 'src/shared/ui';
 import { LoadingScreen } from 'src/shared/components/loading-screen';
 import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
-import { RHFBadgeSelector } from 'src/shared/components/hook-form/rhf-badge-selector';
 import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
+import { RHFBadgeSelector } from 'src/shared/components/hook-form/rhf-badge-selector';
 
 // ----------------------------------------------------------------------
-
-const metadata = { title: `Recipe ${CONFIG.appName}` };
 
 const getTranslation = (val: any, lang: 'ar' | 'en') => {
   if (!val) return '';
@@ -150,10 +148,10 @@ export default function CreatePage() {
       };
       if (isEditMode && id) {
         await updateMutation.mutateAsync({ id, data: payload as any });
-        toast.success('Recipe updated successfully');
+        toast.success(t('form.recipeUpdatedSuccess'));
       } else {
         await createMutation.mutateAsync(payload as any);
-        toast.success('Recipe created successfully');
+        toast.success(t('form.recipeCreatedSuccess'));
       }
       navigate('/recipes');
     } catch (error: any) {
@@ -165,7 +163,11 @@ export default function CreatePage() {
 
   return (
     <>
-      <title>{isEditMode ? `Edit Recipe | ${metadata.title}` : `Create Recipe | ${metadata.title}`}</title>
+      <title>
+        {isEditMode
+          ? t('form.recipeEditDocumentTitle', { appName: CONFIG.appName })
+          : t('form.recipeCreateDocumentTitle', { appName: CONFIG.appName })}
+      </title>
 
       <CreateFormLayout
         methods={methods as any}
@@ -173,14 +175,14 @@ export default function CreatePage() {
         onCancel={() => navigate('/recipes')}
         isSubmitting={isSubmitting}
         errorMessage={errorMessage}
-        title={isEditMode ? 'Edit Recipe' : 'Create New Recipe'}
-        description={isEditMode ? 'Update recipe details' : 'Add a new recipe'}
+        title={isEditMode ? t('form.editRecipe') : t('form.createRecipe')}
+        description={isEditMode ? t('form.editRecipeDesc') : t('form.createRecipeDesc')}
         isEditMode={isEditMode}
         isLoading={isEditMode && isLoadingDetails}
         loadingText={t('form.loadingRecipe')}
         maxWidth="2xl"
-        submitLabel={isEditMode ? 'Update Recipe' : 'Create Recipe'}
-        submittingLabel={isEditMode ? 'Updating...' : 'Creating...'}
+        submitLabel={isEditMode ? t('form.updateRecipeSubmit') : t('form.createRecipeSubmit')}
+        submittingLabel={isEditMode ? t('form.updatingRecipe') : t('form.creatingRecipe')}
       >
         {/* Name */}
         <Box className="group">
@@ -203,7 +205,7 @@ export default function CreatePage() {
         {/* Image */}
         <Box className="group">
           <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
-            Image <span className="text-destructive">*</span>
+            {t('form.recipeImageRequiredLabel')} <span className="text-destructive">*</span>
           </Typography>
           <Controller
             name="image"
@@ -213,7 +215,11 @@ export default function CreatePage() {
                 {/* Preview */}
                 {imagePreview && (
                   <div className="relative w-full h-40 rounded-lg overflow-hidden border border-border">
-                    <img src={imagePreview} alt="Recipe preview" className="w-full h-full object-cover" />
+                    <img
+                      src={imagePreview}
+                      alt={t('form.recipePreviewAlt')}
+                      className="w-full h-full object-cover"
+                    />
                     <button
                       type="button"
                       onClick={() => {
@@ -235,8 +241,8 @@ export default function CreatePage() {
                     className="w-full h-32 rounded-lg border-2 border-dashed border-border hover:border-primary/50 bg-muted/20 hover:bg-muted/40 transition-colors flex flex-col items-center justify-center gap-2 text-muted-foreground"
                   >
                     <Iconify icon="solar:camera-add-bold" width={28} />
-                    <span className="text-sm">Click to upload image</span>
-                    <span className="text-xs">PNG, JPG, WEBP</span>
+                    <span className="text-sm">{t('form.recipeClickToUploadImage')}</span>
+                    <span className="text-xs">{t('form.recipeImageFormatsHint')}</span>
                   </button>
                 )}
 
@@ -246,7 +252,7 @@ export default function CreatePage() {
                     onClick={() => imageInputRef.current?.click()}
                     className="text-xs text-primary hover:underline text-left"
                   >
-                    Change image
+                    {t('form.recipeChangeImage')}
                   </button>
                 )}
 
@@ -282,12 +288,14 @@ export default function CreatePage() {
         {/* Numeric fields */}
         <Box className="flex gap-4 flex-wrap">
           <Box className="flex-1 min-w-[130px]">
-            <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">Discount</Typography>
-            <RHFTextField name="discount" type="number" placeholder="0" fullWidth />
+            <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
+              {t('form.recipeDiscountLabel')}
+            </Typography>
+            <RHFTextField name="discount" type="number" placeholder={t('form.placeholderZero')} fullWidth />
           </Box>
           <Box className="flex-1 min-w-[130px]">
             <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.deliveryPrice')}</Typography>
-            <RHFTextField name="delivery_price" type="number" placeholder="0" fullWidth />
+            <RHFTextField name="delivery_price" type="number" placeholder={t('form.placeholderZero')} fullWidth />
           </Box>
           <Box className="flex-1 min-w-[130px]">
             <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('columns.servings')}</Typography>
@@ -303,15 +311,17 @@ export default function CreatePage() {
         <Box className="group">
           <RHFBadgeSelector
             name="badges"
-            label="Badges"
-            helperText="Select badges to display with this recipe"
+            label={t('form.badgesLabel')}
+            helperText={t('form.badgesHelperRecipe')}
           />
         </Box>
 
         {/* ── Items ── */}
         <Box className="group">
           <Box className="flex items-center justify-between mb-3">
-            <Typography variant="subtitle2" className="font-semibold text-foreground">Recipe Items</Typography>
+            <Typography variant="subtitle2" className="font-semibold text-foreground">
+              {t('form.recipeItemsSectionTitle')}
+            </Typography>
             <Button
               type="button"
               variant="outlined"
@@ -324,7 +334,7 @@ export default function CreatePage() {
               className="text-xs"
             >
               <Iconify icon="solar:add-circle-bold" width={16} className="mr-1" />
-              Add Item
+              {t('form.recipeAddItem')}
             </Button>
           </Box>
 
@@ -333,7 +343,9 @@ export default function CreatePage() {
             return (
               <Box key={field.id} className="border border-border rounded-lg p-3 mb-3 flex flex-col gap-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-muted-foreground">Item #{index + 1}</span>
+                  <span className="text-sm font-medium text-muted-foreground">
+                    {t('form.recipeItemNumber', { number: index + 1 })}
+                  </span>
                   {itemFields.length > 1 && (
                     <Button
                       type="button"
@@ -354,7 +366,9 @@ export default function CreatePage() {
                 {/* Row 1: Category + Shop */}
                 <div className="flex gap-2 flex-wrap">
                   <Box className="flex-1 min-w-[150px]">
-                    <Typography variant="subtitle2" className="mb-1 text-xs text-muted-foreground">Filter by Category</Typography>
+                    <Typography variant="subtitle2" className="mb-1 text-xs text-muted-foreground">
+                      {t('form.recipeFilterByCategory')}
+                    </Typography>
                     <InfiniteScrollSelect
                       value={sel.categoryId}
                       onChange={(val) => updateItemSelect(index, 'categoryId', val)}
@@ -364,8 +378,17 @@ export default function CreatePage() {
                           data: {
                             items:
                               page === 1
-                                ? [{ id: 0, label: 'All categories' }, ...res.data.items.map((c: any) => ({ id: c.id, label: typeof c.name === 'object' ? c.name : c.name || '' }))]
-                                : res.data.items.map((c: any) => ({ id: c.id, label: typeof c.name === 'object' ? c.name : c.name || '' })),
+                                ? [
+                                    { id: 0, label: t('form.allCategories') },
+                                    ...res.data.items.map((c: any) => ({
+                                      id: c.id,
+                                      label: typeof c.name === 'object' ? c.name : c.name || '',
+                                    })),
+                                  ]
+                                : res.data.items.map((c: any) => ({
+                                    id: c.id,
+                                    label: typeof c.name === 'object' ? c.name : c.name || '',
+                                  })),
                             pagination: res.data.pagination,
                           },
                         }))
@@ -376,7 +399,7 @@ export default function CreatePage() {
 
                   <Box className="flex-1 min-w-[150px]">
                     <Typography variant="subtitle2" className="mb-1 text-xs text-muted-foreground">
-                      Select Shop <span className="text-destructive">*</span>
+                      {t('form.recipeSelectShopRequired')} <span className="text-destructive">*</span>
                     </Typography>
                     <InfiniteScrollSelect
                       value={sel.shopId}
@@ -401,7 +424,7 @@ export default function CreatePage() {
                 {/* Row 2: Product Variant */}
                 <Box>
                   <Typography variant="subtitle2" className="mb-1 text-xs text-muted-foreground">
-                    Product Variant <span className="text-destructive">*</span>
+                    {t('form.recipeProductVariantRequired')} <span className="text-destructive">*</span>
                   </Typography>
                   <Controller
                     name={`items.${index}.shop_product_variant_id`}
@@ -427,7 +450,9 @@ export default function CreatePage() {
                             category_id: sel.categoryId || undefined,
                           })
                         }
-                        placeholder={sel.shopId ? 'Select product variant...' : 'Select a shop first'}
+                        placeholder={
+                          sel.shopId ? t('form.recipeSelectProductVariant') : t('form.recipeSelectShopFirst')
+                        }
                         initialLabel={itemVariantLabels[index]}
                       />
                     )}
@@ -436,7 +461,9 @@ export default function CreatePage() {
 
                 {/* Row 3: Switchable Category */}
                 <Box>
-                  <Typography variant="subtitle2" className="mb-1 text-xs text-muted-foreground">Switchable Category (optional)</Typography>
+                  <Typography variant="subtitle2" className="mb-1 text-xs text-muted-foreground">
+                    {t('form.recipeSwitchableCategoryOptional')}
+                  </Typography>
                   <Controller
                     name={`items.${index}.switchable_category_id`}
                     control={control}
@@ -457,8 +484,17 @@ export default function CreatePage() {
                             data: {
                               items:
                                 page === 1
-                                  ? [{ id: 0, label: 'No switchable category' }, ...res.data.items.map((c: any) => ({ id: c.id, label: typeof c.name === 'object' ? c.name : c.name || '' }))]
-                                  : res.data.items.map((c: any) => ({ id: c.id, label: typeof c.name === 'object' ? c.name : c.name || '' })),
+                                  ? [
+                                      { id: 0, label: t('form.noSwitchableCategory') },
+                                      ...res.data.items.map((c: any) => ({
+                                        id: c.id,
+                                        label: typeof c.name === 'object' ? c.name : c.name || '',
+                                      })),
+                                    ]
+                                  : res.data.items.map((c: any) => ({
+                                      id: c.id,
+                                      label: typeof c.name === 'object' ? c.name : c.name || '',
+                                    })),
                               pagination: res.data.pagination,
                             },
                           }))
@@ -474,15 +510,19 @@ export default function CreatePage() {
                 <div className="flex gap-2 flex-wrap items-end">
                   <Box className="flex-1 min-w-[80px]">
                     <Typography variant="subtitle2" className="mb-1 text-xs text-muted-foreground">{t('form.quantity')}</Typography>
-                    <RHFTextField name={`items.${index}.quantity`} type="number" placeholder="1" fullWidth />
+                    <RHFTextField name={`items.${index}.quantity`} type="number" placeholder={t('form.placeholderOne')} fullWidth />
                   </Box>
                   <Box className="flex-1 min-w-[80px]">
-                    <Typography variant="subtitle2" className="mb-1 text-xs text-muted-foreground">Min Qty</Typography>
-                    <RHFTextField name={`items.${index}.min_quantity`} type="number" placeholder="1" fullWidth />
+                    <Typography variant="subtitle2" className="mb-1 text-xs text-muted-foreground">
+                      {t('form.recipeMinQty')}
+                    </Typography>
+                    <RHFTextField name={`items.${index}.min_quantity`} type="number" placeholder={t('form.placeholderOne')} fullWidth />
                   </Box>
                   <Box className="flex-1 min-w-[80px]">
-                    <Typography variant="subtitle2" className="mb-1 text-xs text-muted-foreground">Max Qty</Typography>
-                    <RHFTextField name={`items.${index}.max_quantity`} type="number" placeholder="1" fullWidth />
+                    <Typography variant="subtitle2" className="mb-1 text-xs text-muted-foreground">
+                      {t('form.recipeMaxQty')}
+                    </Typography>
+                    <RHFTextField name={`items.${index}.max_quantity`} type="number" placeholder={t('form.placeholderOne')} fullWidth />
                   </Box>
                   <Box className="flex-1 min-w-[100px] flex items-center pb-1">
                     <Controller
@@ -494,7 +534,9 @@ export default function CreatePage() {
                             checked={f.value}
                             onChange={(e) => f.onChange((e.target as HTMLInputElement).checked)}
                           />
-                          <Typography variant="body2" className="text-xs">Required</Typography>
+                          <Typography variant="body2" className="text-xs">
+                            {t('form.recipeRequiredToggle')}
+                          </Typography>
                         </div>
                       )}
                     />
@@ -508,7 +550,9 @@ export default function CreatePage() {
         {/* ── Steps ── */}
         <Box className="group">
           <Box className="flex items-center justify-between mb-3">
-            <Typography variant="subtitle2" className="font-semibold text-foreground">Recipe Steps</Typography>
+            <Typography variant="subtitle2" className="font-semibold text-foreground">
+              {t('form.recipeStepsSectionTitle')}
+            </Typography>
             <Button
               type="button"
               variant="outlined"
@@ -523,20 +567,22 @@ export default function CreatePage() {
               className="text-xs"
             >
               <Iconify icon="solar:add-circle-bold" width={16} className="mr-1" />
-              Add Step
+              {t('form.recipeAddStep')}
             </Button>
           </Box>
 
           {stepFields.length === 0 && (
             <div className="text-center py-6 text-sm text-muted-foreground border border-dashed border-border rounded-lg">
-              No steps added yet. Click &quot;Add Step&quot; to begin.
+              {t('form.recipeStepsEmptyHint')}
             </div>
           )}
 
           {stepFields.map((field, index) => (
             <Box key={field.id} className="border border-border rounded-lg p-3 mb-3 flex flex-col gap-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold text-foreground">Step {index + 1}</span>
+                <span className="text-sm font-semibold text-foreground">
+                  {t('form.recipeStepNumber', { number: index + 1 })}
+                </span>
                 <Button
                   type="button"
                   variant="text"
@@ -549,7 +595,9 @@ export default function CreatePage() {
 
               {/* Heat Level */}
               <Box>
-                <Typography variant="subtitle2" className="mb-1 text-xs text-muted-foreground">Heat Level</Typography>
+                <Typography variant="subtitle2" className="mb-1 text-xs text-muted-foreground">
+                  {t('form.recipeHeatLevelLabel')}
+                </Typography>
                 <div className="flex flex-col gap-1">
                   <RHFTextField name={`steps.${index}.heat_level.en`} placeholder={t('form.heatLevelEn')} fullWidth />
                   <RHFTextField name={`steps.${index}.heat_level.ar`} placeholder={t('form.heatLevelAr')} dir="rtl" fullWidth />
@@ -558,7 +606,9 @@ export default function CreatePage() {
 
               {/* Time */}
               <Box>
-                <Typography variant="subtitle2" className="mb-1 text-xs text-muted-foreground">Time</Typography>
+                <Typography variant="subtitle2" className="mb-1 text-xs text-muted-foreground">
+                  {t('form.recipeTimeLabel')}
+                </Typography>
                 <div className="flex flex-col gap-1">
                   <RHFTextField name={`steps.${index}.time_minutes.en`} placeholder={t('form.timeMinutesEn')} fullWidth />
                   <RHFTextField name={`steps.${index}.time_minutes.ar`} placeholder={t('form.timeMinutesAr')} dir="rtl" fullWidth />
@@ -567,7 +617,9 @@ export default function CreatePage() {
 
               {/* Instruction */}
               <Box>
-                <Typography variant="subtitle2" className="mb-1 text-xs text-muted-foreground">Instruction</Typography>
+                <Typography variant="subtitle2" className="mb-1 text-xs text-muted-foreground">
+                  {t('form.recipeInstructionLabel')}
+                </Typography>
                 <div className="flex flex-col gap-1">
                   <RHFTextField name={`steps.${index}.instruction.en`} placeholder={t('form.stepInstructionsEn')} fullWidth />
                   <RHFTextField name={`steps.${index}.instruction.ar`} placeholder={t('form.stepInstructionsAr')} dir="rtl" fullWidth />

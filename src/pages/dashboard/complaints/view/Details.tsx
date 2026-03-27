@@ -10,15 +10,19 @@ import {
   ComplaintUpdateSchema,
   type ComplaintUpdateFormValues,
 } from '@/pages/dashboard/complaints/validation/complaint.validation';
+import {
+  translateComplaintType,
+  translateComplaintStatus,
+  translateComplaintOrderStatus,
+} from '@/pages/dashboard/complaints/utils/labels';
 
+import i18n from 'src/lib/i18n';
 import { CONFIG } from 'src/global-config';
 import { Box, Typography } from 'src/shared/ui';
 import { Separator } from 'src/shared/ui/separator';
 import { LoadingScreen } from 'src/shared/components/loading-screen';
 
 // ----------------------------------------------------------------------
-
-const metadata = { title: `Complaint Details | Dashboard - ${CONFIG.appName}` };
 
 export default function DetailsPage() {
   const { t } = useTranslation('table');
@@ -39,6 +43,12 @@ export default function DetailsPage() {
 
   const { handleSubmit, reset, control } = methods;
 
+  const formatDateTime = (iso: string) =>
+    new Date(iso).toLocaleString(i18n.language === 'ar' ? 'ar' : undefined, {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    });
+
   if (isLoading) {
     return <LoadingScreen />;
   }
@@ -50,14 +60,14 @@ export default function DetailsPage() {
           <Box className="flex items-center gap-2 mb-2">
             <Iconify icon="solar:danger-bold" className="w-5 h-5 text-destructive" />
             <Typography variant="h6" className="text-destructive">
-              Error Loading Complaint
+              {t('form.complaintLoadErrorTitle')}
             </Typography>
           </Box>
           <Typography variant="body2" className="text-muted-foreground mb-4">
-            {error instanceof Error ? error.message : 'Failed to load complaint'}
+            {error instanceof Error ? error.message : t('form.complaintLoadErrorFallback')}
           </Typography>
           <Button variant="outlined" onClick={() => navigate('/complaints')}>
-            Back to Complaints
+            {t('form.backToComplaints')}
           </Button>
         </Box>
       </Box>
@@ -65,11 +75,12 @@ export default function DetailsPage() {
   }
 
   const isNew = complaint.status === 'new';
+  const typeLabel = translateComplaintType(complaint.type, t);
 
   const onSubmit = async (data: ComplaintUpdateFormValues) => {
     try {
       await updateComplaintMutation.mutateAsync({ id: id!, data });
-      toast.success('Complaint updated successfully');
+      toast.success(t('form.complaintUpdatedSuccess'));
       reset();
     } catch { return; }
   };
@@ -83,7 +94,7 @@ export default function DetailsPage() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.complaintDetailsDocumentTitle', { id: complaint.id, appName: CONFIG.appName })}</title>
       <Box className="relative min-h-screen overflow-hidden bg-background p-6">
         <Box className="pointer-events-none fixed inset-0 bg-gradient-to-br from-background via-background to-muted/30" />
         <Box className="pointer-events-none fixed inset-0 opacity-[0.03] dark:opacity-[0.05]">
@@ -98,7 +109,7 @@ export default function DetailsPage() {
               className="mb-4 -ml-2 text-muted-foreground hover:text-foreground"
             >
               <Iconify icon="solar:arrow-left-bold" width={20} className="mr-2" />
-              Back to Complaints
+              {t('form.backToComplaints')}
             </Button>
 
             <Box className="flex items-center gap-4 mb-2">
@@ -112,16 +123,16 @@ export default function DetailsPage() {
               </Box>
               <Box className="flex-1">
                 <Typography variant="h4" className="font-bold text-foreground mb-1">
-                  Complaint #{complaint.id}
+                  {t('form.complaintDetailTitle', { id: complaint.id })}
                 </Typography>
                 <Typography variant="body2" className="text-muted-foreground">
-                  Order #{complaint.order_id} · {complaint.type}
+                  {t('form.complaintDetailSubtitle', { orderId: complaint.order_id, type: typeLabel })}
                 </Typography>
               </Box>
               <span
                 className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-medium ${statusVariant}`}
               >
-                {complaint.status}
+                {translateComplaintStatus(complaint.status, t)}
               </span>
             </Box>
           </Box>
@@ -129,12 +140,12 @@ export default function DetailsPage() {
           <Box className="rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm shadow-sm overflow-hidden">
             <Box className="p-6">
               <Typography variant="h6" className="font-semibold mb-4">
-                Complaint Information
+                {t('form.complaintInfoSection')}
               </Typography>
               <Box className="grid gap-4 sm:grid-cols-2">
                 <Box>
                   <Typography variant="caption" className="text-muted-foreground">
-                    Order ID
+                    {t('columns.orderRef')}
                   </Typography>
                   <Typography variant="body1" className="font-medium">
                     #{complaint.order_id}
@@ -142,15 +153,15 @@ export default function DetailsPage() {
                 </Box>
                 <Box>
                   <Typography variant="caption" className="text-muted-foreground">
-                    Type
+                    {t('columns.type')}
                   </Typography>
-                  <Typography variant="body1" className="font-medium capitalize">
-                    {complaint.type}
+                  <Typography variant="body1" className="font-medium">
+                    {typeLabel}
                   </Typography>
                 </Box>
                 <Box className="sm:col-span-2">
                   <Typography variant="caption" className="text-muted-foreground">
-                    Message
+                    {t('columns.message')}
                   </Typography>
                   <Typography variant="body1" className="font-medium mt-1">
                     {complaint.message || '-'}
@@ -158,7 +169,7 @@ export default function DetailsPage() {
                 </Box>
                 <Box>
                   <Typography variant="caption" className="text-muted-foreground">
-                    User
+                    {t('columns.user')}
                   </Typography>
                   <Typography variant="body1" className="font-medium">
                     {complaint.user?.name ?? '-'}
@@ -169,10 +180,10 @@ export default function DetailsPage() {
                 </Box>
                 <Box>
                   <Typography variant="caption" className="text-muted-foreground">
-                    Created At
+                    {t('columns.createdAt')}
                   </Typography>
                   <Typography variant="body1" className="font-medium">
-                    {new Date(complaint.created_at).toLocaleString()}
+                    {formatDateTime(complaint.created_at)}
                   </Typography>
                 </Box>
               </Box>
@@ -183,7 +194,7 @@ export default function DetailsPage() {
                 <Separator />
                 <Box className="p-6">
                   <Typography variant="subtitle2" className="font-semibold mb-2">
-                    Admin Response
+                    {t('form.complaintAdminResponseTitle')}
                   </Typography>
                   <Typography variant="body1" className="text-muted-foreground">
                     {complaint.admin_response}
@@ -197,7 +208,7 @@ export default function DetailsPage() {
                 <Separator />
                 <Box className="p-6">
                   <Typography variant="subtitle2" className="font-semibold mb-2">
-                    Images
+                    {t('form.complaintImagesSection')}
                   </Typography>
                   <Box className="flex flex-wrap gap-2">
                     {complaint.images.map((img, idx) => (
@@ -210,7 +221,7 @@ export default function DetailsPage() {
                       >
                         <img
                           src={img}
-                          alt={`Complaint ${idx + 1}`}
+                          alt={t('form.complaintImageAlt', { index: idx + 1 })}
                           className="w-24 h-24 object-cover rounded-lg border"
                         />
                       </a>
@@ -225,24 +236,24 @@ export default function DetailsPage() {
                 <Separator />
                 <Box className="p-6">
                   <Typography variant="subtitle2" className="font-semibold mb-2">
-                    Order Details
+                    {t('form.complaintOrderDetailsSection')}
                   </Typography>
                   <Box className="grid gap-2 sm:grid-cols-2 text-sm">
                     <Box>
-                      <span className="text-muted-foreground">Status:</span>{' '}
-                      {complaint.order.status}
+                      <span className="text-muted-foreground">{t('columns.status')}:</span>{' '}
+                      {translateComplaintOrderStatus(complaint.order.status, t)}
                     </Box>
                     <Box>
-                      <span className="text-muted-foreground">Total:</span>{' '}
+                      <span className="text-muted-foreground">{t('columns.total')}:</span>{' '}
                       {complaint.order.total}
                     </Box>
                     <Box>
-                      <span className="text-muted-foreground">Subtotal:</span>{' '}
+                      <span className="text-muted-foreground">{t('columns.subtotal')}:</span>{' '}
                       {complaint.order.subtotal}
                     </Box>
                     <Box>
-                      <span className="text-muted-foreground">Created:</span>{' '}
-                      {new Date(complaint.order.created_at).toLocaleString()}
+                      <span className="text-muted-foreground">{t('columns.created')}:</span>{' '}
+                      {formatDateTime(complaint.order.created_at)}
                     </Box>
                   </Box>
                 </Box>
@@ -254,22 +265,22 @@ export default function DetailsPage() {
                 <Separator />
                 <Box className="p-6">
                   <Typography variant="h6" className="font-semibold mb-4">
-                    Respond to Complaint
+                    {t('form.complaintRespondTitle')}
                   </Typography>
                   <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                     <Box>
-                      <label className="mb-2 block text-sm font-medium">Status</label>
+                      <label className="mb-2 block text-sm font-medium">{t('statusLabel')}</label>
                       <select
                         {...methods.register('status')}
                         className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
                       >
-                        <option value="resolved">Resolved</option>
-                        <option value="rejected">Rejected</option>
+                        <option value="resolved">{t('statusResolved')}</option>
+                        <option value="rejected">{t('statusRejected')}</option>
                       </select>
                     </Box>
                     <Box>
                       <label className="mb-2 block text-sm font-medium">
-                        Admin Response
+                        {t('form.complaintAdminResponseTitle')}
                       </label>
                       <Controller
                         name="admin_response"
@@ -296,7 +307,7 @@ export default function DetailsPage() {
                       variant="contained"
                       disabled={updateComplaintMutation.isPending}
                     >
-                      {updateComplaintMutation.isPending ? 'Submitting...' : 'Submit Response'}
+                      {updateComplaintMutation.isPending ? t('submitting') : t('submitResponse')}
                     </Button>
                   </form>
                 </Box>

@@ -99,7 +99,7 @@ const NAV_REDIRECT_ORDER: { path: string; permission: string }[] = [
   { path: paths.dashboard.pointExchanges, permission: 'pointexchange.view' },
   { path: paths.dashboard.coupons, permission: 'coupon.view' },
   { path: paths.dashboard.services, permission: 'service.view' },
-  { path: `${paths.dashboard.languages}/translations`, permission: 'language.view' },
+  // { path: `${paths.dashboard.languages}/translations`, permission: 'language.view' },
   { path: paths.dashboard.currencies, permission: 'currency.view' },
   { path: paths.dashboard.legalDocuments, permission: 'legaldocument.view' },
   { path: paths.dashboard.faqs, permission: 'faq.view' },

@@ -27,9 +27,8 @@ const buildFormDataPayload = (data: ShopCreateUpdatePayload): FormData => {
       if (schedule.close) formData.append(`working_hours[${day}][close]`, schedule.close);
     }
   });
+  // Only send logo when the user picked a new file. Omit on update so the API keeps the existing image.
   if (data.logo instanceof File) {
-    formData.append('logo', data.logo);
-  } else if (typeof data.logo === 'string') {
     formData.append('logo', data.logo);
   }
   if (data.badges && data.badges.length > 0) {

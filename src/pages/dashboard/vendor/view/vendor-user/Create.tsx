@@ -27,8 +27,6 @@ import {
 
 // ----------------------------------------------------------------------
 
-const metadata = { title: `Vendor User ${CONFIG.appName}` };
-
 const vendorFetcher = (page: number, limit: number) =>
   _VendorApi.getListVendor({ page, limit }).then((r) => ({
     data: {
@@ -95,21 +93,21 @@ export default function CreatePage() {
 
       if (isEditMode && id) {
         await updateMutation.mutateAsync({ id, data: payload });
-        toast.success('Vendor user updated successfully');
+        toast.success(t('form.vendorUserUpdatedSuccess'));
         navigate('/vendor-users');
       } else {
         if (!data.password || data.password.length < 8) {
-          toast.error('Password is required and must be at least 8 characters');
+          toast.error(t('form.passwordRequiredMin8'));
           return;
         }
         payload.password = data.password;
         await createMutation.mutateAsync(payload);
-        toast.success('Vendor user created successfully');
+        toast.success(t('form.vendorUserCreatedSuccess'));
         navigate('/vendor-users');
       }
     } catch (error: any) {
       console.error('Error saving vendor user:', error);
-      toast.error(error?.message || 'Failed to save vendor user');
+      toast.error(error?.message || t('form.vendorUserSaveFailed'));
     }
   };
 
@@ -122,8 +120,8 @@ export default function CreatePage() {
     <>
       <title>
         {isEditMode
-          ? `Edit Vendor User | ${metadata.title}`
-          : `Create Vendor User | ${metadata.title}`}
+          ? t('form.vendorUserEditDocumentTitle', { appName: CONFIG.appName })
+          : t('form.vendorUserCreateDocumentTitle', { appName: CONFIG.appName })}
       </title>
 
       <CreateFormLayout
@@ -143,23 +141,19 @@ export default function CreatePage() {
           };
           const msg = getFirstMsg(errors);
           console.error('[Vendor User Form] First error:', msg);
-          toast.error(msg || 'Please fix the form errors.');
+          toast.error(msg || t('form.fixFormErrors'));
         })}
         onCancel={() => navigate('/vendor-users')}
         isSubmitting={isSubmitting}
         errorMessage={errorMessage}
-        title={isEditMode ? 'Edit Vendor User' : 'Create Vendor User'}
-        description={
-          isEditMode
-            ? 'Update vendor user information and shop assignments'
-            : 'Add a new user to a vendor account and assign shops'
-        }
+        title={isEditMode ? t('form.editVendorUserTitle') : t('form.createVendorUserTitle')}
+        description={isEditMode ? t('form.editVendorUserDesc') : t('form.createVendorUserDesc')}
         isEditMode={isEditMode}
         isLoading={isEditMode && isLoadingUser}
         loadingText={t('form.loadingVendorUser')}
         maxWidth="2xl"
-        submitLabel={isEditMode ? 'Update User' : 'Create User'}
-        submittingLabel={isEditMode ? 'Updating...' : 'Creating...'}
+        submitLabel={isEditMode ? t('form.updateVendorUserSubmit') : t('form.createVendorUserSubmit')}
+        submittingLabel={isEditMode ? t('form.updatingVendorUser') : t('form.creatingVendorUser')}
       >
         <Box className="space-y-4">
           {/* Name */}
@@ -205,9 +199,9 @@ export default function CreatePage() {
           {selectedVendorId > 0 && (
             <Box>
               <label className="mb-2 block text-sm font-medium">
-                Assign Shops
+                {t('form.assignShopsLabel')}
                 <span className="text-muted-foreground font-normal ml-1 text-xs">
-                  (all shops must belong to the selected vendor)
+                  {t('form.assignShopsHelper')}
                 </span>
               </label>
               <Controller
@@ -220,7 +214,9 @@ export default function CreatePage() {
                       value={field.value || []}
                       onChange={field.onChange}
                       placeholder={
-                        shops.length === 0 ? 'No shops available for this vendor' : 'Select shops...'
+                        shops.length === 0
+                          ? t('form.vendorUserNoShopsForVendor')
+                          : t('form.vendorUserSelectShopsPlaceholder')
                       }
                       isDisabled={shops.length === 0}
                     />
@@ -246,10 +242,8 @@ export default function CreatePage() {
                     onChange={(e) => field.onChange(e.target.checked)}
                     className="rounded accent-primary"
                   />
-                  <Typography variant="subtitle2">Active</Typography>
-                  <span className="text-xs text-muted-foreground">
-                    (inactive users cannot log in)
-                  </span>
+                  <Typography variant="subtitle2">{t('active')}</Typography>
+                  <span className="text-xs text-muted-foreground">{t('form.vendorUserActiveHint')}</span>
                 </label>
               )}
             />

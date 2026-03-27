@@ -43,9 +43,9 @@ export const queryKeys = {
     list: (params?: { name?: string }) => ['brand', 'list', params] as const,
     details: (id: number | string) => ['brand', 'details', id] as const,
   },
-  // Product query keys
+  // Product query keys (admin `/admin/products` list filters)
   product: {
-    list: (params?: { page?: number; limit?: number }) => ['product', 'list', params] as const,
+    list: (params?: Record<string, unknown>) => ['product', 'list', params] as const,
     details: (id: number | string) => ['product', 'details', id] as const,
   },
   // Governorate query keys
@@ -135,7 +135,8 @@ export const queryKeys = {
   },
   // Order query keys
   order: {
-    list: (params?: { page?: number; per_page?: number; status?: string }) => ['order', 'list', params] as const,
+    list: (params?: { page?: number; per_page?: number; status?: string; search?: string }) =>
+      ['order', 'list', params] as const,
     details: (id: number | string) => ['order', 'details', id] as const,
   },
   // Basket query keys
@@ -235,6 +236,7 @@ export const queryKeys = {
   adminNotification: {
     list: (params?: { page?: number; per_page?: number; search?: string }) =>
       ['adminNotification', 'list', params] as const,
+    details: (id: number | string) => ['adminNotification', 'details', id] as const,
   },
   // Vendor Package query keys
   vendorPackage: {
@@ -311,7 +313,7 @@ export const queryKeys = {
   },
   // Schedule query keys
   schedule: {
-    list: (params?: { page?: number; per_page?: number }) => ['schedule', 'list', params] as const,
+    list: (params?: Record<string, unknown>) => ['schedule', 'list', params] as const,
     details: (id: number | string) => ['schedule', 'details', id] as const,
   },
   // User Basket Schedule query keys

@@ -27,16 +27,24 @@ export const ScheduledBasketSchema = z.object({
       })
     )
     .min(1, t('scheduledBasket.atLeastOneItem')),
-  schedule: z.object({
-    title: z.object({
-      en: z.string().optional().default(''),
-      ar: z.string().optional().default(''),
+  schedules: z
+    .array(
+      z.object({
+        title: z.object({
+          en: z.string().optional().default(''),
+          ar: z.string().optional().default(''),
+        }),
+        number_of_days: z.coerce.number().min(1, t('scheduledBasket.numberOfDaysMin')),
+        discount_type: z.enum(['percentage', 'fixed']).nullable().optional(),
+        discount_value: z.coerce.number().min(0).nullable().optional(),
+        is_active: z.boolean().default(true),
+        is_default: z.boolean().default(false),
+      })
+    )
+    .min(1, t('scheduledBasket.atLeastOneSchedule'))
+    .refine((rows) => rows.filter((r) => r.is_default).length === 1, {
+      message: t('scheduledBasket.exactlyOneDefaultSchedule'),
     }),
-    number_of_days: z.coerce.number().min(1, t('scheduledBasket.numberOfDaysMin')),
-    discount_type: z.enum(['percentage', 'fixed']).nullable().optional(),
-    discount_value: z.coerce.number().min(0).nullable().optional(),
-    is_active: z.boolean().default(true),
-  }),
   is_active: z.boolean(),
   badges: z
     .array(

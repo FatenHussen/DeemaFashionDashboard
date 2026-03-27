@@ -1,6 +1,5 @@
 import type { PointExchangeStatus } from '@/pages/dashboard/point-exchanges/types/point-exchange.types';
 
-import { useState } from 'react';
 import { toast } from 'react-toastify';
 import { Button } from '@/shared/ui/button';
 import { useTranslation } from 'react-i18next';
@@ -18,7 +17,9 @@ import { LoadingScreen } from 'src/shared/components/loading-screen';
 
 // ----------------------------------------------------------------------
 
-const metadata = { title: `Point Exchange Details | Dashboard - ${CONFIG.appName}` };
+function pointExchangeStatusLabel(t: (key: string) => string, status: string) {
+  return t(`form.pointExchangeStatus_${status}`);
+}
 
 export default function DetailsPage() {
   const { t } = useTranslation('table');
@@ -26,7 +27,6 @@ export default function DetailsPage() {
   const navigate = useNavigate();
   const { data: exchangeResponse, isLoading, error } = useFetchPointExchangeById(id || '');
   const updateStatusMutation = useUpdatePointExchangeStatus();
-  const [selectedStatus, setSelectedStatus] = useState<PointExchangeStatus | ''>('');
 
   const exchange = exchangeResponse?.data;
 
@@ -41,14 +41,14 @@ export default function DetailsPage() {
           <Box className="flex items-center gap-2 mb-2">
             <Iconify icon="solar:danger-bold" className="w-5 h-5 text-destructive" />
             <Typography variant="h6" className="text-destructive">
-              Error Loading Point Exchange
+              {t('form.pointExchangeLoadErrorTitle')}
             </Typography>
           </Box>
           <Typography variant="body2" className="text-muted-foreground mb-4">
-            {error instanceof Error ? error.message : 'Failed to load point exchange information'}
+            {error instanceof Error ? error.message : t('form.pointExchangeLoadErrorFallback')}
           </Typography>
           <Button variant="outlined" onClick={() => navigate('/point-exchanges')}>
-            Back to Point Exchanges
+            {t('form.backToPointExchanges')}
           </Button>
         </Box>
       </Box>
@@ -59,7 +59,6 @@ export default function DetailsPage() {
     try {
       await updateStatusMutation.mutateAsync({ id: exchange.id, data: { status } });
       toast.success(t('form.pointExchangeUpdatedSuccess'));
-      setSelectedStatus('');
     } catch { return; }
   };
 
@@ -72,7 +71,7 @@ export default function DetailsPage() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.pointExchangeDetailsDocumentTitle', { appName: CONFIG.appName })}</title>
       <Box className="relative min-h-screen overflow-hidden bg-background p-6">
         <Box className="pointer-events-none fixed inset-0 bg-gradient-to-br from-background via-background to-muted/30" />
         <Box className="pointer-events-none fixed inset-0 opacity-[0.03] dark:opacity-[0.05]">
@@ -87,7 +86,7 @@ export default function DetailsPage() {
               className="mb-4 -ml-2 text-muted-foreground hover:text-foreground"
             >
               <Iconify icon="solar:arrow-left-bold" width={20} className="mr-2" />
-              Back to Point Exchanges
+              {t('form.backToPointExchanges')}
             </Button>
 
             <Box className="flex items-center gap-4 mb-2">
@@ -101,10 +100,13 @@ export default function DetailsPage() {
               </Box>
               <Box className="flex-1">
                 <Typography variant="h4" className="font-bold text-foreground mb-1">
-                  Point Exchange #{exchange.id}
+                  {t('form.pointExchangeHeader', { id: exchange.id })}
                 </Typography>
                 <Typography variant="body2" className="text-muted-foreground">
-                  {exchange.user?.name ?? '-'} - {exchange.points_used ?? exchange.points} points
+                  {t('form.pointExchangeSubtitle', {
+                    name: exchange.user?.name ?? '-',
+                    points: exchange.points_used ?? exchange.points ?? 0,
+                  })}
                 </Typography>
               </Box>
             </Box>
@@ -113,12 +115,12 @@ export default function DetailsPage() {
           <Box className="rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm shadow-sm overflow-hidden">
             <Box className="p-6">
               <Typography variant="h6" className="font-semibold mb-4">
-                Exchange Information
+                {t('form.pointExchangeInfoSection')}
               </Typography>
               <Box className="grid gap-4 sm:grid-cols-2">
                 <Box>
                   <Typography variant="caption" className="text-muted-foreground">
-                    User Name
+                    {t('columns.name')}
                   </Typography>
                   <Typography variant="body1" className="font-medium">
                     {exchange.user?.name ?? '-'}
@@ -126,7 +128,7 @@ export default function DetailsPage() {
                 </Box>
                 <Box>
                   <Typography variant="caption" className="text-muted-foreground">
-                    User Email
+                    {t('columns.email')}
                   </Typography>
                   <Typography variant="body1" className="font-medium">
                     {exchange.user?.email ?? '-'}
@@ -134,7 +136,7 @@ export default function DetailsPage() {
                 </Box>
                 <Box>
                   <Typography variant="caption" className="text-muted-foreground">
-                    Points
+                    {t('columns.points')}
                   </Typography>
                   <Typography variant="body1" className="font-medium">
                     {exchange.points_used ?? exchange.points ?? '-'}
@@ -143,7 +145,7 @@ export default function DetailsPage() {
                 {exchange.exchange_type && (
                   <Box>
                     <Typography variant="caption" className="text-muted-foreground">
-                      Type
+                      {t('columns.type')}
                     </Typography>
                     <Typography variant="body1" className="font-medium capitalize">
                       {String(exchange.exchange_type).replace(/_/g, ' ')}
@@ -153,7 +155,7 @@ export default function DetailsPage() {
                 {exchange.delivered_at != null && exchange.delivered_at !== '' && (
                   <Box>
                     <Typography variant="caption" className="text-muted-foreground">
-                      Delivered At
+                      {t('form.userGiftDeliveredAt')}
                     </Typography>
                     <Typography variant="body1" className="font-medium">
                       {new Date(exchange.delivered_at).toLocaleString()}
@@ -162,19 +164,19 @@ export default function DetailsPage() {
                 )}
                 <Box>
                   <Typography variant="caption" className="text-muted-foreground">
-                    Status
+                    {t('columns.status')}
                   </Typography>
                   <Typography variant="body1" className="font-medium">
                     <span
                       className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${statusColor}`}
                     >
-                      {exchange.status?.charAt(0)?.toUpperCase() + exchange.status?.slice(1)}
+                      {exchange.status ? pointExchangeStatusLabel(t, exchange.status) : '-'}
                     </span>
                   </Typography>
                 </Box>
                 <Box>
                   <Typography variant="caption" className="text-muted-foreground">
-                    Created At
+                    {t('columns.createdAt')}
                   </Typography>
                   <Typography variant="body1" className="font-medium">
                     {exchange.created_at
@@ -184,7 +186,7 @@ export default function DetailsPage() {
                 </Box>
                 <Box>
                   <Typography variant="caption" className="text-muted-foreground">
-                    Updated At
+                    {t('columns.updatedAt')}
                   </Typography>
                   <Typography variant="body1" className="font-medium">
                     {exchange.updated_at
@@ -199,7 +201,7 @@ export default function DetailsPage() {
 
             <Box className="p-6">
               <Typography variant="h6" className="font-semibold mb-4">
-                Update Status
+                {t('form.updateExchangeStatusSection')}
               </Typography>
               <Box className="flex flex-wrap gap-3">
                 {(['approved', 'rejected', 'pending', 'completed'] as PointExchangeStatus[]).map((status) => (
@@ -220,13 +222,13 @@ export default function DetailsPage() {
                       }
                       width={18}
                     />
-                    {status.charAt(0).toUpperCase() + status.slice(1)}
+                    {pointExchangeStatusLabel(t, status)}
                   </Button>
                 ))}
               </Box>
               {updateStatusMutation.isPending && (
                 <Typography variant="body2" className="text-muted-foreground mt-2">
-                  Updating status...
+                  {t('form.updatingExchangeStatus')}
                 </Typography>
               )}
             </Box>

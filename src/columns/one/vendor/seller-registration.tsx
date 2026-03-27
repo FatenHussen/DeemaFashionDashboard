@@ -6,6 +6,10 @@ import { z } from 'zod';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 
+import i18n from 'src/lib/i18n';
+
+const tc = (key: string) => i18n.t(key, { ns: 'common' });
+
 // ----------------------------------------------------------------------
 
 const SellerRegistrationSchema = z.object({ id: z.number() });
@@ -117,9 +121,9 @@ export const sellerRegistrationColumns = (
                 onApprove(row.original.id);
               }}
               className="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium bg-green-500/15 text-green-700 dark:text-green-400 hover:bg-green-500/25 transition-colors"
-              title="Approve"
+              title={tc('approve')}
             >
-              ✓ Approve
+              ✓ {tc('approve')}
             </button>
           )}
           {isPending && onReject && (
@@ -129,9 +133,9 @@ export const sellerRegistrationColumns = (
                 onReject(row.original.id);
               }}
               className="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium bg-red-500/15 text-red-700 dark:text-red-400 hover:bg-red-500/25 transition-colors"
-              title="Reject"
+              title={tc('reject')}
             >
-              ✗ Reject
+              ✗ {tc('reject')}
             </button>
           )}
           <DataTableRowActions

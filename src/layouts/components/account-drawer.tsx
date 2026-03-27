@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useBoolean } from 'minimal-shared/hooks';
 
 import { paths } from 'src/routes/paths';
@@ -39,6 +40,7 @@ export type AccountDrawerProps = React.ButtonHTMLAttributes<HTMLButtonElement> &
 
 export function AccountDrawer({ data = [], className, ...other }: AccountDrawerProps) {
   const pathname = usePathname();
+  const { t } = useTranslation('common');
 
   const { user } = useMockedUser();
 
@@ -75,12 +77,12 @@ export function AccountDrawer({ data = [], className, ...other }: AccountDrawerP
             >
               {option.icon}
 
-              <Box component="span" className="ml-2">
+              <Box component="span" className="ms-2">
                 {option.label === 'Home' ? rootLabel : option.label}
               </Box>
 
               {option.info && (
-                <Label color="error" className="ml-1">
+                <Label color="error" className="ms-1">
                   {option.info}
                 </Label>
               )}
@@ -131,7 +133,7 @@ export function AccountDrawer({ data = [], className, ...other }: AccountDrawerP
             {Array.from({ length: 3 }, (_, index) => (
               <Tooltip
                 key={_mock.fullName(index + 1)}
-                title={`Switch to: ${_mock.fullName(index + 1)}`}
+                title={t('switchToAccount', { name: _mock.fullName(index + 1) })}
               >
                 <Avatar
                   alt={_mock.fullName(index + 1)}
@@ -141,7 +143,7 @@ export function AccountDrawer({ data = [], className, ...other }: AccountDrawerP
               </Tooltip>
             ))}
 
-            <Tooltip title="Add account">
+            <Tooltip title={t('addAccount')}>
               <IconButton className="bg-muted border border-dashed border-border">
                 <Iconify icon="mingcute:add-line" />
               </IconButton>

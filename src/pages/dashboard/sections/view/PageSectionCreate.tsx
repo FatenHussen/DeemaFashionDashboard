@@ -2,9 +2,9 @@ import type { SectionItem, FilterConfig } from '../types/page-section.types';
 
 import { axiosInstance } from '@/api';
 import { toast } from 'react-toastify';
-import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
+import { useMemo, useState, useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
@@ -32,8 +32,6 @@ import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout
 import { InfiniteScrollSelect } from 'src/shared/components/infinite-scroll-select';
 
 // ----------------------------------------------------------------------
-
-const metadata = { title: `Page Section ${CONFIG.appName}` };
 
 const sectionFetcher = (page: number, limit: number) =>
   _PageSectionApi.getSections(page, limit).then((r) => ({
@@ -175,11 +173,11 @@ export default function CreatePage() {
 
       if (isEditMode && id) {
         await updatePageSectionMutation.mutateAsync({ id, data: payload });
-        toast.success('Page Section updated successfully');
+        toast.success(t('form.pageSectionUpdatedSuccess'));
         navigate('/sections/page-sections');
       } else {
         await createPageSectionMutation.mutateAsync(payload);
-        toast.success('Page Section created successfully');
+        toast.success(t('form.pageSectionCreatedSuccess'));
         navigate('/sections/page-sections');
       }
     } catch (error: any) {
@@ -198,14 +196,15 @@ export default function CreatePage() {
     }));
   };
 
-  const positionOptions = [
-    { value: 'before', label: 'Before' },
-    { value: 'after', label: 'After' },
-  ];
+  const positionOptions = useMemo(
+    () => [
+      { value: 'before', label: t('form.positionBefore') },
+      { value: 'after', label: t('form.positionAfter') },
+    ],
+    [t]
+  );
 
-  const infoText = isEditMode
-    ? 'You can update any field. Make sure all required fields are filled.'
-    : 'Fill in all required fields to create a new page section.';
+  const infoText = isEditMode ? t('form.pageSectionFormInfoEdit') : t('form.pageSectionFormInfoCreate');
 
   // Get filters from selected section
   const sectionFilters =
@@ -219,8 +218,8 @@ export default function CreatePage() {
     <>
       <title>
         {isEditMode
-          ? `Edit Page Section | ${metadata.title}`
-          : `Create Page Section | ${metadata.title}`}
+          ? t('form.editPageSectionDocumentTitle', { appName: CONFIG.appName })
+          : t('form.createPageSectionDocumentTitle', { appName: CONFIG.appName })}
       </title>
 
       <CreateFormLayout
@@ -231,24 +230,22 @@ export default function CreatePage() {
         onCancel={handleCancel}
         isSubmitting={isSubmitting}
         errorMessage={errorMessage}
-        title={isEditMode ? 'Edit Page Section' : 'Create New Page Section'}
-        description={
-          isEditMode ? 'Update page section information' : 'Add a new page section to your system'
-        }
+        title={isEditMode ? t('form.editPageSection') : t('form.createPageSection')}
+        description={isEditMode ? t('form.editPageSectionDesc') : t('form.createPageSectionDesc')}
         isEditMode={isEditMode}
         isLoading={isLoadingPageSection}
         loadingText={t('form.loadingPageSection')}
         maxWidth="4xl"
         infoText={infoText}
-        submitLabel={isEditMode ? 'Update Page Section' : 'Create Page Section'}
-        submittingLabel={isEditMode ? 'Updating...' : 'Creating...'}
+        submitLabel={isEditMode ? t('form.updatePageSectionSubmit') : t('form.createPageSectionSubmit')}
+        submittingLabel={isEditMode ? t('form.updatingPageSection') : t('form.creatingPageSection')}
       >
         {/* Section - First: select section to enable display types with manual_model */}
         <Box className="group">
           <Box className="flex items-center gap-2 mb-2">
             <Iconify icon="solar:widget-bold" className="text-primary" width={24} height={24} />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Section
+              {t('form.pageSectionFormSectionLabel')}
             </Typography>
           </Box>
           <RHFInfiniteSelect
@@ -271,7 +268,7 @@ export default function CreatePage() {
           <Box className="flex items-center gap-2 mb-2">
             <Iconify icon="solar:text-bold" className="text-primary" width={24} height={24} />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Name (English)
+              {t('form.sectionNameEnglishLabel')}
             </Typography>
           </Box>
           <RHFTextField
@@ -287,7 +284,7 @@ export default function CreatePage() {
           <Box className="flex items-center gap-2 mb-2">
             <Iconify icon="solar:text-bold" className="text-primary" width={24} height={24} />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Name (Arabic)
+              {t('form.sectionNameArabicLabel')}
             </Typography>
           </Box>
           <RHFTextField
@@ -304,7 +301,7 @@ export default function CreatePage() {
           <Box className="flex items-center gap-2 mb-2">
             <Iconify icon="solar:document-bold" className="text-primary" width={24} height={24} />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Page
+              {t('form.pageSectionFormPageLabel')}
             </Typography>
           </Box>
           <RHFInfiniteSelect
@@ -344,7 +341,7 @@ export default function CreatePage() {
               height={24}
             />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Position
+              {t('form.pageSectionFormPositionLabel')}
             </Typography>
           </Box>
           <RHFSelect
@@ -361,7 +358,7 @@ export default function CreatePage() {
           <Box className="flex items-center gap-2 mb-2">
             <Iconify icon="solar:sort-bold" className="text-primary" width={24} height={24} />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Order
+              {t('form.pageSectionFormOrderLabel')}
             </Typography>
           </Box>
           <RHFTextField
@@ -378,7 +375,7 @@ export default function CreatePage() {
           <Box className="flex items-center gap-2 mb-2">
             <Iconify icon="solar:pallete-bold" className="text-primary" width={24} height={24} />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Background Color (Optional)
+              {t('form.pageSectionFormBackgroundColorOptional')}
             </Typography>
           </Box>
           <RHFColorPicker name="background_color" helperText={t('form.bgColorHelper')} />
@@ -389,7 +386,7 @@ export default function CreatePage() {
           <Box className="flex items-center gap-2 mb-2">
             <Iconify icon="solar:pallete-2-bold" className="text-primary" width={24} height={24} />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Background Card Color (Optional)
+              {t('form.pageSectionFormBackgroundCardColorOptional')}
             </Typography>
           </Box>
           <RHFColorPicker name="background_card_color" helperText={t('form.bgCardColorHelper')} />
@@ -401,7 +398,7 @@ export default function CreatePage() {
             <Box className="flex items-center gap-2 mb-4">
               <Iconify icon="solar:filter-bold" className="text-primary" width={24} height={24} />
               <Typography variant="h6" className="font-semibold text-foreground">
-                Filters
+                {t('form.pageSectionFormFiltersTitle')}
               </Typography>
             </Box>
             <Box className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -437,6 +434,7 @@ function DisplayTypeImageSelect({
   helperText?: string;
   currentDisplayTypeId?: number;
 }) {
+  const { t } = useTranslation('table');
   const { control } = useFormContext();
   const displayTypesQuery = useQuery({
     queryKey: ['pageSection', 'displayTypes', manualModel || ''],
@@ -452,7 +450,7 @@ function DisplayTypeImageSelect({
       <Box className="flex items-center gap-2 mb-2">
         <Iconify icon="solar:gallery-bold" className="text-primary" width={24} height={24} />
         <Typography variant="subtitle2" className="font-semibold text-foreground">
-          Display Type
+          {t('form.pageSectionFormDisplayTypeLabel')}
         </Typography>
       </Box>
       <Controller
@@ -467,7 +465,7 @@ function DisplayTypeImageSelect({
                   className="w-12 h-12 text-muted-foreground/50 mx-auto mb-2"
                 />
                 <Typography variant="body2" className="text-muted-foreground">
-                  Select a section first to load display types
+                  {t('form.pageSectionSelectSectionForDisplayTypes')}
                 </Typography>
               </Box>
             ) : displayTypesQuery.isLoading ? (
@@ -477,13 +475,13 @@ function DisplayTypeImageSelect({
                   className="w-8 h-8 text-primary animate-spin"
                 />
                 <Typography variant="body2" className="text-muted-foreground">
-                  Loading display types...
+                  {t('form.pageSectionLoadingDisplayTypes')}
                 </Typography>
               </Box>
             ) : displayTypes.length === 0 ? (
               <Box className="p-6 border border-dashed rounded-lg text-center">
                 <Typography variant="body2" className="text-muted-foreground">
-                  No display types found for this section
+                  {t('form.pageSectionNoDisplayTypes')}
                 </Typography>
               </Box>
             ) : (
@@ -504,7 +502,7 @@ function DisplayTypeImageSelect({
                     >
                       <img
                         src={dt.image_url}
-                        alt={`Display type ${dt.id}`}
+                        alt={t('form.displayTypeImageAlt', { id: dt.id })}
                         className="w-full aspect-[4/3] object-cover"
                       />
                       {isSelected && (
@@ -548,7 +546,9 @@ function DynamicFilterField({
   value: any;
   onChange: (value: any) => void;
 }) {
+  const { t } = useTranslation('table');
   const label = filterKey.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+  const nameForPlaceholder = filterKey.replace(/_/g, ' ');
 
   if (filterConfig.type === 'number') {
     return (
@@ -561,7 +561,7 @@ function DynamicFilterField({
           value={value || ''}
           onChange={(e) => onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
           className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-          placeholder={`Enter ${filterKey.replace(/_/g, ' ')}`}
+          placeholder={t('form.filterEnterPlaceholder', { name: nameForPlaceholder })}
         />
       </Box>
     );
@@ -583,7 +583,10 @@ function DynamicFilterField({
           data: {
             items: items.map((item: any) => ({
               id: item.id,
-              label: item.name || item.title || `Item ${item.id}`,
+              label:
+                item.name ||
+                item.title ||
+                t('form.filterItemFallbackLabel', { id: item.id }),
             })),
             pagination,
           },
@@ -600,7 +603,7 @@ function DynamicFilterField({
           onChange={(val) => onChange(val || undefined)}
           queryKey={['filter-data', url, 'infinite']}
           fetcher={fetcher}
-          placeholder={`Select ${filterKey.replace(/_/g, ' ')}`}
+          placeholder={t('form.filterSelectPlaceholder', { name: nameForPlaceholder })}
         />
       </Box>
     );

@@ -4,6 +4,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 import { z } from 'zod';
 import { formatTranslated } from '@/utils/format-translated';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
+import { sectionTypeLabel } from '@/pages/dashboard/sections/utils/section-type-label';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 
 const SectionSchema = z.object({
@@ -52,13 +53,13 @@ export const sectionColumns = (
       const type = row.original.type;
       return (
         <div
-          className={`text-xs px-2 py-1 rounded-full w-fit uppercase ${
+          className={`text-xs px-2 py-1 rounded-full w-fit ${
             type === 'api'
               ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
               : 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400'
           }`}
         >
-          {type}
+          {sectionTypeLabel(t, type)}
         </div>
       );
     },

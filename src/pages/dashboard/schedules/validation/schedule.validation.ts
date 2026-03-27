@@ -12,7 +12,7 @@ export const ScheduleSchema = zod.object({
     ar: zod.string().min(1, { message: t('schedule.nameArRequired') }),
   }),
   interval_days: zod.coerce.number().min(1, { message: t('schedule.intervalDaysRequired') }),
-  is_active: zod.boolean().default(true),
+  is_active: zod.boolean(),
   discount_type: zod.enum(['percentage', 'fixed']).nullable().optional(),
   discount_value: zod.coerce.number().min(0).nullable().optional(),
 });

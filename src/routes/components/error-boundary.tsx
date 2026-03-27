@@ -1,6 +1,8 @@
 import { useEffect } from 'react';
 import { useRouteError, isRouteErrorResponse } from 'react-router';
 
+import i18n from 'src/lib/i18n';
+
 // ----------------------------------------------------------------------
 
 export function ErrorBoundary() {
@@ -67,7 +69,9 @@ function renderErrorMessage(error: any) {
 
     return (
       <>
-        <h1 className={errorBoundaryClasses.title}>Unexpected Application Error!</h1>
+        <h1 className={errorBoundaryClasses.title}>
+          {i18n.t('errorUnexpectedTitle', { ns: 'common' })}
+        </h1>
         <p className={errorBoundaryClasses.message}>
           {error.name}: {error.message}
         </p>
@@ -81,7 +85,9 @@ function renderErrorMessage(error: any) {
     );
   }
 
-  return <h1 className={errorBoundaryClasses.title}>Unknown Error</h1>;
+  return (
+    <h1 className={errorBoundaryClasses.title}>{i18n.t('errorUnknownTitle', { ns: 'common' })}</h1>
+  );
 }
 
 // ----------------------------------------------------------------------
@@ -91,6 +97,7 @@ const errorBoundaryClasses = {
   container: 'gap-6 p-5 w-full max-w-[960px] flex rounded-lg flex-col bg-[var(--container-background)]',
   title: 'm-0 leading-tight text-xl font-bold',
   details: 'm-0 p-4 leading-normal overflow-auto rounded-inherit text-[var(--warning-color)] bg-[var(--details-background)] font-mono text-sm',
-  message: 'm-0 leading-normal py-3 px-4 whitespace-pre-wrap text-[var(--error-color)] bg-[var(--error-background)] border-l-2 border-[var(--error-color)] font-bold text-sm font-mono',
+  message:
+    'm-0 leading-normal py-3 px-4 whitespace-pre-wrap text-[var(--error-color)] bg-[var(--error-background)] border-s-2 border-[var(--error-color)] font-bold text-sm font-mono',
   filePath: 'mt-0 text-[var(--info-color)]',
 };
