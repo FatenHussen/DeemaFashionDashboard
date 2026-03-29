@@ -1,3 +1,8 @@
+import type {
+  ProductDetailData,
+  ProductCreateUpdatePayload,
+} from '@/pages/dashboard/products/types/product.types';
+
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
@@ -5,13 +10,16 @@ import { apiRoutes, axiosInstance } from '@/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
-import { compressImages } from '@/utils/compress-image';
 import { useId, useRef, useState, useEffect } from 'react';
 import { formatTranslated } from '@/utils/format-translated';
 import { useFetchShops } from '@/pages/dashboard/vendor/hooks/shop';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
+import { compressImage, compressImages } from '@/utils/compress-image';
+import { _VendorApi } from '@/pages/dashboard/vendor/api/vendor.services';
 import { _BrandApi } from '@/pages/dashboard/products/api/brand.services';
+import { _CountryApi } from '@/pages/dashboard/countries/api/country.services';
 import { _CategoryApi } from '@/pages/dashboard/categories/api/category.services';
+import { _SaleCountryApi } from '@/pages/dashboard/products/api/sale-country.services';
 import { RichTextEditor } from '@/shared/components/rich-text-editor/rich-text-editor';
 import { useFetchCategoryAttributes } from '@/pages/dashboard/categories/hooks/category-attribute';
 import {
@@ -35,8 +43,6 @@ import { RHFInfiniteSelect } from 'src/shared/components/hook-form/rhf-infinite-
 
 // ----------------------------------------------------------------------
 
-const metadata = { title: `Product ${CONFIG.appName}` };
-
 const categoryFetcher = (page: number, limit: number) =>
   _CategoryApi.getListCategoriesPaginated({ page, per_page: limit }).then((r) => ({
     data: {
@@ -53,8 +59,228 @@ const brandFetcher = (page: number, limit: number) =>
     },
   }));
 
+const vendorFetcher = (page: number, limit: number) =>
+  _VendorApi.getListVendor({ page, limit }).then((r) => ({
+    data: {
+      items: r.data.items.map((v) => ({ id: v.id, label: formatTranslated(v.name) })),
+      pagination: r.data.pagination,
+    },
+  }));
+
+const countryFetcher = (page: number, limit: number) =>
+  _CountryApi.getListCountries({ page, per_page: limit }).then((r) => ({
+    data: {
+      items: r.data.items.map((c) => ({
+        id: c.id,
+        label: typeof c.name === 'string' ? c.name : formatTranslated(c.name),
+      })),
+      pagination: r.data.pagination,
+    },
+  }));
+
+const saleCountryFetcher = (page: number, limit: number) =>
+  _SaleCountryApi.getListSaleCountries({ page, per_page: limit }).then((r) => ({
+    data: {
+      items: r.data.items.map((c) => ({ id: c.id, label: c.name })),
+      pagination: r.data.pagination,
+    },
+  }));
+
 const inputCls =
   'w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary';
+
+/** Platform vendor id sent when "For me" is selected. */
+const INTERNAL_VENDOR_ID = 1;
+
+/** Collapse double slashes in the URL path (e.g. `/storage//tmp/...`) so `<img src>` loads reliably. */
+function normalizeMediaUrl(url: string | null | undefined): string {
+  if (!url || typeof url !== 'string') return '';
+  try {
+    const u = new URL(url);
+    u.pathname = u.pathname.replace(/\/+/g, '/');
+    return u.toString();
+  } catch {
+    return url;
+  }
+}
+
+/** Absolute URL for API media (handles relative paths and fixes `/storage//…`). */
+function resolveProductMediaUrl(url: string): string {
+  const t = url.trim();
+  if (!t) return '';
+  if (/^https?:\/\//i.test(t)) {
+    return normalizeMediaUrl(t);
+  }
+  const base = (CONFIG.serverUrl || '').replace(/\/$/, '');
+  return normalizeMediaUrl(`${base}/${t.replace(/^\//, '')}`);
+}
+
+/** RHF + zod sometimes drop `File` refs from parsed `data`; always prefer `getValues()` for uploads. */
+function filterFileList(v: unknown): File[] {
+  if (!Array.isArray(v)) return [];
+  return v.filter((x): x is File => x instanceof File);
+}
+
+/**
+ * Many backends sync gallery media: if `existing_media_ids[]` is missing, all images are removed.
+ * Prefer live → parsed data → last-known API ids (edit only) when the form state was lost.
+ */
+function resolveExistingMediaIdsForPayload(
+  live: { existing_media_ids?: number[] },
+  data: { existing_media_ids?: number[] },
+  isEditMode: boolean,
+  product: ProductDetailData | null | undefined
+): number[] {
+  if (Array.isArray(live.existing_media_ids)) {
+    return live.existing_media_ids.map(Number).filter((x) => !Number.isNaN(x));
+  }
+  if (Array.isArray(data.existing_media_ids)) {
+    return data.existing_media_ids.map(Number).filter((x) => !Number.isNaN(x));
+  }
+  if (isEditMode && product?.images?.length) {
+    return product.images.map((img) => Number(img.id)).filter((x) => !Number.isNaN(x));
+  }
+  return [];
+}
+
+function resolveVariantExistingImageIds(
+  lv: { existing_images_ids?: number[] } | undefined,
+  dv: { existing_images_ids?: number[] },
+  variantId: number | undefined,
+  isEditMode: boolean,
+  product: ProductDetailData | null | undefined
+): number[] {
+  const fromLv = lv?.existing_images_ids;
+  // Non-empty array from the form (getValues) is authoritative.
+  if (Array.isArray(fromLv) && fromLv.length > 0) {
+    return fromLv.map(Number).filter((x) => !Number.isNaN(x));
+  }
+  // Explicit empty [] = user removed all variant images for this row.
+  if (Array.isArray(fromLv) && fromLv.length === 0) {
+    return [];
+  }
+  if (Array.isArray(dv.existing_images_ids) && dv.existing_images_ids.length > 0) {
+    return dv.existing_images_ids.map(Number).filter((x) => !Number.isNaN(x));
+  }
+  if (isEditMode && variantId != null && product?.variants?.length) {
+    const apiV = product.variants.find((x) => Number(x.id) === Number(variantId));
+    if (apiV?.images?.length) {
+      return apiV.images.map((img) => Number(img.id)).filter((x) => !Number.isNaN(x));
+    }
+  }
+  return [];
+}
+
+/**
+ * Preview server image on edit: `<img src>` only (no XHR — cross-origin blob fetches need CORS on storage URLs).
+ * Optional `fallbackUrl` (e.g. first gallery image) when primary URL fails to load.
+ */
+function ExistingImagePreview({
+  url,
+  label,
+  active,
+  fallbackUrl,
+}: {
+  url: string | null | undefined;
+  label: string;
+  active: boolean;
+  /** e.g. first gallery `images[0].url` when `thumbnail` tmp URL fails */
+  fallbackUrl?: string | null;
+}) {
+  const raw = typeof url === 'string' ? url.trim() : '';
+  const fb = typeof fallbackUrl === 'string' ? fallbackUrl.trim() : '';
+
+  const [usedGalleryFallback, setUsedGalleryFallback] = useState(false);
+  const [directIdx, setDirectIdx] = useState(0);
+
+  const directCandidates = (() => {
+    const list: string[] = [];
+    if (raw) {
+      list.push(resolveProductMediaUrl(raw), raw);
+    }
+    if (fb) {
+      list.push(resolveProductMediaUrl(fb), fb);
+    }
+    return Array.from(new Set(list.filter(Boolean)));
+  })();
+
+  const primaryUrlSet = new Set(
+    raw ? [resolveProductMediaUrl(raw), raw].filter(Boolean) : []
+  );
+
+  useEffect(() => {
+    setDirectIdx(0);
+    setUsedGalleryFallback(false);
+  }, [raw, fb, active]);
+
+  if (!active || (!raw && !fb)) return null;
+
+  const hrefPrimary =
+    raw &&
+    (raw.startsWith('http://') || raw.startsWith('https://')
+      ? raw
+      : `${(CONFIG.serverUrl || '').replace(/\/$/, '')}/${raw.replace(/^\//, '')}`);
+
+  const hrefFallback =
+    fb &&
+    (fb.startsWith('http://') || fb.startsWith('https://')
+      ? fb
+      : `${(CONFIG.serverUrl || '').replace(/\/$/, '')}/${fb.replace(/^\//, '')}`);
+
+  const exhaustedDirect =
+    directCandidates.length > 0 && directIdx >= directCandidates.length;
+
+  return (
+    <Box className="mt-3 flex flex-col gap-2">
+      {directIdx < directCandidates.length ? (
+        <img
+          key={`${directCandidates[directIdx]}-${directIdx}`}
+          src={directCandidates[directIdx]}
+          alt=""
+          referrerPolicy="no-referrer"
+          className="max-h-32 max-w-[280px] rounded-lg border border-border/60 object-contain bg-muted"
+          onError={() => setDirectIdx((i) => i + 1)}
+          onLoad={() => {
+            const u = directCandidates[directIdx];
+            setUsedGalleryFallback(!!(raw && fb && u && !primaryUrlSet.has(u)));
+          }}
+        />
+      ) : exhaustedDirect ? (
+        <Typography variant="caption" className="text-destructive">
+          Preview unavailable (file may be missing or blocked).
+        </Typography>
+      ) : null}
+      {usedGalleryFallback && fb ? (
+        <Typography variant="caption" className="text-muted-foreground">
+          Showing first gallery image — the saved URL (e.g. under /tmp/) could not be loaded as preview.
+        </Typography>
+      ) : null}
+      <Typography variant="caption" className="text-muted-foreground">
+        {label}
+      </Typography>
+      {hrefPrimary ? (
+        <a
+          href={hrefPrimary}
+          target="_blank"
+          rel="noreferrer"
+          className="text-xs text-primary break-all hover:underline"
+        >
+          Open saved image URL in new tab
+        </a>
+      ) : null}
+      {hrefFallback && hrefFallback !== hrefPrimary ? (
+        <a
+          href={hrefFallback}
+          target="_blank"
+          rel="noreferrer"
+          className="text-xs text-muted-foreground break-all hover:underline"
+        >
+          Open fallback / gallery image URL
+        </a>
+      ) : null}
+    </Box>
+  );
+}
 
 /** API returns `attribute` in one locale (often AR); category `name` may be {en, ar} — match any. */
 function categoryAttrLabelMatches(attr: any, apiAttributeLabel: string): boolean {
@@ -104,6 +330,42 @@ function findAttributeValueId(attr: any, rawVal: string): number | undefined {
   return undefined;
 }
 
+/**
+ * Build `attributes_values_ids` from the variant's own `attributes` rows (one value per attribute type).
+ * Do **not** loop every `categoryAttributes` row — some APIs expose the same attribute once per value
+ * or duplicate rows, which previously produced many IDs for a single "Size" and broke variant identity.
+ */
+function resolveVariantAttributeValueIds(
+  v: { attributes?: Array<{ attribute: string; value: string }> },
+  categoryAttrs: any[]
+): number[] {
+  // Last row wins per attribute label (API sometimes repeats the same attribute many times).
+  const lastRowByLabel = new Map<string, { attribute: string; value: string }>();
+  for (const row of v.attributes ?? []) {
+    const label = String((row as { attribute?: string }).attribute ?? '').trim();
+    if (!label) continue;
+    lastRowByLabel.set(label.toLowerCase(), row as { attribute: string; value: string });
+  }
+
+  const ids: number[] = [];
+  for (const row of lastRowByLabel.values()) {
+    const label = String(row.attribute ?? '').trim();
+    const attr = categoryAttrs.find((ca: any) => categoryAttrLabelMatches(ca, label));
+    if (!attr) continue;
+
+    const rawVal =
+      typeof row === 'object' && row != null && 'value' in row
+        ? String((row as { value?: string }).value ?? '')
+        : '';
+    const idFound = findAttributeValueId(attr, rawVal);
+    if (idFound != null && !Number.isNaN(idFound)) {
+      ids.push(idFound);
+    }
+  }
+
+  return ids;
+}
+
 export default function CreatePage() {
   const { t } = useTranslation('table');
   const { id } = useParams<{ id?: string }>();
@@ -112,34 +374,58 @@ export default function CreatePage() {
 
   const [previewImages, setPreviewImages] = useState<string[]>([]);
   const productImagesInputId = useId();
+  const thumbnailInputId = useId();
+  const seoImageInputId = useId();
 
   // Fetch dependencies
-  const { data: shopsResponse } = useFetchShops(1, 100);
   const { data: productResponse, isLoading: isLoadingProduct } = useFetchProductById(id || '');
+
+  const { data: iconsListResponse } = useQuery({
+    queryKey: ['icons', 'product-form'],
+    queryFn: () =>
+      axiosInstance.get(apiRoutes.icon.list, { params: { per_page: 200 } }).then((r) => r.data),
+  });
+  const iconOptions: any[] = (() => {
+    const raw = iconsListResponse as any;
+    if (!raw) return [];
+    return raw.data?.data ?? raw.data?.items ?? (Array.isArray(raw.data) ? raw.data : []) ?? [];
+  })();
 
   const createProductMutation = useCreateProduct();
   const updateProductMutation = useUpdateProduct();
 
-  const shops = (shopsResponse as any)?.data?.items ?? [];
-
   const defaultValues: ProductFormValues = {
     category_id: 0,
     brand_id: 0,
+    vendor_scope: 'internal',
+    vendor_id: INTERNAL_VENDOR_ID,
     name: { en: '', ar: '' },
     description: { en: '', ar: '' },
     full_description: { en: '', ar: '' },
-    country: { en: '', ar: '' },
+    country_id: 0,
+    sale_country_id: 0,
     price: 0,
-    price_after_discount: undefined,
+    discount: 0,
+    discount_type: 'none',
+    cost_price: undefined,
     quantity: 0,
+    unit: '',
+    warranty_period: undefined,
     sku: '',
     model: '',
     barcode: '',
     time_prepare: '',
     is_instant_delivery: 0,
+    is_visible: 1,
+    thumbnail: undefined,
     images: [],
     existing_media_ids: [],
+    seo_title: { en: '', ar: '' },
+    seo_description: { en: '', ar: '' },
+    seo_keywords: { en: '', ar: '' },
+    seo_image: undefined,
     badges: [],
+    icon_ids: [],
     variants: [],
     category_details: [],
     extra_details: [],
@@ -158,10 +444,32 @@ export default function CreatePage() {
   const existingMediaIds = watch('existing_media_ids') ?? [];
   const watchedVariants = watch('variants') || [];
   const watchedBoughtWith = watch('bought_with') || [];
+  const vendorScope = watch('vendor_scope');
+  const watchedVendorId = watch('vendor_id');
+  const effectiveShopVendorId =
+    vendorScope === 'internal' ? INTERNAL_VENDOR_ID : Number(watchedVendorId) || 0;
+  const { data: shopsResponse } = useFetchShops(1, 100, {
+    vendorId: effectiveShopVendorId > 0 ? effectiveShopVendorId : undefined,
+    enabled: effectiveShopVendorId > 0,
+  });
+  const shops = (shopsResponse as any)?.data?.items ?? [];
+
+  /** When external vendor changes after load, clear shop rows (shop list is per-vendor). */
+  const skipInitialExternalVendorIdEffect = useRef(true);
+  useEffect(() => {
+    if (vendorScope !== 'external') return;
+    if (skipInitialExternalVendorIdEffect.current) {
+      skipInitialExternalVendorIdEffect.current = false;
+      return;
+    }
+    setValue('shop_variants', []);
+  }, [watchedVendorId, vendorScope, setValue]);
 
   // Fetch category attributes when category changes
   const { data: categoryAttributesAll, isLoading: isLoadingAttributes } =
-    useFetchCategoryAttributes(categoryId ? Number(categoryId) : undefined, 1, 100);
+    useFetchCategoryAttributes(categoryId ? Number(categoryId) : undefined, 1, 100, {
+      requireCategoryId: true,
+    });
   const categoryAttributes =
     (categoryAttributesAll?.data as { items?: unknown[]; data?: unknown[] } | undefined)?.items ??
     (categoryAttributesAll?.data as { data?: unknown[] } | undefined)?.data ??
@@ -208,24 +516,54 @@ export default function CreatePage() {
   useEffect(() => {
     if (isEditMode && productResponse && !isLoadingProduct) {
       const p = productResponse;
+      const sk = p.seo_keywords as { en?: string[]; ar?: string[] } | null | undefined;
       reset({
         category_id: Number(p.category?.id) || 0,
         brand_id: Number(p.brand?.id) || 0,
+        vendor_scope:
+          Number(p.vendor?.id) === INTERNAL_VENDOR_ID ? 'internal' : 'external',
+        vendor_id: Number(p.vendor?.id) || 0,
         name: { en: p.name?.en ?? '', ar: p.name?.ar ?? '' },
         description: { en: p.description?.en ?? '', ar: p.description?.ar ?? '' },
         full_description: { en: p.full_description?.en ?? '', ar: p.full_description?.ar ?? '' },
-        country: { en: p.country?.en ?? '', ar: p.country?.ar ?? '' },
+        country_id:
+          p.country_id != null && String(p.country_id) !== ''
+            ? Number(p.country_id)
+            : p.origin_country?.id != null
+              ? Number(p.origin_country.id)
+              : p.country && typeof p.country === 'object' && 'id' in p.country && (p.country as { id?: number }).id != null
+                ? Number((p.country as { id: number }).id)
+                : 0,
+        sale_country_id:
+          p.sale_country_id != null && String(p.sale_country_id) !== ''
+            ? Number(p.sale_country_id)
+            : p.sale_country?.id != null
+              ? Number(p.sale_country.id)
+              : 0,
         price: Number(p.price) || 0,
-        price_after_discount: p.price_after_discount != null ? Number(p.price_after_discount) : undefined,
+        discount: p.discount != null ? Number(p.discount) : 0,
+        discount_type: (p.discount_type as 'none' | 'percentage' | 'fixed') || 'none',
+        cost_price: p.cost_price != null ? Number(p.cost_price) : undefined,
         quantity: Number(p.quantity) || 0,
+        unit: p.unit ?? '',
+        warranty_period: p.warranty_period != null ? Number(p.warranty_period) : undefined,
         sku: p.sku ?? '',
         model: p.model ?? '',
         barcode: p.barcode ?? '',
         time_prepare: p.time_prepare ?? '',
         is_instant_delivery: p.is_instant_delivery ? 1 : 0,
+        is_visible: p.is_visible === false || p.is_visible === 0 ? 0 : 1,
+        thumbnail: undefined,
         images: [],
         existing_media_ids:
           p.images?.map((img: any) => Number(img.id)).filter((mediaId) => !Number.isNaN(mediaId)) ?? [],
+        seo_title: { en: p.seo_title?.en ?? '', ar: p.seo_title?.ar ?? '' },
+        seo_description: { en: p.seo_description?.en ?? '', ar: p.seo_description?.ar ?? '' },
+        seo_keywords: {
+          en: Array.isArray(sk?.en) ? sk!.en!.join(', ') : '',
+          ar: Array.isArray(sk?.ar) ? sk!.ar!.join(', ') : '',
+        },
+        seo_image: undefined,
         variants:
           p.variants?.map((v) => ({
             id: v.id,
@@ -245,6 +583,7 @@ export default function CreatePage() {
             id: ed.id,
             detail_key: { en: ed.key?.en ?? '', ar: ed.key?.ar ?? '' },
             detail_value: { en: ed.value?.en ?? '', ar: ed.value?.ar ?? '' },
+            price: ed.price != null ? Number(ed.price) : undefined,
           })) ?? [],
         bought_with: (p.bought_with ?? [])
           .map((v: any) => (typeof v === 'object' && v?.id != null ? v.id : v))
@@ -265,6 +604,7 @@ export default function CreatePage() {
               position: b.postion || b.position || 'top',
             }))
           : [],
+        icon_ids: (p.icons ?? []).map((ic) => ic.id),
       });
     }
   }, [productResponse, isEditMode, isLoadingProduct, reset]);
@@ -320,28 +660,30 @@ export default function CreatePage() {
       return;
     if (variantsFixedRef.current === id) return;
     const p = productResponse;
+    const currentVariants = getValues('variants') ?? [];
     const mappedVariants = p.variants!.map((v) => {
-      const ids: number[] = [];
-      categoryAttributes.forEach((attr: any) => {
-        const vAttr = (v.attributes ?? []).find((a: any) =>
-          categoryAttrLabelMatches(attr, String((a as any).attribute ?? a))
-        );
-        if (vAttr) {
-          const vVal = typeof vAttr === 'object' ? (vAttr as any).value : vAttr;
-          const idFound = findAttributeValueId(attr, String(vVal ?? ''));
-          if (idFound != null && !Number.isNaN(idFound)) ids.push(idFound);
-        }
-      });
+      const ids = resolveVariantAttributeValueIds(v, categoryAttributes);
+      const prev = currentVariants.find((c: any) => Number(c?.id) === Number(v.id));
+      const prevFiles = Array.isArray(prev?.images)
+        ? (prev!.images as unknown[]).filter((f): f is File => f instanceof File)
+        : [];
       return {
         id: v.id,
         attributes_values_ids: ids,
-        images: [] as File[],
+        images: prevFiles,
         existing_images_ids:
-          (v.images ?? []).map((img: any) => Number(img.id)).filter((mediaId) => !Number.isNaN(mediaId)) ?? [],
+          prev && Array.isArray(prev.existing_images_ids)
+            ? prev.existing_images_ids
+            : (v.images ?? []).map((img: any) => Number(img.id)).filter((mediaId) => !Number.isNaN(mediaId)) ?? [],
       };
     });
+    // Only lock the guard if ALL variants got at least one attribute id resolved.
+    // If mapping partially failed, keep the door open to retry when categoryAttributes refreshes.
+    const allMapped = mappedVariants.every((mv) => mv.attributes_values_ids.length > 0);
     setValue('variants', mappedVariants);
-    variantsFixedRef.current = id;
+    if (allMapped) {
+      variantsFixedRef.current = id;
+    }
   }, [isEditMode, productResponse, categoryAttributes, setValue, id]);
 
   // Image preview
@@ -367,42 +709,73 @@ export default function CreatePage() {
   const errorMessage =
     createProductMutation.error?.message || updateProductMutation.error?.message || null;
 
-  // Map product variant attributes to attributes_values_ids using category attributes
+  // Map product variant.attributes → value IDs (one per attribute type; same rules as resolveVariantAttributeValueIds).
   const mapVariantsToAttributeIds = (
     variants: Array<{ id?: number; attributes?: Array<{ attribute: string; value: string }>; images?: File[] }>,
     attrs: any[]
   ) =>
-    variants.map((v) => {
-      const ids: number[] = [];
-      attrs.forEach((attr: any) => {
-        const vAttr = (v.attributes ?? []).find((a: any) =>
-          categoryAttrLabelMatches(attr, String((a as any).attribute ?? a))
-        );
-        if (vAttr) {
-          const vVal = typeof vAttr === 'object' ? (vAttr as any).value : vAttr;
-          const idFound = findAttributeValueId(attr, String(vVal ?? ''));
-          if (idFound != null && !Number.isNaN(idFound)) ids.push(idFound);
-        }
-      });
-      return { id: v.id, attributes_values_ids: ids, images: (v as any).images ?? [] };
-    });
+    variants.map((v) => ({
+      id: v.id,
+      attributes_values_ids: resolveVariantAttributeValueIds(v, attrs),
+      images: (v as any).images ?? [],
+    }));
 
   const onSubmit = async (data: ProductFormValues) => {
     try {
       const live = getValues();
+      const imagesFromForm = filterFileList(getValues('images'));
+      const imagesFromParsed = filterFileList(data.images);
+      // Edit mode: validation can pass via existing_media_ids while zod omits new Files from `data`
+      const mergedProductImages =
+        imagesFromForm.length > 0 ? imagesFromForm : imagesFromParsed;
+
+      const liveVariantsFull = getValues('variants') ?? [];
       // Nested File[] in field arrays is sometimes missing from `data` — use live state for uploads
       let payload: ProductFormValues = {
         ...data,
-        images: live.images ?? data.images,
-        existing_media_ids: live.existing_media_ids ?? data.existing_media_ids,
+        images: mergedProductImages,
+        existing_media_ids: resolveExistingMediaIdsForPayload(
+          live,
+          data,
+          isEditMode,
+          productResponse
+        ),
+        thumbnail: live.thumbnail ?? data.thumbnail,
+        seo_image: live.seo_image ?? data.seo_image,
+        icon_ids: live.icon_ids ?? data.icon_ids,
         variants: (data.variants ?? []).map((dv, i) => {
-          const lv = live.variants?.[i];
-          if (!lv) return dv;
+          const dvId = (dv as { id?: number }).id;
+          const lv =
+            dvId != null && liveVariantsFull.length
+              ? liveVariantsFull.find((x) => Number((x as { id?: number }).id) === Number(dvId))
+              : liveVariantsFull[i];
+          if (!lv) {
+            return {
+              ...dv,
+              images: filterFileList((dv as { images?: unknown }).images),
+              existing_images_ids: resolveVariantExistingImageIds(
+                undefined,
+                dv as { existing_images_ids?: number[] },
+                dvId,
+                isEditMode,
+                productResponse
+              ),
+            };
+          }
+          const lvFiles = filterFileList(lv.images);
+          const dvFiles = filterFileList(dv.images);
+          const mergedVariantImages = lvFiles.length > 0 ? lvFiles : dvFiles;
           return {
             ...dv,
             ...lv,
-            images: lv.images?.length ? lv.images : dv.images,
-            existing_images_ids: lv.existing_images_ids ?? dv.existing_images_ids,
+            images: mergedVariantImages,
+            existing_images_ids: resolveVariantExistingImageIds(
+              lv as { existing_images_ids?: number[] },
+              dv as { existing_images_ids?: number[] },
+              dvId,
+              isEditMode,
+              productResponse
+            ),
           };
         }),
       };
@@ -410,14 +783,16 @@ export default function CreatePage() {
       console.log('[Product Form] Validation passed, submitting:', payload);
 
       // In edit mode: ensure variants have attributes_values_ids (full payload - changed + unchanged)
-      if (isEditMode && productResponse && (payload.variants?.length ?? 0) > 0 && categoryAttributes.length > 0) {
-        const enrichedFromApi = mapVariantsToAttributeIds(
-          productResponse.variants?.map((v) => ({
-            id: v.id,
-            attributes: v.attributes,
-          })) ?? [],
-          categoryAttributes
-        );
+      if (isEditMode && productResponse && (payload.variants?.length ?? 0) > 0) {
+        const enrichedFromApi = categoryAttributes.length > 0
+          ? mapVariantsToAttributeIds(
+              productResponse.variants?.map((v) => ({
+                id: v.id,
+                attributes: v.attributes,
+              })) ?? [],
+              categoryAttributes
+            )
+          : [];
         payload = {
           ...payload,
           variants: payload.variants!.map((fv) => {
@@ -477,8 +852,13 @@ export default function CreatePage() {
           (!Array.isArray(v.attributes_values_ids) || v.attributes_values_ids.length === 0)
       );
       if (orphanVariantImages) {
+        const orphanIdx = (payload.variants ?? []).findIndex(
+          (v) =>
+            ((v.images?.length ?? 0) > 0 || (v.existing_images_ids?.length ?? 0) > 0) &&
+            (!Array.isArray(v.attributes_values_ids) || v.attributes_values_ids.length === 0)
+        );
         toast.error(
-          'Each variant with images must have at least one attribute selected (e.g. size or color). Otherwise variant images are not sent.'
+          `Variant #${orphanIdx + 1} has images but no attributes selected. Select at least one attribute (e.g. size or color) so variant images are included in the request.`
         );
         return;
       }
@@ -491,9 +871,16 @@ export default function CreatePage() {
         (payload.variants?.length ?? 0) > 0 &&
         validVariants.length < (payload.variants?.length ?? 0)
       ) {
-        toast.warning(
-          'Some variants were skipped (no attribute values). Each variant must have at least one attribute selected.'
+        const emptyIdx = (payload.variants ?? []).findIndex(
+          (v) => !Array.isArray(v.attributes_values_ids) || v.attributes_values_ids.length === 0
         );
+        const isExisting = (payload.variants ?? [])[emptyIdx]?.id != null;
+        toast.error(
+          isExisting
+            ? `Variant #${emptyIdx + 1} (existing) could not load its attributes automatically — please re-select its attributes manually before saving.`
+            : `Variant #${emptyIdx + 1} has no attributes selected. Select at least one attribute or remove the empty row.`
+        );
+        return;
       }
       const finalPayload = {
         ...payload,
@@ -512,27 +899,37 @@ export default function CreatePage() {
           images: v.images?.length ? await compressImages(v.images) : v.images,
         }))
       );
+      let thumb = finalPayload.thumbnail;
+      if (thumb instanceof File) thumb = await compressImage(thumb);
+      let seoImg = finalPayload.seo_image;
+      if (seoImg instanceof File) seoImg = await compressImage(seoImg);
       const uploadPayload: ProductFormValues = {
         ...finalPayload,
         images: productImagesCompressed,
         variants: variantsCompressed,
+        thumbnail: thumb,
+        seo_image: seoImg,
       };
+      const { vendor_scope: _omitVendorScope, ...apiPayload } = uploadPayload;
 
       if (isEditMode && id) {
-        console.log('[Product Form] Sending update payload:', { id, data: uploadPayload });
-        await updateProductMutation.mutateAsync({ id, data: uploadPayload });
-        toast.success('Product updated successfully');
+        console.log('[Product Form] Sending update payload:', { id, data: apiPayload });
+        await updateProductMutation.mutateAsync({
+          id,
+          data: apiPayload as ProductCreateUpdatePayload,
+        });
+        toast.success(t('form.productUpdatedSuccess'));
       } else {
-        console.log('[Product Form] Sending create payload:', uploadPayload);
-        await createProductMutation.mutateAsync(uploadPayload);
-        toast.success('Product created successfully');
+        console.log('[Product Form] Sending create payload:', apiPayload);
+        await createProductMutation.mutateAsync(apiPayload as ProductCreateUpdatePayload);
+        toast.success(t('form.productCreatedSuccess'));
       }
-      navigate('/products');
+      navigate(paths.dashboard.products);
     } catch (error: any) {
       console.error('[Product Form] Submit error:', error);
       console.error('[Product Form] Error response:', error?.response?.data);
       console.error('[Product Form] Error message:', error?.message);
-      toast.error(error?.message || 'Failed to save product');
+      toast.error(error?.message || t('form.productSaveFailed'));
     }
   };
 
@@ -544,10 +941,21 @@ export default function CreatePage() {
     setValue('bought_with', next, { shouldDirty: true });
   };
 
+  const watchedIconIds = watch('icon_ids') ?? [];
+  const toggleIcon = (iconId: number) => {
+    const current = watchedIconIds;
+    const next = current.includes(iconId)
+      ? current.filter((x) => x !== iconId)
+      : [...current, iconId];
+    setValue('icon_ids', next, { shouldDirty: true });
+  };
+
   return (
     <>
       <title>
-        {isEditMode ? `Edit Product | ${metadata.title}` : `Create Product | ${metadata.title}`}
+        {isEditMode
+          ? `${t('form.productEditMetaTitle')} | ${CONFIG.appName}`
+          : `${t('form.productCreateMetaTitle')} | ${CONFIG.appName}`}
       </title>
 
       <CreateFormLayout
@@ -567,33 +975,33 @@ export default function CreatePage() {
           };
           const msg = getFirstMessage(errors);
           console.error('[Product Form] First error message:', msg);
-          toast.error(msg || 'Please fix the form errors and try again.');
+          toast.error(msg || t('form.formValidationErrorGeneric'));
         })}
-        onCancel={() => navigate('/products')}
+        onCancel={() => navigate(paths.dashboard.products)}
         isSubmitting={isSubmitting}
         errorMessage={errorMessage}
-        title={isEditMode ? 'Edit Product' : 'Create New Product'}
+        title={isEditMode ? t('form.productEditTitle') : t('form.productCreateTitle')}
         description={
-          isEditMode ? 'Update product information and details' : 'Add a new product to your system'
+          isEditMode ? t('form.productEditDescription') : t('form.productCreateDescription')
         }
         isEditMode={isEditMode}
         isLoading={isLoadingProduct}
         loadingText={t('form.loadingProduct')}
         maxWidth="6xl"
         infoText={
-          isEditMode
-            ? 'Update product information, variants, and details.'
-            : 'Create a new product with all required information.'
+          isEditMode ? t('form.productEditInfo') : t('form.productCreateInfo')
         }
-        submitLabel={isEditMode ? 'Update Product' : 'Create Product'}
-        submittingLabel={isEditMode ? 'Updating...' : 'Creating...'}
+        submitLabel={isEditMode ? t('form.productSubmitUpdate') : t('form.productSubmitCreate')}
+        submittingLabel={
+          isEditMode ? t('form.productSubmittingUpdate') : t('form.productSubmittingCreate')
+        }
       >
         {/* ─── Category ─────────────────────────────────────────── */}
         <Box className="group">
           <Box className="flex items-center gap-2 mb-2">
             <Iconify icon="solar:folder-bold" className="text-primary" width={20} />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Category *
+              {t('form.productCategoryRequired')}
             </Typography>
           </Box>
           <RHFInfiniteSelect
@@ -615,7 +1023,7 @@ export default function CreatePage() {
             <Box className="flex items-center gap-2">
               <Iconify icon="solar:medal-ribbons-star-bold" className="text-primary" width={20} />
               <Typography variant="subtitle2" className="font-semibold text-foreground">
-                Brand
+                {t('form.productBrand')}
               </Typography>
             </Box>
             <Button
@@ -628,7 +1036,7 @@ export default function CreatePage() {
               className="text-primary -mr-2"
             >
               <Iconify icon="solar:add-circle-bold" width={16} className="mr-1" />
-              Create New Brand
+              {t('form.productCreateBrand')}
             </Button>
           </Box>
           <RHFInfiniteSelect
@@ -640,13 +1048,72 @@ export default function CreatePage() {
           />
         </Box>
 
+        {/* ─── Vendor source (For me / Out) ─────────────────────── */}
+        <Box className="group">
+          <Box className="flex items-center gap-2 mb-2">
+            <Iconify icon="solar:shop-bold" className="text-primary" width={20} />
+            <Typography variant="subtitle2" className="font-semibold text-foreground">
+              {t('form.productVendorScope')}
+            </Typography>
+          </Box>
+          <Controller
+            name="vendor_scope"
+            control={control}
+            render={({ field }) => (
+              <Box className="flex flex-wrap gap-4">
+                <label className="flex items-center gap-2 cursor-pointer text-sm">
+                  <input
+                    type="radio"
+                    className="w-4 h-4"
+                    checked={field.value === 'internal'}
+                    onChange={() => {
+                      field.onChange('internal');
+                      setValue('vendor_id', INTERNAL_VENDOR_ID);
+                      setValue('shop_variants', []);
+                    }}
+                  />
+                  {t('form.vendorScopeForMe')}
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer text-sm">
+                  <input
+                    type="radio"
+                    className="w-4 h-4"
+                    checked={field.value === 'external'}
+                    onChange={() => {
+                      field.onChange('external');
+                      setValue('vendor_id', 0);
+                      setValue('shop_variants', []);
+                    }}
+                  />
+                  {t('form.vendorScopeOut')}
+                </label>
+              </Box>
+            )}
+          />
+          {vendorScope === 'external' && (
+            <Box className="mt-3">
+              <RHFInfiniteSelect
+                name="vendor_id"
+                queryKey={['vendors', 'infinite', 'product-form']}
+                fetcher={vendorFetcher}
+                placeholder={t('form.selectVendorRequired')}
+                initialLabel={
+                  productResponse?.vendor
+                    ? formatTranslated(productResponse.vendor.name as any)
+                    : undefined
+                }
+              />
+            </Box>
+          )}
+        </Box>
+
         {/* ─── Name ─────────────────────────────────────────────── */}
         <Box className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Box className="group">
             <Box className="flex items-center gap-2 mb-2">
               <Iconify icon="solar:letter-bold" className="text-primary" width={20} />
               <Typography variant="subtitle2" className="font-semibold text-foreground">
-                English Name *
+                {t('form.productNameEnRequired')}
               </Typography>
             </Box>
             <Controller
@@ -668,7 +1135,7 @@ export default function CreatePage() {
             <Box className="flex items-center gap-2 mb-2">
               <Iconify icon="solar:letter-bold" className="text-primary" width={20} />
               <Typography variant="subtitle2" className="font-semibold text-foreground">
-                Arabic Name *
+                {t('form.productNameArRequired')}
               </Typography>
             </Box>
             <Controller
@@ -680,7 +1147,7 @@ export default function CreatePage() {
                     {...field}
                     type="text"
                     dir="rtl"
-                    placeholder="e.g., ايفون 15"
+                    placeholder={t('form.productNameArPlaceholder')}
                     className={inputCls}
                   />
                   {error && (
@@ -700,7 +1167,7 @@ export default function CreatePage() {
             <Box className="flex items-center gap-2 mb-2">
               <Iconify icon="solar:document-text-bold" className="text-primary" width={20} />
               <Typography variant="subtitle2" className="font-semibold text-foreground">
-                English Description *
+                {t('form.productDescEnRequired')}
               </Typography>
             </Box>
             <Controller
@@ -727,7 +1194,7 @@ export default function CreatePage() {
             <Box className="flex items-center gap-2 mb-2">
               <Iconify icon="solar:document-text-bold" className="text-primary" width={20} />
               <Typography variant="subtitle2" className="font-semibold text-foreground">
-                Arabic Description *
+                {t('form.productDescArRequired')}
               </Typography>
             </Box>
             <Controller
@@ -739,7 +1206,7 @@ export default function CreatePage() {
                     {...field}
                     rows={3}
                     dir="rtl"
-                    placeholder="وصف المنتج بالعربية"
+                    placeholder={t('form.productDescArPlaceholder')}
                     className={inputCls}
                   />
                   {error && (
@@ -753,99 +1220,86 @@ export default function CreatePage() {
           </Box>
         </Box>
 
-        {/* ─── Full Description ─────────────────────────────────── */}
+        {/* ─── Country of origin & country of sale ─────────────── */}
         <Box className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Box className="group">
-            <Box className="flex items-center gap-2 mb-2">
-              <Iconify icon="solar:document-bold" className="text-primary" width={20} />
-              <Typography variant="subtitle2" className="font-semibold text-foreground">
-                Full Description (EN)
-              </Typography>
+            <Box className="flex items-center justify-between gap-2 mb-2">
+              <Box className="flex items-center gap-2">
+                <Iconify icon="solar:globe-bold" className="text-primary" width={20} />
+                <Typography variant="subtitle2" className="font-semibold text-foreground">
+                  {t('form.countryOriginSelect')}
+                </Typography>
+              </Box>
+              <Button
+                type="button"
+                variant="text"
+                size="small"
+                onClick={() =>
+                  window.open(`${paths.dashboard.root}${paths.dashboard.countries}/create`, '_blank')
+                }
+                className="text-primary -mr-2"
+              >
+                <Iconify icon="solar:add-circle-bold" width={16} className="mr-1" />
+                {t('form.countryCreateShort')}
+              </Button>
             </Box>
-            <Controller
-              name="full_description.en"
-              control={control}
-              render={({ field }) => (
-                <RichTextEditor
-                  value={field.value ?? ''}
-                  onChange={field.onChange}
-                  onBlur={field.onBlur}
-                  placeholder={t('form.fullDescPlaceholder')}
-                  dir="ltr"
-                />
-              )}
+            <RHFInfiniteSelect
+              name="country_id"
+              queryKey={['countries', 'infinite', 'product-form', 'origin']}
+              fetcher={countryFetcher}
+              placeholder={t('form.selectCountryOriginOptional')}
+              pageSize={20}
+              initialLabel={(() => {
+                const oc = productResponse?.origin_country;
+                if (oc?.name != null) {
+                  return typeof oc.name === 'string' ? oc.name : formatTranslated(oc.name as any);
+                }
+                const c = productResponse?.country;
+                if (
+                  c &&
+                  typeof c === 'object' &&
+                  'name' in c &&
+                  (c as { name?: string | { en: string; ar: string } }).name != null
+                ) {
+                  return formatTranslated(
+                    (c as { name: string | { en: string; ar: string } }).name as any
+                  );
+                }
+                return undefined;
+              })()}
             />
           </Box>
           <Box className="group">
             <Box className="flex items-center gap-2 mb-2">
-              <Iconify icon="solar:document-bold" className="text-primary" width={20} />
+              <Iconify icon="solar:map-point-bold" className="text-primary" width={20} />
               <Typography variant="subtitle2" className="font-semibold text-foreground">
-                Full Description (AR)
+                {t('form.countrySaleSelect')}
               </Typography>
             </Box>
-            <Controller
-              name="full_description.ar"
-              control={control}
-              render={({ field }) => (
-                <RichTextEditor
-                  value={field.value ?? ''}
-                  onChange={field.onChange}
-                  onBlur={field.onBlur}
-                  placeholder="الوصف الكامل بالعربية"
-                  dir="rtl"
-                />
-              )}
+            <RHFInfiniteSelect
+              name="sale_country_id"
+              queryKey={['sale-countries', 'infinite', 'product-form']}
+              fetcher={saleCountryFetcher}
+              placeholder={t('form.selectCountrySaleOptional')}
+              pageSize={20}
+              initialLabel={
+                productResponse?.sale_country?.name
+                  ? typeof productResponse.sale_country.name === 'string'
+                    ? productResponse.sale_country.name
+                    : formatTranslated(productResponse.sale_country.name as any)
+                  : undefined
+              }
             />
           </Box>
         </Box>
 
-        {/* ─── Country ──────────────────────────────────────────── */}
-        <Box className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Box className="group">
-            <Box className="flex items-center gap-2 mb-2">
-              <Iconify icon="solar:globe-bold" className="text-primary" width={20} />
-              <Typography variant="subtitle2" className="font-semibold text-foreground">
-                Country of Origin (EN)
-              </Typography>
-            </Box>
-            <Controller
-              name="country.en"
-              control={control}
-              render={({ field }) => (
-                <input {...field} type="text" placeholder={t('form.countryPlaceholder')} className={inputCls} />
-              )}
-            />
-          </Box>
-          <Box className="group">
-            <Box className="flex items-center gap-2 mb-2">
-              <Iconify icon="solar:globe-bold" className="text-primary" width={20} />
-              <Typography variant="subtitle2" className="font-semibold text-foreground">
-                Country of Origin (AR)
-              </Typography>
-            </Box>
-            <Controller
-              name="country.ar"
-              control={control}
-              render={({ field }) => (
-                <input
-                  {...field}
-                  type="text"
-                  dir="rtl"
-                  placeholder="e.g., أمريكا"
-                  className={inputCls}
-                />
-              )}
-            />
-          </Box>
-        </Box>
-
-        {/* ─── Price & Price After Discount ─────────────────────── */}
-        <Box className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* ─── Price, discount, cost ───────────────────────────── */}
+        <Box className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <Box className="group">
             <Box className="flex items-center gap-2 mb-2">
               <Iconify icon="solar:dollar-bold" className="text-primary" width={20} />
               <Typography variant="subtitle2" className="font-semibold text-foreground">
-                Price *
+                {t('form.productPriceRequired')}
               </Typography>
             </Box>
             <Controller
@@ -873,11 +1327,56 @@ export default function CreatePage() {
             <Box className="flex items-center gap-2 mb-2">
               <Iconify icon="solar:tag-price-bold" className="text-primary" width={20} />
               <Typography variant="subtitle2" className="font-semibold text-foreground">
-                Price After Discount
+                {t('form.productDiscountType')}
               </Typography>
             </Box>
             <Controller
-              name="price_after_discount"
+              name="discount_type"
+              control={control}
+              render={({ field }) => (
+                <select {...field} className={inputCls}>
+                  <option value="none">{t('form.discountTypeNone')}</option>
+                  <option value="percentage">{t('form.discountTypePercentage')}</option>
+                  <option value="fixed">{t('form.discountTypeFixed')}</option>
+                </select>
+              )}
+            />
+          </Box>
+          <Box className="group">
+            <Box className="flex items-center gap-2 mb-2">
+              <Iconify icon="solar:tag-price-bold" className="text-primary" width={20} />
+              <Typography variant="subtitle2" className="font-semibold text-foreground">
+                {t('form.productDiscountValue')}
+              </Typography>
+            </Box>
+            <Controller
+              name="discount"
+              control={control}
+              render={({ field, fieldState: { error } }) => (
+                <div>
+                  <input
+                    {...field}
+                    type="number"
+                    placeholder="0"
+                    value={field.value ?? 0}
+                    onChange={(e) => field.onChange(Number(e.target.value))}
+                    className={inputCls}
+                  />
+                  {error && (
+                    <Typography variant="caption" className="text-destructive mt-1">
+                      {error.message}
+                    </Typography>
+                  )}
+                </div>
+              )}
+            />
+          </Box>
+          <Box className="group">
+            <Typography variant="subtitle2" className="font-semibold text-foreground mb-2">
+              {t('form.productCostPriceOptional')}
+            </Typography>
+            <Controller
+              name="cost_price"
               control={control}
               render={({ field }) => (
                 <input
@@ -901,7 +1400,7 @@ export default function CreatePage() {
             <Box className="flex items-center gap-2 mb-2">
               <Iconify icon="solar:box-bold" className="text-primary" width={20} />
               <Typography variant="subtitle2" className="font-semibold text-foreground">
-                Quantity *
+                {t('form.productQuantityRequired')}
               </Typography>
             </Box>
             <Controller
@@ -929,14 +1428,47 @@ export default function CreatePage() {
             <Box className="flex items-center gap-2 mb-2">
               <Iconify icon="solar:clock-circle-bold" className="text-primary" width={20} />
               <Typography variant="subtitle2" className="font-semibold text-foreground">
-                Preparation Time (HH:MM)
+                {t('form.productPrepTime')}
               </Typography>
             </Box>
             <Controller
               name="time_prepare"
               control={control}
               render={({ field }) => (
-                <input {...field} type="text" placeholder="e.g., 00:30" className={inputCls} />
+                <input {...field} type="text" placeholder={t('form.prepTimePlaceholder')} className={inputCls} />
+              )}
+            />
+          </Box>
+          <Box className="group">
+            <Typography variant="subtitle2" className="font-semibold text-foreground mb-2">
+              {t('form.productUnitHint')}
+            </Typography>
+            <Controller
+              name="unit"
+              control={control}
+              render={({ field }) => (
+                <input {...field} type="text" placeholder={t('form.unitPlaceholder')} className={inputCls} />
+              )}
+            />
+          </Box>
+          <Box className="group">
+            <Typography variant="subtitle2" className="font-semibold text-foreground mb-2">
+              {t('form.productWarrantyMonths')}
+            </Typography>
+            <Controller
+              name="warranty_period"
+              control={control}
+              render={({ field }) => (
+                <input
+                  {...field}
+                  type="number"
+                  placeholder="0"
+                  value={field.value ?? ''}
+                  onChange={(e) =>
+                    field.onChange(e.target.value === '' ? undefined : Number(e.target.value))
+                  }
+                  className={inputCls}
+                />
               )}
             />
           </Box>
@@ -947,7 +1479,9 @@ export default function CreatePage() {
           <Box className="group">
             <Box className="flex items-center gap-2 mb-2">
               <Iconify icon="solar:tag-bold" className="text-primary" width={20} />
-              <Typography variant="subtitle2" className="font-semibold text-foreground">SKU</Typography>
+              <Typography variant="subtitle2" className="font-semibold text-foreground">
+                {t('form.productSku')}
+              </Typography>
             </Box>
             <Controller
               name="sku"
@@ -960,7 +1494,9 @@ export default function CreatePage() {
           <Box className="group">
             <Box className="flex items-center gap-2 mb-2">
               <Iconify icon="solar:widget-bold" className="text-primary" width={20} />
-              <Typography variant="subtitle2" className="font-semibold text-foreground">Model</Typography>
+              <Typography variant="subtitle2" className="font-semibold text-foreground">
+                {t('form.productModel')}
+              </Typography>
             </Box>
             <Controller
               name="model"
@@ -973,13 +1509,15 @@ export default function CreatePage() {
           <Box className="group">
             <Box className="flex items-center gap-2 mb-2">
               <Iconify icon="solar:qr-code-bold" className="text-primary" width={20} />
-              <Typography variant="subtitle2" className="font-semibold text-foreground">Barcode</Typography>
+              <Typography variant="subtitle2" className="font-semibold text-foreground">
+                {t('form.productBarcode')}
+              </Typography>
             </Box>
             <Controller
               name="barcode"
               control={control}
               render={({ field }) => (
-                <input {...field} type="text" placeholder="e.g., 123456789" className={inputCls} />
+                <input {...field} type="text" placeholder={t('form.barcodePlaceholder')} className={inputCls} />
               )}
             />
           </Box>
@@ -990,7 +1528,7 @@ export default function CreatePage() {
           <Box className="flex items-center gap-2 mb-2">
             <Iconify icon="solar:gallery-add-bold" className="text-primary" width={20} />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Product Images
+              {t('form.productImagesSection')}
             </Typography>
           </Box>
           <Controller
@@ -1021,20 +1559,19 @@ export default function CreatePage() {
                     htmlFor={productImagesInputId}
                     className="inline-flex cursor-pointer rounded-lg border border-border bg-background px-3 py-2 text-sm font-medium text-foreground hover:bg-muted"
                   >
-                    Choose files
+                    {t('form.chooseFiles')}
                   </label>
                   <Typography component="span" variant="body2" color="secondary">
                     {Array.isArray(value) && value.length > 0
-                      ? `${value.length} file(s) selected`
-                      : 'No file chosen'}
+                      ? t('form.filesSelectedCount', { count: value.length })
+                      : t('form.noFileChosen')}
                   </Typography>
                 </div>
                 <Typography
                   variant="caption"
                   className={error ? 'text-destructive mt-1 block' : 'text-muted-foreground mt-1 block'}
                 >
-                  {error?.message ||
-                    'Select multiple images (Ctrl/Cmd+click or Shift+click). You can choose again to add more files.'}
+                  {error?.message || t('form.productImagesHelper')}
                 </Typography>
                 {(isEditMode && existingMediaIds.length > 0) || previewImages.length > 0 ? (
                   <Box className="mt-4 grid grid-cols-4 gap-4">
@@ -1058,7 +1595,7 @@ export default function CreatePage() {
                                 )
                               }
                               className="absolute top-1 right-1 rounded-full bg-destructive text-destructive-foreground p-1 opacity-90 hover:opacity-100"
-                              aria-label="Remove image"
+                              aria-label={t('form.removeImageAria')}
                             >
                               <Iconify icon="solar:close-circle-bold" width={20} />
                             </button>
@@ -1079,6 +1616,53 @@ export default function CreatePage() {
           />
         </Box>
 
+        {/* ─── Thumbnail (optional) ─────────────────────────────── */}
+        <Box className="group">
+          <label className="flex items-center gap-2 mb-2">
+            <Iconify icon="solar:gallery-bold" className="text-primary" width={20} />
+            <Typography variant="subtitle2" className="font-semibold text-foreground">
+              {t('form.thumbnailOptional')}
+            </Typography>
+          </label>
+          <Controller
+            name="thumbnail"
+            control={control}
+            render={({ field: { onChange, value, ref } }) => (
+              <div>
+                <input
+                  id={thumbnailInputId}
+                  ref={ref}
+                  type="file"
+                  accept="image/*"
+                  className="sr-only"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    onChange(f ?? undefined);
+                    e.target.value = '';
+                  }}
+                />
+                <label
+                  htmlFor={thumbnailInputId}
+                  className="inline-flex cursor-pointer rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                >
+                  {t('form.chooseThumbnail')}
+                </label>
+                {value instanceof File ? (
+                  <Typography variant="caption" className="ml-2">
+                    {value.name}
+                  </Typography>
+                ) : null}
+                <ExistingImagePreview
+                  url={productResponse?.thumbnail}
+                  label={t('form.currentThumbnailServer')}
+                  active={isEditMode && !(value instanceof File)}
+                  fallbackUrl={productResponse?.images?.[0]?.url}
+                />
+              </div>
+            )}
+          />
+        </Box>
+
         {/* ─── Instant Delivery ─────────────────────────────────── */}
         <Box className="group">
           <Controller
@@ -1093,7 +1677,27 @@ export default function CreatePage() {
                   className="w-4 h-4 rounded border-border"
                 />
                 <Typography variant="body2" className="text-foreground">
-                  Instant Delivery Available
+                  {t('form.productInstantDeliveryLabel')}
+                </Typography>
+              </Label>
+            )}
+          />
+        </Box>
+
+        <Box className="group">
+          <Controller
+            name="is_visible"
+            control={control}
+            render={({ field: { onChange, value } }) => (
+              <Label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={value === 1}
+                  onChange={(e) => onChange(e.target.checked ? 1 : 0)}
+                  className="w-4 h-4 rounded border-border"
+                />
+                <Typography variant="body2" className="text-foreground">
+                  {t('form.visibleToCustomers')}
                 </Typography>
               </Label>
             )}
@@ -1106,7 +1710,7 @@ export default function CreatePage() {
             <Box className="flex items-center gap-2">
               <Iconify icon="solar:settings-bold" className="text-primary" width={20} />
               <Typography variant="h6" className="font-semibold text-foreground">
-                Variants (Attributes)
+                {t('form.variantsAttributesTitle')}
               </Typography>
             </Box>
             <Button
@@ -1119,21 +1723,21 @@ export default function CreatePage() {
               }
             >
               <Iconify icon="solar:add-circle-bold" width={16} className="mr-1" />
-              Add Variant
+              {t('form.addVariant')}
             </Button>
           </Box>
 
           {!categoryId || categoryId === 0 ? (
             <Typography variant="body2" className="text-muted-foreground">
-              Select a category first to load attributes.
+              {t('form.selectCategoryFirstAttributes')}
             </Typography>
           ) : isLoadingAttributes ? (
             <Typography variant="body2" className="text-muted-foreground">
-              Loading attributes...
+              {t('form.loadingAttributes')}
             </Typography>
           ) : categoryAttributes.length === 0 ? (
             <Typography variant="body2" className="text-muted-foreground">
-              No attributes found for this category.
+              {t('form.noAttributesForCategory')}
             </Typography>
           ) : (
             <Box className="space-y-4">
@@ -1141,7 +1745,7 @@ export default function CreatePage() {
                 <Box key={variant.id} className="p-4 border border-border rounded-lg space-y-4">
                   <Box className="flex items-center justify-between">
                     <Typography variant="subtitle2" className="font-semibold text-foreground">
-                      Variant #{variantIndex + 1}
+                      {t('form.variantIndex', { n: variantIndex + 1 })}
                     </Typography>
                     <Button
                       type="button"
@@ -1151,13 +1755,15 @@ export default function CreatePage() {
                       className="text-destructive"
                     >
                       <Iconify icon="solar:trash-bin-bold" width={16} className="mr-1" />
-                      Remove
+                      {t('form.remove')}
                     </Button>
                   </Box>
 
                   {/* Attribute selects / color picker */}
                   <Box className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {categoryAttributes.map((attr: any) => {
+                      const attrNameLabel =
+                        typeof attr.name === 'object' ? attr.name?.en ?? attr.name?.ar : attr.name;
                       const selectedIds =
                         watch(`variants.${variantIndex}.attributes_values_ids`) || [];
                       const attrValueIds = new Set<number>(
@@ -1245,7 +1851,7 @@ export default function CreatePage() {
                               className={inputCls}
                             >
                               <option value={0}>
-                                Select {typeof attr.name === 'object' ? attr.name?.en : attr.name}
+                                {t('form.selectAttribute', { name: String(attrNameLabel ?? '') })}
                               </option>
                               {(attr.values || []).map((val: any) => (
                                 <option key={val.id} value={val.id}>
@@ -1262,7 +1868,7 @@ export default function CreatePage() {
                   {/* Variant Images */}
                   <Box className="group">
                     <Typography variant="caption" className="text-muted-foreground mb-1 block">
-                      Variant Images (optional)
+                      {t('form.variantImagesOptional')}
                     </Typography>
                     <Controller
                       name={`variants.${variantIndex}.images`}
@@ -1293,12 +1899,12 @@ export default function CreatePage() {
                                 htmlFor={variantFileInputId}
                                 className="inline-flex cursor-pointer rounded-lg border border-border bg-background px-3 py-2 text-sm font-medium text-foreground hover:bg-muted"
                               >
-                                Choose files
+                                {t('form.chooseFiles')}
                               </label>
                               <Typography component="span" variant="body2" color="secondary">
                                 {Array.isArray(value) && value.length > 0
-                                  ? `${value.length} file(s) selected`
-                                  : 'No file chosen'}
+                                  ? t('form.filesSelectedCount', { count: value.length })
+                                  : t('form.noFileChosen')}
                               </Typography>
                             </div>
                           </>
@@ -1306,7 +1912,7 @@ export default function CreatePage() {
                       }}
                     />
                     <Typography variant="caption" className="text-muted-foreground mt-1 block">
-                      Multiple images: Ctrl/Cmd+click in the file dialog, or pick again to append more.
+                      {t('form.variantImagesHelper')}
                     </Typography>
                     {(() => {
                       const vRowId = watch(`variants.${variantIndex}.id`);
@@ -1339,7 +1945,7 @@ export default function CreatePage() {
                                   )
                                 }
                                 className="absolute -top-1 -right-1 rounded-full bg-destructive text-destructive-foreground p-0.5 opacity-90 hover:opacity-100"
-                                aria-label="Remove variant image"
+                                aria-label={t('form.removeVariantImageAria')}
                               >
                                 <Iconify icon="solar:close-circle-bold" width={18} />
                               </button>
@@ -1361,7 +1967,7 @@ export default function CreatePage() {
             <Box className="flex items-center gap-2">
               <Iconify icon="solar:list-check-bold" className="text-primary" width={20} />
               <Typography variant="h6" className="font-semibold text-foreground">
-                Category Details
+                {t('form.categoryDetailsTitle')}
               </Typography>
             </Box>
             {availableCategoryDetails.length > 0 && (
@@ -1377,18 +1983,18 @@ export default function CreatePage() {
                 }
               >
                 <Iconify icon="solar:add-circle-bold" width={16} className="mr-1" />
-                Add Detail
+                {t('form.addDetail')}
               </Button>
             )}
           </Box>
 
           {!categoryId || categoryId === 0 ? (
             <Typography variant="body2" className="text-muted-foreground">
-              Select a category first to load category details.
+              {t('form.selectCategoryFirstDetails')}
             </Typography>
           ) : availableCategoryDetails.length === 0 ? (
             <Typography variant="body2" className="text-muted-foreground">
-              No category-specific details for this category.
+              {t('form.noCategoryDetailsForCategory')}
             </Typography>
           ) : (
             <Box className="space-y-4">
@@ -1435,7 +2041,12 @@ export default function CreatePage() {
                       name={`category_details.${index}.detail_value.ar`}
                       control={control}
                       render={({ field: f }) => (
-                        <input {...f} dir="rtl" placeholder="القيمة (AR)" className={inputCls} />
+                        <input
+                          {...f}
+                          dir="rtl"
+                          placeholder={t('form.categoryDetailValueArPlaceholder')}
+                          className={inputCls}
+                        />
                       )}
                     />
                   </Box>
@@ -1451,7 +2062,7 @@ export default function CreatePage() {
             <Box className="flex items-center gap-2">
               <Iconify icon="solar:add-circle-bold" className="text-primary" width={20} />
               <Typography variant="h6" className="font-semibold text-foreground">
-                Extra Details
+                {t('form.extraDetailsTitle')}
               </Typography>
             </Box>
             <Button
@@ -1462,11 +2073,12 @@ export default function CreatePage() {
                 appendExtraDetail({
                   detail_key: { en: '', ar: '' },
                   detail_value: { en: '', ar: '' },
+                  price: undefined,
                 })
               }
             >
               <Iconify icon="solar:add-circle-bold" width={16} className="mr-1" />
-              Add Detail
+              {t('form.addDetail')}
             </Button>
           </Box>
 
@@ -1488,7 +2100,7 @@ export default function CreatePage() {
                       <input
                         {...f}
                         dir="rtl"
-                        placeholder="المفتاح (AR) — e.g., الوزن"
+                        placeholder={t('form.extraDetailKeyArPlaceholder')}
                         className={inputCls}
                       />
                     )}
@@ -1507,7 +2119,23 @@ export default function CreatePage() {
                       <input
                         {...f}
                         dir="rtl"
-                        placeholder="القيمة (AR) — e.g., 500 جرام"
+                        placeholder={t('form.extraDetailValueArPlaceholder')}
+                        className={inputCls}
+                      />
+                    )}
+                  />
+                  <Controller
+                    name={`extra_details.${index}.price`}
+                    control={control}
+                    render={({ field: f }) => (
+                      <input
+                        {...f}
+                        type="number"
+                        placeholder={t('form.extraPriceOptional')}
+                        value={f.value ?? ''}
+                        onChange={(e) =>
+                          f.onChange(e.target.value === '' ? undefined : Number(e.target.value))
+                        }
                         className={inputCls}
                       />
                     )}
@@ -1522,7 +2150,7 @@ export default function CreatePage() {
                     className="text-destructive"
                   >
                     <Iconify icon="solar:trash-bin-bold" width={16} className="mr-1" />
-                    Remove
+                    {t('form.remove')}
                   </Button>
                 </Box>
               </Box>
@@ -1535,12 +2163,12 @@ export default function CreatePage() {
           <Box className="flex items-center gap-2 mb-4">
             <Iconify icon="solar:shop-bold" className="text-primary" width={20} />
             <Typography variant="h6" className="font-semibold text-foreground">
-              Bought With (Related Products)
+              {t('form.boughtWithTitle')}
             </Typography>
           </Box>
           {allProducts.length === 0 ? (
             <Typography variant="body2" className="text-muted-foreground">
-              No products available.
+              {t('form.noProductsAvailable')}
             </Typography>
           ) : (
             <Box className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 max-h-48 overflow-y-auto border border-border rounded-lg p-3">
@@ -1575,13 +2203,151 @@ export default function CreatePage() {
           )}
         </Box>
 
+        {/* ─── SEO ──────────────────────────────────────────────── */}
+        <Box className="border-t border-border pt-6">
+          <Typography variant="h6" className="font-semibold text-foreground mb-4">
+            {t('form.seoTitle')}
+          </Typography>
+          <Box className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <Controller
+              name="seo_title.en"
+              control={control}
+              render={({ field }) => (
+                <input {...field} placeholder={t('form.seoTitleEnPlaceholder')} className={inputCls} />
+              )}
+            />
+            <Controller
+              name="seo_title.ar"
+              control={control}
+              render={({ field }) => (
+                <input {...field} dir="rtl" placeholder={t('form.seoTitleArPlaceholder')} className={inputCls} />
+              )}
+            />
+            <Controller
+              name="seo_description.en"
+              control={control}
+              render={({ field }) => (
+                <textarea
+                  {...field}
+                  placeholder={t('form.seoDescEnPlaceholder')}
+                  className={inputCls + ' min-h-[80px]'}
+                />
+              )}
+            />
+            <Controller
+              name="seo_description.ar"
+              control={control}
+              render={({ field }) => (
+                <textarea
+                  {...field}
+                  dir="rtl"
+                  placeholder={t('form.seoDescArPlaceholder')}
+                  className={inputCls + ' min-h-[80px]'}
+                />
+              )}
+            />
+            <Controller
+              name="seo_keywords.en"
+              control={control}
+              render={({ field }) => (
+                <input {...field} placeholder={t('form.seoKeywordsEnPlaceholder')} className={inputCls} />
+              )}
+            />
+            <Controller
+              name="seo_keywords.ar"
+              control={control}
+              render={({ field }) => (
+                <input {...field} dir="rtl" placeholder={t('form.seoKeywordsArPlaceholder')} className={inputCls} />
+              )}
+            />
+          </Box>
+          <Box className="group">
+            <Typography variant="subtitle2" className="mb-2">
+              {t('form.seoImageOptional')}
+            </Typography>
+            <Controller
+              name="seo_image"
+              control={control}
+              render={({ field: { onChange, value, ref } }) => (
+                <div>
+                  <input
+                    id={seoImageInputId}
+                    ref={ref}
+                    type="file"
+                    accept="image/*"
+                    className="sr-only"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      onChange(f ?? undefined);
+                      e.target.value = '';
+                    }}
+                  />
+                  <label htmlFor={seoImageInputId} className="inline-flex cursor-pointer rounded-lg border border-border px-3 py-2 text-sm">
+                    {t('form.chooseSeoImage')}
+                  </label>
+                  {value instanceof File ? (
+                    <Typography variant="caption" className="ml-2">
+                      {(value as File).name}
+                    </Typography>
+                  ) : null}
+                  <ExistingImagePreview
+                    url={productResponse?.seo_image}
+                    label={t('form.currentSeoImage')}
+                    active={isEditMode && !(value instanceof File)}
+                    fallbackUrl={productResponse?.images?.[0]?.url}
+                  />
+                </div>
+              )}
+            />
+          </Box>
+        </Box>
+
         {/* ─── Badges ────────────────────────────────────────────── */}
         <Box className="border-t border-border pt-6">
 
              <Typography variant="h6" className="font-semibold text-foreground">
-              Badges
+              {t('form.badgesTitle')}
             </Typography>
           <RHFBadgeSelector name="badges" />
+        </Box>
+
+        {/* ─── Icons ─────────────────────────────────────────────── */}
+        <Box className="border-t border-border pt-6">
+          <Typography variant="h6" className="font-semibold text-foreground mb-4">
+            {t('form.iconsTitle')}
+          </Typography>
+          {iconOptions.length === 0 ? (
+            <Typography variant="body2" className="text-muted-foreground">
+              {t('form.noIconsLoaded')}
+            </Typography>
+          ) : (
+            <Box className="flex flex-wrap gap-2">
+              {iconOptions.map((ic: any) => {
+                const iid = Number(ic.id);
+                const label = typeof ic.name === 'object' ? ic.name?.en ?? ic.name?.ar : ic.name;
+                const selected = watchedIconIds.includes(iid);
+                return (
+                  <Label
+                    key={iid}
+                    className={`flex items-center gap-2 cursor-pointer rounded-lg border px-3 py-2 text-sm ${
+                      selected ? 'border-primary bg-primary/10' : 'border-border'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selected}
+                      onChange={() => toggleIcon(iid)}
+                      className="w-4 h-4"
+                    />
+                    {ic.icon || ic.image ? (
+                      <img src={ic.icon || ic.image} alt="" className="w-6 h-6 object-contain" />
+                    ) : null}
+                    <span>{label ?? `#${iid}`}</span>
+                  </Label>
+                );
+              })}
+            </Box>
+          )}
         </Box>
 
         {/* ─── Shop Variants ────────────────────────────────────── */}
@@ -1590,7 +2356,7 @@ export default function CreatePage() {
             <Box className="flex items-center gap-2">
               <Iconify icon="solar:shop-2-bold" className="text-primary" width={20} />
               <Typography variant="h6" className="font-semibold text-foreground">
-                Shop Variants
+                {t('form.shopVariantsTitle')}
               </Typography>
             </Box>
             {watchedVariants.length > 0 && shops.length > 0 && (
@@ -1608,18 +2374,18 @@ export default function CreatePage() {
                 }
               >
                 <Iconify icon="solar:add-circle-bold" width={16} className="mr-1" />
-                Add Shop Variant
+                {t('form.addShopVariant')}
               </Button>
             )}
           </Box>
 
           {watchedVariants.length === 0 ? (
             <Typography variant="body2" className="text-muted-foreground">
-              Add variants above first, then assign them to shops.
+              {t('form.addVariantsFirstShop')}
             </Typography>
           ) : shops.length === 0 ? (
             <Typography variant="body2" className="text-muted-foreground">
-              No shops available.
+              {t('form.noShopsAvailable')}
             </Typography>
           ) : (
             <Box className="space-y-3">
@@ -1630,7 +2396,7 @@ export default function CreatePage() {
                 >
                   <Box>
                     <Typography variant="caption" className="text-muted-foreground mb-1 block">
-                      Shop
+                      {t('form.shop')}
                     </Typography>
                     <Controller
                       name={`shop_variants.${index}.shop_id`}
@@ -1653,7 +2419,7 @@ export default function CreatePage() {
                   </Box>
                   <Box>
                     <Typography variant="caption" className="text-muted-foreground mb-1 block">
-                      Variant
+                      {t('form.variant')}
                     </Typography>
                     <Controller
                       name={`shop_variants.${index}.variant_index`}
@@ -1667,7 +2433,7 @@ export default function CreatePage() {
                         >
                           {watchedVariants.map((_: any, vi: number) => (
                             <option key={vi} value={vi}>
-                              Variant #{vi + 1}
+                              {t('form.variantOption', { n: vi + 1 })}
                             </option>
                           ))}
                         </select>
@@ -1676,7 +2442,7 @@ export default function CreatePage() {
                   </Box>
                   <Box>
                     <Typography variant="caption" className="text-muted-foreground mb-1 block">
-                      Price
+                      {t('form.priceLabel')}
                     </Typography>
                     <Controller
                       name={`shop_variants.${index}.price`}
@@ -1694,7 +2460,7 @@ export default function CreatePage() {
                   </Box>
                   <Box>
                     <Typography variant="caption" className="text-muted-foreground mb-1 block">
-                      Quantity
+                      {t('form.quantity')}
                     </Typography>
                     <Box className="flex gap-2">
                       <Controller
@@ -1725,6 +2491,54 @@ export default function CreatePage() {
               ))}
             </Box>
           )}
+        </Box>
+
+        {/* ─── Full Description ─────────────────────────────────── */}
+        <Box className="border-t border-border pt-6">
+          <Box className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Box className="group">
+            <Box className="flex items-center gap-2 mb-2">
+              <Iconify icon="solar:document-bold" className="text-primary" width={20} />
+              <Typography variant="subtitle2" className="font-semibold text-foreground">
+                {t('form.productFullDescEn')}
+              </Typography>
+            </Box>
+            <Controller
+              name="full_description.en"
+              control={control}
+              render={({ field }) => (
+                <RichTextEditor
+                  value={field.value ?? ''}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  placeholder={t('form.fullDescPlaceholder')}
+                  dir="ltr"
+                />
+              )}
+            />
+          </Box>
+          <Box className="group">
+            <Box className="flex items-center gap-2 mb-2">
+              <Iconify icon="solar:document-bold" className="text-primary" width={20} />
+              <Typography variant="subtitle2" className="font-semibold text-foreground">
+                {t('form.productFullDescAr')}
+              </Typography>
+            </Box>
+            <Controller
+              name="full_description.ar"
+              control={control}
+              render={({ field }) => (
+                <RichTextEditor
+                  value={field.value ?? ''}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  placeholder={t('form.fullDescArPlaceholder')}
+                  dir="rtl"
+                />
+              )}
+            />
+          </Box>
+        </Box>
         </Box>
       </CreateFormLayout>
     </>

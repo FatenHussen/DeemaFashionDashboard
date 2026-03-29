@@ -7,6 +7,8 @@ import { formatTranslated } from '@/utils/format-translated';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 
+import { paths } from 'src/routes/paths';
+
 import { CONFIG } from 'src/global-config';
 
 // Schema for brand validation
@@ -366,8 +368,8 @@ export const productColumns = (
       <DataTableRowActions
         schema={ProductSchema}
         row={row}
-        viewDetails={`/products/details/${row.original.id}`}
-        editItem={`/products/update/${row.original.id}`}
+        viewDetails={paths.dashboard.product.details(row.original.id)}
+        editItem={paths.dashboard.product.update(row.original.id)}
         onDelete={onDelete}
         isDeleting={isDeleting}
         isDeleteDialogOpen={isDeleteDialogOpen}

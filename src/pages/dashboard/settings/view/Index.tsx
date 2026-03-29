@@ -66,20 +66,16 @@ function SettingRow({
       </td>
       <td className="px-4 py-3 text-sm text-muted-foreground">{item.updated_at}</td>
       <td className="px-4 py-3">
-        {item.type !== 'file' ? (
-          <Button
-            type="button"
-            variant="text"
-            size="small"
-            onClick={() => onEdit(item)}
-            className="gap-1.5 text-primary hover:bg-primary/5 -ms-2"
-          >
-            <Iconify icon="solar:pen-bold" width={16} />
-            {t('editDetails')}
-          </Button>
-        ) : (
-          <span className="text-xs text-muted-foreground">{t('form.emptyEmDash')}</span>
-        )}
+        <Button
+          type="button"
+          variant="text"
+          size="small"
+          onClick={() => onEdit(item)}
+          className="gap-1.5 text-primary hover:bg-primary/5 -ms-2"
+        >
+          <Iconify icon="solar:pen-bold" width={16} />
+          {t('editDetails')}
+        </Button>
       </td>
     </tr>
   );

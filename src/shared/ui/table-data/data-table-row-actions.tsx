@@ -6,7 +6,16 @@ import { useNavigate } from 'react-router';
 import { Button } from '@/shared/ui/button';
 import { useTranslation } from 'react-i18next';
 import { Dialog, DialogContent } from '@/shared/ui/dialogTable';
-import { Eye, Trash, Pencil, XCircle, KeyRound, CheckCircle2, MoreHorizontal } from 'lucide-react';
+import {
+  Eye,
+  Trash,
+  Pencil,
+  XCircle,
+  KeyRound,
+  FolderTree,
+  CheckCircle2,
+  MoreHorizontal,
+} from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuItem,
@@ -20,6 +29,8 @@ interface DataTableRowActionsProps<TData> {
   row: Row<TData> | any;
   schema: ZodSchema;
   viewDetails?: string | undefined | null;
+  /** Navigate to subcategories list for this row's category id. */
+  subcategoriesPath?: (id: number) => string;
   editItem?: string | undefined;
   onEdit?: (row: Row<TData>) => void;
   onDelete?: (id: number) => void;
@@ -44,6 +55,7 @@ interface DataTableRowActionsProps<TData> {
 export function DataTableRowActions<TData>({
   row,
   viewDetails,
+  subcategoriesPath,
   editItem,
   onEdit,
   onDelete,
@@ -151,6 +163,19 @@ export function DataTableRowActions<TData>({
               >
                 <Eye className="mr-2 h-4 w-4" />
                 {t('viewDetails')}
+              </DropdownMenuItem>
+            )}
+
+            {subcategoriesPath && rowId != null && (
+              <DropdownMenuItem
+                className="hover:bg-muted"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(subcategoriesPath(rowId));
+                }}
+              >
+                <FolderTree className="mr-2 h-4 w-4" />
+                {t('viewSubcategories')}
               </DropdownMenuItem>
             )}
 

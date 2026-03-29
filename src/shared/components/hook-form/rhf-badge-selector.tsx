@@ -86,7 +86,7 @@ export function RHFBadgeSelector({ name, label, helperText }: RHFBadgeSelectorPr
 
           {isLoadingBadges ? (
             <Typography variant="body2" className="text-muted-foreground">
-              {t('loading')}...
+              {t('loading')}
             </Typography>
           ) : allBadges.length === 0 ? (
             <Typography variant="body2" className="text-muted-foreground">
@@ -190,7 +190,13 @@ export function RHFBadgeSelector({ name, label, helperText }: RHFBadgeSelectorPr
                       >
                         {formatTranslated(badgeData.name as Parameters<typeof formatTranslated>[0])}
                       </Badge>
-                      <span className="text-muted-foreground">({badge.position})</span>
+                      <span className="text-muted-foreground">
+                        (
+                        {badge.position === 'top'
+                          ? t('form.badgePositionShortTop')
+                          : t('form.badgePositionShortBottom')}
+                        )
+                      </span>
                       <button
                         type="button"
                         onClick={() => {

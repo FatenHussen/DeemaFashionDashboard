@@ -1,32 +1,58 @@
-import { useState } from 'react';
 import { toast } from 'react-toastify';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { DataTable } from '@/shared/ui/table-data/table-data';
+import { formatTranslated } from '@/utils/format-translated';
 import { usePermissions } from '@/auth/hooks/use-permissions';
+import { DataTable } from '@/shared/ui/table-data/table-data';
+import { Navigate, useNavigate, useSearchParams } from 'react-router';
 import { categoryColumns, type CategoryFormValues } from '@/columns/one/categories/one';
-import { useDeleteCategory, useFetchCategories } from '@/pages/dashboard/categories/hooks/category';
+import {
+  useDeleteCategory,
+  useFetchCategories,
+  useFetchCategoryById,
+} from '@/pages/dashboard/categories/hooks/category';
 
 import { CONFIG } from 'src/global-config';
+import { Button } from 'src/shared/ui/button';
+import { Iconify } from 'src/shared/components/iconify';
 
 // ----------------------------------------------------------------------
 
-const metadata = { title: `Categories | Dashboard - ${CONFIG.appName}` };
+const metadata = { title: `Subcategories | Dashboard - ${CONFIG.appName}` };
 
 export default function Page() {
   const { t } = useTranslation('table');
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const categoryIdRaw = searchParams.get('category_id');
+  const parentCategoryId = categoryIdRaw != null && categoryIdRaw !== '' ? Number(categoryIdRaw) : NaN;
+
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
-  // Fetch categories using the hook
-  const { data: categoriesResponse, isLoading, error } = useFetchCategories(currentPage, pageSize, {
-    parent_id: 0,
-  });
+  const validParentId = Number.isFinite(parentCategoryId) && parentCategoryId > 0;
+
+  const { data: parentCategoryResponse } = useFetchCategoryById(validParentId ? parentCategoryId : '');
+  const parentLabel = useMemo(() => {
+    const name = parentCategoryResponse?.data?.name;
+    if (name == null) return '';
+    return formatTranslated(name);
+  }, [parentCategoryResponse?.data?.name]);
+
+  const { data: categoriesResponse, isLoading, error } = useFetchCategories(
+    currentPage,
+    pageSize,
+    validParentId ? { category_id: parentCategoryId } : undefined,
+    { enabled: validParentId }
+  );
   const deleteCategoryMutation = useDeleteCategory(currentPage, pageSize);
 
-  // Log error for debugging
+  const { can } = usePermissions();
+  const hasPermission = (action: string, resource: string) => can(`${resource}.${action}`);
+
   if (error) {
-    console.error('Error fetching categories:', error);
+    console.error('Error fetching subcategories:', error);
   }
 
   const handlePageChange = (page: number) => {
@@ -48,7 +74,9 @@ export default function Page() {
         await deleteCategoryMutation.mutateAsync(deletingId);
         toast.success(t('deleteSuccess') || 'Category deleted successfully');
         setDeletingId(null);
-      } catch { return; }
+      } catch {
+        return;
+      }
     }
   };
 
@@ -56,7 +84,6 @@ export default function Page() {
     setDeletingId(null);
   };
 
-  // Extract data from API response
   const categoryData: CategoryFormValues[] = categoriesResponse?.data?.items || [];
   const apiPagination = categoriesResponse?.data?.pagination;
   const pagination = apiPagination
@@ -80,18 +107,35 @@ export default function Page() {
         to: 0,
       };
 
-  const { can } = usePermissions();
-
-  const hasPermission = (action: string, resource: string) => can(`${resource}.${action}`);
-
   const subPath = (id: number) => `/categories/subcategories?category_id=${id}`;
+
+  if (!validParentId) {
+    return <Navigate to="/categories" replace />;
+  }
 
   return (
     <>
       <title>{metadata.title}</title>
 
+      <div className="mb-4">
+        <Button
+          type="button"
+          variant="outlined"
+          size="small"
+          className="gap-2"
+          onClick={() => navigate('/categories')}
+        >
+          <Iconify icon="solar:arrow-left-linear" width={18} height={18} />
+          {t('backToParentCategories')}
+        </Button>
+      </div>
+
       <DataTable
-        tableName={t("tableNames.category")}
+        tableName={
+          parentLabel
+            ? `${t('tableNames.subcategories')} — ${parentLabel}`
+            : t('tableNames.subcategories')
+        }
         columns={categoryColumns(
           {
             update: hasPermission('update', 'category'),
@@ -106,7 +150,7 @@ export default function Page() {
           deletingId,
           {
             subcategoriesPath: subPath,
-            hideParentColumn: true,
+            hideParentColumn: false,
           }
         )}
         data={categoryData}
@@ -137,4 +181,3 @@ export default function Page() {
     </>
   );
 }
-

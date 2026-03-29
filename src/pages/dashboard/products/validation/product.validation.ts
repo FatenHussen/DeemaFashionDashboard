@@ -7,99 +7,131 @@ const t = (key: string) => i18n.t(key, { ns: 'validation' });
 // ----------------------------------------------------------------------
 // Use coerce for numeric fields - inputs/API often return strings
 
-export const ProductSchema = zod.object({
-  category_id: zod.coerce.number().min(1, { message: t('product.categoryRequired') }),
-  brand_id: zod.coerce.number().min(0).optional(),
-  name: zod.object({
-    en: zod.string().min(1, { message: t('product.nameEnRequired') }),
-    ar: zod.string().min(1, { message: t('product.nameArRequired') }),
-  }),
-  description: zod.object({
-    en: zod.string().min(1, { message: t('product.descriptionEnRequired') }),
-    ar: zod.string().min(1, { message: t('product.descriptionArRequired') }),
-  }),
-  full_description: zod
-    .object({
-      en: zod.string(),
-      ar: zod.string(),
-    })
-    .optional(),
-  country: zod
-    .object({
-      en: zod.string(),
-      ar: zod.string(),
-    })
-    .optional(),
-  price: zod.coerce.number().min(0, { message: t('product.pricePositive') }),
-  price_after_discount: zod.preprocess(
-    (v) => (v === '' || v === null || v === undefined ? undefined : v),
-    zod.coerce.number().min(0).optional()
-  ),
-  quantity: zod.coerce.number().min(0, { message: t('product.quantityPositive') }),
-  sku: zod.string().optional(),
-  model: zod.string().optional(),
-  barcode: zod.string().optional(),
-  time_prepare: zod.string().optional(),
-  is_instant_delivery: zod.coerce.number().min(0).max(1),
-  images: zod
-    .preprocess(
+export const ProductSchema = zod
+  .object({
+    category_id: zod.coerce.number().min(1, { message: t('product.categoryRequired') }),
+    brand_id: zod.coerce.number().min(0).optional(),
+    /** internal = platform (vendor_id 1); external = pick vendor from list */
+    vendor_scope: zod.enum(['internal', 'external']),
+    vendor_id: zod.coerce.number().min(0).optional(),
+    name: zod.object({
+      en: zod.string().min(1, { message: t('product.nameEnRequired') }),
+      ar: zod.string().min(1, { message: t('product.nameArRequired') }),
+    }),
+    description: zod.object({
+      en: zod.string().min(1, { message: t('product.descriptionEnRequired') }),
+      ar: zod.string().min(1, { message: t('product.descriptionArRequired') }),
+    }),
+    full_description: zod
+      .object({
+        en: zod.string(),
+        ar: zod.string(),
+      })
+      .optional(),
+    country_id: zod.coerce.number().min(0).optional(),
+    sale_country_id: zod.coerce.number().min(0).optional(),
+    price: zod.coerce.number().min(0, { message: t('product.pricePositive') }),
+    discount: zod.coerce.number().min(0).default(0),
+    discount_type: zod.enum(['none', 'percentage', 'fixed']).default('none'),
+    cost_price: zod.preprocess(
+      (v) => (v === '' || v === null || v === undefined ? undefined : v),
+      zod.coerce.number().min(0).optional()
+    ),
+    quantity: zod.coerce.number().min(0, { message: t('product.quantityPositive') }),
+    unit: zod.string().optional(),
+    warranty_period: zod.preprocess(
+      (v) => (v === '' || v === null || v === undefined ? undefined : v),
+      zod.coerce.number().min(0).optional()
+    ),
+    sku: zod.string().optional(),
+    model: zod.string().optional(),
+    barcode: zod.string().optional(),
+    time_prepare: zod.string().optional(),
+    is_instant_delivery: zod.coerce.number().min(0).max(1),
+    is_visible: zod.coerce.number().min(0).max(1).default(1),
+    thumbnail: zod.preprocess(
+      (v) => (v instanceof File ? v : undefined),
+      zod.instanceof(File).optional()
+    ),
+    images: zod.preprocess(
       (val) =>
         Array.isArray(val) ? val.filter((x): x is File => x instanceof File) : undefined,
       zod.array(zod.instanceof(File)).optional()
     ),
-  existing_media_ids: zod.array(zod.coerce.number()).optional(),
+    existing_media_ids: zod.array(zod.coerce.number()).optional(),
 
-  // Variants - id optional (for update), images optional per variant
-  variants: zod
-    .array(
-      zod.object({
-        id: zod.coerce.number().optional(),
-        attributes_values_ids: zod.array(zod.coerce.number()),
-        images: zod
-          .preprocess(
+    seo_title: zod
+      .object({
+        en: zod.string().optional(),
+        ar: zod.string().optional(),
+      })
+      .optional(),
+    seo_description: zod
+      .object({
+        en: zod.string().optional(),
+        ar: zod.string().optional(),
+      })
+      .optional(),
+    seo_keywords: zod
+      .object({
+        en: zod.string().optional(),
+        ar: zod.string().optional(),
+      })
+      .optional(),
+    seo_image: zod.preprocess(
+      (v) => (v instanceof File ? v : undefined),
+      zod.instanceof(File).optional()
+    ),
+
+    variants: zod
+      .array(
+        zod.object({
+          id: zod.coerce.number().optional(),
+          attributes_values_ids: zod.array(zod.coerce.number()),
+          images: zod.preprocess(
             (val) =>
               Array.isArray(val) ? val.filter((x): x is File => x instanceof File) : undefined,
             zod.array(zod.instanceof(File)).optional()
           ),
-        existing_images_ids: zod.array(zod.coerce.number()).optional(),
-      })
-    )
-    .optional(),
+          existing_images_ids: zod.array(zod.coerce.number()).optional(),
+        })
+      )
+      .optional(),
 
-  // Category Details - id optional (for update)
-  category_details: zod
-    .array(
-      zod.object({
-        id: zod.coerce.number().optional(),
-        category_detail_id: zod.coerce.number(),
-        detail_value: zod.object({
-          en: zod.string(),
-          ar: zod.string(),
-        }),
-      })
-    )
-    .optional(),
+    category_details: zod
+      .array(
+        zod.object({
+          id: zod.coerce.number().optional(),
+          category_detail_id: zod.coerce.number(),
+          detail_value: zod.object({
+            en: zod.string(),
+            ar: zod.string(),
+          }),
+        })
+      )
+      .optional(),
 
-  // Extra Details - id optional (for update)
-  extra_details: zod
-    .array(
-      zod.object({
-        id: zod.coerce.number().optional(),
-        detail_key: zod.object({
-          en: zod.string(),
-          ar: zod.string(),
-        }),
-        detail_value: zod.object({
-          en: zod.string(),
-          ar: zod.string(),
-        }),
-      })
-    )
-    .optional(),
+    extra_details: zod
+      .array(
+        zod.object({
+          id: zod.coerce.number().optional(),
+          detail_key: zod.object({
+            en: zod.string(),
+            ar: zod.string(),
+          }),
+          detail_value: zod.object({
+            en: zod.string(),
+            ar: zod.string(),
+          }),
+          price: zod.preprocess(
+            (v) => (v === '' || v === null || v === undefined ? undefined : v),
+            zod.coerce.number().min(0).optional()
+          ),
+        })
+      )
+      .optional(),
 
-  // Bought With - API may return strings or objects; filter to valid numbers only
-  bought_with: zod
-    .preprocess(
+    bought_with: zod.preprocess(
       (val) => {
         if (!Array.isArray(val)) return [];
         return val
@@ -110,27 +142,52 @@ export const ProductSchema = zod.object({
       zod.array(zod.number()).optional()
     ),
 
-  // Shop Variants
-  shop_variants: zod
-    .array(
-      zod.object({
-        shop_id: zod.coerce.number(),
-        variant_index: zod.coerce.number(),
-        price: zod.coerce.number().min(0),
-        quantity: zod.coerce.number().min(0),
-      })
-    )
-    .optional(),
+    shop_variants: zod
+      .array(
+        zod.object({
+          shop_id: zod.coerce.number(),
+          variant_index: zod.coerce.number(),
+          price: zod.coerce.number().min(0),
+          quantity: zod.coerce.number().min(0),
+        })
+      )
+      .optional(),
 
-  // Badges
-  badges: zod
-    .array(
-      zod.object({
-        id: zod.number(),
-        position: zod.enum(['top', 'bottom']),
-      })
-    )
-    .default([]),
-});
+    badges: zod
+      .array(
+        zod.object({
+          id: zod.number(),
+          position: zod.enum(['top', 'bottom']),
+        })
+      )
+      .default([]),
+
+    icon_ids: zod.array(zod.coerce.number()).default([]),
+  })
+  .superRefine((data, ctx) => {
+    if (data.vendor_scope === 'external' && (!data.vendor_id || data.vendor_id < 1)) {
+      ctx.addIssue({
+        code: zod.ZodIssueCode.custom,
+        message: t('product.vendorRequiredExternal'),
+        path: ['vendor_id'],
+      });
+    }
+    const hasNew = Array.isArray(data.images) && data.images.length > 0;
+    const hasKept = Array.isArray(data.existing_media_ids) && data.existing_media_ids.length > 0;
+    if (!hasNew && !hasKept) {
+      ctx.addIssue({
+        code: zod.ZodIssueCode.custom,
+        message: t('product.mediaRequired') || 'At least one product image is required',
+        path: ['images'],
+      });
+    }
+    if (data.discount_type === 'percentage' && data.discount > 100) {
+      ctx.addIssue({
+        code: zod.ZodIssueCode.custom,
+        message: t('product.discountPercentageMax') || 'Discount cannot exceed 100% for percentage type',
+        path: ['discount'],
+      });
+    }
+  });
 
 export type ProductFormValues = zod.infer<typeof ProductSchema>;

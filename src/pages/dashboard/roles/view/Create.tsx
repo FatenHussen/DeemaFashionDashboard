@@ -12,6 +12,10 @@ import {
   type RoleFormValues,
 } from '@/pages/dashboard/roles/validation/role.validation';
 import {
+  translatePermissionName,
+  translatePermissionResource,
+} from '@/pages/dashboard/roles/utils/permission-label';
+import {
   useCreateRole,
   useUpdateRole,
   useFetchRoleById,
@@ -242,8 +246,8 @@ export default function CreatePage() {
                               }}
                               className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-2 focus:ring-blue-500"
                             />
-                            <Typography variant="subtitle2" className="font-semibold capitalize">
-                              {resource}
+                            <Typography variant="subtitle2" className="font-semibold">
+                              {translatePermissionResource(resource, t)}
                             </Typography>
                             <Typography variant="caption" className="text-muted-foreground">
                               {t('form.rolePermissionsInGroup', {
@@ -271,7 +275,7 @@ export default function CreatePage() {
                                   className="h-4 w-4"
                                 />
                                 <Typography variant="body2" className="text-sm text-foreground">
-                                  {permission.name}
+                                  {translatePermissionName(permission.name, t)}
                                 </Typography>
                               </Box>
                             );

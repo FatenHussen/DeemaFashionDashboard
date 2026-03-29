@@ -3,6 +3,10 @@ import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
 import { useFetchRoleById } from '@/pages/dashboard/roles/hooks/role';
+import {
+  translatePermissionName,
+  translatePermissionResource,
+} from '@/pages/dashboard/roles/utils/permission-label';
 
 import { CONFIG } from 'src/global-config';
 import { Box, Typography } from 'src/shared/ui';
@@ -186,8 +190,8 @@ export default function DetailsPage() {
                   <Box className="space-y-4">
                     {Object.entries(groupedPermissions).map(([resource, perms]) => (
                       <Box key={resource} className="space-y-2">
-                        <Typography variant="body2" className="text-muted-foreground font-medium capitalize">
-                          {resource}
+                        <Typography variant="body2" className="text-muted-foreground font-medium">
+                          {translatePermissionResource(resource, t)}
                         </Typography>
                         <Box className="flex flex-wrap gap-2">
                           {(perms ?? []).map((permission) => (
@@ -195,7 +199,7 @@ export default function DetailsPage() {
                               key={permission.id}
                               className="px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20 text-primary text-sm font-medium"
                             >
-                              {permission.name}
+                              {translatePermissionName(permission.name, t)}
                             </Box>
                           ))}
                         </Box>

@@ -6,11 +6,21 @@ import {
   type CategoryAttributeCreateUpdatePayload,
 } from '../api/category-attribute.services';
 
-export const useFetchCategoryAttributes = (categoryId: number | string | undefined, page: number = 1, limit: number = 25) =>
+export type UseFetchCategoryAttributesOptions = {
+  /** When true, the query runs only after a category is selected (sends `category_id` and avoids listing all attributes). */
+  requireCategoryId?: boolean;
+};
+
+export const useFetchCategoryAttributes = (
+  categoryId: number | string | undefined,
+  page: number = 1,
+  limit: number = 25,
+  options?: UseFetchCategoryAttributesOptions
+) =>
   useQuery({
     queryKey: queryKeys.categoryAttribute.list({ categoryId, page, limit }),
-    queryFn: () => _CategoryAttributeApi.getListCategoryAttributes(page, limit),
-    // enabled: !!categoryId,
+    queryFn: () => _CategoryAttributeApi.getListCategoryAttributes(page, limit, categoryId),
+    enabled: options?.requireCategoryId ? !!categoryId : true,
   });
 
 export const useFetchCategoryAttributeById = (id: number | string) =>

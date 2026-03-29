@@ -6,9 +6,15 @@ import { Button } from '@/shared/ui/button';
 import { Dialog } from '@/shared/ui/dialog';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router';
+import { useQuery } from '@tanstack/react-query';
+import { formatTranslated } from '@/utils/format-translated';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { usePermissions } from '@/auth/hooks/use-permissions';
 import { useRef, useState, useEffect, useCallback } from 'react';
+import { useFetchShops } from '@/pages/dashboard/vendor/hooks/shop';
+import { _BrandApi } from '@/pages/dashboard/products/api/brand.services';
+import { _VendorApi } from '@/pages/dashboard/vendor/api/vendor.services';
+import { _CategoryApi } from '@/pages/dashboard/categories/api/category.services';
 import { productColumns, type ProductFormValues } from '@/columns/one/products/one';
 import {
   useFetchProducts,
@@ -41,8 +47,10 @@ export default function Page() {
   const [isVisibleFilter, setIsVisibleFilter] = useState('');
   const [sortField, setSortField] = useState('');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-
-  const skipDebouncedPageReset = useRef(true);
+  const [categoryFilter, setCategoryFilter] = useState('');
+  const [brandFilter, setBrandFilter] = useState('');
+  const [vendorFilter, setVendorFilter] = useState('');
+  const [shopFilter, setShopFilter] = useState('');
 
   const setPageOne = useCallback(() => {
     setSearchParams((prev) => {
@@ -53,6 +61,12 @@ export default function Page() {
     });
   }, [setSearchParams]);
 
+  /** Avoid deps on setPageOne/setSearchParams — they change after URL updates and would re-run this effect and reset page. */
+  const setPageOneRef = useRef(setPageOne);
+  setPageOneRef.current = setPageOne;
+  const debouncedInitRef = useRef(false);
+  const prevDebouncedSearchRef = useRef<string | undefined>(undefined);
+
   useEffect(() => {
     const id = window.setTimeout(() => {
       const v = searchInput.trim();
@@ -62,12 +76,39 @@ export default function Page() {
   }, [searchInput]);
 
   useEffect(() => {
-    if (skipDebouncedPageReset.current) {
-      skipDebouncedPageReset.current = false;
+    if (!debouncedInitRef.current) {
+      debouncedInitRef.current = true;
+      prevDebouncedSearchRef.current = debouncedSearch;
       return;
     }
-    setPageOne();
-  }, [debouncedSearch, setPageOne]);
+    if (prevDebouncedSearchRef.current === debouncedSearch) {
+      return;
+    }
+    prevDebouncedSearchRef.current = debouncedSearch;
+    setPageOneRef.current();
+  }, [debouncedSearch]);
+
+  const { data: categoriesResp } = useQuery({
+    queryKey: ['categories', 'product-index-filter'],
+    queryFn: () => _CategoryApi.getListCategoriesPaginated({ page: 1, per_page: 500 }),
+  });
+  const filterCategories = categoriesResp?.data?.items ?? [];
+
+  const { data: brandsResp } = useQuery({
+    queryKey: ['brands', 'product-index-filter'],
+    queryFn: () => _BrandApi.getListBrands({ page: 1, per_page: 500 }),
+  });
+  const filterBrands = brandsResp?.data?.items ?? [];
+
+  const { data: vendorsResp } = useQuery({
+    queryKey: ['vendors', 'product-index-filter'],
+    queryFn: () => _VendorApi.getListVendor({ page: 1, limit: 500 }),
+  });
+  const filterVendors = vendorsResp?.data?.items ?? [];
+
+  const { data: shopsIndexResp } = useFetchShops(1, 200);
+  const filterShops = (shopsIndexResp as { data?: { items?: { id: number; name: string }[] } })?.data
+    ?.items ?? [];
 
   const { data: productsResponse, isLoading } = useFetchProducts({
     page,
@@ -77,6 +118,10 @@ export default function Page() {
     ...(isVisibleFilter === ''
       ? {}
       : { is_visible: isVisibleFilter === 'true' }),
+    ...(categoryFilter ? { category_id: Number(categoryFilter) } : {}),
+    ...(brandFilter ? { brand_id: Number(brandFilter) } : {}),
+    ...(vendorFilter ? { vendor_id: Number(vendorFilter) } : {}),
+    ...(shopFilter ? { shop_id: Number(shopFilter) } : {}),
     ...(sortField
       ? {
           sort_field: sortField,
@@ -152,6 +197,7 @@ export default function Page() {
   };
 
   const handlePageSizeChange = (newSize: number) => {
+    if (newSize === limit) return;
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev);
       next.set('limit', String(newSize));
@@ -160,36 +206,46 @@ export default function Page() {
     });
   };
 
-  const rawData = productsResponse?.data;
-  const listData =
-    (rawData as { items?: ProductData[] } | undefined)?.items ??
-    (rawData as { data?: ProductData[] } | undefined)?.data ??
-    [];
+  const raw = productsResponse as Record<string, any> | undefined;
+  const inner = raw?.data;
+  const listData: ProductData[] = Array.isArray(inner)
+    ? inner
+    : inner?.data ?? inner?.items ?? [];
   const productData = listData;
   type PaginationShape = {
-    current_page: number;
-    last_page?: number;
-    per_page?: number;
-    total?: number;
+    current_page?: number | string;
+    last_page?: number | string;
+    per_page?: number | string;
+    total?: number | string;
   };
+  const innerObj =
+    inner && typeof inner === 'object' && !Array.isArray(inner)
+      ? (inner as { pagination?: PaginationShape } & PaginationShape)
+      : undefined;
   const apiPagination =
-    (rawData as { pagination?: PaginationShape } | undefined)?.pagination ??
-    (typeof (rawData as PaginationShape)?.current_page === 'number'
-      ? (rawData as PaginationShape)
-      : null);
+    raw?.meta ??
+    innerObj?.pagination ??
+    (typeof innerObj?.current_page !== 'undefined' ? innerObj : null);
+  const num = (v: unknown, fallback: number) => {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : fallback;
+  };
   const pagination =
-    apiPagination && typeof apiPagination.current_page === 'number'
-      ? {
-          current_page: apiPagination.current_page,
-          last_page: apiPagination.last_page ?? 1,
-          per_page: apiPagination.per_page ?? limit,
-          total: apiPagination.total ?? 0,
-          from: (apiPagination.current_page - 1) * (apiPagination.per_page ?? limit) + 1,
-          to: Math.min(
-            apiPagination.current_page * (apiPagination.per_page ?? limit),
-            apiPagination.total ?? 0
-          ),
-        }
+    apiPagination != null && apiPagination.current_page != null && apiPagination.current_page !== ''
+      ? (() => {
+          const current = num(apiPagination.current_page, 1);
+          const perPage = num(apiPagination.per_page, limit);
+          const total = num(apiPagination.total, 0);
+          const last = num(apiPagination.last_page, Math.max(1, Math.ceil(total / perPage) || 1));
+          return {
+            current_page: current,
+            last_page: last,
+            per_page: perPage,
+            total,
+            from: total === 0 ? 0 : (current - 1) * perPage + 1,
+            to: Math.min(current * perPage, total),
+          };
+        })()
       : undefined;
   const { can } = usePermissions();
 
@@ -280,6 +336,78 @@ export default function Page() {
               </select>
             </label>
             <label className="flex items-center gap-1.5 text-sm text-muted-foreground whitespace-nowrap">
+              <span>{t('columns.category')}</span>
+              <select
+                className={filterSelectClass}
+                value={categoryFilter}
+                onChange={(e) => {
+                  setCategoryFilter(e.target.value);
+                  setPageOne();
+                }}
+              >
+                <option value="">{t('all')}</option>
+                {filterCategories.map((c) => (
+                  <option key={c.id} value={String(c.id)}>
+                    {typeof c.name === 'object' ? formatTranslated(c.name as any) : c.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex items-center gap-1.5 text-sm text-muted-foreground whitespace-nowrap">
+              <span>{t('form.brand')}</span>
+              <select
+                className={filterSelectClass}
+                value={brandFilter}
+                onChange={(e) => {
+                  setBrandFilter(e.target.value);
+                  setPageOne();
+                }}
+              >
+                <option value="">{t('all')}</option>
+                {filterBrands.map((b) => (
+                  <option key={b.id} value={String(b.id)}>
+                    {typeof b.name === 'object' ? formatTranslated(b.name as any) : b.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex items-center gap-1.5 text-sm text-muted-foreground whitespace-nowrap">
+              <span>Vendor</span>
+              <select
+                className={filterSelectClass}
+                value={vendorFilter}
+                onChange={(e) => {
+                  setVendorFilter(e.target.value);
+                  setPageOne();
+                }}
+              >
+                <option value="">{t('all')}</option>
+                {filterVendors.map((v) => (
+                  <option key={v.id} value={String(v.id)}>
+                    {formatTranslated(v.name as any)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex items-center gap-1.5 text-sm text-muted-foreground whitespace-nowrap">
+              <span>Shop</span>
+              <select
+                className={filterSelectClass}
+                value={shopFilter}
+                onChange={(e) => {
+                  setShopFilter(e.target.value);
+                  setPageOne();
+                }}
+              >
+                <option value="">{t('all')}</option>
+                {filterShops.map((sh) => (
+                  <option key={sh.id} value={String(sh.id)}>
+                    {sh.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex items-center gap-1.5 text-sm text-muted-foreground whitespace-nowrap">
               <span>{t('productFilterSortBy')}</span>
               <select
                 className={filterSelectClass}
@@ -327,6 +455,7 @@ export default function Page() {
         pageSize={limit}
         onPageChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}
+        pageSizeOptions={[10, 25, 50, 100]}
         columnTranslations={{
           id: t('columns.id'),
           image: t('columns.image'),

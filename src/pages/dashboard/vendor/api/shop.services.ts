@@ -41,7 +41,11 @@ const buildFormDataPayload = (data: ShopCreateUpdatePayload): FormData => {
 };
 
 export const _ShopApi = {
-  getListShop: async (params?: { page?: number; per_page?: number }): Promise<ShopListResponse> => {
+  getListShop: async (params?: {
+    page?: number;
+    per_page?: number;
+    vendor_id?: number;
+  }): Promise<ShopListResponse> => {
     const response = await axiosInstance.get<ShopListResponse>(apiRoutes.shop.list, { params });
     return response.data;
   },

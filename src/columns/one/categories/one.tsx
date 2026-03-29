@@ -51,8 +51,42 @@ export const categoryColumns = (
   isDeleteDialogOpen?: boolean,
   onDeleteConfirm?: () => void,
   onDeleteCancel?: () => void,
-  deletingId?: number | null
-): ColumnDef<CategoryFormValues>[] => [
+  deletingId?: number | null,
+  options?: {
+    subcategoriesPath?: (id: number) => string;
+    /** Hide parent column when listing root categories only. */
+    hideParentColumn?: boolean;
+  }
+): ColumnDef<CategoryFormValues>[] => {
+  const subcategoriesPath = options?.subcategoriesPath;
+  const hideParentColumn = options?.hideParentColumn;
+
+  const parentColumn: ColumnDef<CategoryFormValues> = {
+    id: 'parent',
+    accessorKey: 'parent.name',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.parent')} />,
+    cell: ({ row }) => (
+      <div className="flex items-center gap-2 min-w-0">
+        {row.original.parent ? (
+          <>
+            <Iconify
+              icon="solar:diagram-bold"
+              className="text-muted-foreground shrink-0"
+              width={16}
+              height={16}
+            />
+            <span className="text-sm text-muted-foreground truncate">
+              {formatTranslated(row.original.parent.name)}
+            </span>
+          </>
+        ) : (
+          <span className="text-sm text-muted-foreground">-</span>
+        )}
+      </div>
+    ),
+  };
+
+  return [
   {
     id: 'id',
     accessorKey: 'id',
@@ -122,30 +156,7 @@ export const categoryColumns = (
   //     </div>
   //   ),
   // },
-  {
-    id: 'parent',
-    accessorKey: 'parent.name',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.parent')} />,
-    cell: ({ row }) => (
-      <div className="flex items-center gap-2 min-w-0">
-        {row.original.parent ? (
-          <>
-            <Iconify
-              icon="solar:diagram-bold"
-              className="text-muted-foreground shrink-0"
-              width={16}
-              height={16}
-            />
-            <span className="text-sm text-muted-foreground truncate">
-              {formatTranslated(row.original.parent.name)}
-            </span>
-          </>
-        ) : (
-          <span className="text-sm text-muted-foreground">-</span>
-        )}
-      </div>
-    ),
-  },
+  ...(hideParentColumn ? [] : [parentColumn]),
   {
     id: 'children_count',
     accessorKey: 'children_count',
@@ -190,6 +201,7 @@ export const categoryColumns = (
       <DataTableRowActions
         schema={CategorySchema}
         row={row}
+        subcategoriesPath={subcategoriesPath}
         editItem={`/categories/update/${row.original.id}`}
         onDelete={onDelete}
         isDeleting={isDeleting}
@@ -202,4 +214,5 @@ export const categoryColumns = (
     ),
   },
 ];
+};
 

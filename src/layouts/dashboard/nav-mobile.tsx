@@ -57,17 +57,17 @@ export function NavMobile({
       className={mergeClasses([
         layoutClasses.nav.root,
         layoutClasses.nav.vertical,
-        'overflow-visible bg-[var(--layout-nav-bg)]',
+        'flex flex-col h-full min-h-0 overflow-hidden bg-[var(--layout-nav-bg)]',
         className,
       ])}
     >
       {slots?.topArea ?? (
-        <Box className="ps-7 pt-5 pb-2">
+        <Box className="shrink-0 ps-7 pt-5 pb-2">
           <Logo href="/" />
         </Box>
       )}
 
-      <Scrollbar fillContent>
+      <Scrollbar fillContent className="flex-1 min-h-0 min-w-0">
         <NavSectionVertical
           data={data}
           checkPermissions={checkPermissions}

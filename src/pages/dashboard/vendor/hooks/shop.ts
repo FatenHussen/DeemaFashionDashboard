@@ -5,10 +5,35 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { _ShopApi } from '../api/shop.services';
 
-export const useFetchShops = (page: number = 1, limit: number = 25) => useQuery({
-    queryKey: queryKeys.shop.list({ page, limit }),
-    queryFn: () => _ShopApi.getListShop({ page, per_page: limit }),
+export type UseFetchShopsOptions = {
+  /** When set and > 0, passed as `vendor_id` query param. Omit for unfiltered list. */
+  vendorId?: number;
+  enabled?: boolean;
+};
+
+export const useFetchShops = (
+  page: number = 1,
+  limit: number = 25,
+  opts?: UseFetchShopsOptions
+) => {
+  const vendorId = opts?.vendorId;
+  const enabled = opts?.enabled ?? true;
+  const listParams = {
+    page,
+    limit,
+    ...(vendorId != null && vendorId > 0 ? { vendor_id: vendorId } : {}),
+  };
+  return useQuery({
+    queryKey: queryKeys.shop.list(listParams),
+    queryFn: () =>
+      _ShopApi.getListShop({
+        page,
+        per_page: limit,
+        ...(vendorId != null && vendorId > 0 ? { vendor_id: vendorId } : {}),
+      }),
+    enabled,
   });
+};
 
 export const useFetchShopById = (id: number | string) => useQuery({
     queryKey: queryKeys.shop.details(id),

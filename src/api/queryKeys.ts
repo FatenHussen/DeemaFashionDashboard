@@ -15,7 +15,8 @@ export const queryKeys = {
   },
   // Shop query keys
   shop: {
-    list: (params?: { page?: number; limit?: number }) => ['shop', 'list', params] as const,
+    list: (params?: { page?: number; limit?: number; vendor_id?: number }) =>
+      ['shop', 'list', params] as const,
     details: (id: number | string) => ['shop', 'details', id] as const,
   },
   // Auth query keys
@@ -65,7 +66,7 @@ export const queryKeys = {
   },
   // Category query keys
   category: {
-    list: (params?: { page?: number; limit?: number; parent_id?: number }) =>
+    list: (params?: { page?: number; limit?: number; parent_id?: number; category_id?: number }) =>
       ['category', 'list', params] as const,
     details: (id: number | string) => ['category', 'details', id] as const,
   },

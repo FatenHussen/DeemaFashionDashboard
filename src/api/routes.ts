@@ -410,6 +410,10 @@ export const apiRoutes = {
     delete: (id: number | string) => `${ROOTS.ADMIN}/countries/${id}`,
     details: (id: number | string) => `${ROOTS.ADMIN}/countries/${id}`,
   },
+  /** Sale countries (GCC / markets) — distinct from origin countries */
+  saleCountry: {
+    list: `${ROOTS.ADMIN}/sale-countries`,
+  },
   // Promotion Request routes
   promotionRequest: {
     list: `${ROOTS.ADMIN}/promotion-requests`,

@@ -52,6 +52,7 @@ const AreaCreatePage = lazy(() => import('@/pages/dashboard/locations/view/area/
 const AreaDetailsPage = lazy(() => import('@/pages/dashboard/locations/view/area/Details'));
 
 const CategoryIndexPage = lazy(() => import('@/pages/dashboard/categories/view/Index'));
+const CategorySubcategoriesPage = lazy(() => import('@/pages/dashboard/categories/view/Subcategories'));
 const CategoryCreatePage = lazy(() => import('@/pages/dashboard/categories/view/Create'));
 
 const CategoryAttributeIndexPage = lazy(
@@ -683,6 +684,14 @@ export const dashboardRoutes: RouteObject[] = [
         element: (
           <RequirePermission permission="category.update">
             <CategoryCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'subcategories',
+        element: (
+          <RequirePermission permission="category.view">
+            <CategorySubcategoriesPage />
           </RequirePermission>
         ),
       },

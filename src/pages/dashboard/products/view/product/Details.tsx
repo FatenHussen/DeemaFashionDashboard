@@ -15,6 +15,45 @@ import { LoadingScreen } from 'src/shared/components/loading-screen';
 
 const metadata = { title: `Product Details | Dashboard - ${CONFIG.appName}` };
 
+function productCountryOriginDisplay(product: Record<string, unknown>): React.ReactNode {
+  const oc = product.origin_country as { name?: unknown } | null | undefined;
+  if (oc && typeof oc === 'object' && oc.name != null) {
+    return typeof oc.name === 'string' ? oc.name : formatTranslated(oc.name as any);
+  }
+  const c = product.country as Record<string, unknown> | null | undefined;
+  if (c && typeof c === 'object') {
+    if ('name' in c && c.name != null) {
+      return formatTranslated(c.name as any);
+    }
+    const en = c.en as string | undefined;
+    const ar = c.ar as string | undefined;
+    if (en || ar) {
+      return [en, ar].filter(Boolean).join(' / ') || '—';
+    }
+  }
+  return '—';
+}
+
+function productCountrySaleDisplay(product: Record<string, unknown>): React.ReactNode {
+  const c = product.sale_country as { name?: unknown } | null | undefined;
+  if (c && typeof c === 'object' && c.name != null) {
+    return typeof c.name === 'string' ? c.name : formatTranslated(c.name as any);
+  }
+  return '—';
+}
+
+function boughtWithItemLabel(
+  item: number | { id: number; name?: string | { en?: string; ar?: string } }
+): React.ReactNode {
+  if (typeof item === 'object' && item !== null && 'id' in item) {
+    if (item.name != null) {
+      return typeof item.name === 'string' ? item.name : formatTranslated(item.name as any);
+    }
+    return `Product ID: ${item.id}`;
+  }
+  return `Product ID: ${item}`;
+}
+
 function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <Box className="space-y-1">
@@ -132,8 +171,20 @@ export default function DetailsPage() {
                 <DetailRow label={t('form.nameAr')} value={product.name?.ar} />
                 <DetailRow label={t('columns.category')} value={formatTranslated(product.category?.name) ?? product.category_id} />
                 <DetailRow label={t('form.brand')} value={product.brand?.name ?? '—'} />
-                <DetailRow label={t('form.countryEn')} value={product.country?.en} />
-                <DetailRow label={t('form.countryAr')} value={product.country?.ar} />
+                <DetailRow
+                  label="Vendor"
+                  value={product.vendor ? formatTranslated(product.vendor.name as any) : '—'}
+                />
+                <DetailRow
+                  label="Approval"
+                  value={product.approval_status_label ?? product.approval_status ?? '—'}
+                />
+                <DetailRow
+                  label="Visible to customers"
+                  value={product.is_visible === false || product.is_visible === 0 ? 'No' : 'Yes'}
+                />
+                <DetailRow label={t('form.countryOriginSelect')} value={productCountryOriginDisplay(product)} />
+                <DetailRow label={t('form.countrySaleSelect')} value={productCountrySaleDisplay(product)} />
                 <DetailRow label={t('columns.sku')} value={product.sku} />
                 <DetailRow label={t('form.model')} value={product.model} />
                 <DetailRow label={t('form.barcode')} value={product.barcode} />
@@ -151,13 +202,21 @@ export default function DetailsPage() {
                 <Iconify icon="solar:tag-price-bold" width={20} />
                 Pricing & Stock
               </Typography>
-              <Box className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Box className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <DetailRow label={t('columns.price')} value={`$${product.price}`} />
                 <DetailRow
                   label={t('columns.priceAfterDiscount')}
                   value={product.price_after_discount != null ? `$${product.price_after_discount}` : '—'}
                 />
                 <DetailRow label={t('form.quantity')} value={product.quantity} />
+                <DetailRow label="Discount" value={product.discount != null ? String(product.discount) : '—'} />
+                <DetailRow label="Discount type" value={String(product.discount_type ?? '—')} />
+                <DetailRow
+                  label="Cost price"
+                  value={product.cost_price != null ? `$${product.cost_price}` : '—'}
+                />
+                <DetailRow label="Unit" value={product.unit ?? '—'} />
+                <DetailRow label="Warranty (months)" value={product.warranty_period ?? '—'} />
               </Box>
             </Box>
 
@@ -186,6 +245,48 @@ export default function DetailsPage() {
                 </Box>
               </Box>
             </Box>
+
+            {/* SEO */}
+            {(product.seo_title || product.seo_description || product.seo_keywords || product.seo_image) && (
+              <Box className="rounded-xl border border-border/50 shadow-sm bg-background/95 p-6">
+                <Typography variant="h6" className="font-semibold mb-4 flex items-center gap-2">
+                  <Iconify icon="solar:globe-bold" width={20} />
+                  SEO
+                </Typography>
+                <Box className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <DetailRow label="SEO title (EN)" value={product.seo_title?.en} />
+                  <DetailRow label="SEO title (AR)" value={product.seo_title?.ar} />
+                  <DetailRow label="SEO description (EN)" value={product.seo_description?.en} />
+                  <DetailRow label="SEO description (AR)" value={product.seo_description?.ar} />
+                </Box>
+                {product.seo_image ? (
+                  <Box className="mt-4">
+                    <Typography variant="body2" className="text-muted-foreground mb-1">SEO image</Typography>
+                    <img src={product.seo_image} alt="" className="max-h-32 rounded-lg border border-border/60" />
+                  </Box>
+                ) : null}
+              </Box>
+            )}
+
+            {/* Icons */}
+            {product.icons?.length > 0 && (
+              <Box className="rounded-xl border border-border/50 shadow-sm bg-background/95 p-6">
+                <Typography variant="h6" className="font-semibold mb-4 flex items-center gap-2">
+                  <Iconify icon="solar:star-bold" width={20} />
+                  Icons
+                </Typography>
+                <Box className="flex flex-wrap gap-3">
+                  {product.icons.map((ic: any) => (
+                    <Box key={ic.id} className="flex items-center gap-2 rounded-lg border border-border/50 px-3 py-2">
+                      {ic.icon ? (
+                        <img src={ic.icon} alt="" className="w-8 h-8 object-contain" />
+                      ) : null}
+                      <Typography variant="body2">{ic.name ?? ic.id}</Typography>
+                    </Box>
+                  ))}
+                </Box>
+              </Box>
+            )}
 
             {/* Variants */}
             {product.variants?.length > 0 && (
@@ -306,6 +407,12 @@ export default function DetailsPage() {
                           <Typography variant="caption" className="text-muted-foreground">Value (AR)</Typography>
                           <Typography variant="body2">{ed.value?.ar}</Typography>
                         </Box>
+                        {ed.price != null ? (
+                          <Box>
+                            <Typography variant="caption" className="text-muted-foreground">Extra price</Typography>
+                            <Typography variant="body2">${ed.price}</Typography>
+                          </Box>
+                        ) : null}
                       </Box>
                     </Box>
                   ))}
@@ -321,11 +428,18 @@ export default function DetailsPage() {
                   Bought With
                 </Typography>
                 <Box className="flex flex-wrap gap-2">
-                  {product.bought_with.map((pid: number) => (
-                    <Box key={pid} className="rounded-md border border-border/50 bg-muted/30 px-3 py-1 text-sm">
-                      Product ID: {pid}
-                    </Box>
-                  ))}
+                  {product.bought_with.map((item: number | { id: number; name?: string }) => {
+                    const boughtWithId =
+                      typeof item === 'object' && item !== null && 'id' in item ? item.id : Number(item);
+                    return (
+                      <Box
+                        key={boughtWithId}
+                        className="rounded-md border border-border/50 bg-muted/30 px-3 py-1 text-sm"
+                      >
+                        {boughtWithItemLabel(item)}
+                      </Box>
+                    );
+                  })}
                 </Box>
               </Box>
             )}

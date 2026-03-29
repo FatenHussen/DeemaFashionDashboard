@@ -3,15 +3,34 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { _CategoryApi, type CategoryCreateUpdatePayload } from '../api/category.services';
 
-export const useFetchCategories = (page: number = 1, limit: number = 25, parentId?: number) =>
+export type CategoryListFilter = {
+  /** Root categories only (no parent). */
+  parent_id?: number;
+  /** Subcategories of this parent (API `category_id`). */
+  category_id?: number;
+};
+
+export const useFetchCategories = (
+  page: number = 1,
+  limit: number = 25,
+  filter?: CategoryListFilter,
+  queryOptions?: { enabled?: boolean }
+) =>
   useQuery({
-    queryKey: queryKeys.category.list({ page, limit, parent_id: parentId }),
+    queryKey: queryKeys.category.list({
+      page,
+      limit,
+      parent_id: filter?.parent_id,
+      category_id: filter?.category_id,
+    }),
     queryFn: () =>
       _CategoryApi.getListCategoriesPaginated({
         page,
         per_page: limit,
-        parent_id: parentId,
+        parent_id: filter?.parent_id,
+        category_id: filter?.category_id,
       }),
+    enabled: queryOptions?.enabled !== false,
   });
 
 export const useFetchCategoryById = (id: number | string) => useQuery({

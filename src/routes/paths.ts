@@ -102,6 +102,13 @@ export const paths = {
     role: ROOTS.ROLE,
     driver: ROOTS.DRIVER,
     products: ROOTS.PRODUCTS,
+    /** Product CRUD sub-routes under `/products` */
+    product: {
+      root: ROOTS.PRODUCTS,
+      create: `${ROOTS.PRODUCTS}/create`,
+      update: (id: string | number) => `${ROOTS.PRODUCTS}/update/${id}`,
+      details: (id: string | number) => `${ROOTS.PRODUCTS}/details/${id}`,
+    },
     brands: ROOTS.BRANDS,
     locations: ROOTS.LOCATIONS,
     city: ROOTS.CITY,

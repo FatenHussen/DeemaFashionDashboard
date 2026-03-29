@@ -20,11 +20,14 @@ export const _CategoryApi = {
     page?: number;
     per_page?: number;
     parent_id?: number;
+    /** List direct children of this category (API query param). */
+    category_id?: number;
   }): Promise<CategoryListResponse> => {
     const searchParams = new URLSearchParams();
     if (params?.page) searchParams.set('page', String(params.page));
     if (params?.per_page) searchParams.set('per_page', String(params.per_page));
     if (params?.parent_id != null) searchParams.set('parent_id', String(params.parent_id));
+    if (params?.category_id != null) searchParams.set('category_id', String(params.category_id));
     const query = searchParams.toString();
     const url = query ? `${apiRoutes.category.list}?${query}` : apiRoutes.category.list;
     const response = await axiosInstance.get<CategoryListResponse>(url);

@@ -198,7 +198,7 @@ export default function CreatePage() {
           </Box>
           <RHFTextField
             name="name.en"
-            placeholder={t('form.namePlaceholder')}
+            placeholder={t('form.categoryNameEnPlaceholder')}
             helperText={t('form.categoryNameEnHelper')}
             className="transition-all duration-200"
           />

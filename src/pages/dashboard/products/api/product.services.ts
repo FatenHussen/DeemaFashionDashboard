@@ -9,10 +9,27 @@ import { apiRoutes, axiosInstance } from '@/api';
 
 // ----------------------------------------------------------------------
 
+const splitKeywords = (s: string) =>
+  s
+    .split(',')
+    .map((x) => x.trim())
+    .filter(Boolean);
+
+const appendSeoKeywords = (formData: FormData, kw?: { en?: string; ar?: string }) => {
+  if (!kw) return;
+  splitKeywords(kw.en ?? '').forEach((w) => formData.append('seo_keywords[en][]', w));
+  splitKeywords(kw.ar ?? '').forEach((w) => formData.append('seo_keywords[ar][]', w));
+};
+
 const buildProductFormData = (data: ProductCreateUpdatePayload): FormData => {
   const formData = new FormData();
 
-  // Required fields
+  if (data.id != null && !Number.isNaN(Number(data.id))) {
+    const pid = String(data.id);
+    formData.append('id', pid);
+    formData.append('product_id', pid);
+  }
+
   formData.append('category_id', data.category_id.toString());
   formData.append('name[en]', data.name.en);
   formData.append('name[ar]', data.name.ar);
@@ -22,30 +39,48 @@ const buildProductFormData = (data: ProductCreateUpdatePayload): FormData => {
   formData.append('quantity', data.quantity.toString());
   formData.append('is_instant_delivery', data.is_instant_delivery.toString());
 
-  // Optional basic fields
-  if (data.brand_id && data.brand_id > 0) {
-    formData.append('brand_id', data.brand_id.toString());
-  }
-  if (data.price_after_discount !== undefined && data.price_after_discount !== null) {
-    formData.append('price_after_discount', data.price_after_discount.toString());
-  }
-  if (data.full_description) {
-    formData.append('full_description[en]', data.full_description.en || '');
-    formData.append('full_description[ar]', data.full_description.ar || '');
-  }
-  if (data.country) {
-    formData.append('country[en]', data.country.en || '');
-    formData.append('country[ar]', data.country.ar || '');
-  }
-  if (data.sku) formData.append('sku', data.sku);
-  if (data.model) formData.append('model', data.model);
-  if (data.barcode) formData.append('barcode', data.barcode);
-  if (data.time_prepare) formData.append('time_prepare', data.time_prepare);
+  formData.append('is_visible', String(data.is_visible ?? 1));
+  formData.append('brand_id', String(data.brand_id ?? 0));
+  formData.append('vendor_id', String(data.vendor_id ?? 0));
 
-  // Product gallery: keep existing media IDs + append new files (Laravel-style keys)
-  if (data.existing_media_ids && data.existing_media_ids.length > 0) {
+  const discountType = data.discount_type ?? 'none';
+  formData.append('discount_type', discountType);
+  formData.append('discount', String(data.discount ?? 0));
+
+  if (data.cost_price !== undefined && data.cost_price !== null) {
+    formData.append('cost_price', String(data.cost_price));
+  }
+  formData.append('unit', data.unit ?? '');
+  if (data.warranty_period !== undefined && data.warranty_period !== null) {
+    formData.append('warranty_period', String(data.warranty_period));
+  }
+
+  formData.append('full_description[en]', data.full_description?.en ?? '');
+  formData.append('full_description[ar]', data.full_description?.ar ?? '');
+  formData.append('country_id', String(data.country_id ?? 0));
+  formData.append('sale_country_id', String(data.sale_country_id ?? 0));
+  formData.append('sku', data.sku ?? '');
+  formData.append('model', data.model ?? '');
+  formData.append('barcode', data.barcode ?? '');
+  formData.append('time_prepare', data.time_prepare ?? '');
+
+  formData.append('seo_title[en]', data.seo_title?.en ?? '');
+  formData.append('seo_title[ar]', data.seo_title?.ar ?? '');
+  formData.append('seo_description[en]', data.seo_description?.en ?? '');
+  formData.append('seo_description[ar]', data.seo_description?.ar ?? '');
+  appendSeoKeywords(formData, data.seo_keywords);
+  if (data.seo_image instanceof File) {
+    formData.append('seo_image', data.seo_image);
+  }
+
+  if (data.thumbnail instanceof File) {
+    formData.append('thumbnail', data.thumbnail);
+  }
+
+  // Send every kept gallery id; omitting the key entirely often makes Laravel drop all media on update.
+  if (Array.isArray(data.existing_media_ids)) {
     data.existing_media_ids.forEach((mediaId) => {
-      formData.append('existing_media_ids[]', mediaId.toString());
+      formData.append('existing_media_ids[]', String(mediaId));
     });
   }
   if (data.images && data.images.length > 0) {
@@ -54,30 +89,30 @@ const buildProductFormData = (data: ProductCreateUpdatePayload): FormData => {
     });
   }
 
-  // Bought With - indexed notation
-  if (data.bought_with && data.bought_with.length > 0) {
-    data.bought_with.forEach((productId, index) => {
-      formData.append(`bought_with[${index}]`, productId.toString());
-    });
-  }
+  (data.bought_with ?? []).forEach((productId, index) => {
+    formData.append(`bought_with[${index}]`, String(productId));
+  });
 
-  // Variants - with indexed attributes and optional images
-  // Only send variants that have attributes_values_ids (required by backend - no default value)
   const validVariants =
     data.variants?.filter(
       (v) =>
         Array.isArray(v.attributes_values_ids) && v.attributes_values_ids.length > 0
     ) ?? [];
   if (validVariants.length > 0) {
+    const categoryIdStr = data.category_id.toString();
     validVariants.forEach((variant, vIndex) => {
+      formData.append(`variants[${vIndex}][category_id]`, categoryIdStr);
       if (variant.id) {
         formData.append(`variants[${vIndex}][id]`, variant.id.toString());
       }
       (variant.attributes_values_ids ?? []).forEach((attrValueId) => {
-        formData.append(`variants[${vIndex}][attributes_values_ids][]`, attrValueId.toString());
+        formData.append(`variants[${vIndex}][attributes_values_ids][]`, String(attrValueId));
       });
-      (variant.existing_images_ids ?? []).forEach((imgId) => {
-        formData.append(`variants[${vIndex}][existing_images_ids][]`, imgId.toString());
+      const variantExistingImgIds = Array.isArray(variant.existing_images_ids)
+        ? variant.existing_images_ids
+        : [];
+      variantExistingImgIds.forEach((imgId) => {
+        formData.append(`variants[${vIndex}][existing_images_ids][]`, String(imgId));
       });
       if (variant.images && variant.images.length > 0) {
         variant.images.forEach((file) => {
@@ -87,7 +122,6 @@ const buildProductFormData = (data: ProductCreateUpdatePayload): FormData => {
     });
   }
 
-  // Category Details (only send entries with valid category_detail_id)
   const validCategoryDetails = (data.category_details ?? []).filter(
     (d) => d.category_detail_id && d.category_detail_id > 0
   );
@@ -105,8 +139,6 @@ const buildProductFormData = (data: ProductCreateUpdatePayload): FormData => {
     });
   }
 
-
-  // Extra Details
   if (data.extra_details && data.extra_details.length > 0) {
     data.extra_details.forEach((detail, index) => {
       if (detail.id) {
@@ -116,10 +148,12 @@ const buildProductFormData = (data: ProductCreateUpdatePayload): FormData => {
       formData.append(`extra_details[${index}][detail_key][ar]`, detail.detail_key.ar);
       formData.append(`extra_details[${index}][detail_value][en]`, detail.detail_value.en);
       formData.append(`extra_details[${index}][detail_value][ar]`, detail.detail_value.ar);
+      if (detail.price !== undefined && detail.price !== null && !Number.isNaN(Number(detail.price))) {
+        formData.append(`extra_details[${index}][price]`, String(detail.price));
+      }
     });
   }
 
-  // Shop Variants
   if (data.shop_variants && data.shop_variants.length > 0) {
     data.shop_variants.forEach((shopVariant, index) => {
       formData.append(`shop_variants[${index}][shop_id]`, shopVariant.shop_id.toString());
@@ -132,30 +166,65 @@ const buildProductFormData = (data: ProductCreateUpdatePayload): FormData => {
     });
   }
 
-  // Badges
-  if (data.badges && data.badges.length > 0) {
-    data.badges.forEach((badge, index) => {
-      formData.append(`badges[${index}][id]`, badge.id.toString());
-      formData.append(`badges[${index}][position]`, badge.position);
-    });
-  }
+  (data.badges ?? []).forEach((badge, index) => {
+    formData.append(`badges[${index}][id]`, badge.id.toString());
+    formData.append(`badges[${index}][position]`, badge.position);
+  });
+
+  (data.icon_ids ?? []).forEach((iconId) => {
+    formData.append('icon_ids[]', String(iconId));
+  });
 
   return formData;
+};
+
+export type ProductListQueryParams = {
+  page?: number;
+  per_page?: number;
+  limit?: number;
+  shop_id?: number;
+  category_id?: number;
+  brand_id?: number;
+  vendor_id?: number;
+  approval_status?: string;
+  is_visible?: boolean | number | string;
+  search?: string;
+  sort_field?: string;
+  sort_order?: string;
+  sortField?: string;
+  sortOrder?: string;
 };
 
 // ----------------------------------------------------------------------
 
 export const _ProductApi = {
-  getListProducts: async (params?: {
-    page?: number;
-    per_page?: number;
-    search?: string;
-    sort_field?: string;
-    sort_order?: string;
-    shop_id?: number;
-  }): Promise<ProductListResponse> => {
+  getListProducts: async (params?: ProductListQueryParams): Promise<ProductListResponse> => {
+    const {
+      sort_field,
+      sort_order,
+      sortField,
+      sortOrder,
+      limit,
+      per_page,
+      ...rest
+    } = params ?? {};
+    const q: Record<string, unknown> = {
+      ...rest,
+      per_page: per_page ?? limit,
+    };
+    const sf = sortField ?? sort_field;
+    const so = sortOrder ?? sort_order;
+    if (sf) {
+      q.sortField = sf;
+      q.sort_field = sf;
+    }
+    if (so) {
+      q.sortOrder = so;
+      q.sort_order = so;
+    }
+
     const response = await axiosInstance.get<ProductListResponse>(apiRoutes.product.list, {
-      params,
+      params: q,
     });
     return response.data;
   },
@@ -167,17 +236,26 @@ export const _ProductApi = {
 
   createProduct: async (data: ProductCreateUpdatePayload): Promise<any> => {
     const formData = buildProductFormData(data);
+    // Do not set Content-Type manually — browser/axios must add multipart boundary or Laravel may not parse files/arrays.
     const response = await axiosInstance.post(apiRoutes.product.create, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+      maxBodyLength: Infinity,
+      maxContentLength: Infinity,
     });
     return response.data;
   },
 
   updateProduct: async (id: number | string, data: ProductCreateUpdatePayload): Promise<any> => {
-    const formData = buildProductFormData(data);
-    // PUT as required by API doc
-    const response = await axiosInstance.put(apiRoutes.product.update(id), formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+    const numericId = typeof id === 'string' ? Number(id) : id;
+    const formData = buildProductFormData({
+      ...data,
+      id: Number.isNaN(numericId) ? data.id : numericId,
+    });
+    // PHP only parses multipart bodies for POST. PUT + multipart often arrives empty on the server
+    // unless we spoof: POST with _method=PUT (Laravel route still matches Route::put).
+    formData.append('_method', 'PUT');
+    const response = await axiosInstance.post(apiRoutes.product.update(id), formData, {
+      maxBodyLength: Infinity,
+      maxContentLength: Infinity,
     });
     return response.data;
   },

@@ -13,7 +13,7 @@ import { Box, Input, Typography } from 'src/shared/ui';
 
 // ----------------------------------------------------------------------
 
-type EditMode = 'bilingual' | 'json' | 'boolean' | 'number' | 'color' | 'string';
+type EditMode = 'bilingual' | 'json' | 'boolean' | 'number' | 'color' | 'string' | 'file';
 
 function isBilingualValue(v: unknown): v is { en?: string; ar?: string } {
   if (v === null || typeof v !== 'object' || Array.isArray(v)) return false;
@@ -33,6 +33,7 @@ function isLikelyColorSetting(item: SettingItem): boolean {
 }
 
 function resolveEditMode(item: SettingItem): EditMode {
+  if (item.type === 'file') return 'file';
   if (item.type === 'boolean') return 'boolean';
   if (item.type === 'number') return 'number';
   if (item.type === 'json' || (item.value !== null && typeof item.value === 'object')) {
@@ -88,9 +89,14 @@ export function SettingEditModal({ open, onClose, item }: SettingEditModalProps)
   const [colorVal, setColorVal] = useState('');
   const [numberVal, setNumberVal] = useState('');
   const [boolVal, setBoolVal] = useState(false);
+  const [fileDraft, setFileDraft] = useState<File | null>(null);
 
   useEffect(() => {
     if (!open) return;
+
+    if (mode === 'file') {
+      setFileDraft(null);
+    }
 
     if (mode === 'bilingual' && isBilingualValue(item.value)) {
       setBilingualEn(typeof item.value.en === 'string' ? item.value.en : '');
@@ -136,6 +142,17 @@ export function SettingEditModal({ open, onClose, item }: SettingEditModalProps)
 
   const handleSave = async () => {
     try {
+      if (mode === 'file') {
+        if (!(fileDraft instanceof File)) {
+          toast.error(t('form.settingsFileSelectRequired'));
+          return;
+        }
+        await updateMutation.mutateAsync({ key: item.key, value: fileDraft, isFile: true });
+        toast.success(t('form.settingsUpdatedSuccess'));
+        onClose();
+        return;
+      }
+
       let parsed: unknown;
 
       switch (mode) {
@@ -310,6 +327,49 @@ export function SettingEditModal({ open, onClose, item }: SettingEditModalProps)
                 label={t('form.settingsBooleanLabel')}
                 helperText={t('form.settingsBooleanHelper')}
               />
+            </Box>
+          )}
+
+          {mode === 'file' && (
+            <Box className="flex flex-col gap-4">
+              {typeof item.value === 'string' && item.value ? (
+                <Box>
+                  <Typography variant="subtitle2" className="mb-2 font-medium text-foreground">
+                    {t('form.settingsFileCurrent')}
+                  </Typography>
+                  <a
+                    href={item.value}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-sm text-primary underline"
+                  >
+                    {t('form.viewFile')}
+                  </a>
+                </Box>
+              ) : null}
+              <Box>
+                <Typography variant="subtitle2" className="mb-2 font-medium text-foreground">
+                  {t('form.settingsFileUploadLabel')}
+                </Typography>
+                <Typography variant="caption" className="mb-2 block text-muted-foreground">
+                  {t('form.settingsFileHelper')}
+                </Typography>
+                <label className="flex cursor-pointer flex-col gap-2">
+                  <input
+                    type="file"
+                    className="text-sm file:me-3 file:rounded-md file:border-0 file:bg-primary/10 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-primary hover:file:bg-primary/15"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      setFileDraft(f ?? null);
+                    }}
+                  />
+                  {fileDraft ? (
+                    <Typography variant="caption" className="font-mono text-foreground">
+                      {fileDraft.name}
+                    </Typography>
+                  ) : null}
+                </label>
+              </Box>
             </Box>
           )}
         </div>
