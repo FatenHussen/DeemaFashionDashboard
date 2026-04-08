@@ -146,6 +146,7 @@ export const couponColumns = (
         onDeleteConfirm={onDeleteConfirm}
         onDeleteCancel={onDeleteCancel}
         deletingId={deletingId}
+        adminToggleEntityType="coupon"
         permissions={permissions}
       />
     ),

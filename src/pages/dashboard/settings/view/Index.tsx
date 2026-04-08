@@ -1,8 +1,11 @@
 import type { TFunction } from 'i18next';
 
 import { useState } from 'react';
+import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
 import { Iconify } from '@/shared/components/iconify';
+import { usePermissions } from '@/auth/hooks/use-permissions';
+import { useAdminToggleStatus } from '@/hooks/use-admin-toggle-status';
 import { useFetchSettings } from '@/pages/dashboard/settings/hooks/setting';
 import { SettingEditModal } from '@/pages/dashboard/settings/components/setting-edit-modal';
 import { type SettingItem, settingsItemsFromListData } from '@/pages/dashboard/settings/types/setting.types';
@@ -25,6 +28,17 @@ function formatTypeLabel(type: SettingItem['type'], t: TFunction<'table'>): stri
   return String(type ?? dash);
 }
 
+function settingRowIsActive(item: SettingItem): boolean | undefined {
+  const v = item.is_active;
+  if (v === undefined || v === null) return undefined;
+  if (typeof v === 'boolean') return v;
+  if (typeof v === 'number') {
+    if (v === 1) return true;
+    if (v === 0) return false;
+  }
+  return Boolean(v);
+}
+
 function SettingRow({
   item,
   onEdit,
@@ -33,6 +47,11 @@ function SettingRow({
   onEdit: (item: SettingItem) => void;
 }) {
   const { t } = useTranslation('table');
+  const { can } = usePermissions();
+  const toggleMutation = useAdminToggleStatus();
+  const active = settingRowIsActive(item);
+  const canToggle =
+    active !== undefined && can('setting.update');
 
   return (
     <tr className="border-b border-border/40 transition-colors hover:bg-muted/30">
@@ -66,16 +85,42 @@ function SettingRow({
       </td>
       <td className="px-4 py-3 text-sm text-muted-foreground">{item.updated_at}</td>
       <td className="px-4 py-3">
-        <Button
-          type="button"
-          variant="text"
-          size="small"
-          onClick={() => onEdit(item)}
-          className="gap-1.5 text-primary hover:bg-primary/5 -ms-2"
-        >
-          <Iconify icon="solar:pen-bold" width={16} />
-          {t('editDetails')}
-        </Button>
+        <div className="flex flex-wrap items-center gap-1">
+          {canToggle && (
+            <Button
+              type="button"
+              variant="text"
+              size="small"
+              disabled={toggleMutation.isPending}
+              onClick={async () => {
+                try {
+                  await toggleMutation.mutateAsync({
+                    type: 'system_setting',
+                    id: item.id,
+                    is_active: !active,
+                  });
+                  toast.success(t('toggleVisibilitySuccess'));
+                } catch {
+                  /* toast from axios */
+                }
+              }}
+              className="gap-1.5 text-muted-foreground hover:bg-muted/60 -ms-2"
+            >
+              <Iconify icon={active ? 'solar:eye-closed-bold' : 'solar:eye-bold'} width={16} />
+              {active ? t('toggleHide') : t('toggleShow')}
+            </Button>
+          )}
+          <Button
+            type="button"
+            variant="text"
+            size="small"
+            onClick={() => onEdit(item)}
+            className="gap-1.5 text-primary hover:bg-primary/5 -ms-2"
+          >
+            <Iconify icon="solar:pen-bold" width={16} />
+            {t('editDetails')}
+          </Button>
+        </div>
       </td>
     </tr>
   );

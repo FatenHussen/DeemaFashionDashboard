@@ -2,6 +2,7 @@ import type { TFunction } from 'i18next';
 import type { ColumnDef } from '@tanstack/react-table';
 
 import { z } from 'zod';
+import { useState, useRef, useEffect } from 'react';
 import { Iconify } from '@/shared/components/iconify';
 import { formatTranslated } from '@/utils/format-translated';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
@@ -63,6 +64,7 @@ export interface ProductFormValues {
   created_at: string;
   approval_status?: string | null;
   approval_status_label?: string | null;
+  is_active?: boolean | number;
   [key: string]: any;
 }
 
@@ -184,11 +186,126 @@ export const brandColumns = (
         onDeleteConfirm={onDeleteConfirm}
         onDeleteCancel={onDeleteCancel}
         deletingId={deletingId}
+        adminToggleEntityType="brand"
         permissions={permissions}
       />
     ),
   },
 ];
+
+function EditablePriceCell({
+  productId,
+  currentPrice,
+  onPriceUpdate,
+  canEdit,
+}: {
+  productId: number;
+  currentPrice: number;
+  onPriceUpdate?: (id: number, price: number) => Promise<void>;
+  canEdit: boolean;
+}) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [value, setValue] = useState(String(currentPrice));
+  const [isSaving, setIsSaving] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setValue(String(currentPrice));
+  }, [currentPrice]);
+
+  useEffect(() => {
+    if (isEditing) inputRef.current?.focus();
+  }, [isEditing]);
+
+  const handleSave = async () => {
+    const numericPrice = parseFloat(value);
+    if (Number.isNaN(numericPrice) || numericPrice < 0) {
+      setValue(String(currentPrice));
+      setIsEditing(false);
+      return;
+    }
+    if (numericPrice === currentPrice) {
+      setIsEditing(false);
+      return;
+    }
+    setIsSaving(true);
+    try {
+      await onPriceUpdate?.(productId, numericPrice);
+      setIsEditing(false);
+    } catch {
+      setValue(String(currentPrice));
+      setIsEditing(false);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') handleSave();
+    if (e.key === 'Escape') {
+      setValue(String(currentPrice));
+      setIsEditing(false);
+    }
+  };
+
+  if (isEditing) {
+    return (
+      <div className="flex items-center gap-1.5">
+        <Iconify
+          icon="solar:dollar-bold"
+          className="text-green-500 flex-shrink-0"
+          width={16}
+          height={16}
+        />
+        <input
+          ref={inputRef}
+          type="number"
+          step="0.01"
+          min="0"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onKeyDown={handleKeyDown}
+          onBlur={handleSave}
+          disabled={isSaving}
+          className="w-24 h-8 rounded-md border border-primary/40 bg-background px-2 text-sm font-semibold text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+        />
+        {isSaving && (
+          <Iconify
+            icon="svg-spinners:ring-resize"
+            className="text-primary flex-shrink-0"
+            width={16}
+            height={16}
+          />
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={`flex items-center gap-2 group ${canEdit && onPriceUpdate ? 'cursor-pointer' : ''}`}
+      onClick={() => {
+        if (canEdit && onPriceUpdate) setIsEditing(true);
+      }}
+    >
+      <Iconify
+        icon="solar:dollar-bold"
+        className="text-green-500 flex-shrink-0"
+        width={16}
+        height={16}
+      />
+      <span className="text-sm font-semibold text-foreground">${currentPrice}</span>
+      {canEdit && onPriceUpdate && (
+        <Iconify
+          icon="solar:pen-bold"
+          className="text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+          width={14}
+          height={14}
+        />
+      )}
+    </div>
+  );
+}
 
 export type ProductApprovalActions = {
   onApprove: (id: number) => void;
@@ -209,7 +326,8 @@ export const productColumns = (
   onDeleteConfirm?: () => void,
   onDeleteCancel?: () => void,
   deletingId?: number | null,
-  approvalActions?: ProductApprovalActions | null
+  approvalActions?: ProductApprovalActions | null,
+  onPriceUpdate?: (id: number, price: number) => Promise<void>
 ): ColumnDef<ProductFormValues>[] => [
   {
     id: 'id',
@@ -285,15 +403,12 @@ export const productColumns = (
     accessorKey: 'price',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.price')} />,
     cell: ({ row }) => (
-      <div className="flex items-center gap-2">
-        <Iconify
-          icon="solar:dollar-bold"
-          className="text-green-500 flex-shrink-0"
-          width={16}
-          height={16}
-        />
-        <span className="text-sm font-semibold text-foreground">${row.original.price}</span>
-      </div>
+      <EditablePriceCell
+        productId={row.original.id}
+        currentPrice={row.original.price}
+        onPriceUpdate={onPriceUpdate}
+        canEdit={permissions.update}
+      />
     ),
   },
   {
@@ -377,6 +492,7 @@ export const productColumns = (
         onDeleteCancel={onDeleteCancel}
         deletingId={deletingId}
         permissions={permissions}
+        adminToggleEntityType="product"
         approvalStatus={row.original.approval_status}
         onApprove={approvalActions?.onApprove}
         onReject={approvalActions?.onReject}

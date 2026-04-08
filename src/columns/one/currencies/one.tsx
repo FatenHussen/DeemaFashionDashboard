@@ -100,6 +100,7 @@ export const currencyColumns = (
         onDeleteConfirm={onDeleteConfirm}
         onDeleteCancel={onDeleteCancel}
         deletingId={deletingId}
+        adminToggleEntityType="currency"
         permissions={permissions}
       />
     ),

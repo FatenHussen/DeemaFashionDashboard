@@ -1,3 +1,5 @@
+import type { TFunction } from 'i18next';
+
 import { Button } from '@/shared/ui/button';
 import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate } from 'react-router';
@@ -36,6 +38,27 @@ const ITEM_DYNAMIC_EXCLUDED_KEYS = new Set([
   'image_url',
   'thumbnail',
 ]);
+
+function formatSectionItemFieldValue(key: string, value: unknown, t: TFunction<'table'>): string {
+  if (value == null || value === '') return '—';
+  if (typeof value === 'object' && !Array.isArray(value)) {
+    const o = value as Record<string, unknown>;
+    if (o.en != null || o.ar != null) {
+      return formatTranslated(value as Parameters<typeof formatTranslated>[0]);
+    }
+    return JSON.stringify(value);
+  }
+  if (typeof value === 'boolean') {
+    return value ? t('yes') : t('no');
+  }
+  if (key === 'discount_type' && typeof value === 'string') {
+    const v = value.toLowerCase().replace(/-/g, '_');
+    if (v === 'percentage' || v === 'percent') return t('form.percentageDiscount');
+    if (v === 'fixed' || v === 'fixed_amount') return t('form.fixedDiscount');
+    if (v === 'none' || v === 'no_discount') return t('form.noDiscount');
+  }
+  return String(value);
+}
 
 export default function DetailsPage() {
   const { t } = useTranslation('table');
@@ -136,7 +159,7 @@ export default function DetailsPage() {
                     <>
                       <Box className="space-y-2">
                         <Typography variant="body2" className="text-muted-foreground font-medium">
-                          {t('form.sliderNameLabel')} (EN)
+                          {t('form.sliderNameLabel')} ({t('form.labelEnglishShort')})
                         </Typography>
                         <Box className="flex items-center gap-2">
                           <Iconify icon="solar:list-bold" className="text-primary" width={18} />
@@ -147,7 +170,7 @@ export default function DetailsPage() {
                       </Box>
                       <Box className="space-y-2">
                         <Typography variant="body2" className="text-muted-foreground font-medium">
-                          {t('form.sliderNameLabel')} (AR)
+                          {t('form.sliderNameLabel')} ({t('form.labelArabicShort')})
                         </Typography>
                         <Box className="flex items-center gap-2">
                           <Iconify icon="solar:list-bold" className="text-primary" width={18} />
@@ -173,7 +196,7 @@ export default function DetailsPage() {
 
                   <Box className="space-y-2">
                     <Typography variant="body2" className="text-muted-foreground font-medium">
-                      {t('typeLabel', { ns: 'common' })}
+                      {t('typeLabel')}
                     </Typography>
                     <Box className="flex items-center gap-2">
                       <div
@@ -304,16 +327,11 @@ export default function DetailsPage() {
                             const label = translated !== fieldKey ? translated : key.replace(/_/g, ' ');
                             return (
                               <Box key={key} className="space-y-1">
-                                <Typography
-                                  variant="body2"
-                                  className="text-muted-foreground text-xs capitalize"
-                                >
+                                <Typography variant="body2" className="text-muted-foreground text-xs">
                                   {label}
                                 </Typography>
                                 <Typography variant="body1" className="text-foreground break-all">
-                                  {typeof value === 'object'
-                                    ? JSON.stringify(value)
-                                    : String(value)}
+                                  {formatSectionItemFieldValue(key, value, t)}
                                 </Typography>
                               </Box>
                             );

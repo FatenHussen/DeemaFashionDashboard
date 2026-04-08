@@ -10,18 +10,23 @@ import { apiRoutes, axiosInstance } from '@/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
-import { useId, useRef, useState, useEffect } from 'react';
 import { formatTranslated } from '@/utils/format-translated';
+import { useId, useRef, useMemo, useState, useEffect } from 'react';
 import { useFetchShops } from '@/pages/dashboard/vendor/hooks/shop';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { compressImage, compressImages } from '@/utils/compress-image';
 import { _VendorApi } from '@/pages/dashboard/vendor/api/vendor.services';
 import { _BrandApi } from '@/pages/dashboard/products/api/brand.services';
 import { _CountryApi } from '@/pages/dashboard/countries/api/country.services';
+import { InfiniteScrollSelect } from '@/shared/components/infinite-scroll-select';
 import { _CategoryApi } from '@/pages/dashboard/categories/api/category.services';
-import { _SaleCountryApi } from '@/pages/dashboard/products/api/sale-country.services';
 import { RichTextEditor } from '@/shared/components/rich-text-editor/rich-text-editor';
+import { _SaleCountryApi } from '@/pages/dashboard/sale-countries/api/sale-country.services';
 import { useFetchCategoryAttributes } from '@/pages/dashboard/categories/hooks/category-attribute';
+import {
+  useFetchCategories,
+  useFetchCategoryById,
+} from '@/pages/dashboard/categories/hooks/category';
 import {
   ProductSchema,
   type ProductFormValues,
@@ -31,22 +36,29 @@ import {
   useUpdateProduct,
   useFetchProductById,
 } from '@/pages/dashboard/products/hooks/product';
+import {
+  useUpdateProductVariant,
+  useDeleteProductVariant,
+} from '@/pages/dashboard/products/hooks/product-variant';
 
 import { paths } from 'src/routes/paths';
 
 import { CONFIG } from 'src/global-config';
 import { Label } from 'src/shared/components/label';
-import { Box, Button, Typography } from 'src/shared/ui';
+import { Box, Tab, Tabs, Button, Typography } from 'src/shared/ui';
 import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
 import { RHFBadgeSelector } from 'src/shared/components/hook-form/rhf-badge-selector';
 import { RHFInfiniteSelect } from 'src/shared/components/hook-form/rhf-infinite-select';
 
 // ----------------------------------------------------------------------
 
-const categoryFetcher = (page: number, limit: number) =>
-  _CategoryApi.getListCategoriesPaginated({ page, per_page: limit }).then((r) => ({
+const mainCategoryFetcher = (page: number, limit: number) =>
+  _CategoryApi.getListCategoriesPaginated({ page, per_page: limit, parent_id: 0 }).then((r) => ({
     data: {
-      items: r.data.items.map((cat) => ({ id: cat.id, label: cat.name })),
+      items: r.data.items.map((cat) => ({
+        id: cat.id,
+        label: formatTranslated(cat.name as any),
+      })),
       pagination: r.data.pagination,
     },
   }));
@@ -367,18 +379,27 @@ function resolveVariantAttributeValueIds(
 }
 
 export default function CreatePage() {
-  const { t } = useTranslation('table');
+  const { t, i18n } = useTranslation('table');
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
   const isEditMode = !!id;
 
   const [previewImages, setPreviewImages] = useState<string[]>([]);
+  const [mainCategoryId, setMainCategoryId] = useState(0);
   const productImagesInputId = useId();
   const thumbnailInputId = useId();
   const seoImageInputId = useId();
 
   // Fetch dependencies
   const { data: productResponse, isLoading: isLoadingProduct } = useFetchProductById(id || '');
+
+  const editCategoryMetaId =
+    isEditMode && productResponse?.category?.id
+      ? Number(productResponse.category.id)
+      : 0;
+  const { data: editCategoryResp } = useFetchCategoryById(
+    editCategoryMetaId > 0 ? editCategoryMetaId : ''
+  );
 
   const { data: iconsListResponse } = useQuery({
     queryKey: ['icons', 'product-form'],
@@ -393,6 +414,8 @@ export default function CreatePage() {
 
   const createProductMutation = useCreateProduct();
   const updateProductMutation = useUpdateProduct();
+  const updateVariantMutation = useUpdateProductVariant();
+  const deleteVariantMutation = useDeleteProductVariant();
 
   const defaultValues: ProductFormValues = {
     category_id: 0,
@@ -439,6 +462,19 @@ export default function CreatePage() {
   });
 
   const { handleSubmit, reset, control, watch, setValue, getValues } = methods;
+
+  useEffect(() => {
+    setMainCategoryId(0);
+  }, [id]);
+
+  useEffect(() => {
+    if (!isEditMode || editCategoryMetaId <= 0) return;
+    const d = editCategoryResp?.data;
+    if (!d || Number(d.id) !== editCategoryMetaId) return;
+    const pid = d.parent_id != null && Number(d.parent_id) > 0 ? Number(d.parent_id) : null;
+    setMainCategoryId(pid ?? Number(d.id));
+  }, [isEditMode, editCategoryMetaId, editCategoryResp?.data]);
+
   const categoryId = watch('category_id');
   const imagesFiles = watch('images');
   const existingMediaIds = watch('existing_media_ids') ?? [];
@@ -465,6 +501,59 @@ export default function CreatePage() {
     setValue('shop_variants', []);
   }, [watchedVendorId, vendorScope, setValue]);
 
+  const { data: subcategoriesListResp, isLoading: isLoadingSubCats } = useFetchCategories(
+    1,
+    10,
+    mainCategoryId > 0 ? { category_id: mainCategoryId } : undefined,
+    { enabled: mainCategoryId > 0 }
+  );
+
+  const hasChildCategories = useMemo(() => {
+    if (mainCategoryId <= 0) return false;
+    const items = subcategoriesListResp?.data?.items ?? [];
+    const total = subcategoriesListResp?.data?.pagination?.total;
+    if (typeof total === 'number') return total > 0;
+    return items.length > 0;
+  }, [mainCategoryId, subcategoriesListResp]);
+
+  const mainCategoryInitialLabel = useMemo(() => {
+    if (!isEditMode || editCategoryMetaId <= 0 || !editCategoryResp?.data) return undefined;
+    const d = editCategoryResp.data;
+    if (Number(d.id) !== editCategoryMetaId) return undefined;
+    const pid = d.parent_id != null && Number(d.parent_id) > 0 ? Number(d.parent_id) : null;
+    if (pid && d.parent) {
+      return typeof d.parent.name === 'string'
+        ? d.parent.name
+        : formatTranslated(d.parent.name as any);
+    }
+    return formatTranslated(d.name);
+  }, [isEditMode, editCategoryMetaId, editCategoryResp?.data]);
+
+  const childCategoryFetcher = useMemo(
+    () => (page: number, limit: number) =>
+      _CategoryApi.getListCategoriesPaginated({
+        page,
+        per_page: limit,
+        category_id: mainCategoryId,
+      }).then((r) => ({
+        data: {
+          items: r.data.items.map((cat) => ({
+            id: cat.id,
+            label: formatTranslated(cat.name as any),
+          })),
+          pagination: r.data.pagination,
+        },
+      })),
+    [mainCategoryId]
+  );
+
+  useEffect(() => {
+    if (mainCategoryId <= 0 || isLoadingSubCats) return;
+    if (!hasChildCategories) {
+      setValue('category_id', mainCategoryId);
+    }
+  }, [mainCategoryId, hasChildCategories, isLoadingSubCats, setValue]);
+
   // Fetch category attributes when category changes
   const { data: categoryAttributesAll, isLoading: isLoadingAttributes } =
     useFetchCategoryAttributes(categoryId ? Number(categoryId) : undefined, 1, 100, {
@@ -489,16 +578,44 @@ export default function CreatePage() {
     categoryDetailsResponse?.data?.items ??
     [];
 
-  // Fetch all products for bought_with selector
-  const { data: allProductsResponse } = useQuery({
-    queryKey: ['product', 'list-for-select'],
+  const categoryIdNum = categoryId ? Number(categoryId) : 0;
+
+  // Related products: same category only (requires category_id on the product)
+  const {
+    data: allProductsResponse,
+    isSuccess: boughtWithListReady,
+    isFetching: isFetchingBoughtWithList,
+  } = useQuery({
+    queryKey: ['product', 'list-for-select', categoryIdNum],
     queryFn: () =>
       axiosInstance
-        .get(apiRoutes.product.list, { params: { per_page: 200 } })
+        .get(apiRoutes.product.list, {
+          params: { per_page: 200, category_id: categoryIdNum },
+        })
         .then((r) => r.data),
+    enabled: categoryIdNum > 0,
   });
-  const allProducts: any[] =
-    allProductsResponse?.data?.data ?? allProductsResponse?.data?.items ?? [];
+  const allProducts: any[] = useMemo(
+    () => allProductsResponse?.data?.data ?? allProductsResponse?.data?.items ?? [],
+    [allProductsResponse]
+  );
+
+  useEffect(() => {
+    if (categoryIdNum <= 0 || !boughtWithListReady || isFetchingBoughtWithList) return;
+    const allowed = new Set(allProducts.map((p: any) => Number(p.id)));
+    const current = getValues('bought_with') ?? [];
+    const next = current.filter((pid: number) => allowed.has(Number(pid)));
+    if (next.length !== current.length) {
+      setValue('bought_with', next, { shouldDirty: true });
+    }
+  }, [
+    categoryIdNum,
+    boughtWithListReady,
+    isFetchingBoughtWithList,
+    allProducts,
+    getValues,
+    setValue,
+  ]);
 
   // Field Arrays
   const { fields: variantsFields, append: appendVariant, remove: removeVariant } = useFieldArray({
@@ -950,15 +1067,18 @@ export default function CreatePage() {
     setValue('icon_ids', next, { shouldDirty: true });
   };
 
-  return (
-    <>
-      <title>
-        {isEditMode
-          ? `${t('form.productEditMetaTitle')} | ${CONFIG.appName}`
-          : `${t('form.productCreateMetaTitle')} | ${CONFIG.appName}`}
-      </title>
+  const [productFormTab, setProductFormTab] = useState<string>('basic');
 
-      <CreateFormLayout
+  useEffect(() => {
+    if (isEditMode && id) {
+      document.title = `${t('form.productEditMetaTitle')} #${id} | ${CONFIG.appName}`;
+    } else {
+      document.title = `${t('form.productCreateMetaTitle')} | ${CONFIG.appName}`;
+    }
+  }, [isEditMode, id, t, i18n.language]);
+
+  return (
+    <CreateFormLayout
         methods={methods as any}
         onSubmit={handleSubmit(onSubmit as any, (errors) => {
           console.error('[Product Form] Validation errors:', errors);
@@ -996,26 +1116,20 @@ export default function CreatePage() {
           isEditMode ? t('form.productSubmittingUpdate') : t('form.productSubmittingCreate')
         }
       >
-        {/* ─── Category ─────────────────────────────────────────── */}
-        <Box className="group">
-          <Box className="flex items-center gap-2 mb-2">
-            <Iconify icon="solar:folder-bold" className="text-primary" width={20} />
-            <Typography variant="subtitle2" className="font-semibold text-foreground">
-              {t('form.productCategoryRequired')}
-            </Typography>
-          </Box>
-          <RHFInfiniteSelect
-            name="category_id"
-            queryKey={['categories', 'infinite', 'product-form']}
-            fetcher={categoryFetcher}
-            placeholder={t('form.selectCategory')}
-            initialLabel={productResponse?.category?.name}
-            onValueChange={() => {
-              setValue('variants', []);
-              setValue('category_details', []);
-            }}
-          />
-        </Box>
+        <Tabs
+          value={productFormTab}
+          onChange={(v) => setProductFormTab(String(v))}
+          variant="scrollable"
+          className="mb-6"
+        >
+          <Tab value="basic" label={t('form.productFormTabBasic')} />
+          <Tab value="variants" label={t('form.productFormTabVariants')} />
+          <Tab value="seo" label={t('form.productFormTabSeo')} />
+          <Tab value="extras" label={t('form.productFormTabExtras')} />
+        </Tabs>
+
+        {productFormTab === 'basic' && (
+          <Box className="space-y-6">
 
         {/* ─── Brand ────────────────────────────────────────────── */}
         <Box className="group">
@@ -1230,7 +1344,7 @@ export default function CreatePage() {
                   {t('form.countryOriginSelect')}
                 </Typography>
               </Box>
-              <Button
+              {/* <Button
                 type="button"
                 variant="text"
                 size="small"
@@ -1241,7 +1355,7 @@ export default function CreatePage() {
               >
                 <Iconify icon="solar:add-circle-bold" width={16} className="mr-1" />
                 {t('form.countryCreateShort')}
-              </Button>
+              </Button> */}
             </Box>
             <RHFInfiniteSelect
               name="country_id"
@@ -1522,7 +1636,6 @@ export default function CreatePage() {
             />
           </Box>
         </Box>
-
         {/* ─── Product Images ───────────────────────────────────── */}
         <Box className="group">
           <Box className="flex items-center gap-2 mb-2">
@@ -1704,8 +1817,116 @@ export default function CreatePage() {
           />
         </Box>
 
+        {/* ─── Bought With ──────────────────────────────────────── */}
+        <Box>
+          <Box className="flex items-center gap-2 mb-4">
+            <Iconify icon="solar:shop-bold" className="text-primary" width={20} />
+            <Typography variant="h6" className="font-semibold text-foreground">
+              {t('form.boughtWithTitle')}
+            </Typography>
+          </Box>
+          {!categoryId || Number(categoryId) <= 0 ? (
+            <Typography variant="body2" className="text-muted-foreground">
+              {t('form.selectCategoryFirstBoughtWith')}
+            </Typography>
+          ) : isFetchingBoughtWithList && allProducts.length === 0 ? (
+            <Typography variant="body2" className="text-muted-foreground">
+              {t('loading')}
+            </Typography>
+          ) : allProducts.length === 0 ? (
+            <Typography variant="body2" className="text-muted-foreground">
+              {t('form.noProductsInCategoryBoughtWith')}
+            </Typography>
+          ) : (
+            <Box className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 max-h-48 overflow-y-auto border border-border rounded-lg p-3">
+              {allProducts
+                .filter((p: any) => String(p.id) !== String(id))
+                .map((p: any) => {
+                  const pName =
+                    typeof p.name === 'object' ? p.name?.en ?? p.name?.ar : p.name;
+                  const selected = watchedBoughtWith.includes(Number(p.id));
+                  return (
+                    <Label
+                      key={p.id}
+                      className={`flex items-center gap-2 cursor-pointer p-2 rounded-lg border transition-colors ${
+                        selected
+                          ? 'border-primary bg-primary/10'
+                          : 'border-border hover:bg-muted'
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selected}
+                        onChange={() => toggleBoughtWith(Number(p.id))}
+                        className="w-4 h-4 shrink-0"
+                      />
+                      <Typography variant="caption" className="text-foreground truncate">
+                        #{p.id} {pName}
+                      </Typography>
+                    </Label>
+                  );
+                })}
+            </Box>
+          )}
+        </Box>
+          </Box>
+        )}
+
+        {productFormTab === 'variants' && (
+          <Box className="space-y-6">
+        {/* ─── Category (main → sub / feature) ──────────────────── */}
+        <Box className="group">
+          <Box className="flex items-center gap-2 mb-2">
+            <Iconify icon="solar:folder-bold" className="text-primary" width={20} />
+            <Typography variant="subtitle2" className="font-semibold text-foreground">
+              {t('form.productCategorySection')}
+            </Typography>
+          </Box>
+          <Box className="space-y-1">
+            <Label className="text-sm font-medium">{t('form.productMainCategory')}</Label>
+            <InfiniteScrollSelect
+              value={mainCategoryId}
+              onChange={(val) => {
+                setMainCategoryId(val);
+                setValue('category_id', 0);
+                setValue('variants', []);
+                setValue('category_details', []);
+              }}
+              queryKey={['categories', 'infinite', 'product-form', 'roots']}
+              fetcher={mainCategoryFetcher}
+              placeholder={t('form.selectMainCategory')}
+              initialLabel={mainCategoryInitialLabel}
+            />
+          </Box>
+          {hasChildCategories ? (
+            <Box className="space-y-1 mt-4">
+              <Label className="text-sm font-medium">{t('form.productSubcategory')}</Label>
+              <RHFInfiniteSelect
+                name="category_id"
+                queryKey={['categories', 'infinite', 'product-form', 'children', mainCategoryId]}
+                fetcher={childCategoryFetcher}
+                placeholder={t('form.selectSubcategory')}
+                initialLabel={
+                  productResponse?.category?.name
+                    ? formatTranslated(productResponse.category.name as any)
+                    : undefined
+                }
+                disabled={!mainCategoryId}
+                onValueChange={() => {
+                  setValue('variants', []);
+                  setValue('category_details', []);
+                }}
+              />
+            </Box>
+          ) : mainCategoryId > 0 && !isLoadingSubCats ? (
+            <Typography variant="caption" className="text-muted-foreground block mt-2">
+              {t('form.productCategoryUsesMainOnly')}
+            </Typography>
+          ) : null}
+        </Box>
+
         {/* ─── Variants ─────────────────────────────────────────── */}
-        <Box className="border-t border-border pt-6">
+        <Box>
           <Box className="flex items-center justify-between mb-4">
             <Box className="flex items-center gap-2">
               <Iconify icon="solar:settings-bold" className="text-primary" width={20} />
@@ -1955,14 +2176,193 @@ export default function CreatePage() {
                       );
                     })()}
                   </Box>
+
+                  {/* ─── Variant Extra Fields (SKU, Name, Stock, Purchase Qty, Delivery) ─── */}
+                  <Box className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 border-t border-border pt-4">
+                    <Box>
+                      <Typography variant="caption" className="text-muted-foreground mb-1 block">
+                        {t('form.variantSku')}
+                      </Typography>
+                      <input
+                        type="text"
+                        placeholder={t('form.variantSkuPlaceholder')}
+                        className={inputCls}
+                        defaultValue={
+                          isEditMode && productResponse?.variants?.[variantIndex]
+                            ? (productResponse.variants[variantIndex] as any)?.sku ?? ''
+                            : ''
+                        }
+                        data-variant-field={`sku-${variantIndex}`}
+                      />
+                    </Box>
+                    <Box>
+                      <Typography variant="caption" className="text-muted-foreground mb-1 block">
+                        {t('form.variantNameEn')}
+                      </Typography>
+                      <input
+                        type="text"
+                        placeholder={t('form.variantNameEnPlaceholder')}
+                        className={inputCls}
+                        defaultValue={
+                          isEditMode && productResponse?.variants?.[variantIndex]
+                            ? (productResponse.variants[variantIndex] as any)?.name?.en ?? ''
+                            : ''
+                        }
+                        data-variant-field={`name-en-${variantIndex}`}
+                      />
+                    </Box>
+                    <Box>
+                      <Typography variant="caption" className="text-muted-foreground mb-1 block">
+                        {t('form.variantNameAr')}
+                      </Typography>
+                      <input
+                        type="text"
+                        dir="rtl"
+                        placeholder={t('form.variantNameArPlaceholder')}
+                        className={inputCls}
+                        defaultValue={
+                          isEditMode && productResponse?.variants?.[variantIndex]
+                            ? (productResponse.variants[variantIndex] as any)?.name?.ar ?? ''
+                            : ''
+                        }
+                        data-variant-field={`name-ar-${variantIndex}`}
+                      />
+                    </Box>
+                    <Box>
+                      <Typography variant="caption" className="text-muted-foreground mb-1 block">
+                        {t('form.variantStock')}
+                      </Typography>
+                      <input
+                        type="number"
+                        placeholder={t('form.variantStockPlaceholder')}
+                        className={inputCls}
+                        defaultValue={
+                          isEditMode && productResponse?.variants?.[variantIndex]
+                            ? (productResponse.variants[variantIndex] as any)?.stock ?? ''
+                            : ''
+                        }
+                        data-variant-field={`stock-${variantIndex}`}
+                      />
+                    </Box>
+                    <Box>
+                      <Typography variant="caption" className="text-muted-foreground mb-1 block">
+                        {t('form.variantMaxPurchaseQuantity')}
+                      </Typography>
+                      <input
+                        type="number"
+                        placeholder={t('form.variantMaxPurchaseQuantityPlaceholder')}
+                        className={inputCls}
+                        defaultValue={
+                          isEditMode && productResponse?.variants?.[variantIndex]
+                            ? (productResponse.variants[variantIndex] as any)?.max_purchase_quantity ?? ''
+                            : ''
+                        }
+                        data-variant-field={`max-purchase-qty-${variantIndex}`}
+                      />
+                      <Typography variant="caption" className="text-muted-foreground mt-1 block">
+                        {t('form.variantMaxPurchaseQuantityHint')}
+                      </Typography>
+                    </Box>
+                    <Box>
+                      <Typography variant="caption" className="text-muted-foreground mb-1 block">
+                        {t('form.variantDeliveryTime')}
+                      </Typography>
+                      {vendorScope === 'internal' ? (
+                        <Box>
+                          <input
+                            type="text"
+                            className={`${inputCls} bg-muted`}
+                            value={t('form.variantDeliveryTimeAuto')}
+                            readOnly
+                            data-variant-field={`delivery-time-${variantIndex}`}
+                          />
+                          <Typography variant="caption" className="text-muted-foreground mt-1 block">
+                            {t('form.variantDeliveryTimeHint')}
+                          </Typography>
+                        </Box>
+                      ) : (
+                        <input
+                          type="text"
+                          placeholder={t('form.variantDeliveryTimePlaceholder')}
+                          className={inputCls}
+                          defaultValue={
+                            isEditMode && productResponse?.variants?.[variantIndex]
+                              ? (productResponse.variants[variantIndex] as any)?.delivery_time ?? ''
+                              : ''
+                          }
+                          data-variant-field={`delivery-time-${variantIndex}`}
+                        />
+                      )}
+                    </Box>
+                  </Box>
+
+                  {/* ─── Variant Save / Delete (edit mode only) ─── */}
+                  {isEditMode && watch(`variants.${variantIndex}.id`) && (
+                    <Box className="flex items-center gap-2 border-t border-border pt-3">
+                      <Button
+                        type="button"
+                        variant="outlined"
+                        size="small"
+                        disabled={updateVariantMutation.isPending}
+                        onClick={async () => {
+                          const variantId = watch(`variants.${variantIndex}.id`);
+                          if (!variantId) return;
+                          const card = document.querySelector(`[data-variant-field="sku-${variantIndex}"]`)?.closest('.space-y-4');
+                          const getField = (name: string) =>
+                            (card?.querySelector(`[data-variant-field="${name}-${variantIndex}"]`) as HTMLInputElement)?.value ?? '';
+                          try {
+                            await updateVariantMutation.mutateAsync({
+                              id: variantId,
+                              data: {
+                                attributes_values_ids: watch(`variants.${variantIndex}.attributes_values_ids`) || [],
+                                existing_images_ids: watch(`variants.${variantIndex}.existing_images_ids`) || [],
+                                sku: getField('sku'),
+                                name: { en: getField('name-en'), ar: getField('name-ar') },
+                                stock: Number(getField('stock')) || 0,
+                                max_purchase_quantity: Number(getField('max-purchase-qty')) || 0,
+                                delivery_time: vendorScope === 'internal' ? '12 - 48 ساعة' : getField('delivery-time'),
+                              },
+                            });
+                            toast.success(t('form.variantSaveSuccess'));
+                          } catch {
+                            toast.error(t('form.variantSaveFailed'));
+                          }
+                        }}
+                      >
+                        <Iconify icon="solar:diskette-bold" width={16} className="mr-1" />
+                        {updateVariantMutation.isPending ? t('form.savingVariant') : t('form.saveVariant')}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="text"
+                        size="small"
+                        className="text-destructive"
+                        disabled={deleteVariantMutation.isPending}
+                        onClick={async () => {
+                          const variantId = watch(`variants.${variantIndex}.id`);
+                          if (!variantId) return;
+                          if (!window.confirm(t('form.variantDeleteConfirm'))) return;
+                          try {
+                            await deleteVariantMutation.mutateAsync(variantId);
+                            removeVariant(variantIndex);
+                            toast.success(t('form.variantDeleteSuccess'));
+                          } catch {
+                            toast.error(t('form.variantDeleteFailed'));
+                          }
+                        }}
+                      >
+                        <Iconify icon="solar:trash-bin-bold" width={16} className="mr-1" />
+                        {t('form.deleteVariant')}
+                      </Button>
+                    </Box>
+                  )}
                 </Box>
               ))}
             </Box>
           )}
         </Box>
-
         {/* ─── Category Details ─────────────────────────────────── */}
-        <Box className="border-t border-border pt-6">
+        <Box>
           <Box className="flex items-center justify-between mb-4">
             <Box className="flex items-center gap-2">
               <Iconify icon="solar:list-check-bold" className="text-primary" width={20} />
@@ -2158,198 +2558,6 @@ export default function CreatePage() {
           </Box>
         </Box>
 
-        {/* ─── Bought With ──────────────────────────────────────── */}
-        <Box className="border-t border-border pt-6">
-          <Box className="flex items-center gap-2 mb-4">
-            <Iconify icon="solar:shop-bold" className="text-primary" width={20} />
-            <Typography variant="h6" className="font-semibold text-foreground">
-              {t('form.boughtWithTitle')}
-            </Typography>
-          </Box>
-          {allProducts.length === 0 ? (
-            <Typography variant="body2" className="text-muted-foreground">
-              {t('form.noProductsAvailable')}
-            </Typography>
-          ) : (
-            <Box className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 max-h-48 overflow-y-auto border border-border rounded-lg p-3">
-              {allProducts
-                .filter((p: any) => String(p.id) !== String(id))
-                .map((p: any) => {
-                  const pName =
-                    typeof p.name === 'object' ? p.name?.en ?? p.name?.ar : p.name;
-                  const selected = watchedBoughtWith.includes(Number(p.id));
-                  return (
-                    <Label
-                      key={p.id}
-                      className={`flex items-center gap-2 cursor-pointer p-2 rounded-lg border transition-colors ${
-                        selected
-                          ? 'border-primary bg-primary/10'
-                          : 'border-border hover:bg-muted'
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selected}
-                        onChange={() => toggleBoughtWith(Number(p.id))}
-                        className="w-4 h-4 shrink-0"
-                      />
-                      <Typography variant="caption" className="text-foreground truncate">
-                        #{p.id} {pName}
-                      </Typography>
-                    </Label>
-                  );
-                })}
-            </Box>
-          )}
-        </Box>
-
-        {/* ─── SEO ──────────────────────────────────────────────── */}
-        <Box className="border-t border-border pt-6">
-          <Typography variant="h6" className="font-semibold text-foreground mb-4">
-            {t('form.seoTitle')}
-          </Typography>
-          <Box className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <Controller
-              name="seo_title.en"
-              control={control}
-              render={({ field }) => (
-                <input {...field} placeholder={t('form.seoTitleEnPlaceholder')} className={inputCls} />
-              )}
-            />
-            <Controller
-              name="seo_title.ar"
-              control={control}
-              render={({ field }) => (
-                <input {...field} dir="rtl" placeholder={t('form.seoTitleArPlaceholder')} className={inputCls} />
-              )}
-            />
-            <Controller
-              name="seo_description.en"
-              control={control}
-              render={({ field }) => (
-                <textarea
-                  {...field}
-                  placeholder={t('form.seoDescEnPlaceholder')}
-                  className={inputCls + ' min-h-[80px]'}
-                />
-              )}
-            />
-            <Controller
-              name="seo_description.ar"
-              control={control}
-              render={({ field }) => (
-                <textarea
-                  {...field}
-                  dir="rtl"
-                  placeholder={t('form.seoDescArPlaceholder')}
-                  className={inputCls + ' min-h-[80px]'}
-                />
-              )}
-            />
-            <Controller
-              name="seo_keywords.en"
-              control={control}
-              render={({ field }) => (
-                <input {...field} placeholder={t('form.seoKeywordsEnPlaceholder')} className={inputCls} />
-              )}
-            />
-            <Controller
-              name="seo_keywords.ar"
-              control={control}
-              render={({ field }) => (
-                <input {...field} dir="rtl" placeholder={t('form.seoKeywordsArPlaceholder')} className={inputCls} />
-              )}
-            />
-          </Box>
-          <Box className="group">
-            <Typography variant="subtitle2" className="mb-2">
-              {t('form.seoImageOptional')}
-            </Typography>
-            <Controller
-              name="seo_image"
-              control={control}
-              render={({ field: { onChange, value, ref } }) => (
-                <div>
-                  <input
-                    id={seoImageInputId}
-                    ref={ref}
-                    type="file"
-                    accept="image/*"
-                    className="sr-only"
-                    onChange={(e) => {
-                      const f = e.target.files?.[0];
-                      onChange(f ?? undefined);
-                      e.target.value = '';
-                    }}
-                  />
-                  <label htmlFor={seoImageInputId} className="inline-flex cursor-pointer rounded-lg border border-border px-3 py-2 text-sm">
-                    {t('form.chooseSeoImage')}
-                  </label>
-                  {value instanceof File ? (
-                    <Typography variant="caption" className="ml-2">
-                      {(value as File).name}
-                    </Typography>
-                  ) : null}
-                  <ExistingImagePreview
-                    url={productResponse?.seo_image}
-                    label={t('form.currentSeoImage')}
-                    active={isEditMode && !(value instanceof File)}
-                    fallbackUrl={productResponse?.images?.[0]?.url}
-                  />
-                </div>
-              )}
-            />
-          </Box>
-        </Box>
-
-        {/* ─── Badges ────────────────────────────────────────────── */}
-        <Box className="border-t border-border pt-6">
-
-             <Typography variant="h6" className="font-semibold text-foreground">
-              {t('form.badgesTitle')}
-            </Typography>
-          <RHFBadgeSelector name="badges" />
-        </Box>
-
-        {/* ─── Icons ─────────────────────────────────────────────── */}
-        <Box className="border-t border-border pt-6">
-          <Typography variant="h6" className="font-semibold text-foreground mb-4">
-            {t('form.iconsTitle')}
-          </Typography>
-          {iconOptions.length === 0 ? (
-            <Typography variant="body2" className="text-muted-foreground">
-              {t('form.noIconsLoaded')}
-            </Typography>
-          ) : (
-            <Box className="flex flex-wrap gap-2">
-              {iconOptions.map((ic: any) => {
-                const iid = Number(ic.id);
-                const label = typeof ic.name === 'object' ? ic.name?.en ?? ic.name?.ar : ic.name;
-                const selected = watchedIconIds.includes(iid);
-                return (
-                  <Label
-                    key={iid}
-                    className={`flex items-center gap-2 cursor-pointer rounded-lg border px-3 py-2 text-sm ${
-                      selected ? 'border-primary bg-primary/10' : 'border-border'
-                    }`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selected}
-                      onChange={() => toggleIcon(iid)}
-                      className="w-4 h-4"
-                    />
-                    {ic.icon || ic.image ? (
-                      <img src={ic.icon || ic.image} alt="" className="w-6 h-6 object-contain" />
-                    ) : null}
-                    <span>{label ?? `#${iid}`}</span>
-                  </Label>
-                );
-              })}
-            </Box>
-          )}
-        </Box>
-
         {/* ─── Shop Variants ────────────────────────────────────── */}
         <Box className="border-t border-border pt-6">
           <Box className="flex items-center justify-between mb-4">
@@ -2492,6 +2700,161 @@ export default function CreatePage() {
             </Box>
           )}
         </Box>
+          </Box>
+        )}
+
+        {productFormTab === 'seo' && (
+          <Box className="space-y-6">
+        {/* ─── SEO ──────────────────────────────────────────────── */}
+        <Box>
+          <Typography variant="h6" className="font-semibold text-foreground mb-4">
+            {t('form.seoTitle')}
+          </Typography>
+          <Box className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <Controller
+              name="seo_title.en"
+              control={control}
+              render={({ field }) => (
+                <input {...field} placeholder={t('form.seoTitleEnPlaceholder')} className={inputCls} />
+              )}
+            />
+            <Controller
+              name="seo_title.ar"
+              control={control}
+              render={({ field }) => (
+                <input {...field} dir="rtl" placeholder={t('form.seoTitleArPlaceholder')} className={inputCls} />
+              )}
+            />
+            <Controller
+              name="seo_description.en"
+              control={control}
+              render={({ field }) => (
+                <textarea
+                  {...field}
+                  placeholder={t('form.seoDescEnPlaceholder')}
+                  className={inputCls + ' min-h-[80px]'}
+                />
+              )}
+            />
+            <Controller
+              name="seo_description.ar"
+              control={control}
+              render={({ field }) => (
+                <textarea
+                  {...field}
+                  dir="rtl"
+                  placeholder={t('form.seoDescArPlaceholder')}
+                  className={inputCls + ' min-h-[80px]'}
+                />
+              )}
+            />
+            <Controller
+              name="seo_keywords.en"
+              control={control}
+              render={({ field }) => (
+                <input {...field} placeholder={t('form.seoKeywordsEnPlaceholder')} className={inputCls} />
+              )}
+            />
+            <Controller
+              name="seo_keywords.ar"
+              control={control}
+              render={({ field }) => (
+                <input {...field} dir="rtl" placeholder={t('form.seoKeywordsArPlaceholder')} className={inputCls} />
+              )}
+            />
+          </Box>
+          <Box className="group">
+            <Typography variant="subtitle2" className="mb-2">
+              {t('form.seoImageOptional')}
+            </Typography>
+            <Controller
+              name="seo_image"
+              control={control}
+              render={({ field: { onChange, value, ref } }) => (
+                <div>
+                  <input
+                    id={seoImageInputId}
+                    ref={ref}
+                    type="file"
+                    accept="image/*"
+                    className="sr-only"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      onChange(f ?? undefined);
+                      e.target.value = '';
+                    }}
+                  />
+                  <label htmlFor={seoImageInputId} className="inline-flex cursor-pointer rounded-lg border border-border px-3 py-2 text-sm">
+                    {t('form.chooseSeoImage')}
+                  </label>
+                  {value instanceof File ? (
+                    <Typography variant="caption" className="ml-2">
+                      {(value as File).name}
+                    </Typography>
+                  ) : null}
+                  <ExistingImagePreview
+                    url={productResponse?.seo_image}
+                    label={t('form.currentSeoImage')}
+                    active={isEditMode && !(value instanceof File)}
+                    fallbackUrl={productResponse?.images?.[0]?.url}
+                  />
+                </div>
+              )}
+            />
+          </Box>
+        </Box>
+          </Box>
+        )}
+
+        {productFormTab === 'extras' && (
+          <Box className="space-y-6">
+        {/* ─── Badges ────────────────────────────────────────────── */}
+        <Box className="border-t border-border pt-6">
+
+             <Typography variant="h6" className="font-semibold text-foreground">
+              {t('form.badgesTitle')}
+            </Typography>
+          <RHFBadgeSelector name="badges" />
+        </Box>
+
+        {/* ─── Icons ─────────────────────────────────────────────── */}
+        <Box className="border-t border-border pt-6">
+          <Typography variant="h6" className="font-semibold text-foreground mb-4">
+            {t('form.iconsTitle')}
+          </Typography>
+          {iconOptions.length === 0 ? (
+            <Typography variant="body2" className="text-muted-foreground">
+              {t('form.noIconsLoaded')}
+            </Typography>
+          ) : (
+            <Box className="flex flex-wrap gap-2">
+              {iconOptions.map((ic: any) => {
+                const iid = Number(ic.id);
+                const label = typeof ic.name === 'object' ? ic.name?.en ?? ic.name?.ar : ic.name;
+                const selected = watchedIconIds.includes(iid);
+                return (
+                  <Label
+                    key={iid}
+                    className={`flex items-center gap-2 cursor-pointer rounded-lg border px-3 py-2 text-sm ${
+                      selected ? 'border-primary bg-primary/10' : 'border-border'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selected}
+                      onChange={() => toggleIcon(iid)}
+                      className="w-4 h-4"
+                    />
+                    {ic.icon || ic.image ? (
+                      <img src={ic.icon || ic.image} alt="" className="w-6 h-6 object-contain" />
+                    ) : null}
+                    <span>{label ?? `#${iid}`}</span>
+                  </Label>
+                );
+              })}
+            </Box>
+          )}
+        </Box>
 
         {/* ─── Full Description ─────────────────────────────────── */}
         <Box className="border-t border-border pt-6">
@@ -2540,7 +2903,8 @@ export default function CreatePage() {
           </Box>
         </Box>
         </Box>
+          </Box>
+        )}
       </CreateFormLayout>
-    </>
   );
 }

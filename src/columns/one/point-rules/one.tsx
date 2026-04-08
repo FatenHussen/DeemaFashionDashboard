@@ -116,6 +116,7 @@ export const pointRuleColumns = (
         onDeleteConfirm={onDeleteConfirm}
         onDeleteCancel={onDeleteCancel}
         deletingId={deletingId}
+        adminToggleEntityType="point_rule"
         permissions={permissions}
       />
     ),

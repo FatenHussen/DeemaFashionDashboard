@@ -1,3 +1,5 @@
+import type { ExportFormat } from '../api/report.services';
+
 import { useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { Box, Typography } from '@/shared/ui';
@@ -7,6 +9,9 @@ import { Iconify } from '@/shared/components/iconify';
 import { paths } from 'src/routes/paths';
 
 import { CONFIG } from 'src/global-config';
+
+import { _ReportApi } from '../api/report.services';
+import { ReportExportButtons } from '../components/report-export-buttons';
 
 // ----------------------------------------------------------------------
 
@@ -22,44 +27,55 @@ export default function ReportsIndexPage() {
   }, [t, i18n.language]);
 
   const reportCards = useMemo(
-    () => [
-      {
-        title: t('reports.cardSalesTitle'),
-        description: t('reports.cardSalesDesc'),
-        icon: 'solar:cart-large-2-bold',
-        path: `${paths.dashboard.reports}/sales`,
-      },
-      {
-        title: t('reports.cardProductMovementTitle'),
-        description: t('reports.cardProductMovementDesc'),
-        icon: 'solar:box-bold',
-        path: `${paths.dashboard.reports}/product-movement`,
-      },
-      {
-        title: t('reports.cardVendorTitle'),
-        description: t('reports.cardVendorDesc'),
-        icon: 'solar:shop-2-bold',
-        path: `${paths.dashboard.reports}/vendor-performance`,
-      },
-      {
-        title: t('reports.cardDriverTitle'),
-        description: t('reports.cardDriverDesc'),
-        icon: 'solar:delivery-bold',
-        path: `${paths.dashboard.reports}/driver-performance`,
-      },
-      {
-        title: t('reports.cardSalesByLocationTitle'),
-        description: t('reports.cardSalesByLocationDesc'),
-        icon: 'solar:map-point-bold',
-        path: `${paths.dashboard.reports}/sales-by-location`,
-      },
-      {
-        title: t('reports.cardSalesByCategoryTitle'),
-        description: t('reports.cardSalesByCategoryDesc'),
-        icon: 'solar:widget-5-bold',
-        path: `${paths.dashboard.reports}/sales-by-category`,
-      },
-    ],
+    () =>
+      [
+        {
+          title: t('reports.cardSalesTitle'),
+          description: t('reports.cardSalesDesc'),
+          icon: 'solar:cart-large-2-bold',
+          path: `${paths.dashboard.reports}/sales`,
+          exportReport: (format: ExportFormat) =>
+            _ReportApi.exportSalesReport(format, undefined),
+        },
+        {
+          title: t('reports.cardProductMovementTitle'),
+          description: t('reports.cardProductMovementDesc'),
+          icon: 'solar:box-bold',
+          path: `${paths.dashboard.reports}/product-movement`,
+          exportReport: (format: ExportFormat) =>
+            _ReportApi.exportProductMovementReport(format, undefined),
+        },
+        {
+          title: t('reports.cardVendorTitle'),
+          description: t('reports.cardVendorDesc'),
+          icon: 'solar:shop-2-bold',
+          path: `${paths.dashboard.reports}/vendor-performance`,
+        },
+        {
+          title: t('reports.cardDriverTitle'),
+          description: t('reports.cardDriverDesc'),
+          icon: 'solar:delivery-bold',
+          path: `${paths.dashboard.reports}/driver-performance`,
+        },
+        {
+          title: t('reports.cardSalesByLocationTitle'),
+          description: t('reports.cardSalesByLocationDesc'),
+          icon: 'solar:map-point-bold',
+          path: `${paths.dashboard.reports}/sales-by-location`,
+        },
+        {
+          title: t('reports.cardSalesByCategoryTitle'),
+          description: t('reports.cardSalesByCategoryDesc'),
+          icon: 'solar:widget-5-bold',
+          path: `${paths.dashboard.reports}/sales-by-category`,
+        },
+      ] as const satisfies ReadonlyArray<{
+        title: string;
+        description: string;
+        icon: string;
+        path: string;
+        exportReport?: (format: ExportFormat) => Promise<void>;
+      }>,
     [t, i18n.language]
   );
 
@@ -100,13 +116,23 @@ export default function ReportsIndexPage() {
                   <Typography variant="body2" className="text-muted-foreground">
                     {report.description}
                   </Typography>
-                  <Typography
-                    variant="caption"
-                    className="text-primary mt-2 inline-flex items-center gap-1 font-medium"
-                  >
-                    {t('reports.viewReport')}
-                    <Iconify icon="solar:arrow-right-bold" width={14} className="rtl:rotate-180" />
-                  </Typography>
+                  <Box className="mt-3 flex flex-col gap-2 border-t border-border/30 pt-3 sm:flex-row sm:items-center sm:justify-between">
+                    <Typography
+                      variant="caption"
+                      className="text-primary inline-flex items-center gap-1 font-medium"
+                    >
+                      {t('reports.viewReport')}
+                      <Iconify icon="solar:arrow-right-bold" width={14} className="rtl:rotate-180" />
+                    </Typography>
+                    {'exportReport' in report && report.exportReport ? (
+                      <Box
+                        onClick={(e) => e.stopPropagation()}
+                        className="flex flex-wrap gap-2"
+                      >
+                        <ReportExportButtons onExport={report.exportReport} />
+                      </Box>
+                    ) : null}
+                  </Box>
                 </Box>
               </Box>
             </Box>

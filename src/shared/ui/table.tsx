@@ -5,11 +5,16 @@ import { mergeClasses } from 'minimal-shared/utils';
 
 const Table = forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableElement>>(
   ({ className, ...props }, ref) => (
-    <div className="relative w-full overflow-x-auto rounded-xl">
+    <div
+      className={mergeClasses([
+        'table-scroll-shell relative w-full min-w-0 max-w-full overflow-x-auto rounded-[inherit]',
+        'overscroll-x-contain touch-pan-x scroll-smooth',
+      ])}
+    >
       <table
         ref={ref}
         className={mergeClasses([
-          'w-full caption-bottom text-sm table-modern',
+          'w-full min-w-max caption-bottom text-sm table-modern',
           'border-separate border-spacing-0',
           className,
         ])}
@@ -100,9 +105,9 @@ const TableHead = forwardRef<HTMLTableCellElement, React.ThHTMLAttributes<HTMLTa
     <th
       ref={ref}
       className={mergeClasses([
-        'h-14 px-3 sm:px-4 lg:px-6',
+        'h-11 min-h-11 sm:h-14 sm:min-h-14 px-2 sm:px-4 lg:px-6',
         'text-left align-middle',
-        'font-semibold text-muted-foreground text-xs uppercase tracking-wider',
+        'font-semibold text-muted-foreground text-[10px] sm:text-xs uppercase tracking-wider',
         'bg-muted/30 first:rounded-tl-lg last:rounded-tr-lg',
         'border-b-2 border-primary/20',
         'transition-colors duration-200',
@@ -125,8 +130,8 @@ const TableCell = forwardRef<HTMLTableCellElement, React.TdHTMLAttributes<HTMLTa
     <td
       ref={ref}
       className={mergeClasses([
-        'py-4 px-3 sm:px-4 lg:px-6',
-        'align-middle text-sm text-foreground',
+        'py-2.5 sm:py-4 px-2 sm:px-4 lg:px-6',
+        'align-middle text-xs sm:text-sm text-foreground',
         'transition-all duration-200',
         'group-hover:text-foreground',
         '[&:has([role=checkbox])]:pr-0 *:[[role=checkbox]]:translate-y-0.5',

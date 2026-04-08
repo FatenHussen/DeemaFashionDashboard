@@ -211,6 +211,10 @@ export const queryKeys = {
     list: (params?: { page?: number; per_page?: number }) => ['recipe', 'list', params] as const,
     details: (id: number | string) => ['recipe', 'details', id] as const,
   },
+  // Product Variant query keys
+  productVariant: {
+    details: (id: number | string) => ['productVariant', 'details', id] as const,
+  },
   // Shop Product Variant query keys (shared - used in selects)
   shopProductVariant: {
     list: (params?: { page?: number; per_page?: number }) =>
@@ -291,6 +295,11 @@ export const queryKeys = {
     list: (params?: { page?: number; per_page?: number }) => ['icon', 'list', params] as const,
     details: (id: number | string) => ['icon', 'details', id] as const,
   },
+  // Color query keys
+  color: {
+    list: (params?: Record<string, unknown>) => ['color', 'list', params] as const,
+    details: (id: number | string) => ['color', 'details', id] as const,
+  },
   // Promotion query keys
   promotion: {
     list: (params?: { page?: number; per_page?: number }) => ['promotion', 'list', params] as const,
@@ -300,6 +309,12 @@ export const queryKeys = {
   country: {
     list: (params?: { page?: number; per_page?: number }) => ['country', 'list', params] as const,
     details: (id: number | string) => ['country', 'details', id] as const,
+  },
+  // Sale country (markets) — list used in product forms; toggle invalidates selects when wired with useQuery
+  saleCountry: {
+    list: (params?: { page?: number; per_page?: number; is_active?: number | string }) =>
+      ['saleCountry', 'list', params] as const,
+    details: (id: number | string) => ['saleCountry', 'details', id] as const,
   },
   // Promotion Request query keys
   promotionRequest: {

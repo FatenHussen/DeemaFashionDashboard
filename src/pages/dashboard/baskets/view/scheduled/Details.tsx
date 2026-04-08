@@ -21,7 +21,7 @@ function formatName(name: unknown): string {
 export default function DetailsPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { t } = useTranslation('table');
+  const { t } = useTranslation(['table', 'nav']);
   const { data: apiResponse, isLoading, error } = useFetchScheduledBasketById(id || '');
 
   const scheduledBasket = apiResponse?.data;
@@ -32,8 +32,12 @@ export default function DetailsPage() {
     return (
       <Box className="flex min-h-[400px] items-center justify-center p-6">
         <Box className="w-full max-w-md rounded-xl border border-border/50 bg-background p-6 shadow-lg">
-          <Typography variant="h6" className="mb-2 text-destructive">Error Loading Scheduled Basket</Typography>
-          <Button variant="outlined" onClick={() => navigate('/scheduled-baskets')}>Back to Scheduled Baskets</Button>
+          <Typography variant="h6" className="mb-2 text-destructive">
+            {t('form.scheduledBasketDetailsErrorTitle')}
+          </Typography>
+          <Button variant="outlined" onClick={() => navigate('/scheduled-baskets')}>
+            {t('form.scheduledBasketDetailsBack')}
+          </Button>
         </Box>
       </Box>
     );
@@ -51,7 +55,8 @@ export default function DetailsPage() {
         <Box className="relative mx-auto max-w-4xl">
           <Box className="mb-6">
             <Button variant="text" onClick={() => navigate('/scheduled-baskets')} className="-ml-2 mb-4 text-muted-foreground hover:text-foreground">
-              <Iconify icon="solar:arrow-left-bold" width={20} className="mr-2" /> Back to Scheduled Baskets
+              <Iconify icon="solar:arrow-left-bold" width={20} className="mr-2 rtl:rotate-180" />{' '}
+              {t('form.scheduledBasketDetailsBack')}
             </Button>
             <Box className="mb-2 flex items-center gap-4">
               {scheduledBasket.image ? (
@@ -73,7 +78,7 @@ export default function DetailsPage() {
                 {scheduledBasket.is_active ? t('active') : t('inactive')}
               </span>
               <Button variant="contained" onClick={() => navigate(`/scheduled-baskets/update/${id}`)} className="gap-2">
-                <Iconify icon="solar:pen-bold" width={18} /> Edit
+                <Iconify icon="solar:pen-bold" width={18} /> {t('edit')}
               </Button>
             </Box>
           </Box>
@@ -81,14 +86,16 @@ export default function DetailsPage() {
           {/* Pricing Info */}
           <Box className="mb-4 overflow-hidden rounded-2xl border border-border/50 bg-card/80 shadow-sm backdrop-blur-sm">
             <Box className="p-6">
-              <Typography variant="h6" className="mb-4 font-semibold">{t('orderDetails.pricing') || 'Pricing'}</Typography>
+              <Typography variant="h6" className="mb-4 font-semibold">{t('orders.pricing')}</Typography>
               <Box className="grid gap-4 sm:grid-cols-3">
                 <Box>
-                  <Typography variant="caption" className="text-muted-foreground">Original Price</Typography>
+                  <Typography variant="caption" className="text-muted-foreground">
+                    {t('columns.originalPrice')}
+                  </Typography>
                   <Typography variant="body1" className="font-medium">{scheduledBasket.original_price ?? '—'}</Typography>
                 </Box>
                 <Box>
-                  <Typography variant="caption" className="text-muted-foreground">Discount</Typography>
+                  <Typography variant="caption" className="text-muted-foreground">{t('columns.discount')}</Typography>
                   <Typography variant="body1" className="font-medium">
                     <span className="px-2 py-0.5 rounded-md bg-orange-100 text-orange-700 text-xs font-medium">
                       {discountText} ({scheduledBasket.discount_type})
@@ -96,15 +103,15 @@ export default function DetailsPage() {
                   </Typography>
                 </Box>
                 <Box>
-                  <Typography variant="caption" className="text-muted-foreground">Discount Amount</Typography>
+                  <Typography variant="caption" className="text-muted-foreground">{t('form.discountAmount')}</Typography>
                   <Typography variant="body1" className="font-medium">{scheduledBasket.discount_amount ?? '—'}</Typography>
                 </Box>
                 <Box>
-                  <Typography variant="caption" className="text-muted-foreground">Final Price</Typography>
+                  <Typography variant="caption" className="text-muted-foreground">{t('columns.finalPrice')}</Typography>
                   <Typography variant="body1" className="font-semibold text-primary">{scheduledBasket.final_price ?? '—'}</Typography>
                 </Box>
                 <Box>
-                  <Typography variant="caption" className="text-muted-foreground">Delivery Price</Typography>
+                  <Typography variant="caption" className="text-muted-foreground">{t('orders.deliveryPrice')}</Typography>
                   <Typography variant="body1" className="font-medium">{scheduledBasket.delivery_price ?? '—'}</Typography>
                 </Box>
               </Box>
@@ -114,36 +121,38 @@ export default function DetailsPage() {
           {/* Stats */}
           <Box className="mb-4 overflow-hidden rounded-2xl border border-border/50 bg-card/80 shadow-sm backdrop-blur-sm">
             <Box className="p-6">
-              <Typography variant="h6" className="mb-4 font-semibold">Statistics</Typography>
+              <Typography variant="h6" className="mb-4 font-semibold">
+                {t('statistics', { ns: 'nav' })}
+              </Typography>
               <Box className="grid gap-4 sm:grid-cols-4">
                 <Box className="rounded-xl border border-border/50 bg-background p-3 text-center">
-                  <Typography variant="caption" className="text-muted-foreground">Rating</Typography>
+                  <Typography variant="caption" className="text-muted-foreground">{t('columns.rating')}</Typography>
                   <Typography variant="h5" className="font-bold">
                     {scheduledBasket.average_rating ?? scheduledBasket.rating ?? '—'}
                     {(scheduledBasket.average_rating ?? scheduledBasket.rating) != null && <span className="text-yellow-500 ml-1">★</span>}
                   </Typography>
                 </Box>
                 <Box className="rounded-xl border border-border/50 bg-background p-3 text-center">
-                  <Typography variant="caption" className="text-muted-foreground">Sold</Typography>
+                  <Typography variant="caption" className="text-muted-foreground">{t('columns.numSold')}</Typography>
                   <Typography variant="h5" className="font-bold">{scheduledBasket.num_sold ?? '—'}</Typography>
                 </Box>
                 <Box className="rounded-xl border border-border/50 bg-background p-3 text-center">
-                  <Typography variant="caption" className="text-muted-foreground">Varieties</Typography>
+                  <Typography variant="caption" className="text-muted-foreground">{t('columns.varieties')}</Typography>
                   <Typography variant="h5" className="font-bold">{scheduledBasket.num_varieties ?? '—'}</Typography>
                 </Box>
                 <Box className="rounded-xl border border-border/50 bg-background p-3 text-center">
-                  <Typography variant="caption" className="text-muted-foreground">Schedules</Typography>
+                  <Typography variant="caption" className="text-muted-foreground">{t('columns.scheduleCount')}</Typography>
                   <Typography variant="h5" className="font-bold">{scheduledBasket.schedule_count ?? '—'}</Typography>
                 </Box>
               </Box>
               <Box className="mt-4 flex flex-wrap gap-4 text-sm">
                 <span>
-                  <span className="text-muted-foreground">is_schedule: </span>
-                  {scheduledBasket.is_schedule ? 'Yes' : 'No'}
+                  <span className="text-muted-foreground">{t('form.scheduledBasketDetailsIsSchedule')}: </span>
+                  {scheduledBasket.is_schedule ? t('yes') : t('no')}
                 </span>
                 <span>
-                  <span className="text-muted-foreground">has_schedule: </span>
-                  {scheduledBasket.has_schedule ? 'Yes' : 'No'}
+                  <span className="text-muted-foreground">{t('form.scheduledBasketDetailsHasSchedule')}: </span>
+                  {scheduledBasket.has_schedule ? t('yes') : t('no')}
                 </span>
               </Box>
             </Box>
@@ -175,8 +184,8 @@ export default function DetailsPage() {
                         </span>
                         {sch.is_default != null && (
                           <span>
-                            <span className="text-muted-foreground">Default: </span>
-                            {sch.is_default ? 'Yes' : 'No'}
+                            <span className="text-muted-foreground">{t('form.scheduledBasketDetailsDefault')}: </span>
+                            {sch.is_default ? t('yes') : t('no')}
                           </span>
                         )}
                       </Box>
@@ -191,7 +200,7 @@ export default function DetailsPage() {
           {scheduledBasket.badges && scheduledBasket.badges.length > 0 && (
             <Box className="mb-4 overflow-hidden rounded-2xl border border-border/50 bg-card/80 shadow-sm backdrop-blur-sm">
               <Box className="p-6">
-                <Typography variant="h6" className="mb-4 font-semibold">Badges</Typography>
+                <Typography variant="h6" className="mb-4 font-semibold">{t('badges')}</Typography>
                 <Box className="flex flex-wrap gap-3">
                   {scheduledBasket.badges.map((b) => (
                     <Box key={b.id} className="flex items-center gap-2 rounded-lg border border-border/50 bg-background px-3 py-2">
@@ -211,7 +220,9 @@ export default function DetailsPage() {
           {scheduledBasket.items && scheduledBasket.items.length > 0 && (
             <Box className="mb-4 overflow-hidden rounded-2xl border border-border/50 bg-card/80 shadow-sm backdrop-blur-sm">
               <Box className="p-6">
-                <Typography variant="h6" className="mb-4 font-semibold">Items ({scheduledBasket.items.length})</Typography>
+                <Typography variant="h6" className="mb-4 font-semibold">
+                  {t('form.scheduledBasketDetailsItemsHeading', { count: scheduledBasket.items.length })}
+                </Typography>
                 <Box className="space-y-4">
                   {scheduledBasket.items.map((item, i) => (
                     <Box key={item.id ?? i} className="rounded-xl border border-border/50 bg-background p-4">
@@ -230,20 +241,44 @@ export default function DetailsPage() {
                           ) : null}
                         </Box>
                         <Box className="text-end text-sm">
-                          <div>Qty {item.quantity}</div>
-                          {item.unit_price != null && <div className="text-muted-foreground">Unit {item.unit_price}</div>}
-                          {item.subtotal != null && <div className="font-medium">Subtotal {item.subtotal}</div>}
+                          <div>
+                            {t('form.scheduledBasketDetailsQty')} {item.quantity}
+                          </div>
+                          {item.unit_price != null && (
+                            <div className="text-muted-foreground">
+                              {t('form.scheduledBasketDetailsUnit')} {item.unit_price}
+                            </div>
+                          )}
+                          {item.subtotal != null && (
+                            <div className="font-medium">
+                              {t('form.scheduledBasketDetailsSubtotal')} {item.subtotal}
+                            </div>
+                          )}
                         </Box>
                       </Box>
                       <Box className="mt-2 flex flex-wrap gap-2 text-xs">
-                        <span className="rounded bg-muted px-2 py-0.5">required: {String(item.is_required)}</span>
-                        <span className="rounded bg-muted px-2 py-0.5">extra: {String(item.is_extra)}</span>
-                        {item.min_quantity != null && <span className="rounded bg-muted px-2 py-0.5">min {item.min_quantity}</span>}
-                        {item.max_quantity != null && <span className="rounded bg-muted px-2 py-0.5">max {item.max_quantity}</span>}
+                        <span className="rounded bg-muted px-2 py-0.5">
+                          {t('form.scheduledBasketDetailsRequiredFlag')}: {String(item.is_required)}
+                        </span>
+                        <span className="rounded bg-muted px-2 py-0.5">
+                          {t('form.scheduledBasketDetailsExtraFlag')}: {String(item.is_extra)}
+                        </span>
+                        {item.min_quantity != null && (
+                          <span className="rounded bg-muted px-2 py-0.5">
+                            {t('form.scheduledBasketDetailsMin')} {item.min_quantity}
+                          </span>
+                        )}
+                        {item.max_quantity != null && (
+                          <span className="rounded bg-muted px-2 py-0.5">
+                            {t('form.scheduledBasketDetailsMax')} {item.max_quantity}
+                          </span>
+                        )}
                       </Box>
                       {item.alternatives && item.alternatives.length > 0 && (
                         <Box className="mt-3 border-t border-border/40 pt-3">
-                          <Typography variant="caption" className="text-muted-foreground">Alternatives</Typography>
+                          <Typography variant="caption" className="text-muted-foreground">
+                            {t('form.scheduledBasketDetailsAlternatives')}
+                          </Typography>
                           <Box className="mt-1 flex flex-wrap gap-2">
                             {item.alternatives.map((alt) => (
                               <span key={alt.shop_product_variant_id} className="rounded-md border border-border/50 px-2 py-1 text-xs">
@@ -265,14 +300,18 @@ export default function DetailsPage() {
           {scheduledBasket.extras && scheduledBasket.extras.length > 0 && (
             <Box className="overflow-hidden rounded-2xl border border-border/50 bg-card/80 shadow-sm backdrop-blur-sm">
               <Box className="p-6">
-                <Typography variant="h6" className="mb-4 font-semibold">Extras ({scheduledBasket.extras.length})</Typography>
+                <Typography variant="h6" className="mb-4 font-semibold">
+                  {t('form.scheduledBasketDetailsExtrasHeading', { count: scheduledBasket.extras.length })}
+                </Typography>
                 <Box className="space-y-3">
                   {scheduledBasket.extras.map((item, i) => (
                     <Box key={item.id ?? `ex-${i}`} className="flex items-center justify-between rounded-xl border border-border/50 bg-background p-3">
                       <Typography variant="subtitle2" className="font-semibold">
                         {formatName(item.product?.name) || `Variant #${item.shop_product_variant_id}`}
                       </Typography>
-                      <Typography variant="body2" className="text-muted-foreground">Qty: {item.quantity}</Typography>
+                      <Typography variant="body2" className="text-muted-foreground">
+                        {t('form.scheduledBasketDetailsQty')}: {item.quantity}
+                      </Typography>
                     </Box>
                   ))}
                 </Box>

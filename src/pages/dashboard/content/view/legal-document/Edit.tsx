@@ -6,6 +6,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
+import { formatTranslated } from '@/utils/format-translated';
 import {
   useUpdateLegalDocument,
   useFetchLegalDocumentById,
@@ -75,6 +76,7 @@ export default function EditPage() {
   }
 
   const doc = response.data;
+  const displayTitle = formatTranslated(doc.title, doc.key);
 
   const onSubmit = async (data: LegalDocumentFormValues) => {
     try {
@@ -105,7 +107,7 @@ export default function EditPage() {
           </Box>
           <Box>
             <Typography variant="h5" className="font-bold">
-              {doc.title.en || doc.title.ar}
+              {displayTitle}
             </Typography>
             <span className="rounded bg-muted px-2 py-0.5 font-mono text-xs text-muted-foreground">
               {doc.key}

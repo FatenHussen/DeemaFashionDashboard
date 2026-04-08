@@ -97,6 +97,7 @@ export const promotionColumns = (
         onDeleteConfirm={onDeleteConfirm}
         onDeleteCancel={onDeleteCancel}
         deletingId={deletingId}
+        adminToggleEntityType="promotion"
         permissions={permissions}
         viewDetails={`/promotions/${row.original.id}`}
       />

@@ -91,6 +91,7 @@ export const governorateColumns = (
         onDeleteConfirm={onDeleteConfirm}
         onDeleteCancel={onDeleteCancel}
         deletingId={deletingId}
+        adminToggleEntityType="governorate"
         permissions={permissions}
       />
     ),

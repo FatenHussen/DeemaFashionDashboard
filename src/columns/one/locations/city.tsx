@@ -119,6 +119,7 @@ export const cityColumns = (
         onDeleteConfirm={onDeleteConfirm}
         onDeleteCancel={onDeleteCancel}
         deletingId={deletingId}
+        adminToggleEntityType="city"
         permissions={permissions}
       />
     ),

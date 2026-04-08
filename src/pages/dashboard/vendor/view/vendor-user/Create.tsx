@@ -72,7 +72,7 @@ export default function CreatePage() {
         name: user.name,
         email: user.email,
         vendor_id: Number(user.vendor_id) || 0,
-        is_active: Boolean(user.is_active ?? true),
+        is_active: Boolean(user.is_active),
         shop_ids: (user.shops?.map((s: any) => Number(s.id)) || []).filter((n) => !Number.isNaN(n)),
       });
     }

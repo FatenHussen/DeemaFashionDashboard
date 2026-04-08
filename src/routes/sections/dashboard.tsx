@@ -262,6 +262,10 @@ const AffiliateWithdrawDetailsPage = lazy(
 const IconIndexPage = lazy(() => import('@/pages/dashboard/icons/view/Index'));
 const IconCreatePage = lazy(() => import('@/pages/dashboard/icons/view/Create'));
 
+// Colors
+const ColorIndexPage = lazy(() => import('@/pages/dashboard/colors/view/Index'));
+const ColorCreatePage = lazy(() => import('@/pages/dashboard/colors/view/Create'));
+
 // Promotions
 const PromotionIndexPage = lazy(() => import('@/pages/dashboard/promotions/view/Index'));
 const PromotionCreatePage = lazy(() => import('@/pages/dashboard/promotions/view/Create'));
@@ -270,6 +274,10 @@ const PromotionDetailsPage = lazy(() => import('@/pages/dashboard/promotions/vie
 // Countries
 const CountryIndexPage = lazy(() => import('@/pages/dashboard/countries/view/Index'));
 const CountryCreatePage = lazy(() => import('@/pages/dashboard/countries/view/Create'));
+
+// Sale countries (markets)
+const SaleCountryIndexPage = lazy(() => import('@/pages/dashboard/sale-countries/view/Index'));
+const SaleCountryCreatePage = lazy(() => import('@/pages/dashboard/sale-countries/view/Create'));
 
 // Promotion Requests
 const PromotionRequestIndexPage = lazy(() => import('@/pages/dashboard/promotion-requests/view/Index'));
@@ -1713,6 +1721,37 @@ export const dashboardRoutes: RouteObject[] = [
       },
     ],
   },
+  // Colors
+  {
+    path: 'colors',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: (
+          <RequirePermission permissionAny={['color.view', 'Color.view']}>
+            <ColorIndexPage />
+          </RequirePermission>
+        ),
+        index: true,
+      },
+      {
+        path: 'create',
+        element: (
+          <RequirePermission permissionAny={['color.create', 'Color.create']}>
+            <ColorCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'update/:id',
+        element: (
+          <RequirePermission permissionAny={['color.update', 'Color.update']}>
+            <ColorCreatePage />
+          </RequirePermission>
+        ),
+      },
+    ],
+  },
   // Promotions
   {
     path: 'promotions',
@@ -1783,6 +1822,36 @@ export const dashboardRoutes: RouteObject[] = [
     ],
   },
   {
+    path: 'sale-countries',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: (
+          <RequirePermission permissionAny={['salecountry.view', 'SaleCountry.view']}>
+            <SaleCountryIndexPage />
+          </RequirePermission>
+        ),
+        index: true,
+      },
+      {
+        path: 'create',
+        element: (
+          <RequirePermission permissionAny={['salecountry.create', 'SaleCountry.create']}>
+            <SaleCountryCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'update/:id',
+        element: (
+          <RequirePermission permissionAny={['salecountry.update', 'SaleCountry.update']}>
+            <SaleCountryCreatePage />
+          </RequirePermission>
+        ),
+      },
+    ],
+  },
+  {
     path: 'promotion-requests',
     element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
     children: [
@@ -1816,14 +1885,15 @@ export const dashboardRoutes: RouteObject[] = [
         ),
         index: true,
       },
-      {
-        path: 'create',
-        element: (
-          <RequirePermission permission="pointrule.create">
-            <PointRuleCreatePage />
-          </RequirePermission>
-        ),
-      },
+      // Create disabled — keep list + update only (restore route when needed)
+      // {
+      //   path: 'create',
+      //   element: (
+      //     <RequirePermission permission="pointrule.create">
+      //       <PointRuleCreatePage />
+      //     </RequirePermission>
+      //   ),
+      // },
       {
         path: 'update/:id',
         element: (

@@ -88,6 +88,7 @@ export const faqColumns = (
         onDeleteConfirm={onDeleteConfirm}
         onDeleteCancel={onDeleteCancel}
         deletingId={deletingId}
+        adminToggleEntityType="faq"
         permissions={{ update: true, delete: true }}
       />
     ),

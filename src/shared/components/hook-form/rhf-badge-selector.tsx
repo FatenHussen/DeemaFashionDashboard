@@ -2,10 +2,10 @@ import type { BadgeItem } from '@/pages/dashboard/badges/types/badge.types';
 
 import { Badge } from '@/shared/ui/badge';
 import { useState, useEffect } from 'react';
-import { Box, Typography } from '@/shared/ui';
 import { useTranslation } from 'react-i18next';
 import { Checkbox } from '@/shared/ui/checkbox';
 import { Iconify } from '@/shared/components/iconify';
+import { Box, Tab, Tabs, Typography } from '@/shared/ui';
 import { Controller, useFormContext } from 'react-hook-form';
 import { formatTranslated } from '@/utils/format-translated';
 
@@ -23,6 +23,25 @@ const SEMANTIC_BADGE_HEX: Record<string, string> = {
   secondary: '#52525b',
   default: '#71717a',
 };
+
+function toggleBadgeSelection(
+  selectedBadges: BadgeWithPosition[],
+  badgeId: number,
+  tabPosition: 'top' | 'bottom',
+  checked: boolean
+): BadgeWithPosition[] {
+  if (checked) {
+    const existing = selectedBadges.find((b) => b.id === badgeId);
+    if (existing) {
+      if (existing.position === tabPosition) return selectedBadges;
+      return selectedBadges.map((b) =>
+        b.id === badgeId ? { ...b, position: tabPosition } : b
+      );
+    }
+    return [...selectedBadges, { id: badgeId, position: tabPosition }];
+  }
+  return selectedBadges.filter((b) => !(b.id === badgeId && b.position === tabPosition));
+}
 
 function resolveBadgeBackgroundHex(color: string | undefined | null): string {
   const raw = (color ?? '').trim();
@@ -51,6 +70,7 @@ export function RHFBadgeSelector({ name, label, helperText }: RHFBadgeSelectorPr
   const { control } = useFormContext();
   const [allBadges, setAllBadges] = useState<BadgeItem[]>([]);
   const [isLoadingBadges, setIsLoadingBadges] = useState(true);
+  const [badgeTab, setBadgeTab] = useState<'top' | 'bottom'>('top');
 
   useEffect(() => {
     const loadBadges = async () => {
@@ -93,70 +113,57 @@ export function RHFBadgeSelector({ name, label, helperText }: RHFBadgeSelectorPr
               {t('form.noBadgesAvailable')}
             </Typography>
           ) : (
-            <Box className="space-y-3">
-              {allBadges.map((badge) => {
-                const isSelected = selectedBadges.some((b: BadgeWithPosition) => b.id === badge.id);
-                const selectedBadge = selectedBadges.find((b: BadgeWithPosition) => b.id === badge.id);
-                const bgHex = resolveBadgeBackgroundHex(badge.color);
+            <Box className="space-y-4">
+              <Tabs
+                value={badgeTab}
+                onChange={(v) => setBadgeTab(v as 'top' | 'bottom')}
+                className="w-full"
+              >
+                <Tab value="top" label={t('form.badgePositionTop')} />
+                <Tab value="bottom" label={t('form.badgePositionBottom')} />
+              </Tabs>
 
-                return (
-                  <Box
-                    key={badge.id}
-                    className="flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors"
-                  >
-                    <Checkbox
-                      checked={isSelected}
-                      onChange={(e) => {
-                        const checked = (e.target as HTMLInputElement).checked;
-                        if (checked) {
-                          field.onChange([
-                            ...selectedBadges,
-                            { id: badge.id, position: 'top' as const },
-                          ]);
-                        } else {
+              <Box className="space-y-3">
+                {allBadges.map((badge) => {
+                  const isSelectedForTab = selectedBadges.some(
+                    (b: BadgeWithPosition) => b.id === badge.id && b.position === badgeTab
+                  );
+                  const bgHex = resolveBadgeBackgroundHex(badge.color);
+
+                  return (
+                    <Box
+                      key={badge.id}
+                      className="flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors"
+                    >
+                      <Checkbox
+                        checked={isSelectedForTab}
+                        onChange={(e) => {
+                          const checked = (e.target as HTMLInputElement).checked;
                           field.onChange(
-                            selectedBadges.filter((b: BadgeWithPosition) => b.id !== badge.id)
+                            toggleBadgeSelection(selectedBadges, badge.id, badgeTab, checked)
                           );
-                        }
-                      }}
-                      className="mt-1"
-                    />
+                        }}
+                        className="mt-1"
+                      />
 
-                    <Box className="flex-1 min-w-0">
-                      <Box className="flex items-center gap-2 mb-1">
-                        <Badge
-                          color="default"
-                          className="rounded-md px-2 py-0.5 text-xs font-medium"
-                          style={{
-                            backgroundColor: bgHex,
-                            color: getContrastColor(bgHex),
-                          }}
-                        >
-                          {formatTranslated(badge.name as Parameters<typeof formatTranslated>[0])}
-                        </Badge>
+                      <Box className="flex-1 min-w-0">
+                        <Box className="flex items-center gap-2 mb-1">
+                          <Badge
+                            color="default"
+                            className="rounded-md px-2 py-0.5 text-xs font-medium"
+                            style={{
+                              backgroundColor: bgHex,
+                              color: getContrastColor(bgHex),
+                            }}
+                          >
+                            {formatTranslated(badge.name as Parameters<typeof formatTranslated>[0])}
+                          </Badge>
+                        </Box>
                       </Box>
                     </Box>
-
-                    {isSelected && (
-                      <Box className="flex items-center gap-2">
-                        <select
-                          value={selectedBadge?.position || 'top'}
-                          onChange={(e) => {
-                            const newValue = selectedBadges.map((b: BadgeWithPosition) =>
-                              b.id === badge.id ? { ...b, position: e.target.value as 'top' | 'bottom' } : b
-                            );
-                            field.onChange(newValue);
-                          }}
-                          className="h-8 rounded border border-border bg-background px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                        >
-                          <option value="top">{t('form.badgePositionTop')}</option>
-                          <option value="bottom">{t('form.badgePositionBottom')}</option>
-                        </select>
-                      </Box>
-                    )}
-                  </Box>
-                );
-              })}
+                  );
+                })}
+              </Box>
             </Box>
           )}
 

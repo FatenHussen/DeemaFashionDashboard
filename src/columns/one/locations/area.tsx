@@ -153,6 +153,7 @@ export const areaColumns = (
         onDeleteConfirm={onDeleteConfirm}
         onDeleteCancel={onDeleteCancel}
         deletingId={deletingId}
+        adminToggleEntityType="area"
         permissions={permissions}
       />
     ),

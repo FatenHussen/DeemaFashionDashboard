@@ -9,7 +9,9 @@ import { paths } from 'src/routes/paths';
 
 import { CONFIG } from 'src/global-config';
 
+import { _ReportApi } from '../api/report.services';
 import { useFetchProductMovementReport } from '../hooks/report';
+import { ReportExportButtons } from '../components/report-export-buttons';
 
 // ----------------------------------------------------------------------
 
@@ -114,6 +116,9 @@ export default function ProductMovementReportPage() {
           <Button variant="outlined" size="small" onClick={handleApply}>
             {t('reports.apply')}
           </Button>
+          <ReportExportButtons
+            onExport={(format) => _ReportApi.exportProductMovementReport(format, params)}
+          />
         </Box>
       </div>
 

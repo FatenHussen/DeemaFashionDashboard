@@ -13,16 +13,22 @@ export const CategoryAttributeSchema = zod.object({
     ar: zod.string().min(1, { message: t('categoryAttribute.nameArRequired') }),
   }),
   type: zod.string().min(1, { message: t('categoryAttribute.typeRequired') }),
-  values: zod
-    .array(
-      zod.object({
-        name: zod.object({
-          en: zod.string().min(1, { message: t('categoryAttribute.valueNameEnRequired') }),
-          ar: zod.string().min(1, { message: t('categoryAttribute.valueNameArRequired') }),
-        }),
-      })
-    )
-    .min(1, { message: t('categoryAttribute.atLeastOneValue') }),
+  values: zod.array(
+    zod.object({
+      name: zod.object({
+        en: zod.string().min(1, { message: t('categoryAttribute.valueNameEnRequired') }),
+        ar: zod.string().min(1, { message: t('categoryAttribute.valueNameArRequired') }),
+      }),
+    })
+  ),
+}).superRefine((data, ctx) => {
+  if (data.type !== 'color' && data.values.length < 1) {
+    ctx.addIssue({
+      code: zod.ZodIssueCode.custom,
+      path: ['values'],
+      message: t('categoryAttribute.atLeastOneValue'),
+    });
+  }
 });
 
 export type CategoryAttributeFormValues = zod.infer<typeof CategoryAttributeSchema>;

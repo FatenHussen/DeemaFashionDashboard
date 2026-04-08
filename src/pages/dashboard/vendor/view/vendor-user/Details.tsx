@@ -35,7 +35,7 @@ export default function DetailsPage() {
     );
   }
 
-  const isActive = item.is_active === 1 || item.is_active === true;
+  const isActive = Boolean(item.is_active);
 
   return (
     <>

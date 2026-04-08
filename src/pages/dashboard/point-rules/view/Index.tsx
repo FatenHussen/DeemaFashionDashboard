@@ -1,38 +1,34 @@
 import { useState } from 'react';
-import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { usePermissions } from '@/auth/hooks/use-permissions';
+import { useFetchPointRules } from '@/pages/dashboard/point-rules/hooks/point-rule';
 import { pointRuleColumns, type PointRuleTableItem } from '@/columns/one/point-rules/one';
-import { useFetchPointRules, useDeletePointRule } from '@/pages/dashboard/point-rules/hooks/point-rule';
 
 import { CONFIG } from 'src/global-config';
+
+/*
+ * Create + delete UI disabled (toolbar + row delete). Restore by:
+ * - `dashboard.tsx`: uncomment `point-rules/create` route
+ * - this file: `createPath`, `useDeletePointRule`, delete handlers, permissions create/delete
+ */
+// import { useDeletePointRule } from '@/pages/dashboard/point-rules/hooks/point-rule';
+// import { toast } from 'react-toastify';
 
 export default function Page() {
   const { t } = useTranslation('table');
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [deletingId, setDeletingId] = useState<number | null>(null);
 
   const { data: response, isLoading } = useFetchPointRules(currentPage, pageSize);
-  const deleteMutation = useDeletePointRule();
 
   const handlePageChange = (page: number) => setCurrentPage(page);
-  const handlePageSizeChange = (size: number) => { setPageSize(size); setCurrentPage(1); };
-
-  const onDelete = (id: number) => setDeletingId(id);
-  const onDeleteConfirm = async () => {
-    if (deletingId) {
-      try {
-        await deleteMutation.mutateAsync(deletingId);
-        toast.success(t('deleteSuccess'));
-        setDeletingId(null);
-      } catch { return; }
-    }
+  const handlePageSizeChange = (size: number) => {
+    setPageSize(size);
+    setCurrentPage(1);
   };
-  const onDeleteCancel = () => setDeletingId(null);
 
   const handleEdit = (row: { original: PointRuleTableItem }) => {
     navigate(`/point-rules/update/${row.original.id}`);
@@ -58,19 +54,24 @@ export default function Page() {
     <>
       <title>{t('form.pointRulesIndexDocumentTitle', { appName: CONFIG.appName })}</title>
       <DataTable
-        tableName={t("tableNames.pointRule")}
+        tableName={t('tableNames.pointRule')}
         columns={pointRuleColumns(
-          { update: hasPermission('update', 'pointrule'), delete: hasPermission('delete', 'pointrule') },
-          t, onDelete, deleteMutation.isPending, deletingId !== null,
-          onDeleteConfirm, onDeleteCancel, deletingId, handleEdit
+          { update: hasPermission('update', 'pointrule'), delete: false },
+          t,
+          undefined,
+          undefined,
+          false,
+          undefined,
+          undefined,
+          undefined,
+          handleEdit
         )}
         data={rawItems as PointRuleTableItem[]}
-        createPath="/point-rules/create"
         hasDetails={false}
         permissions={{
-          create: hasPermission('create', 'pointrule'),
+          create: false,
           update: hasPermission('update', 'pointrule'),
-          delete: hasPermission('delete', 'pointrule'),
+          delete: false,
         }}
         isLoading={isLoading}
         pagination={pagination}

@@ -93,7 +93,9 @@ export function InfiniteScrollSelect({
     return () => container.removeEventListener('scroll', handleScroll);
   }, [isOpen, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  const selectedOption = allItems.find((item: InfiniteSelectOption) => item.id === value);
+  const selectedOption = allItems.find(
+    (item: InfiniteSelectOption) => Number(item.id) === Number(value)
+  );
   // Use initialLabel as fallback when item hasn't been fetched yet (edit mode)
   // formatTranslated handles label as string or { ar, en } object
   const displayLabel = selectedOption
@@ -182,7 +184,7 @@ export function InfiniteScrollSelect({
                       handleClose();
                     }}
                     className={`w-full px-3 py-2 text-sm text-start hover:bg-muted transition-colors truncate ${
-                      value === item.id ? 'bg-primary/10 text-primary font-medium' : ''
+                      Number(value) === Number(item.id) ? 'bg-primary/10 text-primary font-medium' : ''
                     }`}
                   >
                     {formatTranslated((item as any).label)}

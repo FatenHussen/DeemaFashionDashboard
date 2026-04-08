@@ -282,6 +282,40 @@ input[type='number']::-webkit-inner-spin-button {
 /** **************************************
 * Modern Table Styles
 *************************************** */
+
+/* Horizontal scroll region: touch-friendly, thin scrollbars */
+.table-scroll-shell {
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: rgb(var(--border) / 0.7) transparent;
+}
+
+.table-scroll-shell::-webkit-scrollbar {
+  height: 8px;
+}
+
+.table-scroll-shell::-webkit-scrollbar-track {
+  background: rgb(var(--muted) / 0.45);
+  border-radius: 9999px;
+}
+
+.table-scroll-shell::-webkit-scrollbar-thumb {
+  background: linear-gradient(
+    180deg,
+    rgb(var(--primary) / 0.45),
+    rgb(var(--border) / 0.85)
+  );
+  border-radius: 9999px;
+}
+
+.table-scroll-shell::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(
+    180deg,
+    rgb(var(--primary) / 0.65),
+    rgb(var(--border) / 0.9)
+  );
+}
+
 .table-modern {
   --table-row-animation-delay: 50ms;
 }

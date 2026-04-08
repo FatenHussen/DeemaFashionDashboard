@@ -18,6 +18,8 @@ export const apiRoutes = {
     create: `${ROOTS.ADMIN}/admins`,
     update: (id: number | string) => `${ROOTS.ADMIN}/admins/${id}`,
     delete: (id: number | string) => `${ROOTS.ADMIN}/admins/${id}`,
+    /** Unified visibility / active flag for many models (body: type, id, is_active). */
+    toggleStatus: `${ROOTS.ADMIN}/toggle-status`,
   },
   // Vendor routes
   vendor: {
@@ -247,6 +249,7 @@ export const apiRoutes = {
   gift: {
     list: `${ROOTS.ADMIN}/gifts`,
     create: `${ROOTS.ADMIN}/gifts`,
+    bulkCreate: `${ROOTS.ADMIN}/gifts/bulk`,
     update: (id: number | string) => `${ROOTS.ADMIN}/gifts/${id}`,
     delete: (id: number | string) => `${ROOTS.ADMIN}/gifts/${id}`,
     details: (id: number | string) => `${ROOTS.ADMIN}/gifts/${id}`,
@@ -291,9 +294,15 @@ export const apiRoutes = {
     delete: (id: number | string) => `${ROOTS.ADMIN}/recipes/${id}`,
     details: (id: number | string) => `${ROOTS.ADMIN}/recipes/${id}`,
   },
+  // Product Variant routes (individual update/delete)
+  productVariant: {
+    update: (id: number | string) => `${ROOTS.ADMIN}/product-variants/${id}`,
+    delete: (id: number | string) => `${ROOTS.ADMIN}/product-variants/${id}`,
+  },
   // Shop Product Variant routes (shared - used in selects)
   shopProductVariant: {
     list: `${ROOTS.ADMIN}/shop-product-variants`,
+    update: (id: number | string) => `${ROOTS.ADMIN}/shop-product-variants/${id}`,
   },
   // Legal Document routes
   legalDocument: {
@@ -394,6 +403,14 @@ export const apiRoutes = {
     delete: (id: number | string) => `${ROOTS.ADMIN}/icons/${id}`,
     details: (id: number | string) => `${ROOTS.ADMIN}/icons/${id}`,
   },
+  // Color routes (product / catalog colors)
+  color: {
+    list: `${ROOTS.ADMIN}/colors`,
+    create: `${ROOTS.ADMIN}/colors`,
+    update: (id: number | string) => `${ROOTS.ADMIN}/colors/${id}`,
+    delete: (id: number | string) => `${ROOTS.ADMIN}/colors/${id}`,
+    details: (id: number | string) => `${ROOTS.ADMIN}/colors/${id}`,
+  },
   // Promotion routes
   promotion: {
     list: `${ROOTS.ADMIN}/promotions`,
@@ -413,6 +430,10 @@ export const apiRoutes = {
   /** Sale countries (GCC / markets) — distinct from origin countries */
   saleCountry: {
     list: `${ROOTS.ADMIN}/sale-countries`,
+    create: `${ROOTS.ADMIN}/sale-countries`,
+    update: (id: number | string) => `${ROOTS.ADMIN}/sale-countries/${id}`,
+    delete: (id: number | string) => `${ROOTS.ADMIN}/sale-countries/${id}`,
+    details: (id: number | string) => `${ROOTS.ADMIN}/sale-countries/${id}`,
   },
   // Promotion Request routes
   promotionRequest: {

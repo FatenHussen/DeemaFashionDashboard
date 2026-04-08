@@ -1,3 +1,5 @@
+import type { BasketItem } from '@/pages/dashboard/baskets/types/basket.types';
+
 import { useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { Button } from '@/shared/ui/button';
@@ -29,6 +31,26 @@ import { RHFBadgeSelector } from 'src/shared/components/hook-form/rhf-badge-sele
 
 // ----------------------------------------------------------------------
 
+/** Shown in variant dropdown before options load / when selected row is off the first page (edit basket). */
+function basketLineVariantInitialLabel(row: BasketItem | undefined): string | undefined {
+  if (!row) return undefined;
+  const productName =
+    row.product?.name != null
+      ? typeof row.product.name === 'string'
+        ? row.product.name
+        : formatTranslated(row.product.name as Parameters<typeof formatTranslated>[0])
+      : '';
+  const variantStr = Array.isArray(row.variant)
+    ? row.variant.map((v) => String(v)).filter(Boolean).join(' · ')
+    : '';
+  const shop = row.shop_variant?.shop_name?.trim();
+  const parts = [productName, variantStr, shop].filter(Boolean);
+  if (parts.length) return parts.join(' — ');
+  const spvid = row.shop_product_variant_id;
+  if (spvid != null && Number(spvid) > 0) return `#${spvid}`;
+  return undefined;
+}
+
 export default function CreatePage() {
   const { t } = useTranslation('table');
   const { id } = useParams<{ id?: string }>();
@@ -56,7 +78,8 @@ export default function CreatePage() {
     defaultValues,
   });
 
-  const { handleSubmit, reset, control } = methods;
+  const { handleSubmit, reset, control, watch, setValue } = methods;
+  const categoryId = watch('category_id') ?? 0;
   const { fields, append, remove } = useFieldArray({ control, name: 'items' });
 
   useEffect(() => {
@@ -76,8 +99,8 @@ export default function CreatePage() {
         image: null,
         items: source.items?.length
           ? source.items.map((it) => ({
-              shop_product_variant_id: it.shop_product_variant_id,
-              quantity: it.quantity,
+              shop_product_variant_id: Number(it.shop_product_variant_id) || 0,
+              quantity: Number(it.quantity) > 0 ? Number(it.quantity) : 1,
             }))
           : [{ shop_product_variant_id: 0, quantity: 1 }],
         badges: source.badges?.length
@@ -150,7 +173,10 @@ export default function CreatePage() {
             render={({ field }) => (
               <InfiniteScrollSelect
                 value={field.value ?? 0}
-                onChange={(val) => field.onChange(val)}
+                onChange={(val) => {
+                  field.onChange(val);
+                  setValue('items', [{ shop_product_variant_id: 0, quantity: 1 }]);
+                }}
                 queryKey={['category', 'basket']}
                 fetcher={(page) =>
                   _CategoryApi.getListCategoriesPaginated({ page, per_page: 15 }).then((res) => ({
@@ -254,15 +280,45 @@ export default function CreatePage() {
                 <Controller
                   name={`items.${index}.shop_product_variant_id`}
                   control={control}
-                  render={({ field: f }) => (
-                    <InfiniteScrollSelect
-                      value={f.value || 0}
-                      onChange={(variantId) => f.onChange(variantId)}
-                      queryKey={['shopProductVariant', 'list']}
-                      fetcher={(page) => _ShopProductVariantApi.getList({ page, per_page: 10 })}
-                      placeholder={t('form.variantId')}
-                    />
-                  )}
+                  render={({ field: f }) => {
+                    const apiItems = basketResponse?.data?.items;
+                    const lineFromApi = Array.isArray(apiItems) ? apiItems[index] : undefined;
+                    const numericValue = Number(f.value) || 0;
+                    return (
+                      <InfiniteScrollSelect
+                        value={numericValue}
+                        onChange={(variantId) => f.onChange(Number(variantId) || 0)}
+                        queryKey={['shopProductVariant', 'list', categoryId]}
+                        fetcher={(page, limit) => {
+                          const perPage = limit ?? 10;
+                          if (!categoryId || categoryId <= 0) {
+                            return Promise.resolve({
+                              data: {
+                                items:
+                                  page === 1
+                                    ? [{ id: 0, label: t('form.selectCategoryBeforeVariants') }]
+                                    : [],
+                                pagination: {
+                                  current_page: page,
+                                  last_page: page,
+                                  per_page: perPage,
+                                  total: 0,
+                                },
+                              },
+                            });
+                          }
+                          return _ShopProductVariantApi.getList({
+                            page,
+                            per_page: perPage,
+                            category_id: categoryId,
+                          });
+                        }}
+                        placeholder={t('form.variantId')}
+                        initialLabel={basketLineVariantInitialLabel(lineFromApi as BasketItem | undefined)}
+                        disabled={categoryId <= 0}
+                      />
+                    );
+                  }}
                 />
               </Box>
               <Box className="w-24">

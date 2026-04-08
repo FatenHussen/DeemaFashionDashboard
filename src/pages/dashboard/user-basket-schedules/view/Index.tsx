@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DataTable } from '@/shared/ui/table-data/table-data';
+import { usePermissions } from '@/auth/hooks/use-permissions';
 import { useFetchUserBasketSchedules } from '@/pages/dashboard/user-basket-schedules/hooks/user-basket-schedule';
 import { userBasketScheduleColumns, type UserBasketScheduleTableItem } from '@/columns/one/user-basket-schedules/one';
 
@@ -34,6 +35,9 @@ export default function Page() {
       }
     : { current_page: 1, last_page: 1, per_page: 10, total: 0, from: 0, to: 0 };
 
+  const { can } = usePermissions();
+  const hasPermission = (action: string, resource: string) => can(`${resource}.${action}`);
+
   return (
     <>
       <title>{metadata.title}</title>
@@ -44,10 +48,23 @@ export default function Page() {
         hasDetails={false}
         permissions={{
           create: false,
-          update: false,
+          update: hasPermission('update', 'userbasketschedule'),
           delete: false,
         }}
         isLoading={isLoading}
+        columnTranslations={{
+          id: t('columns.id'),
+          user: t('columns.user'),
+          name: t('form.basketLabel'),
+          num_varieties: t('columns.varieties'),
+          original_price: t('columns.originalPrice'),
+          final_price: t('columns.finalPrice'),
+          discount: t('columns.discount'),
+          schedule: t('form.scheduleLabel'),
+          start_date: t('columns.startDate'),
+          next_run_date: t('columns.nextRunDate'),
+          status: t('columns.status'),
+        }}
         pagination={pagination}
         currentPage={currentPage}
         pageSize={pageSize}

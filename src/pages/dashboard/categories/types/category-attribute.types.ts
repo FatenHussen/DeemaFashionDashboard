@@ -53,7 +53,7 @@ export interface CategoryAttributeCreateUpdatePayload {
     ar: string;
   };
   type: string;
-  values: Array<{
+  values?: Array<{
     name: {
       en: string;
       ar: string;

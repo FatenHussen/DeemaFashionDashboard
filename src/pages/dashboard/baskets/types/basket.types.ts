@@ -47,6 +47,7 @@ export interface BasketData {
   average_rating?: number;
   is_on_offer?: boolean;
   is_schedule?: boolean;
+  is_active?: boolean;
   created_at: string;
   updated_at: string;
   badges?: Array<{ id: number; position?: string; postion?: string }>;

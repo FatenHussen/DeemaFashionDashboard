@@ -166,6 +166,7 @@ export const scheduledBasketColumns = (
         onDeleteConfirm={onDeleteConfirm}
         onDeleteCancel={onDeleteCancel}
         deletingId={deletingId}
+        adminToggleEntityType="basket_schedule"
         permissions={permissions}
       />
     ),

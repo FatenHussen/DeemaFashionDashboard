@@ -108,7 +108,7 @@ export default function DetailsPage() {
               )}
               <Box className="flex-1">
                 <Typography variant="h4" className="font-bold text-foreground mb-1">
-                  {driver.name || t('driverFallback', { id: driver.id })}
+                  {driver.name || t('reports.driverFallback', { id: driver.id })}
                 </Typography>
                 <Typography variant="body2" className="text-muted-foreground">
                   {t('form.driverIdChip', { id: driver.id })}

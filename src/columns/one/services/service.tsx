@@ -1,11 +1,19 @@
 import type { TFunction } from 'i18next';
-import type { ColumnDef } from '@tanstack/react-table';
+import type { Row , ColumnDef } from '@tanstack/react-table';
 
-import { Link } from 'react-router';
-import { Button } from '@/shared/ui';
+import { z } from 'zod';
 import { Iconify } from '@/shared/components/iconify';
 import { formatTranslated } from '@/utils/format-translated';
+import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
+
+const ServiceSchema = z
+  .object({
+    id: z.number(),
+    name: z.any(),
+    created_at: z.string(),
+  })
+  .passthrough();
 
 // Type for service data
 export interface ServiceFormValues {
@@ -22,7 +30,12 @@ export const serviceColumns = (
   },
   t: TFunction<'table'>,
   onDelete?: (id: number) => void,
-  isDeleting?: boolean
+  isDeleting?: boolean,
+  isDeleteDialogOpen?: boolean,
+  onDeleteConfirm?: () => void,
+  onDeleteCancel?: () => void,
+  deletingId?: number | null,
+  onEdit?: (row: Row<ServiceFormValues>) => void
 ): ColumnDef<ServiceFormValues>[] => [
   {
     id: 'id',
@@ -70,29 +83,20 @@ export const serviceColumns = (
   {
     id: 'actions',
     cell: ({ row }: any) => (
-      <div className="flex items-center gap-2 justify-end">
-        {permissions.update && (
-          <Link
-            to={`/services/update/${row.original.id}`}
-            state={{ service: row.original }}
-          >
-            <Button variant="text" size="small">
-              <Iconify icon="solar:pen-bold" width={16} height={16} />
-            </Button>
-          </Link>
-        )}
-        {permissions.delete && (
-          <Button
-            variant="text"
-            size="small"
-            color="error"
-            onClick={() => onDelete?.(row.original.id)}
-            disabled={isDeleting}
-          >
-            <Iconify icon="solar:trash-bin-trash-bold" width={16} height={16} />
-          </Button>
-        )}
-      </div>
+      <DataTableRowActions
+        schema={ServiceSchema}
+        row={row}
+        editItem={onEdit ? undefined : `/services/update/${row.original.id}`}
+        onEdit={onEdit}
+        onDelete={onDelete}
+        isDeleting={isDeleting}
+        isDeleteDialogOpen={isDeleteDialogOpen}
+        onDeleteConfirm={onDeleteConfirm}
+        onDeleteCancel={onDeleteCancel}
+        deletingId={deletingId}
+        adminToggleEntityType="service"
+        permissions={permissions}
+      />
     ),
   },
 ];

@@ -1,4 +1,4 @@
-import type { GiftCreateUpdatePayload } from '../types/gift.types';
+import type { GiftCreateUpdatePayload, BulkGiftCreatePayload } from '../types/gift.types';
 
 import { queryKeys } from '@/api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -42,6 +42,14 @@ export const useDeleteGift = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: number | string) => _GiftApi.deleteGift(id),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['gift', 'list'] }); },
+  });
+};
+
+export const useBulkCreateGifts = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: BulkGiftCreatePayload) => _GiftApi.bulkCreateGifts(data),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['gift', 'list'] }); },
   });
 };

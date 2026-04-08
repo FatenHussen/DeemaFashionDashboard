@@ -1,14 +1,18 @@
 import type { ZodSchema } from 'zod';
 import type { Row } from '@tanstack/react-table';
+import type { AdminToggleEntityType } from '@/api/admin-toggle-status.types';
 
 import { cn } from '@/utils/utils';
+import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router';
 import { Button } from '@/shared/ui/button';
 import { useTranslation } from 'react-i18next';
 import { Dialog, DialogContent } from '@/shared/ui/dialogTable';
+import { useAdminToggleStatus } from '@/hooks/use-admin-toggle-status';
 import {
   Eye,
   Trash,
+  EyeOff,
   Pencil,
   XCircle,
   KeyRound,
@@ -50,6 +54,23 @@ interface DataTableRowActionsProps<TData> {
   onReject?: (id: number) => void;
   approvingId?: number | string | null;
   rejectingId?: number | string | null;
+  /** Unified `POST /admin/toggle-status` when the row exposes `is_active` (or `getIsActive`). */
+  adminToggleEntityType?: AdminToggleEntityType;
+  getIsActive?: (row: TData) => boolean | undefined;
+}
+
+function resolveRowIsActive<TData>(
+  original: unknown,
+  getIsActive?: (row: TData) => boolean | undefined
+): boolean | undefined {
+  if (getIsActive) return getIsActive(original as TData);
+  if (!original || typeof original !== 'object') return undefined;
+  const v = (original as Record<string, unknown>).is_active;
+  if (v === undefined || v === null) return undefined;
+  if (typeof v === 'boolean') return v;
+  if (v === 1 || v === '1') return true;
+  if (v === 0 || v === '0') return false;
+  return Boolean(v);
 }
 
 export function DataTableRowActions<TData>({
@@ -71,8 +92,11 @@ export function DataTableRowActions<TData>({
   onReject,
   approvingId,
   rejectingId,
+  adminToggleEntityType,
+  getIsActive,
 }: DataTableRowActionsProps<TData>) {
   const navigate = useNavigate();
+  const toggleStatusMutation = useAdminToggleStatus();
 
   const { t } = useTranslation('table');
 
@@ -104,6 +128,16 @@ export function DataTableRowActions<TData>({
     approvingId != null && rowId != null && String(approvingId) === String(rowId);
   const isRejectingRow =
     rejectingId != null && rowId != null && String(rejectingId) === String(rowId);
+
+  const rowActive = resolveRowIsActive<TData>(row?.original, getIsActive);
+  const showAdminToggle =
+    Boolean(permissions?.update && adminToggleEntityType && rowId != null && rowActive !== undefined);
+  const isTogglingRow =
+    toggleStatusMutation.isPending &&
+    toggleStatusMutation.variables?.id != null &&
+    rowId != null &&
+    String(toggleStatusMutation.variables.id) === String(rowId) &&
+    toggleStatusMutation.variables.type === adminToggleEntityType;
 
   // const handleDelete = () => {
   //   if (onDelete && deleteItemRef.current !== null) {
@@ -207,6 +241,42 @@ export function DataTableRowActions<TData>({
                 <KeyRound className="mr-2 h-4 w-4" />
                 {t('updatePassword')}
               </DropdownMenuItem>
+            )}
+
+            {showAdminToggle && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="hover:bg-muted"
+                  disabled={isTogglingRow}
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    if (rowId == null || adminToggleEntityType == null || rowActive === undefined) return;
+                    try {
+                      await toggleStatusMutation.mutateAsync({
+                        type: adminToggleEntityType,
+                        id: rowId,
+                        is_active: !rowActive,
+                      });
+                      toast.success(t('toggleVisibilitySuccess'));
+                    } catch {
+                      /* error toast from axios interceptor */
+                    }
+                  }}
+                >
+                  {rowActive ? (
+                    <>
+                      <EyeOff className="mr-2 h-4 w-4" />
+                      {t('toggleHide')}
+                    </>
+                  ) : (
+                    <>
+                      <Eye className="mr-2 h-4 w-4" />
+                      {t('toggleShow')}
+                    </>
+                  )}
+                </DropdownMenuItem>
+              </>
             )}
 
             {permissions?.update && isPendingApproval && (

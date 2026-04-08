@@ -64,7 +64,7 @@ function mapDetailsToForm(source: VendorPackageDetails): VendorPackageFormValues
     max_products: source.max_products ?? 0,
     commission_rate: source.commission_rate ?? 0,
     commission_per_order: source.commission_per_order ?? 0,
-    is_active: source.is_active ?? true,
+    is_active: Boolean(source.is_active),
     is_featured: source.is_featured ?? false,
     has_premium_badge: source.has_premium_badge ?? false,
     sort_order: 0,

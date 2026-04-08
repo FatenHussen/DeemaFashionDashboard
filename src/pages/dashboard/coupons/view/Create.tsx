@@ -165,7 +165,7 @@ export default function CreatePage() {
         start_at: source.start_at ? toISODateTimeLocal(source.start_at) : '',
         end_at: source.end_at ? toISODateTimeLocal(source.end_at) : '',
         max_uses: Math.max(1, source.max_uses ?? 1),
-        is_active: source.is_active ?? true,
+        is_active: Boolean(source.is_active),
         coupon_type: type,
         product_ids: source.products?.map((p) => p.id) || [],
         vendor_ids: source.vendors?.map((v) => v.id) || [],

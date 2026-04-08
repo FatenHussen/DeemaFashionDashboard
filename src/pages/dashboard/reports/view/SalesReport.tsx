@@ -10,7 +10,9 @@ import { paths } from 'src/routes/paths';
 
 import { CONFIG } from 'src/global-config';
 
+import { _ReportApi } from '../api/report.services';
 import { useFetchSalesReport } from '../hooks/report';
+import { ReportExportButtons } from '../components/report-export-buttons';
 
 // ----------------------------------------------------------------------
 
@@ -111,6 +113,9 @@ export default function SalesReportPage() {
           <Button variant="outlined" size="small" onClick={handleApply}>
             {t('reports.apply')}
           </Button>
+          <ReportExportButtons
+            onExport={(format) => _ReportApi.exportSalesReport(format, params)}
+          />
         </Box>
       </div>
 

@@ -35,7 +35,20 @@ const emptyResponse = (page: number, perPage: number): ShopProductVariantListRes
   },
 });
 
+export interface ShopProductVariantUpdatePayload {
+  price?: number;
+  quantity?: number;
+  stock?: number;
+  max_purchase_quantity?: number;
+  delivery_time?: string;
+}
+
 export const _ShopProductVariantApi = {
+  update: async (id: number | string, data: ShopProductVariantUpdatePayload): Promise<any> => {
+    const response = await axiosInstance.put(apiRoutes.shopProductVariant.update(id), data);
+    return response.data;
+  },
+
   getList: async (params?: {
     page?: number;
     per_page?: number;
@@ -50,9 +63,14 @@ export const _ShopProductVariantApi = {
       if (!data?.data?.items || !Array.isArray(data.data.items)) {
         return emptyResponse(page, perPage);
       }
-      const items = data.data.items.filter(
-        (i: any) => i != null && typeof i.id === 'number'
-      );
+      const items = data.data.items
+        .filter((i: any) => i != null && i.id != null && String(i.id).trim() !== '')
+        .map((i: any) => ({
+          ...i,
+          id: typeof i.id === 'number' ? i.id : Number(i.id),
+          label: typeof i.label === 'string' ? i.label : String(i.label ?? ''),
+        }))
+        .filter((i: ShopProductVariantItem) => Number.isFinite(i.id) && i.id > 0);
       return {
         status: data.status ?? true,
         message: data.message ?? '',

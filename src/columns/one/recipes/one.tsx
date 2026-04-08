@@ -140,6 +140,7 @@ export const recipeColumns = (
         onDeleteConfirm={onDeleteConfirm}
         onDeleteCancel={onDeleteCancel}
         deletingId={deletingId}
+        adminToggleEntityType="recipe"
         permissions={permissions}
       />
     ),

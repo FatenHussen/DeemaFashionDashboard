@@ -89,6 +89,7 @@ export const iconColumns = (
         onDeleteConfirm={onDeleteConfirm}
         onDeleteCancel={onDeleteCancel}
         deletingId={deletingId}
+        adminToggleEntityType="icon"
         permissions={permissions}
       />
     ),

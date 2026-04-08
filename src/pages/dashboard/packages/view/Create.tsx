@@ -66,7 +66,7 @@ export default function CreatePage() {
         free_delivery_count: source.free_delivery_count ?? 0,
         discount_percentage: source.discount_percentage ?? 0,
         points_bonus: source.points_bonus ?? 0,
-        is_active: source.is_active ?? true,
+        is_active: Boolean(source.is_active),
       });
     }
   }, [packageResponse?.data, packageFromState, isEditMode, reset]);

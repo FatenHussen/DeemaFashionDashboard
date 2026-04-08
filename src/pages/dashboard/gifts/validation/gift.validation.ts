@@ -28,10 +28,7 @@ export const GiftSchema = z
       (v) => (v === '' || v === undefined || v === 0 ? undefined : Number(v)),
       z.number().optional()
     ),
-    shop_product_variant_id: z.preprocess(
-      (v) => (v === '' || v === undefined || v === 0 ? null : Number(v)),
-      z.number().nullable().optional()
-    ),
+    shop_product_variant_ids: z.array(z.number()).default([]),
     terms_conditions: z
       .object({
         ar: z.string().optional(),
@@ -41,11 +38,11 @@ export const GiftSchema = z
   })
   .superRefine((data, ctx) => {
     if (data.giftMode === 'tikmool') {
-      if (data.shop_product_variant_id == null || data.shop_product_variant_id <= 0) {
+      if (!data.shop_product_variant_ids || data.shop_product_variant_ids.length === 0) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: t('gift.variantRequired'),
-          path: ['shop_product_variant_id'],
+          path: ['shop_product_variant_ids'],
         });
       }
     }

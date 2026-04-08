@@ -83,7 +83,7 @@ export default function CreatePage() {
         icon: null, // Don't pre-fill file input
         parent_id: category.parent_id,
         order: (category as any).order ?? 0,
-        is_active: (category as any).is_active ?? true,
+        is_active: Boolean((category as any).is_active),
       });
 
       // Set preview image if icon exists
@@ -120,7 +120,7 @@ export default function CreatePage() {
         icon: data.icon || null,
         parent_id: data.parent_id || null,
         order: data.order ?? 0,
-        is_active: data.is_active ?? true,
+        is_active: data.is_active,
       };
 
       if (isEditMode && id) {

@@ -53,7 +53,7 @@ export default function CreatePage() {
         symbol: source.symbol || '',
         exchange_rate: source.exchange_rate || 1,
         is_default: source.is_default ?? false,
-        is_active: source.is_active ?? true,
+        is_active: Boolean(source.is_active),
       });
     }
   }, [detailsResponse?.data, fromState, isEditMode, reset]);

@@ -1,9 +1,15 @@
+import type { ReactNode } from 'react';
+import type { TFunction } from 'i18next';
+
+import { useEffect } from 'react';
 import { Button } from '@/shared/ui/button';
 import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
 import { formatTranslated } from '@/utils/format-translated';
 import { useFetchProductById } from '@/pages/dashboard/products/hooks/product';
+
+import { paths } from 'src/routes/paths';
 
 import { toDisplayString } from 'src/utils/to-display-string';
 
@@ -13,9 +19,7 @@ import { LoadingScreen } from 'src/shared/components/loading-screen';
 
 // ----------------------------------------------------------------------
 
-const metadata = { title: `Product Details | Dashboard - ${CONFIG.appName}` };
-
-function productCountryOriginDisplay(product: Record<string, unknown>): React.ReactNode {
+function productCountryOriginDisplay(product: Record<string, unknown>): ReactNode {
   const oc = product.origin_country as { name?: unknown } | null | undefined;
   if (oc && typeof oc === 'object' && oc.name != null) {
     return typeof oc.name === 'string' ? oc.name : formatTranslated(oc.name as any);
@@ -34,7 +38,7 @@ function productCountryOriginDisplay(product: Record<string, unknown>): React.Re
   return '—';
 }
 
-function productCountrySaleDisplay(product: Record<string, unknown>): React.ReactNode {
+function productCountrySaleDisplay(product: Record<string, unknown>): ReactNode {
   const c = product.sale_country as { name?: unknown } | null | undefined;
   if (c && typeof c === 'object' && c.name != null) {
     return typeof c.name === 'string' ? c.name : formatTranslated(c.name as any);
@@ -43,35 +47,68 @@ function productCountrySaleDisplay(product: Record<string, unknown>): React.Reac
 }
 
 function boughtWithItemLabel(
-  item: number | { id: number; name?: string | { en?: string; ar?: string } }
-): React.ReactNode {
+  item: number | { id: number; name?: string | { en?: string; ar?: string } },
+  t: TFunction<'table'>
+): ReactNode {
   if (typeof item === 'object' && item !== null && 'id' in item) {
     if (item.name != null) {
       return typeof item.name === 'string' ? item.name : formatTranslated(item.name as any);
     }
-    return `Product ID: ${item.id}`;
+    return t('form.productDetailsProductId', { id: item.id });
   }
-  return `Product ID: ${item}`;
+  return t('form.productDetailsProductId', { id: item });
 }
 
-function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
+/** Renders TipTap / rich-text HTML stored in full_description. */
+function ProductRichDescriptionHtml({
+  html,
+  dir,
+}: {
+  html: string | null | undefined;
+  dir?: 'ltr' | 'rtl';
+}) {
+  const trimmed = typeof html === 'string' ? html.trim() : '';
+  if (!trimmed) {
+    return (
+      <Typography variant="body1" className="text-muted-foreground">
+        —
+      </Typography>
+    );
+  }
+  return (
+    <Box
+      dir={dir}
+      className="product-rich-html text-foreground text-sm leading-relaxed max-w-none [&_p]:mb-3 [&_p:last-child]:mb-0 [&_ul]:my-2 [&_ul]:ps-5 [&_ol]:my-2 [&_ol]:ps-5 [&_li]:my-0.5 [&_a]:text-primary [&_a]:underline [&_strong]:font-semibold [&_em]:italic [&_h1]:text-xl [&_h1]:font-semibold [&_h2]:text-lg [&_h2]:font-semibold [&_blockquote]:border-s-2 [&_blockquote]:border-border [&_blockquote]:ps-3 [&_blockquote]:text-muted-foreground"
+      dangerouslySetInnerHTML={{ __html: trimmed }}
+    />
+  );
+}
+
+function DetailRow({ label, value, emptyLabel }: { label: string; value: ReactNode; emptyLabel: string }) {
   return (
     <Box className="space-y-1">
       <Typography variant="body2" className="text-muted-foreground font-medium">
         {label}
       </Typography>
       <Typography variant="body1" className="text-foreground">
-        {value ?? 'N/A'}
+        {value ?? emptyLabel}
       </Typography>
     </Box>
   );
 }
 
 export default function DetailsPage() {
-  const { t } = useTranslation('table');
+  const { t, i18n } = useTranslation('table');
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: productResponse, isLoading, error } = useFetchProductById(id || '');
+
+  const na = t('form.productDetailsNotAvailable');
+
+  useEffect(() => {
+    const suffix = id ? ` #${id}` : '';
+    document.title = `${t('form.productDetailsMetaTitle')}${suffix} | ${CONFIG.appName}`;
+  }, [t, i18n.language, id]);
 
   if (isLoading) {
     return <LoadingScreen />;
@@ -84,14 +121,14 @@ export default function DetailsPage() {
           <Box className="flex items-center gap-2 mb-2">
             <Iconify icon="solar:danger-bold" className="w-5 h-5 text-destructive" />
             <Typography variant="h6" className="text-destructive">
-              Error Loading Product
+              {t('form.productDetailsErrorTitle')}
             </Typography>
           </Box>
           <Typography variant="body2" className="text-muted-foreground mb-4">
-            {error instanceof Error ? error.message : 'Failed to load product information'}
+            {error instanceof Error ? error.message : t('form.productDetailsErrorMessage')}
           </Typography>
-          <Button variant="outlined" onClick={() => navigate('/products/product')}>
-            Back to Products
+          <Button variant="outlined" onClick={() => navigate(paths.dashboard.products)}>
+            {t('form.productDetailsBack')}
           </Button>
         </Box>
       </Box>
@@ -99,10 +136,11 @@ export default function DetailsPage() {
   }
 
   const product = productResponse as any;
+  const yes = t('form.productDetailsYes');
+  const no = t('form.productDetailsNo');
 
   return (
     <>
-      <title>{metadata.title}</title>
       <Box className="relative min-h-screen overflow-hidden bg-background p-6">
         <Box className="pointer-events-none fixed inset-0 bg-gradient-to-br from-background via-background to-muted/30" />
         <Box className="pointer-events-none fixed inset-0 opacity-[0.03] dark:opacity-[0.05]">
@@ -114,11 +152,11 @@ export default function DetailsPage() {
           <Box className="mb-6">
             <Button
               variant="text"
-              onClick={() => navigate('/products/product')}
+              onClick={() => navigate(paths.dashboard.products)}
               className="mb-4 -ml-2 text-muted-foreground hover:text-foreground"
             >
-              <Iconify icon="solar:arrow-left-bold" width={20} className="mr-2" />
-              Back to Products
+              <Iconify icon="solar:arrow-left-bold" width={20} className="mr-2 rtl:rotate-180" />
+              {t('form.productDetailsBack')}
             </Button>
 
             <Box className="flex items-start gap-4 mb-2">
@@ -145,16 +183,16 @@ export default function DetailsPage() {
                   {formatTranslated(product.name)}
                 </Typography>
                 <Typography variant="body2" className="text-muted-foreground">
-                  ID: {product.id}
+                  {t('form.productDetailsIdLabel')}: {product.id}
                 </Typography>
               </Box>
               <Button
                 variant="contained"
-                onClick={() => navigate(`/products/product/update/${id}`)}
+                onClick={() => id && navigate(paths.dashboard.product.update(id))}
                 className="gap-2"
               >
                 <Iconify icon="solar:pen-bold" width={18} />
-                Edit Product
+                {t('form.productDetailsEdit')}
               </Button>
             </Box>
           </Box>
@@ -164,34 +202,60 @@ export default function DetailsPage() {
             <Box className="rounded-xl border border-border/50 shadow-sm bg-background/95 p-6">
               <Typography variant="h6" className="font-semibold mb-4 flex items-center gap-2">
                 <Iconify icon="solar:info-circle-bold" width={20} />
-                Basic Information
+                {t('form.productDetailsSectionBasic')}
               </Typography>
               <Box className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <DetailRow label={t('form.nameEn')} value={product.name?.en} />
-                <DetailRow label={t('form.nameAr')} value={product.name?.ar} />
-                <DetailRow label={t('columns.category')} value={formatTranslated(product.category?.name) ?? product.category_id} />
-                <DetailRow label={t('form.brand')} value={product.brand?.name ?? '—'} />
+                <DetailRow label={t('form.nameEn')} value={product.name?.en} emptyLabel={na} />
+                <DetailRow label={t('form.nameAr')} value={product.name?.ar} emptyLabel={na} />
                 <DetailRow
-                  label="Vendor"
+                  label={t('columns.category')}
+                  value={formatTranslated(product.category?.name) ?? product.category_id}
+                  emptyLabel={na}
+                />
+                <DetailRow
+                  label={t('form.brand')}
+                  value={product.brand?.name ?? '—'}
+                  emptyLabel={na}
+                />
+                <DetailRow
+                  label={t('form.productVendor')}
                   value={product.vendor ? formatTranslated(product.vendor.name as any) : '—'}
+                  emptyLabel={na}
                 />
                 <DetailRow
-                  label="Approval"
+                  label={t('form.productDetailsApproval')}
                   value={product.approval_status_label ?? product.approval_status ?? '—'}
+                  emptyLabel={na}
                 />
                 <DetailRow
-                  label="Visible to customers"
-                  value={product.is_visible === false || product.is_visible === 0 ? 'No' : 'Yes'}
+                  label={t('form.productDetailsVisibleCustomers')}
+                  value={
+                    product.is_visible === false || product.is_visible === 0 ? no : yes
+                  }
+                  emptyLabel={na}
                 />
-                <DetailRow label={t('form.countryOriginSelect')} value={productCountryOriginDisplay(product)} />
-                <DetailRow label={t('form.countrySaleSelect')} value={productCountrySaleDisplay(product)} />
-                <DetailRow label={t('columns.sku')} value={product.sku} />
-                <DetailRow label={t('form.model')} value={product.model} />
-                <DetailRow label={t('form.barcode')} value={product.barcode} />
-                <DetailRow label={t('form.timeToPrepare')} value={product.time_prepare} />
+                <DetailRow
+                  label={t('form.countryOriginSelect')}
+                  value={productCountryOriginDisplay(product)}
+                  emptyLabel={na}
+                />
+                <DetailRow
+                  label={t('form.countrySaleSelect')}
+                  value={productCountrySaleDisplay(product)}
+                  emptyLabel={na}
+                />
+                <DetailRow label={t('columns.sku')} value={product.sku} emptyLabel={na} />
+                <DetailRow label={t('form.model')} value={product.model} emptyLabel={na} />
+                <DetailRow label={t('form.barcode')} value={product.barcode} emptyLabel={na} />
+                <DetailRow
+                  label={t('form.timeToPrepare')}
+                  value={product.time_prepare}
+                  emptyLabel={na}
+                />
                 <DetailRow
                   label={t('form.instantDelivery')}
-                  value={product.is_instant_delivery ? 'Yes' : 'No'}
+                  value={product.is_instant_delivery ? yes : no}
+                  emptyLabel={na}
                 />
               </Box>
             </Box>
@@ -200,23 +264,45 @@ export default function DetailsPage() {
             <Box className="rounded-xl border border-border/50 shadow-sm bg-background/95 p-6">
               <Typography variant="h6" className="font-semibold mb-4 flex items-center gap-2">
                 <Iconify icon="solar:tag-price-bold" width={20} />
-                Pricing & Stock
+                {t('form.productDetailsSectionPricing')}
               </Typography>
               <Box className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <DetailRow label={t('columns.price')} value={`$${product.price}`} />
+                <DetailRow label={t('columns.price')} value={`$${product.price}`} emptyLabel={na} />
                 <DetailRow
                   label={t('columns.priceAfterDiscount')}
-                  value={product.price_after_discount != null ? `$${product.price_after_discount}` : '—'}
+                  value={
+                    product.price_after_discount != null
+                      ? `$${product.price_after_discount}`
+                      : '—'
+                  }
+                  emptyLabel={na}
                 />
-                <DetailRow label={t('form.quantity')} value={product.quantity} />
-                <DetailRow label="Discount" value={product.discount != null ? String(product.discount) : '—'} />
-                <DetailRow label="Discount type" value={String(product.discount_type ?? '—')} />
+                <DetailRow label={t('form.quantity')} value={product.quantity} emptyLabel={na} />
                 <DetailRow
-                  label="Cost price"
-                  value={product.cost_price != null ? `$${product.cost_price}` : '—'}
+                  label={t('form.productDetailsDiscount')}
+                  value={product.discount != null ? String(product.discount) : '—'}
+                  emptyLabel={na}
                 />
-                <DetailRow label="Unit" value={product.unit ?? '—'} />
-                <DetailRow label="Warranty (months)" value={product.warranty_period ?? '—'} />
+                <DetailRow
+                  label={t('form.productDetailsDiscountType')}
+                  value={String(product.discount_type ?? '—')}
+                  emptyLabel={na}
+                />
+                <DetailRow
+                  label={t('form.productDetailsCostPrice')}
+                  value={product.cost_price != null ? `$${product.cost_price}` : '—'}
+                  emptyLabel={na}
+                />
+                <DetailRow
+                  label={t('form.productDetailsUnit')}
+                  value={product.unit ?? '—'}
+                  emptyLabel={na}
+                />
+                <DetailRow
+                  label={t('form.productDetailsWarrantyMonths')}
+                  value={product.warranty_period ?? '—'}
+                  emptyLabel={na}
+                />
               </Box>
             </Box>
 
@@ -224,24 +310,32 @@ export default function DetailsPage() {
             <Box className="rounded-xl border border-border/50 shadow-sm bg-background/95 p-6">
               <Typography variant="h6" className="font-semibold mb-4 flex items-center gap-2">
                 <Iconify icon="solar:document-text-bold" width={20} />
-                Description
+                {t('form.productDetailsSectionDescription')}
               </Typography>
               <Box className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Box>
-                  <Typography variant="body2" className="text-muted-foreground font-medium mb-1">Description (EN)</Typography>
+                  <Typography variant="body2" className="text-muted-foreground font-medium mb-1">
+                    {t('form.productDetailsDescriptionShortEn')}
+                  </Typography>
                   <Typography variant="body1">{product.description?.en || '—'}</Typography>
                 </Box>
                 <Box>
-                  <Typography variant="body2" className="text-muted-foreground font-medium mb-1">Description (AR)</Typography>
+                  <Typography variant="body2" className="text-muted-foreground font-medium mb-1">
+                    {t('form.productDetailsDescriptionShortAr')}
+                  </Typography>
                   <Typography variant="body1">{product.description?.ar || '—'}</Typography>
                 </Box>
                 <Box>
-                  <Typography variant="body2" className="text-muted-foreground font-medium mb-1">Full Description (EN)</Typography>
-                  <Typography variant="body1">{product.full_description?.en || '—'}</Typography>
+                  <Typography variant="body2" className="text-muted-foreground font-medium mb-1">
+                    {t('form.productFullDescEn')}
+                  </Typography>
+                  <ProductRichDescriptionHtml html={product.full_description?.en} dir="ltr" />
                 </Box>
                 <Box>
-                  <Typography variant="body2" className="text-muted-foreground font-medium mb-1">Full Description (AR)</Typography>
-                  <Typography variant="body1">{product.full_description?.ar || '—'}</Typography>
+                  <Typography variant="body2" className="text-muted-foreground font-medium mb-1">
+                    {t('form.productFullDescAr')}
+                  </Typography>
+                  <ProductRichDescriptionHtml html={product.full_description?.ar} dir="rtl" />
                 </Box>
               </Box>
             </Box>
@@ -251,17 +345,35 @@ export default function DetailsPage() {
               <Box className="rounded-xl border border-border/50 shadow-sm bg-background/95 p-6">
                 <Typography variant="h6" className="font-semibold mb-4 flex items-center gap-2">
                   <Iconify icon="solar:globe-bold" width={20} />
-                  SEO
+                  {t('form.seoTitle')}
                 </Typography>
                 <Box className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <DetailRow label="SEO title (EN)" value={product.seo_title?.en} />
-                  <DetailRow label="SEO title (AR)" value={product.seo_title?.ar} />
-                  <DetailRow label="SEO description (EN)" value={product.seo_description?.en} />
-                  <DetailRow label="SEO description (AR)" value={product.seo_description?.ar} />
+                  <DetailRow
+                    label={t('form.productDetailsSeoTitleEn')}
+                    value={product.seo_title?.en}
+                    emptyLabel={na}
+                  />
+                  <DetailRow
+                    label={t('form.productDetailsSeoTitleAr')}
+                    value={product.seo_title?.ar}
+                    emptyLabel={na}
+                  />
+                  <DetailRow
+                    label={t('form.productDetailsSeoDescEn')}
+                    value={product.seo_description?.en}
+                    emptyLabel={na}
+                  />
+                  <DetailRow
+                    label={t('form.productDetailsSeoDescAr')}
+                    value={product.seo_description?.ar}
+                    emptyLabel={na}
+                  />
                 </Box>
                 {product.seo_image ? (
                   <Box className="mt-4">
-                    <Typography variant="body2" className="text-muted-foreground mb-1">SEO image</Typography>
+                    <Typography variant="body2" className="text-muted-foreground mb-1">
+                      {t('form.productDetailsSeoImage')}
+                    </Typography>
                     <img src={product.seo_image} alt="" className="max-h-32 rounded-lg border border-border/60" />
                   </Box>
                 ) : null}
@@ -273,7 +385,7 @@ export default function DetailsPage() {
               <Box className="rounded-xl border border-border/50 shadow-sm bg-background/95 p-6">
                 <Typography variant="h6" className="font-semibold mb-4 flex items-center gap-2">
                   <Iconify icon="solar:star-bold" width={20} />
-                  Icons
+                  {t('form.productDetailsIcons')}
                 </Typography>
                 <Box className="flex flex-wrap gap-3">
                   {product.icons.map((ic: any) => (
@@ -293,19 +405,24 @@ export default function DetailsPage() {
               <Box className="rounded-xl border border-border/50 shadow-sm bg-background/95 p-6">
                 <Typography variant="h6" className="font-semibold mb-4 flex items-center gap-2">
                   <Iconify icon="solar:widget-bold" width={20} />
-                  Variants ({product.variants.length})
+                  {t('form.productDetailsVariants')} ({product.variants.length})
                 </Typography>
                 <Box className="space-y-4">
                   {product.variants.map((variant: any, i: number) => (
                     <Box key={variant.id ?? i} className="rounded-lg border border-border/40 p-4 space-y-3">
                       <Typography variant="subtitle2" className="font-medium">
-                        Variant #{i + 1} — ID: {variant.id}
+                        {t('form.productDetailsVariantHeader', {
+                          n: i + 1,
+                          id: variant.id,
+                        })}
                       </Typography>
 
                       {/* Attributes */}
                       {variant.attributes?.length > 0 && (
                         <Box>
-                          <Typography variant="caption" className="text-muted-foreground mb-2 block">Attributes</Typography>
+                          <Typography variant="caption" className="text-muted-foreground mb-2 block">
+                            {t('form.productDetailsAttributes')}
+                          </Typography>
                           <Box className="flex flex-wrap gap-2">
                             {variant.attributes.map((attr: any, ai: number) => {
                               const attrValue = toDisplayString(attr.value);
@@ -337,7 +454,9 @@ export default function DetailsPage() {
                       {/* Shop pricing */}
                       {variant.shops?.length > 0 && (
                         <Box>
-                          <Typography variant="caption" className="text-muted-foreground mb-2 block">Shop Pricing</Typography>
+                          <Typography variant="caption" className="text-muted-foreground mb-2 block">
+                            {t('form.productDetailsShopPricing')}
+                          </Typography>
                           <Box className="grid grid-cols-1 md:grid-cols-2 gap-2">
                             {variant.shops.map((shop: any, si: number) => (
                               <Box key={si} className="flex items-center justify-between rounded-md border border-border/40 bg-muted/20 px-3 py-2 text-sm">
@@ -362,7 +481,7 @@ export default function DetailsPage() {
               <Box className="rounded-xl border border-border/50 shadow-sm bg-background/95 p-6">
                 <Typography variant="h6" className="font-semibold mb-4 flex items-center gap-2">
                   <Iconify icon="solar:list-bold" width={20} />
-                  Category Details
+                  {t('form.productDetailsCategoryDetailsSection')}
                 </Typography>
                 <Box className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {product.category_details.map((cd: any) => (
@@ -385,31 +504,41 @@ export default function DetailsPage() {
               <Box className="rounded-xl border border-border/50 shadow-sm bg-background/95 p-6">
                 <Typography variant="h6" className="font-semibold mb-4 flex items-center gap-2">
                   <Iconify icon="solar:notes-bold" width={20} />
-                  Extra Details
+                  {t('form.productDetailsExtraDetailsSection')}
                 </Typography>
                 <Box className="space-y-3">
                   {product.extra_details.map((ed: any) => (
                     <Box key={ed.id} className="rounded-lg border border-border/40 bg-muted/20 p-3">
                       <Box className="grid grid-cols-2 gap-2 text-sm">
                         <Box>
-                          <Typography variant="caption" className="text-muted-foreground">Key (EN)</Typography>
+                          <Typography variant="caption" className="text-muted-foreground">
+                            {t('form.productDetailsKeyEn')}
+                          </Typography>
                           <Typography variant="body2">{ed.key?.en}</Typography>
                         </Box>
                         <Box>
-                          <Typography variant="caption" className="text-muted-foreground">Key (AR)</Typography>
+                          <Typography variant="caption" className="text-muted-foreground">
+                            {t('form.productDetailsKeyAr')}
+                          </Typography>
                           <Typography variant="body2">{ed.key?.ar}</Typography>
                         </Box>
                         <Box>
-                          <Typography variant="caption" className="text-muted-foreground">Value (EN)</Typography>
+                          <Typography variant="caption" className="text-muted-foreground">
+                            {t('form.productDetailsValueEn')}
+                          </Typography>
                           <Typography variant="body2">{ed.value?.en}</Typography>
                         </Box>
                         <Box>
-                          <Typography variant="caption" className="text-muted-foreground">Value (AR)</Typography>
+                          <Typography variant="caption" className="text-muted-foreground">
+                            {t('form.productDetailsValueAr')}
+                          </Typography>
                           <Typography variant="body2">{ed.value?.ar}</Typography>
                         </Box>
                         {ed.price != null ? (
                           <Box>
-                            <Typography variant="caption" className="text-muted-foreground">Extra price</Typography>
+                            <Typography variant="caption" className="text-muted-foreground">
+                              {t('form.productDetailsExtraPrice')}
+                            </Typography>
                             <Typography variant="body2">${ed.price}</Typography>
                           </Box>
                         ) : null}
@@ -425,7 +554,7 @@ export default function DetailsPage() {
               <Box className="rounded-xl border border-border/50 shadow-sm bg-background/95 p-6">
                 <Typography variant="h6" className="font-semibold mb-4 flex items-center gap-2">
                   <Iconify icon="solar:cart-bold" width={20} />
-                  Bought With
+                  {t('form.productDetailsBoughtWithSection')}
                 </Typography>
                 <Box className="flex flex-wrap gap-2">
                   {product.bought_with.map((item: number | { id: number; name?: string }) => {
@@ -436,7 +565,7 @@ export default function DetailsPage() {
                         key={boughtWithId}
                         className="rounded-md border border-border/50 bg-muted/30 px-3 py-1 text-sm"
                       >
-                        {boughtWithItemLabel(item)}
+                        {boughtWithItemLabel(item, t)}
                       </Box>
                     );
                   })}

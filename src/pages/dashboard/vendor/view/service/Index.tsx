@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { toast } from 'react-toastify';
+import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { usePermissions } from '@/auth/hooks/use-permissions';
@@ -13,14 +14,14 @@ import { useFetchServices, useDeleteService } from '../../hooks/service';
 
 export default function Page() {
   const { t } = useTranslation('table');
+  const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
-  // Fetch services using the hook
   const { data: servicesResponse, isLoading, error } = useFetchServices(currentPage, pageSize);
   const deleteServiceMutation = useDeleteService();
 
-  // Log error for debugging
   if (error) {
     console.error('Error fetching services:', error);
   }
@@ -34,16 +35,24 @@ export default function Page() {
     setCurrentPage(1);
   };
 
-  const onDelete = async (id: number) => {
-    if (window.confirm(t('form.serviceDeleteConfirm'))) {
+  const onDelete = (id: number) => setDeletingId(id);
+  const onDeleteConfirm = async () => {
+    if (deletingId) {
       try {
-        await deleteServiceMutation.mutateAsync(id);
+        await deleteServiceMutation.mutateAsync(deletingId);
         toast.success(t('deleteSuccess'));
-      } catch { return; }
+        setDeletingId(null);
+      } catch {
+        return;
+      }
     }
   };
+  const onDeleteCancel = () => setDeletingId(null);
 
-  // Extract data from API response
+  const handleEdit = (row: { original: ServiceFormValues }) => {
+    navigate(`/services/update/${row.original.id}`, { state: { service: row.original } });
+  };
+
   const serviceData: ServiceFormValues[] = servicesResponse?.data?.items || [];
   const apiPagination = servicesResponse?.data?.pagination;
   const pagination = apiPagination
@@ -81,7 +90,12 @@ export default function Page() {
           },
           t,
           onDelete,
-          deleteServiceMutation.isPending
+          deleteServiceMutation.isPending,
+          deletingId !== null,
+          onDeleteConfirm,
+          onDeleteCancel,
+          deletingId,
+          handleEdit
         )}
         data={serviceData}
         createPath="/services/create"

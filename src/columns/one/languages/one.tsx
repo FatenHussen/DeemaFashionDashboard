@@ -128,6 +128,7 @@ export const languageColumns = (
         onDeleteConfirm={onDeleteConfirm}
         onDeleteCancel={onDeleteCancel}
         deletingId={deletingId}
+        adminToggleEntityType="language"
         permissions={permissions}
       />
     ),

@@ -268,6 +268,7 @@ export const shopColumns = (
         onDeleteConfirm={onDeleteConfirm}
         onDeleteCancel={onDeleteCancel}
         deletingId={deletingId}
+        adminToggleEntityType="shop"
         permissions={permissions}
       />
     ),

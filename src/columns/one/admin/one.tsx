@@ -11,7 +11,7 @@ const AdminSchema = z.object({
   id: z.number(),
   name: z.string(),
   email: z.string().email(),
-  is_active: z.number(),
+  is_active: z.union([z.number(), z.boolean()]),
   roles: z.array(z.string()),
   created_at: z.string(),
 });
@@ -21,7 +21,7 @@ export interface AdminFormValues {
   id: number;
   name: string;
   email: string;
-  is_active: number;
+  is_active: number | boolean;
   roles: string[];
   created_at: string;
   [key: string]: any;
@@ -104,7 +104,7 @@ export const adminColumns = (
     accessorKey: 'is_active',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.status')} />,
     cell: ({ row }) => {
-      const isActive = row.original.is_active === 1;
+      const isActive = Boolean(row.original.is_active);
       return (
         <div
           className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border w-fit ${

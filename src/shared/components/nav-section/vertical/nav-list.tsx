@@ -19,6 +19,7 @@ export function NavList({
   slotProps,
   checkPermissions,
   checkPermission,
+  checkPermissionAny,
   enabledRootRedirect,
 }: NavListProps) {
   const pathname = usePathname();
@@ -77,6 +78,7 @@ export function NavList({
           slotProps={slotProps}
           checkPermissions={checkPermissions}
           checkPermission={checkPermission}
+          checkPermissionAny={checkPermissionAny}
           enabledRootRedirect={enabledRootRedirect}
         />
       </NavCollapse>
@@ -87,8 +89,10 @@ export function NavList({
     return null;
   }
 
-  // Hidden item by permission
-  if (data.requiredPermission && checkPermission && !checkPermission(data.requiredPermission)) {
+  // Hidden item by permission (mirror horizontal nav-list)
+  if (data.requiredPermissionAny && checkPermissionAny) {
+    if (!checkPermissionAny(data.requiredPermissionAny)) return null;
+  } else if (data.requiredPermission && checkPermission && !checkPermission(data.requiredPermission)) {
     return null;
   }
 
@@ -112,6 +116,7 @@ function NavSubList({
   slotProps,
   checkPermissions,
   checkPermission,
+  checkPermissionAny,
   enabledRootRedirect,
 }: NavSubListProps) {
   return (
@@ -125,6 +130,7 @@ function NavSubList({
           slotProps={slotProps}
           checkPermissions={checkPermissions}
           checkPermission={checkPermission}
+          checkPermissionAny={checkPermissionAny}
           enabledRootRedirect={enabledRootRedirect}
         />
       ))}

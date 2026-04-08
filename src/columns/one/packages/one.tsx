@@ -129,6 +129,7 @@ export const packageColumns = (
         onDeleteConfirm={onDeleteConfirm}
         onDeleteCancel={onDeleteCancel}
         deletingId={deletingId}
+        adminToggleEntityType="package"
         permissions={permissions}
       />
     ),

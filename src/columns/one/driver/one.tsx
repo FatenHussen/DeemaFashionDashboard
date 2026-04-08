@@ -144,7 +144,7 @@ export const driverColumns = (
     accessorKey: 'is_active',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.active')} />,
     cell: ({ row }) => {
-      const isActive = row.original.is_active === 1 || row.original.is_active === true;
+      const isActive = Boolean(row.original.is_active);
       return (
         <div
           className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border w-fit ${
@@ -239,6 +239,7 @@ export const driverColumns = (
         onDeleteConfirm={onDeleteConfirm}
         onDeleteCancel={onDeleteCancel}
         deletingId={deletingId}
+        adminToggleEntityType="driver"
         permissions={permissions}
       />
     ),

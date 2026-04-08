@@ -95,3 +95,15 @@ export const useRejectProduct = () => {
     },
   });
 };
+
+export const useUpdateProductPrice = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, price }: { id: number | string; price: number }) =>
+      _ProductApi.updateProductPrice(id, price),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: ['product', 'list'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.product.details(id) });
+    },
+  });
+};

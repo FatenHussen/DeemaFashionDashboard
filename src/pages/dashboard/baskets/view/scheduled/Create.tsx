@@ -6,6 +6,7 @@ import { useMemo, useState, useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Iconify } from '@/shared/components/iconify';
 import { MultiSelect } from '@/shared/ui/multi-select';
+import { formatTranslated } from '@/utils/format-translated';
 import { useParams, useNavigate, useLocation } from 'react-router';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { InfiniteScrollSelect } from '@/shared/components/infinite-scroll-select';
@@ -53,6 +54,24 @@ function mapScheduledBasketLineItem(it: ScheduledBasketItem) {
   };
 }
 
+function scheduledBasketLineVariantInitialLabel(row: ScheduledBasketItem | undefined): string | undefined {
+  if (!row) return undefined;
+  const productName =
+    row.product?.name != null
+      ? typeof row.product.name === 'string'
+        ? row.product.name
+        : formatTranslated(row.product.name as Parameters<typeof formatTranslated>[0])
+      : '';
+  const variantStr = Array.isArray(row.variant)
+    ? row.variant.map((value) => String(value)).filter(Boolean).join(' · ')
+    : '';
+  const parts = [productName, variantStr].filter(Boolean);
+  if (parts.length) return parts.join(' — ');
+  const spvid = row.shop_product_variant_id;
+  if (spvid != null && Number(spvid) > 0) return `#${spvid}`;
+  return undefined;
+}
+
 /** API may return `title` as string or { en, ar } */
 function normalizeScheduleTitleFromApi(raw: unknown): { en: string; ar: string } {
   if (raw && typeof raw === 'object' && raw !== null) {
@@ -77,7 +96,7 @@ function schedulesFromApi(source: ScheduledBasketData): ScheduledBasketFormValue
     number_of_days: s.number_of_days ?? 1,
     discount_type: s.discount_type ?? null,
     discount_value: s.discount_value ?? null,
-    is_active: s.is_active ?? true,
+    is_active: Boolean(s.is_active),
     is_default: Boolean(s.is_default),
   }));
   if (mapped.length === 0) {
@@ -153,10 +172,26 @@ export default function CreatePage() {
   } = useFieldArray({ control, name: 'schedules' });
   const schedulesWatch = watch('schedules');
   const imageValue = watch('image');
+  const categoryId = watch('category_id') ?? 0;
 
   const { data: shopVariantListResponse } = useQuery({
-    queryKey: ['shopProductVariant', 'scheduled-basket', 'multi-options'],
-    queryFn: () => _ShopProductVariantApi.getList({ page: 1, per_page: 500 }),
+    queryKey: ['shopProductVariant', 'scheduled-basket', 'multi-options', categoryId],
+    queryFn: () =>
+      categoryId > 0
+        ? _ShopProductVariantApi.getList({ page: 1, per_page: 500, category_id: categoryId })
+        : Promise.resolve({
+            status: true,
+            message: '',
+            data: {
+              items: [],
+              pagination: {
+                current_page: 1,
+                last_page: 1,
+                per_page: 500,
+                total: 0,
+              },
+            },
+          }),
   });
 
   const shopVariantMultiOptions = useMemo(() => {
@@ -209,7 +244,7 @@ export default function CreatePage() {
           ? combinedLines.map(mapScheduledBasketLineItem)
           : [{ shop_product_variant_id: 0, quantity: 1, shop_product_variant_ids: [], is_required: false, is_extra: false, min_quantity: 0, max_quantity: 0 }],
         schedules: schedulesFromApi(source),
-        is_active: (source as any).is_active !== undefined ? Boolean((source as any).is_active) : true,
+        is_active: Boolean((source as any).is_active),
         badges: badgesFormValueFromScheduledBasketResponse(source),
       });
     }
@@ -294,7 +329,20 @@ export default function CreatePage() {
             render={({ field }) => (
               <InfiniteScrollSelect
                 value={field.value ?? 0}
-                onChange={(val) => field.onChange(val)}
+                onChange={(val) => {
+                  field.onChange(val);
+                  setValue('items', [
+                    {
+                      shop_product_variant_id: 0,
+                      quantity: 1,
+                      shop_product_variant_ids: [],
+                      is_required: false,
+                      is_extra: false,
+                      min_quantity: 0,
+                      max_quantity: 0,
+                    },
+                  ]);
+                }}
                 queryKey={['category', 'scheduled-basket']}
                 fetcher={(page) =>
                   _CategoryApi.getListCategoriesPaginated({ page, per_page: 15 }).then((res) => ({
@@ -637,15 +685,45 @@ export default function CreatePage() {
                   <Controller
                     name={`items.${index}.shop_product_variant_id`}
                     control={control}
-                    render={({ field: f }) => (
-                      <InfiniteScrollSelect
-                        value={f.value || 0}
-                        onChange={(variantId) => f.onChange(variantId)}
-                        queryKey={['shopProductVariant', 'scheduled-basket', index]}
-                        fetcher={(page) => _ShopProductVariantApi.getList({ page, per_page: 10 })}
-                        placeholder={t('form.variantId')}
-                      />
-                    )}
+                    render={({ field: f }) => {
+                      const src = scheduledBasketResponse?.data ?? scheduledBasketFromState;
+                      const apiLines = [...(src?.items ?? []), ...(src?.extras ?? [])];
+                      const lineFromApi = Array.isArray(apiLines) ? apiLines[index] : undefined;
+                      return (
+                        <InfiniteScrollSelect
+                          value={Number(f.value) || 0}
+                          onChange={(variantId) => f.onChange(Number(variantId) || 0)}
+                          queryKey={['shopProductVariant', 'scheduled-basket', 'line', index, categoryId]}
+                          fetcher={(page, limit) => {
+                            const perPage = limit ?? 10;
+                            if (!categoryId || categoryId <= 0) {
+                              return Promise.resolve({
+                                data: {
+                                  items:
+                                    page === 1
+                                      ? [{ id: 0, label: t('form.selectCategoryBeforeVariants') }]
+                                      : [],
+                                  pagination: {
+                                    current_page: page,
+                                    last_page: page,
+                                    per_page: perPage,
+                                    total: 0,
+                                  },
+                                },
+                              });
+                            }
+                            return _ShopProductVariantApi.getList({
+                              page,
+                              per_page: perPage,
+                              category_id: categoryId,
+                            });
+                          }}
+                          placeholder={t('form.variantId')}
+                          initialLabel={scheduledBasketLineVariantInitialLabel(lineFromApi)}
+                          disabled={categoryId <= 0}
+                        />
+                      );
+                    }}
                   />
                 </Box>
                 <Box className="w-24">
@@ -684,9 +762,14 @@ export default function CreatePage() {
                         options={options}
                         value={ids}
                         onChange={(vals) => f.onChange((vals as (string | number)[]).map((x) => Number(x)))}
-                        placeholder={t('form.alternativeScheduledBasketsPlaceholder')}
+                        placeholder={
+                          categoryId <= 0
+                            ? t('form.selectCategoryBeforeVariants')
+                            : t('form.alternativeScheduledBasketsPlaceholder')
+                        }
                         noOptionsMessage={t('noOptionsFound')}
                         fullWidth
+                        isDisabled={categoryId <= 0}
                       />
                     );
                   }}

@@ -37,6 +37,8 @@ export interface CategoryFormValues {
   children_count: number;
   created_at: string;
   updated_at: string;
+  /** From list API — drives row Show/Hide in actions menu. */
+  is_active?: boolean | number;
   [key: string]: any;
 }
 
@@ -209,6 +211,7 @@ export const categoryColumns = (
         onDeleteConfirm={onDeleteConfirm}
         onDeleteCancel={onDeleteCancel}
         deletingId={deletingId}
+        adminToggleEntityType="category"
         permissions={permissions}
       />
     ),

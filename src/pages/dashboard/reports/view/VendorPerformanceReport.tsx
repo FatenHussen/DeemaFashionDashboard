@@ -10,7 +10,9 @@ import { paths } from 'src/routes/paths';
 
 import { CONFIG } from 'src/global-config';
 
+import { _ReportApi } from '../api/report.services';
 import { useFetchVendorPerformanceReport } from '../hooks/report';
+import { ReportExportButtons } from '../components/report-export-buttons';
 
 // ----------------------------------------------------------------------
 
@@ -160,6 +162,12 @@ export default function VendorPerformanceReportPage() {
           <Button variant="outlined" size="small" onClick={handleApply} disabled={!vendorId}>
             {t('reports.apply')}
           </Button>
+          <ReportExportButtons
+            disabled={!appliedVendorId}
+            onExport={(format) =>
+              _ReportApi.exportVendorPerformanceReport(appliedVendorId, format, params)
+            }
+          />
         </Box>
       </div>
 

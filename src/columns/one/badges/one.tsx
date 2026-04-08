@@ -78,6 +78,7 @@ export const badgeColumns = (
         onDeleteConfirm={onDeleteConfirm}
         onDeleteCancel={onDeleteCancel}
         deletingId={deletingId}
+        adminToggleEntityType="badge"
         permissions={permissions}
       />
     ),

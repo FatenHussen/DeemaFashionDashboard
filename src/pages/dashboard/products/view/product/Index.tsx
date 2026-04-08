@@ -21,6 +21,7 @@ import {
   useDeleteProduct,
   useRejectProduct,
   useApproveProduct,
+  useUpdateProductPrice,
 } from '@/pages/dashboard/products/hooks/product';
 
 import { CONFIG } from 'src/global-config';
@@ -133,6 +134,7 @@ export default function Page() {
   const deleteProductMutation = useDeleteProduct();
   const approveProductMutation = useApproveProduct();
   const rejectProductMutation = useRejectProduct();
+  const updatePriceMutation = useUpdateProductPrice();
 
   const onDelete = (id: number) => {
     setDeletingId(id);
@@ -152,6 +154,16 @@ export default function Page() {
 
   const onDeleteCancel = () => {
     setDeletingId(null);
+  };
+
+  const handlePriceUpdate = async (id: number, price: number) => {
+    try {
+      await updatePriceMutation.mutateAsync({ id, price });
+      toast.success(t('priceUpdatedSuccess'));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : t('priceUpdatedError'));
+      throw e;
+    }
   };
 
   const handleApproveRow = async (id: number) => {
@@ -283,7 +295,8 @@ export default function Page() {
                   ? rejectProductMutation.variables?.id ?? null
                   : null,
               }
-            : null
+            : null,
+          hasPermission('update', 'product') ? handlePriceUpdate : undefined
         )}
         data={productData as ProductFormValues[]}
         createPath="/products/create"

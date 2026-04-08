@@ -6,17 +6,27 @@ export interface UserBasketScheduleItem {
     id: number;
     name: string;
     email?: string;
+    phone?: string;
   };
-  basket: {
-    id: number;
-    name: { en: string; ar: string } | string;
-  };
+  /** Basket / subscription name (flat on list payload; not nested under `basket`). */
+  name: string;
+  image: string | null;
+  num_varieties: number;
+  original_price: number;
+  discount_value: string;
+  discount_type: string;
+  discount_amount: number;
+  final_price: number;
   schedule: {
     id: number;
-    name: { en: string; ar: string } | string;
+    name: string;
+    interval_days: number;
   };
-  is_active: number;
+  is_active: boolean;
+  start_date: string;
+  next_run_date: string;
   created_at: string;
+  updated_at: string;
 }
 
 export interface UserBasketScheduleListResponse {

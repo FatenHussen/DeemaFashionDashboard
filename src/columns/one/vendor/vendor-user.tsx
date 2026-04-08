@@ -133,6 +133,7 @@ export const vendorUserColumns = (
         onDeleteConfirm={onDeleteConfirm}
         onDeleteCancel={onDeleteCancel}
         deletingId={deletingId}
+        adminToggleEntityType="vendor_user"
         permissions={permissions}
       />
     ),

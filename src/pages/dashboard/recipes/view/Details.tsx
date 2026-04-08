@@ -1,5 +1,6 @@
 import type { LocalizedField } from '@/pages/dashboard/recipes/types/recipe.types';
 
+import { useState } from 'react';
 import { Button } from '@/shared/ui/button';
 import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate } from 'react-router';
@@ -19,6 +20,109 @@ function resolveMediaUrl(path?: string | null): string | undefined {
   return `${base}/${String(path).replace(/^\//, '')}`;
 }
 
+function resolveRecipeVideoUrl(raw?: string | null): string {
+  const s = raw?.trim() ?? '';
+  if (!s) return '';
+  return resolveMediaUrl(s) ?? (/^https?:\/\//i.test(s) ? s : '');
+}
+
+function youtubeVideoIdFromUrl(url: string): string | null {
+  try {
+    const u = new URL(url.trim());
+    const host = u.hostname.replace(/^www\./, '');
+    if (host === 'youtu.be') {
+      const id = u.pathname.replace(/^\//, '').split('/')[0];
+      return id || null;
+    }
+    if (host === 'youtube.com' || host === 'm.youtube.com' || host === 'www.youtube.com') {
+      if (u.pathname.startsWith('/embed/')) {
+        return u.pathname.slice('/embed/'.length).split('/')[0] || null;
+      }
+      if (u.pathname.startsWith('/shorts/')) {
+        return u.pathname.slice('/shorts/'.length).split('/')[0] || null;
+      }
+      const v = u.searchParams.get('v');
+      if (v) return v;
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+function vimeoVideoIdFromUrl(url: string): string | null {
+  try {
+    const u = new URL(url.trim());
+    if (!u.hostname.replace(/^www\./, '').includes('vimeo.com')) return null;
+    const parts = u.pathname.split('/').filter(Boolean);
+    const id = parts[0];
+    if (id && /^\d+$/.test(id)) return id;
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+function isLikelyDirectVideoFile(url: string): boolean {
+  try {
+    const path = new URL(url).pathname.toLowerCase();
+    return /\.(mp4|webm|ogg|mov)(\?|$)/i.test(path);
+  } catch {
+    return /\.(mp4|webm|ogg|mov)(\?|$)/i.test(url.toLowerCase());
+  }
+}
+
+function canEmbedRecipeVideoInPage(url: string): boolean {
+  return (
+    Boolean(youtubeVideoIdFromUrl(url)) ||
+    Boolean(vimeoVideoIdFromUrl(url)) ||
+    isLikelyDirectVideoFile(url)
+  );
+}
+
+function RecipeVideoPlayer({ url }: { url: string }) {
+  const yt = youtubeVideoIdFromUrl(url);
+  if (yt) {
+    return (
+      <Box className="relative aspect-video w-full overflow-hidden rounded-lg bg-black">
+        <iframe
+          title="Recipe video"
+          src={`https://www.youtube-nocookie.com/embed/${yt}`}
+          className="absolute inset-0 h-full w-full border-0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowFullScreen
+        />
+      </Box>
+    );
+  }
+  const vim = vimeoVideoIdFromUrl(url);
+  if (vim) {
+    return (
+      <Box className="relative aspect-video w-full overflow-hidden rounded-lg bg-black">
+        <iframe
+          title="Recipe video"
+          src={`https://player.vimeo.com/video/${vim}`}
+          className="absolute inset-0 h-full w-full border-0"
+          allow="autoplay; fullscreen; picture-in-picture"
+          allowFullScreen
+        />
+      </Box>
+    );
+  }
+  if (isLikelyDirectVideoFile(url)) {
+    return (
+      <video
+        src={url}
+        controls
+        playsInline
+        className="max-h-[70vh] w-full rounded-lg bg-black"
+        preload="metadata"
+      />
+    );
+  }
+  return null;
+}
+
 function formatStepField(field: LocalizedField | undefined): string {
   if (field == null) return '—';
   return formatTranslated(field as Parameters<typeof formatTranslated>[0]);
@@ -28,6 +132,7 @@ export default function DetailsPage() {
   const { t } = useTranslation('table');
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [videoLinkOpen, setVideoLinkOpen] = useState(false);
   const { data: response, isLoading, error } = useFetchRecipeById(id || '');
   const item = response?.data;
   const { can } = usePermissions();
@@ -52,6 +157,7 @@ export default function DetailsPage() {
   const nameStr = formatTranslated(item.name);
   const descStr = item.description ? formatTranslated(item.description) : '';
   const imageSrc = resolveMediaUrl(item.image);
+  const videoUrl = resolveRecipeVideoUrl(item.video_url);
 
   return (
     <>
@@ -101,19 +207,45 @@ export default function DetailsPage() {
               ) : null}
             </Box>
 
-            {item.video_url ? (
+            {videoUrl ? (
               <Box className="mt-4">
-                <Typography variant="caption" className="text-muted-foreground">
-                  {t('form.videoUrl')}
-                </Typography>
-                <a
-                  href={item.video_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-1 block text-sm font-medium text-primary underline-offset-4 hover:underline"
+                <Button
+                  type="button"
+                  variant="outlined"
+                  size="small"
+                  className="gap-2"
+                  onClick={() => setVideoLinkOpen((open) => !open)}
                 >
-                  {item.video_url}
-                </a>
+                  <Iconify
+                    icon={videoLinkOpen ? 'solar:eye-closed-bold' : 'solar:play-circle-bold'}
+                    width={18}
+                  />
+                  {videoLinkOpen ? t('form.recipeDetailVideoHide') : t('form.recipeDetailVideoShow')}
+                </Button>
+                {videoLinkOpen ? (
+                  <Box className="mt-3 space-y-3">
+                    {canEmbedRecipeVideoInPage(videoUrl) ? (
+                      <RecipeVideoPlayer url={videoUrl} />
+                    ) : (
+                      <Typography variant="body2" className="text-muted-foreground">
+                        {t('form.recipeDetailVideoUnsupported')}
+                      </Typography>
+                    )}
+                    <Box className="flex flex-col gap-1 border-t border-border/50 pt-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
+                      <a
+                        href={videoUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="shrink-0 text-sm font-medium text-primary underline-offset-4 hover:underline"
+                      >
+                        {t('form.recipeDetailVideoOpenNewTab')}
+                      </a>
+                      <Typography variant="caption" className="break-all text-muted-foreground">
+                        {videoUrl}
+                      </Typography>
+                    </Box>
+                  </Box>
+                ) : null}
               </Box>
             ) : null}
           </Box>

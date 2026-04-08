@@ -2,7 +2,7 @@ import type { Control } from 'react-hook-form';
 import type { GiftData, GiftTranslation, GiftCreateUpdatePayload } from '@/pages/dashboard/gifts/types/gift.types';
 
 import { toast } from 'react-toastify';
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -10,8 +10,9 @@ import { useParams, useNavigate, useLocation } from 'react-router';
 import { InfiniteScrollSelect } from '@/shared/components/infinite-scroll-select';
 import { _CategoryApi } from '@/pages/dashboard/categories/api/category.services';
 import { _ShopProductVariantApi } from '@/shared/api/shop-product-variant.services';
-import { RHFInfiniteSelect } from '@/shared/components/hook-form/rhf-infinite-select';
-import { useCreateGift, useUpdateGift, useFetchGiftById } from '@/pages/dashboard/gifts/hooks/gift';
+import { useInfiniteSelect } from '@/shared/hooks/use-infinite-select';
+import { formatTranslated } from '@/utils/format-translated';
+import { useCreateGift, useUpdateGift, useFetchGiftById, useBulkCreateGifts } from '@/pages/dashboard/gifts/hooks/gift';
 import {
   GiftSchema,
   type GiftFormMode,
@@ -20,13 +21,13 @@ import {
 
 import { CONFIG } from 'src/global-config';
 import { Box, Tab, Tabs, Switch, Typography } from 'src/shared/ui';
+import { Iconify } from 'src/shared/components/iconify';
 import { LoadingScreen } from 'src/shared/components/loading-screen';
 import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
 import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
 
 // ----------------------------------------------------------------------
 
-/** Safely extract a translation value from a string or { ar, en } object */
 const getTranslation = (val: GiftTranslation | string | undefined, lang: 'ar' | 'en'): string => {
   if (!val) return '';
   if (typeof val === 'string') return lang === 'ar' ? val : '';
@@ -42,14 +43,259 @@ function categoryInitialLabel(src: GiftData | undefined): string | undefined {
     : String(cat.name);
 }
 
+// --------- Multi-select Product Variant Picker ----------
+
+type VariantMultiPickerProps = {
+  selectedIds: number[];
+  onChange: (ids: number[]) => void;
+  t: (key: string, options?: Record<string, unknown>) => string;
+  error?: string;
+};
+
+function VariantMultiPicker({ selectedIds, onChange, t, error }: VariantMultiPickerProps) {
+  const [categoryId, setCategoryId] = useState<number | undefined>(undefined);
+  const [search, setSearch] = useState('');
+  const [labelMap, setLabelMap] = useState<Map<number, string>>(new Map());
+  const listRef = useRef<HTMLDivElement>(null);
+
+  const { allItems, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
+    useInfiniteSelect(
+      ['shopProductVariant', 'bulk', categoryId],
+      (page, limit) =>
+        _ShopProductVariantApi
+          .getList({ page, per_page: limit, category_id: categoryId })
+          .then((res) => ({
+            data: { items: res.data.items ?? [], pagination: res.data.pagination },
+          })),
+      20
+    );
+
+  useEffect(() => {
+    setLabelMap((prev) => {
+      const next = new Map(prev);
+      allItems.forEach((item) => next.set(item.id, formatTranslated((item as any).label)));
+      return next;
+    });
+  }, [allItems]);
+
+  useEffect(() => {
+    const container = listRef.current;
+    if (!container) return;
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      if (scrollHeight - scrollTop - clientHeight < 80 && hasNextPage && !isFetchingNextPage) {
+        fetchNextPage();
+      }
+    };
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  const filtered = search
+    ? allItems.filter((item) => {
+        const label = formatTranslated((item as any).label, '');
+        return label.toLowerCase().includes(search.toLowerCase());
+      })
+    : allItems;
+
+  const toggleItem = (id: number) => {
+    onChange(
+      selectedIds.includes(id)
+        ? selectedIds.filter((v) => v !== id)
+        : [...selectedIds, id]
+    );
+  };
+
+  const allVisibleSelected =
+    filtered.length > 0 && filtered.every((i) => selectedIds.includes(i.id));
+
+  const toggleAllVisible = () => {
+    if (allVisibleSelected) {
+      const visibleIds = new Set(filtered.map((i) => i.id));
+      onChange(selectedIds.filter((id) => !visibleIds.has(id)));
+    } else {
+      const newIds = new Set([...selectedIds, ...filtered.map((i) => i.id)]);
+      onChange([...newIds]);
+    }
+  };
+
+  return (
+    <div className="rounded-xl border border-border/70 overflow-hidden bg-background/30">
+      {/* Category filter */}
+      <div className="px-3 py-2.5 border-b border-border/50 bg-muted/10">
+        <Typography variant="caption" className="mb-1.5 block text-muted-foreground font-medium">
+          {t('form.giftFilterByCategory')}
+        </Typography>
+        <InfiniteScrollSelect
+          value={categoryId ?? 0}
+          onChange={(val) => {
+            setCategoryId(val === 0 ? undefined : val);
+            setSearch('');
+          }}
+          queryKey={['category', 'gift-bulk']}
+          fetcher={(page) =>
+            _CategoryApi.getListCategoriesPaginated({ page, per_page: 15 }).then((res) => ({
+              data: {
+                items:
+                  page === 1
+                    ? [
+                        { id: 0, label: t('form.allCategories') },
+                        ...res.data.items.map((c: { id: number; name: unknown }) => ({
+                          id: c.id,
+                          label:
+                            typeof c.name === 'object' && c.name !== null
+                              ? String(
+                                  (c.name as { en?: string; ar?: string }).en ||
+                                    (c.name as { ar?: string }).ar ||
+                                    ''
+                                )
+                              : String(c.name || ''),
+                        })),
+                      ]
+                    : res.data.items.map((c: { id: number; name: unknown }) => ({
+                        id: c.id,
+                        label:
+                          typeof c.name === 'object' && c.name !== null
+                            ? String(
+                                (c.name as { en?: string; ar?: string }).en ||
+                                  (c.name as { ar?: string }).ar ||
+                                  ''
+                              )
+                            : String(c.name || ''),
+                      })),
+                pagination: res.data.pagination,
+              },
+            }))
+          }
+          placeholder={t('form.allCategories')}
+        />
+      </div>
+
+      {/* Search */}
+      <div className="px-3 py-2 border-b border-border/50">
+        <div className="relative">
+          <Iconify
+            icon="solar:magnifer-linear"
+            width={16}
+            className="absolute start-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
+          />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={t('form.searchVariants')}
+            className="w-full h-9 rounded-lg ps-8 pe-3 text-sm border border-border/50 bg-background/50 placeholder:text-muted-foreground focus:outline-none focus:border-primary/40 focus:ring-2 focus:ring-primary/15 transition-all"
+          />
+        </div>
+      </div>
+
+      {/* Select all + count */}
+      <div className="px-3 py-2 border-b border-border/50 flex items-center justify-between bg-muted/5">
+        <button
+          type="button"
+          onClick={toggleAllVisible}
+          disabled={filtered.length === 0}
+          className="text-xs font-medium text-primary hover:text-primary/80 disabled:text-muted-foreground disabled:cursor-not-allowed transition-colors"
+        >
+          {allVisibleSelected ? t('form.deselectAllVisible') : t('form.selectAllVisible')}
+        </button>
+        {selectedIds.length > 0 && (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
+            {t('form.selectedCount', { count: selectedIds.length })}
+          </span>
+        )}
+      </div>
+
+      {/* Variants list */}
+      <div ref={listRef} className="max-h-64 overflow-y-auto">
+        {isLoading ? (
+          <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
+            <Iconify icon="svg-spinners:ring-resize" width={18} />
+            {t('loading')}
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="py-8 text-center text-sm text-muted-foreground">
+            {t('form.noVariantsFound')}
+          </div>
+        ) : (
+          filtered.map((item) => {
+            const checked = selectedIds.includes(item.id);
+            return (
+              <label
+                key={item.id}
+                className={`flex items-center gap-3 px-3 py-2.5 cursor-pointer transition-colors border-b border-border/10 last:border-b-0 ${
+                  checked ? 'bg-primary/5 hover:bg-primary/10' : 'hover:bg-muted/30'
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={() => toggleItem(item.id)}
+                  className="h-4 w-4 rounded border-border accent-primary cursor-pointer shrink-0"
+                />
+                <span
+                  className={`text-sm truncate ${checked ? 'font-medium text-foreground' : 'text-foreground/80'}`}
+                >
+                  {formatTranslated((item as any).label)}
+                </span>
+              </label>
+            );
+          })
+        )}
+        {isFetchingNextPage && (
+          <div className="flex items-center justify-center gap-1.5 py-3 text-xs text-muted-foreground">
+            <Iconify icon="svg-spinners:ring-resize" width={14} />
+            {t('loadingMore')}
+          </div>
+        )}
+      </div>
+
+      {/* Selected items chips */}
+      {selectedIds.length > 0 && (
+        <div className="px-3 py-2.5 border-t border-border/50 bg-muted/5">
+          <div className="flex flex-wrap gap-1.5">
+            {selectedIds.map((id) => (
+              <span
+                key={id}
+                className="inline-flex items-center gap-1 rounded-full bg-primary/10 border border-primary/20 px-2 py-0.5 text-xs font-medium text-primary"
+              >
+                <span className="max-w-32 truncate">{labelMap.get(id) || `#${id}`}</span>
+                <button
+                  type="button"
+                  onClick={() => toggleItem(id)}
+                  className="shrink-0 rounded-full p-0.5 hover:bg-primary/20 transition-colors"
+                >
+                  <Iconify icon="solar:close-circle-bold" width={14} />
+                </button>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Error */}
+      {error && (
+        <div className="px-3 py-2 border-t border-destructive/30 bg-destructive/5">
+          <Typography variant="caption" className="text-destructive">
+            {error}
+          </Typography>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// --------- Shared Fields ----------
+
 type SharedFieldsProps = {
   t: (key: string, options?: Record<string, unknown>) => string;
   control: Control<GiftFormValues>;
   detailsResponse?: { data?: GiftData };
   fromState?: GiftData;
+  hideCategoryField?: boolean;
 };
 
-function GiftSharedFields({ t, control, detailsResponse, fromState }: SharedFieldsProps) {
+function GiftSharedFields({ t, control, detailsResponse, fromState, hideCategoryField }: SharedFieldsProps) {
   const src = detailsResponse?.data ?? fromState;
 
   return (
@@ -69,50 +315,52 @@ function GiftSharedFields({ t, control, detailsResponse, fromState }: SharedFiel
         </Box>
       </Box>
 
-      <Box className="group">
-        <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
-          {t('form.categoryLabel')} ({t('form.fieldOptional')})
-        </Typography>
-        <Controller
-          name="category_id"
-          control={control}
-          render={({ field }) => (
-            <InfiniteScrollSelect
-              value={field.value ?? 0}
-              onChange={(val) => field.onChange(val === 0 ? undefined : val)}
-              queryKey={['category', 'gift']}
-              fetcher={(page) =>
-                _CategoryApi.getListCategoriesPaginated({ page, per_page: 15 }).then((res) => ({
-                  data: {
-                    items:
-                      page === 1
-                        ? [
-                            { id: 0, label: t('form.noCategory') },
-                            ...res.data.items.map((c: { id: number; name: unknown }) => ({
+      {!hideCategoryField && (
+        <Box className="group">
+          <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
+            {t('form.categoryLabel')} ({t('form.fieldOptional')})
+          </Typography>
+          <Controller
+            name="category_id"
+            control={control}
+            render={({ field }) => (
+              <InfiniteScrollSelect
+                value={field.value ?? 0}
+                onChange={(val) => field.onChange(val === 0 ? undefined : val)}
+                queryKey={['category', 'gift']}
+                fetcher={(page) =>
+                  _CategoryApi.getListCategoriesPaginated({ page, per_page: 15 }).then((res) => ({
+                    data: {
+                      items:
+                        page === 1
+                          ? [
+                              { id: 0, label: t('form.noCategory') },
+                              ...res.data.items.map((c: { id: number; name: unknown }) => ({
+                                id: c.id,
+                                label:
+                                  typeof c.name === 'object' && c.name !== null
+                                    ? String((c.name as { en?: string; ar?: string }).en || (c.name as { ar?: string }).ar || '')
+                                    : String(c.name || ''),
+                              })),
+                            ]
+                          : res.data.items.map((c: { id: number; name: unknown }) => ({
                               id: c.id,
                               label:
                                 typeof c.name === 'object' && c.name !== null
                                   ? String((c.name as { en?: string; ar?: string }).en || (c.name as { ar?: string }).ar || '')
                                   : String(c.name || ''),
                             })),
-                          ]
-                        : res.data.items.map((c: { id: number; name: unknown }) => ({
-                            id: c.id,
-                            label:
-                              typeof c.name === 'object' && c.name !== null
-                                ? String((c.name as { en?: string; ar?: string }).en || (c.name as { ar?: string }).ar || '')
-                                : String(c.name || ''),
-                          })),
-                    pagination: res.data.pagination,
-                  },
-                }))
-              }
-              placeholder={t('form.noCategory')}
-              initialLabel={categoryInitialLabel(src)}
-            />
-          )}
-        />
-      </Box>
+                      pagination: res.data.pagination,
+                    },
+                  }))
+                }
+                placeholder={t('form.noCategory')}
+                initialLabel={categoryInitialLabel(src)}
+              />
+            )}
+          />
+        </Box>
+      )}
 
       <Box className="group">
         <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
@@ -127,6 +375,8 @@ function GiftSharedFields({ t, control, detailsResponse, fromState }: SharedFiel
   );
 }
 
+// --------- Main Page ----------
+
 export default function CreatePage() {
   const { t } = useTranslation('table');
   const { id } = useParams<{ id?: string }>();
@@ -138,6 +388,7 @@ export default function CreatePage() {
   const { data: detailsResponse, isLoading: isLoadingDetails } = useFetchGiftById(id || '');
   const createMutation = useCreateGift();
   const updateMutation = useUpdateGift();
+  const bulkCreateMutation = useBulkCreateGifts();
 
   const defaultValues: GiftFormValues = {
     giftMode: 'tikmool',
@@ -148,7 +399,7 @@ export default function CreatePage() {
     stock_quantity: 0,
     is_active: true,
     category_id: undefined,
-    shop_product_variant_id: null,
+    shop_product_variant_ids: [],
     terms_conditions: { ar: '', en: '' },
   };
 
@@ -164,7 +415,7 @@ export default function CreatePage() {
     (next: GiftFormMode) => {
       setValue('giftMode', next, { shouldValidate: true });
       if (next === 'external') {
-        setValue('shop_product_variant_id', null);
+        setValue('shop_product_variant_ids', []);
       } else {
         setValue('name', { ar: '', en: '' });
         setValue('description', { ar: '', en: '' });
@@ -189,9 +440,9 @@ export default function CreatePage() {
         image: null,
         points_required: source.points_required || 1,
         stock_quantity: source.stock_quantity || 0,
-        is_active: source.is_active ?? true,
+        is_active: Boolean(source.is_active),
         category_id: source.category_id || (source as GiftData & { category?: { id: number } }).category?.id,
-        shop_product_variant_id: variantId ?? null,
+        shop_product_variant_ids: variantId ? [variantId] : [],
         terms_conditions: {
           ar: getTranslation(source.terms_conditions, 'ar'),
           en: getTranslation(source.terms_conditions, 'en'),
@@ -200,11 +451,16 @@ export default function CreatePage() {
     }
   }, [detailsResponse?.data, fromState, isEditMode, reset]);
 
-  const isSubmitting = createMutation.isPending || updateMutation.isPending;
-  const errorMessage = createMutation.error?.message || updateMutation.error?.message || null;
+  const isSubmitting =
+    createMutation.isPending || updateMutation.isPending || bulkCreateMutation.isPending;
+  const errorMessage =
+    createMutation.error?.message ||
+    updateMutation.error?.message ||
+    bulkCreateMutation.error?.message ||
+    null;
 
   const buildPayload = (data: GiftFormValues): GiftCreateUpdatePayload => {
-    const { giftMode: mode, ...rest } = data;
+    const { giftMode: mode, shop_product_variant_ids, ...rest } = data;
     const base: GiftCreateUpdatePayload = {
       name: rest.name,
       description: rest.description,
@@ -214,7 +470,10 @@ export default function CreatePage() {
       is_active: rest.is_active,
       category_id: rest.category_id,
       terms_conditions: rest.terms_conditions,
-      shop_product_variant_id: mode === 'tikmool' ? rest.shop_product_variant_id : null,
+      shop_product_variant_id:
+        mode === 'tikmool' && shop_product_variant_ids.length > 0
+          ? shop_product_variant_ids[0]
+          : null,
     };
 
     if (mode === 'tikmool') {
@@ -231,11 +490,23 @@ export default function CreatePage() {
 
   const onSubmit = async (data: GiftFormValues) => {
     try {
-      const payload = buildPayload(data);
       if (isEditMode && id) {
+        const payload = buildPayload(data);
         await updateMutation.mutateAsync({ id, data: payload });
         toast.success(t('form.giftUpdatedToast'));
+      } else if (data.giftMode === 'tikmool' && data.shop_product_variant_ids.length > 0) {
+        await bulkCreateMutation.mutateAsync({
+          shop_product_variant_ids: data.shop_product_variant_ids,
+          points_required: data.points_required,
+          stock_quantity: data.stock_quantity,
+          is_active: data.is_active,
+          terms_conditions: data.terms_conditions,
+        });
+        toast.success(
+          t('form.giftBulkCreatedToast', { count: data.shop_product_variant_ids.length })
+        );
       } else {
+        const payload = buildPayload(data);
         await createMutation.mutateAsync(payload);
         toast.success(t('form.giftCreatedToast'));
       }
@@ -296,20 +567,57 @@ export default function CreatePage() {
               <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
                 {t('form.giftShopProductVariant')}
               </Typography>
-              <RHFInfiniteSelect
-                name="shop_product_variant_id"
-                queryKey={['shopProductVariant', 'gift', 'tikmool']}
-                fetcher={variantFetcher}
-                placeholder={t('form.selectProductVariant')}
-                initialLabel={variantInitialLabel}
-                pageSize={15}
-              />
+
+              {!isEditMode && (
+                <Typography variant="caption" className="mb-3 block text-muted-foreground">
+                  {t('form.giftBulkCreateDesc')}
+                </Typography>
+              )}
+
+              {isEditMode ? (
+                <Controller
+                  name="shop_product_variant_ids"
+                  control={control}
+                  render={({ field, fieldState }) => (
+                    <>
+                      <InfiniteScrollSelect
+                        value={field.value?.[0] ?? 0}
+                        onChange={(val) => field.onChange(val ? [val] : [])}
+                        queryKey={['shopProductVariant', 'gift', 'tikmool']}
+                        fetcher={variantFetcher}
+                        placeholder={t('form.selectProductVariant')}
+                        initialLabel={variantInitialLabel}
+                        pageSize={15}
+                      />
+                      {fieldState.error && (
+                        <Typography variant="caption" className="mt-1 text-destructive">
+                          {(fieldState.error as any).message || (fieldState.error as any).root?.message}
+                        </Typography>
+                      )}
+                    </>
+                  )}
+                />
+              ) : (
+                <Controller
+                  name="shop_product_variant_ids"
+                  control={control}
+                  render={({ field, fieldState }) => (
+                    <VariantMultiPicker
+                      selectedIds={field.value ?? []}
+                      onChange={field.onChange}
+                      t={t}
+                      error={(fieldState.error as any)?.message || (fieldState.error as any)?.root?.message}
+                    />
+                  )}
+                />
+              )}
             </Box>
             <GiftSharedFields
               t={t}
               control={control}
               detailsResponse={detailsResponse}
               fromState={fromState}
+              hideCategoryField={!isEditMode}
             />
           </Box>
         )}

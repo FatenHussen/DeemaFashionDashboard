@@ -22,7 +22,6 @@ import {
 import { CONFIG } from 'src/global-config';
 import { Box, Button, Typography, SimpleSelect } from 'src/shared/ui';
 import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
-import { RHFColorPicker } from 'src/shared/components/hook-form/rhf-color-picker';
 import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
 
 // ----------------------------------------------------------------------
@@ -37,6 +36,12 @@ const categoryFetcher = (page: number, limit: number) =>
       pagination: r.data?.pagination ?? { current_page: 1, last_page: 1, per_page: limit, total: 0 },
     },
   }));
+
+function hexForDisplay(value: string | undefined) {
+  const raw = value?.trim().replace(/\s/g, '') ?? '';
+  if (!raw) return '';
+  return raw.startsWith('#') ? raw : `#${raw}`;
+}
 
 export default function CreatePage() {
   const { t } = useTranslation('table');
@@ -100,11 +105,13 @@ export default function CreatePage() {
         name: attribute.name,
         type: attribute.type,
         values:
-          attribute.values?.length > 0
-            ? attribute.values.map((val) => ({
-                name: val.name,
-              }))
-            : [{ name: { en: '', ar: '' } }],
+          attribute.type === 'color'
+            ? []
+            : attribute.values?.length > 0
+              ? attribute.values.map((val) => ({
+                  name: val.name,
+                }))
+              : [{ name: { en: '', ar: '' } }],
       });
     }
   }, [
@@ -115,17 +122,18 @@ export default function CreatePage() {
     categoriesResponse?.data?.items,
   ]);
 
-  // When type is color, keep AR value in sync with EN (hex from picker) for API / both locales
   useEffect(() => {
-    if (attributeType !== 'color' || !watchedValues?.length) return;
-    watchedValues.forEach((row, i) => {
-      const en = row?.name?.en?.trim();
-      if (!en) return;
-      if (row?.name?.ar !== en) {
-        setValue(`values.${i}.name.ar`, en, { shouldValidate: true, shouldDirty: true });
+    if (attributeType === 'color') {
+      if (!isEditMode && watchedValues.length > 0) {
+        setValue('values', [], { shouldValidate: true, shouldDirty: true });
       }
-    });
-  }, [attributeType, watchedValues, setValue]);
+      return;
+    }
+
+    if (watchedValues.length === 0) {
+      setValue('values', [{ name: { en: '', ar: '' } }], { shouldValidate: true });
+    }
+  }, [attributeType, watchedValues, setValue, isEditMode]);
 
   const isSubmitting =
     createCategoryAttributeMutation.isPending || updateCategoryAttributeMutation.isPending;
@@ -143,12 +151,16 @@ export default function CreatePage() {
           ar: data.name.ar,
         },
         type: data.type,
-        values: data.values.map((val) => ({
-          name: {
-            en: val.name.en,
-            ar: val.name.ar,
-          },
-        })),
+        ...(data.type !== 'color'
+          ? {
+              values: data.values.map((val) => ({
+                name: {
+                  en: val.name.en,
+                  ar: val.name.ar,
+                },
+              })),
+            }
+          : {}),
       };
 
       if (isEditMode && id) {
@@ -278,62 +290,84 @@ export default function CreatePage() {
           />
         </Box>
 
-        {/* Values Section */}
-        <Box className="group">
-          <Box className="flex items-center justify-between mb-4">
-            <Box className="flex items-center gap-2">
-              <Iconify icon="solar:list-bold" className="text-primary" width={24} height={24} />
+        {/* Color values: read-only in edit (from API) */}
+        {isEditMode && attributeType === 'color' && (
+          <Box className="group">
+            <Box className="flex items-center gap-2 mb-2">
+              <Iconify icon="solar:palette-bold" className="text-primary" width={24} height={24} />
               <Typography variant="subtitle2" className="font-semibold text-foreground">
                 {t('form.attributeValuesSection')}
               </Typography>
             </Box>
-            <Button
-              type="button"
-              variant="outlined"
-              size="small"
-              onClick={() => append({ name: { en: '', ar: '' } })}
-              className="flex items-center gap-2"
-            >
-              <Iconify icon="solar:add-circle-bold" width={20} height={20} />
-              {t('form.addAttributeValue')}
-            </Button>
-          </Box>
-
-          {fields.map((field, index) => (
-            <Box key={field.id} className="mb-4 p-4 border border-border/60 rounded-lg">
-              <Box className="flex items-center justify-between mb-3">
-                <Typography variant="body2" className="font-medium text-foreground">
-                  {t('form.attributeValueIndex', { n: index + 1 })}
-                </Typography>
-                {fields.length > 1 && (
-                  <Button
-                    type="button"
-                    variant="text"
-                    color="error"
-                    size="small"
-                    onClick={() => remove(index)}
-                    className="flex items-center gap-2"
+            <Typography variant="caption" className="text-muted-foreground block mb-3">
+              {t('form.attributeColorValuesReadOnlyHint')}
+            </Typography>
+            <Box className="flex flex-wrap gap-3 p-4 border border-border/60 rounded-lg bg-muted/20">
+              {(categoryAttributeData?.data?.values ?? []).map((val) => {
+                const hex = hexForDisplay(val.name?.en || val.name?.ar);
+                return (
+                  <Box
+                    key={val.id ?? `${hex}-${val.name?.en}-${val.name?.ar}`}
+                    className="flex flex-col items-center gap-1"
+                    title={hex}
                   >
-                    <Iconify icon="solar:trash-bin-trash-bold" width={16} height={16} />
-                    {t('form.removeAttributeValue')}
-                  </Button>
-                )}
-              </Box>
+                    <Box
+                      className="h-10 w-10 shrink-0 rounded-full border border-border shadow-sm"
+                      style={{ backgroundColor: hex || undefined }}
+                    />
+                    <Typography variant="caption" className="text-muted-foreground max-w-[4.5rem] truncate">
+                      {hex || '—'}
+                    </Typography>
+                  </Box>
+                );
+              })}
+            </Box>
+          </Box>
+        )}
 
-              {attributeType === 'color' ? (
-                <Box className="space-y-2 md:col-span-2">
+        {/* Values Section */}
+        {attributeType !== 'color' && (
+          <Box className="group">
+            <Box className="flex items-center justify-between mb-4">
+              <Box className="flex items-center gap-2">
+                <Iconify icon="solar:list-bold" className="text-primary" width={24} height={24} />
+                <Typography variant="subtitle2" className="font-semibold text-foreground">
+                  {t('form.attributeValuesSection')}
+                </Typography>
+              </Box>
+              <Button
+                type="button"
+                variant="outlined"
+                size="small"
+                onClick={() => append({ name: { en: '', ar: '' } })}
+                className="flex items-center gap-2"
+              >
+                <Iconify icon="solar:add-circle-bold" width={20} height={20} />
+                {t('form.addAttributeValue')}
+              </Button>
+            </Box>
+
+            {fields.map((field, index) => (
+              <Box key={field.id} className="mb-4 p-4 border border-border/60 rounded-lg">
+                <Box className="flex items-center justify-between mb-3">
                   <Typography variant="body2" className="font-medium text-foreground">
-                    {t('form.attributeValueColor')}
+                    {t('form.attributeValueIndex', { n: index + 1 })}
                   </Typography>
-                  <RHFColorPicker
-                    name={`values.${index}.name.en`}
-                    helperText={t('form.colorHelper')}
-                  />
-                  <Typography variant="caption" className="text-muted-foreground block">
-                    {t('form.attributeColorSyncedToAr')}
-                  </Typography>
+                  {fields.length > 1 && (
+                    <Button
+                      type="button"
+                      variant="text"
+                      color="error"
+                      size="small"
+                      onClick={() => remove(index)}
+                      className="flex items-center gap-2"
+                    >
+                      <Iconify icon="solar:trash-bin-trash-bold" width={16} height={16} />
+                      {t('form.removeAttributeValue')}
+                    </Button>
+                  )}
                 </Box>
-              ) : (
+
                 <Box className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <RHFTextField
                     name={`values.${index}.name.en`}
@@ -349,10 +383,10 @@ export default function CreatePage() {
                     dir="rtl"
                   />
                 </Box>
-              )}
-            </Box>
-          ))}
-        </Box>
+              </Box>
+            ))}
+          </Box>
+        )}
       </CreateFormLayout>
     </>
   );

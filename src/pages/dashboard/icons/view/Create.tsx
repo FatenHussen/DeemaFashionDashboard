@@ -63,7 +63,7 @@ export default function CreatePage() {
           en: typeof desc === 'object' ? (desc as any)?.en ?? '' : String(desc ?? ''),
           ar: typeof desc === 'object' ? (desc as any)?.ar ?? '' : String(desc ?? ''),
         },
-        is_active: item.is_active ?? true,
+        is_active: Boolean(item.is_active),
       });
     }
   }, [detailsResponse?.data, isEditMode, reset]);

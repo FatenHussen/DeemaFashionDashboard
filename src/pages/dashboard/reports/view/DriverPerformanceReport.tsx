@@ -10,7 +10,9 @@ import { paths } from 'src/routes/paths';
 
 import { CONFIG } from 'src/global-config';
 
+import { _ReportApi } from '../api/report.services';
 import { useFetchDriverPerformanceReport } from '../hooks/report';
+import { ReportExportButtons } from '../components/report-export-buttons';
 
 // ----------------------------------------------------------------------
 
@@ -129,6 +131,12 @@ export default function DriverPerformanceReportPage() {
           <Button variant="outlined" size="small" onClick={handleApply} disabled={!driverId}>
             {t('reports.apply')}
           </Button>
+          <ReportExportButtons
+            disabled={!appliedDriverId}
+            onExport={(format) =>
+              _ReportApi.exportDriverPerformanceReport(appliedDriverId, format, params)
+            }
+          />
         </Box>
       </div>
 

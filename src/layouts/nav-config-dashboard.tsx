@@ -123,6 +123,12 @@ export function getNavData(t: TFunction<'nav'>): NavSectionProps['data'] {
         { title: t('city'), path: paths.dashboard.city, icon: ICONS.tour, requiredPermission: 'city.view' },
         { title: t('area'), path: paths.dashboard.area, icon: ICONS.label, requiredPermission: 'area.view' },
         { title: t('countries'), path: paths.dashboard.countries, icon: ICONS.tour, requiredPermission: 'country.view' },
+        {
+          title: t('saleCountries'),
+          path: paths.dashboard.saleCountries,
+          icon: ICONS.tour,
+          requiredPermissionAny: ['salecountry.view', 'SaleCountry.view'],
+        },
       ],
     },
     /**
@@ -230,6 +236,12 @@ export function getNavData(t: TFunction<'nav'>): NavSectionProps['data'] {
         { title: t('settings'), path: paths.dashboard.settings, icon: ICONS.params, requiredPermission: 'setting.view' },
         { title: t('badges'), path: paths.dashboard.badges, icon: ICONS.label, requiredPermission: 'badge.view' },
         { title: t('icons'), path: paths.dashboard.icons, icon: ICONS.folder, requiredPermission: 'icon.view' },
+        {
+          title: t('colors'),
+          path: paths.dashboard.colors,
+          icon: <Iconify icon="solar:palette-bold" width={22} height={22} />,
+          requiredPermissionAny: ['color.view', 'Color.view'],
+        },
         { title: t('activityLogs'), path: paths.dashboard.activityLogs, icon: ICONS.file, requiredPermission: 'activitylog.view' },
         { title: t('affiliateWithdrawRequests'), path: paths.dashboard.affiliateWithdrawRequests, icon: ICONS.banking, requiredPermission: 'affiliatewithdrawrequest.view' },
       ],

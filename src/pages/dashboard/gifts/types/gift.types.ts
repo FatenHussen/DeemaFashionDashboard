@@ -63,3 +63,11 @@ export interface GiftCreateUpdatePayload {
   shop_product_variant_id?: number | null;
   terms_conditions?: { ar?: string; en?: string };
 }
+
+export interface BulkGiftCreatePayload {
+  shop_product_variant_ids: number[];
+  points_required: number;
+  stock_quantity?: number;
+  is_active?: boolean;
+  terms_conditions?: { ar?: string; en?: string };
+}

@@ -274,4 +274,12 @@ export const _ProductApi = {
     const response = await axiosInstance.post(apiRoutes.product.reject(id), { rejection_reason });
     return response.data;
   },
+
+  updateProductPrice: async (id: number | string, price: number): Promise<any> => {
+    const formData = new FormData();
+    formData.append('price', String(price));
+    formData.append('_method', 'PUT');
+    const response = await axiosInstance.post(apiRoutes.product.update(id), formData);
+    return response.data;
+  },
 };

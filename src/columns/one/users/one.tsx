@@ -123,6 +123,7 @@ export const userColumns = (
         onDeleteConfirm={onDeleteConfirm}
         onDeleteCancel={onDeleteCancel}
         deletingId={deletingId}
+        adminToggleEntityType="user"
         permissions={permissions}
       />
     ),

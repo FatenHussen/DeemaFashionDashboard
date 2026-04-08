@@ -2,7 +2,7 @@
 .rich-text-editor-root {
   border-radius: 0.75rem;
   border: 1px solid hsl(var(--border) / 0.7);
-  background: hsl(var(--background) / 0.3);
+  background: #fff;
   overflow: hidden;
   transition:
     box-shadow 0.2s,
@@ -25,7 +25,7 @@
   gap: 0.25rem;
   padding: 0.5rem 0.75rem;
   border-bottom: 1px solid hsl(var(--border) / 0.5);
-  background: hsl(var(--muted) / 0.35);
+  background: hsl(var(--muted) / 0.15);
 }
 
 .rich-text-editor-toolbar button {

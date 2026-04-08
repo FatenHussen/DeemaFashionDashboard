@@ -160,6 +160,7 @@ export const bannerColumns = (
         onDeleteConfirm={onDeleteConfirm}
         onDeleteCancel={onDeleteCancel}
         deletingId={deletingId}
+        adminToggleEntityType="banner"
         permissions={permissions}
       />
     ),

@@ -104,6 +104,7 @@ export const basketColumns = (
         viewDetails={`/baskets/details/${row.original.id}`}
         editItem={onEdit ? undefined : `/baskets/update/${row.original.id}`}
         onEdit={onEdit}
+        adminToggleEntityType="basket"
         onDelete={onDelete}
         isDeleting={isDeleting}
         isDeleteDialogOpen={isDeleteDialogOpen}

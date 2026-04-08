@@ -67,7 +67,7 @@ export const scheduleColumns = (
   },
   {
     id: 'discount',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('form.discount')} />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.discount')} />,
     cell: ({ row }) => {
       const { discount_type, discount_value } = row.original;
       if (!discount_type || discount_value == null) {
@@ -114,6 +114,7 @@ export const scheduleColumns = (
         onDeleteConfirm={onDeleteConfirm}
         onDeleteCancel={onDeleteCancel}
         deletingId={deletingId}
+        adminToggleEntityType="schedule"
         permissions={permissions}
       />
     ),

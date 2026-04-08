@@ -5,6 +5,8 @@ export interface SettingItem {
   value: string | boolean | number | object | null;
   created_at: string;
   updated_at: string;
+  /** When present (list API), drives Show/Hide via `system_setting` toggle. */
+  is_active?: boolean | number;
 }
 
 /** GET /admin/settings may return a flat array or a paginated envelope. */

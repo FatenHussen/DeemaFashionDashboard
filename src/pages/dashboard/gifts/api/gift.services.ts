@@ -1,4 +1,4 @@
-import type { GiftListResponse, GiftDetailsResponse, GiftCreateUpdatePayload } from '../types/gift.types';
+import type { GiftListResponse, GiftDetailsResponse, GiftCreateUpdatePayload, BulkGiftCreatePayload } from '../types/gift.types';
 
 import { apiRoutes, axiosInstance } from '@/api';
 
@@ -72,6 +72,11 @@ export const _GiftApi = {
 
   deleteGift: async (id: number | string): Promise<any> => {
     const response = await axiosInstance.delete(apiRoutes.gift.delete(id));
+    return response.data;
+  },
+
+  bulkCreateGifts: async (data: BulkGiftCreatePayload): Promise<any> => {
+    const response = await axiosInstance.post(apiRoutes.gift.bulkCreate, data);
     return response.data;
   },
 };

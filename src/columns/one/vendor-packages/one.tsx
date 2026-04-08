@@ -129,6 +129,7 @@ export const vendorPackageColumns = (
         onDeleteConfirm={onDeleteConfirm}
         onDeleteCancel={onDeleteCancel}
         deletingId={deletingId}
+        adminToggleEntityType="vendor_package"
         permissions={permissions}
       />
     ),
