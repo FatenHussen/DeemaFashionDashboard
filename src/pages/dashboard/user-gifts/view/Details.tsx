@@ -104,7 +104,7 @@ export default function DetailsPage() {
     <>
       <title>{t('form.userGiftDetailsDocumentTitle', { appName: CONFIG.appName })}</title>
       <Box className="relative min-h-screen overflow-hidden bg-background p-6">
-        <Box className="relative max-w-4xl mx-auto">
+        <Box className="relative w-full">
           <Box className="mb-6">
             <Button
               variant="text"

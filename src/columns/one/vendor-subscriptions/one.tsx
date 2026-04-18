@@ -28,16 +28,6 @@ export const vendorSubscriptionColumns = (
   t: TFunction<'table'>
 ): ColumnDef<VendorSubscriptionFormValues>[] => [
   {
-    id: 'id',
-    accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
-    cell: ({ row }) => (
-      <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
-        <span className="text-xs font-semibold text-primary">{row.original.id}</span>
-      </div>
-    ),
-  },
-  {
     id: 'shop_name',
     accessorFn: (row) => vendorOrShopLabel(row),
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.shop')} />,

@@ -1,7 +1,16 @@
 import type { TFunction } from 'i18next';
 import type { ColumnDef } from '@tanstack/react-table';
 
+import { z } from 'zod';
+import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
+
+const UserBasketScheduleRowSchema = z.object({
+  id: z.number(),
+  user: z.any(),
+  name: z.string(),
+  is_active: z.union([z.boolean(), z.number()]),
+});
 
 export interface UserBasketScheduleTableItem {
   id: number;
@@ -19,18 +28,14 @@ export interface UserBasketScheduleTableItem {
 }
 
 export const userBasketScheduleColumns = (
-  t: TFunction<'table'>
+  t: TFunction<'table'>,
+  rowActions?: {
+    permissions: { update: boolean; delete: boolean };
+    onDisable: (id: number) => void | Promise<void>;
+    onEnable: (id: number) => void | Promise<void>;
+    pendingId?: number | string | null;
+  }
 ): ColumnDef<UserBasketScheduleTableItem>[] => [
-  {
-    id: 'id',
-    accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
-    cell: ({ row }) => (
-      <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-        <span className="text-xs font-semibold text-primary">{row.original.id}</span>
-      </div>
-    ),
-  },
   {
     id: 'user',
     accessorKey: 'user',
@@ -144,5 +149,26 @@ export const userBasketScheduleColumns = (
         </span>
       );
     },
+  },
+  {
+    id: 'actions',
+    cell: ({ row }: any) => (
+      <DataTableRowActions
+        schema={UserBasketScheduleRowSchema}
+        row={row}
+        permissions={rowActions?.permissions ?? { update: false, delete: false }}
+        enableDisableHandlers={
+          rowActions
+            ? {
+                onDisable: rowActions.onDisable,
+                onEnable: rowActions.onEnable,
+                pendingId: rowActions.pendingId,
+                disableLabel: t('disableUserBasketSchedule'),
+                enableLabel: t('enableUserBasketSchedule'),
+              }
+            : undefined
+        }
+      />
+    ),
   },
 ];

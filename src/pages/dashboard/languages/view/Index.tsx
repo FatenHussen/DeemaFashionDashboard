@@ -97,7 +97,8 @@ export default function Page() {
         )}
         data={languageData}
         createPath="/languages/create"
-        hasDetails={false}
+        hasDetails
+        detailsLink="/languages/update"
         permissions={{
           create: hasPermission('create', 'language'),
           update: hasPermission('update', 'language'),

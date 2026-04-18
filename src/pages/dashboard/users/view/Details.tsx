@@ -59,7 +59,7 @@ export default function DetailsPage() {
           <Box className="absolute inset-0 bg-[linear-gradient(to_right,rgba(0,0,0,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(0,0,0,0.03)_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:32px_32px]" />
         </Box>
 
-        <Box className="relative max-w-4xl mx-auto">
+        <Box className="relative w-full">
           <Box className="mb-6">
             <Button
               variant="text"
@@ -136,7 +136,17 @@ export default function DetailsPage() {
                 </Box>
               </Box>
 
-              {aff && (aff.is_affiliate || aff.affiliate_approved || aff.affiliate_id || aff.affiliate_rate) && (
+              {aff &&
+                (aff.is_affiliate ||
+                  aff.affiliate_approved ||
+                  aff.affiliate_id ||
+                  aff.affiliate_rate ||
+                  aff.affiliate_commission_type ||
+                  aff.affiliate_fixed_commission ||
+                  (aff.affiliate_product_ids && aff.affiliate_product_ids.length > 0) ||
+                  aff.affiliate_visit_commission_enabled ||
+                  aff.affiliate_visit_commission_threshold != null ||
+                  aff.affiliate_visit_commission_amount != null) && (
                 <>
                   <Separator />
                   <Box>
@@ -161,6 +171,19 @@ export default function DetailsPage() {
                           {aff.affiliate_approved ? t('yes') : t('no')}
                         </Typography>
                       </Box>
+                      {aff.affiliate_commission_type &&
+                        ['percentage_order', 'fixed_per_order', 'percentage_selected_products'].includes(
+                          String(aff.affiliate_commission_type)
+                        ) && (
+                          <Box className="space-y-2">
+                            <Typography variant="body2" className="text-muted-foreground font-medium">
+                              {t('form.affiliateCommissionType')}
+                            </Typography>
+                            <Typography variant="body1" className="text-foreground">
+                              {t(`form.affiliateCommissionType_${String(aff.affiliate_commission_type)}`)}
+                            </Typography>
+                          </Box>
+                        )}
                       {aff.affiliate_id != null && aff.affiliate_id !== '' && (
                         <Box className="space-y-2">
                           <Typography variant="body2" className="text-muted-foreground font-medium">
@@ -177,9 +200,73 @@ export default function DetailsPage() {
                             {t('form.affiliateRateLabel')}
                           </Typography>
                           <Typography variant="body1" className="text-foreground">
-                            {String(aff.affiliate_rate)}%
+                            {String(aff.affiliate_rate)}
+                            {(aff.affiliate_commission_type === 'percentage_order' ||
+                              aff.affiliate_commission_type === 'percentage_selected_products' ||
+                              !aff.affiliate_commission_type) &&
+                              '%'}
                           </Typography>
                         </Box>
+                      )}
+                      {aff.affiliate_fixed_commission != null && aff.affiliate_fixed_commission !== '' && (
+                        <Box className="space-y-2">
+                          <Typography variant="body2" className="text-muted-foreground font-medium">
+                            {t('form.affiliateFixedCommission')}
+                          </Typography>
+                          <Typography variant="body1" className="text-foreground">
+                            {String(aff.affiliate_fixed_commission)}
+                          </Typography>
+                        </Box>
+                      )}
+                      {aff.affiliate_product_ids && aff.affiliate_product_ids.length > 0 && (
+                        <Box className="space-y-2 md:col-span-2">
+                          <Typography variant="body2" className="text-muted-foreground font-medium">
+                            {t('form.affiliateProductIds')}
+                          </Typography>
+                          <Typography variant="body1" className="text-foreground font-mono text-sm">
+                            {aff.affiliate_product_ids.join(', ')}
+                          </Typography>
+                        </Box>
+                      )}
+                      {(aff.affiliate_visit_commission_enabled ||
+                        aff.affiliate_visit_commission_threshold != null ||
+                        aff.affiliate_visit_commission_amount != null) && (
+                        <>
+                          <Box className="space-y-2">
+                            <Typography variant="body2" className="text-muted-foreground font-medium">
+                              {t('form.affiliateVisitCommissionTitle')}
+                            </Typography>
+                            <Typography variant="body1" className="text-foreground">
+                              {aff.affiliate_visit_commission_enabled ? t('yes') : t('no')}
+                            </Typography>
+                          </Box>
+                          {aff.affiliate_visit_commission_enabled && (
+                            <>
+                              {aff.affiliate_visit_commission_threshold != null &&
+                                String(aff.affiliate_visit_commission_threshold) !== '' && (
+                                  <Box className="space-y-2">
+                                    <Typography variant="body2" className="text-muted-foreground font-medium">
+                                      {t('form.affiliateVisitCommissionThreshold')}
+                                    </Typography>
+                                    <Typography variant="body1" className="text-foreground">
+                                      {String(aff.affiliate_visit_commission_threshold)}
+                                    </Typography>
+                                  </Box>
+                                )}
+                              {aff.affiliate_visit_commission_amount != null &&
+                                String(aff.affiliate_visit_commission_amount) !== '' && (
+                                  <Box className="space-y-2">
+                                    <Typography variant="body2" className="text-muted-foreground font-medium">
+                                      {t('form.affiliateVisitCommissionAmount')}
+                                    </Typography>
+                                    <Typography variant="body1" className="text-foreground">
+                                      {String(aff.affiliate_visit_commission_amount)}
+                                    </Typography>
+                                  </Box>
+                                )}
+                            </>
+                          )}
+                        </>
                       )}
                     </Box>
                   </Box>

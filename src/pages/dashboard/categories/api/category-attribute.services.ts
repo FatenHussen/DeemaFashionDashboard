@@ -8,18 +8,54 @@ import { apiRoutes, axiosInstance } from '@/api';
 
 export type { CategoryAttributeCreateUpdatePayload };
 
+export type CategoryAttributeListParams = {
+  page?: number;
+  per_page?: number;
+  category_id?: number | string;
+  name?: string;
+  type?: string;
+  is_active?: 0 | 1 | boolean;
+};
+
+function appendIf(
+  target: URLSearchParams,
+  key: string,
+  value: string | number | boolean | undefined | null
+) {
+  if (value === undefined || value === null || value === '') return;
+  if (typeof value === 'boolean') {
+    target.set(key, value ? '1' : '0');
+    return;
+  }
+  target.set(key, String(value));
+}
+
 export const _CategoryAttributeApi = {
   getListCategoryAttributes: async (
-    page: number = 1,
-    limit: number = 25,
-    categoryId?: number | string
+    params: CategoryAttributeListParams = {}
   ): Promise<CategoryAttributeListResponse> => {
-    const params: Record<string, string | number> = { page, per_page: limit };
-    if (categoryId) params.category_id = categoryId;
-    const response = await axiosInstance.get<CategoryAttributeListResponse>(
-      apiRoutes.categoryAttribute.list,
-      { params }
-    );
+    const { page = 1, per_page = 25, category_id, name, type, is_active } = params;
+    const searchParams = new URLSearchParams();
+    appendIf(searchParams, 'page', page);
+    appendIf(searchParams, 'per_page', per_page);
+    if (
+      category_id != null &&
+      category_id !== '' &&
+      !(typeof category_id === 'number' && category_id === 0) &&
+      !(typeof category_id === 'string' && category_id === '0')
+    ) {
+      appendIf(searchParams, 'category_id', category_id);
+    }
+    if (name?.trim()) searchParams.set('name', name.trim());
+    appendIf(searchParams, 'type', type);
+    if (is_active === true || is_active === 1) searchParams.set('is_active', '1');
+    else if (is_active === false || is_active === 0) searchParams.set('is_active', '0');
+
+    const query = searchParams.toString();
+    const url = query
+      ? `${apiRoutes.categoryAttribute.list}?${query}`
+      : apiRoutes.categoryAttribute.list;
+    const response = await axiosInstance.get<CategoryAttributeListResponse>(url);
     return response.data;
   },
 

@@ -4,6 +4,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 import { z } from 'zod';
 import { Iconify } from '@/shared/components/iconify';
 import { formatTranslated } from '@/utils/format-translated';
+import { createToggleColumn } from '@/shared/ui/table-data/data-table-toggle-cell';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 
@@ -16,6 +17,7 @@ const BannerSchema = z.object({
   is_active: z.number(),
   order: z.number(),
   created_at: z.string(),
+  expires_at: z.string().nullable().optional(),
 });
 
 export interface BannerFormValues {
@@ -27,6 +29,7 @@ export interface BannerFormValues {
   is_active: number;
   order: number;
   created_at: string;
+  expires_at?: string | null;
   [key: string]: any;
 }
 
@@ -44,18 +47,6 @@ export const bannerColumns = (
   deletingId?: number | null,
   onEdit?: (row: any) => void
 ): ColumnDef<BannerFormValues>[] => [
-  {
-    id: 'id',
-    accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
-    cell: ({ row }) => (
-      <div className="flex items-center gap-2">
-        <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
-          <span className="text-xs font-semibold text-primary">{row.original.id}</span>
-        </div>
-      </div>
-    ),
-  },
   {
     id: 'image_url',
     accessorKey: 'image_url',
@@ -129,6 +120,20 @@ export const bannerColumns = (
     },
   },
   {
+    id: 'expires_at',
+    accessorKey: 'expires_at',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.expires')} />,
+    cell: ({ row }) => {
+      const v = row.original.expires_at;
+      if (!v) return <span className="text-sm text-muted-foreground">-</span>;
+      return (
+        <span className="text-sm text-muted-foreground">
+          {new Date(v).toLocaleString()}
+        </span>
+      );
+    },
+  },
+  {
     id: 'created_at',
     accessorKey: 'created_at',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.createdAt')} />,
@@ -146,12 +151,16 @@ export const bannerColumns = (
       </div>
     ),
   },
+  ...(permissions.update
+    ? [createToggleColumn<BannerFormValues>({ entityType: 'banner' })]
+    : []),
   {
     id: 'actions',
     cell: ({ row }: any) => (
       <DataTableRowActions
         schema={BannerSchema}
         row={row}
+        viewDetails={`/sections/banners/update/${row.original.id}`}
         editItem={onEdit ? undefined : `/sections/banners/update/${row.original.id}`}
         onEdit={onEdit}
         onDelete={onDelete}
@@ -160,7 +169,6 @@ export const bannerColumns = (
         onDeleteConfirm={onDeleteConfirm}
         onDeleteCancel={onDeleteCancel}
         deletingId={deletingId}
-        adminToggleEntityType="banner"
         permissions={permissions}
       />
     ),

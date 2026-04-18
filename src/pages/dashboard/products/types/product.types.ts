@@ -5,6 +5,14 @@ export interface ProductData {
   id: number;
   category_id: string | number;
   brand_id: string | number | null;
+  /** When the list API embeds category relation */
+  category?: { id: number; name: string | { en: string; ar: string } } | null;
+  /** When the list API embeds vendor (seller) */
+  vendor?: { id: number; name: string | { en: string; ar: string } } | null;
+  /** Primary shop or first shop name source */
+  shop?: { id: number; name: string | { en: string; ar: string } } | null;
+  /** Multiple shops (list endpoints may return this shape) */
+  shops?: Array<{ id?: number; name?: string; shop_name?: string }> | null;
   name: string;
   description: string;
   full_description: string | null;
@@ -27,6 +35,8 @@ export interface ProductData {
   created_at: string;
   approval_status?: string | null;
   approval_status_label?: string | null;
+  /** Shelf life / expiry (ISO or YYYY-MM-DD from API) */
+  expiry_date?: string | null;
 }
 
 /** Product as returned in the SINGLE/DETAIL response (bilingual fields + relations) */
@@ -63,11 +73,15 @@ export interface ProductDetailData {
   model: string | null;
   barcode: string | null;
   time_prepare: string | null;
+  /** Product-level delivery time (e.g. external vendors). */
+  delivery_time?: string | null;
+  /** Product shelf life / expiry (ISO date string from API). */
+  expiry_date?: string | null;
   bought_with: number[] | Array<{ id: number; name?: string }>;
   is_instant_delivery: boolean | number;
   is_visible?: boolean | number;
   thumbnail?: string | null;
-  category: { id: number; name: string };
+  category: { id: number; name: string; is_restaurant?: boolean };
   brand: { id: number; name: string } | null;
   vendor?: { id: number; name: string } | null;
   approval_status?: string | null;
@@ -151,6 +165,9 @@ export interface ProductCreateUpdatePayload {
   model?: string;
   barcode?: string;
   time_prepare?: string;
+  delivery_time?: string;
+  /** `YYYY-MM-DD` for forms; API may return full ISO datetime. */
+  expiry_date?: string;
   is_instant_delivery: number;
   is_visible?: number;
   thumbnail?: File;
@@ -167,6 +184,11 @@ export interface ProductCreateUpdatePayload {
     attributes_values_ids: number[];
     images?: File[];
     existing_images_ids?: number[];
+    sku?: string;
+    name?: { en: string; ar: string };
+    stock?: number;
+    max_purchase_quantity?: number;
+    delivery_time?: string;
   }>;
 
   category_details?: Array<{
@@ -185,12 +207,61 @@ export interface ProductCreateUpdatePayload {
   bought_with?: number[];
 
   shop_variants?: Array<{
+    id?: number;
     shop_id: number;
     variant_index: number;
     price: number;
     quantity: number;
   }>;
 
-  badges?: Array<{ id: number; position: 'top' | 'bottom' }>;
+  badges?: number[];
   icon_ids?: number[];
+}
+
+// ----------------------------------------------------------------------
+
+/** Single variant row from `GET /admin/products/:id/variants` */
+export interface AdminProductVariantListItem {
+  id: number;
+  product_id: number;
+  /** Variant-specific image URL (may be absolute or a storage path). */
+  variant_image?: string | null;
+  product: {
+    id: number;
+    name: string | { en: string; ar: string };
+    description?: string | { en: string; ar: string };
+    image?: string | null;
+    category?: { id: number; name: string | { en: string; ar: string } };
+    brand?: { id: number; name: string | { en: string; ar: string } };
+    price?: number;
+  };
+  attributes: Array<{
+    id: number;
+    name: string | { en: string; ar: string };
+    category_attribute?: { id: number; name: string | { en: string; ar: string }; type?: string };
+  }>;
+  is_trend?: boolean | number;
+  is_active?: boolean;
+  shop_variants: Array<{
+    id: number;
+    shop: { id: number; name: string };
+    price: number;
+    cost_price?: number;
+    quantity: number;
+  }>;
+  created_at?: string;
+}
+
+export interface AdminProductVariantsListApiResponse {
+  status: boolean;
+  message: string;
+  data: {
+    items: AdminProductVariantListItem[];
+    pagination: {
+      current_page: number;
+      last_page: number;
+      per_page: number;
+      total: number;
+    };
+  };
 }

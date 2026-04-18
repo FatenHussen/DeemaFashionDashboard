@@ -3,6 +3,7 @@ export interface IconItem {
   name: string | { en: string; ar: string };
   image: string;
   description: string | { en: string; ar: string } | null;
+  full_description?: { en: string; ar: string } | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -32,5 +33,6 @@ export interface IconCreatePayload {
   name: { en: string; ar: string };
   image: File | null;
   description?: { en: string; ar: string };
+  full_description?: { en: string; ar: string };
   is_active?: boolean;
 }

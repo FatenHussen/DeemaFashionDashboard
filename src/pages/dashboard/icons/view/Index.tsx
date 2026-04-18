@@ -68,7 +68,8 @@ export default function Page() {
         )}
         data={items}
         createPath="/icons/create"
-        hasDetails={false}
+        hasDetails
+        detailsLink="/icons/update"
         permissions={{
           create: hasPermission('create', 'icon'),
           update: hasPermission('update', 'icon'),

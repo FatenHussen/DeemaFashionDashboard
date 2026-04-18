@@ -62,7 +62,7 @@ function Group({
   checkPermissionAny,
   enabledRootRedirect,
 }: NavGroupProps) {
-  const groupOpen = useBoolean(true);
+  const groupOpen = useBoolean(false);
 
   const hasVisibleItems = items.some((item) =>
     canShowNavItem(item, checkPermissions, checkPermission, checkPermissionAny)

@@ -1,7 +1,7 @@
-import { useState } from 'react';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
+import { useState, type ReactNode } from 'react';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { usePermissions } from '@/auth/hooks/use-permissions';
 import { saleCountryColumns } from '@/columns/one/sale-countries/one';
@@ -11,7 +11,6 @@ import {
 } from '@/pages/dashboard/sale-countries/hooks/sale-country';
 
 import { CONFIG } from 'src/global-config';
-import { Box, Typography } from 'src/shared/ui';
 
 export default function Page() {
   const { t } = useTranslation('table');
@@ -66,28 +65,21 @@ export default function Page() {
     : { current_page: 1, last_page: 1, per_page: 10, total: 0, from: 0, to: 0 };
 
   const { canAny } = usePermissions();
-  /** Routes use `salecountry.*`; some backends expose `SaleCountry.*` — accept either. */
   const saleCountryCan = (action: 'create' | 'update' | 'delete') =>
     canAny([`salecountry.${action}`, `SaleCountry.${action}`]);
 
-  const statusFilter = (
-    <Box className="flex flex-wrap items-center gap-2">
-      <Typography variant="body2" className="text-muted-foreground whitespace-nowrap">
-        {t('form.saleCountryStatusFilter')}
-      </Typography>
+  const sidebarContent = (
+    <FilterGroup label={t('form.saleCountryStatusFilter')}>
       <select
-        className="h-9 rounded-md border border-border bg-background px-3 text-sm"
+        className="w-full h-9 rounded-md border border-border bg-background px-3 text-sm"
         value={activeFilter}
-        onChange={(e) => {
-          setActiveFilter(e.target.value);
-          setCurrentPage(1);
-        }}
+        onChange={(e) => { setActiveFilter(e.target.value); setCurrentPage(1); }}
       >
         <option value="">{t('form.saleCountryStatusAll')}</option>
         <option value="1">{t('active')}</option>
         <option value="0">{t('inactive')}</option>
       </select>
-    </Box>
+    </FilterGroup>
   );
 
   return (
@@ -111,7 +103,11 @@ export default function Page() {
         )}
         data={items}
         createPath="/sale-countries/create"
-        hasDetails={false}
+        hasDetails
+        detailsLink="/sale-countries/update"
+        filterSidebar={sidebarContent}
+        activeFilterCount={activeFilter !== '' ? 1 : 0}
+        onFilterReset={() => { setActiveFilter(''); setCurrentPage(1); }}
         permissions={{
           create: saleCountryCan('create'),
           update: saleCountryCan('update'),
@@ -123,8 +119,16 @@ export default function Page() {
         pageSize={pageSize}
         onPageChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}
-        toolbarFilter={statusFilter}
       />
     </>
+  );
+}
+
+function FilterGroup({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{label}</label>
+      {children}
+    </div>
   );
 }

@@ -3,9 +3,10 @@ import type { BrandCreateUpdatePayload } from '../types/brand.types';
 import { queryKeys } from '@/api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
-import { _BrandApi } from '../api/brand.services';
+import { _BrandApi, type BrandListQueryParams } from '../api/brand.services';
 
-export const useFetchBrands = (params?: { name?: string }) => useQuery({
+export const useFetchBrands = (params?: BrandListQueryParams) =>
+  useQuery({
     queryKey: queryKeys.brand.list(params),
     queryFn: () => _BrandApi.getListBrands(params),
   });

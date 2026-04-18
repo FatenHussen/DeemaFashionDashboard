@@ -12,6 +12,7 @@ import { useAdminToggleStatus } from '@/hooks/use-admin-toggle-status';
 import {
   Eye,
   Trash,
+  Truck,
   EyeOff,
   Pencil,
   XCircle,
@@ -35,10 +36,14 @@ interface DataTableRowActionsProps<TData> {
   viewDetails?: string | undefined | null;
   /** Navigate to subcategories list for this row's category id. */
   subcategoriesPath?: (id: number) => string;
+  /** When set, "View subcategories" calls this instead of navigating to `subcategoriesPath`. */
+  onSubcategoriesClick?: (row: Row<TData>) => void;
   editItem?: string | undefined;
   onEdit?: (row: Row<TData>) => void;
   onDelete?: (id: number) => void;
   onUpdatePassword?: (row: Row<TData>) => void;
+  /** e.g. assign an order to this driver (drivers table). */
+  onAssignOrderToDriver?: (row: Row<TData>) => void;
   permissions?: {
     update: boolean;
     delete: boolean;
@@ -57,6 +62,14 @@ interface DataTableRowActionsProps<TData> {
   /** Unified `POST /admin/toggle-status` when the row exposes `is_active` (or `getIsActive`). */
   adminToggleEntityType?: AdminToggleEntityType;
   getIsActive?: (row: TData) => boolean | undefined;
+  /** Dedicated enable/disable (e.g. `POST .../disable` and `.../enable`) instead of unified toggle-status. */
+  enableDisableHandlers?: {
+    onDisable: (id: number) => void | Promise<void>;
+    onEnable: (id: number) => void | Promise<void>;
+    pendingId?: number | string | null;
+    disableLabel: string;
+    enableLabel: string;
+  };
 }
 
 function resolveRowIsActive<TData>(
@@ -77,10 +90,12 @@ export function DataTableRowActions<TData>({
   row,
   viewDetails,
   subcategoriesPath,
+  onSubcategoriesClick,
   editItem,
   onEdit,
   onDelete,
   onUpdatePassword,
+  onAssignOrderToDriver,
   permissions,
   isDeleting = false,
   isDeleteDialogOpen = false,
@@ -94,6 +109,7 @@ export function DataTableRowActions<TData>({
   rejectingId,
   adminToggleEntityType,
   getIsActive,
+  enableDisableHandlers,
 }: DataTableRowActionsProps<TData>) {
   const navigate = useNavigate();
   const toggleStatusMutation = useAdminToggleStatus();
@@ -130,8 +146,24 @@ export function DataTableRowActions<TData>({
     rejectingId != null && rowId != null && String(rejectingId) === String(rowId);
 
   const rowActive = resolveRowIsActive<TData>(row?.original, getIsActive);
+  const showDedicatedEnableDisable = Boolean(
+    permissions?.update &&
+      enableDisableHandlers &&
+      rowId != null &&
+      rowActive !== undefined
+  );
   const showAdminToggle =
-    Boolean(permissions?.update && adminToggleEntityType && rowId != null && rowActive !== undefined);
+    Boolean(
+      !showDedicatedEnableDisable &&
+        permissions?.update &&
+        adminToggleEntityType &&
+        rowId != null &&
+        rowActive !== undefined
+    );
+  const isDedicatedTogglingRow =
+    enableDisableHandlers?.pendingId != null &&
+    rowId != null &&
+    String(enableDisableHandlers.pendingId) === String(rowId);
   const isTogglingRow =
     toggleStatusMutation.isPending &&
     toggleStatusMutation.variables?.id != null &&
@@ -163,12 +195,14 @@ export function DataTableRowActions<TData>({
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
-              variant="text"
-              className="flex h-8 w-8 p-0 data-[state=open]:bg-muted hover:bg-transparent "
+              variant="outlined"
+              color="inherit"
+              size="medium"
+              className="!h-10 !min-w-10 !w-10 !shrink-0 !p-0 rounded-lg border-border/90 bg-transparent text-foreground hover:bg-muted/40 data-[state=open]:bg-muted/50"
               onClick={(e) => e.stopPropagation()}
             >
-              <MoreHorizontal className="h-4 w-4" />
-              <span className="sr-only">Open menu</span>
+              <MoreHorizontal className="h-5 w-5 text-foreground" strokeWidth={2.25} />
+              <span className="sr-only">{t('actions')}</span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent
@@ -200,12 +234,16 @@ export function DataTableRowActions<TData>({
               </DropdownMenuItem>
             )}
 
-            {subcategoriesPath && rowId != null && (
+            {(onSubcategoriesClick || subcategoriesPath) && rowId != null && (
               <DropdownMenuItem
                 className="hover:bg-muted"
                 onClick={(e) => {
                   e.stopPropagation();
-                  navigate(subcategoriesPath(rowId));
+                  if (onSubcategoriesClick) {
+                    onSubcategoriesClick(row);
+                  } else if (subcategoriesPath) {
+                    navigate(subcategoriesPath(rowId));
+                  }
                 }}
               >
                 <FolderTree className="mr-2 h-4 w-4" />
@@ -241,6 +279,55 @@ export function DataTableRowActions<TData>({
                 <KeyRound className="mr-2 h-4 w-4" />
                 {t('updatePassword')}
               </DropdownMenuItem>
+            )}
+
+            {onAssignOrderToDriver && (
+              <DropdownMenuItem
+                className="hover:bg-muted"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onAssignOrderToDriver(row);
+                }}
+              >
+                <Truck className="mr-2 h-4 w-4" />
+                {t('assignOrderToDriver')}
+              </DropdownMenuItem>
+            )}
+
+            {showDedicatedEnableDisable && enableDisableHandlers && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="hover:bg-muted"
+                  disabled={isDedicatedTogglingRow}
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    if (rowId == null || rowActive === undefined) return;
+                    try {
+                      if (rowActive) {
+                        await enableDisableHandlers.onDisable(rowId);
+                      } else {
+                        await enableDisableHandlers.onEnable(rowId);
+                      }
+                      toast.success(t('userBasketScheduleStatusUpdated'));
+                    } catch {
+                      /* error toast from axios interceptor */
+                    }
+                  }}
+                >
+                  {rowActive ? (
+                    <>
+                      <EyeOff className="mr-2 h-4 w-4" />
+                      {enableDisableHandlers.disableLabel}
+                    </>
+                  ) : (
+                    <>
+                      <Eye className="mr-2 h-4 w-4" />
+                      {enableDisableHandlers.enableLabel}
+                    </>
+                  )}
+                </DropdownMenuItem>
+              </>
             )}
 
             {showAdminToggle && (

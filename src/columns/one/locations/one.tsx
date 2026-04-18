@@ -4,6 +4,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 import { z } from 'zod';
 import { Iconify } from '@/shared/components/iconify';
 import { formatTranslated } from '@/utils/format-translated';
+import { createToggleColumn } from '@/shared/ui/table-data/data-table-toggle-cell';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 
@@ -36,18 +37,6 @@ export const governorateColumns = (
   deletingId?: number | null
 ): ColumnDef<GovernorateFormValues>[] => [
   {
-    id: 'id',
-    accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
-    cell: ({ row }) => (
-      <div className="flex items-center gap-2">
-        <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
-          <span className="text-xs font-semibold text-primary">{row.original.id}</span>
-        </div>
-      </div>
-    ),
-  },
-  {
     id: 'name',
     accessorKey: 'name',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.name')} />,
@@ -78,12 +67,16 @@ export const governorateColumns = (
       </div>
     ),
   },
+  ...(permissions.update
+    ? [createToggleColumn<GovernorateFormValues>({ entityType: 'governorate' })]
+    : []),
   {
     id: 'actions',
     cell: ({ row }: any) => (
       <DataTableRowActions
         schema={GovernorateSchema}
         row={row}
+        viewDetails={`/locations/update/${row.original.id}`}
         editItem={`/locations/update/${row.original.id}`}
         onDelete={onDelete}
         isDeleting={isDeleting}
@@ -91,7 +84,6 @@ export const governorateColumns = (
         onDeleteConfirm={onDeleteConfirm}
         onDeleteCancel={onDeleteCancel}
         deletingId={deletingId}
-        adminToggleEntityType="governorate"
         permissions={permissions}
       />
     ),

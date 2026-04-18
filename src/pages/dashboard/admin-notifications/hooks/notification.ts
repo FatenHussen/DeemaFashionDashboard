@@ -1,4 +1,4 @@
-import type { NotificationCreatePayload, NotificationUpdatePayload } from '../types/notification.types';
+import type { NotificationType, NotificationCreatePayload } from '../types/notification.types';
 
 import { queryKeys } from '@/api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -8,11 +8,12 @@ import { _AdminNotificationApi } from '../api/notification.services';
 export const useFetchAdminNotifications = (
   page: number = 1,
   perPage: number = 10,
-  search?: string
+  search?: string,
+  type?: NotificationType | 'all'
 ) =>
   useQuery({
-    queryKey: queryKeys.adminNotification.list({ page, per_page: perPage, search }),
-    queryFn: () => _AdminNotificationApi.getList({ page, per_page: perPage, search }),
+    queryKey: queryKeys.adminNotification.list({ page, per_page: perPage, search, type }),
+    queryFn: () => _AdminNotificationApi.getList({ page, per_page: perPage, search, type }),
   });
 
 export const useCreateAdminNotification = () => {
@@ -32,16 +33,3 @@ export const useFetchAdminNotificationById = (id: number | string) =>
     queryFn: () => _AdminNotificationApi.getById(id),
     enabled: !!id,
   });
-
-export const useUpdateAdminNotification = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({ id, data }: { id: number | string; data: NotificationUpdatePayload }) =>
-      _AdminNotificationApi.update(id, data),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['adminNotification', 'list'] });
-      queryClient.invalidateQueries({ queryKey: queryKeys.adminNotification.details(variables.id) });
-    },
-  });
-};

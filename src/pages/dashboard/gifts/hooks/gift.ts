@@ -1,4 +1,4 @@
-import type { GiftCreateUpdatePayload, BulkGiftCreatePayload } from '../types/gift.types';
+import type { BulkGiftCreatePayload, GiftCreateUpdatePayload } from '../types/gift.types';
 
 import { queryKeys } from '@/api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';

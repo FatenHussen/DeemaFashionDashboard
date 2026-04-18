@@ -376,7 +376,7 @@ export function StepperFormLayout<T extends Record<string, any>>({
                 {/* Step Content */}
                 <Box
                   key={activeStep}
-                  className="animate-in fade-in slide-in-from-right-4 duration-300"
+                  className="flex flex-col gap-6 animate-in fade-in slide-in-from-right-4 duration-300"
                 >
                   {steps[activeStep].content}
                 </Box>

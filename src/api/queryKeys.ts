@@ -15,8 +15,13 @@ export const queryKeys = {
   },
   // Shop query keys
   shop: {
-    list: (params?: { page?: number; limit?: number; vendor_id?: number }) =>
-      ['shop', 'list', params] as const,
+    list: (params?: {
+      page?: number;
+      limit?: number;
+      vendor_id?: number;
+      shop_status?: string;
+      shop_type?: string;
+    }) => ['shop', 'list', params] as const,
     details: (id: number | string) => ['shop', 'details', id] as const,
   },
   // Auth query keys
@@ -36,18 +41,25 @@ export const queryKeys = {
   },
   // Driver query keys
   driver: {
-    list: (params?: { page?: number; limit?: number }) => ['driver', 'list', params] as const,
+    list: (params?: {
+      page?: number;
+      limit?: number;
+      status?: string;
+      is_active?: number;
+    }) => ['driver', 'list', params] as const,
     details: (id: number | string) => ['driver', 'details', id] as const,
   },
   // Brand query keys
   brand: {
-    list: (params?: { name?: string }) => ['brand', 'list', params] as const,
+    list: (params?: Record<string, unknown>) => ['brand', 'list', params] as const,
     details: (id: number | string) => ['brand', 'details', id] as const,
   },
   // Product query keys (admin `/admin/products` list filters)
   product: {
     list: (params?: Record<string, unknown>) => ['product', 'list', params] as const,
     details: (id: number | string) => ['product', 'details', id] as const,
+    variants: (id: number | string, params?: { page?: number; per_page?: number }) =>
+      ['product', 'variants', id, params] as const,
   },
   // Governorate query keys
   governorate: {
@@ -66,14 +78,23 @@ export const queryKeys = {
   },
   // Category query keys
   category: {
-    list: (params?: { page?: number; limit?: number; parent_id?: number; category_id?: number }) =>
-      ['category', 'list', params] as const,
+    list: (params?: {
+      page?: number;
+      limit?: number;
+      parent_id?: number;
+      category_id?: number;
+      sort_field?: string;
+      sort_order?: 'asc' | 'desc';
+      search?: string;
+      name?: string;
+      is_active?: 0 | 1 | boolean;
+      is_restaurant?: 0 | 1 | boolean;
+    }) => ['category', 'list', params] as const,
     details: (id: number | string) => ['category', 'details', id] as const,
   },
   // Category Attribute query keys
   categoryAttribute: {
-    list: (params?: { categoryId?: number | string; page?: number; limit?: number }) =>
-      ['categoryattribute', 'list', params] as const,
+    list: (params?: Record<string, unknown>) => ['categoryattribute', 'list', params] as const,
     details: (id: number | string) => ['categoryattribute', 'details', id] as const,
   },
   // Category Detail query keys
@@ -105,7 +126,6 @@ export const queryKeys = {
     list: (params?: {
       page?: number;
       per_page?: number;
-      is_affiliate?: number;
       affiliate_approved?: number;
       area_id?: number;
     }) => ['user', 'list', params] as const,
@@ -139,6 +159,12 @@ export const queryKeys = {
     list: (params?: { page?: number; per_page?: number; status?: string; search?: string }) =>
       ['order', 'list', params] as const,
     details: (id: number | string) => ['order', 'details', id] as const,
+    toAssign: (params: {
+      driverId: number;
+      filterByDriverCoverage: boolean;
+      status?: 'pending' | 'preparing';
+      isInstantDelivery: boolean;
+    }) => ['order', 'to-assign', params] as const,
   },
   // Basket query keys
   basket: {
@@ -239,7 +265,7 @@ export const queryKeys = {
   },
   // Admin Notification query keys
   adminNotification: {
-    list: (params?: { page?: number; per_page?: number; search?: string }) =>
+    list: (params?: { page?: number; per_page?: number; search?: string; type?: string }) =>
       ['adminNotification', 'list', params] as const,
     details: (id: number | string) => ['adminNotification', 'details', id] as const,
   },
@@ -289,6 +315,16 @@ export const queryKeys = {
   affiliateWithdraw: {
     list: (params?: Record<string, any>) => ['affiliateWithdraw', 'list', params] as const,
     details: (id: number | string) => ['affiliateWithdraw', 'details', id] as const,
+  },
+  affiliateWalletTransaction: {
+    list: (params?: Record<string, unknown>) =>
+      ['affiliateWalletTransaction', 'list', params] as const,
+    details: (id: number | string) => ['affiliateWalletTransaction', 'details', id] as const,
+  },
+  driverWalletTransaction: {
+    list: (params?: Record<string, unknown>) =>
+      ['driverWalletTransaction', 'list', params] as const,
+    details: (id: number | string) => ['driverWalletTransaction', 'details', id] as const,
   },
   // Icon query keys
   icon: {
@@ -348,6 +384,56 @@ export const queryKeys = {
       ['report', 'driverPerformance', id, params] as const,
     salesByLocation: (params?: object) => ['report', 'salesByLocation', params] as const,
     salesByCategory: (params?: object) => ['report', 'salesByCategory', params] as const,
+  },
+  // Vendor Service Type query keys
+  vendorServiceType: {
+    list: (params?: Record<string, unknown>) => ['vendorServiceType', 'list', params] as const,
+    details: (id: number | string) => ['vendorServiceType', 'details', id] as const,
+  },
+  // Vendor Service query keys
+  vendorService: {
+    list: (params?: Record<string, unknown>) => ['vendorService', 'list', params] as const,
+    details: (id: number | string) => ['vendorService', 'details', id] as const,
+  },
+  // Shop Vendor Service query keys
+  shopVendorService: {
+    list: (params?: Record<string, unknown>) => ['shopVendorService', 'list', params] as const,
+    details: (id: number | string) => ['shopVendorService', 'details', id] as const,
+  },
+  // Service Order query keys
+  serviceOrder: {
+    list: (params?: Record<string, unknown>) => ['serviceOrder', 'list', params] as const,
+    details: (id: number | string) => ['serviceOrder', 'details', id] as const,
+  },
+  // Quick Action query keys
+  quickAction: {
+    list: (params?: Record<string, unknown>) => ['quickAction', 'list', params] as const,
+    details: (id: number | string) => ['quickAction', 'details', id] as const,
+  },
+  // Popup Campaign query keys
+  popupCampaign: {
+    list: (params?: Record<string, unknown>) => ['popupCampaign', 'list', params] as const,
+    details: (id: number | string) => ['popupCampaign', 'details', id] as const,
+  },
+  // Flash Sale query keys
+  flashSale: {
+    list: (params?: Record<string, unknown>) => ['flashSale', 'list', params] as const,
+    details: (id: number | string) => ['flashSale', 'details', id] as const,
+  },
+  // Vendor Accounting query keys
+  vendorAccounting: {
+    summary: (params?: Record<string, unknown>) =>
+      ['vendorAccounting', 'summary', params] as const,
+    vendors: (params?: Record<string, unknown>) =>
+      ['vendorAccounting', 'vendors', params] as const,
+    vendorStatement: (id: number | string, params?: Record<string, unknown>) =>
+      ['vendorAccounting', 'vendorStatement', id, params] as const,
+  },
+  // Vendor Withdraw Request query keys
+  vendorWithdrawRequest: {
+    list: (params?: Record<string, unknown>) =>
+      ['vendorWithdrawRequest', 'list', params] as const,
+    details: (id: number | string) => ['vendorWithdrawRequest', 'details', id] as const,
   },
   // Statistics query keys
   statistics: {

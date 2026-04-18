@@ -58,9 +58,8 @@ const buildFormData = (data: RecipeCreateUpdatePayload): FormData => {
   });
 
   if (data.badges && data.badges.length > 0) {
-    data.badges.forEach((badge, index) => {
-      fd.append(`badges[${index}][id]`, String(badge.id));
-      fd.append(`badges[${index}][position]`, badge.position);
+    data.badges.forEach((badgeId) => {
+      fd.append('badges[]', String(badgeId));
     });
   }
 

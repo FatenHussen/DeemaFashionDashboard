@@ -3,6 +3,7 @@ import type {
   ProductListResponse,
   ProductDetailResponse,
   ProductCreateUpdatePayload,
+  AdminProductVariantsListApiResponse,
 } from '../types/product.types';
 
 import { apiRoutes, axiosInstance } from '@/api';
@@ -63,6 +64,8 @@ const buildProductFormData = (data: ProductCreateUpdatePayload): FormData => {
   formData.append('model', data.model ?? '');
   formData.append('barcode', data.barcode ?? '');
   formData.append('time_prepare', data.time_prepare ?? '');
+  formData.append('delivery_time', data.delivery_time ?? '');
+  formData.append('expiry_date', data.expiry_date ?? '');
 
   formData.append('seo_title[en]', data.seo_title?.en ?? '');
   formData.append('seo_title[ar]', data.seo_title?.ar ?? '');
@@ -119,6 +122,24 @@ const buildProductFormData = (data: ProductCreateUpdatePayload): FormData => {
           formData.append(`variants[${vIndex}][images][]`, file);
         });
       }
+      if (variant.sku !== undefined && variant.sku !== '') {
+        formData.append(`variants[${vIndex}][sku]`, variant.sku);
+      }
+      if (variant.name?.en !== undefined) {
+        formData.append(`variants[${vIndex}][name][en]`, variant.name.en);
+      }
+      if (variant.name?.ar !== undefined) {
+        formData.append(`variants[${vIndex}][name][ar]`, variant.name.ar);
+      }
+      if (variant.stock !== undefined) {
+        formData.append(`variants[${vIndex}][stock]`, String(variant.stock));
+      }
+      if (variant.max_purchase_quantity !== undefined) {
+        formData.append(`variants[${vIndex}][max_purchase_quantity]`, String(variant.max_purchase_quantity));
+      }
+      if (variant.delivery_time !== undefined && variant.delivery_time !== '') {
+        formData.append(`variants[${vIndex}][delivery_time]`, variant.delivery_time);
+      }
     });
   }
 
@@ -166,9 +187,8 @@ const buildProductFormData = (data: ProductCreateUpdatePayload): FormData => {
     });
   }
 
-  (data.badges ?? []).forEach((badge, index) => {
-    formData.append(`badges[${index}][id]`, badge.id.toString());
-    formData.append(`badges[${index}][position]`, badge.position);
+  (data.badges ?? []).forEach((badgeId) => {
+    formData.append('badges[]', String(badgeId));
   });
 
   (data.icon_ids ?? []).forEach((iconId) => {
@@ -186,6 +206,11 @@ export type ProductListQueryParams = {
   category_id?: number;
   brand_id?: number;
   vendor_id?: number;
+  /** Single attribute filter (mutually exclusive with `category_attribute_ids` on the wire). */
+  category_attribute_id?: number;
+  /** Multiple attribute filters — serialized as `category_attribute_ids[]`. */
+  category_attribute_ids?: number[];
+  stock_sort?: 'asc' | 'desc';
   approval_status?: string;
   is_visible?: boolean | number | string;
   search?: string;
@@ -194,6 +219,15 @@ export type ProductListQueryParams = {
   sortField?: string;
   sortOrder?: string;
 };
+
+function appendProductListParam(
+  usp: URLSearchParams,
+  key: string,
+  value: string | number | boolean | undefined | null
+) {
+  if (value === undefined || value === null || value === '') return;
+  usp.append(key, typeof value === 'boolean' ? (value ? '1' : '0') : String(value));
+}
 
 // ----------------------------------------------------------------------
 
@@ -206,32 +240,75 @@ export const _ProductApi = {
       sortOrder,
       limit,
       per_page,
+      category_attribute_id,
+      category_attribute_ids,
+      stock_sort,
       ...rest
     } = params ?? {};
-    const q: Record<string, unknown> = {
-      ...rest,
-      per_page: per_page ?? limit,
-    };
+
+    const usp = new URLSearchParams();
+
+    Object.entries(rest).forEach(([k, v]) => {
+      if (v === undefined || v === null || v === '') return;
+      appendProductListParam(usp, k, v as string | number | boolean);
+    });
+
+    appendProductListParam(usp, 'per_page', per_page ?? limit);
+
     const sf = sortField ?? sort_field;
     const so = sortOrder ?? sort_order;
-    if (sf) {
-      q.sortField = sf;
-      q.sort_field = sf;
-    }
-    if (so) {
-      q.sortOrder = so;
-      q.sort_order = so;
+    appendProductListParam(usp, 'sort_field', sf as string | undefined);
+    appendProductListParam(usp, 'sort_order', so as string | undefined);
+
+    appendProductListParam(usp, 'stock_sort', stock_sort);
+
+    const multiIds = (category_attribute_ids ?? [])
+      .map((id) => Number(id))
+      .filter((id) => Number.isFinite(id) && id > 0);
+
+    if (multiIds.length > 1) {
+      multiIds.forEach((id) => usp.append('category_attribute_ids[]', String(id)));
+    } else if (multiIds.length === 1) {
+      appendProductListParam(usp, 'category_attribute_id', multiIds[0]);
+    } else if (category_attribute_id != null && !Number.isNaN(Number(category_attribute_id))) {
+      appendProductListParam(usp, 'category_attribute_id', Number(category_attribute_id));
     }
 
-    const response = await axiosInstance.get<ProductListResponse>(apiRoutes.product.list, {
-      params: q,
-    });
+    const qs = usp.toString();
+    const url = qs ? `${apiRoutes.product.list}?${qs}` : apiRoutes.product.list;
+    const response = await axiosInstance.get<ProductListResponse>(url);
     return response.data;
   },
 
   getProductById: async (id: number | string): Promise<ProductDetailData> => {
     const response = await axiosInstance.get<ProductDetailResponse>(apiRoutes.product.details(id));
     return response.data.data;
+  },
+
+  getProductVariants: async (
+    productId: number | string,
+    params?: { page?: number; per_page?: number }
+  ): Promise<AdminProductVariantsListApiResponse['data']> => {
+    const response = await axiosInstance.get<AdminProductVariantsListApiResponse>(
+      apiRoutes.product.variants(productId),
+      {
+        params: {
+          page: params?.page ?? 1,
+          per_page: params?.per_page ?? 10,
+        },
+      }
+    );
+    const body = response.data;
+    const inner = body?.data;
+    return {
+      items: Array.isArray(inner?.items) ? inner.items : [],
+      pagination: inner?.pagination ?? {
+        current_page: 1,
+        last_page: 1,
+        per_page: params?.per_page ?? 10,
+        total: 0,
+      },
+    };
   },
 
   createProduct: async (data: ProductCreateUpdatePayload): Promise<any> => {
@@ -278,6 +355,14 @@ export const _ProductApi = {
   updateProductPrice: async (id: number | string, price: number): Promise<any> => {
     const formData = new FormData();
     formData.append('price', String(price));
+    formData.append('_method', 'PUT');
+    const response = await axiosInstance.post(apiRoutes.product.update(id), formData);
+    return response.data;
+  },
+
+  updateProductQuantity: async (id: number | string, quantity: number): Promise<any> => {
+    const formData = new FormData();
+    formData.append('quantity', String(quantity));
     formData.append('_method', 'PUT');
     const response = await axiosInstance.post(apiRoutes.product.update(id), formData);
     return response.data;

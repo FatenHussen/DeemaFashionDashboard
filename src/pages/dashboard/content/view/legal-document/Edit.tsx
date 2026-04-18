@@ -124,85 +124,64 @@ export default function EditPage() {
           title={t('form.editLegalDocument')}
           description={t('form.updateTitleContent')}
           isEditMode
-          maxWidth="2xl"
           submitLabel={t('form.saveChanges')}
           submittingLabel={t('form.savingLegalDocumentSubmit')}
         >
-          {/* Title */}
-          <Box className="col-span-2">
-            <Typography variant="subtitle1" className="mb-3 font-semibold">
-              {t('form.legalDocumentSectionTitle')}
-            </Typography>
-            <Box className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          {/* ── Section: Title ── */}
+          <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+            <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-primary/[0.06] via-primary/[0.02] to-transparent">
+              <Box className="h-8 w-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+                <Iconify icon="solar:document-text-bold" className="text-primary" width={15} />
+              </Box>
+              <Typography variant="subtitle2" className="font-semibold text-foreground">
+                {t('form.legalDocumentSectionTitle')}
+              </Typography>
+            </Box>
+            <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
               <Box>
-                <Typography variant="subtitle2" className="mb-1 text-muted-foreground text-xs">
-                  {t('form.labelEnglishShort')}
-                </Typography>
+                <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.labelEnglishShort')}</Typography>
                 <RHFTextField name="title.en" placeholder={t('form.legalTitleEn')} fullWidth />
               </Box>
               <Box>
-                <Typography variant="subtitle2" className="mb-1 text-muted-foreground text-xs">
-                  {t('form.labelArabicShort')}
-                </Typography>
+                <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.labelArabicShort')}</Typography>
                 <RHFTextField name="title.ar" placeholder={t('form.legalTitleAr')} fullWidth />
               </Box>
             </Box>
           </Box>
 
-          {/* Content */}
-          <Box className="col-span-2">
-            <Typography variant="subtitle1" className="mb-3 font-semibold">
-              {t('form.legalDocumentSectionContent')}
-            </Typography>
-            <Box className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              {/* English content */}
+          {/* ── Section: Content ── */}
+          <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+            <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-violet-500/[0.06] via-violet-500/[0.02] to-transparent">
+              <Box className="h-8 w-8 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center shrink-0">
+                <Iconify icon="solar:align-left-bold" className="text-violet-500" width={15} />
+              </Box>
+              <Typography variant="subtitle2" className="font-semibold text-foreground">
+                {t('form.legalDocumentSectionContent')}
+              </Typography>
+            </Box>
+            <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
               <Box>
-                <Typography variant="subtitle2" className="mb-1 text-muted-foreground text-xs">
-                  {t('form.labelEnglishShort')}
-                </Typography>
+                <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.labelEnglishShort')}</Typography>
                 <Controller
                   name="content.en"
                   control={control}
                   render={({ field, fieldState: { error: fieldError } }) => (
                     <Box>
-                      <textarea
-                        {...field}
-                        rows={10}
-                        placeholder={t('form.legalContentPlaceholder')}
-                        className={`w-full resize-y rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary ${
-                          fieldError ? 'border-destructive' : 'border-input'
-                        }`}
-                      />
-                      {fieldError && (
-                        <p className="mt-1 text-xs text-destructive">{fieldError.message}</p>
-                      )}
+                      <textarea {...field} rows={10} placeholder={t('form.legalContentPlaceholder')} className={`w-full resize-y rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary ${fieldError ? 'border-destructive' : 'border-input'}`} />
+                      {fieldError && <p className="mt-1 text-xs text-destructive">{fieldError.message}</p>}
                     </Box>
                   )}
                 />
               </Box>
-
-              {/* Arabic content */}
               <Box>
-                <Typography variant="subtitle2" className="mb-1 text-muted-foreground text-xs">
-                  {t('form.labelArabicShort')}
-                </Typography>
+                <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.labelArabicShort')}</Typography>
                 <Controller
                   name="content.ar"
                   control={control}
                   render={({ field, fieldState: { error: fieldError } }) => (
                     <Box>
-                      <textarea
-                        {...field}
-                        rows={10}
-                        dir="rtl"
-                        placeholder={t('form.legalContentArPlaceholder')}
-                        className={`w-full resize-y rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary ${
-                          fieldError ? 'border-destructive' : 'border-input'
-                        }`}
-                      />
-                      {fieldError && (
-                        <p className="mt-1 text-xs text-destructive">{fieldError.message}</p>
-                      )}
+                      <textarea {...field} rows={10} dir="rtl" placeholder={t('form.legalContentArPlaceholder')} className={`w-full resize-y rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary ${fieldError ? 'border-destructive' : 'border-input'}`} />
+                      {fieldError && <p className="mt-1 text-xs text-destructive">{fieldError.message}</p>}
                     </Box>
                   )}
                 />

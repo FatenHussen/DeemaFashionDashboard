@@ -1,10 +1,12 @@
+import type { VendorCreateUpdatePayload } from '@/pages/dashboard/vendor/types/vendor.types';
+
 import { useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
-import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
+import { useForm, useWatch, Controller } from 'react-hook-form';
 import {
   VendorSchema,
   type VendorFormValues,
@@ -17,6 +19,7 @@ import {
 
 import { CONFIG } from 'src/global-config';
 import { Box, Checkbox, Typography } from 'src/shared/ui';
+import { RHFSelect } from 'src/shared/components/hook-form/rhf-select';
 import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
 import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
 
@@ -40,7 +43,9 @@ export default function CreatePage() {
     contract_date: '',
     contract_number: '',
     contract_duration_months: 12,
-    commission_rate: 5,
+    commission_type: 'percentage',
+    settlement_cycle: 'monthly',
+    fixed_commission: 0,
     is_active: true,
   };
 
@@ -49,7 +54,8 @@ export default function CreatePage() {
     defaultValues,
   });
 
-  const { handleSubmit, reset } = methods;
+  const { handleSubmit, reset, control } = methods;
+  const commissionType = useWatch({ control, name: 'commission_type' });
 
   useEffect(() => {
     if (isEditMode && vendorData && !isLoadingVendor) {
@@ -69,6 +75,9 @@ export default function CreatePage() {
         return Number.isFinite(n) ? n : fallback;
       };
 
+      const rawType = vendorData.commission_type === 'fixed' ? 'fixed' : 'percentage';
+      const rawCycle = vendorData.settlement_cycle === 'weekly' ? 'weekly' : 'monthly';
+
       reset({
         name: nameValue,
         owner_name: vendorData.owner_name,
@@ -77,7 +86,9 @@ export default function CreatePage() {
         contract_date: vendorData.contract_date ?? '',
         contract_number: vendorData.contract_number ?? '',
         contract_duration_months: toNumber(vendorData.contract_duration_months, 12),
-        commission_rate: toNumber(vendorData.commission_rate, 5),
+        commission_type: rawType,
+        settlement_cycle: rawCycle,
+        fixed_commission: toNumber(vendorData.fixed_commission, 0),
         is_active: vendorData.is_active,
       });
     }
@@ -89,17 +100,19 @@ export default function CreatePage() {
 
   const onSubmit = async (data: VendorFormValues) => {
     try {
-      const payload = {
-        name: { ar: data.name.ar, en: data.name.en },
-        owner_name: data.owner_name,
-        owner_phone: data.owner_phone,
-        commercial_register: data.commercial_register,
-        contract_date: data.contract_date,
-        contract_number: data.contract_number,
-        contract_duration_months: data.contract_duration_months,
-        commission_rate: data.commission_rate,
-        is_active: data.is_active,
-      };
+      const payload: VendorCreateUpdatePayload = {
+          name: { ar: data.name.ar, en: data.name.en },
+          owner_name: data.owner_name,
+          owner_phone: data.owner_phone,
+          commercial_register: data.commercial_register,
+          contract_date: data.contract_date,
+          contract_number: data.contract_number,
+          contract_duration_months: data.contract_duration_months,
+          commission_type: data.commission_type,
+          settlement_cycle: data.settlement_cycle,
+          is_active: data.is_active,
+          ...(data.commission_type === 'fixed' ? { fixed_commission: data.fixed_commission! } : {}),
+        };
 
       if (isEditMode && id) {
         await updateVendorMutation.mutateAsync({ id, data: payload });
@@ -138,99 +151,152 @@ export default function CreatePage() {
         isEditMode={isEditMode}
         isLoading={isLoadingVendor}
         loadingText={t('form.loadingVendor')}
-        maxWidth="4xl"
         infoText={infoText}
         submitLabel={isEditMode ? t('form.updateVendorSubmit') : t('form.createVendorSubmit')}
         submittingLabel={isEditMode ? t('form.updatingVendor') : t('form.creatingVendor')}
       >
-        <Box className="group">
-          <Box className="mb-2 flex items-center gap-2">
-            <Iconify icon="solar:case-minimalistic-bold" className="text-primary" width={24} height={24} />
-            <Typography variant="subtitle2" className="font-semibold text-foreground">{t('form.vendorStoreNameArField')}</Typography>
+        {/* ── Section: Store Names ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-primary/[0.06] via-primary/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:case-minimalistic-bold" className="text-primary" width={15} />
+            </Box>
+            <Typography variant="subtitle2" className="font-semibold text-foreground">
+              {t('form.vendorStoreNameArField')} / {t('form.vendorStoreNameEnField')}
+            </Typography>
           </Box>
-          <RHFTextField name="name.ar" placeholder={t('form.storeNameAr')} helperText={t('form.storeNameArHelper')} className="transition-all duration-200" />
+          <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+            <Box className="group">
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5">
+                <Iconify icon="solar:case-minimalistic-bold" className="text-primary" width={16} />
+                {t('form.vendorStoreNameEnField')}
+              </Typography>
+              <RHFTextField name="name.en" placeholder={t('form.storeNameEn')} helperText={t('form.storeNameEnHelper')} />
+            </Box>
+            <Box className="group">
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5">
+                <Iconify icon="solar:case-minimalistic-bold" className="text-primary" width={16} />
+                {t('form.vendorStoreNameArField')}
+              </Typography>
+              <RHFTextField name="name.ar" placeholder={t('form.storeNameAr')} helperText={t('form.storeNameArHelper')} dir="rtl" />
+            </Box>
+          </Box>
         </Box>
 
-        <Box className="group">
-          <Box className="mb-2 flex items-center gap-2">
-            <Iconify icon="solar:case-minimalistic-bold" className="text-primary" width={24} height={24} />
-            <Typography variant="subtitle2" className="font-semibold text-foreground">{t('form.vendorStoreNameEnField')}</Typography>
+        {/* ── Section: Owner Info ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-violet-500/[0.06] via-violet-500/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:user-rounded-bold" className="text-violet-500" width={15} />
+            </Box>
+            <Typography variant="subtitle2" className="font-semibold text-foreground">
+              {t('form.vendorOwnerNameField')} & {t('form.vendorOwnerPhoneField')}
+            </Typography>
           </Box>
-          <RHFTextField name="name.en" placeholder={t('form.storeNameEn')} helperText={t('form.storeNameEnHelper')} className="transition-all duration-200" />
+          <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+            <Box className="group">
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5">
+                <Iconify icon="solar:user-rounded-bold" className="text-violet-500" width={16} />
+                {t('form.vendorOwnerNameField')}
+              </Typography>
+              <RHFTextField name="owner_name" placeholder={t('form.ownerNamePlaceholder')} helperText={t('form.ownerNameHelper')} />
+            </Box>
+            <Box className="group">
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5">
+                <Iconify icon="solar:phone-bold" className="text-violet-500" width={16} />
+                {t('form.vendorOwnerPhoneField')}
+              </Typography>
+              <RHFTextField name="owner_phone" placeholder={t('form.ownerPhonePlaceholder')} helperText={t('form.ownerPhoneHelper')} />
+            </Box>
+            <Box className="group">
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5">
+                <Iconify icon="solar:file-text-bold" className="text-violet-500" width={16} />
+                {t('form.vendorCommercialRegisterField')}
+              </Typography>
+              <RHFTextField name="commercial_register" placeholder={t('form.commercialRegisterPlaceholder')} helperText={t('form.commercialRegisterHelper')} />
+            </Box>
+          </Box>
         </Box>
 
-        <Box className="group">
-          <Box className="mb-2 flex items-center gap-2">
-            <Iconify icon="solar:user-rounded-bold" className="text-primary" width={24} height={24} />
-            <Typography variant="subtitle2" className="font-semibold text-foreground">{t('form.vendorOwnerNameField')}</Typography>
+        {/* ── Section: Contract ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-amber-500/[0.06] via-amber-500/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:bill-list-bold" className="text-amber-500" width={15} />
+            </Box>
+            <Typography variant="subtitle2" className="font-semibold text-foreground">
+              {t('form.vendorContractNumberField')} & {t('form.vendorContractDateField')}
+            </Typography>
           </Box>
-          <RHFTextField name="owner_name" placeholder={t('form.ownerNamePlaceholder')} helperText={t('form.ownerNameHelper')} className="transition-all duration-200" />
+          <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+            <Box className="group">
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5">
+                <Iconify icon="solar:bill-list-bold" className="text-amber-500" width={16} />
+                {t('form.vendorContractNumberField')}
+              </Typography>
+              <RHFTextField name="contract_number" placeholder={t('form.contractNumberPlaceholder')} helperText={t('form.contractNumberHelper')} />
+            </Box>
+            <Box className="group">
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5">
+                <Iconify icon="solar:calendar-date-bold" className="text-amber-500" width={16} />
+                {t('form.vendorContractDateField')}
+              </Typography>
+              <RHFTextField name="contract_date" type="date" helperText={t('form.contractDateHelper')} />
+            </Box>
+            <Box className="group">
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5">
+                <Iconify icon="solar:clock-circle-bold" className="text-amber-500" width={16} />
+                {t('form.vendorContractDurationMonthsField')}
+              </Typography>
+              <RHFTextField name="contract_duration_months" type="number" placeholder={t('form.contractDurationPlaceholder')} helperText={t('form.contractDurationHelper')} />
+            </Box>
+          </Box>
         </Box>
 
-        <Box className="group">
-          <Box className="mb-2 flex items-center gap-2">
-            <Iconify icon="solar:phone-bold" className="text-primary" width={24} height={24} />
-            <Typography variant="subtitle2" className="font-semibold text-foreground">{t('form.vendorOwnerPhoneField')}</Typography>
+        {/* ── Section: Commission & Status ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-emerald-500/[0.06] via-emerald-500/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:wad-of-money-bold" className="text-emerald-500" width={15} />
+            </Box>
+            <Typography variant="subtitle2" className="font-semibold text-foreground">
+              {t('form.vendorCommissionTypeField')} & {t('form.vendorSettlementCycleField')}
+            </Typography>
           </Box>
-          <RHFTextField name="owner_phone" placeholder={t('form.ownerPhonePlaceholder')} helperText={t('form.ownerPhoneHelper')} className="transition-all duration-200" />
-        </Box>
-
-        <Box className="group">
-          <Box className="mb-2 flex items-center gap-2">
-            <Iconify icon="solar:file-text-bold" className="text-primary" width={24} height={24} />
-            <Typography variant="subtitle2" className="font-semibold text-foreground">{t('form.vendorCommercialRegisterField')}</Typography>
-          </Box>
-          <RHFTextField name="commercial_register" placeholder={t('form.commercialRegisterPlaceholder')} helperText={t('form.commercialRegisterHelper')} className="transition-all duration-200" />
-        </Box>
-
-        <Box className="group">
-          <Box className="mb-2 flex items-center gap-2">
-            <Iconify icon="solar:calendar-date-bold" className="text-primary" width={24} height={24} />
-            <Typography variant="subtitle2" className="font-semibold text-foreground">{t('form.vendorContractDateField')}</Typography>
-          </Box>
-          <RHFTextField name="contract_date" type="date" helperText={t('form.contractDateHelper')} className="transition-all duration-200" />
-        </Box>
-
-        <Box className="group">
-          <Box className="mb-2 flex items-center gap-2">
-            <Iconify icon="solar:bill-list-bold" className="text-primary" width={24} height={24} />
-            <Typography variant="subtitle2" className="font-semibold text-foreground">{t('form.vendorContractNumberField')}</Typography>
-          </Box>
-          <RHFTextField name="contract_number" placeholder={t('form.contractNumberPlaceholder')} helperText={t('form.contractNumberHelper')} className="transition-all duration-200" />
-        </Box>
-
-        <Box className="group">
-          <Box className="mb-2 flex items-center gap-2">
-            <Iconify icon="solar:clock-circle-bold" className="text-primary" width={24} height={24} />
-            <Typography variant="subtitle2" className="font-semibold text-foreground">{t('form.vendorContractDurationMonthsField')}</Typography>
-          </Box>
-          <RHFTextField name="contract_duration_months" type="number" placeholder={t('form.contractDurationPlaceholder')} helperText={t('form.contractDurationHelper')} className="transition-all duration-200" />
-        </Box>
-
-        <Box className="group">
-          <Box className="mb-2 flex items-center gap-2">
-            <Iconify icon="solar:wad-of-money-bold" className="text-primary" width={24} height={24} />
-            <Typography variant="subtitle2" className="font-semibold text-foreground">{t('form.vendorCommissionRateField')}</Typography>
-          </Box>
-          <RHFTextField name="commission_rate" type="number" placeholder={t('form.commissionRatePlaceholder')} helperText={t('form.commissionRateHelper')} className="transition-all duration-200" />
-        </Box>
-
-        <Box className="group">
-          <Box className="mb-2 flex items-center gap-2">
-            <Iconify icon="solar:check-circle-bold" className="text-primary" width={24} height={24} />
-            <Typography variant="subtitle2" className="font-semibold text-foreground">{t('form.vendorActiveStatusField')}</Typography>
-          </Box>
-          <Controller
-            name="is_active"
-            control={methods.control}
-            render={({ field }) => (
-              <Checkbox
-                checked={field.value}
-                onChange={(e) => field.onChange(e.target.checked)}
-                label={t('form.markVendorActive')}
+          <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+            <Box className="group">
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5">
+                <Iconify icon="solar:wad-of-money-bold" className="text-emerald-500" width={16} />
+                {t('form.vendorCommissionTypeField')}
+              </Typography>
+              <RHFSelect name="commission_type" options={[{ value: 'percentage', label: t('form.commissionTypePercentage') }, { value: 'fixed', label: t('form.commissionTypeFixed') }]} placeholder={t('form.vendorCommissionTypeField')} />
+            </Box>
+            {commissionType === 'fixed' ? (
+              <Box className="group">
+                <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5">
+                  <Iconify icon="solar:wallet-money-bold" className="text-emerald-500" width={16} />
+                  {t('form.vendorFixedCommissionField')}
+                </Typography>
+                <RHFTextField name="fixed_commission" type="number" placeholder={t('form.fixedCommissionPlaceholder')} />
+              </Box>
+            ) : null}
+            <Box className="group">
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5">
+                <Iconify icon="solar:calendar-bold" className="text-emerald-500" width={16} />
+                {t('form.vendorSettlementCycleField')}
+              </Typography>
+              <RHFSelect name="settlement_cycle" options={[{ value: 'weekly', label: t('form.settlementCycleWeekly') }, { value: 'monthly', label: t('form.settlementCycleMonthly') }]} placeholder={t('form.vendorSettlementCycleField')} />
+            </Box>
+            <Box className="group flex items-center p-4 rounded-xl border border-border/60 bg-background/60 hover:border-emerald-500/40 transition-colors">
+              <Controller
+                name="is_active"
+                control={methods.control}
+                render={({ field }) => (
+                  <Checkbox checked={field.value} onChange={(e) => field.onChange(e.target.checked)} label={t('form.markVendorActive')} />
+                )}
               />
-            )}
-          />
+            </Box>
+          </Box>
         </Box>
       </CreateFormLayout>
     </>

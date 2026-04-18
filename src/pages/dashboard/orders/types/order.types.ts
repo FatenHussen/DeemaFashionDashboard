@@ -1,6 +1,57 @@
 // ----------------------------------------------------------------------
 
-export type OrderStatus = 'pending' | 'preparing' | 'out_delivery' | 'delivered';
+export type OrderStatus =
+  | 'pending'
+  | 'preparing'
+  | 'out_delivery'
+  | 'delivered'
+  | 'cancelled';
+
+/** All statuses selectable when updating an order (admin). */
+export const ORDER_STATUS_OPTIONS: OrderStatus[] = [
+  'pending',
+  'preparing',
+  'out_delivery',
+  'delivered',
+  'cancelled',
+];
+
+/** Forward fulfillment flow only (no going back to a previous step). */
+export const ORDER_STATUS_PIPELINE: OrderStatus[] = [
+  'pending',
+  'preparing',
+  'out_delivery',
+  'delivered',
+];
+
+/** Statuses strictly after the current step in the pipeline (skip allowed). */
+export function getUpcomingOrderStatuses(current: OrderStatus): OrderStatus[] {
+  const idx = ORDER_STATUS_PIPELINE.indexOf(current);
+  if (idx === -1) return [];
+  return ORDER_STATUS_PIPELINE.slice(idx + 1);
+}
+
+/**
+ * Map API / inconsistent strings to a canonical status so comparisons and
+ * `<select value={…}>` work (e.g. going back from delivered → preparing).
+ */
+export function normalizeOrderStatus(raw: string | number | undefined | null): OrderStatus {
+  if (raw == null || raw === '') return 'pending';
+  const s = String(raw).trim().toLowerCase().replace(/[\s-]+/g, '_');
+  const aliases: Record<string, OrderStatus> = {
+    pending: 'pending',
+    preparing: 'preparing',
+    out_delivery: 'out_delivery',
+    out_for_delivery: 'out_delivery',
+    outfordelivery: 'out_delivery',
+    delivered: 'delivered',
+    cancelled: 'cancelled',
+    canceled: 'cancelled',
+  };
+  if (aliases[s]) return aliases[s];
+  if ((ORDER_STATUS_OPTIONS as readonly string[]).includes(s)) return s as OrderStatus;
+  return 'pending';
+}
 
 export interface OrderUser {
   id: number;
@@ -30,11 +81,19 @@ export interface OrderItem {
 
 export interface OrderDriver {
   id: number;
+  name?: string;
   phone: string;
   address?: string;
   status?: string;
   is_active?: number | boolean;
   rate_per_order?: string | number;
+}
+
+export interface OrderPaymentMethod {
+  id: number;
+  name: string;
+  /** Relative path or absolute URL (e.g. payments/image3.png) */
+  icon?: string | null;
 }
 
 export interface OrderData {
@@ -58,6 +117,7 @@ export interface OrderData {
   rating?: number;
   user: OrderUser;
   driver?: OrderDriver;
+  payment_method?: OrderPaymentMethod | null;
   items?: OrderItem[];
   address?: string;
   notes?: string;
@@ -83,6 +143,9 @@ export interface OrderDetailAffiliate {
   affiliate_rate: string;
   affiliate_source: string;
   affiliate_commission: number;
+  affiliate_commission_type?: string;
+  affiliate_fixed_commission?: number | string;
+  affiliate_commission_amount?: number;
 }
 
 export interface OrderDetailTimestamps {
@@ -168,6 +231,18 @@ export interface OrderDetailData {
   items: OrderDetailItem[];
 }
 
+/** Dropdown option from `GET /orders/to-assign`. */
+export interface OrderToAssignOption {
+  id: number;
+  value: string;
+}
+
+export interface OrdersToAssignResponse {
+  status: boolean;
+  message: string;
+  data: OrderToAssignOption[];
+}
+
 export interface OrderDetailsResponse {
   status: boolean;
   message: string;
@@ -176,6 +251,8 @@ export interface OrderDetailsResponse {
 
 export interface ChangeOrderStatusPayload {
   status: OrderStatus;
+  /** Required when setting status to `cancelled` (admin rejection). */
+  rejection_reason?: string;
 }
 
 export interface AssignDriverPayload {

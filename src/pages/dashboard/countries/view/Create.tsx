@@ -114,41 +114,56 @@ export default function CreatePage() {
         isEditMode={isEditMode}
         isLoading={isLoadingCountry}
         loadingText={t('form.loadingCountry')}
-        maxWidth="2xl"
         submitLabel={isEditMode ? t('form.updateCountry') : t('form.createCountrySubmit')}
         submittingLabel={isEditMode ? t('form.updatingCountry') : t('form.creatingCountry')}
       >
-        {/* Name EN */}
-        <Box className="group">
-          <Box className="flex items-center gap-2 mb-2">
-            <Iconify icon="solar:earth-bold" className="text-primary" width={24} height={24} />
+        {/* ── Section: Names ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-primary/[0.06] via-primary/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:earth-bold" className="text-primary" width={15} />
+            </Box>
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              {t('form.nameEn')}
+              {t('form.nameEn')} / {t('form.nameAr')}
             </Typography>
           </Box>
-          <RHFTextField name="name.en" placeholder={t('form.countryNameEnPlaceholder')} fullWidth />
-        </Box>
-
-        {/* Name AR */}
-        <Box className="group">
-          <Box className="flex items-center gap-2 mb-2">
-            <Iconify icon="solar:earth-bold" className="text-primary" width={24} height={24} />
-            <Typography variant="subtitle2" className="font-semibold text-foreground">
-              {t('form.nameAr')}
-            </Typography>
+          <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+            <Box className="group">
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5">
+                <Iconify icon="solar:earth-bold" className="text-primary" width={16} />
+                {t('form.nameEn')}
+              </Typography>
+              <RHFTextField name="name.en" placeholder={t('form.countryNameEnPlaceholder')} fullWidth />
+            </Box>
+            <Box className="group">
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5">
+                <Iconify icon="solar:earth-bold" className="text-primary" width={16} />
+                {t('form.nameAr')}
+              </Typography>
+              <RHFTextField name="name.ar" placeholder={t('form.countryNameArPlaceholder')} dir="rtl" fullWidth />
+            </Box>
           </Box>
-          <RHFTextField name="name.ar" placeholder={t('form.countryNameArPlaceholder')} dir="rtl" fullWidth />
         </Box>
 
-        {/* Code */}
-        <Box className="group">
-          <Box className="flex items-center gap-2 mb-2">
-            <Iconify icon="solar:code-bold" className="text-primary" width={24} height={24} />
+        {/* ── Section: Country Code ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-violet-500/[0.06] via-violet-500/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:code-bold" className="text-violet-500" width={15} />
+            </Box>
             <Typography variant="subtitle2" className="font-semibold text-foreground">
               {t('form.countryCode')}
             </Typography>
           </Box>
-          <RHFTextField name="code" placeholder={t('form.countryCodePlaceholder')} helperText={t('form.countryCodeHelper')} fullWidth />
+          <Box className="p-6 md:max-w-sm">
+            <Box className="group">
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5">
+                <Iconify icon="solar:code-bold" className="text-violet-500" width={16} />
+                {t('form.countryCode')}
+              </Typography>
+              <RHFTextField name="code" placeholder={t('form.countryCodePlaceholder')} helperText={t('form.countryCodeHelper')} fullWidth />
+            </Box>
+          </Box>
         </Box>
       </CreateFormLayout>
     </>

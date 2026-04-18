@@ -1,6 +1,8 @@
 import type { TFunction } from 'i18next';
 import type { NavSectionProps } from 'src/shared/components/nav-section';
 
+import { FLASH_SALE_PERMISSION } from '@/pages/dashboard/flash-sales/permissions';
+
 import { paths } from 'src/routes/paths';
 
 import { CONFIG } from 'src/global-config';
@@ -42,6 +44,24 @@ const ICONS = {
 export function getNavData(t: TFunction<'nav'>): NavSectionProps['data'] {
   return [
     /**
+     * Account — visible to all authenticated users (no permission gate)
+     */
+    {
+      subheader: (
+        <span className="flex items-center gap-2">
+          <Iconify icon="solar:user-circle-bold" width={16} height={16} />
+          <span>{t('accountGroup')}</span>
+        </span>
+      ) as any,
+      items: [
+        {
+          title: t('profile'),
+          path: paths.dashboard.profile,
+          icon: <Iconify icon="custom:profile-duotone" width={22} height={22} />,
+        },
+      ],
+    },
+    /**
      * 1. Statistics & Reports
      */
     {
@@ -72,6 +92,8 @@ export function getNavData(t: TFunction<'nav'>): NavSectionProps['data'] {
         { title: t('categoryDetails'), path: paths.dashboard.categoryDetails, icon: ICONS.menuItem, requiredPermission: 'categorydetail.view' },
         { title: t('brands'), path: paths.dashboard.brands, icon: ICONS.ecommerce, requiredPermission: 'brand.view' },
         { title: t('products'), path: paths.dashboard.products, icon: ICONS.product, requiredPermission: 'product.view' },
+        { title: t('inventory'), path: paths.dashboard.inventory, icon: ICONS.folder, requiredPermission: 'product.view' },
+        // { title: t('crimage.pngeateProductNav'), path: paths.dashboard.product.create, icon: ICONS.ecommerce, requiredPermission: 'product.create' },
       ],
     },
     /**
@@ -87,6 +109,14 @@ export function getNavData(t: TFunction<'nav'>): NavSectionProps['data'] {
       items: [
         { title: t('sections'), path: paths.dashboard.sections, icon: ICONS.menuItem, requiredPermission: 'section.view' },
         { title: t('pageSections'), path: paths.dashboard.pageSections, icon: ICONS.menuItem, requiredPermission: 'pagesection.view' },
+        { title: t('quickActions'), path: paths.dashboard.quickActions.root, icon: ICONS.menuItem, requiredPermission: 'quickaction.view' },
+        { title: t('popupCampaigns'), path: paths.dashboard.popupCampaigns.root, icon: ICONS.tour, requiredPermission: 'popupCampaign.view' },
+        {
+          title: t('flashSales'),
+          path: paths.dashboard.flashSales.root,
+          icon: <Iconify icon="solar:bolt-circle-bold" width={22} height={22} />,
+          requiredPermission: FLASH_SALE_PERMISSION.view,
+        },
         { title: t('banners'), path: paths.dashboard.banners, icon: ICONS.ecommerce, requiredPermission: 'banner.view' },
         { title: t('recipes'), path: paths.dashboard.recipes, icon: ICONS.file, requiredPermission: 'recipe.view' },
       ],
@@ -143,11 +173,21 @@ export function getNavData(t: TFunction<'nav'>): NavSectionProps['data'] {
       ) as any,
       items: [
         { title: t('users'), path: paths.dashboard.users, icon: ICONS.label, requiredPermission: 'user.view' },
+        { title: t('affiliates'), path: paths.dashboard.affiliates, icon: ICONS.label, requiredPermission: 'user.view' },
         { title: t('vendor'), path: paths.dashboard.vendor, icon: ICONS.ecommerce, requiredPermission: 'vendor.view' },
         { title: t('vendorUsers'), path: paths.dashboard.vendorUsers, icon: ICONS.job, requiredPermission: 'vendoruser.view' },
         { title: t('sellerRegistrations'), path: paths.dashboard.sellerRegistrations, icon: ICONS.file, requiredPermission: 'sellerregistration.view' },
         { title: t('shop'), path: paths.dashboard.shop, icon: ICONS.analytics, requiredPermission: 'shop.view' },
         { title: t('driver'), path: paths.dashboard.driver, icon: ICONS.order, requiredPermission: 'driver.view' },
+        {
+          title: t('driverWalletTransactions'),
+          path: paths.dashboard.driverWalletTransactions,
+          icon: ICONS.banking,
+          requiredPermission: 'driverwallettransaction.view',
+        },
+        { title: t('vendorServiceTypes'), path: paths.dashboard.vendorServiceTypes, icon: ICONS.menuItem, requiredPermission: 'vendorservicetype.view' },
+        { title: t('vendorServices'), path: paths.dashboard.vendorServices, icon: ICONS.course, requiredPermission: 'vendorservice.view' },
+        { title: t('shopVendorServices'), path: paths.dashboard.shopVendorServices, icon: ICONS.booking, requiredPermission: 'shopvendorservice.view' },
       ],
     },
     /**
@@ -162,6 +202,22 @@ export function getNavData(t: TFunction<'nav'>): NavSectionProps['data'] {
       ) as any,
       items: [
         { title: t('orders'), path: paths.dashboard.orders, icon: ICONS.order, requiredPermission: 'order.view' },
+        { title: t('serviceOrders'), path: paths.dashboard.serviceOrders, icon: ICONS.invoice, requiredPermission: 'serviceorder.view' },
+      ],
+    },
+    /**
+     * 7b. Finance & Accounting
+     */
+    {
+      subheader: (
+        <span className="flex items-center gap-2">
+          <Iconify icon="solar:wallet-money-bold" width={16} height={16} />
+          <span>{t('financeGroup')}</span>
+        </span>
+      ) as any,
+      items: [
+        { title: t('vendorAccountingNav'), path: paths.dashboard.vendorAccounting.root, icon: ICONS.banking },
+        { title: t('vendorWithdrawRequests'), path: paths.dashboard.vendorWithdrawRequests, icon: ICONS.invoice },
       ],
     },
     /**
@@ -227,7 +283,8 @@ export function getNavData(t: TFunction<'nav'>): NavSectionProps['data'] {
         </span>
       ) as any,
       items: [
-        // { title: t('translationManager'), path: `${paths.dashboard.languages}/translations`, icon: ICONS.file, requiredPermission: 'language.view' },
+        // Languages / translation manager (disabled — see routes `paths` and dashboard `languages` route)
+        // { title: t('translationManager'), path: '/languages/translations', icon: ICONS.file, requiredPermission: 'language.view' },
         { title: t('currencies'), path: paths.dashboard.currencies, icon: ICONS.banking, requiredPermission: 'currency.view' },
         { title: t('legalDocuments'), path: paths.dashboard.legalDocuments, icon: ICONS.lock, requiredPermission: 'legaldocument.view' },
         { title: t('faqs'), path: paths.dashboard.faqs, icon: ICONS.blog, requiredPermission: 'faq.view' },
@@ -244,6 +301,7 @@ export function getNavData(t: TFunction<'nav'>): NavSectionProps['data'] {
         },
         { title: t('activityLogs'), path: paths.dashboard.activityLogs, icon: ICONS.file, requiredPermission: 'activitylog.view' },
         { title: t('affiliateWithdrawRequests'), path: paths.dashboard.affiliateWithdrawRequests, icon: ICONS.banking, requiredPermission: 'affiliatewithdrawrequest.view' },
+        { title: t('affiliateWalletTransactions'), path: paths.dashboard.affiliateWalletTransactions, icon: ICONS.banking, requiredPermission: 'affiliatewallettransaction.view' },
       ],
     },
     /**

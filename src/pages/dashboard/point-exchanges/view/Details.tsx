@@ -78,7 +78,7 @@ export default function DetailsPage() {
           <Box className="absolute inset-0 bg-[linear-gradient(to_right,rgba(0,0,0,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(0,0,0,0.03)_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:32px_32px]" />
         </Box>
 
-        <Box className="relative max-w-4xl mx-auto">
+        <Box className="relative w-full">
           <Box className="mb-6">
             <Button
               variant="text"

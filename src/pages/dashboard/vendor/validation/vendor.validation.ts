@@ -41,11 +41,28 @@ export const VendorSchema = zod.object({
   contract_duration_months: zod.coerce
     .number({ invalid_type_error: t('vendor.contractDurationMin') })
     .min(1, { message: t('vendor.contractDurationMin') }),
-  commission_rate: zod.coerce
-    .number({ invalid_type_error: t('vendor.commissionRateMin') })
-    .min(0, { message: t('vendor.commissionRateMin') })
-    .max(100, { message: t('vendor.commissionRateMax') }),
+  commission_type: zod.enum(['percentage', 'fixed']),
+  settlement_cycle: zod.enum(['weekly', 'monthly']),
+  fixed_commission: zod.coerce.number({ invalid_type_error: t('vendor.fixedCommissionMin') }).optional(),
   is_active: zod.boolean(),
-});
+})
+  .superRefine((data, ctx) => {
+    if (data.commission_type === 'fixed') {
+      const f = data.fixed_commission;
+      if (f === undefined || f === null || Number.isNaN(f)) {
+        ctx.addIssue({
+          code: zod.ZodIssueCode.custom,
+          path: ['fixed_commission'],
+          message: t('vendor.fixedCommissionRequired'),
+        });
+      } else if (f < 0) {
+        ctx.addIssue({
+          code: zod.ZodIssueCode.custom,
+          path: ['fixed_commission'],
+          message: t('vendor.fixedCommissionMin'),
+        });
+      }
+    }
+  });
 
 export type VendorFormValues = zod.infer<typeof VendorSchema>;

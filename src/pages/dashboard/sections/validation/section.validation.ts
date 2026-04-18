@@ -13,7 +13,9 @@ export const SectionSchema = zod.object({
   item_ids: zod.array(
     zod.object({
       item_id: zod.number(),
-      link: zod.string(),
+      link: zod
+        .string()
+        .max(255, { message: t('section.itemLinkMax') }),
       order: zod.number(),
     })
   ),

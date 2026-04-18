@@ -67,6 +67,7 @@ export default function Page() {
           address: t('columns.address'),
           status: t('columns.status'),
           created_at: t('columns.created'),
+          actions: t('columns.action'),
         }}
         pagination={pagination}
         currentPage={currentPage}

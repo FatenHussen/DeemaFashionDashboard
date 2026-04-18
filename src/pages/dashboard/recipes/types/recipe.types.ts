@@ -1,6 +1,7 @@
 // ----------------------------------------------------------------------
 
-export type RecipeBadgeRef = { id: number; position: 'top' | 'bottom' };
+/** @deprecated Position is now on the badge itself, not the pivot. Kept for API response compat. */
+export type RecipeBadgeRef = { id: number; position?: string };
 
 // ── Payload types (sent to API) ──────────────────────────────────────
 
@@ -127,5 +128,5 @@ export interface RecipeCreateUpdatePayload {
   prepare_time?: string;
   items?: RecipeItem[];
   steps?: RecipeStep[];
-  badges?: RecipeBadgeRef[];
+  badges?: number[];
 }

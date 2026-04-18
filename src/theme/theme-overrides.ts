@@ -2,32 +2,22 @@ import type { ThemeOptions } from './with-settings/update-core';
 
 import { createPaletteChannel } from 'minimal-shared/utils';
 
+import { themeConfig } from './theme-config';
+
 // ----------------------------------------------------------------------
+
+const primaryChannel = createPaletteChannel(themeConfig.palette.primary);
 
 export const themeOverrides: ThemeOptions = {
   colorSchemes: {
     light: {
       palette: {
-        primary: createPaletteChannel({
-          lighter: '#E4DCFD',
-          light: '#A996F8',
-          main: '#6950E8',
-          dark: '#3828A7',
-          darker: '#180F6F',
-          contrastText: '#FFFFFF',
-        }),
+        primary: primaryChannel,
       },
     },
     dark: {
       palette: {
-        primary: createPaletteChannel({
-          lighter: '#E4DCFD',
-          light: '#A996F8',
-          main: '#6950E8',
-          dark: '#3828A7',
-          darker: '#180F6F',
-          contrastText: '#FFFFFF',
-        }),
+        primary: primaryChannel,
       },
     },
   },

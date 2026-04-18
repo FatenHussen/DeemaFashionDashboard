@@ -103,7 +103,8 @@ export default function Page() {
         )}
         data={cityData}
         createPath="/locations/city/create"
-        hasDetails={false}
+        hasDetails
+        detailsLink="/locations/city/update"
         permissions={{
           create: hasPermission('create', 'city'),
           update: hasPermission('update', 'city'),
@@ -115,7 +116,7 @@ export default function Page() {
           name: 'Name',
           governorate: 'Governorate',
           created_at: 'Created At',
-          actions: 'Actions',
+          actions: t('columns.action'),
         }}
         pagination={pagination}
         currentPage={currentPage}

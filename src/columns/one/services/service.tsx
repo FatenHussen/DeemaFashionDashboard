@@ -4,6 +4,7 @@ import type { Row , ColumnDef } from '@tanstack/react-table';
 import { z } from 'zod';
 import { Iconify } from '@/shared/components/iconify';
 import { formatTranslated } from '@/utils/format-translated';
+import { createToggleColumn } from '@/shared/ui/table-data/data-table-toggle-cell';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 
@@ -38,18 +39,6 @@ export const serviceColumns = (
   onEdit?: (row: Row<ServiceFormValues>) => void
 ): ColumnDef<ServiceFormValues>[] => [
   {
-    id: 'id',
-    accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
-    cell: ({ row }) => (
-      <div className="flex items-center gap-2">
-        <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
-          <span className="text-xs font-semibold text-primary">{row.original.id}</span>
-        </div>
-      </div>
-    ),
-  },
-  {
     id: 'name',
     accessorKey: 'name',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.name')} />,
@@ -80,12 +69,16 @@ export const serviceColumns = (
       </div>
     ),
   },
+  ...(permissions.update
+    ? [createToggleColumn<ServiceFormValues>({ entityType: 'service' })]
+    : []),
   {
     id: 'actions',
     cell: ({ row }: any) => (
       <DataTableRowActions
         schema={ServiceSchema}
         row={row}
+        viewDetails={`/services/update/${row.original.id}`}
         editItem={onEdit ? undefined : `/services/update/${row.original.id}`}
         onEdit={onEdit}
         onDelete={onDelete}
@@ -94,7 +87,6 @@ export const serviceColumns = (
         onDeleteConfirm={onDeleteConfirm}
         onDeleteCancel={onDeleteCancel}
         deletingId={deletingId}
-        adminToggleEntityType="service"
         permissions={permissions}
       />
     ),

@@ -125,7 +125,7 @@ export default function Page() {
           country: t('form.sellerRegColLocation'),
           status: t('form.sellerRegColStatus'),
           registered_at: t('form.sellerRegColRegistered'),
-          actions: t('form.sellerRegColActions'),
+          actions: t('columns.action'),
         }}
         pagination={pagination}
         currentPage={currentPage}

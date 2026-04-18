@@ -1,5 +1,7 @@
 import { z as zod } from 'zod';
 
+import { issueIfPercentageDiscountOver100 } from 'src/utils/discount-percentage-zod';
+
 import i18n from 'src/lib/i18n';
 
 const t = (key: string) => i18n.t(key, { ns: 'validation' });
@@ -19,8 +21,8 @@ export const ProductSchema = zod
       ar: zod.string().min(1, { message: t('product.nameArRequired') }),
     }),
     description: zod.object({
-      en: zod.string().min(1, { message: t('product.descriptionEnRequired') }),
-      ar: zod.string().min(1, { message: t('product.descriptionArRequired') }),
+      en: zod.string().optional().default(''),
+      ar: zod.string().optional().default(''),
     }),
     full_description: zod
       .object({
@@ -47,6 +49,12 @@ export const ProductSchema = zod
     model: zod.string().optional(),
     barcode: zod.string().optional(),
     time_prepare: zod.string().optional(),
+    /** Product-level; used when vendor is external */
+    delivery_time: zod.string().optional(),
+    expiry_date: zod.preprocess(
+      (v) => (v === '' || v === null || v === undefined ? '' : v),
+      zod.string().optional()
+    ),
     is_instant_delivery: zod.coerce.number().min(0).max(1),
     is_visible: zod.coerce.number().min(0).max(1).default(1),
     thumbnail: zod.preprocess(
@@ -94,6 +102,17 @@ export const ProductSchema = zod
             zod.array(zod.instanceof(File)).optional()
           ),
           existing_images_ids: zod.array(zod.coerce.number()).optional(),
+          sku: zod.string().optional(),
+          name: zod.object({ en: zod.string(), ar: zod.string() }).optional(),
+          stock: zod.preprocess(
+            (v) => (v === '' || v === null || v === undefined ? undefined : v),
+            zod.coerce.number().min(0).optional()
+          ),
+          max_purchase_quantity: zod.preprocess(
+            (v) => (v === '' || v === null || v === undefined ? undefined : v),
+            zod.coerce.number().min(0).optional()
+          ),
+          delivery_time: zod.string().optional(),
         })
       )
       .optional(),
@@ -145,6 +164,7 @@ export const ProductSchema = zod
     shop_variants: zod
       .array(
         zod.object({
+          id: zod.coerce.number().optional(),
           shop_id: zod.coerce.number(),
           variant_index: zod.coerce.number(),
           price: zod.coerce.number().min(0),
@@ -154,12 +174,7 @@ export const ProductSchema = zod
       .optional(),
 
     badges: zod
-      .array(
-        zod.object({
-          id: zod.number(),
-          position: zod.enum(['top', 'bottom']),
-        })
-      )
+      .array(zod.number())
       .default([]),
 
     icon_ids: zod.array(zod.coerce.number()).default([]),
@@ -181,13 +196,7 @@ export const ProductSchema = zod
         path: ['images'],
       });
     }
-    if (data.discount_type === 'percentage' && data.discount > 100) {
-      ctx.addIssue({
-        code: zod.ZodIssueCode.custom,
-        message: t('product.discountPercentageMax') || 'Discount cannot exceed 100% for percentage type',
-        path: ['discount'],
-      });
-    }
+    issueIfPercentageDiscountOver100(ctx, data.discount_type, data.discount, ['discount']);
   });
 
 export type ProductFormValues = zod.infer<typeof ProductSchema>;

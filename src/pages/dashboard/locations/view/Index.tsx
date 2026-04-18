@@ -107,7 +107,8 @@ export default function Page() {
         )}
         data={governorateData}
         createPath="/locations/create"
-        hasDetails={false}
+        hasDetails
+        detailsLink="/locations/update"
         permissions={{
           create: hasPermission('create', 'governorate'),
           update: hasPermission('update', 'governorate'),

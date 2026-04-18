@@ -1,7 +1,7 @@
 import type {
+  SaleCountryListItem,
   SaleCountryCreatePayload,
   SaleCountryDetailsResponse,
-  SaleCountryListItem,
   SaleCountryListNormalizedResponse,
 } from '../types/sale-country.types';
 

@@ -1,8 +1,11 @@
+export type BadgePosition = 'top' | 'bottom';
+
 export interface BadgeItem {
   id: number;
-  name: string | { en: string; ar: string };
-  color: string;
-  postion: number | null;
+  name: string | { en: string; ar: string } | null;
+  color: string | null;
+  position: BadgePosition;
+  image?: string | null;
 }
 
 export interface BadgeListResponse {
@@ -26,6 +29,8 @@ export interface BadgeDetailsResponse {
 }
 
 export interface BadgeCreatePayload {
-  name: { en: string; ar: string };
-  color: string;
+  name?: { en?: string; ar?: string };
+  color?: string;
+  position: BadgePosition;
+  image?: File | null;
 }

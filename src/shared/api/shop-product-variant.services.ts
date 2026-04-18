@@ -37,7 +37,10 @@ const emptyResponse = (page: number, perPage: number): ShopProductVariantListRes
 
 export interface ShopProductVariantUpdatePayload {
   price?: number;
+  cost_price?: number;
   quantity?: number;
+  shop_id?: number;
+  product_variant_id?: number;
   stock?: number;
   max_purchase_quantity?: number;
   delivery_time?: string;
@@ -46,6 +49,11 @@ export interface ShopProductVariantUpdatePayload {
 export const _ShopProductVariantApi = {
   update: async (id: number | string, data: ShopProductVariantUpdatePayload): Promise<any> => {
     const response = await axiosInstance.put(apiRoutes.shopProductVariant.update(id), data);
+    return response.data;
+  },
+
+  delete: async (id: number | string): Promise<any> => {
+    const response = await axiosInstance.delete(apiRoutes.shopProductVariant.delete(id));
     return response.data;
   },
 

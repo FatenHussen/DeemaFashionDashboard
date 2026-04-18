@@ -67,9 +67,6 @@ export default function Page() {
     ...item,
     name: formatTranslated(item.name as Parameters<typeof formatTranslated>[0]) ?? '-',
     type: (item.type ?? 'manual') as 'api' | 'manual',
-    position: (item.position ?? 'before') as 'before' | 'after',
-    order: item.order ?? 0,
-    display_type_id: item.display_type_id ?? 0,
   }));
   const apiPagination = pageSectionsResponse?.data?.pagination;
   const pagination = apiPagination
@@ -124,12 +121,11 @@ export default function Page() {
         isLoading={isLoading}
         columnTranslations={{
           id: 'ID',
-          name: 'Name',
-          type: 'Type',
-          position: 'Position',
-          order: 'Order',
-          display_type_id: 'Display Type',
-          actions: 'Actions',
+          name: t('columns.name'),
+          type: t('columns.type'),
+          manual_model: t('columns.manualModel'),
+          filters: t('columns.filters'),
+          actions: t('columns.action'),
         }}
         pagination={pagination}
         currentPage={currentPage}

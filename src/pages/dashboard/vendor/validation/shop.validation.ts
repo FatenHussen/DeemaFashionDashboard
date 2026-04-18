@@ -82,12 +82,12 @@ export const ShopSchema = zod.object({
   service_ids: zod
     .array(zod.object({ id: zod.number() }))
     .min(1, { message: t('shop.atLeastOneService') }),
-  badges: zod.array(
-    zod.object({
-      id: zod.number(),
-      position: zod.enum(['top', 'bottom']),
-    })
-  ),
+  badges: zod.array(zod.number()).default([]),
+  /** UI only; API receives `is_restaurant` (true when restaurant). */
+  shop_type: zod.enum(['restaurant', 'service_provider', 'store']),
+  payment_methods: zod.array(zod.enum(['cash', 'online'])).default([]),
+  pricing_tier: zod.enum(['cheap', 'medium', 'expensive']),
+  is_recommended: zod.boolean(),
 });
 
 export type ShopFormValues = zod.infer<typeof ShopSchema>;

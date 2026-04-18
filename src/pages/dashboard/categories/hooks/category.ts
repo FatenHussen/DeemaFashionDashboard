@@ -4,10 +4,17 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { _CategoryApi, type CategoryCreateUpdatePayload } from '../api/category.services';
 
 export type CategoryListFilter = {
-  /** Root categories only (no parent). */
+  /** Filter by parent: `0` = root categories; a positive id = direct children of that category. */
   parent_id?: number;
-  /** Subcategories of this parent (API `category_id`). */
+  /** Alternative API param for listing children (some backends use this instead of `parent_id`). */
   category_id?: number;
+  sort_field?: string;
+  sort_order?: 'asc' | 'desc';
+  search?: string;
+  /** Admin list filter — sent as `name` query param. */
+  name?: string;
+  is_active?: 0 | 1 | boolean;
+  is_restaurant?: 0 | 1 | boolean;
 };
 
 export const useFetchCategories = (
@@ -22,6 +29,12 @@ export const useFetchCategories = (
       limit,
       parent_id: filter?.parent_id,
       category_id: filter?.category_id,
+      sort_field: filter?.sort_field,
+      sort_order: filter?.sort_order,
+      search: filter?.search,
+      name: filter?.name,
+      is_active: filter?.is_active,
+      is_restaurant: filter?.is_restaurant,
     }),
     queryFn: () =>
       _CategoryApi.getListCategoriesPaginated({
@@ -29,6 +42,12 @@ export const useFetchCategories = (
         per_page: limit,
         parent_id: filter?.parent_id,
         category_id: filter?.category_id,
+        sort_field: filter?.sort_field,
+        sort_order: filter?.sort_order,
+        search: filter?.search,
+        name: filter?.name,
+        is_active: filter?.is_active,
+        is_restaurant: filter?.is_restaurant,
       }),
     enabled: queryOptions?.enabled !== false,
   });

@@ -1,5 +1,5 @@
-import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useState, type ReactNode } from 'react';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { usePermissions } from '@/auth/hooks/use-permissions';
 import { useFetchComplaints } from '@/pages/dashboard/complaints/hooks/complaint';
@@ -60,34 +60,19 @@ export default function Page() {
   const hasPermission = (action: string, resource: string) =>
     can(`${resource}.${action}`);
 
-  const filterContent = (
-    <>
+  const sidebarContent = (
+    <FilterGroup label={t('columns.status')}>
       <select
         value={statusFilter}
-        onChange={(e) => {
-          setStatusFilter(e.target.value);
-          setCurrentPage(1);
-        }}
-        className="h-10 min-w-[120px] rounded-xl border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+        onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
+        className="w-full h-10 rounded-xl border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
       >
         <option value="">{t('all')}</option>
         <option value="new">{t('statusNew')}</option>
         <option value="rejected">{t('statusRejected')}</option>
         <option value="resolved">{t('statusResolved')}</option>
       </select>
-      {statusFilter && (
-        <button
-          type="button"
-          onClick={() => {
-            setStatusFilter('');
-            setCurrentPage(1);
-          }}
-          className="h-10 rounded-xl border border-border px-4 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted"
-        >
-          {t('resetFilter')}
-        </button>
-      )}
-    </>
+    </FilterGroup>
   );
 
   return (
@@ -104,7 +89,9 @@ export default function Page() {
         data={complaintData}
         hasDetails
         detailsLink="/complaints/details"
-        toolbarFilter={filterContent}
+        filterSidebar={sidebarContent}
+        activeFilterCount={statusFilter ? 1 : 0}
+        onFilterReset={() => { setStatusFilter(''); setCurrentPage(1); }}
         permissions={{
           create: false,
           update: hasPermission('update', 'complaint'),
@@ -128,5 +115,14 @@ export default function Page() {
         onPageSizeChange={handlePageSizeChange}
       />
     </>
+  );
+}
+
+function FilterGroup({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{label}</label>
+      {children}
+    </div>
   );
 }

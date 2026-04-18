@@ -2,6 +2,7 @@ import type { UseFormReturn } from 'react-hook-form';
 import type { ReactNode, BaseSyntheticEvent } from 'react';
 
 import { useTranslation } from 'react-i18next';
+import { mergeClasses } from 'minimal-shared/utils';
 import { Iconify } from '@/shared/components/iconify';
 import React, { useRef, useMemo, useEffect } from 'react';
 
@@ -25,7 +26,10 @@ export interface CreateFormLayoutProps<T extends Record<string, any>> {
   isEditMode?: boolean;
   isLoading?: boolean;
   loadingText?: string;
+  /** Max width for the page content. Omit for full width (previous behavior). */
   maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl' | '6xl' | '7xl';
+  /** Overrides default `flex flex-col gap-6` for the form fields area (padding is always applied). */
+  formInnerClassName?: string;
 
   // Content
   children: ReactNode;
@@ -54,7 +58,8 @@ export function CreateFormLayout<T extends Record<string, any>>({
   isEditMode = false,
   isLoading = false,
   loadingText,
-  maxWidth = '6xl',
+  maxWidth,
+  formInnerClassName,
   children,
   submitLabel,
   cancelLabel,
@@ -63,26 +68,29 @@ export function CreateFormLayout<T extends Record<string, any>>({
 }: CreateFormLayoutProps<T>) {
   const { t } = useTranslation('table');
 
-  const maxWidthClasses = {
-    sm: 'max-w-sm',
-    md: 'max-w-md',
-    lg: 'max-w-lg',
-    xl: 'max-w-xl',
-    '2xl': 'max-w-2xl',
-    '3xl': 'max-w-3xl',
-    '4xl': 'max-w-4xl',
-    '5xl': 'max-w-5xl',
-    '6xl': 'max-w-6xl',
-    '7xl': 'max-w-7xl',
-  };
-
-  const defaultSubmitLabel = isEditMode ? t('updating') : t('form.creating');
   const defaultSubmittingLabel = isEditMode ? t('updating') : t('form.creating');
 
   const resolvedSubmitLabel = submitLabel ?? (isEditMode ? t('edit') : t('create'));
   const resolvedSubmittingLabel = submittingLabel ?? defaultSubmittingLabel;
   const resolvedCancelLabel = cancelLabel ?? t('cancel');
   const resolvedLoadingText = loadingText ?? t('loading');
+
+  const maxWidthClass = useMemo(() => {
+    if (!maxWidth) return '';
+    const map: Record<string, string> = {
+      sm: 'max-w-screen-sm',
+      md: 'max-w-screen-md',
+      lg: 'max-w-screen-lg',
+      xl: 'max-w-screen-xl',
+      '2xl': 'max-w-screen-2xl',
+      '3xl': 'max-w-screen-3xl',
+      '4xl': 'max-w-screen-4xl',
+      '5xl': 'max-w-screen-5xl',
+      '6xl': 'max-w-screen-6xl',
+      '7xl': 'max-w-screen-7xl',
+    };
+    return map[maxWidth] ?? '';
+  }, [maxWidth]);
 
   const errorRef = useRef<HTMLDivElement | null>(null);
 
@@ -126,18 +134,16 @@ export function CreateFormLayout<T extends Record<string, any>>({
   }, [isEditMode]);
 
   return (
-    <Box className="min-h-screen bg-background">
-      {/* Subtle background pattern */}
-      <Box className="pointer-events-none fixed inset-0">
-        <Box className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(59,130,246,0.03),transparent_70%)]" />
-        <Box className="absolute inset-0 opacity-[0.02] dark:opacity-[0.04] bg-[linear-gradient(to_right,rgba(0,0,0,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(0,0,0,0.03)_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:32px_32px]" />
-      </Box>
-
+    <Box className="min-h-screen bg-background w-full">
       <Box
-        className={`relative mx-auto ${maxWidthClasses[maxWidth]} px-4 sm:px-6 lg:px-8 py-8 md:py-12`}
+        className={mergeClasses([
+          'relative w-full px-4 sm:px-6 lg:px-8 py-6 md:py-8',
+          maxWidthClass,
+          maxWidthClass ? 'mx-auto' : '',
+        ])}
       >
         {/* Hero Header */}
-        <Box className="mb-8">
+        <Box className="mb-5">
           <Box className="relative rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm shadow-sm overflow-hidden">
             {/* Subtle gradient accent */}
             <Box className="absolute inset-0 bg-gradient-to-br from-primary/[0.02] via-transparent to-primary/[0.01]" />
@@ -240,13 +246,18 @@ export function CreateFormLayout<T extends Record<string, any>>({
         <Box className="rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm shadow-sm overflow-hidden">
           <Form methods={methods} onSubmit={onSubmit}>
             {/* Content */}
-            <Box className="p-6 md:p-8 lg:p-10">
-              <Box className="flex flex-col gap-6">{children}</Box>
+            <Box
+              className={mergeClasses([
+                'p-5 sm:p-6 md:p-8',
+                formInnerClassName ?? 'flex flex-col gap-6',
+              ])}
+            >
+              {children}
             </Box>
 
             {/* Sticky Actions */}
             <Box className="sticky bottom-0 z-10 border-t border-border/50 bg-card/95 backdrop-blur-md">
-              <Box className="px-6 md:px-8 lg:px-10 py-4 flex items-center justify-between gap-4 flex-wrap">
+              <Box className="px-5 sm:px-6 md:px-8 py-4 flex items-center justify-between gap-4 flex-wrap">
                 <Box className="flex items-center gap-2 text-xs text-muted-foreground">
                   <span className="h-1.5 w-1.5 rounded-full bg-primary/50" />
                   <span>{t('reviewBeforeSubmit')}</span>

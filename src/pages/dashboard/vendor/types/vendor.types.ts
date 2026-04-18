@@ -19,6 +19,9 @@ export interface VendorData {
   contract_number?: string;
   contract_duration_months?: number;
   commission_rate?: number;
+  commission_type?: 'percentage' | 'fixed';
+  fixed_commission?: number | null;
+  settlement_cycle?: 'weekly' | 'monthly';
   logo_url?: string | null;
   is_active: boolean;
   average_rating?: number;
@@ -54,7 +57,10 @@ export interface VendorCreateUpdatePayload {
   contract_date: string;
   contract_number: string;
   contract_duration_months: number;
-  commission_rate: number;
+  commission_type: 'percentage' | 'fixed';
+  settlement_cycle: 'weekly' | 'monthly';
+  commission_rate?: number;
+  fixed_commission?: number;
   is_active: boolean;
 }
 

@@ -36,18 +36,6 @@ export const categoryDetailColumns = (
   deletingId?: number | null
 ): ColumnDef<CategoryDetailFormValues>[] => [
   {
-    id: 'id',
-    accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
-    cell: ({ row }) => (
-      <div className="flex items-center gap-2">
-        <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
-          <span className="text-xs font-semibold text-primary">{row.original.id}</span>
-        </div>
-      </div>
-    ),
-  },
-  {
     id: 'name',
     accessorKey: 'name',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.name')} />,
@@ -91,6 +79,7 @@ export const categoryDetailColumns = (
       <DataTableRowActions
         schema={CategoryDetailSchema}
         row={row}
+        viewDetails={`/categories/details/update/${row.original.id}`}
         editItem={`/categories/details/update/${row.original.id}`}
         onDelete={onDelete}
         isDeleting={isDeleting}

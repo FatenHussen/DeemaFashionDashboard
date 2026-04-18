@@ -1,8 +1,8 @@
 import type {
-  ColorCreatePayload,
-  ColorDetailsResponse,
   ColorListParams,
   ColorListResponse,
+  ColorCreatePayload,
+  ColorDetailsResponse,
 } from '../types/color.types';
 
 import { apiRoutes, axiosInstance } from '@/api';

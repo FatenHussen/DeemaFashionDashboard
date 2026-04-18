@@ -1,7 +1,7 @@
 import type {
   UserCreatePayload,
   UserUpdatePayload,
-  UserConvertAffiliatePayload,
+  UserReactivateAffiliatePayload,
 } from '../types/user.types';
 
 import { queryKeys } from '@/api';
@@ -13,7 +13,6 @@ export const useFetchUsers = (
   page: number = 1,
   perPage: number = 10,
   params?: {
-    is_affiliate?: number;
     affiliate_approved?: number;
     area_id?: number;
   }
@@ -62,7 +61,7 @@ export const useUpdateUser = () => {
   });
 };
 
-export const useConvertToAffiliate = () => {
+export const useReactivateAffiliate = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -71,12 +70,26 @@ export const useConvertToAffiliate = () => {
       data,
     }: {
       id: number | string;
-      data: UserConvertAffiliatePayload;
-    }) => _UserApi.convertToAffiliate(id, data),
+      data: UserReactivateAffiliatePayload;
+    }) => _UserApi.reactivateAffiliate(id, data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['user', 'list'] });
       queryClient.invalidateQueries({
         queryKey: queryKeys.user.details(variables.id),
+      });
+    },
+  });
+};
+
+export const useDemoteAffiliate = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: number | string) => _UserApi.demoteAffiliate(id),
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: ['user', 'list'] });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.user.details(id),
       });
     },
   });

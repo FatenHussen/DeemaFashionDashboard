@@ -150,98 +150,97 @@ export default function CreatePage() {
         isEditMode={isEditMode}
         isLoading={isLoadingArea}
         loadingText={t('form.loadingArea')}
-        maxWidth="3xl"
         infoText={infoText}
         submitLabel={isEditMode ? t('form.updateArea') : t('form.createAreaSubmit')}
         submittingLabel={isEditMode ? t('form.updatingArea') : t('form.creatingArea')}
       >
-        {/* Name Field - Arabic */}
-        <Box className="group">
-          <Box className="flex items-center gap-2 mb-2">
-            <Iconify icon="solar:flag-bold" className="text-primary" width={24} height={24} />
+        {/* ── Section: Names ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-primary/[0.06] via-primary/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:flag-bold" className="text-primary" width={15} />
+            </Box>
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              {t('form.nameAr')}
+              {t('form.nameEn')} / {t('form.nameAr')}
             </Typography>
           </Box>
-          <RHFTextField
-            name="name.ar"
-            placeholder={t('form.areaNameAr')}
-            helperText={t('form.areaNameArHelper')}
-            className="transition-all duration-200"
-            dir="rtl"
-          />
+          <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+            <Box className="group">
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5">
+                <Iconify icon="solar:flag-bold" className="text-primary" width={16} />
+                {t('form.nameEn')}
+              </Typography>
+              <RHFTextField name="name.en" placeholder={t('form.areaNameEn')} helperText={t('form.areaNameEnHelper')} />
+            </Box>
+            <Box className="group">
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5">
+                <Iconify icon="solar:flag-bold" className="text-primary" width={16} />
+                {t('form.nameAr')}
+              </Typography>
+              <RHFTextField name="name.ar" placeholder={t('form.areaNameAr')} helperText={t('form.areaNameArHelper')} dir="rtl" />
+            </Box>
+          </Box>
         </Box>
 
-        {/* Name Field - English */}
-        <Box className="group">
-          <Box className="flex items-center gap-2 mb-2">
-            <Iconify icon="solar:flag-bold" className="text-primary" width={24} height={24} />
+        {/* ── Section: Configuration ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-violet-500/[0.06] via-violet-500/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:city-bold" className="text-violet-500" width={15} />
+            </Box>
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              {t('form.nameEn')}
+              {t('columns.city')} & {t('form.baseFee')}
             </Typography>
           </Box>
-          <RHFTextField
-            name="name.en"
-            placeholder={t('form.areaNameEn')}
-            helperText={t('form.areaNameEnHelper')}
-            className="transition-all duration-200"
-          />
-        </Box>
-
-        {/* City Selection */}
-        <Box className="group">
-          <Box className="flex items-center gap-2 mb-2">
-            <Iconify icon="solar:flag-bold" className="text-primary" width={24} height={24} />
-            <Typography variant="subtitle2" className="font-semibold text-foreground">
-              {t('columns.city')}
-            </Typography>
+          <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+            <Box className="group">
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5">
+                <Iconify icon="solar:city-bold" className="text-violet-500" width={16} />
+                {t('columns.city')}
+              </Typography>
+              <RHFInfiniteSelect
+                name="city_id"
+                queryKey={['cities', 'infinite', 'area-form']}
+                fetcher={cityFetcher}
+                placeholder={t('form.selectCity')}
+                helperText={t('form.areaCityHelper')}
+                initialLabel={areaData?.city?.name}
+              />
+            </Box>
+            <Box className="group">
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5">
+                <Iconify icon="solar:dollar-bold" className="text-violet-500" width={16} />
+                {t('form.baseFee')}
+              </Typography>
+              <RHFTextField name="base_fee" placeholder={t('form.baseFee')} helperText={t('form.areaBaseFeeHelper')} />
+            </Box>
           </Box>
-          <RHFInfiniteSelect
-            name="city_id"
-            queryKey={['cities', 'infinite', 'area-form']}
-            fetcher={cityFetcher}
-            placeholder={t('form.selectCity')}
-            helperText={t('form.areaCityHelper')}
-            initialLabel={areaData?.city?.name}
-          />
         </Box>
 
-        {/* Map - Pick Location */}
-        <Box className="group">
-          <Box className="flex items-center gap-2 mb-2">
-            <Iconify icon="solar:map-point-bold" className="text-primary" width={24} height={24} />
+        {/* ── Section: Map Location ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-amber-500/[0.06] via-amber-500/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:map-point-bold" className="text-amber-500" width={15} />
+            </Box>
             <Typography variant="subtitle2" className="font-semibold text-foreground">
               {t('form.areaMapLocationLabel')}
             </Typography>
           </Box>
-          <MapPicker
-            lat={watchedLat ?? ''}
-            lng={watchedLng ?? ''}
-            onChange={(latVal, lngVal) => {
-              setValue('lat', latVal, { shouldDirty: true });
-              setValue('lng', lngVal, { shouldDirty: true });
-            }}
-            height="280px"
-          />
-          <Typography variant="caption" className="text-muted-foreground mt-1 block">
-            {t('form.areaMapClickHelper')}
-          </Typography>
-        </Box>
-
-        {/* Base Fee */}
-        <Box className="group">
-          <Box className="flex items-center gap-2 mb-2">
-            <Iconify icon="solar:dollar-bold" className="text-primary" width={24} height={24} />
-            <Typography variant="subtitle2" className="font-semibold text-foreground">
-              {t('form.baseFee')}
+          <Box className="p-6">
+            <MapPicker
+              lat={watchedLat ?? ''}
+              lng={watchedLng ?? ''}
+              onChange={(latVal, lngVal) => {
+                setValue('lat', latVal, { shouldDirty: true });
+                setValue('lng', lngVal, { shouldDirty: true });
+              }}
+              height="320px"
+            />
+            <Typography variant="caption" className="text-muted-foreground mt-2 block">
+              {t('form.areaMapClickHelper')}
             </Typography>
           </Box>
-          <RHFTextField
-            name="base_fee"
-            placeholder={t('form.baseFee')}
-            helperText={t('form.areaBaseFeeHelper')}
-            className="transition-all duration-200"
-          />
         </Box>
       </CreateFormLayout>
     </>

@@ -3,6 +3,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 import type { IconItem } from '@/pages/dashboard/icons/types/icon.types';
 
 import { z } from 'zod';
+import { createToggleColumn } from '@/shared/ui/table-data/data-table-toggle-cell';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 
@@ -23,16 +24,6 @@ export const iconColumns = (
   deletingId?: number | null,
   onEdit?: (row: any) => void
 ): ColumnDef<IconItem>[] => [
-  {
-    id: 'id',
-    accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
-    cell: ({ row }) => (
-      <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-        <span className="text-xs font-semibold text-primary">{row.original.id}</span>
-      </div>
-    ),
-  },
   {
     id: 'image',
     accessorKey: 'image',
@@ -75,12 +66,16 @@ export const iconColumns = (
       <span className="text-sm text-muted-foreground">{new Date(row.original.created_at).toLocaleDateString()}</span>
     ),
   },
+  ...(permissions.update
+    ? [createToggleColumn<IconItem>({ entityType: 'icon' })]
+    : []),
   {
     id: 'actions',
     cell: ({ row }: any) => (
       <DataTableRowActions
         schema={IconSchema}
         row={row}
+        viewDetails={`/icons/update/${row.original.id}`}
         editItem={onEdit ? undefined : `/icons/update/${row.original.id}`}
         onEdit={onEdit}
         onDelete={onDelete}
@@ -89,7 +84,6 @@ export const iconColumns = (
         onDeleteConfirm={onDeleteConfirm}
         onDeleteCancel={onDeleteCancel}
         deletingId={deletingId}
-        adminToggleEntityType="icon"
         permissions={permissions}
       />
     ),

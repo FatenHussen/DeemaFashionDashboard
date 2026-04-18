@@ -22,7 +22,9 @@
       "Bash(find /Users/mhmd/Desktop/tikmool/tikmool-admin-dashboard/src/pages/dashboard/schedules -type f -name *.tsx -o -name *.ts)",
       "Bash(grep -A 10 \"path: ''orders''\" /Users/mhmd/Desktop/tikmool/tikmool-admin-dashboard/src/routes/sections/dashboard.tsx)",
       "Bash(grep -v \":0$\")",
-      "Bash(ls -la /Users/mhmd/Desktop/tikmool/tikmool-admin-dashboard/public/favicon* /Users/mhmd/Desktop/tikmool/tikmool-admin-dashboard/public/logo/)"
+      "Bash(ls -la /Users/mhmd/Desktop/tikmool/tikmool-admin-dashboard/public/favicon* /Users/mhmd/Desktop/tikmool/tikmool-admin-dashboard/public/logo/)",
+      "Bash(node -e 'const en=require\\(\"./src/locales/en.json\"\\); const form=en.table.form||{}; const keys=Object.keys\\(form\\).filter\\(k=>k.startsWith\\(\"productDetails\"\\)\\); console.log\\(\"count:\",keys.length\\); console.log\\(keys.slice\\(0,20\\)\\);')",
+      "Bash(node -e ' *)"
     ]
   }
 }

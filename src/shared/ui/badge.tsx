@@ -16,13 +16,13 @@ export interface BadgeProps {
 }
 
 const colorClasses = {
-  default: 'bg-gray-500 text-white',
-  primary: 'bg-blue-600 text-white',
-  secondary: 'bg-gray-600 text-white',
-  error: 'bg-red-600 text-white',
-  warning: 'bg-yellow-600 text-white',
-  info: 'bg-blue-500 text-white',
-  success: 'bg-green-600 text-white',
+  default: 'bg-foreground/70 text-white',
+  primary: 'bg-primary text-primary-foreground',
+  secondary: 'bg-[#8E33FF] text-white',
+  error: 'bg-red-500 text-white',
+  warning: 'bg-amber-500 text-white',
+  info: 'bg-sky-500 text-white',
+  success: 'bg-emerald-500 text-white',
 };
 
 export function Badge({

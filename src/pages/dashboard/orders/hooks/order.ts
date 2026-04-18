@@ -67,14 +67,48 @@ export const useAssignDriver = () => {
       id: number | string;
       data: AssignDriverPayload;
       queryId?: number | string;
+      /** When assigning from the driver screen, refresh that driver's cache. */
+      refreshDriverId?: number;
     }) => _OrderApi.assignDriver(id, data),
     onSuccess: async (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['order', 'list'] });
+      queryClient.invalidateQueries({ queryKey: ['order', 'to-assign'] });
       const refetchId = variables.queryId ?? variables.id;
       await queryClient.refetchQueries({ queryKey: queryKeys.order.details(refetchId) });
+      if (variables.refreshDriverId != null) {
+        await queryClient.invalidateQueries({
+          queryKey: queryKeys.driver.details(variables.refreshDriverId),
+        });
+      }
     },
   });
 };
+
+export const useFetchOrdersToAssign = (
+  driverId: number,
+  args: {
+    filterByDriverCoverage: boolean;
+    status?: 'pending' | 'preparing';
+    isInstantDelivery: boolean;
+  },
+  enabled = true
+) =>
+  useQuery({
+    queryKey: queryKeys.order.toAssign({
+      driverId,
+      filterByDriverCoverage: args.filterByDriverCoverage,
+      status: args.status,
+      isInstantDelivery: args.isInstantDelivery,
+    }),
+    queryFn: () =>
+      _OrderApi.getOrdersToAssign({
+        filter_by_driver_coverage: args.filterByDriverCoverage,
+        driver_id: driverId,
+        status: args.status,
+        is_instant_delivery: args.isInstantDelivery,
+      }),
+    enabled: enabled && Number.isFinite(driverId) && driverId > 0,
+  });
 
 export const useChangeItemStatus = () => {
   const queryClient = useQueryClient();

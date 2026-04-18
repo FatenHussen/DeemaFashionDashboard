@@ -1,11 +1,16 @@
+import type { DragEndEvent } from '@dnd-kit/core';
+import type { ItemIdEntry } from '@/pages/dashboard/sections/types/section.types';
+
 import { toast } from 'react-toastify';
 import { useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
-import { useRef, useState, useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
+import { useRef, useMemo, useState, useEffect } from 'react';
 import { useInfiniteManualItems } from '@/pages/dashboard/sections/hooks/useManualItems';
+import { arrayMove, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { useSensor, DndContext, useSensors, PointerSensor, closestCenter } from '@dnd-kit/core';
 import {
   SectionSchema,
   type SectionFormValues,
@@ -17,12 +22,22 @@ import {
 } from '@/pages/dashboard/sections/hooks/useSections';
 
 import { CONFIG } from 'src/global-config';
-import { Box, Button, Typography } from 'src/shared/ui';
+import { Box, Input, Button, Typography } from 'src/shared/ui';
+import { SortableItem } from 'src/shared/ui/table-data/sortable-item';
 import { RHFSelect } from 'src/shared/components/hook-form/rhf-select';
 import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
 import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
 
 // ----------------------------------------------------------------------
+
+/** Backend `manual_model` key for GIF sections (compare case-insensitively). */
+function isGifManualModel(manualModel: string | undefined | null): boolean {
+  return (manualModel ?? '').trim().toLowerCase() === 'gif';
+}
+
+function defaultLinkForManualItem(manualModel: string, itemId: number): string {
+  return isGifManualModel(manualModel) ? '' : `/item/${itemId}`;
+}
 
 export default function CreatePage() {
   const { t } = useTranslation('table');
@@ -30,9 +45,19 @@ export default function CreatePage() {
   const navigate = useNavigate();
   const isEditMode = !!id;
   const [selectedModel, setSelectedModel] = useState<string>('');
-  const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set());
+  const [orderedItems, setOrderedItems] = useState<ItemIdEntry[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const sentinelRef = useRef<HTMLDivElement>(null);
+
+  // Pointer only: KeyboardSensor steals keys for inputs inside sortables.
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+  );
+
+  const selectedIds = useMemo(
+    () => new Set(orderedItems.map((e) => e.item_id)),
+    [orderedItems]
+  );
 
   const { data: sectionData, isLoading: isLoadingSection } = useFetchSectionDetails(id || '');
   const createSectionMutation = useCreateSection();
@@ -42,6 +67,28 @@ export default function CreatePage() {
     limit: 10,
     search: searchTerm,
   });
+
+  const itemLabelById = useMemo(() => {
+    const map = new Map<number, string>();
+    for (const row of allItems as { id: number; name?: string; title?: string }[]) {
+      map.set(row.id, row.name || row.title || '');
+    }
+    if (isEditMode && sectionData?.data?.items) {
+      for (const row of sectionData.data.items as any[]) {
+        const rowId = row.item?.id ?? row.id;
+        if (!map.has(rowId)) {
+          const label =
+            row.item?.name ||
+            row.item?.title ||
+            row.name ||
+            row.title ||
+            '';
+          map.set(rowId, label);
+        }
+      }
+    }
+    return map;
+  }, [allItems, isEditMode, sectionData?.data?.items]);
 
   useEffect(() => {
     const sentinel = sentinelRef.current;
@@ -82,6 +129,8 @@ export default function CreatePage() {
     }
   }, [watchedManualModel]);
 
+  const isGifModel = isGifManualModel(selectedModel);
+
   useEffect(() => {
     if (isEditMode && sectionData?.data && !isLoadingSection) {
       const section = sectionData.data;
@@ -99,7 +148,9 @@ export default function CreatePage() {
         manual_model: manualModel,
         item_ids: section.items.map((item: any, index: number) => ({
           item_id: item.item?.id ?? item.id,
-          link: item.link || `/item/${item.item?.id ?? item.id}`,
+          link: isGifManualModel(manualModel)
+            ? (item.link ?? '')
+            : (item.link || `/item/${item.item?.id ?? item.id}`),
           order: item.order ?? index + 1,
         })),
       });
@@ -107,9 +158,15 @@ export default function CreatePage() {
       if (manualModel) {
         setSelectedModel(manualModel);
       }
-      // Set selected items from existing section — use the actual item id, not the pivot id
-      const existingItemIds = new Set(section.items.map((item: any) => item.item?.id ?? item.id));
-      setSelectedItems(existingItemIds);
+      setOrderedItems(
+        section.items.map((item: any, index: number) => ({
+          item_id: item.item?.id ?? item.id,
+          link: isGifManualModel(manualModel)
+            ? (item.link ?? '')
+            : (item.link || `/item/${item.item?.id ?? item.id}`),
+          order: item.order ?? index + 1,
+        }))
+      );
     }
   }, [sectionData, isEditMode, isLoadingSection, reset]);
 
@@ -117,21 +174,55 @@ export default function CreatePage() {
   const errorMessage =
     createSectionMutation.error?.message || updateSectionMutation.error?.message || null;
 
+  useEffect(() => {
+    setValue(
+      'item_ids',
+      orderedItems.map((entry, index) => ({
+        item_id: entry.item_id,
+        link: isGifModel
+          ? (entry.link ?? '')
+          : (entry.link || `/item/${entry.item_id}`),
+        order: index + 1,
+      }))
+    );
+  }, [orderedItems, setValue, isGifModel]);
+
+  const handleItemsDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    setOrderedItems((prev) => {
+      const oldIndex = prev.findIndex((x) => x.item_id === active.id);
+      const newIndex = prev.findIndex((x) => x.item_id === over.id);
+      if (oldIndex === -1 || newIndex === -1) return prev;
+      return arrayMove(prev, oldIndex, newIndex).map((entry, idx) => ({
+        ...entry,
+        order: idx + 1,
+      }));
+    });
+  };
+
   const onSubmit = async (data: SectionFormValues) => {
     try {
-      // Convert selected items to item_ids array
-      const item_ids = Array.from(selectedItems).map((itemId, index) => ({
-        item_id: itemId,
-        link: `/item/${itemId}`,
-        order: index + 1,
-      }));
+      const manualModel = data.manual_model || selectedModel;
+      const item_ids = orderedItems.map((entry, index) => {
+        const trimmed = entry.link?.trim() ?? '';
+        return {
+          item_id: entry.item_id,
+          order: index + 1,
+          link: isGifManualModel(manualModel)
+            ? trimmed === ''
+              ? null
+              : trimmed
+            : trimmed || `/item/${entry.item_id}`,
+        };
+      });
 
       const payload = {
         name: {
           en: data.name.en,
           ar: data.name.ar,
         },
-        manual_model: data.manual_model || selectedModel,
+        manual_model: manualModel,
         item_ids,
       };
 
@@ -154,24 +245,43 @@ export default function CreatePage() {
   };
 
   const handleToggleItem = (itemId: number) => {
-    setSelectedItems((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(itemId)) {
-        newSet.delete(itemId);
-      } else {
-        newSet.add(itemId);
+    setOrderedItems((prev) => {
+      const exists = prev.some((p) => p.item_id === itemId);
+      if (exists) {
+        return prev
+          .filter((p) => p.item_id !== itemId)
+          .map((e, idx) => ({ ...e, order: idx + 1 }));
       }
-      return newSet;
+      return [
+        ...prev,
+        {
+          item_id: itemId,
+          link: defaultLinkForManualItem(selectedModel, itemId),
+          order: prev.length + 1,
+        },
+      ];
     });
   };
 
   const handleSelectAll = () => {
     if (!allItems.length) return;
-    setSelectedItems(new Set(allItems.map((item: any) => item.id)));
+    setOrderedItems(
+      (allItems as { id: number }[]).map((item, index) => ({
+        item_id: item.id,
+        link: defaultLinkForManualItem(selectedModel, item.id),
+        order: index + 1,
+      }))
+    );
+  };
+
+  const handleItemLinkChange = (itemId: number, link: string) => {
+    setOrderedItems((prev) =>
+      prev.map((e) => (e.item_id === itemId ? { ...e, link } : e))
+    );
   };
 
   const handleClearAll = () => {
-    setSelectedItems(new Set());
+    setOrderedItems([]);
   };
 
   const itemTypeOptions = itemTypesQuery.data?.data
@@ -211,102 +321,192 @@ export default function CreatePage() {
         isEditMode={isEditMode}
         isLoading={isLoadingSection}
         loadingText={t('form.loadingSection')}
-        maxWidth="4xl"
         infoText={infoText}
         submitLabel={isEditMode ? t('form.updateSectionSubmit') : t('form.createSectionSubmit')}
         submittingLabel={isEditMode ? t('form.updatingSection') : t('form.creatingSection')}
       >
-        {/* English Name */}
-        <Box className="group">
-          <Box className="flex items-center gap-2 mb-2">
-            <Iconify icon="solar:text-bold" className="text-primary" width={24} height={24} />
+        {/* ── Section: Names ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-primary/[0.06] via-primary/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:text-bold" className="text-primary" width={15} />
+            </Box>
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              {t('form.sectionNameEnglishLabel')}
+              {t('form.sectionNameEnglishLabel')} / {t('form.sectionNameArabicLabel')}
             </Typography>
           </Box>
-          <RHFTextField
-            name="name.en"
-            placeholder={t('form.sectionNameEnPlaceholder')}
-            helperText={t('form.sectionNameEnHelper2')}
-            className="transition-all duration-200"
-          />
-        </Box>
+          <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+            <Box className="group">
+              <Box className="flex items-center gap-2 mb-2">
+                <Iconify icon="solar:text-bold" className="text-primary" width={20} height={20} />
+                <Typography variant="subtitle2" className="font-semibold text-foreground">
+                  {t('form.sectionNameEnglishLabel')}
+                </Typography>
+              </Box>
+              <RHFTextField
+                name="name.en"
+                placeholder={t('form.sectionNameEnPlaceholder')}
+                helperText={t('form.sectionNameEnHelper2')}
+                className="transition-all duration-200"
+              />
+            </Box>
 
-        {/* Arabic Name */}
-        <Box className="group">
-          <Box className="flex items-center gap-2 mb-2">
-            <Iconify icon="solar:text-bold" className="text-primary" width={24} height={24} />
-            <Typography variant="subtitle2" className="font-semibold text-foreground">
-              {t('form.sectionNameArabicLabel')}
-            </Typography>
+            <Box className="group">
+              <Box className="flex items-center gap-2 mb-2">
+                <Iconify icon="solar:text-bold" className="text-primary" width={20} height={20} />
+                <Typography variant="subtitle2" className="font-semibold text-foreground">
+                  {t('form.sectionNameArabicLabel')}
+                </Typography>
+              </Box>
+              <RHFTextField
+                name="name.ar"
+                placeholder={t('form.sectionNameArPlaceholder')}
+                helperText={t('form.sectionNameArHelper2')}
+                className="transition-all duration-200"
+                dir="rtl"
+              />
+            </Box>
           </Box>
-          <RHFTextField
-            name="name.ar"
-            placeholder={t('form.sectionNameArPlaceholder')}
-            helperText={t('form.sectionNameArHelper2')}
-            className="transition-all duration-200"
-            dir="rtl"
-          />
         </Box>
 
-        {/* Manual Model */}
-        <Box className="group">
-          <Box className="flex items-center gap-2 mb-2">
-            <Iconify icon="solar:widget-bold" className="text-primary" width={24} height={24} />
+        {/* ── Section: Configuration ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-violet-500/[0.06] via-violet-500/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:widget-bold" className="text-violet-500" width={15} />
+            </Box>
             <Typography variant="subtitle2" className="font-semibold text-foreground">
               {t('form.manualModelLabel')}
             </Typography>
           </Box>
-          <RHFSelect
-            name="manual_model"
-            options={itemTypeOptions}
-            placeholder={t('form.selectModelType')}
-            helperText={
-              isEditMode
-                ? t('form.manualModelHelperEdit')
-                : t('form.manualModelHelperCreate')
-            }
-            className="transition-all duration-200"
-            disabled={isEditMode}
-          />
-        </Box>
-
-        {/* Items Selection Section */}
-        {selectedModel && (
-          <Box className="group">
-            <Box className="flex items-center justify-between mb-2">
-              <Box className="flex items-center gap-2">
-                <Iconify icon="solar:checklist-bold" className="text-primary" width={24} height={24} />
+          <Box className="p-6">
+            <Box className="group">
+              <Box className="flex items-center gap-2 mb-2">
+                <Iconify icon="solar:widget-bold" className="text-violet-500" width={20} height={20} />
                 <Typography variant="subtitle2" className="font-semibold text-foreground">
-                  {t('form.selectItemsHeading')}
-                  {selectedItems.size > 0 && (
-                    <Typography component="span" variant="body2" className="text-muted-foreground ml-2">
-                      {t('form.itemsSelectedCount', { count: selectedItems.size })}
-                    </Typography>
-                  )}
+                  {t('form.manualModelLabel')}
                 </Typography>
               </Box>
-              <Box className="flex gap-2">
-                <Button
-                  type="button"
-                  onClick={handleSelectAll}
-                  variant="outlined"
-                  size="small"
-                  disabled={!allItems.length}
-                >
+              <RHFSelect
+                name="manual_model"
+                options={itemTypeOptions}
+                placeholder={t('form.selectModelType')}
+                helperText={
+                  isEditMode
+                    ? t('form.manualModelHelperEdit')
+                    : t('form.manualModelHelperCreate')
+                }
+                className="transition-all duration-200"
+                disabled={isEditMode}
+              />
+            </Box>
+          </Box>
+        </Box>
+
+        {/* ── Section: Items ── */}
+        {selectedModel && (
+          <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+            <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-amber-500/[0.06] via-amber-500/[0.02] to-transparent">
+              <Box className="h-8 w-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
+                <Iconify icon="solar:checklist-bold" className="text-amber-500" width={15} />
+              </Box>
+              <Typography variant="subtitle2" className="font-semibold text-foreground flex-1">
+                {t('form.selectItemsHeading')}
+                {orderedItems.length > 0 && (
+                  <Typography component="span" variant="body2" className="text-muted-foreground ml-2">
+                    {t('form.itemsSelectedCount', { count: orderedItems.length })}
+                  </Typography>
+                )}
+              </Typography>
+              <Box className="flex gap-2 shrink-0">
+                <Button type="button" onClick={handleSelectAll} variant="outlined" size="small" disabled={!allItems.length}>
                   {t('form.selectAllItems')}
                 </Button>
-                <Button
-                  type="button"
-                  onClick={handleClearAll}
-                  variant="outlined"
-                  size="small"
-                  disabled={selectedItems.size === 0}
-                >
+                <Button type="button" onClick={handleClearAll} variant="outlined" size="small" disabled={orderedItems.length === 0}>
                   {t('form.clearAllItems')}
                 </Button>
               </Box>
             </Box>
+          <Box className="p-6">
+
+            {orderedItems.length > 0 && (
+              <Box className="mb-4 p-4 border rounded-lg bg-muted/20 space-y-2">
+                <Typography variant="subtitle2" className="font-semibold text-foreground">
+                  {t('form.sectionItemsOrderHeading')}
+                </Typography>
+                <Typography variant="body2" className="text-muted-foreground text-sm">
+                  {t('form.sectionItemsOrderHelper')}
+                </Typography>
+                <Typography variant="body2" className="text-muted-foreground text-sm">
+                  {t('form.sectionItemLinkHint')}
+                </Typography>
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleItemsDragEnd}
+                >
+                  <SortableContext
+                    items={orderedItems.map((e) => e.item_id)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    <Box className="flex flex-col gap-2 mt-2">
+                      {orderedItems.map((entry, index) => {
+                        const label =
+                          itemLabelById.get(entry.item_id)?.trim() ||
+                          t('form.itemNumberFallback', { id: entry.item_id });
+                        return (
+                          <SortableItem key={entry.item_id} id={entry.item_id}>
+                            <Box className="flex min-w-0 flex-1 flex-col gap-2">
+                              <Box className="flex min-w-0 flex-1 items-center gap-3">
+                                <Box className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-muted text-xs font-medium text-muted-foreground">
+                                  {index + 1}
+                                </Box>
+                                <Box className="min-w-0 flex-1">
+                                  <Typography variant="body2" className="font-medium truncate">
+                                    {label}
+                                  </Typography>
+                                  <Typography variant="caption" className="text-muted-foreground">
+                                    {t('form.itemIdBadgeShort', { id: entry.item_id })}
+                                  </Typography>
+                                </Box>
+                              </Box>
+                              <Box
+                                className="relative z-10 w-full max-w-full"
+                                onPointerDownCapture={(e) => e.stopPropagation()}
+                                onPointerDown={(e) => e.stopPropagation()}
+                                onClickCapture={(e) => e.stopPropagation()}
+                                onKeyDownCapture={(e) => e.stopPropagation()}
+                              >
+                                <Typography
+                                  variant="caption"
+                                  className="mb-1 block text-muted-foreground"
+                                >
+                                  {t('form.sectionItemLinkLabel')}
+                                </Typography>
+                                <Input
+                                  type="text"
+                                  inputMode="url"
+                                  autoComplete="off"
+                                  floatingLabel={false}
+                                  fullWidth
+                                  value={entry.link ?? ''}
+                                  onChange={(e) =>
+                                    handleItemLinkChange(entry.item_id, e.target.value)
+                                  }
+                                  onKeyDown={(e) => e.stopPropagation()}
+                                  placeholder={t('form.sectionItemLinkPlaceholder')}
+                                  className="w-full"
+                                />
+                              </Box>
+                            </Box>
+                          </SortableItem>
+                        );
+                      })}
+                    </Box>
+                  </SortableContext>
+                </DndContext>
+              </Box>
+            )}
 
             {/* Search Input */}
             <Box className="mb-4">
@@ -358,7 +558,7 @@ export default function CreatePage() {
                 ) : (
                   <Box className="divide-y divide-border">
                     {allItems.map((item: any) => {
-                      const isSelected = selectedItems.has(item.id);
+                      const isSelected = selectedIds.has(item.id);
                       return (
                         <Box
                           key={item.id}
@@ -415,15 +615,15 @@ export default function CreatePage() {
               </Box>
             )}
           </Box>
+          </Box>
         )}
 
         {/* Show message when no model is selected */}
         {!selectedModel && (
-          <Box className="text-center p-8 border border-dashed rounded-lg">
-            <Iconify
-              icon="solar:widget-bold"
-              className="w-12 h-12 text-muted-foreground/50 mx-auto mb-2"
-            />
+          <Box className="rounded-2xl border border-border/50 border-dashed bg-card/30 p-10 text-center shadow-sm">
+            <Box className="h-14 w-14 rounded-2xl bg-muted/60 border border-border/50 flex items-center justify-center mx-auto mb-3">
+              <Iconify icon="solar:widget-bold" className="w-7 h-7 text-muted-foreground/50" />
+            </Box>
             <Typography variant="body2" className="text-muted-foreground">
               {t('form.selectManualModelFirst')}
             </Typography>

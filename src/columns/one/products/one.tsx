@@ -2,9 +2,13 @@ import type { TFunction } from 'i18next';
 import type { ColumnDef } from '@tanstack/react-table';
 
 import { z } from 'zod';
-import { useState, useRef, useEffect } from 'react';
+import { Input } from '@/shared/ui/input';
+import { Button } from '@/shared/ui/button';
+import { Dialog } from '@/shared/ui/dialog';
+import { useState, useEffect } from 'react';
 import { Iconify } from '@/shared/components/iconify';
 import { formatTranslated } from '@/utils/format-translated';
+import { createToggleColumn } from '@/shared/ui/table-data/data-table-toggle-cell';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 
@@ -13,13 +17,15 @@ import { paths } from 'src/routes/paths';
 import { CONFIG } from 'src/global-config';
 
 // Schema for brand validation
-const BrandSchema = z.object({
-  id: z.number(),
-  name: z.string(),
-  image: z.string(),
-  created_at: z.string(),
-  updated_at: z.string(),
-});
+const BrandSchema = z
+  .object({
+    id: z.number(),
+    name: z.string(),
+    image: z.string(),
+    created_at: z.string(),
+    updated_at: z.string(),
+  })
+  .passthrough();
 
 // Type for brand data
 export interface BrandFormValues {
@@ -32,7 +38,7 @@ export interface BrandFormValues {
 }
 
 // Schema for product validation
-const ProductSchema = z
+export const ProductSchema = z
   .object({
     id: z.number(),
     category_id: z.union([z.string(), z.number()]),
@@ -82,18 +88,6 @@ export const brandColumns = (
   deletingId?: number | null
 ): ColumnDef<BrandFormValues>[] => [
   {
-    id: 'id',
-    accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
-    cell: ({ row }) => (
-      <div className="flex items-center gap-2">
-        <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
-          <span className="text-xs font-semibold text-primary">{row.original.id}</span>
-        </div>
-      </div>
-    ),
-  },
-  {
     id: 'image',
     accessorKey: 'image',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.image')} />,
@@ -137,6 +131,55 @@ export const brandColumns = (
     ),
   },
   {
+    id: 'category',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title={t('form.categoryLabel')} />
+    ),
+    cell: ({ row }) => {
+      const cat = (row.original as { category?: { name?: unknown } | null }).category;
+      const label =
+        cat?.name != null
+          ? formatTranslated(cat.name as Parameters<typeof formatTranslated>[0])
+          : '';
+      return (
+        <span className="text-sm text-muted-foreground truncate max-w-[140px] inline-block">
+          {label || '—'}
+        </span>
+      );
+    },
+  },
+  {
+    id: 'governorate',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title={t('columns.governorate')} />
+    ),
+    cell: ({ row }) => {
+      const g = (row.original as { governorate?: { name?: string } | null }).governorate;
+      const label = g?.name?.trim() ?? '';
+      return (
+        <span className="text-sm text-muted-foreground truncate max-w-[120px] inline-block">
+          {label || '—'}
+        </span>
+      );
+    },
+  },
+  {
+    id: 'city',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.city')} />,
+    cell: ({ row }) => {
+      const city = (row.original as { city?: { name?: unknown } | null }).city;
+      const label =
+        city?.name != null
+          ? formatTranslated(city.name as Parameters<typeof formatTranslated>[0])
+          : '';
+      return (
+        <span className="text-sm text-muted-foreground truncate max-w-[120px] inline-block">
+          {label || '—'}
+        </span>
+      );
+    },
+  },
+  {
     id: 'created_at',
     accessorKey: 'created_at',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.createdAt')} />,
@@ -172,6 +215,9 @@ export const brandColumns = (
       </div>
     ),
   },
+  ...(permissions.update
+    ? [createToggleColumn<BrandFormValues>({ entityType: 'brand' })]
+    : []),
   {
     id: 'actions',
     cell: ({ row }: any) => (
@@ -186,106 +232,28 @@ export const brandColumns = (
         onDeleteConfirm={onDeleteConfirm}
         onDeleteCancel={onDeleteCancel}
         deletingId={deletingId}
-        adminToggleEntityType="brand"
         permissions={permissions}
       />
     ),
   },
 ];
 
-function EditablePriceCell({
+function ProductPriceCell({
   productId,
   currentPrice,
-  onPriceUpdate,
-  canEdit,
+  onOpenVariantsModal,
 }: {
   productId: number;
   currentPrice: number;
-  onPriceUpdate?: (id: number, price: number) => Promise<void>;
-  canEdit: boolean;
+  onOpenVariantsModal: (id: number, listRowPrice: number) => void;
 }) {
-  const [isEditing, setIsEditing] = useState(false);
-  const [value, setValue] = useState(String(currentPrice));
-  const [isSaving, setIsSaving] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    setValue(String(currentPrice));
-  }, [currentPrice]);
-
-  useEffect(() => {
-    if (isEditing) inputRef.current?.focus();
-  }, [isEditing]);
-
-  const handleSave = async () => {
-    const numericPrice = parseFloat(value);
-    if (Number.isNaN(numericPrice) || numericPrice < 0) {
-      setValue(String(currentPrice));
-      setIsEditing(false);
-      return;
-    }
-    if (numericPrice === currentPrice) {
-      setIsEditing(false);
-      return;
-    }
-    setIsSaving(true);
-    try {
-      await onPriceUpdate?.(productId, numericPrice);
-      setIsEditing(false);
-    } catch {
-      setValue(String(currentPrice));
-      setIsEditing(false);
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') handleSave();
-    if (e.key === 'Escape') {
-      setValue(String(currentPrice));
-      setIsEditing(false);
-    }
-  };
-
-  if (isEditing) {
-    return (
-      <div className="flex items-center gap-1.5">
-        <Iconify
-          icon="solar:dollar-bold"
-          className="text-green-500 flex-shrink-0"
-          width={16}
-          height={16}
-        />
-        <input
-          ref={inputRef}
-          type="number"
-          step="0.01"
-          min="0"
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          onKeyDown={handleKeyDown}
-          onBlur={handleSave}
-          disabled={isSaving}
-          className="w-24 h-8 rounded-md border border-primary/40 bg-background px-2 text-sm font-semibold text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-        />
-        {isSaving && (
-          <Iconify
-            icon="svg-spinners:ring-resize"
-            className="text-primary flex-shrink-0"
-            width={16}
-            height={16}
-          />
-        )}
-      </div>
-    );
-  }
-
   return (
-    <div
-      className={`flex items-center gap-2 group ${canEdit && onPriceUpdate ? 'cursor-pointer' : ''}`}
-      onClick={() => {
-        if (canEdit && onPriceUpdate) setIsEditing(true);
+    <button
+      type="button"
+      className="flex max-w-full items-center gap-2 rounded-md -m-1 p-1 text-left transition-colors hover:bg-muted/50 group cursor-pointer"
+      onClick={(e) => {
+        e.stopPropagation();
+        onOpenVariantsModal(productId, currentPrice);
       }}
     >
       <Iconify
@@ -294,16 +262,14 @@ function EditablePriceCell({
         width={16}
         height={16}
       />
-      <span className="text-sm font-semibold text-foreground">${currentPrice}</span>
-      {canEdit && onPriceUpdate && (
-        <Iconify
-          icon="solar:pen-bold"
-          className="text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
-          width={14}
-          height={14}
-        />
-      )}
-    </div>
+      <span className="text-sm font-semibold text-foreground">ل.س {currentPrice}</span>
+      <Iconify
+        icon="solar:layers-minimalistic-bold"
+        className="text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+        width={14}
+        height={14}
+      />
+    </button>
   );
 }
 
@@ -320,27 +286,15 @@ export const productColumns = (
     delete: boolean;
   },
   t: TFunction<'table'>,
+  onOpenVariantsModal: (id: number, listRowPrice: number) => void,
   onDelete?: (id: number) => void,
   isDeleting?: boolean,
   isDeleteDialogOpen?: boolean,
   onDeleteConfirm?: () => void,
   onDeleteCancel?: () => void,
   deletingId?: number | null,
-  approvalActions?: ProductApprovalActions | null,
-  onPriceUpdate?: (id: number, price: number) => Promise<void>
+  approvalActions?: ProductApprovalActions | null
 ): ColumnDef<ProductFormValues>[] => [
-  {
-    id: 'id',
-    accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
-    cell: ({ row }) => (
-      <div className="flex items-center gap-2">
-        <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
-          <span className="text-xs font-semibold text-primary">{row.original.id}</span>
-        </div>
-      </div>
-    ),
-  },
   {
     id: 'image',
     accessorKey: 'image',
@@ -403,11 +357,10 @@ export const productColumns = (
     accessorKey: 'price',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.price')} />,
     cell: ({ row }) => (
-      <EditablePriceCell
+      <ProductPriceCell
         productId={row.original.id}
         currentPrice={row.original.price}
-        onPriceUpdate={onPriceUpdate}
-        canEdit={permissions.update}
+        onOpenVariantsModal={onOpenVariantsModal}
       />
     ),
   },
@@ -477,6 +430,9 @@ export const productColumns = (
       </div>
     ),
   },
+  ...(permissions.update
+    ? [createToggleColumn<ProductFormValues>({ entityType: 'product' })]
+    : []),
   {
     id: 'actions',
     cell: ({ row }: any) => (
@@ -492,12 +448,305 @@ export const productColumns = (
         onDeleteCancel={onDeleteCancel}
         deletingId={deletingId}
         permissions={permissions}
-        adminToggleEntityType="product"
         approvalStatus={row.original.approval_status}
         onApprove={approvalActions?.onApprove}
         onReject={approvalActions?.onReject}
         approvingId={approvalActions?.approvingId}
         rejectingId={approvalActions?.rejectingId}
+      />
+    ),
+  },
+];
+
+// ---------------------------------------------------------------------------
+// Inventory list (warehouse view): name, category, qty, shop, vendor, SKU, expiry
+// ---------------------------------------------------------------------------
+
+function inventoryCategoryLabel(row: ProductFormValues): string {
+  const r = row as Record<string, unknown>;
+  const cat = r.category as { name?: unknown } | null | undefined;
+  if (cat?.name != null) return formatTranslated(cat.name as any);
+  const cn = r.category_name;
+  if (cn != null) return formatTranslated(cn as any);
+  if (r.category_id != null && r.category_id !== '') return String(r.category_id);
+  return '—';
+}
+
+function inventoryShopLabel(row: ProductFormValues): string {
+  const r = row as Record<string, unknown>;
+  const shop = r.shop as { name?: unknown } | null | undefined;
+  if (shop?.name != null) return formatTranslated(shop.name as any);
+  const shops = r.shops as Array<{ name?: string; shop_name?: string }> | undefined;
+  if (Array.isArray(shops) && shops.length > 0) {
+    const parts = shops
+      .map((s) => formatTranslated((s.name ?? s.shop_name) as any))
+      .filter((x) => x && x !== '—');
+    if (parts.length) return parts.join(', ');
+  }
+  const variants = r.variants as Array<{ shops?: Array<{ shop_name?: string }> }> | undefined;
+  if (Array.isArray(variants)) {
+    const names = new Set<string>();
+    variants.forEach((v) => {
+      v.shops?.forEach((sh) => {
+        if (sh.shop_name) names.add(sh.shop_name);
+      });
+    });
+    if (names.size) return [...names].join(', ');
+  }
+  return '—';
+}
+
+function inventoryVendorLabel(row: ProductFormValues): string {
+  const r = row as Record<string, unknown>;
+  const vendor = r.vendor as { name?: unknown } | null | undefined;
+  if (vendor?.name != null) return formatTranslated(vendor.name as any);
+  const vn = r.vendor_name;
+  if (vn != null) return formatTranslated(vn as any);
+  return '—';
+}
+
+function inventoryExpiryLabel(value: unknown): string {
+  if (value == null || value === '') return '—';
+  const s = String(value);
+  const d = new Date(s);
+  if (!Number.isNaN(d.getTime())) return d.toLocaleDateString();
+  return s;
+}
+
+function EditableInventoryStockCell({
+  productId,
+  currentQuantity,
+  onQuantityUpdate,
+  canEdit,
+  t,
+}: {
+  productId: number;
+  currentQuantity: number;
+  onQuantityUpdate?: (id: number, quantity: number) => Promise<void>;
+  canEdit: boolean;
+  t: TFunction<'table'>;
+}) {
+  const [open, setOpen] = useState(false);
+  const [value, setValue] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+
+  const quantity = currentQuantity ?? 0;
+  const isLowStock = quantity < 10 && quantity > 0;
+  const isOutOfStock = quantity === 0;
+
+  useEffect(() => {
+    if (open) setValue(String(quantity));
+  }, [open, quantity]);
+
+  const handleOpen = () => {
+    if (!canEdit || !onQuantityUpdate) return;
+    setValue(String(quantity));
+    setOpen(true);
+  };
+
+  const handleClose = () => {
+    setOpen(false);
+  };
+
+  const handleSave = async () => {
+    if (!onQuantityUpdate) return;
+    const n = Number(value);
+    if (Number.isNaN(n) || n < 0 || !Number.isFinite(n)) return;
+    const rounded = Math.floor(n);
+    if (rounded === quantity) {
+      handleClose();
+      return;
+    }
+    setIsSaving(true);
+    try {
+      await onQuantityUpdate(productId, rounded);
+      handleClose();
+    } catch {
+      /* error toast from page / axios */
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <>
+      <div
+        className={`flex items-center gap-2 group ${
+          canEdit && onQuantityUpdate ? 'cursor-pointer' : ''
+        }`}
+        onClick={(e) => {
+          e.stopPropagation();
+          handleOpen();
+        }}
+      >
+        <Iconify
+          icon="solar:box-bold"
+          className={`flex-shrink-0 ${
+            isOutOfStock ? 'text-destructive' : isLowStock ? 'text-yellow-500' : 'text-green-500'
+          }`}
+          width={16}
+          height={16}
+        />
+        <span
+          className={`text-sm font-medium ${
+            isOutOfStock ? 'text-destructive' : isLowStock ? 'text-yellow-600' : 'text-foreground'
+          }`}
+        >
+          {quantity}
+        </span>
+        {canEdit && onQuantityUpdate && (
+          <Iconify
+            icon="solar:pen-bold"
+            className="text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+            width={14}
+            height={14}
+          />
+        )}
+      </div>
+
+      <Dialog
+        open={open}
+        onClose={handleClose}
+        title={t('columns.stock')}
+        maxWidth="sm"
+        content={
+          <div className="space-y-2">
+            <label className="text-muted-foreground text-sm block">{t('form.quantity')}</label>
+            <Input
+              type="number"
+              min={0}
+              step={1}
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') void handleSave();
+              }}
+              disabled={isSaving}
+              className="h-10"
+            />
+          </div>
+        }
+        actions={
+          <>
+            <Button variant="text" onClick={handleClose} disabled={isSaving}>
+              {t('cancel')}
+            </Button>
+            <Button variant="contained" onClick={() => void handleSave()} disabled={isSaving}>
+              {isSaving ? t('updating') : t('save')}
+            </Button>
+          </>
+        }
+      />
+    </>
+  );
+}
+
+export const inventoryProductColumns = (
+  permissions: {
+    update: boolean;
+    delete: boolean;
+  },
+  t: TFunction<'table'>,
+  onDelete?: (id: number) => void,
+  isDeleting?: boolean,
+  isDeleteDialogOpen?: boolean,
+  onDeleteConfirm?: () => void,
+  onDeleteCancel?: () => void,
+  deletingId?: number | null,
+  onQuantityUpdate?: (id: number, quantity: number) => Promise<void>
+): ColumnDef<ProductFormValues>[] => [
+  {
+    id: 'name',
+    accessorKey: 'name',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.name')} />,
+    cell: ({ row }) => (
+      <div className="min-w-0 max-w-[280px]">
+        <div className="font-semibold text-foreground truncate">{formatTranslated(row.original.name)}</div>
+      </div>
+    ),
+  },
+  {
+    id: 'category',
+    accessorFn: (row) => inventoryCategoryLabel(row),
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.category')} />,
+    cell: ({ row }) => (
+      <div className="flex items-center gap-2 min-w-0 max-w-[220px]">
+        <Iconify icon="solar:folder-bold" className="text-muted-foreground flex-shrink-0" width={16} height={16} />
+        <span className="text-sm text-foreground truncate">{inventoryCategoryLabel(row.original)}</span>
+      </div>
+    ),
+  },
+  {
+    id: 'quantity',
+    accessorKey: 'quantity',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.stock')} />,
+    cell: ({ row }) => (
+      <EditableInventoryStockCell
+        productId={row.original.id}
+        currentQuantity={row.original.quantity ?? 0}
+        onQuantityUpdate={onQuantityUpdate}
+        canEdit={permissions.update}
+        t={t}
+      />
+    ),
+  },
+  {
+    id: 'shop',
+    accessorFn: (row) => inventoryShopLabel(row),
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.shop')} />,
+    cell: ({ row }) => (
+      <span className="text-sm text-foreground line-clamp-2 max-w-[220px]">{inventoryShopLabel(row.original)}</span>
+    ),
+  },
+  {
+    id: 'vendor',
+    accessorFn: (row) => inventoryVendorLabel(row),
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.seller')} />,
+    cell: ({ row }) => (
+      <span className="text-sm text-foreground truncate max-w-[200px] block">
+        {inventoryVendorLabel(row.original)}
+      </span>
+    ),
+  },
+  {
+    id: 'sku',
+    accessorKey: 'sku',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.sku')} />,
+    cell: ({ row }) => (
+      <span className="text-sm text-muted-foreground font-mono">{row.original.sku || '—'}</span>
+    ),
+  },
+  {
+    id: 'expiry_date',
+    accessorKey: 'expiry_date',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.expiryDate')} />,
+    cell: ({ row }) => {
+      const v = (row.original as Record<string, unknown>).expiry_date;
+      return (
+        <div className="flex items-center gap-2">
+          <Iconify icon="solar:calendar-mark-bold" className="text-muted-foreground flex-shrink-0" width={16} height={16} />
+          <span className="text-sm text-muted-foreground whitespace-nowrap">{inventoryExpiryLabel(v)}</span>
+        </div>
+      );
+    },
+  },
+  {
+    id: 'actions',
+    cell: ({ row }: any) => (
+      <DataTableRowActions
+        schema={ProductSchema}
+        row={row}
+        viewDetails={paths.dashboard.product.details(row.original.id)}
+        editItem={
+          permissions.update ? paths.dashboard.product.update(row.original.id) : undefined
+        }
+        onDelete={onDelete}
+        isDeleting={isDeleting}
+        isDeleteDialogOpen={isDeleteDialogOpen}
+        onDeleteConfirm={onDeleteConfirm}
+        onDeleteCancel={onDeleteCancel}
+        deletingId={deletingId}
+        permissions={permissions}
       />
     ),
   },

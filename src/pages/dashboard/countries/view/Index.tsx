@@ -68,7 +68,8 @@ export default function Page() {
         )}
         data={rawItems as CountryTableItem[]}
         createPath="/countries/create"
-        hasDetails={false}
+        hasDetails
+        detailsLink="/countries/update"
         permissions={{
           create: hasPermission('create', 'country'),
           update: hasPermission('update', 'country'),

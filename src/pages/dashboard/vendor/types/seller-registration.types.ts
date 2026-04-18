@@ -10,6 +10,12 @@ export interface SellerRegistrationCity {
   name: string;
 }
 
+export interface SellerRegistrationCountry {
+  id: number;
+  name: string;
+  code?: string;
+}
+
 export interface SellerRegistrationItem {
   id: number;
   seller_name: string;
@@ -18,7 +24,7 @@ export interface SellerRegistrationItem {
   address?: string;
   commercial_register_number?: string;
   commercial_register_date?: string;
-  country?: string;
+  country?: string | SellerRegistrationCountry;
   governorate?: SellerRegistrationGovernorate | string | null;
   city?: SellerRegistrationCity | string | null;
   logo: string | null;

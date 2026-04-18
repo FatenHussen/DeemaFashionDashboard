@@ -193,6 +193,9 @@ export const apiRoutes = {
     delete: (id: number | string) => `${ROOTS.ADMIN}/users/${id}`,
     details: (id: number | string) => `${ROOTS.ADMIN}/users/${id}`,
     marketers: `${ROOTS.ADMIN}/users/markters`,
+    demoteAffiliate: (id: number | string) => `${ROOTS.ADMIN}/users/${id}/demote-affiliate`,
+    reactivateAffiliate: (id: number | string) =>
+      `${ROOTS.ADMIN}/users/${id}/reactivate-affiliate`,
   },
   product: {
     list: `${ROOTS.ADMIN}/products`,
@@ -200,12 +203,15 @@ export const apiRoutes = {
     update: (id: number | string) => `${ROOTS.ADMIN}/products/${id}`,
     delete: (id: number | string) => `${ROOTS.ADMIN}/products/${id}`,
     details: (id: number | string) => `${ROOTS.ADMIN}/products/${id}`,
+    variants: (id: number | string) => `${ROOTS.ADMIN}/products/${id}/variants`,
     approve: (id: number | string) => `${ROOTS.ADMIN}/products/${id}/approve`,
     reject: (id: number | string) => `${ROOTS.ADMIN}/products/${id}/reject`,
   },
   // Order routes
   order: {
     list: `${ROOTS.ADMIN}/orders`,
+    /** Unassigned orders eligible for driver assignment (optional coverage filter). */
+    toAssign: `${ROOTS.ADMIN}/orders/to-assign`,
     details: (id: number | string) => `${ROOTS.ADMIN}/orders/${id}`,
     getOne: (id: number | string) => `${ROOTS.ADMIN}/orders/${id}/get_one`,
     changeStatus: (id: number | string) => `${ROOTS.ADMIN}/orders/${id}/change-status`,
@@ -303,6 +309,7 @@ export const apiRoutes = {
   shopProductVariant: {
     list: `${ROOTS.ADMIN}/shop-product-variants`,
     update: (id: number | string) => `${ROOTS.ADMIN}/shop-product-variants/${id}`,
+    delete: (id: number | string) => `${ROOTS.ADMIN}/shop-product-variants/${id}`,
   },
   // Legal Document routes
   legalDocument: {
@@ -395,6 +402,16 @@ export const apiRoutes = {
     details: (id: number | string) => `${ROOTS.ADMIN}/affiliate-withdraw-requests/${id}`,
     update: (id: number | string) => `${ROOTS.ADMIN}/affiliate-withdraw-requests/${id}`,
   },
+  /** Read-only: affiliate wallet ledger (commission / withdraw). */
+  affiliateWalletTransaction: {
+    list: `${ROOTS.ADMIN}/affiliate-wallet-transactions`,
+    details: (id: number | string) => `${ROOTS.ADMIN}/affiliate-wallet-transactions/${id}`,
+  },
+  /** Read-only: driver wallet ledger (delivery earnings). */
+  driverWalletTransaction: {
+    list: `${ROOTS.ADMIN}/driver-wallet-transactions`,
+    details: (id: number | string) => `${ROOTS.ADMIN}/driver-wallet-transactions/${id}`,
+  },
   // Icon routes
   icon: {
     list: `${ROOTS.ADMIN}/icons`,
@@ -466,6 +483,73 @@ export const apiRoutes = {
     update: (id: number | string) => `${ROOTS.ADMIN}/user-basket-schedules/${id}`,
     delete: (id: number | string) => `${ROOTS.ADMIN}/user-basket-schedules/${id}`,
     details: (id: number | string) => `${ROOTS.ADMIN}/user-basket-schedules/${id}`,
+    disable: (id: number | string) => `${ROOTS.ADMIN}/user-basket-schedules/${id}/disable`,
+    enable: (id: number | string) => `${ROOTS.ADMIN}/user-basket-schedules/${id}/enable`,
+  },
+  // Vendor Service Type routes
+  vendorServiceType: {
+    list: `${ROOTS.ADMIN}/vendor-service-types`,
+    create: `${ROOTS.ADMIN}/vendor-service-types`,
+    update: (id: number | string) => `${ROOTS.ADMIN}/vendor-service-types/${id}`,
+    delete: (id: number | string) => `${ROOTS.ADMIN}/vendor-service-types/${id}`,
+    details: (id: number | string) => `${ROOTS.ADMIN}/vendor-service-types/${id}`,
+  },
+  // Vendor Service routes
+  vendorService: {
+    list: `${ROOTS.ADMIN}/vendor-services`,
+    create: `${ROOTS.ADMIN}/vendor-services`,
+    update: (id: number | string) => `${ROOTS.ADMIN}/vendor-services/${id}`,
+    delete: (id: number | string) => `${ROOTS.ADMIN}/vendor-services/${id}`,
+    details: (id: number | string) => `${ROOTS.ADMIN}/vendor-services/${id}`,
+  },
+  // Shop Vendor Service routes
+  shopVendorService: {
+    list: `${ROOTS.ADMIN}/shop-vendor-services`,
+    create: `${ROOTS.ADMIN}/shop-vendor-services`,
+    update: (id: number | string) => `${ROOTS.ADMIN}/shop-vendor-services/${id}`,
+    delete: (id: number | string) => `${ROOTS.ADMIN}/shop-vendor-services/${id}`,
+    details: (id: number | string) => `${ROOTS.ADMIN}/shop-vendor-services/${id}`,
+  },
+  // Service Order routes
+  serviceOrder: {
+    list: `${ROOTS.ADMIN}/service-orders`,
+    getOne: (id: number | string) => `${ROOTS.ADMIN}/service-orders/${id}/get_one`,
+    changeStatus: (id: number | string) => `${ROOTS.ADMIN}/service-orders/${id}/change-status`,
+  },
+  // Quick Action routes
+  quickAction: {
+    list: `${ROOTS.ADMIN}/quick-actions`,
+    create: `${ROOTS.ADMIN}/quick-actions`,
+    update: (id: number | string) => `${ROOTS.ADMIN}/quick-actions/${id}`,
+    delete: (id: number | string) => `${ROOTS.ADMIN}/quick-actions/${id}`,
+    details: (id: number | string) => `${ROOTS.ADMIN}/quick-actions/${id}`,
+  },
+  // Popup Campaign routes
+  popupCampaign: {
+    list: `${ROOTS.ADMIN}/popup-campaigns`,
+    create: `${ROOTS.ADMIN}/popup-campaigns`,
+    update: (id: number | string) => `${ROOTS.ADMIN}/popup-campaigns/${id}`,
+    delete: (id: number | string) => `${ROOTS.ADMIN}/popup-campaigns/${id}`,
+    details: (id: number | string) => `${ROOTS.ADMIN}/popup-campaigns/${id}`,
+  },
+  // Flash Sale routes
+  flashSale: {
+    list: `${ROOTS.ADMIN}/flash-sales`,
+    create: `${ROOTS.ADMIN}/flash-sales`,
+    details: (id: number | string) => `${ROOTS.ADMIN}/flash-sales/${id}`,
+    update: (id: number | string) => `${ROOTS.ADMIN}/flash-sales/${id}`,
+  },
+  // Vendor Accounting routes
+  vendorAccounting: {
+    summary: `${ROOTS.ADMIN}/vendor-accounting/summary`,
+    vendors: `${ROOTS.ADMIN}/vendor-accounting/vendors`,
+    vendorStatement: (id: number | string) => `${ROOTS.ADMIN}/vendor-accounting/vendors/${id}`,
+  },
+  // Vendor Withdraw Request routes
+  vendorWithdrawRequest: {
+    list: `${ROOTS.ADMIN}/vendor-withdraw-requests`,
+    details: (id: number | string) => `${ROOTS.ADMIN}/vendor-withdraw-requests/${id}`,
+    update: (id: number | string) => `${ROOTS.ADMIN}/vendor-withdraw-requests/${id}`,
   },
   // Statistics routes
   statistics: {

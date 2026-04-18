@@ -27,6 +27,7 @@ import { SettingsButton } from '../components/settings-button';
 import { LanguagePopover } from '../components/language-popover';
 import { dashboardLayoutVars, dashboardNavColorVars } from './css-vars';
 import { NotificationsDrawer } from '../components/notifications-drawer';
+import { DashboardHeaderCenter } from '../components/dashboard-header-center';
 import { MainSection, layoutClasses, HeaderSection, LayoutSection } from '../core';
 
 // ----------------------------------------------------------------------
@@ -112,17 +113,10 @@ export function DashboardLayout({
     const headerSlotProps: HeaderSectionProps['slotProps'] = {
       container: {
         className: mergeClasses([
-          // Creative flex container styling
-          'flex justify-between w-full items-center',
+          'flex w-full min-w-0 items-center justify-between gap-2',
           'relative z-10',
           'px-4 md:px-6 lg:px-8',
-          // Creative visual enhancements
-          'before:absolute before:start-0 before:top-0 before:bottom-0 before:w-px',
-          'before:bg-gradient-to-b before:from-transparent before:via-indigo-200/30 before:to-transparent',
-          'after:absolute after:end-0 after:top-0 after:bottom-0 after:w-px',
-          'after:bg-gradient-to-b after:from-transparent after:via-indigo-200/30 after:to-transparent',
-          // Responsive padding based on nav layout
-          isNavVertical ? 'lg:pl-10 lg:pr-10' : '',
+          isNavVertical ? 'lg:pl-8 lg:pr-8' : '',
           isNavHorizontal
             ? 'bg-[var(--layout-nav-bg)] lg:h-[var(--layout-nav-horizontal-height)]'
             : '',
@@ -183,41 +177,37 @@ export function DashboardLayout({
           </Box> */}
         </Box>
       ),
+      centerArea: isNavVertical ? <DashboardHeaderCenter navData={navData} /> : undefined,
       rightArea: (
-        <Box className="flex items-center gap-1 sm:gap-2 md:gap-3 relative z-10">
-          {/** @slot Searchbar */}
-          <Box className="hidden sm:block">
+        <Box className="flex items-center gap-1.5 sm:gap-2 relative z-10">
+          {/** @slot Searchbar — own floating capsule */}
+          <Box className="hidden sm:flex items-center rounded-full border border-border/50 bg-background/60 px-2 py-1 shadow-sm hover:border-primary/30 hover:bg-background transition-colors duration-200">
             <Searchbar data={navData} />
           </Box>
 
-          {/** @slot Divider for visual separation */}
-          <Box className="hidden sm:block h-6 w-px bg-gradient-to-b from-transparent via-border to-transparent mx-1 shrink-0" />
+          {/** Separator */}
+          <div className="hidden sm:block h-5 w-px bg-border/60 mx-0.5" />
 
-          {/** @slot Notifications popover */}
-          <Box className="flex items-center">
-            <NotificationsDrawer />
+          {/** @slot Action cluster — notifications + settings + logout in a tight pill */}
+          <Box className="flex items-center gap-0 rounded-xl border border-border/40 bg-muted/40 px-0.5 py-0.5">
+            <Box className="flex items-center">
+              <NotificationsDrawer />
+            </Box>
+            <div className="h-4 w-px bg-border/50" />
+            <Box className="flex items-center">
+              <SettingsButton />
+            </Box>
+            <div className="h-4 w-px bg-border/50" />
+            <Box className="flex items-center">
+              <LogoutButton />
+            </Box>
           </Box>
 
-          {/** @slot Contacts popover */}
-          {/* <Box className="hidden md:flex items-center">
-            <ContactsPopover data={_contacts} />
-          </Box> */}
+          {/** Separator */}
+          <div className="h-5 w-px bg-border/60 mx-0.5" />
 
-          {/** @slot Settings button */}
-          <Box className="flex items-center">
-            <SettingsButton />
-          </Box>
-
-          {/** @slot Divider before account */}
-          <Box className="hidden md:block h-6 w-px bg-gradient-to-b from-transparent via-border to-transparent mx-1 shrink-0" />
-
-          {/** @slot Logout button */}
-          <Box className="flex items-center">
-            <LogoutButton />
-          </Box>
-
-          {/** @slot Language popover - at bottom of header actions */}
-          <Box className="flex items-center gap-1">
+          {/** @slot Language — standalone accent capsule */}
+          <Box className="flex items-center rounded-full border border-border/50 bg-background/60 shadow-sm hover:border-primary/30 hover:bg-background transition-colors duration-200">
             <LanguagePopover
               data={[
                 { value: 'en', label: tc('languageEnglish'), countryCode: 'GB' },
@@ -225,11 +215,6 @@ export function DashboardLayout({
               ]}
             />
           </Box>
-
-          {/** @slot Account drawer */}
-          {/* <Box className="flex items-center">
-            <AccountDrawer data={_account} />
-          </Box> */}
         </Box>
       ),
     };
@@ -241,7 +226,7 @@ export function DashboardLayout({
         {...slotProps?.header}
         slots={{ ...headerSlots, ...slotProps?.header?.slots }}
         slotProps={merge(headerSlotProps, slotProps?.header?.slotProps || {})}
-        className={slotProps?.header?.className}
+        className={mergeClasses([slotProps?.header?.className])}
       />
     );
   };

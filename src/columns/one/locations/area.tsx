@@ -4,6 +4,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 import { z } from 'zod';
 import { Iconify } from '@/shared/components/iconify';
 import { formatTranslated } from '@/utils/format-translated';
+import { createToggleColumn } from '@/shared/ui/table-data/data-table-toggle-cell';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 
@@ -55,18 +56,6 @@ export const areaColumns = (
   onDeleteCancel?: () => void,
   deletingId?: number | null
 ): ColumnDef<AreaFormValues>[] => [
-  {
-    id: 'id',
-    accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
-    cell: ({ row }) => (
-      <div className="flex items-center gap-2">
-        <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
-          <span className="text-xs font-semibold text-primary">{row.original.id}</span>
-        </div>
-      </div>
-    ),
-  },
   {
     id: 'name',
     accessorFn: (row) => formatTranslated(row.name),
@@ -139,6 +128,9 @@ export const areaColumns = (
       </div>
     ),
   },
+  ...(permissions.update
+    ? [createToggleColumn<AreaFormValues>({ entityType: 'area' })]
+    : []),
   {
     id: 'actions',
     cell: ({ row }: any) => (
@@ -153,7 +145,6 @@ export const areaColumns = (
         onDeleteConfirm={onDeleteConfirm}
         onDeleteCancel={onDeleteCancel}
         deletingId={deletingId}
-        adminToggleEntityType="area"
         permissions={permissions}
       />
     ),

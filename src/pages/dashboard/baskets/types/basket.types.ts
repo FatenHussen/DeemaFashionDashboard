@@ -82,5 +82,5 @@ export interface BasketCreateUpdatePayload {
   delivery_price?: number;
   image?: File | string | null;
   items: Array<{ shop_product_variant_id: number; quantity: number }>;
-  badges?: Array<{ id: number; position: string }>;
+  badges?: number[];
 }

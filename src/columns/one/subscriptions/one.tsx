@@ -2,6 +2,8 @@ import type { TFunction } from 'i18next';
 import type { ColumnDef } from '@tanstack/react-table';
 import type { SubscriptionListItem } from '@/pages/dashboard/subscriptions/types/subscription.types';
 
+import { z } from 'zod';
+import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 
 const pkgDisplayName = (name: SubscriptionListItem['package']['name']): string => {
@@ -32,18 +34,6 @@ const subscriptionStatusLabel = (status: string, t: TFunction<'table'>): string 
 export type SubscriptionRow = SubscriptionListItem;
 
 export const subscriptionColumns = (t: TFunction<'table'>): ColumnDef<SubscriptionRow>[] => [
-  {
-    id: 'id',
-    accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
-    cell: ({ row }) => (
-      <div className="flex items-center gap-2">
-        <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
-          <span className="text-xs font-semibold text-primary">{row.original.id}</span>
-        </div>
-      </div>
-    ),
-  },
   {
     id: 'user',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.user')} />,
@@ -166,6 +156,17 @@ export const subscriptionColumns = (t: TFunction<'table'>): ColumnDef<Subscripti
       <span className="text-sm text-muted-foreground">
         {row.original.created_at ? new Date(row.original.created_at).toLocaleString() : '—'}
       </span>
+    ),
+  },
+  {
+    id: 'actions',
+    cell: ({ row }: any) => (
+      <DataTableRowActions
+        schema={z.object({ id: z.number() })}
+        row={row}
+        viewDetails={`/subscriptions/details/${row.original.id}`}
+        permissions={{ update: false, delete: false }}
+      />
     ),
   },
 ];

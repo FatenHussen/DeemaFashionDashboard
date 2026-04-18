@@ -1,6 +1,6 @@
 // ----------------------------------------------------------------------
 
-export type CouponType = 'general' | 'product' | 'vendor';
+export type CouponType = 'general' | 'product' | 'vendor' | 'shop';
 
 export interface CouponDiscount {
   type: 'percentage' | 'fixed';
@@ -19,6 +19,7 @@ export interface CouponItem {
   is_active: boolean;
   is_expired: boolean;
   is_valid: boolean;
+  governorate_id: number | null;
   city_id: number | null;
   user_id: number | null;
   created_at: string;
@@ -51,11 +52,13 @@ export interface CouponDetailsData {
   is_active: boolean;
   is_expired: boolean;
   is_valid: boolean;
+  governorate_id: number | null;
   city_id: number | null;
   user_id: number | null;
   products: Array<{ id: number; name: string; [key: string]: any }>;
   categories: Array<{ id: number; name: string; [key: string]: any }>;
   vendors: Array<{ id: number; name: string; [key: string]: any }>;
+  shops?: Array<{ id: number; name: string; [key: string]: any }>;
   created_at: string;
   updated_at: string;
 }
@@ -75,6 +78,9 @@ export interface CouponCreateUpdatePayload {
   end_at: string;
   max_uses: number;
   is_active: boolean;
+  governorate_id?: number | null;
+  city_id?: number | null;
   products?: Array<{ id: number }>;
   vendors?: Array<{ id: number }>;
+  shops?: Array<{ id: number }>;
 }

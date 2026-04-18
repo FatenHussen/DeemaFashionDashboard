@@ -48,7 +48,7 @@ export default function DetailsPage() {
   return (
     <>
       <title>{t('form.promotionDetailsDocumentTitle', { appName: CONFIG.appName })}</title>
-      <Box className="max-w-3xl mx-auto p-6">
+      <Box className="w-full p-6">
         <Button variant="text" onClick={() => navigate('/promotions')} className="mb-4">
           <Iconify icon="solar:arrow-left-bold" width={20} className="mr-2" />
           {t('form.backToPromotions')}

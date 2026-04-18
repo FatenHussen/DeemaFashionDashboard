@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { usePermissions } from '@/auth/hooks/use-permissions';
@@ -10,7 +9,6 @@ import { CONFIG } from 'src/global-config';
 
 export default function Page() {
   const { t } = useTranslation('table');
-  const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
@@ -18,10 +16,6 @@ export default function Page() {
 
   const handlePageChange = (page: number) => setCurrentPage(page);
   const handlePageSizeChange = (size: number) => { setPageSize(size); setCurrentPage(1); };
-
-  const onViewDetails = (id: number) => {
-    navigate(`/promotion-requests/${id}`);
-  };
 
   const rawItems = response?.data?.items ?? [];
   const apiPagination = response?.data?.pagination;
@@ -43,9 +37,10 @@ export default function Page() {
       <title>{t('form.promotionRequestsIndexDocumentTitle', { appName: CONFIG.appName })}</title>
       <DataTable
         tableName={t("tableNames.promotionRequest")}
-        columns={promotionRequestColumns(t, onViewDetails)}
+        columns={promotionRequestColumns(t)}
         data={rawItems as PromotionRequestTableItem[]}
-        hasDetails={false}
+        hasDetails
+        detailsLink="/promotion-requests"
         permissions={{
           create: false,
           update: can('promotionrequest.update'),

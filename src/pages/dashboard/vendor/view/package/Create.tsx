@@ -19,6 +19,7 @@ import {
 
 import { CONFIG } from 'src/global-config';
 import { Box, Switch, Typography } from 'src/shared/ui';
+import { Iconify } from 'src/shared/components/iconify';
 import { LoadingScreen } from 'src/shared/components/loading-screen';
 import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
 import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
@@ -173,127 +174,148 @@ export default function CreatePage() {
         isEditMode={isEditMode}
         isLoading={isEditMode && isLoadingDetails}
         loadingText={t('form.loadingVendorPackage')}
-        maxWidth="4xl"
         submitLabel={isEditMode ? t('form.updateVendorPackageSubmit') : t('form.createVendorPackageSubmit')}
         submittingLabel={isEditMode ? t('form.updatingVendorPackage') : t('form.creatingVendorPackage')}
       >
-        <Box className="col-span-2">
-          <Typography variant="subtitle1" className="mb-3 font-semibold">
-            {t('form.vendorPkgSectionName')}
-          </Typography>
-          <Box className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        {/* ── Section: Names ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-primary/[0.06] via-primary/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:case-minimalistic-bold" className="text-primary" width={15} />
+            </Box>
+            <Typography variant="subtitle2" className="font-semibold text-foreground">{t('form.vendorPkgSectionName')}</Typography>
+          </Box>
+          <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
             <Box>
-              <Typography variant="caption" className="text-muted-foreground">{t('form.vendorPkgLabelEnglishRequired')}</Typography>
+              <Typography variant="caption" className="mb-1 block font-semibold text-foreground">{t('form.vendorPkgLabelEnglishRequired')}</Typography>
               <RHFTextField name="name.en" placeholder={t('form.packageNameEnPlaceholder')} fullWidth />
             </Box>
             <Box>
-              <Typography variant="caption" className="text-muted-foreground">{t('form.vendorPkgLabelArabicRequired')}</Typography>
+              <Typography variant="caption" className="mb-1 block font-semibold text-foreground">{t('form.vendorPkgLabelArabicRequired')}</Typography>
               <RHFTextField name="name.ar" placeholder={t('form.packageNameArShort')} dir="rtl" fullWidth />
             </Box>
           </Box>
         </Box>
 
-        <Box className="col-span-2">
-          <Typography variant="subtitle1" className="mb-3 font-semibold">
-            {t('form.vendorPkgSectionDescription')}
-          </Typography>
-          <Box className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        {/* ── Section: Descriptions ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-violet-500/[0.06] via-violet-500/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:text-bold" className="text-violet-500" width={15} />
+            </Box>
+            <Typography variant="subtitle2" className="font-semibold text-foreground">{t('form.vendorPkgSectionDescription')}</Typography>
+          </Box>
+          <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
             <Box>
-              <Typography variant="caption" className="text-muted-foreground">{t('form.descriptionEn')}</Typography>
+              <Typography variant="caption" className="mb-1 block font-semibold text-foreground">{t('form.descriptionEn')}</Typography>
               <Controller
                 name="description.en"
                 control={control}
                 render={({ field }) => (
-                  <textarea
-                    {...field}
-                    rows={3}
-                    placeholder={t('form.descriptionEnPlaceholder2')}
-                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  />
+                  <textarea {...field} rows={3} placeholder={t('form.descriptionEnPlaceholder2')} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
                 )}
               />
             </Box>
             <Box>
-              <Typography variant="caption" className="text-muted-foreground">{t('form.descriptionAr')}</Typography>
+              <Typography variant="caption" className="mb-1 block font-semibold text-foreground">{t('form.descriptionAr')}</Typography>
               <Controller
                 name="description.ar"
                 control={control}
                 render={({ field }) => (
-                  <textarea
-                    {...field}
-                    rows={3}
-                    dir="rtl"
-                    placeholder={t('form.packageDescriptionAr')}
-                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  />
+                  <textarea {...field} rows={3} dir="rtl" placeholder={t('form.packageDescriptionAr')} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
                 )}
               />
             </Box>
           </Box>
         </Box>
 
-        <Box>
-          <Typography variant="subtitle2" className="mb-2 font-semibold">{t('form.vendorPkgFieldPrice')}</Typography>
-          <RHFTextField name="price" type="number" placeholder={t('form.placeholderPrice99')} fullWidth />
-        </Box>
-        <Box>
-          <Typography variant="subtitle2" className="mb-2 font-semibold">{t('form.vendorPkgFieldDurationDays')}</Typography>
-          <RHFTextField name="duration_days" type="number" placeholder={t('form.placeholderThirty')} fullWidth />
-        </Box>
-        <Box>
-          <Typography variant="subtitle2" className="mb-2 font-semibold">{t('form.vendorPkgFieldMaxProducts')}</Typography>
-          <RHFTextField name="max_products" type="number" placeholder={t('form.placeholderFifty')} fullWidth />
-        </Box>
-        <Box>
-          <Typography variant="subtitle2" className="mb-2 font-semibold">{t('form.vendorPkgFieldCommissionRate')}</Typography>
-          <RHFTextField name="commission_rate" type="number" placeholder={t('form.placeholderFive')} fullWidth />
-        </Box>
-        <Box>
-          <Typography variant="subtitle2" className="mb-2 font-semibold">{t('form.vendorPkgFieldCommissionPerOrder')}</Typography>
-          <RHFTextField name="commission_per_order" type="number" placeholder={t('form.placeholderZero')} fullWidth />
-        </Box>
-
-        <Box>
-          <Typography variant="subtitle2" className="mb-2 font-semibold">{t('form.vendorPkgFieldSortOrder')}</Typography>
-          <RHFTextField name="sort_order" type="number" placeholder={t('form.placeholderZero')} fullWidth />
-        </Box>
-        <Box>
-          <Typography variant="subtitle2" className="mb-2 font-semibold">{t('form.vendorPkgFieldSearchPriority')}</Typography>
-          <RHFTextField name="search_priority" type="number" placeholder={t('form.placeholderOne')} fullWidth />
-        </Box>
-        <Box>
-          <Typography variant="subtitle2" className="mb-2 font-semibold">{t('form.vendorPkgFieldMaxCampaigns')}</Typography>
-          <RHFTextField name="max_campaigns" type="number" placeholder={t('form.placeholderZero')} fullWidth />
-        </Box>
-        <Box>
-          <Typography variant="subtitle2" className="mb-2 font-semibold">{t('form.vendorPkgFieldOrderPriority')}</Typography>
-          <RHFTextField name="order_priority" type="number" placeholder={t('form.placeholderOne')} fullWidth />
-        </Box>
-        <Box>
-          <Typography variant="subtitle2" className="mb-2 font-semibold">{t('form.vendorPkgFieldReportLevel')}</Typography>
-          <Controller
-            name="report_level"
-            control={control}
-            render={({ field }) => (
-              <select
-                {...field}
-                className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-              >
-                {REPORT_LEVELS.map((l) => (
-                  <option key={l} value={l}>
-                    {t(`form.reportLevelOption_${l}`)}
-                  </option>
-                ))}
-              </select>
-            )}
-          />
+        {/* ── Section: Pricing & Limits ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-amber-500/[0.06] via-amber-500/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:tag-price-bold" className="text-amber-500" width={15} />
+            </Box>
+            <Typography variant="subtitle2" className="font-semibold text-foreground">
+              {t('form.vendorPkgFieldPrice')} & {t('form.vendorPkgFieldMaxProducts')}
+            </Typography>
+          </Box>
+          <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+            <Box>
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.vendorPkgFieldPrice')}</Typography>
+              <RHFTextField name="price" type="number" placeholder={t('form.placeholderPrice99')} fullWidth />
+            </Box>
+            <Box>
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.vendorPkgFieldDurationDays')}</Typography>
+              <RHFTextField name="duration_days" type="number" placeholder={t('form.placeholderThirty')} fullWidth />
+            </Box>
+            <Box>
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.vendorPkgFieldMaxProducts')}</Typography>
+              <RHFTextField name="max_products" type="number" placeholder={t('form.placeholderFifty')} fullWidth />
+            </Box>
+            <Box>
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.vendorPkgFieldCommissionRate')}</Typography>
+              <RHFTextField name="commission_rate" type="number" placeholder={t('form.placeholderFive')} fullWidth />
+            </Box>
+            <Box>
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.vendorPkgFieldCommissionPerOrder')}</Typography>
+              <RHFTextField name="commission_per_order" type="number" placeholder={t('form.placeholderZero')} fullWidth />
+            </Box>
+          </Box>
         </Box>
 
-        <Box className="col-span-2">
-          <Typography variant="subtitle1" className="mb-3 font-semibold">
-            {t('form.vendorPkgFeaturesSection')}
-          </Typography>
-          <Box className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        {/* ── Section: Priority & Reporting ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-sky-500/[0.06] via-sky-500/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:sort-bold" className="text-sky-500" width={15} />
+            </Box>
+            <Typography variant="subtitle2" className="font-semibold text-foreground">
+              {t('form.vendorPkgFieldSortOrder')} & {t('form.vendorPkgFieldReportLevel')}
+            </Typography>
+          </Box>
+          <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+            <Box>
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.vendorPkgFieldSortOrder')}</Typography>
+              <RHFTextField name="sort_order" type="number" placeholder={t('form.placeholderZero')} fullWidth />
+            </Box>
+            <Box>
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.vendorPkgFieldSearchPriority')}</Typography>
+              <RHFTextField name="search_priority" type="number" placeholder={t('form.placeholderOne')} fullWidth />
+            </Box>
+            <Box>
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.vendorPkgFieldMaxCampaigns')}</Typography>
+              <RHFTextField name="max_campaigns" type="number" placeholder={t('form.placeholderZero')} fullWidth />
+            </Box>
+            <Box>
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.vendorPkgFieldOrderPriority')}</Typography>
+              <RHFTextField name="order_priority" type="number" placeholder={t('form.placeholderOne')} fullWidth />
+            </Box>
+            <Box className="md:col-span-2">
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.vendorPkgFieldReportLevel')}</Typography>
+              <Controller
+                name="report_level"
+                control={control}
+                render={({ field }) => (
+                  <select {...field} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
+                    {REPORT_LEVELS.map((l) => (
+                      <option key={l} value={l}>{t(`form.reportLevelOption_${l}`)}</option>
+                    ))}
+                  </select>
+                )}
+              />
+            </Box>
+          </Box>
+        </Box>
+
+        {/* ── Section: Features ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-emerald-500/[0.06] via-emerald-500/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:bolt-bold" className="text-emerald-500" width={15} />
+            </Box>
+            <Typography variant="subtitle2" className="font-semibold text-foreground">{t('form.vendorPkgFeaturesSection')}</Typography>
+          </Box>
+          <Box className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
             <SwitchField name="is_active" label={t('active')} />
             <SwitchField name="is_featured" label={t('form.featured')} />
             <SwitchField name="has_premium_badge" label={t('form.premiumBadge')} />

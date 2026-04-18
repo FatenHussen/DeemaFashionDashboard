@@ -30,34 +30,59 @@
 *************************************** */
 :root {
   /* Light theme colors - using RGB values for opacity support */
-  --background: 255 255 255;
+  --background: 250 251 252;
   --foreground: 17 24 39;
   --card: 255 255 255;
   --card-foreground: 17 24 39;
-  --border: 229 231 235;
-  --input: 229 231 235;
-  --muted: 249 250 251;
-  --muted-foreground: 107 114 128;
+  --border: 224 228 234;
+  --input: 224 228 234;
+  --muted: 245 247 250;
+  --muted-foreground: 100 116 139;
   --primary: 0 167 111;
   --primary-foreground: 255 255 255;
   --popover: 255 255 255;
   --popover-foreground: 17 24 39;
+
+  /* Elevation shadows */
+  --shadow-xs: 0 1px 2px rgba(0,0,0,0.05);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -1px rgba(0,0,0,0.05);
+  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.07), 0 4px 6px -2px rgba(0,0,0,0.04);
+  --shadow-xl: 0 20px 25px -5px rgba(0,0,0,0.07), 0 10px 10px -5px rgba(0,0,0,0.03);
+  --shadow-primary-sm: 0 2px 8px rgba(0,167,111,0.15);
+  --shadow-primary-md: 0 4px 14px rgba(0,167,111,0.20);
+
+  /* Radius */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --radius-2xl: 24px;
 }
 
 .dark {
   /* Dark theme colors - using RGB values for opacity support */
-  --background: 17 24 39;
-  --foreground: 249 250 251;
-  --card: 31 41 55;
-  --card-foreground: 249 250 251;
-  --border: 55 65 81;
-  --input: 55 65 81;
-  --muted: 31 41 55;
-  --muted-foreground: 156 163 175;
+  --background: 15 20 30;
+  --foreground: 241 245 249;
+  --card: 22 30 44;
+  --card-foreground: 241 245 249;
+  --border: 44 55 72;
+  --input: 44 55 72;
+  --muted: 22 30 44;
+  --muted-foreground: 148 163 184;
   --primary: 0 167 111;
   --primary-foreground: 255 255 255;
-  --popover: 31 41 55;
-  --popover-foreground: 249 250 251;
+  --popover: 22 30 44;
+  --popover-foreground: 241 245 249;
+
+  /* Elevation shadows (dark mode) */
+  --shadow-xs: 0 1px 2px rgba(0,0,0,0.25);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.30), 0 1px 2px rgba(0,0,0,0.20);
+  --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.28), 0 2px 4px -1px rgba(0,0,0,0.18);
+  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.30), 0 4px 6px -2px rgba(0,0,0,0.20);
+  --shadow-xl: 0 20px 25px -5px rgba(0,0,0,0.35), 0 10px 10px -5px rgba(0,0,0,0.25);
+  --shadow-primary-sm: 0 2px 8px rgba(0,167,111,0.25);
+  --shadow-primary-md: 0 4px 14px rgba(0,167,111,0.30);
 }
 
 /** **************************************
@@ -392,7 +417,97 @@ input[type='number']::-webkit-inner-spin-button {
 }
 
 /** **************************************
-* Settings: Compact layout (xl and up)
+* Professional UI Utility Classes
+*************************************** */
+
+/* Card elevation levels */
+.card-flat {
+  background: rgb(var(--card));
+  border: 1px solid rgb(var(--border) / 0.7);
+  border-radius: var(--radius-lg);
+}
+
+.card-raised {
+  background: rgb(var(--card));
+  border: 1px solid rgb(var(--border) / 0.5);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.card-lifted {
+  background: rgb(var(--card));
+  border: 1px solid rgb(var(--border) / 0.4);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+}
+
+/* Sidebar gradient background */
+.sidebar-gradient {
+  background: linear-gradient(
+    180deg,
+    rgb(var(--card)) 0%,
+    rgb(var(--background) / 0.98) 35%,
+    rgb(var(--background)) 70%,
+    rgb(var(--muted) / 0.25) 100%
+  );
+}
+
+/* Stat card gradient accents */
+.stat-card-primary {
+  background: linear-gradient(135deg, rgb(var(--card)) 0%, rgba(0, 167, 111, 0.04) 100%);
+  border-color: rgba(0, 167, 111, 0.15);
+}
+.stat-card-blue {
+  background: linear-gradient(135deg, rgb(var(--card)) 0%, rgba(59, 130, 246, 0.04) 100%);
+  border-color: rgba(59, 130, 246, 0.15);
+}
+.stat-card-emerald {
+  background: linear-gradient(135deg, rgb(var(--card)) 0%, rgba(16, 185, 129, 0.04) 100%);
+  border-color: rgba(16, 185, 129, 0.15);
+}
+.stat-card-amber {
+  background: linear-gradient(135deg, rgb(var(--card)) 0%, rgba(245, 158, 11, 0.04) 100%);
+  border-color: rgba(245, 158, 11, 0.15);
+}
+.stat-card-violet {
+  background: linear-gradient(135deg, rgb(var(--card)) 0%, rgba(139, 92, 246, 0.04) 100%);
+  border-color: rgba(139, 92, 246, 0.15);
+}
+
+/* Gradient top accent bars */
+.accent-bar-primary::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent 0%, rgb(var(--primary)) 50%, transparent 100%);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+/* Sidebar item active glow */
+.nav-item-active-glow {
+  box-shadow: inset 3px 0 0 rgb(var(--primary)), 4px 0 12px -4px rgba(var(--primary), 0.15);
+}
+
+/* Smooth page transitions */
+.page-enter {
+  animation: pageEnter 0.3s ease-out;
+}
+
+@keyframes pageEnter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Settings: Compact layout (xl and up)
 *************************************** */
 @media (min-width: 1600px) {
   [data-compact='true'] .table-modern-row {

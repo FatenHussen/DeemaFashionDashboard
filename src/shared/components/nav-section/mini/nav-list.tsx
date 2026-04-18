@@ -147,7 +147,7 @@ export function NavList({
   }
 
   return (
-    <NavLi disabled={data.disabled}>
+    <NavLi disabled={data.disabled} className="w-full max-w-full">
       {renderNavItem()}
       {renderDropdown()}
     </NavLi>

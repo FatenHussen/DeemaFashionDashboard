@@ -60,7 +60,12 @@ export interface SectionCreateUpdatePayload {
     ar: string;
   };
   manual_model: string;
-  item_ids: ItemIdEntry[];
+  item_ids: Array<{
+    item_id: number;
+    order: number;
+    /** `null` is allowed for GIF items when no destination URL is set. */
+    link: string | null;
+  }>;
 }
 
 export interface ItemTypeEntry {

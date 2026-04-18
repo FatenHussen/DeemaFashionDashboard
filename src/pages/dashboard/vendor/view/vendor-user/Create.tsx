@@ -10,6 +10,7 @@ import { _VendorApi } from '@/pages/dashboard/vendor/api/vendor.services';
 
 import { CONFIG } from 'src/global-config';
 import { Box, Typography } from 'src/shared/ui';
+import { Iconify } from 'src/shared/components/iconify';
 import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
 import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
 import { RHFInfiniteSelect } from 'src/shared/components/hook-form/rhf-infinite-select';
@@ -151,99 +152,105 @@ export default function CreatePage() {
         isEditMode={isEditMode}
         isLoading={isEditMode && isLoadingUser}
         loadingText={t('form.loadingVendorUser')}
-        maxWidth="2xl"
         submitLabel={isEditMode ? t('form.updateVendorUserSubmit') : t('form.createVendorUserSubmit')}
         submittingLabel={isEditMode ? t('form.updatingVendorUser') : t('form.creatingVendorUser')}
       >
-        <Box className="space-y-4">
-          {/* Name */}
-          <RHFTextField name="name" label={t('form.fullName')} placeholder={t('form.namePlaceholder')} fullWidth />
-
-          {/* Email */}
-          <RHFTextField
-            name="email"
-            label={t('columns.email')}
-            type="email"
-            placeholder={t('form.userEmailPlaceholder')}
-            fullWidth
-          />
-
-          {!isEditMode && (
-            <RHFTextField
-              name="password"
-              label={t('form.passwordLabel')}
-              type="password"
-              placeholder={t('form.passwordMinPlaceholder')}
-              fullWidth
-            />
-          )}
-
-          {/* Vendor Selector */}
-          <Box>
-            <label className="mb-2 block text-sm font-medium">{t('columns.vendor')}</label>
-            <RHFInfiniteSelect
-              name="vendor_id"
-              queryKey={['vendors', 'infinite', 'vendor-user-form']}
-              fetcher={vendorFetcher}
-              placeholder={t('form.selectVendor')}
-              initialLabel={
-                isEditMode && vendorUserData?.data?.vendor
-                  ? formatTranslated(vendorUserData.data.vendor.name as any)
-                  : undefined
-              }
-              onValueChange={() => methods.setValue('shop_ids', [])}
-            />
+        {/* ── Section: Account Info ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-primary/[0.06] via-primary/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:user-rounded-bold" className="text-primary" width={15} />
+            </Box>
+            <Typography variant="subtitle2" className="font-semibold text-foreground">
+              {t('form.userDetailsBasicInfo')}
+            </Typography>
           </Box>
+          <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+            <Box className="group">
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.fullName')}</Typography>
+              <RHFTextField name="name" placeholder={t('form.namePlaceholder')} fullWidth />
+            </Box>
+            <Box className="group">
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('columns.email')}</Typography>
+              <RHFTextField name="email" type="email" placeholder={t('form.userEmailPlaceholder')} fullWidth />
+            </Box>
+            {!isEditMode && (
+              <Box className="group md:col-span-2">
+                <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.passwordLabel')}</Typography>
+                <RHFTextField name="password" type="password" placeholder={t('form.passwordMinPlaceholder')} fullWidth />
+              </Box>
+            )}
+          </Box>
+        </Box>
 
-          {/* Shop Multi-Select — shown only when a vendor is selected */}
-          {selectedVendorId > 0 && (
-            <Box>
-              <label className="mb-2 block text-sm font-medium">
-                {t('form.assignShopsLabel')}
-                <span className="text-muted-foreground font-normal ml-1 text-xs">
-                  {t('form.assignShopsHelper')}
-                </span>
-              </label>
-              <Controller
-                name="shop_ids"
-                control={control}
-                render={({ field, fieldState: { error } }) => (
-                  <div>
-                    <MultiSelect
-                      options={shopOptions}
-                      value={field.value || []}
-                      onChange={field.onChange}
-                      placeholder={
-                        shops.length === 0
-                          ? t('form.vendorUserNoShopsForVendor')
-                          : t('form.vendorUserSelectShopsPlaceholder')
-                      }
-                      isDisabled={shops.length === 0}
-                    />
-                    {error?.message && (
-                      <p className="mt-1 text-xs text-destructive">{error.message}</p>
-                    )}
-                  </div>
-                )}
+        {/* ── Section: Vendor & Shops ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-violet-500/[0.06] via-violet-500/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:case-minimalistic-bold" className="text-violet-500" width={15} />
+            </Box>
+            <Typography variant="subtitle2" className="font-semibold text-foreground">
+              {t('columns.vendor')} & {t('form.assignShopsLabel')}
+            </Typography>
+          </Box>
+          <Box className="p-6 flex flex-col gap-5">
+            <Box className="group">
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('columns.vendor')}</Typography>
+              <RHFInfiniteSelect
+                name="vendor_id"
+                queryKey={['vendors', 'infinite', 'vendor-user-form']}
+                fetcher={vendorFetcher}
+                placeholder={t('form.selectVendor')}
+                initialLabel={isEditMode && vendorUserData?.data?.vendor ? formatTranslated(vendorUserData.data.vendor.name as any) : undefined}
+                onValueChange={() => methods.setValue('shop_ids', [])}
               />
             </Box>
-          )}
+            {selectedVendorId > 0 && (
+              <Box className="group">
+                <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
+                  {t('form.assignShopsLabel')}
+                  <span className="text-muted-foreground font-normal ml-1 text-xs">{t('form.assignShopsHelper')}</span>
+                </Typography>
+                <Controller
+                  name="shop_ids"
+                  control={control}
+                  render={({ field, fieldState: { error } }) => (
+                    <div>
+                      <MultiSelect
+                        options={shopOptions}
+                        value={field.value || []}
+                        onChange={field.onChange}
+                        placeholder={shops.length === 0 ? t('form.vendorUserNoShopsForVendor') : t('form.vendorUserSelectShopsPlaceholder')}
+                        isDisabled={shops.length === 0}
+                      />
+                      {error?.message && <p className="mt-1 text-xs text-destructive">{error.message}</p>}
+                    </div>
+                  )}
+                />
+              </Box>
+            )}
+          </Box>
+        </Box>
 
-          {/* Is Active */}
-          <Box className="rounded-lg border border-border p-4">
+        {/* ── Section: Status ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-emerald-500/[0.06] via-emerald-500/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:bolt-bold" className="text-emerald-500" width={15} />
+            </Box>
+            <Typography variant="subtitle2" className="font-semibold text-foreground">{t('active')}</Typography>
+          </Box>
+          <Box className="p-6">
             <Controller
               name="is_active"
               control={control}
               render={({ field }) => (
-                <label className="flex items-center gap-2 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={field.value}
-                    onChange={(e) => field.onChange(e.target.checked)}
-                    className="rounded accent-primary"
-                  />
-                  <Typography variant="subtitle2">{t('active')}</Typography>
-                  <span className="text-xs text-muted-foreground">{t('form.vendorUserActiveHint')}</span>
+                <label className="flex items-center gap-3 cursor-pointer select-none p-4 rounded-xl border border-border/60 bg-background/60 hover:border-emerald-500/40 transition-colors">
+                  <input type="checkbox" checked={field.value} onChange={(e) => field.onChange(e.target.checked)} className="rounded accent-primary h-4 w-4" />
+                  <Box>
+                    <Typography variant="subtitle2">{t('active')}</Typography>
+                    <Typography variant="caption" className="text-muted-foreground">{t('form.vendorUserActiveHint')}</Typography>
+                  </Box>
                 </label>
               )}
             />

@@ -1,4 +1,4 @@
-import type { OrderStatus } from '@/pages/dashboard/orders/types/order.types';
+import type { ReactNode } from 'react';
 
 import { useEffect } from 'react';
 import { toast } from 'react-toastify';
@@ -16,6 +16,12 @@ import {
   useChangeItemStatus,
   useChangeOrderStatus,
 } from '@/pages/dashboard/orders/hooks/order';
+import {
+  type OrderStatus,
+  normalizeOrderStatus,
+  ORDER_STATUS_OPTIONS,
+  ORDER_STATUS_PIPELINE,
+} from '@/pages/dashboard/orders/types/order.types';
 
 import { toDisplayString } from 'src/utils/to-display-string';
 
@@ -33,16 +39,20 @@ const statusColors: Record<string, string> = {
   preparing: 'bg-blue-500/20 text-blue-600',
   out_delivery: 'bg-purple-500/20 text-purple-600',
   delivered: 'bg-green-500/20 text-green-600',
+  cancelled: 'bg-muted text-muted-foreground',
 };
 
-const statuses: OrderStatus[] = ['pending', 'preparing', 'out_delivery', 'delivered'];
-
-const statusOrder = ['pending', 'preparing', 'out_delivery', 'delivered'];
-const getNextStatuses = (current: string): OrderStatus[] => {
-  const idx = statusOrder.indexOf(current);
-  if (idx === -1 || current === 'delivered') return [];
-  return statusOrder.slice(idx + 1) as OrderStatus[];
-};
+/** Next order-level statuses: forward steps, or full pipeline when cancelled (admin can reopen). */
+function getNextStatuses(currentRaw: string): OrderStatus[] {
+  const current = normalizeOrderStatus(currentRaw);
+  if (current === 'delivered') return [];
+  if (current === 'cancelled') {
+    return [...ORDER_STATUS_PIPELINE];
+  }
+  const idx = ORDER_STATUS_PIPELINE.indexOf(current);
+  if (idx === -1) return [];
+  return ORDER_STATUS_PIPELINE.slice(idx + 1);
+}
 
 const formatDate = (dateStr: string | null | undefined) => {
   if (!dateStr) return '-';
@@ -60,6 +70,37 @@ const driverFetcher = (page: number, limit: number) =>
         r.data?.pagination ?? { current_page: 1, last_page: 1, per_page: limit, total: 0 },
     },
   }));
+
+type OrderSectionProps = {
+  title: string;
+  children: ReactNode;
+  icon?: string;
+  className?: string;
+  headerRight?: ReactNode;
+};
+
+function OrderSection({ title, children, icon, className, headerRight }: OrderSectionProps) {
+  return (
+    <Box
+      className={`flex h-full flex-col overflow-hidden rounded-2xl border border-border/50 bg-card/80 shadow-sm backdrop-blur-sm ${className ?? ''}`}
+    >
+      <Box className="flex items-center justify-between gap-3 border-b border-border/40 bg-muted/15 px-4 py-3.5 sm:px-5">
+        <Box className="flex min-w-0 items-center gap-3">
+          {icon && (
+            <Box className="flex-shrink-0 rounded-lg border border-primary/10 bg-primary/10 p-2">
+              <Iconify icon={icon} className="text-primary" width={20} />
+            </Box>
+          )}
+          <Typography variant="subtitle1" className="truncate font-semibold">
+            {title}
+          </Typography>
+        </Box>
+        {headerRight}
+      </Box>
+      <Box className="flex-1 p-4 sm:p-5 md:p-6">{children}</Box>
+    </Box>
+  );
+}
 
 // ----------------------------------------------------------------------
 
@@ -170,12 +211,12 @@ export default function DetailsPage() {
   return (
     <>
       <title>{metadata.title}</title>
-      <Box className="relative min-h-screen overflow-hidden bg-background p-6">
+      <Box className="relative min-h-screen overflow-hidden bg-background px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
         <Box className="pointer-events-none fixed inset-0 bg-gradient-to-br from-background via-background to-muted/30" />
 
-        <Box className="relative max-w-4xl mx-auto">
+        <Box className="relative mx-auto w-full max-w-7xl">
           {/* Header */}
-          <Box className="mb-6">
+          <Box className="mb-6 lg:mb-8">
             <Button
               variant="text"
               onClick={() => navigate('/orders')}
@@ -185,33 +226,38 @@ export default function DetailsPage() {
               {t('orders.backToOrders')}
             </Button>
 
-            <Box className="flex items-center gap-4 mb-2">
-              <Box className="w-16 h-16 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
-                <Iconify icon="solar:bag-bold" className="text-primary" width={32} height={32} />
-              </Box>
-              <Box className="flex-1">
-                <Typography variant="h4" className="font-bold text-foreground mb-1">
-                  Order {order.order_code}
-                </Typography>
-                <Typography variant="body2" className="text-muted-foreground">
-                  {formatDate(order.created_at)}
-                </Typography>
+            <Box className="flex flex-col gap-4 rounded-2xl border border-border/50 bg-card/80 p-5 shadow-sm backdrop-blur-sm sm:flex-row sm:items-center sm:justify-between sm:p-6">
+              <Box className="flex items-center gap-4">
+                <Box className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 sm:h-16 sm:w-16">
+                  <Iconify icon="solar:bag-bold" className="text-primary" width={28} height={28} />
+                </Box>
+                <Box className="min-w-0">
+                  <Typography
+                    variant="overline"
+                    className="mb-0.5 block text-muted-foreground"
+                  >
+                    {t('orders.orderOverview')}
+                  </Typography>
+                  <Typography variant="h4" className="mb-1 font-bold text-foreground">
+                    {order.order_code}
+                  </Typography>
+                  <Typography variant="body2" className="text-muted-foreground">
+                    {formatDate(order.created_at)}
+                  </Typography>
+                </Box>
               </Box>
               <span
-                className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-medium ${statusColors[order.status] || 'bg-muted text-muted-foreground'}`}
+                className={`inline-flex w-fit shrink-0 items-center rounded-full px-3 py-1.5 text-sm font-medium capitalize ${statusColors[order.status] || 'bg-muted text-muted-foreground'}`}
               >
                 {order.status?.replace('_', ' ')}
               </span>
             </Box>
           </Box>
 
-          {/* Change Status */}
-          <Box className="rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm shadow-sm overflow-hidden mb-4">
-            <Box className="p-6">
-              <Typography variant="h6" className="font-semibold mb-4">
-                {t('orders.changeOrderStatus')}
-              </Typography>
-              <Box className="flex items-center gap-3 flex-wrap">
+          {/* Actions: status + driver */}
+          <Box className="mb-4 grid gap-4 lg:mb-5 lg:grid-cols-2 lg:gap-5">
+            <OrderSection title={t('orders.changeOrderStatus')} icon="solar:transfer-horizontal-bold">
+              <Box className="flex flex-wrap items-center gap-3">
                 <span
                   className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-medium ${statusColors[order.status] || 'bg-muted text-muted-foreground'}`}
                 >
@@ -238,15 +284,9 @@ export default function DetailsPage() {
                   </Typography>
                 )}
               </Box>
-            </Box>
-          </Box>
+            </OrderSection>
 
-          {/* Assign Driver */}
-          <Box className="rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm shadow-sm overflow-hidden mb-4">
-            <Box className="p-6">
-              <Typography variant="h6" className="font-semibold mb-4">
-                {t('orders.assignDriver')}
-              </Typography>
+            <OrderSection title={t('orders.assignDriver')} icon="solar:user-id-bold">
               {order.driver && (
                 <Typography variant="body2" className="mb-3 text-muted-foreground">
                   {t('orders.currentDriver')}{' '}
@@ -257,9 +297,9 @@ export default function DetailsPage() {
               <FormProvider {...assignDriverForm}>
                 <form
                   onSubmit={assignDriverForm.handleSubmit(handleAssignDriver)}
-                  className="flex gap-2 items-end"
+                  className="flex flex-col gap-3 sm:flex-row sm:items-end"
                 >
-                  <Box className="flex-1 min-w-0">
+                  <Box className="min-w-0 flex-1">
                     <RHFInfiniteSelect
                       name="driver_id"
                       queryKey={['order', 'assign-driver', id]}
@@ -272,6 +312,7 @@ export default function DetailsPage() {
                   <Button
                     type="submit"
                     variant="contained"
+                    className="w-full shrink-0 sm:w-auto"
                     disabled={
                       !selectedDriverId || selectedDriverId === 0 || assignDriverMutation.isPending
                     }
@@ -280,15 +321,12 @@ export default function DetailsPage() {
                   </Button>
                 </form>
               </FormProvider>
-            </Box>
+            </OrderSection>
           </Box>
 
-          {/* Order Information */}
-          <Box className="rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm shadow-sm overflow-hidden mb-4">
-            <Box className="p-6">
-              <Typography variant="h6" className="font-semibold mb-4">
-                {t('orders.orderInformation')}
-              </Typography>
+          {/* Order info + customer */}
+          <Box className="mb-4 grid gap-4 lg:mb-5 lg:grid-cols-2 lg:gap-5">
+            <OrderSection title={t('orders.orderInformation')} icon="solar:clipboard-list-bold">
               <Box className="grid gap-4 sm:grid-cols-2">
                 <Box>
                   <Typography variant="caption" className="text-muted-foreground">
@@ -339,15 +377,9 @@ export default function DetailsPage() {
                   </Typography>
                 </Box>
               </Box>
-            </Box>
-          </Box>
+            </OrderSection>
 
-          {/* Customer */}
-          <Box className="rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm shadow-sm overflow-hidden mb-4">
-            <Box className="p-6">
-              <Typography variant="h6" className="font-semibold mb-4">
-                {t('orders.customer')}
-              </Typography>
+            <OrderSection title={t('orders.customer')} icon="solar:user-bold">
               <Box className="grid gap-4 sm:grid-cols-2">
                 <Box>
                   <Typography variant="caption" className="text-muted-foreground">
@@ -392,17 +424,14 @@ export default function DetailsPage() {
                   </Box>
                 )}
               </Box>
-            </Box>
+            </OrderSection>
           </Box>
 
           {/* Delivery Address */}
           {order.user_address && (
-            <Box className="rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm shadow-sm overflow-hidden mb-4">
-              <Box className="p-6">
-                <Typography variant="h6" className="font-semibold mb-4">
-                  {t('orders.deliveryAddress')}
-                </Typography>
-                <Box className="grid gap-4 sm:grid-cols-2">
+            <Box className="mb-4 lg:mb-5">
+              <OrderSection title={t('orders.deliveryAddress')} icon="solar:delivery-bold">
+                <Box className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   <Box>
                     <Typography variant="caption" className="text-muted-foreground">
                       {t('orders.label')}
@@ -470,23 +499,23 @@ export default function DetailsPage() {
                     </Box>
                   )}
                 </Box>
-              </Box>
+              </OrderSection>
             </Box>
           )}
 
           {/* Live Order Tracking Map */}
           {isTrackable && order.user_address?.lat != null && order.user_address?.lng != null && (
-            <Box className="rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm shadow-sm overflow-hidden mb-4">
-              <Box className="p-6">
-                <Box className="flex items-center gap-2 mb-4">
-                  <span className="relative flex h-2.5 w-2.5">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500" />
+            <Box className="mb-4 lg:mb-5">
+              <OrderSection
+                title={t('orders.liveTracking')}
+                icon="solar:map-bold"
+                headerRight={
+                  <span className="relative flex h-2.5 w-2.5 shrink-0">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
+                    <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-green-500" />
                   </span>
-                  <Typography variant="h6" className="font-semibold">
-                    {t('orders.liveTracking')}
-                  </Typography>
-                </Box>
+                }
+              >
                 <OrderTrackingMap
                   destinationLat={Number(order.user_address.lat)}
                   destinationLng={Number(order.user_address.lng)}
@@ -495,16 +524,13 @@ export default function DetailsPage() {
                   driverName={order.driver?.name}
                   height="450px"
                 />
-              </Box>
+              </OrderSection>
             </Box>
           )}
 
-          {/* Pricing */}
-          <Box className="rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm shadow-sm overflow-hidden mb-4">
-            <Box className="p-6">
-              <Typography variant="h6" className="font-semibold mb-4">
-                {t('orders.pricing')}
-              </Typography>
+          {/* Pricing + timeline */}
+          <Box className="mb-4 grid gap-4 lg:mb-5 lg:grid-cols-2 lg:gap-5">
+            <OrderSection title={t('orders.pricing')} icon="solar:wallet-money-bold">
               <Box className="grid gap-4 sm:grid-cols-2">
                 <Box>
                   <Typography variant="caption" className="text-muted-foreground">
@@ -580,15 +606,9 @@ export default function DetailsPage() {
                   </Typography>
                 </Box>
               </Box>
-            </Box>
-          </Box>
+            </OrderSection>
 
-          {/* Status Timeline */}
-          <Box className="rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm shadow-sm overflow-hidden mb-4">
-            <Box className="p-6">
-              <Typography variant="h6" className="font-semibold mb-4">
-                {t('orders.statusTimeline')}
-              </Typography>
+            <OrderSection title={t('orders.statusTimeline')} icon="solar:history-bold">
               <Box className="grid gap-4 sm:grid-cols-2">
                 <Box>
                   <Typography variant="caption" className="text-muted-foreground">
@@ -623,17 +643,17 @@ export default function DetailsPage() {
                   </Typography>
                 </Box>
               </Box>
-            </Box>
+            </OrderSection>
           </Box>
 
-          {/* Affiliate Info */}
-          {order.affiliate && (
-            <Box className="rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm shadow-sm overflow-hidden mb-4">
-              <Box className="p-6">
-                <Typography variant="h6" className="font-semibold mb-4">
-                  {t('orders.affiliate')}
-                </Typography>
-                <Box className="grid gap-4 sm:grid-cols-3">
+          {/* Affiliate + driver details */}
+          {(order.affiliate || order.driver) && (
+            <Box
+              className={`mb-4 grid gap-4 lg:mb-5 lg:gap-5 ${order.affiliate && order.driver ? 'lg:grid-cols-2' : ''}`}
+            >
+              {order.affiliate && (
+                <OrderSection title={t('orders.affiliate')} icon="solar:users-group-rounded-bold">
+                  <Box className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   <Box>
                     <Typography variant="caption" className="text-muted-foreground">
                       {t('orders.rate')}
@@ -658,19 +678,44 @@ export default function DetailsPage() {
                       {order.affiliate.affiliate_commission}
                     </Typography>
                   </Box>
+                  {order.affiliate.affiliate_commission_type && (
+                    <Box>
+                      <Typography variant="caption" className="text-muted-foreground">
+                        {t('orders.affiliateCommissionType')}
+                      </Typography>
+                      <Typography variant="body1" className="font-medium">
+                        {order.affiliate.affiliate_commission_type}
+                      </Typography>
+                    </Box>
+                  )}
+                  {order.affiliate.affiliate_fixed_commission != null &&
+                    order.affiliate.affiliate_fixed_commission !== '' && (
+                      <Box>
+                        <Typography variant="caption" className="text-muted-foreground">
+                          {t('orders.affiliateFixedCommission')}
+                        </Typography>
+                        <Typography variant="body1" className="font-medium">
+                          {String(order.affiliate.affiliate_fixed_commission)}
+                        </Typography>
+                      </Box>
+                    )}
+                  {order.affiliate.affiliate_commission_amount != null && (
+                    <Box>
+                      <Typography variant="caption" className="text-muted-foreground">
+                        {t('orders.affiliateCommissionAmount')}
+                      </Typography>
+                      <Typography variant="body1" className="font-medium">
+                        {order.affiliate.affiliate_commission_amount}
+                      </Typography>
+                    </Box>
+                  )}
                 </Box>
-              </Box>
-            </Box>
-          )}
+                </OrderSection>
+              )}
 
-          {/* Driver Info */}
-          {order.driver && (
-            <Box className="rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm shadow-sm overflow-hidden mb-4">
-              <Box className="p-6">
-                <Typography variant="h6" className="font-semibold mb-4">
-                  {t('orders.driver')}
-                </Typography>
-                <Box className="grid gap-4 sm:grid-cols-2">
+              {order.driver && (
+                <OrderSection title={t('orders.driver')} icon="solar:scooter-bold">
+                  <Box className="grid gap-4 sm:grid-cols-2">
                   <Box>
                     <Typography variant="caption" className="text-muted-foreground">
                       {t('orders.name')}
@@ -736,17 +781,14 @@ export default function DetailsPage() {
                     </Typography>
                   </Box>
                 </Box>
-              </Box>
+                </OrderSection>
+              )}
             </Box>
           )}
 
           {/* Order Items */}
-          <Box className="rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm shadow-sm overflow-hidden">
-            <Box className="p-6">
-              <Typography variant="h6" className="font-semibold mb-4">
-                Order Items
-              </Typography>
-              <Box className="space-y-4">
+          <OrderSection title={t('orders.orderItems')} icon="solar:cart-large-2-bold">
+            <Box className="space-y-4">
                 {order.items?.map((item) => (
                   <Box
                     key={item.id}
@@ -798,19 +840,19 @@ export default function DetailsPage() {
                     </Box>
                     <Box className="flex items-center gap-2">
                       <span
-                        className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${statusColors[item.status] || 'bg-muted text-muted-foreground'}`}
+                        className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${statusColors[normalizeOrderStatus(item.status)] || 'bg-muted text-muted-foreground'}`}
                       >
-                        {item.status?.replace('_', ' ')}
+                        {normalizeOrderStatus(item.status).replace('_', ' ')}
                       </span>
                       <select
-                        value={item.status}
+                        value={normalizeOrderStatus(item.status)}
                         onChange={(e) =>
                           handleChangeItemStatus(item.id, e.target.value as OrderStatus)
                         }
                         className="h-8 rounded-md border border-input bg-background px-2 text-xs"
                         disabled={changeItemStatusMutation.isPending}
                       >
-                        {statuses.map((s) => (
+                        {ORDER_STATUS_OPTIONS.map((s) => (
                           <option key={s} value={s}>
                             {s.replace('_', ' ')}
                           </option>
@@ -819,9 +861,8 @@ export default function DetailsPage() {
                     </Box>
                   </Box>
                 ))}
-              </Box>
             </Box>
-          </Box>
+          </OrderSection>
         </Box>
       </Box>
     </>

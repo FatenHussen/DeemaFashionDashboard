@@ -3,8 +3,14 @@ import type { ColumnDef } from '@tanstack/react-table';
 
 import { z } from 'zod';
 import { Iconify } from '@/shared/components/iconify';
+import { createToggleColumn } from '@/shared/ui/table-data/data-table-toggle-cell';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
+import {
+  DRIVER_AVAILABILITY_BADGE,
+  DRIVER_ACCOUNT_ACTIVE_BADGE,
+  normalizeDriverAvailabilityStatus,
+} from '@/shared/utils/driver-status-badge';
 
 // Schema for driver table/row data
 const DriverSchema = z.object({
@@ -15,8 +21,11 @@ const DriverSchema = z.object({
   status: z.string(),
   is_active: z.union([z.number(), z.boolean()]),
   rate_per_order: z.union([z.string(), z.number()]).optional(),
+  vehicle_name: z.string().optional().nullable(),
   vehicle_type: z.string().optional().nullable(),
   vehicle_number: z.string().optional().nullable(),
+  vehicle_image: z.string().optional().nullable(),
+  shops: z.array(z.object({ id: z.number(), name: z.any() })).optional(),
   average_rating: z.number().optional(),
   total_orders: z.number().optional(),
   completed_orders: z.number().optional(),
@@ -33,8 +42,10 @@ export interface DriverFormValues {
   status: string;
   is_active: number | boolean;
   rate_per_order?: string | number;
+  vehicle_name?: string | null;
   vehicle_type?: string | null;
   vehicle_number?: string | null;
+  vehicle_image?: string | null;
   average_rating?: number;
   total_orders?: number;
   completed_orders?: number;
@@ -55,20 +66,10 @@ export const driverColumns = (
   onDeleteConfirm?: () => void,
   onDeleteCancel?: () => void,
   deletingId?: number | null,
-  onUpdatePassword?: (row: { original: DriverFormValues }) => void
+  onUpdatePassword?: (row: { original: DriverFormValues }) => void,
+  onOpenStatusActiveModal?: (row: DriverFormValues) => void,
+  onAssignOrderToDriver?: (row: DriverFormValues) => void
 ): ColumnDef<DriverFormValues>[] => [
-  {
-    id: 'id',
-    accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
-    cell: ({ row }) => (
-      <div className="flex items-center gap-2">
-        <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
-          <span className="text-xs font-semibold text-primary">{row.original.id}</span>
-        </div>
-      </div>
-    ),
-  },
   {
     id: 'name',
     accessorKey: 'name',
@@ -103,39 +104,69 @@ export const driverColumns = (
     ),
   },
   {
+    id: 'vehicle_name',
+    accessorKey: 'vehicle_name',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.vehicleName')} />,
+    cell: ({ row }) => (
+      <span className="text-sm text-muted-foreground truncate max-w-[140px] block">
+        {row.original.vehicle_name || '-'}
+      </span>
+    ),
+  },
+  {
+    id: 'vehicle_type',
+    accessorKey: 'vehicle_type',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.vehicleType')} />,
+    cell: ({ row }) => (
+      <span className="text-sm text-muted-foreground capitalize truncate max-w-[120px] block">
+        {row.original.vehicle_type || '-'}
+      </span>
+    ),
+  },
+  {
     id: 'status',
     accessorKey: 'status',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.status')} />,
     cell: ({ row }) => {
-      const status = row.original.status;
-      const statusColors: Record<string, { bg: string; border: string; text: string }> = {
-        available: {
-          bg: 'bg-emerald-50 dark:bg-emerald-950/20',
-          border: 'border-emerald-200 dark:border-emerald-800/50',
-          text: 'text-emerald-700 dark:text-emerald-300',
-        },
-        busy: {
-          bg: 'bg-orange-50 dark:bg-orange-950/20',
-          border: 'border-orange-200 dark:border-orange-800/50',
-          text: 'text-orange-700 dark:text-orange-300',
-        },
-        offline: {
-          bg: 'bg-gray-50 dark:bg-gray-950/20',
-          border: 'border-gray-200 dark:border-gray-800/50',
-          text: 'text-gray-700 dark:text-gray-300',
-        },
-      };
-      const colors = statusColors[status] || statusColors.offline;
-      return (
-        <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border w-fit ${colors.bg} ${colors.border} ${colors.text}`}>
+      const key = normalizeDriverAvailabilityStatus(String(row.original.status));
+      const badge = DRIVER_AVAILABILITY_BADGE[key];
+      const labelKey =
+        key === 'available'
+          ? 'driverAvailAvailable'
+          : key === 'busy'
+            ? 'driverAvailBusy'
+            : 'driverAvailInactive';
+      const interactive = Boolean(permissions.update && onOpenStatusActiveModal);
+      const inner = (
+        <>
           <Iconify
-            icon={status === 'available' ? 'solar:check-circle-bold' : status === 'busy' ? 'solar:clock-circle-bold' : 'solar:close-circle-bold'}
+            icon={
+              key === 'available'
+                ? 'solar:check-circle-bold'
+                : key === 'busy'
+                  ? 'solar:clock-circle-bold'
+                  : 'solar:close-circle-bold'
+            }
             width={14}
             height={14}
-            className="flex-shrink-0"
+            className={`flex-shrink-0 ${badge.iconClassName}`}
           />
-          <span className="text-xs font-medium capitalize">{status}</span>
-        </div>
+          <span>{t(labelKey)}</span>
+        </>
+      );
+      return interactive ? (
+        <button
+          type="button"
+          className={`${badge.className} cursor-pointer transition hover:brightness-[0.97] active:scale-[0.98] dark:hover:brightness-110`}
+          onClick={(e) => {
+            e.stopPropagation();
+            onOpenStatusActiveModal?.(row.original);
+          }}
+        >
+          {inner}
+        </button>
+      ) : (
+        <div className={badge.className}>{inner}</div>
       );
     },
   },
@@ -145,62 +176,41 @@ export const driverColumns = (
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.active')} />,
     cell: ({ row }) => {
       const isActive = Boolean(row.original.is_active);
-      return (
-        <div
-          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border w-fit ${
-            isActive
-              ? 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/50 text-emerald-700 dark:text-emerald-300'
-              : 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800/50 text-red-700 dark:text-red-300'
-          }`}
-        >
+      const interactive = Boolean(permissions.update && onOpenStatusActiveModal);
+      const inner = (
+        <>
           <Iconify
             icon={isActive ? 'solar:check-circle-bold' : 'solar:close-circle-bold'}
             width={14}
             height={14}
-            className="flex-shrink-0"
+            className="flex-shrink-0 text-white"
           />
-          <span className="text-xs font-medium">{isActive ? 'Active' : 'Inactive'}</span>
+          <span>{isActive ? t('active') : t('inactive')}</span>
+        </>
+      );
+      return interactive ? (
+        <button
+          type="button"
+          className={`${
+            isActive ? DRIVER_ACCOUNT_ACTIVE_BADGE.active : DRIVER_ACCOUNT_ACTIVE_BADGE.inactive
+          } cursor-pointer transition hover:brightness-110 active:scale-[0.98]`}
+          onClick={(e) => {
+            e.stopPropagation();
+            onOpenStatusActiveModal?.(row.original);
+          }}
+        >
+          {inner}
+        </button>
+      ) : (
+        <div
+          className={
+            isActive ? DRIVER_ACCOUNT_ACTIVE_BADGE.active : DRIVER_ACCOUNT_ACTIVE_BADGE.inactive
+          }
+        >
+          {inner}
         </div>
       );
     },
-  },
-  {
-    id: 'rate_per_order',
-    accessorKey: 'rate_per_order',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.ratePerOrder')} />,
-    cell: ({ row }) => (
-      <div className="flex items-center gap-2">
-        <Iconify icon="solar:dollar-bold" className="text-muted-foreground flex-shrink-0" width={16} height={16} />
-        <span className="text-sm text-muted-foreground">{row.original.rate_per_order ?? '-'}</span>
-      </div>
-    ),
-  },
-  {
-    id: 'average_rating',
-    accessorKey: 'average_rating',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.avgRating')} />,
-    cell: ({ row }) => (
-      <div className="flex items-center gap-2">
-        <Iconify icon="solar:star-bold" className="text-muted-foreground flex-shrink-0" width={16} height={16} />
-        <span className="text-sm text-muted-foreground">{row.original.average_rating ?? '-'}</span>
-      </div>
-    ),
-  },
-  {
-    id: 'total_orders',
-    accessorKey: 'total_orders',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.totalOrders')} />,
-    cell: ({ row }) => (
-      <span className="text-sm text-muted-foreground">{row.original.total_orders ?? '-'}</span>
-    ),
-  },
-  {
-    id: 'completed_orders',
-    accessorKey: 'completed_orders',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.completed')} />,
-    cell: ({ row }) => (
-      <span className="text-sm text-muted-foreground">{row.original.completed_orders ?? '-'}</span>
-    ),
   },
   {
     id: 'total_earnings',
@@ -213,17 +223,9 @@ export const driverColumns = (
       </div>
     ),
   },
-  {
-    id: 'created_at',
-    accessorKey: 'created_at',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.createdAt')} />,
-    cell: ({ row }) => (
-      <div className="flex items-center gap-2">
-        <Iconify icon="solar:calendar-date-bold" className="text-muted-foreground flex-shrink-0" width={16} height={16} />
-        <span className="text-sm text-muted-foreground">{row.original.created_at}</span>
-      </div>
-    ),
-  },
+  ...(permissions.update
+    ? [createToggleColumn<DriverFormValues>({ entityType: 'driver' })]
+    : []),
   {
     id: 'actions',
     cell: ({ row }: any) => (
@@ -234,12 +236,14 @@ export const driverColumns = (
         editItem={`/driver/update/${row.original.id}`}
         onDelete={onDelete}
         onUpdatePassword={onUpdatePassword}
+        onAssignOrderToDriver={
+          onAssignOrderToDriver ? (driverRow: any) => onAssignOrderToDriver(driverRow.original) : undefined
+        }
         isDeleting={isDeleting}
         isDeleteDialogOpen={isDeleteDialogOpen}
         onDeleteConfirm={onDeleteConfirm}
         onDeleteCancel={onDeleteCancel}
         deletingId={deletingId}
-        adminToggleEntityType="driver"
         permissions={permissions}
       />
     ),

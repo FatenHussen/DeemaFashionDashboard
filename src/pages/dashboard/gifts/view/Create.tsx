@@ -2,16 +2,16 @@ import type { Control } from 'react-hook-form';
 import type { GiftData, GiftTranslation, GiftCreateUpdatePayload } from '@/pages/dashboard/gifts/types/gift.types';
 
 import { toast } from 'react-toastify';
-import { useEffect, useCallback, useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { formatTranslated } from '@/utils/format-translated';
+import { useRef, useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router';
+import { useInfiniteSelect } from '@/shared/hooks/use-infinite-select';
 import { InfiniteScrollSelect } from '@/shared/components/infinite-scroll-select';
 import { _CategoryApi } from '@/pages/dashboard/categories/api/category.services';
 import { _ShopProductVariantApi } from '@/shared/api/shop-product-variant.services';
-import { useInfiniteSelect } from '@/shared/hooks/use-infinite-select';
-import { formatTranslated } from '@/utils/format-translated';
 import { useCreateGift, useUpdateGift, useFetchGiftById, useBulkCreateGifts } from '@/pages/dashboard/gifts/hooks/gift';
 import {
   GiftSchema,
@@ -20,8 +20,8 @@ import {
 } from '@/pages/dashboard/gifts/validation/gift.validation';
 
 import { CONFIG } from 'src/global-config';
-import { Box, Tab, Tabs, Switch, Typography } from 'src/shared/ui';
 import { Iconify } from 'src/shared/components/iconify';
+import { Box, Tab, Tabs, Switch, Typography } from 'src/shared/ui';
 import { LoadingScreen } from 'src/shared/components/loading-screen';
 import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
 import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
@@ -80,7 +80,9 @@ function VariantMultiPicker({ selectedIds, onChange, t, error }: VariantMultiPic
 
   useEffect(() => {
     const container = listRef.current;
-    if (!container) return;
+    if (!container) {
+      return undefined;
+    }
     const handleScroll = () => {
       const { scrollTop, scrollHeight, clientHeight } = container;
       if (scrollHeight - scrollTop - clientHeight < 80 && hasNextPage && !isFetchingNextPage) {
@@ -88,7 +90,9 @@ function VariantMultiPicker({ selectedIds, onChange, t, error }: VariantMultiPic
       }
     };
     container.addEventListener('scroll', handleScroll);
-    return () => container.removeEventListener('scroll', handleScroll);
+    return () => {
+      container.removeEventListener('scroll', handleScroll);
+    };
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const filtered = search
@@ -550,128 +554,103 @@ export default function CreatePage() {
         isEditMode={isEditMode}
         isLoading={isEditMode && isLoadingDetails}
         loadingText={t('form.loadingGift')}
-        maxWidth="2xl"
         submitLabel={isEditMode ? t('form.giftSubmitUpdate') : t('form.giftSubmitCreate')}
         submittingLabel={isEditMode ? t('form.giftSubmitUpdating') : t('form.giftSubmitCreating')}
       >
-        <Box className="w-full">
-          <Tabs value={giftMode} onChange={(v) => handleGiftModeChange(v as GiftFormMode)} className="w-full">
-            <Tab value="tikmool" label={t('form.giftTabTikmool')} />
-            <Tab value="external" label={t('form.giftTabExternal')} />
-          </Tabs>
-        </Box>
+        {/* ── Section: Gift Mode ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-primary/[0.06] via-primary/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:gift-bold" className="text-primary" width={15} />
+            </Box>
+            <Typography variant="subtitle2" className="font-semibold text-foreground">{t('form.giftTabTikmool')} / {t('form.giftTabExternal')}</Typography>
+          </Box>
+          <Box className="p-6 flex flex-col gap-6">
+            <Box className="w-full">
+              <Tabs value={giftMode} onChange={(v) => handleGiftModeChange(v as GiftFormMode)} className="w-full">
+                <Tab value="tikmool" label={t('form.giftTabTikmool')} />
+                <Tab value="external" label={t('form.giftTabExternal')} />
+              </Tabs>
+            </Box>
 
-        {giftMode === 'tikmool' && (
-          <Box className="flex flex-col gap-6">
-            <Box className="group">
-              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
-                {t('form.giftShopProductVariant')}
-              </Typography>
-
-              {!isEditMode && (
-                <Typography variant="caption" className="mb-3 block text-muted-foreground">
-                  {t('form.giftBulkCreateDesc')}
-                </Typography>
-              )}
-
-              {isEditMode ? (
-                <Controller
-                  name="shop_product_variant_ids"
-                  control={control}
-                  render={({ field, fieldState }) => (
-                    <>
-                      <InfiniteScrollSelect
-                        value={field.value?.[0] ?? 0}
-                        onChange={(val) => field.onChange(val ? [val] : [])}
-                        queryKey={['shopProductVariant', 'gift', 'tikmool']}
-                        fetcher={variantFetcher}
-                        placeholder={t('form.selectProductVariant')}
-                        initialLabel={variantInitialLabel}
-                        pageSize={15}
-                      />
-                      {fieldState.error && (
-                        <Typography variant="caption" className="mt-1 text-destructive">
-                          {(fieldState.error as any).message || (fieldState.error as any).root?.message}
-                        </Typography>
-                      )}
-                    </>
+            {giftMode === 'tikmool' && (
+              <Box className="flex flex-col gap-5">
+                <Box className="group">
+                  <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.giftShopProductVariant')}</Typography>
+                  {!isEditMode && (
+                    <Typography variant="caption" className="mb-3 block text-muted-foreground">{t('form.giftBulkCreateDesc')}</Typography>
                   )}
-                />
-              ) : (
-                <Controller
-                  name="shop_product_variant_ids"
-                  control={control}
-                  render={({ field, fieldState }) => (
-                    <VariantMultiPicker
-                      selectedIds={field.value ?? []}
-                      onChange={field.onChange}
-                      t={t}
-                      error={(fieldState.error as any)?.message || (fieldState.error as any)?.root?.message}
+                  {isEditMode ? (
+                    <Controller
+                      name="shop_product_variant_ids"
+                      control={control}
+                      render={({ field, fieldState }) => (
+                        <>
+                          <InfiniteScrollSelect value={field.value?.[0] ?? 0} onChange={(val) => field.onChange(val ? [val] : [])} queryKey={['shopProductVariant', 'gift', 'tikmool']} fetcher={variantFetcher} placeholder={t('form.selectProductVariant')} initialLabel={variantInitialLabel} pageSize={15} />
+                          {fieldState.error && <Typography variant="caption" className="mt-1 text-destructive">{(fieldState.error as any).message || (fieldState.error as any).root?.message}</Typography>}
+                        </>
+                      )}
+                    />
+                  ) : (
+                    <Controller
+                      name="shop_product_variant_ids"
+                      control={control}
+                      render={({ field, fieldState }) => (
+                        <VariantMultiPicker selectedIds={field.value ?? []} onChange={field.onChange} t={t} error={(fieldState.error as any)?.message || (fieldState.error as any)?.root?.message} />
+                      )}
                     />
                   )}
-                />
-              )}
-            </Box>
-            <GiftSharedFields
-              t={t}
-              control={control}
-              detailsResponse={detailsResponse}
-              fromState={fromState}
-              hideCategoryField={!isEditMode}
-            />
-          </Box>
-        )}
-
-        {giftMode === 'external' && (
-          <Box className="flex flex-col gap-6">
-            <Box className="group">
-              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
-                {t('columns.name')}
-              </Typography>
-              <div className="flex flex-col gap-2">
-                <RHFTextField name="name.ar" placeholder={t('form.descriptionArPlaceholder')} dir="rtl" fullWidth />
-                <RHFTextField name="name.en" placeholder={t('form.namePlaceholder')} fullWidth />
-              </div>
-            </Box>
-
-            <Box className="group">
-              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
-                {t('columns.description')}
-              </Typography>
-              <div className="flex flex-col gap-2">
-                <RHFTextField
-                  name="description.ar"
-                  placeholder={t('form.descriptionArPlaceholder')}
-                  dir="rtl"
-                  fullWidth
-                />
-                <RHFTextField name="description.en" placeholder={t('form.descriptionEnPlaceholder')} fullWidth />
-              </div>
-            </Box>
-
-            <GiftSharedFields
-              t={t}
-              control={control}
-              detailsResponse={detailsResponse}
-              fromState={fromState}
-            />
-          </Box>
-        )}
-
-        <Box className="group">
-          <Controller
-            name="is_active"
-            control={control}
-            render={({ field }) => (
-              <div className="flex items-center gap-2">
-                <Switch
-                  checked={field.value}
-                  onChange={(e) => field.onChange((e.target as HTMLInputElement).checked)}
-                />
-                <Typography variant="body2">{t('columns.active')}</Typography>
-              </div>
+                </Box>
+                <GiftSharedFields t={t} control={control} detailsResponse={detailsResponse} fromState={fromState} hideCategoryField={!isEditMode} />
+              </Box>
             )}
-          />
+
+            {giftMode === 'external' && (
+              <Box className="flex flex-col gap-5">
+                <Box className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <Box className="group">
+                    <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.nameEn')}</Typography>
+                    <RHFTextField name="name.en" placeholder={t('form.namePlaceholder')} fullWidth />
+                  </Box>
+                  <Box className="group">
+                    <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.nameAr')}</Typography>
+                    <RHFTextField name="name.ar" placeholder={t('form.descriptionArPlaceholder')} dir="rtl" fullWidth />
+                  </Box>
+                  <Box className="group">
+                    <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.descriptionEn')}</Typography>
+                    <RHFTextField name="description.en" placeholder={t('form.descriptionEnPlaceholder')} fullWidth />
+                  </Box>
+                  <Box className="group">
+                    <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.descriptionAr')}</Typography>
+                    <RHFTextField name="description.ar" placeholder={t('form.descriptionArPlaceholder')} dir="rtl" fullWidth />
+                  </Box>
+                </Box>
+                <GiftSharedFields t={t} control={control} detailsResponse={detailsResponse} fromState={fromState} />
+              </Box>
+            )}
+          </Box>
+        </Box>
+
+        {/* ── Section: Status ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-emerald-500/[0.06] via-emerald-500/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:bolt-bold" className="text-emerald-500" width={15} />
+            </Box>
+            <Typography variant="subtitle2" className="font-semibold text-foreground">{t('columns.active')}</Typography>
+          </Box>
+          <Box className="p-6">
+            <Controller
+              name="is_active"
+              control={control}
+              render={({ field }) => (
+                <div className="flex items-center gap-3 p-4 rounded-xl border border-border/60 bg-background/60 hover:border-emerald-500/40 transition-colors">
+                  <Switch checked={field.value} onChange={(e) => field.onChange((e.target as HTMLInputElement).checked)} />
+                  <Typography variant="subtitle2" className="font-semibold text-foreground">{t('columns.active')}</Typography>
+                </div>
+              )}
+            />
+          </Box>
         </Box>
       </CreateFormLayout>
     </>

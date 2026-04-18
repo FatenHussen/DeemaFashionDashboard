@@ -1,13 +1,14 @@
 import type { TFunction } from 'i18next';
 import type { Table } from '@tanstack/react-table';
 import type { NotificationFormValues } from '@/columns/one/admin-notifications/one';
+import type { NotificationType } from '@/pages/dashboard/admin-notifications/types/notification.types';
 
 import { X, Search } from 'lucide-react';
 import { Input } from '@/shared/ui/input';
 import { Button } from '@/shared/ui/button';
+import { useState, useEffect } from 'react';
 import { mergeClasses } from 'minimal-shared/utils';
 import { Iconify } from '@/shared/components/iconify';
-import { useState, useEffect, useCallback } from 'react';
 import { NOTIFICATION_TYPES } from '@/pages/dashboard/admin-notifications/types/notification.types';
 
 // ----------------------------------------------------------------------
@@ -26,16 +27,25 @@ const CHIP_RING: Record<string, string> = {
   vendor: 'ring-purple-500/40 bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/30',
 };
 
-const CHIP_IDLE = 'border-border/60 bg-background/60 text-muted-foreground hover:border-primary/35 hover:bg-primary/[0.06]';
+const CHIP_IDLE =
+  'border-border/60 bg-background/60 text-muted-foreground hover:border-primary/35 hover:bg-primary/[0.06]';
 
 type Props = {
   table: Table<NotificationFormValues>;
   search: string;
   onSearchChange: (value: string) => void;
+  typeFilter: NotificationType | 'all';
+  onTypeChange: (value: NotificationType | 'all') => void;
   t: TFunction<'table'>;
 };
 
-export function AdminNotificationTableFilters({ table, search, onSearchChange, t }: Props) {
+export function AdminNotificationTableFilters({
+  search,
+  onSearchChange,
+  typeFilter,
+  onTypeChange,
+  t,
+}: Props) {
   const [localSearch, setLocalSearch] = useState(search);
   const [searchFocused, setSearchFocused] = useState(false);
 
@@ -48,32 +58,15 @@ export function AdminNotificationTableFilters({ table, search, onSearchChange, t
     return () => window.clearTimeout(id);
   }, [localSearch, onSearchChange]);
 
-  const rawTypeFilter = table.getColumn('type')?.getFilterValue();
-  const activeAudience =
-    rawTypeFilter != null && rawTypeFilter !== '' && rawTypeFilter !== 'all'
-      ? String(rawTypeFilter)
-      : 'all';
-
-  const setAudience = useCallback(
-    (key: string) => {
-      const col = table.getColumn('type');
-      if (!col) return;
-      if (key === 'all') col.setFilterValue(undefined);
-      else col.setFilterValue(key);
-    },
-    [table]
-  );
-
-  const hasColumnFilter = table.getState().columnFilters.some((f) => f.id === 'type');
-  const hasActiveFilters = Boolean(localSearch.trim()) || hasColumnFilter;
+  const hasActiveFilters = Boolean(localSearch.trim()) || typeFilter !== 'all';
 
   const clearAll = () => {
     setLocalSearch('');
     onSearchChange('');
-    table.getColumn('type')?.setFilterValue(undefined);
+    onTypeChange('all');
   };
 
-  const audienceOptions = NOTIFICATION_TYPES;
+  const audienceOptions: Array<NotificationType | 'all'> = ['all', ...NOTIFICATION_TYPES.filter((type) => type !== 'all')];
 
   return (
     <div className="relative w-full min-w-0">
@@ -92,8 +85,12 @@ export function AdminNotificationTableFilters({ table, search, onSearchChange, t
                 <Iconify icon="solar:bell-bing-bold" width={22} />
               </span>
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-foreground">{t('form.notificationFiltersTitle')}</p>
-                <p className="text-xs text-muted-foreground">{t('form.notificationFiltersHint')}</p>
+                <p className="text-sm font-semibold text-foreground">
+                  {t('form.notificationFiltersTitle')}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {t('form.notificationFiltersHint')}
+                </p>
               </div>
             </div>
 
@@ -140,14 +137,14 @@ export function AdminNotificationTableFilters({ table, search, onSearchChange, t
             </p>
             <div className="flex flex-wrap gap-2">
               {audienceOptions.map((key) => {
-                const isOn = activeAudience === key;
+                const isOn = typeFilter === key;
                 const labelKey = AUDIENCE_KEYS[key];
-                const label = labelKey ? t(labelKey) : key;
+                const label = labelKey ? t(labelKey as any) : key;
                 return (
                   <button
                     key={key}
                     type="button"
-                    onClick={() => setAudience(key)}
+                    onClick={() => onTypeChange(key)}
                     className={mergeClasses([
                       'inline-flex items-center gap-1.5 rounded-full border px-3.5 py-2 text-xs font-semibold transition-all duration-200',
                       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30',
@@ -165,7 +162,11 @@ export function AdminNotificationTableFilters({ table, search, onSearchChange, t
                         ])}
                       />
                     ) : (
-                      <Iconify icon="solar:users-group-rounded-bold" width={14} className="opacity-80" />
+                      <Iconify
+                        icon="solar:users-group-rounded-bold"
+                        width={14}
+                        className="opacity-80"
+                      />
                     )}
                     {label}
                   </button>

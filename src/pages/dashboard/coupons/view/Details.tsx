@@ -3,7 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
 import { formatTranslated } from '@/utils/format-translated';
+import { useFetchCityById } from '@/pages/dashboard/locations/hooks/city';
 import { useFetchCouponById } from '@/pages/dashboard/coupons/hooks/coupon';
+import { useFetchGovernorateById } from '@/pages/dashboard/locations/hooks/governorate';
 
 import { CONFIG } from 'src/global-config';
 import { Box, Typography } from 'src/shared/ui';
@@ -19,6 +21,15 @@ export default function DetailsPage() {
   const { data: couponResponse, isLoading, error } = useFetchCouponById(id || '');
 
   const coupon = couponResponse?.data;
+
+  const governorateId = coupon?.governorate_id;
+  const cityId = coupon?.city_id;
+  const { data: governorateRow, isLoading: governorateLoading } = useFetchGovernorateById(
+    governorateId != null && governorateId > 0 ? governorateId : ''
+  );
+  const { data: cityRow, isLoading: cityLoading } = useFetchCityById(
+    cityId != null && cityId > 0 ? cityId : ''
+  );
 
   if (isLoading) {
     return <LoadingScreen />;
@@ -63,7 +74,7 @@ export default function DetailsPage() {
           <Box className="absolute inset-0 bg-[linear-gradient(to_right,rgba(0,0,0,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(0,0,0,0.03)_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:32px_32px]" />
         </Box>
 
-        <Box className="relative max-w-4xl mx-auto">
+        <Box className="relative w-full">
           <Box className="mb-6">
             <Button
               variant="text"
@@ -176,11 +187,38 @@ export default function DetailsPage() {
                     </span>
                   </Typography>
                 </Box>
+                <Box>
+                  <Typography variant="caption" className="text-muted-foreground">
+                    {t('columns.governorate')}
+                  </Typography>
+                  <Typography variant="body1" className="font-medium">
+                    {governorateId == null || governorateId <= 0
+                      ? '—'
+                      : governorateLoading
+                        ? '…'
+                        : governorateRow?.name ?? `#${governorateId}`}
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography variant="caption" className="text-muted-foreground">
+                    {t('columns.city')}
+                  </Typography>
+                  <Typography variant="body1" className="font-medium">
+                    {cityId == null || cityId <= 0
+                      ? '—'
+                      : cityLoading
+                        ? '…'
+                        : cityRow
+                          ? formatTranslated(cityRow.name as Parameters<typeof formatTranslated>[0])
+                          : `#${cityId}`}
+                  </Typography>
+                </Box>
               </Box>
             </Box>
 
             {(coupon.products?.length > 0 ||
               coupon.vendors?.length > 0 ||
+              (coupon.shops?.length ?? 0) > 0 ||
               coupon.categories?.length > 0) && (
               <>
                 <Separator />
@@ -216,6 +254,24 @@ export default function DetailsPage() {
                           >
                             {formatTranslated(v.name as Parameters<typeof formatTranslated>[0]) ||
                               t('form.vendorFallbackLabel', { id: v.id })}
+                          </span>
+                        ))}
+                      </Box>
+                    </Box>
+                  )}
+                  {(coupon.shops?.length ?? 0) > 0 && (
+                    <Box className="mb-4">
+                      <Typography variant="subtitle2" className="font-semibold mb-2">
+                        {t('form.couponTypeShops')}
+                      </Typography>
+                      <Box className="flex flex-wrap gap-2">
+                        {(coupon.shops ?? []).map((s) => (
+                          <span
+                            key={s.id}
+                            className="inline-flex items-center rounded-md bg-muted px-2 py-1 text-sm"
+                          >
+                            {formatTranslated(s.name as Parameters<typeof formatTranslated>[0]) ||
+                              t('form.shopFallbackLabel', { id: s.id })}
                           </span>
                         ))}
                       </Box>

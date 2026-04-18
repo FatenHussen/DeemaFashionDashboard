@@ -57,12 +57,18 @@ export const NavItem = forwardRef<HTMLButtonElement, NavItemProps>(function NavI
     'text-[var(--nav-item-color)]',
     'relative group flex items-center',
     'transition-all duration-200 ease-out',
-    'hover:bg-[var(--nav-item-hover-bg)]',
+    'hover:bg-[var(--nav-item-hover-bg)] hover:text-foreground',
     open
       ? 'text-[var(--nav-item-root-open-color)] bg-[var(--nav-item-root-open-bg)]'
       : '',
     active
-      ? 'text-[var(--nav-item-root-active-color)] bg-[var(--nav-item-root-active-bg)]'
+      ? [
+          'text-[var(--nav-item-root-active-color)] bg-[var(--nav-item-root-active-bg)]',
+          'shadow-[inset_0_0_0_1px_rgb(var(--primary)_/_0.12)]',
+          'before:absolute before:start-0 before:inset-y-[4px]',
+          'before:w-[3px] before:rounded-e-full',
+          'before:bg-gradient-to-b before:from-primary before:to-primary/55',
+        ].join(' ')
       : '',
     disabled ? 'opacity-48 pointer-events-none' : '',
   ]);
@@ -115,9 +121,11 @@ export const NavItem = forwardRef<HTMLButtonElement, NavItemProps>(function NavI
         <span
           className={mergeClasses([
             navSectionClasses.item.icon,
-            'inline-flex shrink-0',
+            'inline-flex shrink-0 items-center justify-center',
             'w-[var(--nav-icon-size)] h-[var(--nav-icon-size)]',
             'm-[var(--nav-icon-margin)]',
+            'transition-transform duration-200',
+            isRootItem && active ? 'scale-110' : '',
             '[&>:first-of-type:not(style):not(:first-of-type~*),&>style+*]:w-full [&>:first-of-type:not(style):not(:first-of-type~*),&>style+*]:h-full',
             slotProps?.icon?.className,
           ])}

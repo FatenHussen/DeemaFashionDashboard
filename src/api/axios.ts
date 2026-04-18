@@ -49,14 +49,35 @@ const clearSessionAndRedirectToLogin = () => {
   }
 };
 
+/** Laravel-style `{ errors: { field: ["msg"] } }` → one line for toasts. */
+function formatApiValidationErrors(errors: unknown): string | null {
+  if (!errors || typeof errors !== 'object') return null;
+  const lines: string[] = [];
+  for (const value of Object.values(errors as Record<string, unknown>)) {
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        if (typeof item === 'string' && item.trim()) lines.push(item.trim());
+      }
+    } else if (typeof value === 'string' && value.trim()) {
+      lines.push(value.trim());
+    }
+  }
+  if (!lines.length) return null;
+  return [...new Set(lines)].join(' · ');
+}
+
 axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
     const status = error?.response?.status;
-    const message =
-      error?.response?.data?.message ||
+    const data = error?.response?.data;
+    const validationMessage = formatApiValidationErrors(data?.errors);
+    const baseMessage =
+      data?.message ||
       error?.message ||
       i18n.t('genericError', { ns: 'common' });
+
+    const message = validationMessage || baseMessage;
 
     // 401 Unauthorized: token expired or invalid -> redirect to login
     if (status === 401) {

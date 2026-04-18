@@ -1,7 +1,7 @@
-import { useState } from 'react';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
+import { useState, type ReactNode } from 'react';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { usePermissions } from '@/auth/hooks/use-permissions';
 import { useFetchAreas } from '@/pages/dashboard/locations/hooks/area';
@@ -18,7 +18,6 @@ export default function Page() {
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [isAffiliateFilter, setIsAffiliateFilter] = useState<string>('');
   const [affiliateApprovedFilter, setAffiliateApprovedFilter] = useState<string>('');
   const [areaFilter, setAreaFilter] = useState<string>('');
   const [deletingId, setDeletingId] = useState<number | null>(null);
@@ -29,16 +28,18 @@ export default function Page() {
   const { data: userDetailsResponse } = useFetchUserById(passwordDialogTargetId ?? '');
   const areas = areasResponse?.data?.items || [];
 
-  const params: Record<string, number> = {};
-  if (isAffiliateFilter !== '') params.is_affiliate = parseInt(isAffiliateFilter, 10);
-  if (affiliateApprovedFilter !== '')
-    params.affiliate_approved = parseInt(affiliateApprovedFilter, 10);
+  const params: Record<string, number> = {
+    affiliate_approved:
+      affiliateApprovedFilter !== ''
+        ? parseInt(affiliateApprovedFilter, 10)
+        : 0,
+  };
   if (areaFilter !== '') params.area_id = parseInt(areaFilter, 10);
 
   const { data: usersResponse, isLoading, error } = useFetchUsers(
     currentPage,
     pageSize,
-    Object.keys(params).length > 0 ? params : undefined
+    params
   );
 
   const deleteUserMutation = useDeleteUser();
@@ -133,65 +134,36 @@ export default function Page() {
   const hasPermission = (action: string, resource: string) =>
     can(`${resource}.${action}`);
 
-  const resetFilters = () => {
-    setIsAffiliateFilter('');
-    setAffiliateApprovedFilter('');
-    setAreaFilter('');
-    setCurrentPage(1);
-  };
+  const activeFilterCount = [affiliateApprovedFilter, areaFilter].filter(Boolean).length;
 
-  const hasActiveFilters = isAffiliateFilter || affiliateApprovedFilter || areaFilter;
-
-  const filterContent = (
+  const sidebarContent = (
     <>
-      <select
-        value={isAffiliateFilter}
-        onChange={(e) => {
-          setIsAffiliateFilter(e.target.value);
-          setCurrentPage(1);
-        }}
-        className="h-10 min-w-[120px] rounded-xl border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-      >
-        <option value="">{t('isAffiliateLabel')}</option>
-        <option value="0">{t('no')}</option>
-        <option value="1">{t('yes')}</option>
-      </select>
-      <select
-        value={affiliateApprovedFilter}
-        onChange={(e) => {
-          setAffiliateApprovedFilter(e.target.value);
-          setCurrentPage(1);
-        }}
-        className="h-10 min-w-[120px] rounded-xl border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-      >
-        <option value="">{t('affiliateApprovedLabel')}</option>
-        <option value="0">{t('no')}</option>
-        <option value="1">{t('yes')}</option>
-      </select>
-      <select
-        value={areaFilter}
-        onChange={(e) => {
-          setAreaFilter(e.target.value);
-          setCurrentPage(1);
-        }}
-        className="h-10 min-w-[140px] rounded-xl border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-      >
-        <option value="">{t('areaLabel')}</option>
-        {areas.map((a) => (
-          <option key={a.id} value={a.id}>
-            {typeof a.name === 'object' ? (a.name.en || a.name.ar) : a.name}
-          </option>
-        ))}
-      </select>
-      {hasActiveFilters && (
-        <button
-          type="button"
-          onClick={resetFilters}
-          className="h-10 rounded-xl border border-border px-4 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted"
+      <FilterGroup label={t('affiliateApprovedLabel')}>
+        <select
+          value={affiliateApprovedFilter}
+          onChange={(e) => { setAffiliateApprovedFilter(e.target.value); setCurrentPage(1); }}
+          className="w-full h-10 rounded-xl border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
         >
-          {t('resetFilter')}
-        </button>
-      )}
+          <option value="">{t('all')}</option>
+          <option value="0">{t('no')}</option>
+          <option value="1">{t('yes')}</option>
+        </select>
+      </FilterGroup>
+
+      <FilterGroup label={t('areaLabel')}>
+        <select
+          value={areaFilter}
+          onChange={(e) => { setAreaFilter(e.target.value); setCurrentPage(1); }}
+          className="w-full h-10 rounded-xl border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+        >
+          <option value="">{t('all')}</option>
+          {areas.map((a) => (
+            <option key={a.id} value={a.id}>
+              {typeof a.name === 'object' ? (a.name.en || a.name.ar) : a.name}
+            </option>
+          ))}
+        </select>
+      </FilterGroup>
     </>
   );
 
@@ -229,7 +201,13 @@ export default function Page() {
         createPath="/users/create"
         hasDetails
         detailsLink="/users/details"
-        toolbarFilter={filterContent}
+        filterSidebar={sidebarContent}
+        activeFilterCount={activeFilterCount}
+        onFilterReset={() => {
+          setAffiliateApprovedFilter('');
+          setAreaFilter('');
+          setCurrentPage(1);
+        }}
         permissions={{
           create: hasPermission('create', 'user'),
           update: hasPermission('update', 'user'),
@@ -252,5 +230,14 @@ export default function Page() {
         onPageSizeChange={handlePageSizeChange}
       />
     </>
+  );
+}
+
+function FilterGroup({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{label}</label>
+      {children}
+    </div>
   );
 }

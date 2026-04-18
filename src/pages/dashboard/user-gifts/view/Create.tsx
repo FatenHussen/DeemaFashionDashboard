@@ -13,6 +13,7 @@ import {
 
 import { CONFIG } from 'src/global-config';
 import { Box, Typography } from 'src/shared/ui';
+import { Iconify } from 'src/shared/components/iconify';
 import { RHFSelect } from 'src/shared/components/hook-form/rhf-select';
 import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
 import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
@@ -111,70 +112,65 @@ export default function CreatePage() {
         errorMessage={errorMessage}
         title={t('form.assignGift')}
         description={t('form.assignGiftDesc')}
-        maxWidth="2xl"
         submitLabel={t('form.assignGiftSubmit')}
         submittingLabel={t('form.assigning')}
       >
-        <Box className="space-y-4">
-          <Box>
-            <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
-              {t('form.userGiftFieldUserRequired')}
+        {/* ── Section: User & Gift ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-primary/[0.06] via-primary/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:gift-bold" className="text-primary" width={15} />
+            </Box>
+            <Typography variant="subtitle2" className="font-semibold text-foreground">
+              {t('form.userGiftFieldUserRequired')} & {t('form.userGiftFieldGiftRequired')}
             </Typography>
-            <RHFInfiniteSelect
-              name="user_id"
-              queryKey={['users', 'infinite', 'user-gift-form']}
-              fetcher={userFetcher}
-              placeholder={t('form.selectUser')}
-            />
           </Box>
+          <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+            <Box>
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.userGiftFieldUserRequired')}</Typography>
+              <RHFInfiniteSelect name="user_id" queryKey={['users', 'infinite', 'user-gift-form']} fetcher={userFetcher} placeholder={t('form.selectUser')} />
+            </Box>
+            <Box>
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.userGiftFieldGiftRequired')}</Typography>
+              <RHFInfiniteSelect name="gift_id" queryKey={['gifts', 'infinite', 'user-gift-form']} fetcher={giftFetcher} placeholder={t('form.selectGift')} />
+            </Box>
+          </Box>
+        </Box>
 
-          <Box>
-            <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
-              {t('form.userGiftFieldGiftRequired')}
+        {/* ── Section: Delivery & Status ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-violet-500/[0.06] via-violet-500/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:delivery-bold" className="text-violet-500" width={15} />
+            </Box>
+            <Typography variant="subtitle2" className="font-semibold text-foreground">
+              {t('columns.status')} & {t('form.userGiftFieldAddressOptional')}
             </Typography>
-            <RHFInfiniteSelect
-              name="gift_id"
-              queryKey={['gifts', 'infinite', 'user-gift-form']}
-              fetcher={giftFetcher}
-              placeholder={t('form.selectGift')}
-            />
           </Box>
-
-          <Box>
-            <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
-              {t('form.userGiftFieldAddressOptional')}
-            </Typography>
-            <RHFTextField
-              name="address_id"
-              type="number"
-              placeholder={t('form.deliveryAddressPlaceholder')}
-              fullWidth
-            />
+          <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+            <Box>
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('columns.status')}</Typography>
+              <RHFSelect
+                name="status"
+                options={[
+                  { value: 'pending', label: t('form.userGiftStatus_pending') },
+                  { value: 'processing', label: t('form.userGiftStatus_processing') },
+                  { value: 'shipped', label: t('form.userGiftStatus_shipped') },
+                  { value: 'delivered', label: t('form.userGiftStatus_delivered') },
+                  { value: 'cancelled', label: t('form.userGiftStatus_cancelled') },
+                ]}
+                placeholder={t('form.selectStatus')}
+              />
+            </Box>
+            <Box>
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.userGiftFieldAddressOptional')}</Typography>
+              <RHFTextField name="address_id" type="number" placeholder={t('form.deliveryAddressPlaceholder')} fullWidth />
+            </Box>
+            <Box className="md:col-span-2">
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.adminNotesLabel')}</Typography>
+              <RHFTextField name="admin_notes" placeholder={t('form.adminNotesPlaceholder')} fullWidth />
+            </Box>
           </Box>
-
-          <Box>
-            <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
-              {t('columns.status')}
-            </Typography>
-            <RHFSelect
-              name="status"
-              options={[
-                { value: 'pending', label: t('form.userGiftStatus_pending') },
-                { value: 'processing', label: t('form.userGiftStatus_processing') },
-                { value: 'shipped', label: t('form.userGiftStatus_shipped') },
-                { value: 'delivered', label: t('form.userGiftStatus_delivered') },
-                { value: 'cancelled', label: t('form.userGiftStatus_cancelled') },
-              ]}
-              placeholder={t('form.selectStatus')}
-            />
-          </Box>
-
-          <RHFTextField
-            name="admin_notes"
-            label={t('form.adminNotesLabel')}
-            placeholder={t('form.adminNotesPlaceholder')}
-            fullWidth
-          />
         </Box>
       </CreateFormLayout>
     </>

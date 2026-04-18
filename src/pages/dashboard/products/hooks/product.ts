@@ -16,6 +16,9 @@ export const useFetchProducts = (params?: {
   category_id?: number;
   brand_id?: number;
   vendor_id?: number;
+  category_attribute_id?: number;
+  category_attribute_ids?: number[];
+  stock_sort?: 'asc' | 'desc';
   approval_status?: string;
   is_visible?: boolean;
 }) =>
@@ -101,6 +104,19 @@ export const useUpdateProductPrice = () => {
   return useMutation({
     mutationFn: ({ id, price }: { id: number | string; price: number }) =>
       _ProductApi.updateProductPrice(id, price),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: ['product', 'list'] });
+      queryClient.invalidateQueries({ queryKey: ['product', 'variants'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.product.details(id) });
+    },
+  });
+};
+
+export const useUpdateProductQuantity = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, quantity }: { id: number | string; quantity: number }) =>
+      _ProductApi.updateProductQuantity(id, quantity),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: ['product', 'list'] });
       queryClient.invalidateQueries({ queryKey: queryKeys.product.details(id) });

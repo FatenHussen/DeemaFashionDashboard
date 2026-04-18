@@ -37,6 +37,8 @@ interface DataTableProps<TData, TValue> {
   hasDetails?: boolean;
   /** When false, row click does not navigate to details; only the actions menu does */
   rowClickToDetails?: boolean;
+  /** When set, row cells call this instead of navigating to `detailsLink` (actions column unchanged). */
+  onRowClick?: (row: TData) => void;
   isPagePaginateHiddent?: boolean;
   detailsLink?: string;
   permissions?: {
@@ -70,6 +72,16 @@ interface DataTableProps<TData, TValue> {
   defaultHiddenColumns?: string[];
   /** Custom filter content rendered in the toolbar (top of table), or render fn with table instance */
   toolbarFilter?: React.ReactNode | ((ctx: { table: TanStackTable<TData> }) => React.ReactNode);
+  /** Content rendered inside the slide-in filter sidebar drawer */
+  filterSidebar?: React.ReactNode;
+  /** Number of active sidebar filters — shows a badge on the filter button */
+  activeFilterCount?: number;
+  /** Called when the sidebar "Reset" button is clicked */
+  onFilterReset?: () => void;
+  /** Called when the user confirms filters in the sidebar footer (before the drawer closes). */
+  onFilterApply?: () => void;
+  /** Renders above the toolbar inside a card container (e.g. shared breadcrumb) */
+  tableTop?: React.ReactNode;
 }
 
 export function DataTable<TData, TValue>({
@@ -78,6 +90,7 @@ export function DataTable<TData, TValue>({
   createPath,
   hasDetails,
   rowClickToDetails = true,
+  onRowClick,
   hasRecycleFilter = false,
   onRecycleFilterChange,
   isPagePaginateHiddent,
@@ -98,6 +111,11 @@ export function DataTable<TData, TValue>({
   pageSizeOptions,
   defaultHiddenColumns = [],
   toolbarFilter,
+  filterSidebar,
+  activeFilterCount,
+  onFilterReset,
+  onFilterApply,
+  tableTop,
 }: DataTableProps<TData, TValue>) {
   const [expandedRows, setExpandedRows] = React.useState<Record<string, boolean>>({});
   const [sorting, setSorting] = React.useState<SortingState>([]);
@@ -150,7 +168,13 @@ export function DataTable<TData, TValue>({
   const isTwoColumns = visibleColumnsCount === 2;
 
   return (
-    <div className="w-full min-w-0 space-y-3 sm:space-y-4 transition-opacity duration-500 px-3 py-4 sm:px-4 md:p-6">
+    <div className="w-full min-w-0 space-y-4 px-3 py-4 sm:px-4 md:px-6 md:py-5">
+      {tableTop ? (
+        <div className="rounded-xl border border-border/50 bg-card/80 px-4 py-3 shadow-sm sm:px-5 sm:py-3.5">
+          {tableTop}
+        </div>
+      ) : null}
+
       <DataTableToolbar
         table={table}
         createPath={createPath}
@@ -164,36 +188,36 @@ export function DataTable<TData, TValue>({
         defaultColumns={defaultColumnsConfig}
         columnTranslations={columnTranslations}
         toolbarFilter={toolbarFilter}
+        filterSidebar={filterSidebar}
+        activeFilterCount={activeFilterCount}
+        onFilterReset={onFilterReset}
+        onFilterApply={onFilterApply}
       />
 
       {/* Table — responsive horizontal scroll + shell */}
       <div
         className={`
-          group/table-shell relative w-full min-w-0 overflow-hidden rounded-2xl sm:rounded-xl
-          border border-border/30 bg-linear-to-br from-background via-background to-muted/20
-          shadow-sm ring-1 ring-black/[0.04] transition-all duration-300
-          hover:border-primary/25 hover:shadow-lg hover:shadow-primary/[0.06] hover:ring-primary/15
-          dark:ring-white/[0.06] dark:hover:ring-primary/20
+          group/table-shell relative w-full min-w-0 rounded-xl
+          border border-border/50 bg-card
+          shadow-sm transition-all duration-300
+          hover:border-border/70 hover:shadow-md
+          overflow-x-auto
         `}
       >
         <div
-          className="pointer-events-none absolute inset-x-0 top-0 z-[12] h-px bg-linear-to-r from-transparent via-primary/35 to-transparent opacity-90"
-          aria-hidden
-        />
-        <div
-          className="pointer-events-none absolute -inset-px z-0 rounded-2xl sm:rounded-xl opacity-0 transition-opacity duration-300 group-hover/table-shell:opacity-100 bg-linear-to-br from-primary/[0.04] via-transparent to-primary/[0.06]"
+          className="pointer-events-none sticky inset-x-0 top-0 z-[12] h-[2px] bg-gradient-to-r from-transparent via-primary/30 to-transparent"
           aria-hidden
         />
         <Table
           id="table-container"
-          className="relative z-[1] w-full rounded-[inherit]"
-          style={{ tableLayout: isTwoColumns ? 'fixed' : 'auto', width: '100%' }}
+          className="relative z-[1] min-w-full"
+          style={{ tableLayout: isTwoColumns ? 'fixed' : 'auto' }}
         >
-          <TableHeader className="sticky top-0 z-10 table-header-glass border-b border-border/30 shadow-sm shadow-background/40">
+          <TableHeader className="sticky top-0 z-10 border-b border-border/40 bg-muted/40">
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow
                 key={headerGroup.id}
-                className="hover:bg-transparent border-b border-border/20 bg-linear-to-r from-muted/50 via-muted/25 to-muted/40"
+                className="hover:bg-transparent border-b-0"
               >
                 {expandedRowRender && (
                   <TableHead className="w-12 sticky start-0 z-20 bg-background/95 backdrop-blur">
@@ -205,10 +229,16 @@ export function DataTable<TData, TValue>({
                   // For 2 columns, distribute 50% each (excluding actions column)
                   const columnWidth =
                     isTwoColumns && !isActionsColumn ? '50%' : isActionsColumn ? 'auto' : undefined;
+                  const meta = header.column.columnDef.meta;
                   return (
                     <TableHead
                       key={header.id}
-                      className="transition-all duration-200 hover:bg-muted/30 first:ps-3 sm:first:ps-6 last:pe-3 sm:last:pe-6 whitespace-nowrap"
+                      className={[
+                        'transition-all duration-200 hover:bg-muted/30 first:ps-3 sm:first:ps-6 last:pe-3 sm:last:pe-6 whitespace-nowrap',
+                        meta?.headerClassName ?? '',
+                      ]
+                        .filter(Boolean)
+                        .join(' ')}
                       style={columnWidth ? { width: columnWidth } : undefined}
                     >
                       {header.isPlaceholder
@@ -256,13 +286,14 @@ export function DataTable<TData, TValue>({
                       data-state={isSelected && 'selected'}
                       style={{ '--row-index': rowIndex } as React.CSSProperties}
                       className={`
-                          group min-h-12 sm:min-h-14 ${rowClickToDetails ? 'cursor-pointer' : 'cursor-default'}
-                          table-modern-row table-row-gradient-hover
-                          hover:bg-linear-to-r hover:from-primary/8 hover:via-primary/4 hover:to-transparent
-                          hover:shadow-[inset_4px_0_0_0_rgb(var(--primary)),0_4px_12px_-4px_rgba(var(--primary),0.15)] rtl:hover:shadow-[inset_-4px_0_0_0_rgb(var(--primary)),0_4px_12px_-4px_rgba(var(--primary),0.15)]
-                          max-sm:active:scale-[0.998] active:bg-muted/50
-                          ${isSelected ? 'bg-primary/10 shadow-[inset_4px_0_0_0_rgb(var(--primary))] rtl:shadow-[inset_-4px_0_0_0_rgb(var(--primary))] sm:scale-[1.002]' : ''}
-                          ${rowIndex % 2 === 0 ? 'bg-background' : 'bg-muted/10'}
+                          group min-h-12 sm:min-h-14 ${rowClickToDetails || onRowClick ? 'cursor-pointer' : 'cursor-default'}
+                          table-modern-row
+                          transition-colors duration-150
+                          hover:bg-primary/5
+                          hover:shadow-[inset_3px_0_0_0_rgb(var(--primary))] rtl:hover:shadow-[inset_-3px_0_0_0_rgb(var(--primary))]
+                          active:bg-muted/50
+                          ${isSelected ? 'bg-primary/8 shadow-[inset_3px_0_0_0_rgb(var(--primary))] rtl:shadow-[inset_-3px_0_0_0_rgb(var(--primary))]' : ''}
+                          ${rowIndex % 2 === 0 ? 'bg-card' : 'bg-muted/20'}
                         `}
                     >
                       {expandedRowRender && (
@@ -293,11 +324,17 @@ export function DataTable<TData, TValue>({
                             : isActionsColumn
                               ? 'auto'
                               : undefined;
+                        const meta = cell.column.columnDef.meta;
                         return (
                           <TableCell
                             key={cell.id}
                             onClick={(e) => {
-                              if (!isActionsColumn && rowClickToDetails) {
+                              if (isActionsColumn) return;
+                              if (onRowClick) {
+                                onRowClick(row.original as TData);
+                                return;
+                              }
+                              if (rowClickToDetails) {
                                 const id = (row.original as ICategory)?.id;
                                 if (hasDetails && id && detailsLink) {
                                   navigate(`${detailsLink}/${id}`);
@@ -310,12 +347,15 @@ export function DataTable<TData, TValue>({
                                 ...(columnWidth ? { width: columnWidth } : {}),
                               } as React.CSSProperties
                             }
-                            className={`
-                                transition-all duration-200 first:ps-3 sm:first:ps-6 last:pe-3 sm:last:pe-6
-                                table-cell-animated
-                                ${isActionsColumn ? 'sticky end-0 z-10 bg-background/95 shadow-[-12px_0_24px_-8px_rgb(var(--background))] backdrop-blur-sm' : ''}
-                                group-hover:text-foreground
-                              `}
+                            className={[
+                              'transition-all duration-200 first:ps-3 sm:first:ps-6 last:pe-3 sm:last:pe-6 table-cell-animated group-hover:text-foreground',
+                              isActionsColumn
+                                ? 'sticky end-0 z-10 bg-background/95 shadow-[-12px_0_24px_-8px_rgb(var(--background))] backdrop-blur-sm'
+                                : '',
+                              meta?.cellClassName ?? '',
+                            ]
+                              .filter(Boolean)
+                              .join(' ')}
                           >
                             {isActionsColumn ? (
                               <div

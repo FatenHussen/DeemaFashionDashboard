@@ -52,7 +52,7 @@ export default function DetailsPage() {
     <>
       <title>{metadata.title}</title>
       <Box className="relative min-h-screen overflow-hidden bg-background p-6">
-        <Box className="relative mx-auto max-w-4xl">
+        <Box className="relative w-full">
           <Box className="mb-6">
             <Button variant="text" onClick={() => navigate('/scheduled-baskets')} className="-ml-2 mb-4 text-muted-foreground hover:text-foreground">
               <Iconify icon="solar:arrow-left-bold" width={20} className="mr-2 rtl:rotate-180" />{' '}

@@ -1,6 +1,6 @@
-import { useState } from 'react';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
+import { useState, type ReactNode } from 'react';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { usePermissions } from '@/auth/hooks/use-permissions';
 import {
@@ -71,58 +71,41 @@ export default function Page() {
   const { can } = usePermissions();
   const hasPermission = (action: string, resource: string) => can(`${resource}.${action}`);
 
-  const resetFilters = () => {
-    setIsActiveFilter('');
-    setMinPrice('');
-    setMaxPrice('');
-    setCurrentPage(1);
-  };
+  const activeFilterCount = [isActiveFilter, minPrice, maxPrice].filter((v) => v !== '').length;
 
-  const hasActiveFilters = isActiveFilter !== '' || minPrice !== '' || maxPrice !== '';
-
-  const filterContent = (
+  const sidebarContent = (
     <>
-      <select
-        value={isActiveFilter}
-        onChange={(e) => {
-          setIsActiveFilter(e.target.value);
-          setCurrentPage(1);
-        }}
-        className="h-10 min-w-[120px] rounded-xl border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-      >
-        <option value="">{t('allStatus')}</option>
-        <option value="1">{t('active')}</option>
-        <option value="0">{t('inactive')}</option>
-      </select>
-      <input
-        type="number"
-        placeholder={t('minPrice')}
-        value={minPrice}
-        onChange={(e) => {
-          setMinPrice(e.target.value);
-          setCurrentPage(1);
-        }}
-        className="h-10 w-28 rounded-xl border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-      />
-      <input
-        type="number"
-        placeholder={t('maxPrice')}
-        value={maxPrice}
-        onChange={(e) => {
-          setMaxPrice(e.target.value);
-          setCurrentPage(1);
-        }}
-        className="h-10 w-28 rounded-xl border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-      />
-      {hasActiveFilters && (
-        <button
-          type="button"
-          onClick={resetFilters}
-          className="h-10 rounded-xl border border-border px-4 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted"
+      <FilterGroup label={t('allStatus')}>
+        <select
+          value={isActiveFilter}
+          onChange={(e) => { setIsActiveFilter(e.target.value); setCurrentPage(1); }}
+          className="w-full h-10 rounded-xl border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
         >
-          {t('resetFilter')}
-        </button>
-      )}
+          <option value="">{t('allStatus')}</option>
+          <option value="1">{t('active')}</option>
+          <option value="0">{t('inactive')}</option>
+        </select>
+      </FilterGroup>
+
+      <FilterGroup label={t('minPrice')}>
+        <input
+          type="number"
+          placeholder={t('minPrice')}
+          value={minPrice}
+          onChange={(e) => { setMinPrice(e.target.value); setCurrentPage(1); }}
+          className="w-full h-10 rounded-xl border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+        />
+      </FilterGroup>
+
+      <FilterGroup label={t('maxPrice')}>
+        <input
+          type="number"
+          placeholder={t('maxPrice')}
+          value={maxPrice}
+          onChange={(e) => { setMaxPrice(e.target.value); setCurrentPage(1); }}
+          className="w-full h-10 rounded-xl border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+        />
+      </FilterGroup>
     </>
   );
 
@@ -146,7 +129,14 @@ export default function Page() {
         hasDetails
         detailsLink="/vendor-packages/details"
         createPath="/vendor-packages/create"
-        toolbarFilter={filterContent}
+        filterSidebar={sidebarContent}
+        activeFilterCount={activeFilterCount}
+        onFilterReset={() => {
+          setIsActiveFilter('');
+          setMinPrice('');
+          setMaxPrice('');
+          setCurrentPage(1);
+        }}
         permissions={{
           create: hasPermission('create', 'vendorpackage'),
           update: hasPermission('update', 'vendorpackage'),
@@ -172,5 +162,14 @@ export default function Page() {
         onPageSizeChange={handlePageSizeChange}
       />
     </>
+  );
+}
+
+function FilterGroup({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{label}</label>
+      {children}
+    </div>
   );
 }

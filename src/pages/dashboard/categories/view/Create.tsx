@@ -64,6 +64,7 @@ export default function CreatePage() {
     parent_id: null,
     order: 0,
     is_active: true,
+    is_restaurant: false,
   };
 
   const methods = useForm<CategoryFormValues>({
@@ -84,6 +85,7 @@ export default function CreatePage() {
         parent_id: category.parent_id,
         order: (category as any).order ?? 0,
         is_active: Boolean((category as any).is_active),
+        is_restaurant: Boolean((category as any).is_restaurant),
       });
 
       // Set preview image if icon exists
@@ -121,6 +123,7 @@ export default function CreatePage() {
         parent_id: data.parent_id || null,
         order: data.order ?? 0,
         is_active: data.is_active,
+        is_restaurant: data.is_restaurant,
       };
 
       if (isEditMode && id) {
@@ -166,145 +169,210 @@ export default function CreatePage() {
         isEditMode={isEditMode}
         isLoading={isLoadingCategory}
         loadingText={t('form.loadingCategory')}
-        maxWidth="4xl"
         infoText={infoText}
         submitLabel={isEditMode ? t('form.updateCategorySubmit') : t('form.createCategorySubmit')}
         submittingLabel={isEditMode ? t('form.updatingCategory') : t('form.creatingCategory')}
       >
-        {/* Name Field - Arabic */}
-        <Box className="group">
-          <Box className="flex items-center gap-2 mb-2">
-            <Iconify icon="solar:tag-bold" className="text-primary" width={24} height={24} />
+        {/* ── Section: Names ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-primary/[0.06] via-primary/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:tag-bold" className="text-primary" width={15} />
+            </Box>
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              {t('form.nameAr')}
+              {t('form.nameAr')} / {t('form.nameEn')}
             </Typography>
           </Box>
-          <RHFTextField
-            name="name.ar"
-            placeholder={t('form.namePlaceholder')}
-            helperText={t('form.categoryNameArHelper')}
-            className="transition-all duration-200"
-            dir="rtl"
-          />
-        </Box>
+          <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+            <Box className="group">
+              <Box className="flex items-center gap-2 mb-2">
+                <Iconify icon="solar:tag-bold" className="text-primary" width={20} height={20} />
+                <Typography variant="subtitle2" className="font-semibold text-foreground">
+                  {t('form.nameAr')}
+                </Typography>
+              </Box>
+              <RHFTextField
+                name="name.ar"
+                placeholder={t('form.namePlaceholder')}
+                helperText={t('form.categoryNameArHelper')}
+                className="transition-all duration-200"
+                dir="rtl"
+              />
+            </Box>
 
-        {/* Name Field - English */}
-        <Box className="group">
-          <Box className="flex items-center gap-2 mb-2">
-            <Iconify icon="solar:tag-bold" className="text-primary" width={24} height={24} />
-            <Typography variant="subtitle2" className="font-semibold text-foreground">
-              {t('form.nameEn')}
-            </Typography>
+            <Box className="group">
+              <Box className="flex items-center gap-2 mb-2">
+                <Iconify icon="solar:tag-bold" className="text-primary" width={20} height={20} />
+                <Typography variant="subtitle2" className="font-semibold text-foreground">
+                  {t('form.nameEn')}
+                </Typography>
+              </Box>
+              <RHFTextField
+                name="name.en"
+                placeholder={t('form.categoryNameEnPlaceholder')}
+                helperText={t('form.categoryNameEnHelper')}
+                className="transition-all duration-200"
+              />
+            </Box>
           </Box>
-          <RHFTextField
-            name="name.en"
-            placeholder={t('form.categoryNameEnPlaceholder')}
-            helperText={t('form.categoryNameEnHelper')}
-            className="transition-all duration-200"
-          />
         </Box>
 
-        {/* Parent Category Selection */}
-        <Box className="group">
-          <Box className="flex items-center gap-2 mb-2">
-            <Iconify icon="solar:diagram-bold" className="text-primary" width={24} height={24} />
+        {/* ── Section: Organization ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-violet-500/[0.06] via-violet-500/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:diagram-bold" className="text-violet-500" width={15} />
+            </Box>
             <Typography variant="subtitle2" className="font-semibold text-foreground">
               {t('form.parentCategorySection')}
             </Typography>
           </Box>
-          <RHFInfiniteSelect
-            name="parent_id"
-            queryKey={['categories', 'infinite', 'parent-form']}
-            fetcher={parentCategoryFetcher}
-            placeholder={t('form.parentCategoryPlaceholder')}
-            helperText={t('form.selectParentCategoryHelper')}
-            initialLabel={parentCategoryLabel ?? undefined}
-          />
+          <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+            <Box className="group">
+              <Box className="flex items-center gap-2 mb-2">
+                <Iconify icon="solar:diagram-bold" className="text-violet-500" width={20} height={20} />
+                <Typography variant="subtitle2" className="font-semibold text-foreground">
+                  {t('form.parentCategorySection')}
+                </Typography>
+              </Box>
+              <RHFInfiniteSelect
+                name="parent_id"
+                queryKey={['categories', 'infinite', 'parent-form']}
+                fetcher={parentCategoryFetcher}
+                placeholder={t('form.parentCategoryPlaceholder')}
+                helperText={t('form.selectParentCategoryHelper')}
+                initialLabel={parentCategoryLabel ?? undefined}
+              />
+            </Box>
+
+            <Box className="group">
+              <Box className="flex items-center gap-2 mb-2">
+                <Iconify icon="solar:sort-bold" className="text-violet-500" width={20} height={20} />
+                <Typography variant="subtitle2" className="font-semibold text-foreground">
+                  {t('form.order')}
+                </Typography>
+              </Box>
+              <RHFTextField
+                name="order"
+                type="number"
+                placeholder={t('form.placeholderZero')}
+                helperText={t('form.orderHelper')}
+              />
+            </Box>
+          </Box>
         </Box>
 
-        {/* Order */}
-        <Box className="group">
-          <Box className="flex items-center gap-2 mb-2">
-            <Iconify icon="solar:sort-bold" className="text-primary" width={24} height={24} />
+        {/* ── Section: Status Settings ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-emerald-500/[0.06] via-emerald-500/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:shield-check-bold" className="text-emerald-500" width={15} />
+            </Box>
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              {t('form.order')}
+              {t('statusLabel')}
             </Typography>
           </Box>
-          <RHFTextField
-            name="order"
-            type="number"
-            placeholder={t('form.placeholderZero')}
-            helperText={t('form.orderHelper')}
-          />
-        </Box>
-
-        {/* Is Active */}
-        <Box className="group">
-          <Controller
-            name="is_active"
-            control={control}
-            render={({ field }) => (
-              <div className="flex items-center gap-3 p-3 rounded-lg border border-border">
-                <Switch
-                  checked={field.value}
-                  onChange={(e) => field.onChange((e.target as HTMLInputElement).checked)}
-                />
-                <Box>
-                  <Typography variant="subtitle2" className="font-semibold text-foreground">
-                    {t('active')}
-                  </Typography>
-                  <Typography variant="caption" className="text-muted-foreground">
-                    {t('form.isActiveHelper')}
-                  </Typography>
-                </Box>
-              </div>
-            )}
-          />
-        </Box>
-
-        {/* Icon Upload Field */}
-        <Box className="group">
-          <Box className="flex items-center gap-2 mb-2">
-            <Iconify
-              icon="solar:gallery-add-bold"
-              className="text-primary"
-              width={24}
-              height={24}
+          <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+            <Controller
+              name="is_active"
+              control={control}
+              render={({ field }) => (
+                <div className="flex items-center gap-3 p-4 rounded-xl border border-border/60 bg-background/60 hover:border-emerald-500/40 hover:bg-emerald-500/[0.02] transition-colors">
+                  <Switch
+                    checked={field.value}
+                    onChange={(e) => field.onChange((e.target as HTMLInputElement).checked)}
+                  />
+                  <Box>
+                    <Typography variant="subtitle2" className="font-semibold text-foreground">
+                      {t('active')}
+                    </Typography>
+                    <Typography variant="caption" className="text-muted-foreground">
+                      {t('form.isActiveHelper')}
+                    </Typography>
+                  </Box>
+                </div>
+              )}
             />
+
+            <Controller
+              name="is_restaurant"
+              control={control}
+              render={({ field }) => (
+                <div className="flex items-center gap-3 p-4 rounded-xl border border-border/60 bg-background/60 hover:border-orange-500/40 hover:bg-orange-500/[0.02] transition-colors">
+                  <Switch
+                    checked={field.value}
+                    onChange={(e) => field.onChange((e.target as HTMLInputElement).checked)}
+                  />
+                  <Box>
+                    <Box className="flex items-center gap-2">
+                      <Iconify icon="solar:shop-bold" className="text-orange-500" width={16} height={16} />
+                      <Typography variant="subtitle2" className="font-semibold text-foreground">
+                        {t('form.isRestaurant')}
+                      </Typography>
+                    </Box>
+                    <Typography variant="caption" className="text-muted-foreground">
+                      {t('form.isRestaurantHelper')}
+                    </Typography>
+                  </Box>
+                </div>
+              )}
+            />
+          </Box>
+        </Box>
+
+        {/* ── Section: Media ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-amber-500/[0.06] via-amber-500/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:gallery-add-bold" className="text-amber-500" width={15} />
+            </Box>
             <Typography variant="subtitle2" className="font-semibold text-foreground">
               {t('form.categoryIconSection')}
             </Typography>
           </Box>
-          <Controller
-            name="icon"
-            control={control}
-            render={({ field: { onChange, value, ...field }, fieldState: { error } }) => (
-              <div className="w-full">
-                <Input
-                  {...field}
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    onChange(file || null);
-                  }}
-                  error={!!error}
-                  helperText={error?.message || t('form.categoryIconUploadHelper')}
-                  fullWidth
-                  className="transition-all duration-200"
-                />
-                {previewImage && (
-                  <Box className="mt-4">
-                    <img
-                      src={previewImage}
-                      alt={t('form.categoryIconPreviewAlt')}
-                      className="w-32 h-32 object-cover rounded-lg border border-border/60"
-                    />
-                  </Box>
-                )}
-              </div>
-            )}
-          />
+          <Box className="p-6">
+            <Controller
+              name="icon"
+              control={control}
+              render={({ field: { onChange, value, ...field }, fieldState: { error } }) => (
+                <div className="w-full">
+                  <Input
+                    {...field}
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      onChange(file || null);
+                    }}
+                    error={!!error}
+                    helperText={error?.message || t('form.categoryIconUploadHelper')}
+                    fullWidth
+                    className="transition-all duration-200"
+                  />
+                  {previewImage && (
+                    <Box className="mt-5 flex items-center gap-4">
+                      <Box className="relative">
+                        <Box className="absolute -inset-1 rounded-2xl bg-amber-500/20 blur-sm" />
+                        <img
+                          src={previewImage}
+                          alt={t('form.categoryIconPreviewAlt')}
+                          className="relative w-24 h-24 object-cover rounded-xl border border-border/60 shadow-sm"
+                        />
+                      </Box>
+                      <Box>
+                        <Typography variant="body2" className="font-medium text-foreground">
+                          {t('form.categoryIconPreviewAlt')}
+                        </Typography>
+                        <Typography variant="caption" className="text-muted-foreground">
+                          {t('form.categoryIconUploadHelper')}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  )}
+                </div>
+              )}
+            />
+          </Box>
         </Box>
       </CreateFormLayout>
     </>

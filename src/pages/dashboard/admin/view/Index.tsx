@@ -136,7 +136,8 @@ export default function Page() {
         )}
         data={adminData}
         createPath="/admin/create"
-        hasDetails={false}
+        hasDetails
+        detailsLink="/admin/update"
         permissions={{
           create: hasPermission('create', 'admin'),
           update: hasPermission('update', 'admin'),

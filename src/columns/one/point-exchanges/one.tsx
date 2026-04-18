@@ -3,6 +3,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 import type { PointExchangeItem } from '@/pages/dashboard/point-exchanges/types/point-exchange.types';
 
 import { z } from 'zod';
+import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 
 const PointExchangeSchema = z.object({
@@ -23,18 +24,6 @@ export interface PointExchangeFormValues extends PointExchangeItem {
 export const pointExchangeColumns = (
   t: TFunction<'table'>
 ): ColumnDef<PointExchangeFormValues>[] => [
-  {
-    id: 'id',
-    accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
-    cell: ({ row }) => (
-      <div className="flex items-center gap-2">
-        <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
-          <span className="text-xs font-semibold text-primary">{row.original.id}</span>
-        </div>
-      </div>
-    ),
-  },
   {
     id: 'user_name',
     accessorKey: 'user.name',
@@ -105,6 +94,17 @@ export const pointExchangeColumns = (
       <span className="text-sm text-muted-foreground">
         {new Date(row.original.created_at).toLocaleDateString()}
       </span>
+    ),
+  },
+  {
+    id: 'actions',
+    cell: ({ row }: any) => (
+      <DataTableRowActions
+        schema={PointExchangeSchema}
+        row={row}
+        viewDetails={`/point-exchanges/details/${row.original.id}`}
+        permissions={{ update: false, delete: false }}
+      />
     ),
   },
 ];

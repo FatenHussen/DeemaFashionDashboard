@@ -2,6 +2,7 @@ import type {
   OrderListResponse,
   AssignDriverPayload,
   OrderDetailsResponse,
+  OrdersToAssignResponse,
   ChangeItemStatusPayload,
   ChangeOrderStatusPayload,
 } from '../types/order.types';
@@ -25,6 +26,38 @@ export const _OrderApi = {
 
   getOrderById: async (id: number | string): Promise<OrderDetailsResponse> => {
     const response = await axiosInstance.get<OrderDetailsResponse>(apiRoutes.order.getOne(id));
+    return response.data;
+  },
+
+  /**
+   * Orders with no driver yet, optionally filtered by driver coverage.
+   * When `filter_by_driver_coverage` is true, `driver_id` must be set.
+   */
+  getOrdersToAssign: async (params: {
+    filter_by_driver_coverage?: boolean;
+    driver_id?: number;
+    status?: 'pending' | 'preparing';
+    is_instant_delivery?: boolean;
+  }): Promise<OrdersToAssignResponse> => {
+    const filterByCoverage = Boolean(params.filter_by_driver_coverage);
+    const instant = params.is_instant_delivery ?? true;
+
+    // Laravel `boolean` rule: send 0/1 so query-string serialization is never ambiguous (JS `true`/`false` can fail validation).
+    const queryParams: Record<string, number | string> = {
+      filter_by_driver_coverage: filterByCoverage ? 1 : 0,
+      is_instant_delivery: instant ? 1 : 0,
+    };
+
+    if (params.status) {
+      queryParams.status = params.status;
+    }
+    if (filterByCoverage && params.driver_id != null) {
+      queryParams.driver_id = params.driver_id;
+    }
+
+    const response = await axiosInstance.get<OrdersToAssignResponse>(apiRoutes.order.toAssign, {
+      params: queryParams,
+    });
     return response.data;
   },
 

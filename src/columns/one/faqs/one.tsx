@@ -5,6 +5,7 @@ import type { FaqItem } from '@/pages/dashboard/content/types/faq.types';
 import { z } from 'zod';
 import { formatTranslated } from '@/utils/format-translated';
 import { faqTypeLabel } from '@/pages/dashboard/content/utils/faq-type-label';
+import { createToggleColumn } from '@/shared/ui/table-data/data-table-toggle-cell';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 
@@ -33,16 +34,6 @@ export const faqColumns = (
   onDeleteCancel?: () => void,
   deletingId?: number | null
 ): ColumnDef<FaqFormValues>[] => [
-  {
-    id: 'id',
-    accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
-    cell: ({ row }) => (
-      <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
-        <span className="text-xs font-semibold text-primary">{row.original.id}</span>
-      </div>
-    ),
-  },
   {
     id: 'type',
     accessorKey: 'type',
@@ -74,6 +65,7 @@ export const faqColumns = (
       <p className="max-w-sm text-sm text-muted-foreground line-clamp-2">{formatTranslated(row.original.answer)}</p>
     ),
   },
+  createToggleColumn<FaqFormValues>({ entityType: 'faq' }),
   {
     id: 'actions',
     cell: ({ row }: any) => (
@@ -88,7 +80,6 @@ export const faqColumns = (
         onDeleteConfirm={onDeleteConfirm}
         onDeleteCancel={onDeleteCancel}
         deletingId={deletingId}
-        adminToggleEntityType="faq"
         permissions={{ update: true, delete: true }}
       />
     ),

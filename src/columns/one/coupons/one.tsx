@@ -4,6 +4,7 @@ import type { CouponItem } from '@/pages/dashboard/coupons/types/coupon.types';
 
 import { z } from 'zod';
 import { formatTranslated } from '@/utils/format-translated';
+import { createToggleColumn } from '@/shared/ui/table-data/data-table-toggle-cell';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 
@@ -37,18 +38,6 @@ export const couponColumns = (
   deletingId?: number | null,
   onEdit?: (row: any) => void
 ): ColumnDef<CouponFormValues>[] => [
-  {
-    id: 'id',
-    accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
-    cell: ({ row }) => (
-      <div className="flex items-center gap-2">
-        <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
-          <span className="text-xs font-semibold text-primary">{row.original.id}</span>
-        </div>
-      </div>
-    ),
-  },
   {
     id: 'name',
     accessorKey: 'name',
@@ -132,12 +121,16 @@ export const couponColumns = (
       );
     },
   },
+  ...(permissions.update
+    ? [createToggleColumn<CouponFormValues>({ entityType: 'coupon' })]
+    : []),
   {
     id: 'actions',
     cell: ({ row }: any) => (
       <DataTableRowActions
         schema={CouponSchema}
         row={row}
+        viewDetails={`/coupons/details/${row.original.id}`}
         editItem={onEdit ? undefined : `/coupons/update/${row.original.id}`}
         onEdit={onEdit}
         onDelete={onDelete}
@@ -146,7 +139,6 @@ export const couponColumns = (
         onDeleteConfirm={onDeleteConfirm}
         onDeleteCancel={onDeleteCancel}
         deletingId={deletingId}
-        adminToggleEntityType="coupon"
         permissions={permissions}
       />
     ),

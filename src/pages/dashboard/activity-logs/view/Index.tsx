@@ -54,6 +54,7 @@ export default function Page() {
           message: t('columns.message'),
           changes_detail: t('form.activityLogChangesColumn'),
           date: t('columns.date'),
+          actions: t('columns.action'),
         }}
         pagination={pagination}
         currentPage={currentPage}

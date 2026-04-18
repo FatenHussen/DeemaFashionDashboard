@@ -2,8 +2,11 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { usePermissions } from '@/auth/hooks/use-permissions';
-import { useFetchUserBasketSchedules } from '@/pages/dashboard/user-basket-schedules/hooks/user-basket-schedule';
 import { userBasketScheduleColumns, type UserBasketScheduleTableItem } from '@/columns/one/user-basket-schedules/one';
+import {
+  useFetchUserBasketSchedules,
+  useSetUserBasketScheduleActive,
+} from '@/pages/dashboard/user-basket-schedules/hooks/user-basket-schedule';
 
 import { CONFIG } from 'src/global-config';
 
@@ -15,6 +18,7 @@ export default function Page() {
   const [pageSize, setPageSize] = useState(10);
 
   const { data: response, isLoading } = useFetchUserBasketSchedules(currentPage, pageSize);
+  const setActiveMutation = useSetUserBasketScheduleActive();
 
   const handlePageChange = (page: number) => setCurrentPage(page);
   const handlePageSizeChange = (size: number) => {
@@ -37,13 +41,22 @@ export default function Page() {
 
   const { can } = usePermissions();
   const hasPermission = (action: string, resource: string) => can(`${resource}.${action}`);
+  const canUpdate = hasPermission('update', 'userbasketschedule');
 
   return (
     <>
       <title>{metadata.title}</title>
       <DataTable
         tableName="UserBasketSchedule"
-        columns={userBasketScheduleColumns(t)}
+        columns={userBasketScheduleColumns(t, {
+          permissions: { update: canUpdate, delete: false },
+          onDisable: (id) => setActiveMutation.mutateAsync({ id, nextActive: false }),
+          onEnable: (id) => setActiveMutation.mutateAsync({ id, nextActive: true }),
+          pendingId:
+            setActiveMutation.isPending && setActiveMutation.variables?.id != null
+              ? setActiveMutation.variables.id
+              : null,
+        })}
         data={rawItems as UserBasketScheduleTableItem[]}
         hasDetails={false}
         permissions={{
@@ -64,6 +77,7 @@ export default function Page() {
           start_date: t('columns.startDate'),
           next_run_date: t('columns.nextRunDate'),
           status: t('columns.status'),
+          actions: t('columns.action'),
         }}
         pagination={pagination}
         currentPage={currentPage}

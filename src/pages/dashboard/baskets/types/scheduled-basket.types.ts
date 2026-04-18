@@ -142,14 +142,11 @@ export interface ScheduledBasketCreateUpdatePayload {
   }>;
   schedules: ScheduledBasketSchedulePayload[];
   is_active: boolean;
-  badges?: Array<{ id: number; position: string }>;
+  badges?: number[];
 }
 
 export function badgesFormValueFromScheduledBasketResponse(
   source: ScheduledBasketData
-): Array<{ id: number; position: 'top' | 'bottom' }> {
-  return (source.badges ?? []).map((b) => ({
-    id: b.id,
-    position: b.position === 'bottom' ? 'bottom' : 'top',
-  }));
+): number[] {
+  return (source.badges ?? []).map((b) => b.id);
 }

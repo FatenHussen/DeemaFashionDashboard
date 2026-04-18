@@ -20,6 +20,8 @@ export const _IconApi = {
     if (data.image instanceof File) formData.append('image', data.image);
     if (data.description?.en) formData.append('description[en]', data.description.en);
     if (data.description?.ar) formData.append('description[ar]', data.description.ar);
+    formData.append('full_description[en]', data.full_description?.en ?? '');
+    formData.append('full_description[ar]', data.full_description?.ar ?? '');
     if (data.is_active !== undefined) formData.append('is_active', data.is_active ? '1' : '0');
     const response = await axiosInstance.post(apiRoutes.icon.create, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
@@ -35,6 +37,8 @@ export const _IconApi = {
     if (data.image instanceof File) formData.append('image', data.image);
     if (data.description?.en) formData.append('description[en]', data.description.en);
     if (data.description?.ar) formData.append('description[ar]', data.description.ar);
+    formData.append('full_description[en]', data.full_description?.en ?? '');
+    formData.append('full_description[ar]', data.full_description?.ar ?? '');
     if (data.is_active !== undefined) formData.append('is_active', data.is_active ? '1' : '0');
     const response = await axiosInstance.post(apiRoutes.icon.update(id), formData, {
       headers: { 'Content-Type': 'multipart/form-data' },

@@ -13,13 +13,13 @@ const sizeClasses = {
 };
 
 const colorClasses = {
-  default: 'text-foreground hover:bg-muted active:bg-muted',
-  primary: 'text-primary hover:bg-blue-50 active:bg-blue-100',
+  default: 'text-muted-foreground hover:text-foreground hover:bg-muted/80 active:bg-muted',
+  primary: 'text-primary hover:bg-primary/10 active:bg-primary/15',
   secondary: 'text-foreground hover:bg-muted active:bg-muted',
   error: 'text-red-600 hover:bg-red-50 active:bg-red-100',
-  warning: 'text-yellow-600 hover:bg-yellow-50 active:bg-yellow-100',
-  info: 'text-blue-500 hover:bg-blue-50 active:bg-blue-100',
-  success: 'text-green-600 hover:bg-green-50 active:bg-green-100',
+  warning: 'text-amber-600 hover:bg-amber-50 active:bg-amber-100',
+  info: 'text-sky-600 hover:bg-sky-50 active:bg-sky-100',
+  success: 'text-emerald-600 hover:bg-emerald-50 active:bg-emerald-100',
 };
 
 export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(

@@ -3,6 +3,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 import type { UserItem } from '@/pages/dashboard/users/types/user.types';
 
 import { z } from 'zod';
+import { createToggleColumn } from '@/shared/ui/table-data/data-table-toggle-cell';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 
@@ -11,12 +12,23 @@ const UserSchema = z.object({
   name: z.string(),
   email: z.string(),
   phone: z.string().nullable(),
-  affiliate: z.object({
-    is_affiliate: z.boolean(),
-    affiliate_approved: z.boolean(),
-    affiliate_id: z.union([z.number(), z.string()]).nullable(),
-    affiliate_rate: z.union([z.number(), z.string()]).nullable().optional(),
-  }).optional(),
+  area: z.string().nullable().optional(),
+  is_active: z.boolean().optional(),
+  affiliate: z
+    .object({
+      is_affiliate: z.boolean(),
+      affiliate_approved: z.boolean(),
+      affiliate_id: z.union([z.number(), z.string()]).nullable(),
+      affiliate_rate: z.union([z.number(), z.string()]).nullable().optional(),
+      affiliate_commission_type: z.string().nullable().optional(),
+      affiliate_fixed_commission: z.union([z.number(), z.string()]).nullable().optional(),
+      affiliate_product_ids: z.array(z.number()).nullable().optional(),
+      affiliate_visit_commission_enabled: z.boolean().optional(),
+      affiliate_visit_commission_threshold: z.union([z.number(), z.string()]).nullable().optional(),
+      affiliate_visit_commission_amount: z.union([z.number(), z.string()]).nullable().optional(),
+      coupon_code: z.string().nullable().optional(),
+    })
+    .optional(),
   created_at: z.string(),
 });
 
@@ -36,18 +48,6 @@ export const userColumns = (
   onEdit?: (row: any) => void,
   onUpdatePassword?: (row: { original: UserFormValues }) => void
 ): ColumnDef<UserFormValues>[] => [
-  {
-    id: 'id',
-    accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
-    cell: ({ row }) => (
-      <div className="flex items-center gap-2">
-        <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
-          <span className="text-xs font-semibold text-primary">{row.original.id}</span>
-        </div>
-      </div>
-    ),
-  },
   {
     id: 'name',
     accessorKey: 'name',
@@ -73,6 +73,38 @@ export const userColumns = (
     ),
   },
   {
+    id: 'area',
+    accessorKey: 'area',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.area')} />,
+    cell: ({ row }) => {
+      const area = row.original.area;
+      return (
+        <span className="text-sm text-foreground max-w-[200px] truncate" title={area ?? undefined}>
+          {area?.trim() ? area : '—'}
+        </span>
+      );
+    },
+  },
+  {
+    id: 'is_active',
+    accessorKey: 'is_active',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.status')} />,
+    cell: ({ row }) => {
+      const isActive = Boolean(row.original.is_active);
+      return (
+        <span
+          className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+            isActive
+              ? 'bg-green-500/20 text-green-700 dark:text-green-400'
+              : 'bg-red-500/20 text-red-700 dark:text-red-400'
+          }`}
+        >
+          {isActive ? t('active') : t('inactive')}
+        </span>
+      );
+    },
+  },
+  {
     id: 'affiliate',
     accessorKey: 'affiliate',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.affiliate')} />,
@@ -96,6 +128,23 @@ export const userColumns = (
     },
   },
   {
+    id: 'coupon_code',
+    accessorFn: (row) => row.affiliate?.coupon_code ?? null,
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title={t('columns.couponCode')} />
+    ),
+    cell: ({ row }) => {
+      const aff = row.original.affiliate;
+      if (!aff?.is_affiliate) {
+        return <span className="text-sm text-muted-foreground">—</span>;
+      }
+      const code = aff.coupon_code;
+      return (
+        <span className="text-sm font-mono">{code?.trim() ? code : '—'}</span>
+      );
+    },
+  },
+  {
     id: 'created_at',
     accessorKey: 'created_at',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.created')} />,
@@ -107,6 +156,9 @@ export const userColumns = (
       </span>
     ),
   },
+  ...(permissions.update
+    ? [createToggleColumn<UserFormValues>({ entityType: 'user' })]
+    : []),
   {
     id: 'actions',
     cell: ({ row }: any) => (
@@ -123,7 +175,6 @@ export const userColumns = (
         onDeleteConfirm={onDeleteConfirm}
         onDeleteCancel={onDeleteCancel}
         deletingId={deletingId}
-        adminToggleEntityType="user"
         permissions={permissions}
       />
     ),

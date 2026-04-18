@@ -1,7 +1,7 @@
 import type {
+  NotificationType,
   NotificationListResponse,
   NotificationCreatePayload,
-  NotificationUpdatePayload,
   NotificationDetailsResponse,
 } from '../types/notification.types';
 
@@ -12,33 +12,35 @@ export const _AdminNotificationApi = {
     page?: number;
     per_page?: number;
     search?: string;
+    type?: NotificationType | 'all';
   }): Promise<NotificationListResponse> => {
+    const { type, ...rest } = params ?? {};
     const response = await axiosInstance.get<NotificationListResponse>(
       apiRoutes.adminNotification.list,
-      { params }
+      { params: { ...rest, ...(type && type !== 'all' ? { type } : {}) } }
     );
     return response.data;
   },
 
   create: async (data: NotificationCreatePayload): Promise<any> => {
-    const response = await axiosInstance.post(
-      apiRoutes.adminNotification.create,
-      data
-    );
+    const formData = new FormData();
+    formData.append('title', data.title);
+    formData.append('body', data.body);
+    formData.append('type', data.type);
+    data.channels.forEach((ch, i) => formData.append(`channels[${i}]`, ch));
+    if (data.target_page) formData.append('target_page', data.target_page);
+    if (data.emoji) formData.append('emoji', data.emoji);
+    if (data.media instanceof File) formData.append('media', data.media);
+
+    const response = await axiosInstance.post(apiRoutes.adminNotification.create, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
     return response.data;
   },
 
   getById: async (id: number | string): Promise<NotificationDetailsResponse> => {
     const response = await axiosInstance.get<NotificationDetailsResponse>(
       apiRoutes.adminNotification.details(id)
-    );
-    return response.data;
-  },
-
-  update: async (id: number | string, data: NotificationUpdatePayload): Promise<any> => {
-    const response = await axiosInstance.patch(
-      apiRoutes.adminNotification.update(id),
-      data
     );
     return response.data;
   },

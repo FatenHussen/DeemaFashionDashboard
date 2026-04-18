@@ -118,7 +118,8 @@ export default function Page() {
         )}
         data={bannerData}
         createPath="/sections/banners/create"
-        hasDetails={false}
+        hasDetails
+        detailsLink="/sections/banners/update"
         permissions={{
           create: hasPermission('create', 'banner'),
           update: hasPermission('update', 'banner'),

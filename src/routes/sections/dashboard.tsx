@@ -3,6 +3,7 @@ import type { RouteObject } from 'react-router';
 import { Outlet } from 'react-router';
 import { lazy, Suspense } from 'react';
 import { RequirePermission } from '@/auth/components/require-permission';
+import { FLASH_SALE_PERMISSION } from '@/pages/dashboard/flash-sales/permissions';
 
 import { CONFIG } from 'src/global-config';
 import { AuthGuard } from 'src/pages/auth/guard';
@@ -72,11 +73,11 @@ const CategoryDetailCreatePage = lazy(
 const ServiceIndexPage = lazy(() => import('@/pages/dashboard/vendor/view/service/Index'));
 const ServiceCreatePage = lazy(() => import('@/pages/dashboard/vendor/view/service/Create'));
 
-const LanguageIndexPage = lazy(() => import('@/pages/dashboard/languages/view/Index'));
-const LanguageCreatePage = lazy(() => import('@/pages/dashboard/languages/view/Create'));
-const TranslationManagerPage = lazy(
-  () => import('@/pages/dashboard/languages/view/TranslationManager')
-);
+// const LanguageIndexPage = lazy(() => import('@/pages/dashboard/languages/view/Index'));
+// const LanguageCreatePage = lazy(() => import('@/pages/dashboard/languages/view/Create'));
+// const TranslationManagerPage = lazy(
+//   () => import('@/pages/dashboard/languages/view/TranslationManager')
+// );
 
 const SectionIndexPage = lazy(() => import('@/pages/dashboard/sections/view/Index'));
 const SectionCreatePage = lazy(() => import('@/pages/dashboard/sections/view/Create'));
@@ -104,6 +105,8 @@ const UserIndexPage = lazy(() => import('@/pages/dashboard/users/view/Index'));
 const UserCreatePage = lazy(() => import('@/pages/dashboard/users/view/Create'));
 const UserUpdatePage = lazy(() => import('@/pages/dashboard/users/view/Update'));
 const UserDetailsPage = lazy(() => import('@/pages/dashboard/users/view/Details'));
+
+const AffiliateIndexPage = lazy(() => import('@/pages/dashboard/affiliates/view/Index'));
 
 // Orders
 const OrderIndexPage = lazy(() => import('@/pages/dashboard/orders/view/Index'));
@@ -258,6 +261,22 @@ const AffiliateWithdrawDetailsPage = lazy(
   () => import('@/pages/dashboard/affiliate-withdraw-requests/view/Details')
 );
 
+// Affiliate wallet transactions (read-only ledger)
+const AffiliateWalletTransactionIndexPage = lazy(
+  () => import('@/pages/dashboard/affiliate-wallet-transactions/view/Index')
+);
+const AffiliateWalletTransactionDetailsPage = lazy(
+  () => import('@/pages/dashboard/affiliate-wallet-transactions/view/Details')
+);
+
+// Driver wallet transactions (read-only ledger)
+const DriverWalletTransactionIndexPage = lazy(
+  () => import('@/pages/dashboard/driver-wallet-transactions/view/Index')
+);
+const DriverWalletTransactionDetailsPage = lazy(
+  () => import('@/pages/dashboard/driver-wallet-transactions/view/Details')
+);
+
 // Icons
 const IconIndexPage = lazy(() => import('@/pages/dashboard/icons/view/Index'));
 const IconCreatePage = lazy(() => import('@/pages/dashboard/icons/view/Create'));
@@ -293,6 +312,60 @@ const ScheduleCreatePage = lazy(() => import('@/pages/dashboard/schedules/view/C
 
 // User Basket Schedules
 const UserBasketScheduleIndexPage = lazy(() => import('@/pages/dashboard/user-basket-schedules/view/Index'));
+
+// Vendor Service Types
+const VendorServiceTypeIndexPage = lazy(
+  () => import('@/pages/dashboard/vendor-service-types/view/Index')
+);
+const VendorServiceTypeCreatePage = lazy(
+  () => import('@/pages/dashboard/vendor-service-types/view/Create')
+);
+
+// Vendor Services
+const VendorServiceIndexPage = lazy(
+  () => import('@/pages/dashboard/vendor-services/view/Index')
+);
+const VendorServiceCreatePage = lazy(
+  () => import('@/pages/dashboard/vendor-services/view/Create')
+);
+
+// Shop Vendor Services
+const ShopVendorServiceIndexPage = lazy(
+  () => import('@/pages/dashboard/shop-vendor-services/view/Index')
+);
+const ShopVendorServiceCreatePage = lazy(
+  () => import('@/pages/dashboard/shop-vendor-services/view/Create')
+);
+
+// Service Orders
+const ServiceOrderIndexPage = lazy(
+  () => import('@/pages/dashboard/service-orders/view/Index')
+);
+
+// Quick Actions
+const QuickActionIndexPage = lazy(() => import('@/pages/dashboard/quick-actions/view/Index'));
+const QuickActionCreatePage = lazy(() => import('@/pages/dashboard/quick-actions/view/Create'));
+
+// Popup Campaigns
+const PopupCampaignIndexPage = lazy(() => import('@/pages/dashboard/popup-campaigns/view/Index'));
+const PopupCampaignCreatePage = lazy(() => import('@/pages/dashboard/popup-campaigns/view/Create'));
+
+const FlashSaleIndexPage = lazy(() => import('@/pages/dashboard/flash-sales/view/Index'));
+const FlashSaleCreatePage = lazy(() => import('@/pages/dashboard/flash-sales/view/Create'));
+
+// Inventory
+const InventoryIndexPage = lazy(() => import('@/pages/dashboard/inventory/view/Index'));
+
+// Vendor Accounting
+const VendorAccountingIndexPage = lazy(
+  () => import('@/pages/dashboard/vendor-accounting/view/Index')
+);
+const VendorStatementPage = lazy(
+  () => import('@/pages/dashboard/vendor-accounting/view/VendorStatement')
+);
+const VendorWithdrawRequestsPage = lazy(
+  () => import('@/pages/dashboard/vendor-withdraw-requests/view/Index')
+);
 
 const Page403 = lazy(() => import('src/pages/error/403'));
 
@@ -968,6 +1041,20 @@ export const dashboardRoutes: RouteObject[] = [
             <UserDetailsPage />
           </RequirePermission>
         ),
+      },
+    ],
+  },
+  {
+    path: 'affiliates',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: (
+          <RequirePermission permission="user.view">
+            <AffiliateIndexPage />
+          </RequirePermission>
+        ),
+        index: true,
       },
     ],
   },
@@ -1690,6 +1777,52 @@ export const dashboardRoutes: RouteObject[] = [
       },
     ],
   },
+  // Affiliate wallet transactions
+  {
+    path: 'affiliate-wallet-transactions',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: (
+          <RequirePermission permission="affiliatewallettransaction.view">
+            <AffiliateWalletTransactionIndexPage />
+          </RequirePermission>
+        ),
+        index: true,
+      },
+      {
+        path: ':id',
+        element: (
+          <RequirePermission permission="affiliatewallettransaction.view">
+            <AffiliateWalletTransactionDetailsPage />
+          </RequirePermission>
+        ),
+      },
+    ],
+  },
+  // Driver wallet transactions
+  {
+    path: 'driver-wallet-transactions',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: (
+          <RequirePermission permission="driverwallettransaction.view">
+            <DriverWalletTransactionIndexPage />
+          </RequirePermission>
+        ),
+        index: true,
+      },
+      {
+        path: ':id',
+        element: (
+          <RequirePermission permission="driverwallettransaction.view">
+            <DriverWalletTransactionDetailsPage />
+          </RequirePermission>
+        ),
+      },
+    ],
+  },
   // Icons
   {
     path: 'icons',
@@ -1944,6 +2077,203 @@ export const dashboardRoutes: RouteObject[] = [
             <UserBasketScheduleIndexPage />
           </RequirePermission>
         ),
+        index: true,
+      },
+    ],
+  },
+  // Vendor Service Types
+  {
+    path: 'vendor-service-types',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: <VendorServiceTypeIndexPage />,
+        index: true,
+      },
+      {
+        path: 'create',
+        element: <VendorServiceTypeCreatePage />,
+      },
+      {
+        path: 'update/:id',
+        element: <VendorServiceTypeCreatePage />,
+      },
+    ],
+  },
+  // Vendor Services
+  {
+    path: 'vendor-services',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: <VendorServiceIndexPage />,
+        index: true,
+      },
+      {
+        path: 'create',
+        element: <VendorServiceCreatePage />,
+      },
+      {
+        path: 'update/:id',
+        element: <VendorServiceCreatePage />,
+      },
+    ],
+  },
+  // Shop Vendor Services
+  {
+    path: 'shop-vendor-services',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: <ShopVendorServiceIndexPage />,
+        index: true,
+      },
+      {
+        path: 'create',
+        element: <ShopVendorServiceCreatePage />,
+      },
+      {
+        path: 'update/:id',
+        element: <ShopVendorServiceCreatePage />,
+      },
+    ],
+  },
+  // Service Orders
+  {
+    path: 'service-orders',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: <ServiceOrderIndexPage />,
+        index: true,
+      },
+    ],
+  },
+  // Quick Actions
+  {
+    path: 'quick-actions',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: (
+          <RequirePermission permission="quickaction.view">
+            <QuickActionIndexPage />
+          </RequirePermission>
+        ),
+        index: true,
+      },
+      {
+        path: 'create',
+        element: (
+          <RequirePermission permission="quickaction.create">
+            <QuickActionCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'update/:id',
+        element: (
+          <RequirePermission permission="quickaction.update">
+            <QuickActionCreatePage />
+          </RequirePermission>
+        ),
+      },
+    ],
+  },
+  // Popup Campaigns
+  {
+    path: 'popup-campaigns',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: (
+          <RequirePermission permission="popupcampaign.view">
+            <PopupCampaignIndexPage />
+          </RequirePermission>
+        ),
+        index: true,
+      },
+      {
+        path: 'create',
+        element: (
+          <RequirePermission permission="popupcampaign.create">
+            <PopupCampaignCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'update/:id',
+        element: (
+          <RequirePermission permission="popupcampaign.update">
+            <PopupCampaignCreatePage />
+          </RequirePermission>
+        ),
+      },
+    ],
+  },
+  {
+    path: 'flash-sales',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: (
+          <RequirePermission permission={FLASH_SALE_PERMISSION.view}>
+            <FlashSaleIndexPage />
+          </RequirePermission>
+        ),
+        index: true,
+      },
+      {
+        path: 'create',
+        element: (
+          <RequirePermission permission={FLASH_SALE_PERMISSION.create}>
+            <FlashSaleCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'update/:id',
+        element: (
+          <RequirePermission permission={FLASH_SALE_PERMISSION.update}>
+            <FlashSaleCreatePage />
+          </RequirePermission>
+        ),
+      },
+    ],
+  },
+  // Inventory
+  {
+    path: 'inventory',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: <InventoryIndexPage />,
+        index: true,
+      },
+    ],
+  },
+  // Vendor Accounting
+  {
+    path: 'vendor-accounting',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: <VendorAccountingIndexPage />,
+        index: true,
+      },
+      {
+        path: 'vendors/:id',
+        element: <VendorStatementPage />,
+      },
+    ],
+  },
+  // Vendor Withdraw Requests
+  {
+    path: 'vendor-withdraw-requests',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: <VendorWithdrawRequestsPage />,
         index: true,
       },
     ],

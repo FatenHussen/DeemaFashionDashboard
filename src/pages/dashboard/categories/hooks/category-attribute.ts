@@ -3,24 +3,27 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import {
   _CategoryAttributeApi,
+  type CategoryAttributeListParams,
   type CategoryAttributeCreateUpdatePayload,
 } from '../api/category-attribute.services';
 
 export type UseFetchCategoryAttributesOptions = {
-  /** When true, the query runs only after a category is selected (sends `category_id` and avoids listing all attributes). */
+  enabled?: boolean;
+  /** When true, the query runs only after `filters.category_id` is set. */
   requireCategoryId?: boolean;
 };
 
 export const useFetchCategoryAttributes = (
-  categoryId: number | string | undefined,
-  page: number = 1,
-  limit: number = 25,
+  filters: CategoryAttributeListParams = {},
   options?: UseFetchCategoryAttributesOptions
 ) =>
   useQuery({
-    queryKey: queryKeys.categoryAttribute.list({ categoryId, page, limit }),
-    queryFn: () => _CategoryAttributeApi.getListCategoryAttributes(page, limit, categoryId),
-    enabled: options?.requireCategoryId ? !!categoryId : true,
+    queryKey: queryKeys.categoryAttribute.list(filters as Record<string, unknown>),
+    queryFn: () => _CategoryAttributeApi.getListCategoryAttributes(filters),
+    enabled:
+      options?.enabled !== false &&
+      (!options?.requireCategoryId ||
+        (filters.category_id != null && `${filters.category_id}` !== '')),
   });
 
 export const useFetchCategoryAttributeById = (id: number | string) =>

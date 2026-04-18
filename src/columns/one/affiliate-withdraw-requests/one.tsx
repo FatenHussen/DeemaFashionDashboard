@@ -19,19 +19,8 @@ const statusColors: Record<string, string> = {
 };
 
 export const affiliateWithdrawColumns = (
-  t: TFunction<'table'>,
-  onViewDetails?: (id: number) => void
+  t: TFunction<'table'>
 ): ColumnDef<AffiliateWithdrawItem>[] => [
-  {
-    id: 'id',
-    accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
-    cell: ({ row }) => (
-      <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-        <span className="text-xs font-semibold text-primary">{row.original.id}</span>
-      </div>
-    ),
-  },
   {
     id: 'affiliate',
     accessorKey: 'affiliate',
@@ -75,8 +64,8 @@ export const affiliateWithdrawColumns = (
       <DataTableRowActions
         schema={AffiliateWithdrawSchema}
         row={row}
-        editItem={`/affiliate-withdraw-requests/${row.original.id}`}
-        permissions={{ update: true, delete: false }}
+        viewDetails={`/affiliate-withdraw-requests/${row.original.id}`}
+        permissions={{ update: false, delete: false }}
       />
     ),
   },

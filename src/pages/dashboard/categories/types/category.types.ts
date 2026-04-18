@@ -14,6 +14,7 @@ export interface CategoryData {
   parent: ParentCategory | null;
   order: number | null;
   is_active: boolean;
+  is_restaurant: boolean;
   children_count: number;
   created_at: string;
   updated_at: string;
@@ -48,6 +49,7 @@ export interface CategoryDetailData {
   parent: ParentCategory | null;
   order: number | null;
   is_active: boolean;
+  is_restaurant: boolean;
   children: CategoryData[];
   created_at: string;
   updated_at: string;
@@ -68,5 +70,6 @@ export interface CategoryCreateUpdatePayload {
   parent_id?: number | null;
   order?: number | null;
   is_active?: boolean;
+  is_restaurant?: boolean;
 }
 

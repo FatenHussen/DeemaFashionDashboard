@@ -1,10 +1,16 @@
 import type { DaySchedule } from '@/pages/dashboard/vendor/types/shop.types';
 
 import { Button } from '@/shared/ui/button';
+import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
 import { formatTranslated } from '@/utils/format-translated';
 import { useFetchShopById } from '@/pages/dashboard/vendor/hooks/shop';
+import {
+  paymentMethodsFromShop,
+  normalizeShopTypeFromApi,
+  normalizeShopPriceLevelFromApi,
+} from '@/pages/dashboard/vendor/types/shop.types';
 
 import { CONFIG } from 'src/global-config';
 import { Box, Typography } from 'src/shared/ui';
@@ -23,6 +29,7 @@ function formatWorkingHoursDay(schedule: string | DaySchedule | undefined): stri
 }
 
 export default function DetailsPage() {
+  const { t } = useTranslation('table');
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: response, isLoading, error } = useFetchShopById(id || '');
@@ -43,12 +50,30 @@ export default function DetailsPage() {
     );
   }
 
+  const shopType = normalizeShopTypeFromApi(item);
+  const priceLevel = normalizeShopPriceLevelFromApi(item);
+  const paymentKeys = paymentMethodsFromShop(item);
+  const isRecommended = Boolean(item.is_recommended ?? item.recommended);
+
+  const shopTypeLabel =
+    shopType === 'restaurant'
+      ? t('shopTypeFilterRestaurant')
+      : shopType === 'service_provider'
+        ? t('shopTypeFilterServiceProvider')
+        : t('shopTypeFilterStore');
+  const priceLevelLabel =
+    priceLevel === 'cheap'
+      ? t('form.shopPriceLevelCheap')
+      : priceLevel === 'expensive'
+        ? t('form.shopPriceLevelExpensive')
+        : t('form.shopPriceLevelMedium');
+
   return (
     <>
       <title>{metadata.title}</title>
       <Box className="relative min-h-screen overflow-hidden bg-background p-6">
         <Box className="pointer-events-none fixed inset-0 bg-gradient-to-br from-background via-background to-muted/30" />
-        <Box className="relative max-w-4xl mx-auto">
+        <Box className="relative w-full">
           <Box className="mb-6">
             <Button variant="text" onClick={() => navigate('/shop')} className="mb-4 -ml-2 text-muted-foreground hover:text-foreground">
               <Iconify icon="solar:arrow-left-bold" width={20} className="mr-2" /> Back to Shops
@@ -110,6 +135,32 @@ export default function DetailsPage() {
                 <Box>
                   <Typography variant="caption" className="text-muted-foreground">Vendor</Typography>
                   <Typography variant="body1" className="font-medium">{formatTranslated(item.vendor?.name) || '-'}</Typography>
+                </Box>
+                <Box>
+                  <Typography variant="caption" className="text-muted-foreground">{t('columns.shopType')}</Typography>
+                  <Typography variant="body1" className="font-medium">{shopTypeLabel}</Typography>
+                </Box>
+                <Box>
+                  <Typography variant="caption" className="text-muted-foreground">{t('form.shopPriceLevelLabel')}</Typography>
+                  <Typography variant="body1" className="font-medium">{priceLevelLabel}</Typography>
+                </Box>
+                <Box>
+                  <Typography variant="caption" className="text-muted-foreground">{t('form.shopPaymentMethodsLabel')}</Typography>
+                  <Typography variant="body1" className="font-medium">
+                    {paymentKeys.length > 0
+                      ? paymentKeys
+                          .map((k) => {
+                            const key = `form.shopPaymentMethod_${k}`;
+                            const translated = t(key);
+                            return translated === key ? k : translated;
+                          })
+                          .join(', ')
+                      : '—'}
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography variant="caption" className="text-muted-foreground">{t('form.shopRecommendedLabel')}</Typography>
+                  <Typography variant="body1" className="font-medium">{isRecommended ? t('yes') : t('no')}</Typography>
                 </Box>
                 <Box>
                   <Typography variant="caption" className="text-muted-foreground">Rating</Typography>

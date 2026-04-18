@@ -5,6 +5,7 @@ import type { SellerRegistrationItem } from '@/pages/dashboard/vendor/types/sell
 import { z } from 'zod';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
+import { formatSellerRegistrationCountry } from '@/pages/dashboard/vendor/utils/seller-registration-display';
 
 import i18n from 'src/lib/i18n';
 
@@ -36,16 +37,6 @@ export const sellerRegistrationColumns = (
   onReject?: (id: number) => void
 ): ColumnDef<SellerRegistrationFormValues>[] => [
   {
-    id: 'id',
-    accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
-    cell: ({ row }) => (
-      <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
-        <span className="text-xs font-semibold text-primary">{row.original.id}</span>
-      </div>
-    ),
-  },
-  {
     id: 'seller_name',
     accessorKey: 'seller_name',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.seller')} />,
@@ -73,7 +64,9 @@ export const sellerRegistrationColumns = (
       const city = row.original.city;
       const govStr = typeof gov === 'string' ? gov : gov?.name;
       const cityStr = typeof city === 'string' ? city : city?.name;
-      const location = [govStr, cityStr].filter(Boolean).join(', ') || row.original.country || '-';
+      const countryStr = formatSellerRegistrationCountry(row.original.country);
+      const location =
+        [govStr, cityStr].filter(Boolean).join(', ') || countryStr || '-';
       return (
         <div className="text-sm text-muted-foreground">
           {location}
@@ -87,13 +80,22 @@ export const sellerRegistrationColumns = (
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.status')} />,
     cell: ({ row }) => {
       const status = row.original.status;
+      const statusKey =
+        status === 'pending'
+          ? 'form.sellerRegStatusPending'
+          : status === 'approved'
+            ? 'form.sellerRegStatusApproved'
+            : status === 'rejected'
+              ? 'form.sellerRegStatusRejected'
+              : null;
+      const label = statusKey ? t(statusKey) : status;
       return (
         <span
           className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
             STATUS_COLORS[status] ?? STATUS_COLORS.pending
           }`}
         >
-          {status.charAt(0).toUpperCase() + status.slice(1)}
+          {label}
         </span>
       );
     },

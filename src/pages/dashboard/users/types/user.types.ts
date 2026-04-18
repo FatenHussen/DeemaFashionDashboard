@@ -1,10 +1,22 @@
 // ----------------------------------------------------------------------
 
+export type AffiliateCommissionType =
+  | 'percentage_order'
+  | 'fixed_per_order'
+  | 'percentage_selected_products';
+
 export interface UserAffiliate {
   is_affiliate: boolean;
   affiliate_approved: boolean;
   affiliate_id: number | string | null;
   affiliate_rate?: number | string | null;
+  affiliate_commission_type?: AffiliateCommissionType | string | null;
+  affiliate_fixed_commission?: number | string | null;
+  affiliate_product_ids?: number[] | null;
+  affiliate_visit_commission_enabled?: boolean;
+  affiliate_visit_commission_threshold?: number | string | null;
+  affiliate_visit_commission_amount?: number | string | null;
+  coupon_code?: string | null;
 }
 
 export interface MarkterStatistics {
@@ -53,6 +65,8 @@ export interface UserItem {
   name: string;
   email: string;
   phone: string | null;
+  area?: string | null;
+  is_active?: boolean;
   affiliate?: UserAffiliate;
   created_at?: string;
 }
@@ -92,8 +106,15 @@ export interface UserCreatePayload {
   password: string;
   password_confirmation: string;
   area_id: number;
-  affiliate_id?: number;
+  is_affiliate?: boolean;
+  affiliate_id?: number | string;
+  affiliate_commission_type?: AffiliateCommissionType;
   affiliate_rate?: number;
+  affiliate_fixed_commission?: number;
+  affiliate_product_ids?: number[];
+  affiliate_visit_commission_enabled?: boolean;
+  affiliate_visit_commission_threshold?: number;
+  affiliate_visit_commission_amount?: number;
 }
 
 export interface UserUpdatePayload {
@@ -104,9 +125,25 @@ export interface UserUpdatePayload {
   password?: string;
   password_confirmation?: string;
   area_id: number;
+  is_affiliate?: boolean;
+  affiliate_id?: number | string;
+  affiliate_commission_type?: AffiliateCommissionType;
+  affiliate_rate?: number;
+  affiliate_fixed_commission?: number;
+  affiliate_product_ids?: number[];
+  affiliate_visit_commission_enabled?: boolean;
+  affiliate_visit_commission_threshold?: number;
+  affiliate_visit_commission_amount?: number;
 }
 
-export interface UserConvertAffiliatePayload {
-  affiliate_id: number;
-  affiliate_rate: number;
+/** Body for `POST .../reactivate-affiliate` (commission fields; `affiliate_id` optional). */
+export interface UserReactivateAffiliatePayload {
+  affiliate_id?: number | string;
+  affiliate_commission_type: AffiliateCommissionType;
+  affiliate_rate?: number;
+  affiliate_fixed_commission?: number;
+  affiliate_product_ids?: number[];
+  affiliate_visit_commission_enabled?: boolean;
+  affiliate_visit_commission_threshold?: number;
+  affiliate_visit_commission_amount?: number;
 }

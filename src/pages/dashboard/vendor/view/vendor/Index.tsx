@@ -78,7 +78,8 @@ export default function Page() {
         )}
         data={vendorData}
         createPath="/vendor/create"
-        hasDetails={false}
+        hasDetails
+        detailsLink="/vendor/update"
         permissions={{
           create: hasPermission('create', 'vendor'),
           update: hasPermission('update', 'vendor'),

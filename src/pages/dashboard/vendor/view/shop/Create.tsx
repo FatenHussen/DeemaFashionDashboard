@@ -1,15 +1,13 @@
-import type { ShopData, DaySchedule, WorkingHours } from '@/pages/dashboard/vendor/types/shop.types';
-
 import { toast } from 'react-toastify';
 import { useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
 import { MultiSelect } from '@/shared/ui/multi-select';
 import { formatTranslated } from '@/utils/format-translated';
 import { MapPicker } from '@/shared/components/map/map-picker';
+import { useForm, Controller, type Resolver } from 'react-hook-form';
 import { _AreaApi } from '@/pages/dashboard/locations/api/area.services';
 import { useFetchServices } from '@/pages/dashboard/vendor/hooks/service';
 import { _VendorApi } from '@/pages/dashboard/vendor/api/vendor.services';
@@ -22,9 +20,18 @@ import {
   useUpdateShop,
   useFetchShopById,
 } from '@/pages/dashboard/vendor/hooks/shop';
+import {
+  type ShopData,
+  type DaySchedule,
+  type WorkingHours,
+  paymentMethodsFromShop,
+  normalizeShopTypeFromApi,
+  normalizeShopPriceLevelFromApi,
+} from '@/pages/dashboard/vendor/types/shop.types';
 
 import { CONFIG } from 'src/global-config';
 import { Box, Input, Checkbox, Typography } from 'src/shared/ui';
+import { RHFSelect } from 'src/shared/components/hook-form/rhf-select';
 import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
 import { StepperFormLayout } from 'src/shared/components/forms/stepper-form-layout';
 import { RHFBadgeSelector } from 'src/shared/components/hook-form/rhf-badge-selector';
@@ -194,11 +201,12 @@ function buildShopFormValuesFromApi(shop: ShopData): ShopFormValues {
     area_id: Number(shop.area?.id ?? shop.area_id ?? 0),
     service_ids: serviceIds,
     badges: badgeRows.length
-      ? badgeRows.map((b: any) => ({
-          id: b.id,
-          position: (b.postion || b.position || 'top') as 'top' | 'bottom',
-        }))
+      ? badgeRows.map((b: any) => (typeof b === 'number' ? b : b.id))
       : [],
+    shop_type: normalizeShopTypeFromApi(shop),
+    payment_methods: paymentMethodsFromShop(shop),
+    pricing_tier: normalizeShopPriceLevelFromApi(shop),
+    is_recommended: Boolean(shop.is_recommended ?? shop.recommended),
   };
 }
 
@@ -208,7 +216,15 @@ const SHOP_STEP_VALIDATION_FIELDS: string[][] = [
   ['address', 'lat', 'lng'],
   ['phone', 'mobile', 'email'],
   ['working_hours'],
-  ['area_id', 'service_ids', 'is_active'],
+  [
+    'area_id',
+    'service_ids',
+    'is_active',
+    'shop_type',
+    'payment_methods',
+    'pricing_tier',
+    'is_recommended',
+  ],
 ];
 
 export default function CreatePage() {
@@ -227,6 +243,11 @@ export default function CreatePage() {
   const serviceOptions = services.map((s: any) => ({
     value: s.id,
     label: formatTranslated(s.name),
+  }));
+
+  const paymentMethodOptions = (['cash', 'online'] as const).map((key) => ({
+    value: key,
+    label: t(`form.shopPaymentMethod_${key}`),
   }));
 
   const shopRecord = shopData?.data;
@@ -260,6 +281,10 @@ export default function CreatePage() {
     area_id: 0,
     service_ids: [],
     badges: [],
+    shop_type: 'store',
+    payment_methods: [],
+    pricing_tier: 'medium',
+    is_recommended: false,
   };
 
   const editFormValues = useMemo(() => {
@@ -268,7 +293,7 @@ export default function CreatePage() {
   }, [isEditMode, isLoadingShop, shopRecord]);
 
   const methods = useForm<ShopFormValues>({
-    resolver: zodResolver(ShopSchema),
+    resolver: zodResolver(ShopSchema) as Resolver<ShopFormValues>,
     defaultValues,
     ...(editFormValues !== undefined ? { values: editFormValues } : {}),
   });
@@ -326,6 +351,10 @@ export default function CreatePage() {
         area_id: data.area_id,
         service_ids: data.service_ids,
         badges: data.badges,
+        is_restaurant: data.shop_type === 'restaurant',
+        payment_methods: data.payment_methods ?? [],
+        pricing_tier: data.pricing_tier,
+        is_recommended: data.is_recommended,
       };
 
       if (isEditMode && id) {
@@ -833,6 +862,113 @@ export default function CreatePage() {
       icon: 'solar:settings-bold',
       content: (
         <Box className="space-y-6">
+          {/* Classification, pricing, payments, coupons */}
+          <Box className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Box className="group md:col-span-2">
+              <Box className="flex items-center gap-2.5 mb-3">
+                <Box className="w-7 h-7 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
+                  <Iconify
+                    icon="solar:shop-bold"
+                    className="text-primary"
+                    width={16}
+                    height={16}
+                  />
+                </Box>
+                <Typography variant="subtitle2" className="font-semibold text-foreground">
+                  {t('form.shopClassificationSection')}
+                </Typography>
+              </Box>
+              <RHFSelect
+                name="shop_type"
+                options={[
+                  { value: 'restaurant', label: t('form.shopTypeRestaurant') },
+                  { value: 'service_provider', label: t('form.shopTypeServiceProvider') },
+                  { value: 'store', label: t('form.shopTypeStore') },
+                ]}
+                placeholder={t('form.shopTypePlaceholder')}
+                helperText={t('form.shopTypeHelper')}
+              />
+            </Box>
+
+            <Box className="group">
+              <Box className="flex items-center gap-2.5 mb-3">
+                <Box className="w-7 h-7 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
+                  <Iconify icon="solar:tag-price-bold" className="text-primary" width={16} height={16} />
+                </Box>
+                <Typography variant="subtitle2" className="font-semibold text-foreground">
+                  {t('form.shopPriceLevelLabel')}
+                </Typography>
+              </Box>
+              <RHFSelect
+                name="pricing_tier"
+                options={[
+                  { value: 'cheap', label: t('form.shopPriceLevelCheap') },
+                  { value: 'medium', label: t('form.shopPriceLevelMedium') },
+                  { value: 'expensive', label: t('form.shopPriceLevelExpensive') },
+                ]}
+                placeholder={t('form.shopPriceLevelPlaceholder')}
+              />
+            </Box>
+
+            <Box className="group">
+              <Box className="flex items-center gap-2.5 mb-3">
+                <Box className="w-7 h-7 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
+                  <Iconify icon="solar:wallet-bold" className="text-primary" width={16} height={16} />
+                </Box>
+                <Typography variant="subtitle2" className="font-semibold text-foreground">
+                  {t('form.shopPaymentMethodsLabel')}
+                </Typography>
+              </Box>
+              <Controller
+                name="payment_methods"
+                control={control}
+                render={({ field, fieldState: { error } }) => (
+                  <div className="w-full">
+                    <MultiSelect
+                      options={paymentMethodOptions}
+                      value={field.value ?? []}
+                      onChange={(ids) => field.onChange(ids as string[])}
+                      placeholder={t('form.shopPaymentMethodsPlaceholder')}
+                    />
+                    {error?.message && (
+                      <Typography variant="caption" className="text-destructive mt-1 block">
+                        {error.message}
+                      </Typography>
+                    )}
+                  </div>
+                )}
+              />
+            </Box>
+
+            <Box className="group md:col-span-2">
+              <Box className="flex items-center gap-2.5 mb-3">
+                <Box className="w-7 h-7 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
+                  <Iconify icon="solar:star-bold" className="text-primary" width={16} height={16} />
+                </Box>
+                <Typography variant="subtitle2" className="font-semibold text-foreground">
+                  {t('form.shopRecommendedSection')}
+                </Typography>
+              </Box>
+              <Controller
+                name="is_recommended"
+                control={control}
+                render={({ field }) => (
+                  <Box className="p-4 rounded-lg border border-border/60 bg-card/30 hover:bg-card/50 transition-colors">
+                    <Checkbox
+                      checked={field.value}
+                      onChange={(e) => field.onChange(e.target.checked)}
+                      label={
+                        <span className="text-sm font-medium text-foreground">
+                          {t('form.shopRecommendedLabel')}
+                        </span>
+                      }
+                    />
+                  </Box>
+                )}
+              />
+            </Box>
+          </Box>
+
           {/* Area ID & Service IDs */}
           <Box className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Box className="group">

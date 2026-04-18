@@ -3,6 +3,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 import type { PackageData } from '@/pages/dashboard/packages/types/package.types';
 
 import { z } from 'zod';
+import { createToggleColumn } from '@/shared/ui/table-data/data-table-toggle-cell';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 
@@ -32,18 +33,6 @@ export const packageColumns = (
   deletingId?: number | null,
   onEdit?: (row: any) => void
 ): ColumnDef<PackageFormValues>[] => [
-  {
-    id: 'id',
-    accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
-    cell: ({ row }) => (
-      <div className="flex items-center gap-2">
-        <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
-          <span className="text-xs font-semibold text-primary">{row.original.id}</span>
-        </div>
-      </div>
-    ),
-  },
   {
     id: 'name',
     accessorKey: 'name',
@@ -115,12 +104,16 @@ export const packageColumns = (
       </span>
     ),
   },
+  ...(permissions.update
+    ? [createToggleColumn<PackageFormValues>({ entityType: 'package' })]
+    : []),
   {
     id: 'actions',
     cell: ({ row }: any) => (
       <DataTableRowActions
         schema={PackageSchema}
         row={row}
+        viewDetails={`/packages/details/${row.original.id}`}
         editItem={onEdit ? undefined : `/packages/update/${row.original.id}`}
         onEdit={onEdit}
         onDelete={onDelete}
@@ -129,7 +122,6 @@ export const packageColumns = (
         onDeleteConfirm={onDeleteConfirm}
         onDeleteCancel={onDeleteCancel}
         deletingId={deletingId}
-        adminToggleEntityType="package"
         permissions={permissions}
       />
     ),

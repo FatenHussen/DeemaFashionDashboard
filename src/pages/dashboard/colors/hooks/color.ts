@@ -1,4 +1,4 @@
-import type { ColorCreatePayload, ColorListParams } from '../types/color.types';
+import type { ColorListParams, ColorCreatePayload } from '../types/color.types';
 
 import { queryKeys } from '@/api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';

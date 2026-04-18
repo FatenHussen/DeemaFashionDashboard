@@ -111,103 +111,108 @@ export default function CreatePage() {
         isEditMode={isEditMode}
         isLoading={isLoadingRule}
         loadingText={t('form.loadingPointRule')}
-        maxWidth="2xl"
         submitLabel={isEditMode ? t('form.updatePointRule') : t('form.createPointRuleSubmit')}
         submittingLabel={isEditMode ? t('form.updatingPointRuleSubmit') : t('form.creatingPointRuleSubmit')}
       >
-        {/* Title EN */}
-        <Box className="group">
-          <Box className="flex items-center gap-2 mb-2">
-            <Iconify icon="solar:star-bold" className="text-primary" width={24} height={24} />
+        {/* ── Section: Title ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-primary/[0.06] via-primary/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:star-bold" className="text-primary" width={15} />
+            </Box>
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              {t('form.nameEn')}
+              {t('form.nameEn')} / {t('form.nameAr')}
             </Typography>
           </Box>
-          <RHFTextField name="title.en" placeholder={t('form.pointRuleNameEnPlaceholder')} fullWidth />
+          <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+            <Box>
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5">
+                <Iconify icon="solar:star-bold" className="text-primary" width={16} />
+                {t('form.nameEn')}
+              </Typography>
+              <RHFTextField name="title.en" placeholder={t('form.pointRuleNameEnPlaceholder')} fullWidth />
+            </Box>
+            <Box>
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5">
+                <Iconify icon="solar:star-bold" className="text-primary" width={16} />
+                {t('form.nameAr')}
+              </Typography>
+              <RHFTextField name="title.ar" placeholder={t('form.pointRuleNameArPlaceholder')} dir="rtl" fullWidth />
+            </Box>
+          </Box>
         </Box>
 
-        {/* Title AR */}
-        <Box className="group">
-          <Box className="flex items-center gap-2 mb-2">
-            <Iconify icon="solar:star-bold" className="text-primary" width={24} height={24} />
+        {/* ── Section: Rule Configuration ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-amber-500/[0.06] via-amber-500/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:medal-ribbons-star-bold" className="text-amber-500" width={15} />
+            </Box>
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              {t('form.nameAr')}
+              {t('columns.type')} & {t('form.pointsLabel')}
             </Typography>
           </Box>
-          <RHFTextField name="title.ar" placeholder={t('form.pointRuleNameArPlaceholder')} dir="rtl" fullWidth />
-        </Box>
-
-        {/* Type & Value */}
-        <Box className="flex gap-4 flex-wrap">
-          <Box className="flex-1 min-w-[140px]">
-            <Box className="flex items-center gap-2 mb-2">
-              <Iconify icon="solar:tag-bold" className="text-primary" width={24} height={24} />
-              <Typography variant="subtitle2" className="font-semibold text-foreground">
+          <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+            <Box>
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5">
+                <Iconify icon="solar:tag-bold" className="text-amber-500" width={16} />
                 {t('columns.type')}
               </Typography>
+              <Controller
+                name="type"
+                control={control}
+                render={({ field }) => (
+                  <select {...field} className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm">
+                    <option value="fixed">{t('form.pointRuleTypeFixed')}</option>
+                    <option value="percentage">{t('form.pointRuleTypePercentage')}</option>
+                  </select>
+                )}
+              />
             </Box>
+            <Box>
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5">
+                <Iconify icon="solar:medal-ribbons-star-bold" className="text-amber-500" width={16} />
+                {t('form.pointsLabel')}
+              </Typography>
+              <RHFTextField name="value" type="number" placeholder={t('form.pointRuleValueExample')} fullWidth />
+            </Box>
+            <Box>
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5">
+                <Iconify icon="solar:cart-large-2-bold" className="text-amber-500" width={16} />
+                {t('form.minOrderAmount')}
+              </Typography>
+              <RHFTextField name="min_order_amount" type="number" placeholder={t('form.minOrderAmountPlaceholder')} helperText={t('form.minOrderAmountHelper')} fullWidth />
+            </Box>
+            <Box>
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5">
+                <Iconify icon="solar:clock-circle-bold" className="text-amber-500" width={16} />
+                {t('form.expiresAfterDays')}
+              </Typography>
+              <RHFTextField name="expires_after_days" type="number" placeholder={t('form.pointRuleExpiryExample')} fullWidth />
+            </Box>
+          </Box>
+        </Box>
+
+        {/* ── Section: Status ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-emerald-500/[0.06] via-emerald-500/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:bolt-bold" className="text-emerald-500" width={15} />
+            </Box>
+            <Typography variant="subtitle2" className="font-semibold text-foreground">{t('active')}</Typography>
+          </Box>
+          <Box className="p-6">
             <Controller
-              name="type"
+              name="is_active"
               control={control}
               render={({ field }) => (
-                <select
-                  {...field}
-                  className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
-                >
-                  <option value="fixed">{t('form.pointRuleTypeFixed')}</option>
-                  <option value="percentage">{t('form.pointRuleTypePercentage')}</option>
-                </select>
+                <div className="flex items-center gap-3 p-4 rounded-xl border border-border/60 bg-background/60 hover:border-emerald-500/40 transition-colors">
+                  <Switch checked={field.value} onChange={(e) => field.onChange((e.target as HTMLInputElement).checked)} />
+                  <Typography variant="subtitle2" className="font-semibold text-foreground">{t('active')}</Typography>
+                </div>
               )}
             />
           </Box>
-          <Box className="flex-1 min-w-[140px]">
-            <Box className="flex items-center gap-2 mb-2">
-              <Iconify icon="solar:medal-ribbons-star-bold" className="text-primary" width={24} height={24} />
-              <Typography variant="subtitle2" className="font-semibold text-foreground">
-                {t('form.pointsLabel')}
-              </Typography>
-            </Box>
-            <RHFTextField name="value" type="number" placeholder={t('form.pointRuleValueExample')} fullWidth />
-          </Box>
-        </Box>
-
-        {/* Min Order Amount & Expires */}
-        <Box className="flex gap-4 flex-wrap">
-          <Box className="flex-1 min-w-[140px]">
-            <Box className="flex items-center gap-2 mb-2">
-              <Iconify icon="solar:cart-large-2-bold" className="text-primary" width={24} height={24} />
-              <Typography variant="subtitle2" className="font-semibold text-foreground">
-                {t('form.minOrderAmount')}
-              </Typography>
-            </Box>
-            <RHFTextField name="min_order_amount" type="number" placeholder={t('form.minOrderAmountPlaceholder')} helperText={t('form.minOrderAmountHelper')} fullWidth />
-          </Box>
-          <Box className="flex-1 min-w-[140px]">
-            <Box className="flex items-center gap-2 mb-2">
-              <Iconify icon="solar:clock-circle-bold" className="text-primary" width={24} height={24} />
-              <Typography variant="subtitle2" className="font-semibold text-foreground">
-                {t('form.expiresAfterDays')}
-              </Typography>
-            </Box>
-            <RHFTextField name="expires_after_days" type="number" placeholder={t('form.pointRuleExpiryExample')} fullWidth />
-          </Box>
-        </Box>
-
-        {/* Active */}
-        <Box className="group">
-          <Controller
-            name="is_active"
-            control={control}
-            render={({ field }) => (
-              <div className="flex items-center gap-2">
-                <Switch
-                  checked={field.value}
-                  onChange={(e) => field.onChange((e.target as HTMLInputElement).checked)}
-                />
-                <Typography variant="body2">{t('active')}</Typography>
-              </div>
-            )}
-          />
         </Box>
       </CreateFormLayout>
     </>

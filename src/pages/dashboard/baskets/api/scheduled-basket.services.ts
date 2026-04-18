@@ -54,11 +54,9 @@ function buildScheduledBasketFormData(data: ScheduledBasketCreateUpdatePayload):
     }
   });
 
-  // Badges
   if (data.badges && data.badges.length > 0) {
-    data.badges.forEach((badge, index) => {
-      formData.append(`badges[${index}][id]`, String(badge.id));
-      formData.append(`badges[${index}][position]`, badge.position);
+    data.badges.forEach((badgeId) => {
+      formData.append('badges[]', String(badgeId));
     });
   }
 

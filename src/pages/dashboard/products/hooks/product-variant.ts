@@ -1,11 +1,10 @@
-import type { ProductVariantUpdatePayload } from '../api/product-variant.services';
 import type { ShopProductVariantUpdatePayload } from '@/shared/api/shop-product-variant.services';
+import type { ProductVariantUpdatePayload } from '../api/product-variant.services';
 
-import { queryKeys } from '@/api';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { _ShopProductVariantApi } from '@/shared/api/shop-product-variant.services';
 
 import { _ProductVariantApi } from '../api/product-variant.services';
-import { _ShopProductVariantApi } from '@/shared/api/shop-product-variant.services';
 
 export const useUpdateProductVariant = () => {
   const queryClient = useQueryClient();
@@ -33,6 +32,18 @@ export const useUpdateShopProductVariant = () => {
   return useMutation({
     mutationFn: ({ id, data }: { id: number | string; data: ShopProductVariantUpdatePayload }) =>
       _ShopProductVariantApi.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['product', 'list'] });
+      queryClient.invalidateQueries({ queryKey: ['product', 'variants'] });
+      queryClient.invalidateQueries({ queryKey: ['shopProductVariant', 'list'] });
+    },
+  });
+};
+
+export const useDeleteShopProductVariant = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number | string) => _ShopProductVariantApi.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['product', 'list'] });
       queryClient.invalidateQueries({ queryKey: ['shopProductVariant', 'list'] });

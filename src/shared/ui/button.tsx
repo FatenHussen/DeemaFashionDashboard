@@ -21,44 +21,40 @@ const getButtonClasses = (
 
   const variantClasses: Record<ButtonVariant, Record<ButtonColor, string>> = {
     contained: {
-      primary: 'bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800',
-      secondary: 'bg-gray-600 text-white hover:bg-gray-700 active:bg-gray-800',
-      error: 'bg-red-600 text-white hover:bg-red-700 active:bg-red-800',
-      warning: 'bg-yellow-600 text-white hover:bg-yellow-700 active:bg-yellow-800',
-      info: 'bg-blue-500 text-white hover:bg-blue-600 active:bg-blue-700',
-      success: 'bg-green-600 text-white hover:bg-green-700 active:bg-green-800',
-      inherit: 'bg-gray-600 text-white hover:bg-gray-700 active:bg-gray-800',
+      primary: 'bg-primary text-primary-foreground hover:bg-primary/90 active:bg-primary/80 shadow-sm hover:shadow-md transition-shadow',
+      secondary: 'bg-[#8E33FF] text-white hover:bg-[#7A29E0] active:bg-[#6B20D0] shadow-sm hover:shadow-md transition-shadow',
+      error: 'bg-red-500 text-white hover:bg-red-600 active:bg-red-700 shadow-sm hover:shadow-md transition-shadow',
+      warning: 'bg-amber-500 text-white hover:bg-amber-600 active:bg-amber-700 shadow-sm hover:shadow-md transition-shadow',
+      info: 'bg-sky-500 text-white hover:bg-sky-600 active:bg-sky-700 shadow-sm hover:shadow-md transition-shadow',
+      success: 'bg-emerald-500 text-white hover:bg-emerald-600 active:bg-emerald-700 shadow-sm hover:shadow-md transition-shadow',
+      inherit: 'bg-foreground/10 text-foreground hover:bg-foreground/15 active:bg-foreground/20 shadow-sm',
     },
     outlined: {
-      primary:
-        'border border-blue-600 bg-transparent text-primary hover:bg-blue-50 active:bg-blue-100',
-      secondary:
-        'border border-border bg-transparent text-foreground hover:bg-muted active:bg-muted',
-      error: 'border border-red-600 bg-transparent text-red-600 hover:bg-red-50 active:bg-red-100',
-      warning:
-        'border border-yellow-600 bg-transparent text-yellow-600 hover:bg-yellow-50 active:bg-yellow-100',
-      info: 'border border-blue-500 bg-transparent text-blue-500 hover:bg-blue-50 active:bg-blue-100',
-      success:
-        'border border-green-600 bg-transparent text-green-600 hover:bg-green-50 active:bg-green-100',
+      primary: 'border border-primary/70 bg-transparent text-primary hover:bg-primary/10 hover:border-primary active:bg-primary/15',
+      secondary: 'border border-border bg-transparent text-foreground hover:bg-muted active:bg-muted',
+      error: 'border border-red-500/70 bg-transparent text-red-600 hover:bg-red-50 hover:border-red-500 active:bg-red-100',
+      warning: 'border border-amber-500/70 bg-transparent text-amber-600 hover:bg-amber-50 hover:border-amber-500 active:bg-amber-100',
+      info: 'border border-sky-500/70 bg-transparent text-sky-600 hover:bg-sky-50 hover:border-sky-500 active:bg-sky-100',
+      success: 'border border-emerald-500/70 bg-transparent text-emerald-600 hover:bg-emerald-50 hover:border-emerald-500 active:bg-emerald-100',
       inherit: 'border border-border bg-transparent text-foreground hover:bg-muted active:bg-muted',
     },
     text: {
-      primary: 'text-primary hover:bg-blue-50 active:bg-blue-100',
+      primary: 'text-primary hover:bg-primary/10 active:bg-primary/15',
       secondary: 'text-foreground hover:bg-muted active:bg-muted',
       error: 'text-red-600 hover:bg-red-50 active:bg-red-100',
-      warning: 'text-yellow-600 hover:bg-yellow-50 active:bg-yellow-100',
-      info: 'text-blue-500 hover:bg-blue-50 active:bg-blue-100',
-      success: 'text-green-600 hover:bg-green-50 active:bg-green-100',
+      warning: 'text-amber-600 hover:bg-amber-50 active:bg-amber-100',
+      info: 'text-sky-600 hover:bg-sky-50 active:bg-sky-100',
+      success: 'text-emerald-600 hover:bg-emerald-50 active:bg-emerald-100',
       inherit: 'text-foreground hover:bg-muted active:bg-muted',
     },
     soft: {
-      primary: 'bg-blue-50 text-blue-700 hover:bg-blue-100 active:bg-blue-200',
-      secondary: 'bg-gray-50 text-gray-700 hover:bg-gray-100 active:bg-gray-200',
+      primary: 'bg-primary/10 text-primary hover:bg-primary/18 active:bg-primary/25',
+      secondary: 'bg-[#8E33FF]/10 text-[#8E33FF] hover:bg-[#8E33FF]/18 active:bg-[#8E33FF]/25',
       error: 'bg-red-50 text-red-700 hover:bg-red-100 active:bg-red-200',
-      warning: 'bg-yellow-50 text-yellow-700 hover:bg-yellow-100 active:bg-yellow-200',
-      info: 'bg-blue-50 text-blue-700 hover:bg-blue-100 active:bg-blue-200',
-      success: 'bg-green-50 text-green-700 hover:bg-green-100 active:bg-green-200',
-      inherit: 'bg-gray-50 text-gray-700 hover:bg-gray-100 active:bg-gray-200',
+      warning: 'bg-amber-50 text-amber-700 hover:bg-amber-100 active:bg-amber-200',
+      info: 'bg-sky-50 text-sky-700 hover:bg-sky-100 active:bg-sky-200',
+      success: 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 active:bg-emerald-200',
+      inherit: 'bg-foreground/5 text-foreground hover:bg-foreground/10 active:bg-foreground/15',
     },
   };
 

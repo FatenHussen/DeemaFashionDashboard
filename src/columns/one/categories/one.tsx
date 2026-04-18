@@ -4,6 +4,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 import { z } from 'zod';
 import { Iconify } from '@/shared/components/iconify';
 import { formatTranslated } from '@/utils/format-translated';
+import { createToggleColumn } from '@/shared/ui/table-data/data-table-toggle-cell';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 
@@ -39,6 +40,7 @@ export interface CategoryFormValues {
   updated_at: string;
   /** From list API — drives row Show/Hide in actions menu. */
   is_active?: boolean | number;
+  is_restaurant?: boolean;
   [key: string]: any;
 }
 
@@ -56,11 +58,14 @@ export const categoryColumns = (
   deletingId?: number | null,
   options?: {
     subcategoriesPath?: (id: number) => string;
+    /** Same as row drill-down; when set, overrides navigation via `subcategoriesPath`. */
+    onSubcategoriesClick?: (row: CategoryFormValues) => void;
     /** Hide parent column when listing root categories only. */
     hideParentColumn?: boolean;
   }
 ): ColumnDef<CategoryFormValues>[] => {
   const subcategoriesPath = options?.subcategoriesPath;
+  const onSubcategoriesClick = options?.onSubcategoriesClick;
   const hideParentColumn = options?.hideParentColumn;
 
   const parentColumn: ColumnDef<CategoryFormValues> = {
@@ -89,18 +94,6 @@ export const categoryColumns = (
   };
 
   return [
-  {
-    id: 'id',
-    accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
-    cell: ({ row }) => (
-      <div className="flex items-center gap-2">
-        <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
-          <span className="text-xs font-semibold text-primary">{row.original.id}</span>
-        </div>
-      </div>
-    ),
-  },
   {
     id: 'icon',
     accessorKey: 'icon',
@@ -180,6 +173,29 @@ export const categoryColumns = (
     ),
   },
   {
+    id: 'is_restaurant',
+    accessorKey: 'is_restaurant',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.type')} />,
+    cell: ({ row }) => {
+      const isRestaurant = row.original.is_restaurant;
+      return (
+        <div className="flex items-center gap-2">
+          {isRestaurant ? (
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-orange-500/10 border border-orange-500/20 w-fit">
+              <Iconify icon="solar:shop-bold" className="text-orange-500 shrink-0" width={13} height={13} />
+              <span className="text-xs font-semibold text-orange-500">{t('columns.restaurant')}</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-muted border border-border w-fit">
+              <Iconify icon="solar:shop-2-bold" className="text-muted-foreground shrink-0" width={13} height={13} />
+              <span className="text-xs font-semibold text-muted-foreground">{t('columns.normal')}</span>
+            </div>
+          )}
+        </div>
+      );
+    },
+  },
+  {
     id: 'created_at',
     accessorKey: 'created_at',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.createdAt')} />,
@@ -197,6 +213,9 @@ export const categoryColumns = (
       </div>
     ),
   },
+  ...(permissions.update
+    ? [createToggleColumn<CategoryFormValues>({ entityType: 'category' })]
+    : []),
   {
     id: 'actions',
     cell: ({ row }: any) => (
@@ -204,6 +223,12 @@ export const categoryColumns = (
         schema={CategorySchema}
         row={row}
         subcategoriesPath={subcategoriesPath}
+        onSubcategoriesClick={
+          onSubcategoriesClick
+            ? (r) => onSubcategoriesClick(r.original as CategoryFormValues)
+            : undefined
+        }
+        viewDetails={`/categories/update/${row.original.id}`}
         editItem={`/categories/update/${row.original.id}`}
         onDelete={onDelete}
         isDeleting={isDeleting}
@@ -211,7 +236,6 @@ export const categoryColumns = (
         onDeleteConfirm={onDeleteConfirm}
         onDeleteCancel={onDeleteCancel}
         deletingId={deletingId}
-        adminToggleEntityType="category"
         permissions={permissions}
       />
     ),

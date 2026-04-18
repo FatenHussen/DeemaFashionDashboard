@@ -58,8 +58,8 @@ export default function Page() {
         )}
         data={items}
         createPath="/recipes/create"
-        hasDetails={false}
-        rowClickToDetails={false}
+        hasDetails
+        detailsLink="/recipes/details"
         permissions={{ create: hasPermission('create', 'recipe'), update: hasPermission('update', 'recipe'), delete: hasPermission('delete', 'recipe') }}
         isLoading={isLoading}
         columnTranslations={{ id: t('columns.id'), image: t('columns.image'), name: t('columns.name'), description: t('columns.description'), price: t('columns.price'), discount: t('columns.discount'), rating: t('columns.rating'), orders_count: t('columns.orders'), created_at: t('columns.created'), actions: t('columns.action') }}

@@ -111,7 +111,8 @@ export default function Page() {
         )}
         data={categoryDetailData}
         createPath="/categories/details/create"
-        hasDetails={false}
+        hasDetails
+        detailsLink="/categories/details/update"
         permissions={{
           create: hasPermission('create', 'categorydetail'),
           update: hasPermission('update', 'categorydetail'),
@@ -122,7 +123,7 @@ export default function Page() {
           id: 'ID',
           name: 'Name',
           category: 'Category',
-          actions: 'Actions',
+          actions: t('columns.action'),
         }}
         pagination={pagination}
         currentPage={currentPage}

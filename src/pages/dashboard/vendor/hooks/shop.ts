@@ -8,6 +8,10 @@ import { _ShopApi } from '../api/shop.services';
 export type UseFetchShopsOptions = {
   /** When set and > 0, passed as `vendor_id` query param. Omit for unfiltered list. */
   vendorId?: number;
+  /** API: `shop_status` — open, closed, active, inactive */
+  shop_status?: string;
+  /** API: `shop_type` — restaurant, service_provider, store */
+  shop_type?: string;
   enabled?: boolean;
 };
 
@@ -17,11 +21,15 @@ export const useFetchShops = (
   opts?: UseFetchShopsOptions
 ) => {
   const vendorId = opts?.vendorId;
+  const shopStatus = opts?.shop_status;
+  const shopType = opts?.shop_type;
   const enabled = opts?.enabled ?? true;
   const listParams = {
     page,
     limit,
     ...(vendorId != null && vendorId > 0 ? { vendor_id: vendorId } : {}),
+    ...(shopStatus ? { shop_status: shopStatus } : {}),
+    ...(shopType ? { shop_type: shopType } : {}),
   };
   return useQuery({
     queryKey: queryKeys.shop.list(listParams),
@@ -30,6 +38,8 @@ export const useFetchShops = (
         page,
         per_page: limit,
         ...(vendorId != null && vendorId > 0 ? { vendor_id: vendorId } : {}),
+        ...(shopStatus ? { shop_status: shopStatus } : {}),
+        ...(shopType ? { shop_type: shopType } : {}),
       }),
     enabled,
   });

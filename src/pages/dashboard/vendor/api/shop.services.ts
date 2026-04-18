@@ -1,4 +1,8 @@
-import type { ShopData, ShopListResponse, ShopCreateUpdatePayload } from '../types/shop.types';
+import type {
+  ShopData,
+  ShopListResponse,
+  ShopCreateUpdatePayload,
+} from '../types/shop.types';
 
 import { apiRoutes, axiosInstance } from '@/api';
 
@@ -32,11 +36,16 @@ const buildFormDataPayload = (data: ShopCreateUpdatePayload): FormData => {
     formData.append('logo', data.logo);
   }
   if (data.badges && data.badges.length > 0) {
-    data.badges.forEach((badge, index) => {
-      formData.append(`badges[${index}][id]`, String(badge.id));
-      formData.append(`badges[${index}][position]`, badge.position);
+    data.badges.forEach((badgeId) => {
+      formData.append('badges[]', String(badgeId));
     });
   }
+  formData.append('is_restaurant', data.is_restaurant ? '1' : '0');
+  (data.payment_methods ?? []).forEach((m) => {
+    formData.append('payment_methods[]', m);
+  });
+  formData.append('pricing_tier', data.pricing_tier);
+  formData.append('is_recommended', data.is_recommended ? '1' : '0');
   return formData;
 };
 
@@ -45,6 +54,9 @@ export const _ShopApi = {
     page?: number;
     per_page?: number;
     vendor_id?: number;
+    shop_status?: string;
+    /** Admin / user listing: filter by shop classification */
+    shop_type?: string;
   }): Promise<ShopListResponse> => {
     const response = await axiosInstance.get<ShopListResponse>(apiRoutes.shop.list, { params });
     return response.data;

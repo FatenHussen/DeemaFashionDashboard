@@ -43,7 +43,7 @@ export const CONFIG: ConfigValue = {
   auth: {
     method: 'jwt',
     skip: false,
-    redirectPath: paths.dashboard.root, // This is '/admin'
+    redirectPath: paths.dashboard.profile, // Default app entry: profile overview (`/profile`)
   },
   /**
    * Mapbox

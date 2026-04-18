@@ -173,6 +173,7 @@ export default function CreatePage() {
   const schedulesWatch = watch('schedules');
   const imageValue = watch('image');
   const categoryId = watch('category_id') ?? 0;
+  const mainBasketDiscountType = watch('discount_type');
 
   const { data: shopVariantListResponse } = useQuery({
     queryKey: ['shopProductVariant', 'scheduled-basket', 'multi-options', categoryId],
@@ -312,7 +313,6 @@ export default function CreatePage() {
         isEditMode={isEditMode}
         isLoading={isEditMode && isLoadingScheduledBasket}
         loadingText={t('form.loadingScheduledBasket')}
-        maxWidth="2xl"
         submitLabel={
           isEditMode ? t('form.updateScheduledBasket') : t('form.createScheduledBasketSubmit')
         }
@@ -320,345 +320,307 @@ export default function CreatePage() {
           isEditMode ? t('form.updatingScheduledBasket') : t('form.creatingScheduledBasket')
         }
       >
-        {/* Category */}
-        <Box className="group">
-          <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.categoryLabel')}</Typography>
-          <Controller
-            name="category_id"
-            control={control}
-            render={({ field }) => (
-              <InfiniteScrollSelect
-                value={field.value ?? 0}
-                onChange={(val) => {
-                  field.onChange(val);
-                  setValue('items', [
-                    {
-                      shop_product_variant_id: 0,
-                      quantity: 1,
-                      shop_product_variant_ids: [],
-                      is_required: false,
-                      is_extra: false,
-                      min_quantity: 0,
-                      max_quantity: 0,
-                    },
-                  ]);
-                }}
-                queryKey={['category', 'scheduled-basket']}
-                fetcher={(page) =>
-                  _CategoryApi.getListCategoriesPaginated({ page, per_page: 15 }).then((res) => ({
-                    data: {
-                      items:
-                        page === 1
-                          ? [
-                              { id: 0, label: t('form.selectCategoryPlaceholder') },
-                              ...res.data.items.map((c: any) => ({
-                                id: c.id,
-                                label: typeof c.name === 'object' ? c.name : c.name || '',
-                              })),
-                            ]
-                          : res.data.items.map((c: any) => ({ id: c.id, label: typeof c.name === 'object' ? c.name : c.name || '' })),
-                      pagination: res.data.pagination,
-                    },
-                  }))
-                }
-                placeholder={t('form.selectCategoryPlaceholder')}
-                initialLabel={(() => {
-                  const src = scheduledBasketResponse?.data ?? scheduledBasketFromState;
-                  const cat = src?.category;
-                  return cat?.name ? (typeof cat.name === 'object' ? (cat.name as any)?.en || (cat.name as any)?.ar : cat.name) : undefined;
-                })()}
+        {/* ── Section: Category & Names ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-violet-500/[0.06] via-violet-500/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:widget-5-bold" className="text-violet-500" width={15} />
+            </Box>
+            <Typography variant="subtitle2" className="font-semibold text-foreground">
+              {t('form.categoryLabel')} & {t('columns.name')}
+            </Typography>
+          </Box>
+          <Box className="p-6 flex flex-col gap-5">
+            <Box className="group">
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5">
+                <Iconify icon="solar:folder-bold" className="text-violet-500" width={16} />
+                {t('form.categoryLabel')}
+              </Typography>
+              <Controller
+                name="category_id"
+                control={control}
+                render={({ field }) => (
+                  <InfiniteScrollSelect
+                    value={field.value ?? 0}
+                    onChange={(val) => {
+                      field.onChange(val);
+                      setValue('items', [{ shop_product_variant_id: 0, quantity: 1, shop_product_variant_ids: [], is_required: false, is_extra: false, min_quantity: 0, max_quantity: 0 }]);
+                    }}
+                    queryKey={['category', 'scheduled-basket']}
+                    fetcher={(page) =>
+                      _CategoryApi.getListCategoriesPaginated({ page, per_page: 15 }).then((res) => ({
+                        data: {
+                          items:
+                            page === 1
+                              ? [
+                                  { id: 0, label: t('form.selectCategoryPlaceholder') },
+                                  ...res.data.items.map((c: any) => ({ id: c.id, label: typeof c.name === 'object' ? c.name : c.name || '' })),
+                                ]
+                              : res.data.items.map((c: any) => ({ id: c.id, label: typeof c.name === 'object' ? c.name : c.name || '' })),
+                          pagination: res.data.pagination,
+                        },
+                      }))
+                    }
+                    placeholder={t('form.selectCategoryPlaceholder')}
+                    initialLabel={(() => {
+                      const src = scheduledBasketResponse?.data ?? scheduledBasketFromState;
+                      const cat = src?.category;
+                      return cat?.name ? (typeof cat.name === 'object' ? (cat.name as any)?.en || (cat.name as any)?.ar : cat.name) : undefined;
+                    })()}
+                  />
+                )}
               />
-            )}
-          />
+            </Box>
+            <Box className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <Box className="group">
+                <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5">
+                  <Iconify icon="solar:text-bold" className="text-violet-500" width={16} />
+                  {t('form.nameEn')}
+                </Typography>
+                <RHFTextField name="name.en" placeholder={t('form.basketNameEn')} fullWidth />
+              </Box>
+              <Box className="group">
+                <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5">
+                  <Iconify icon="solar:text-bold" className="text-violet-500" width={16} />
+                  {t('form.nameAr')}
+                </Typography>
+                <RHFTextField name="name.ar" placeholder={t('form.basketNameAr')} dir="rtl" fullWidth />
+              </Box>
+            </Box>
+          </Box>
         </Box>
 
-        {/* Name EN */}
-        <Box className="group">
-          <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.nameEn')}</Typography>
-          <RHFTextField name="name.en" placeholder={t('form.basketNameEn')} fullWidth />
+        {/* ── Section: Pricing & Image ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-amber-500/[0.06] via-amber-500/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:tag-price-bold" className="text-amber-500" width={15} />
+            </Box>
+            <Typography variant="subtitle2" className="font-semibold text-foreground">
+              {t('form.discountType')} · {t('form.deliveryPrice')} · {t('form.basketImage')}
+            </Typography>
+          </Box>
+          <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+            <Box className="group">
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5">
+                <Iconify icon="solar:percent-bold" className="text-amber-500" width={16} />
+                {t('form.discountType')}
+              </Typography>
+              <Controller
+                name="discount_type"
+                control={control}
+                render={({ field }) => (
+                  <select {...field} className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm">
+                    <option value="percentage">{t('form.percentageDiscount')}</option>
+                    <option value="fixed">{t('form.fixedDiscount')}</option>
+                  </select>
+                )}
+              />
+            </Box>
+            <Box className="group">
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5">
+                <Iconify icon="solar:tag-price-bold" className="text-amber-500" width={16} />
+                {t('form.discountValue')}
+              </Typography>
+              <RHFTextField name="discount" type="number" placeholder={t('form.placeholderZero')} fullWidth min={0} max={mainBasketDiscountType === 'percentage' ? 100 : undefined} />
+            </Box>
+            <Box className="group">
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5">
+                <Iconify icon="solar:delivery-bold" className="text-amber-500" width={16} />
+                {t('form.deliveryPrice')}
+              </Typography>
+              <RHFTextField name="delivery_price" type="number" placeholder={t('form.placeholderZero')} fullWidth />
+            </Box>
+            <Box className="group">
+              <Box className="flex items-center gap-2 mb-2">
+                <Iconify icon="solar:gallery-add-bold" className="text-amber-500" width={20} height={20} />
+                <Typography variant="subtitle2" className="font-semibold text-foreground">{t('form.basketImage')}</Typography>
+              </Box>
+              <Controller
+                name="image"
+                control={control}
+                render={({ field: { onChange, value, ...field }, fieldState: { error } }) => (
+                  <div className="w-full">
+                    <Input
+                      {...field}
+                      type="file"
+                      accept="image/jpeg,image/png,image/jpg,image/gif"
+                      onChange={(e) => { const file = e.target.files?.[0]; onChange(file || null); }}
+                      error={!!error}
+                      helperText={error?.message || t('form.basketImageHelper')}
+                      fullWidth
+                    />
+                    {(() => {
+                      const displaySrc = fileImagePreview || (!(imageValue instanceof File) && (scheduledBasketResponse?.data?.image || scheduledBasketFromState?.image));
+                      return displaySrc ? (
+                        <Box className="mt-3">
+                          <Box className="relative inline-block">
+                            <Box className="absolute -inset-1 rounded-xl bg-amber-500/20 blur-sm" />
+                            <img src={displaySrc} alt="" className="relative max-h-32 max-w-xs object-cover rounded-xl border border-border/60 shadow-sm" />
+                          </Box>
+                        </Box>
+                      ) : null;
+                    })()}
+                  </div>
+                )}
+              />
+            </Box>
+          </Box>
         </Box>
 
-        {/* Name AR */}
-        <Box className="group">
-          <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.nameAr')}</Typography>
-          <RHFTextField name="name.ar" placeholder={t('form.basketNameAr')} dir="rtl" fullWidth />
-        </Box>
-
-        {/* Discount */}
-        <Box className="flex flex-wrap gap-4">
-          <Box className="min-w-[140px] flex-1">
-            <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.discountType')}</Typography>
+        {/* ── Section: Status ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-emerald-500/[0.06] via-emerald-500/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:bolt-bold" className="text-emerald-500" width={15} />
+            </Box>
+            <Typography variant="subtitle2" className="font-semibold text-foreground">{t('active')}</Typography>
+          </Box>
+          <Box className="p-6">
             <Controller
-              name="discount_type"
+              name="is_active"
               control={control}
               render={({ field }) => (
-                <select {...field} className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm">
-                  <option value="percentage">{t('form.percentageDiscount')}</option>
-                  <option value="fixed">{t('form.fixedDiscount')}</option>
-                </select>
+                <div className="flex items-center gap-3 p-4 rounded-xl border border-border/60 bg-background/60 hover:border-emerald-500/40 transition-colors">
+                  <Switch checked={field.value} onChange={(e) => field.onChange((e.target as HTMLInputElement).checked)} />
+                  <Box>
+                    <Typography variant="subtitle2" className="font-semibold text-foreground">{t('active')}</Typography>
+                    <Typography variant="caption" className="text-muted-foreground">{t('form.basketActiveHelper')}</Typography>
+                  </Box>
+                </div>
               )}
             />
           </Box>
-          <Box className="min-w-[140px] flex-1">
-            <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.discountValue')}</Typography>
-            <RHFTextField name="discount" type="number" placeholder={t('form.placeholderZero')} fullWidth />
-          </Box>
         </Box>
 
-        {/* Delivery Price */}
-        <Box className="group">
-          <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.deliveryPrice')}</Typography>
-          <RHFTextField name="delivery_price" type="number" placeholder={t('form.placeholderZero')} fullWidth />
-        </Box>
-
-        {/* Basket image (optional, multipart) */}
-        <Box className="group">
-          <Box className="flex items-center gap-2 mb-2">
-            <Iconify icon="solar:gallery-add-bold" className="text-primary" width={24} height={24} />
-            <Typography variant="subtitle2" className="font-semibold text-foreground">
-              {t('form.basketImage')}
-            </Typography>
-          </Box>
-          <Controller
-            name="image"
-            control={control}
-            render={({ field: { onChange, value, ...field }, fieldState: { error } }) => (
-              <div className="w-full">
-                <Input
-                  {...field}
-                  type="file"
-                  accept="image/jpeg,image/png,image/jpg,image/gif"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    onChange(file || null);
-                  }}
-                  error={!!error}
-                  helperText={error?.message || t('form.basketImageHelper')}
-                  fullWidth
-                />
-                {(() => {
-                  const displaySrc =
-                    fileImagePreview ||
-                    (!(imageValue instanceof File) &&
-                      (scheduledBasketResponse?.data?.image || scheduledBasketFromState?.image));
-                  return displaySrc ? (
-                    <Box className="mt-4">
-                      <img src={displaySrc} alt="" className="max-h-40 max-w-xs object-cover rounded-lg border border-border/60" />
-                    </Box>
-                  ) : null;
-                })()}
-              </div>
-            )}
-          />
-        </Box>
-
-        {/* Delivery schedules — `schedules[]` in API (title, number_of_days, discounts, is_default, …) */}
-        <Box className="rounded-xl border border-border p-4 space-y-4">
-          <Box className="mb-2 flex items-center justify-between gap-2">
-            <Box className="flex items-center gap-2">
-              <Iconify icon="solar:calendar-bold" className="text-primary" width={24} height={24} />
-              <Typography variant="h6" className="font-semibold text-foreground">
-                {t('form.scheduleSection')}
-              </Typography>
+        {/* ── Section: Delivery Schedules ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="flex items-center justify-between px-6 py-4 border-b border-border/40 bg-gradient-to-r from-sky-500/[0.06] via-sky-500/[0.02] to-transparent">
+            <Box className="flex items-center gap-3">
+              <Box className="h-8 w-8 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center shrink-0">
+                <Iconify icon="solar:calendar-bold" className="text-sky-500" width={15} />
+              </Box>
+              <Typography variant="subtitle2" className="font-semibold text-foreground">{t('form.scheduleSection')}</Typography>
             </Box>
-            <Button
-              type="button"
-              variant="outlined"
-              onClick={() =>
-                appendSchedule({
-                  title: { en: '', ar: '' },
-                  number_of_days: 1,
-                  discount_type: null,
-                  discount_value: null,
-                  is_active: true,
-                  is_default: false,
-                })
-              }
+            <Button type="button" variant="outlined" size="small"
+              onClick={() => appendSchedule({ title: { en: '', ar: '' }, number_of_days: 1, discount_type: null, discount_value: null, is_active: true, is_default: false })}
               className="text-xs"
             >
               <Iconify icon="solar:add-circle-bold" width={16} className="mr-1" />
               {t('form.addSchedule')}
             </Button>
           </Box>
-
-          {scheduleFields.map((scheduleField, index) => {
-            const rowDiscountType = schedulesWatch?.[index]?.discount_type;
-            return (
-              <Box key={scheduleField.id} className="rounded-xl border border-border/50 p-4 space-y-4">
-                <Box className="flex items-center justify-between">
-                  <Typography variant="subtitle2" className="text-muted-foreground">
-                    {t('form.scheduledBasketScheduleHeading', { number: index + 1 })}
-                  </Typography>
-                  {scheduleFields.length > 1 && (
-                    <Button
-                      type="button"
-                      variant="text"
-                      onClick={() => handleRemoveScheduleRow(index)}
-                      className="text-destructive"
-                    >
-                      <Iconify icon="solar:trash-bin-trash-bold" width={18} />
-                    </Button>
-                  )}
-                </Box>
-
-                <Box className="group">
-                  <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
-                    {t('form.scheduleTitleEn')}
-                  </Typography>
-                  <RHFTextField name={`schedules.${index}.title.en`} placeholder={t('form.scheduleTitleEnPlaceholder')} fullWidth />
-                </Box>
-
-                <Box className="group">
-                  <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
-                    {t('form.scheduleTitleAr')}
-                  </Typography>
-                  <RHFTextField name={`schedules.${index}.title.ar`} placeholder={t('form.scheduleTitleArPlaceholder')} dir="rtl" fullWidth />
-                </Box>
-
-                <Box className="group">
-                  <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
-                    {t('form.numberOfDays')}
-                  </Typography>
-                  <RHFTextField name={`schedules.${index}.number_of_days`} type="number" placeholder={t('form.placeholderOne')} fullWidth />
-                  <Typography variant="caption" className="text-muted-foreground mt-1">
-                    {t('form.numberOfDaysHelper')}
-                  </Typography>
-                </Box>
-
-                <Box className="flex flex-wrap gap-4">
-                  <Box className="min-w-[140px] flex-1">
-                    <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
-                      {t('form.scheduleDiscountType')}
+          <Box className="p-6 flex flex-col gap-4">
+            {scheduleFields.map((scheduleField, index) => {
+              const rowDiscountType = schedulesWatch?.[index]?.discount_type;
+              return (
+                <Box key={scheduleField.id} className="rounded-xl border border-border/40 bg-background/60 overflow-hidden">
+                  <Box className="flex items-center justify-between px-4 py-3 border-b border-border/30 bg-muted/30">
+                    <Typography variant="subtitle2" className="font-semibold text-foreground">
+                      {t('form.scheduledBasketScheduleHeading', { number: index + 1 })}
                     </Typography>
-                    <Controller
-                      name={`schedules.${index}.discount_type`}
-                      control={control}
-                      render={({ field }) => (
-                        <select
-                          value={field.value ?? ''}
-                          onChange={(e) => field.onChange(e.target.value || null)}
-                          className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
-                        >
-                          <option value="">{t('form.noDiscount')}</option>
-                          <option value="percentage">{t('form.percentageDiscount')}</option>
-                          <option value="fixed">{t('form.fixedDiscount')}</option>
-                        </select>
-                      )}
-                    />
+                    {scheduleFields.length > 1 && (
+                      <Button type="button" variant="text" onClick={() => handleRemoveScheduleRow(index)} className="text-destructive">
+                        <Iconify icon="solar:trash-bin-trash-bold" width={18} />
+                      </Button>
+                    )}
                   </Box>
-                  {rowDiscountType ? (
-                    <Box className="min-w-[140px] flex-1">
-                      <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
-                        {t('form.scheduleDiscountValue')}
-                      </Typography>
-                      <RHFTextField
-                        name={`schedules.${index}.discount_value`}
-                        type="number"
-                        placeholder={
-                          rowDiscountType === 'percentage'
-                            ? t('form.scheduleDiscountPlaceholderPercentage')
-                            : t('form.scheduleDiscountPlaceholderFixed')
-                        }
-                        fullWidth
+                  <Box className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Box className="group">
+                      <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground text-sm">{t('form.scheduleTitleEn')}</Typography>
+                      <RHFTextField name={`schedules.${index}.title.en`} placeholder={t('form.scheduleTitleEnPlaceholder')} fullWidth />
+                    </Box>
+                    <Box className="group">
+                      <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground text-sm">{t('form.scheduleTitleAr')}</Typography>
+                      <RHFTextField name={`schedules.${index}.title.ar`} placeholder={t('form.scheduleTitleArPlaceholder')} dir="rtl" fullWidth />
+                    </Box>
+                    <Box className="group">
+                      <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground text-sm">{t('form.numberOfDays')}</Typography>
+                      <RHFTextField name={`schedules.${index}.number_of_days`} type="number" placeholder={t('form.placeholderOne')} fullWidth />
+                      <Typography variant="caption" className="text-muted-foreground mt-1">{t('form.numberOfDaysHelper')}</Typography>
+                    </Box>
+                    <Box className="group">
+                      <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground text-sm">{t('form.scheduleDiscountType')}</Typography>
+                      <Controller
+                        name={`schedules.${index}.discount_type`}
+                        control={control}
+                        render={({ field }) => (
+                          <select value={field.value ?? ''} onChange={(e) => field.onChange(e.target.value || null)} className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm">
+                            <option value="">{t('form.noDiscount')}</option>
+                            <option value="percentage">{t('form.percentageDiscount')}</option>
+                            <option value="fixed">{t('form.fixedDiscount')}</option>
+                          </select>
+                        )}
                       />
                     </Box>
-                  ) : null}
-                </Box>
-
-                <Controller
-                  name={`schedules.${index}.is_active`}
-                  control={control}
-                  render={({ field }) => (
-                    <div className="flex items-center gap-3 p-3 rounded-lg border border-border">
-                      <Switch
-                        checked={field.value}
-                        onChange={(e) => field.onChange((e.target as HTMLInputElement).checked)}
-                      />
-                      <Box>
-                        <Typography variant="subtitle2" className="font-semibold text-foreground">
-                          {t('form.scheduleActive')}
-                        </Typography>
-                        <Typography variant="caption" className="text-muted-foreground">
-                          {t('form.scheduleActiveHelper')}
-                        </Typography>
+                    {rowDiscountType ? (
+                      <Box className="group">
+                        <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground text-sm">{t('form.scheduleDiscountValue')}</Typography>
+                        <RHFTextField
+                          name={`schedules.${index}.discount_value`}
+                          type="number"
+                          placeholder={rowDiscountType === 'percentage' ? t('form.scheduleDiscountPlaceholderPercentage') : t('form.scheduleDiscountPlaceholderFixed')}
+                          fullWidth min={0} max={rowDiscountType === 'percentage' ? 100 : undefined}
+                        />
                       </Box>
-                    </div>
-                  )}
-                />
-
-                <Controller
-                  name={`schedules.${index}.is_default`}
-                  control={control}
-                  render={({ field }) => (
-                    <div className="flex items-center gap-3 p-3 rounded-lg border border-border">
-                      <Switch
-                        checked={field.value}
-                        onChange={(e) => {
-                          const on = (e.target as HTMLInputElement).checked;
-                          if (on) {
-                            setScheduleAsDefault(index);
-                          } else {
-                            field.onChange(false);
-                            window.setTimeout(() => {
-                              const next = getValues('schedules');
-                              if (next.length && !next.some((r) => r.is_default)) {
-                                const other = next.findIndex((_, i) => i !== index);
-                                if (other >= 0) setValue(`schedules.${other}.is_default`, true);
+                    ) : null}
+                    <Box className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <Controller
+                        name={`schedules.${index}.is_active`}
+                        control={control}
+                        render={({ field }) => (
+                          <div className="flex items-center gap-3 p-3 rounded-lg border border-border/60 bg-background/50">
+                            <Switch checked={field.value} onChange={(e) => field.onChange((e.target as HTMLInputElement).checked)} />
+                            <Box>
+                              <Typography variant="subtitle2" className="font-semibold text-foreground text-sm">{t('form.scheduleActive')}</Typography>
+                              <Typography variant="caption" className="text-muted-foreground">{t('form.scheduleActiveHelper')}</Typography>
+                            </Box>
+                          </div>
+                        )}
+                      />
+                      <Controller
+                        name={`schedules.${index}.is_default`}
+                        control={control}
+                        render={({ field }) => (
+                          <div className="flex items-center gap-3 p-3 rounded-lg border border-border/60 bg-background/50">
+                            <Switch checked={field.value} onChange={(e) => {
+                              const on = (e.target as HTMLInputElement).checked;
+                              if (on) { setScheduleAsDefault(index); } else {
+                                field.onChange(false);
+                                window.setTimeout(() => {
+                                  const next = getValues('schedules');
+                                  if (next.length && !next.some((r) => r.is_default)) {
+                                    const other = next.findIndex((_, i) => i !== index);
+                                    if (other >= 0) setValue(`schedules.${other}.is_default`, true);
+                                  }
+                                }, 0);
                               }
-                            }, 0);
-                          }
-                        }}
+                            }} />
+                            <Box>
+                              <Typography variant="subtitle2" className="font-semibold text-foreground text-sm">{t('form.scheduledBasketDetailScheduleDefault')}</Typography>
+                              <Typography variant="caption" className="text-muted-foreground">{t('form.scheduleDefaultHelper')}</Typography>
+                            </Box>
+                          </div>
+                        )}
                       />
-                      <Box>
-                        <Typography variant="subtitle2" className="font-semibold text-foreground">
-                          {t('form.scheduledBasketDetailScheduleDefault')}
-                        </Typography>
-                        <Typography variant="caption" className="text-muted-foreground">
-                          {t('form.scheduleDefaultHelper')}
-                        </Typography>
-                      </Box>
-                    </div>
-                  )}
-                />
-              </Box>
-            );
-          })}
-        </Box>
-
-        {/* Is Active */}
-        <Box className="group">
-          <Controller
-            name="is_active"
-            control={control}
-            render={({ field }) => (
-              <div className="flex items-center gap-3 p-3 rounded-lg border border-border">
-                <Switch
-                  checked={field.value}
-                  onChange={(e) => field.onChange((e.target as HTMLInputElement).checked)}
-                />
-                <Box>
-                  <Typography variant="subtitle2" className="font-semibold text-foreground">{t('active')}</Typography>
-                  <Typography variant="caption" className="text-muted-foreground">
-                    {t('form.basketActiveHelper')}
-                  </Typography>
+                    </Box>
+                  </Box>
                 </Box>
-              </div>
-            )}
-          />
+              );
+            })}
+          </Box>
         </Box>
 
-        {/* Items */}
-        <Box className="group">
-          <Box className="mb-2 flex items-center justify-between">
-            <Box className="flex items-center gap-2">
-              <Iconify icon="solar:box-bold" className="text-primary" width={24} height={24} />
-              <Typography variant="h6" className="font-semibold text-foreground">
-                {t('form.basketItems')}
-              </Typography>
+        {/* ── Section: Items ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="flex items-center justify-between px-6 py-4 border-b border-border/40 bg-gradient-to-r from-rose-500/[0.06] via-rose-500/[0.02] to-transparent">
+            <Box className="flex items-center gap-3">
+              <Box className="h-8 w-8 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center shrink-0">
+                <Iconify icon="solar:box-bold" className="text-rose-500" width={15} />
+              </Box>
+              <Typography variant="subtitle2" className="font-semibold text-foreground">{t('form.basketItems')}</Typography>
             </Box>
-            <Button
-              type="button"
-              variant="outlined"
+            <Button type="button" variant="outlined" size="small"
               onClick={() => append({ shop_product_variant_id: 0, quantity: 1, shop_product_variant_ids: [], is_required: false, is_extra: false, min_quantity: 0, max_quantity: 0 })}
               className="text-xs"
             >
@@ -666,151 +628,118 @@ export default function CreatePage() {
               {t('form.addItem')}
             </Button>
           </Box>
-          {fields.map((field, index) => (
-            <Box key={field.id} className="mb-4 rounded-xl border border-border/50 p-4 space-y-3">
-              <Box className="flex items-center justify-between">
-                <Typography variant="subtitle2" className="text-muted-foreground">
-                  {t('form.scheduledBasketItemHeading', { number: index + 1 })}
-                </Typography>
-                {fields.length > 1 && (
-                  <Button type="button" variant="text" onClick={() => remove(index)} className="text-destructive">
-                    <Iconify icon="solar:trash-bin-trash-bold" width={18} />
-                  </Button>
-                )}
-              </Box>
-
-              <Box className="flex flex-wrap gap-3">
-                <Box className="flex-1 min-w-[200px]">
-                  <Typography variant="caption" className="mb-1 text-muted-foreground">{t('form.primaryVariant')}</Typography>
-                  <Controller
-                    name={`items.${index}.shop_product_variant_id`}
-                    control={control}
-                    render={({ field: f }) => {
-                      const src = scheduledBasketResponse?.data ?? scheduledBasketFromState;
-                      const apiLines = [...(src?.items ?? []), ...(src?.extras ?? [])];
-                      const lineFromApi = Array.isArray(apiLines) ? apiLines[index] : undefined;
-                      return (
-                        <InfiniteScrollSelect
-                          value={Number(f.value) || 0}
-                          onChange={(variantId) => f.onChange(Number(variantId) || 0)}
-                          queryKey={['shopProductVariant', 'scheduled-basket', 'line', index, categoryId]}
-                          fetcher={(page, limit) => {
-                            const perPage = limit ?? 10;
-                            if (!categoryId || categoryId <= 0) {
-                              return Promise.resolve({
-                                data: {
-                                  items:
-                                    page === 1
-                                      ? [{ id: 0, label: t('form.selectCategoryBeforeVariants') }]
-                                      : [],
-                                  pagination: {
-                                    current_page: page,
-                                    last_page: page,
-                                    per_page: perPage,
-                                    total: 0,
-                                  },
-                                },
-                              });
-                            }
-                            return _ShopProductVariantApi.getList({
-                              page,
-                              per_page: perPage,
-                              category_id: categoryId,
-                            });
-                          }}
-                          placeholder={t('form.variantId')}
-                          initialLabel={scheduledBasketLineVariantInitialLabel(lineFromApi)}
-                          disabled={categoryId <= 0}
-                        />
-                      );
-                    }}
-                  />
-                </Box>
-                <Box className="w-24">
-                  <Typography variant="caption" className="mb-1 text-muted-foreground">{t('form.quantity')}</Typography>
-                  <RHFTextField name={`items.${index}.quantity`} placeholder={t('form.placeholderOne')} type="number" fullWidth />
-                </Box>
-                <Box className="w-24">
-                  <Typography variant="caption" className="mb-1 text-muted-foreground">
-                    {t('form.minQuantity')}
+          <Box className="p-6 flex flex-col gap-4">
+            {fields.map((field, index) => (
+              <Box key={field.id} className="rounded-xl border border-border/40 bg-background/60 overflow-hidden">
+                <Box className="flex items-center justify-between px-4 py-3 border-b border-border/30 bg-muted/30">
+                  <Typography variant="subtitle2" className="font-semibold text-foreground">
+                    {t('form.scheduledBasketItemHeading', { number: index + 1 })}
                   </Typography>
-                  <RHFTextField name={`items.${index}.min_quantity`} placeholder={t('form.placeholderZero')} type="number" fullWidth />
-                </Box>
-                <Box className="w-24">
-                  <Typography variant="caption" className="mb-1 text-muted-foreground">
-                    {t('form.maxQuantity')}
-                  </Typography>
-                  <RHFTextField name={`items.${index}.max_quantity`} placeholder={t('form.placeholderZero')} type="number" fullWidth />
-                </Box>
-              </Box>
-
-              <Box className="w-full">
-                <Typography variant="caption" className="mb-1 text-muted-foreground">
-                  {t('form.alternativeScheduledBaskets')}
-                </Typography>
-                <Controller
-                  name={`items.${index}.shop_product_variant_ids`}
-                  control={control}
-                  render={({ field: f }) => {
-                    const ids = Array.isArray(f.value) ? f.value.filter(Boolean).map(Number) : [];
-                    const extraOpts = ids
-                      .filter((v) => !shopVariantMultiOptions.some((o) => Number(o.value) === v))
-                      .map((v) => ({ value: v, label: `#${v}` }));
-                    const options = [...extraOpts, ...shopVariantMultiOptions];
-                    return (
-                      <MultiSelect
-                        options={options}
-                        value={ids}
-                        onChange={(vals) => f.onChange((vals as (string | number)[]).map((x) => Number(x)))}
-                        placeholder={
-                          categoryId <= 0
-                            ? t('form.selectCategoryBeforeVariants')
-                            : t('form.alternativeScheduledBasketsPlaceholder')
-                        }
-                        noOptionsMessage={t('noOptionsFound')}
-                        fullWidth
-                        isDisabled={categoryId <= 0}
-                      />
-                    );
-                  }}
-                />
-              </Box>
-
-              <Box className="flex flex-wrap gap-4">
-                <Controller
-                  name={`items.${index}.is_required`}
-                  control={control}
-                  render={({ field: f }) => (
-                    <div className="flex items-center gap-2">
-                      <Switch
-                        checked={f.value}
-                        onChange={(e) => f.onChange((e.target as HTMLInputElement).checked)}
-                      />
-                      <Typography variant="body2">{t('form.isRequired')}</Typography>
-                    </div>
+                  {fields.length > 1 && (
+                    <Button type="button" variant="text" onClick={() => remove(index)} className="text-destructive">
+                      <Iconify icon="solar:trash-bin-trash-bold" width={18} />
+                    </Button>
                   )}
-                />
-                <Controller
-                  name={`items.${index}.is_extra`}
-                  control={control}
-                  render={({ field: f }) => (
-                    <div className="flex items-center gap-2">
-                      <Switch
-                        checked={f.value}
-                        onChange={(e) => f.onChange((e.target as HTMLInputElement).checked)}
-                      />
-                      <Typography variant="body2">{t('form.isExtra')}</Typography>
-                    </div>
-                  )}
-                />
+                </Box>
+                <Box className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Box className="md:col-span-2">
+                    <Typography variant="caption" className="mb-1 text-muted-foreground">{t('form.primaryVariant')}</Typography>
+                    <Controller
+                      name={`items.${index}.shop_product_variant_id`}
+                      control={control}
+                      render={({ field: f }) => {
+                        const src = scheduledBasketResponse?.data ?? scheduledBasketFromState;
+                        const apiLines = [...(src?.items ?? []), ...(src?.extras ?? [])];
+                        const lineFromApi = Array.isArray(apiLines) ? apiLines[index] : undefined;
+                        return (
+                          <InfiniteScrollSelect
+                            value={Number(f.value) || 0}
+                            onChange={(variantId) => f.onChange(Number(variantId) || 0)}
+                            queryKey={['shopProductVariant', 'scheduled-basket', 'line', index, categoryId]}
+                            fetcher={(page, limit) => {
+                              const perPage = limit ?? 10;
+                              if (!categoryId || categoryId <= 0) {
+                                return Promise.resolve({ data: { items: page === 1 ? [{ id: 0, label: t('form.selectCategoryBeforeVariants') }] : [], pagination: { current_page: page, last_page: page, per_page: perPage, total: 0 } } });
+                              }
+                              return _ShopProductVariantApi.getList({ page, per_page: perPage, category_id: categoryId });
+                            }}
+                            placeholder={t('form.variantId')}
+                            initialLabel={scheduledBasketLineVariantInitialLabel(lineFromApi)}
+                            disabled={categoryId <= 0}
+                          />
+                        );
+                      }}
+                    />
+                  </Box>
+                  <Box className="grid grid-cols-3 gap-3 md:col-span-2">
+                    <Box>
+                      <Typography variant="caption" className="mb-1 text-muted-foreground">{t('form.quantity')}</Typography>
+                      <RHFTextField name={`items.${index}.quantity`} placeholder={t('form.placeholderOne')} type="number" fullWidth />
+                    </Box>
+                    <Box>
+                      <Typography variant="caption" className="mb-1 text-muted-foreground">{t('form.minQuantity')}</Typography>
+                      <RHFTextField name={`items.${index}.min_quantity`} placeholder={t('form.placeholderZero')} type="number" fullWidth />
+                    </Box>
+                    <Box>
+                      <Typography variant="caption" className="mb-1 text-muted-foreground">{t('form.maxQuantity')}</Typography>
+                      <RHFTextField name={`items.${index}.max_quantity`} placeholder={t('form.placeholderZero')} type="number" fullWidth />
+                    </Box>
+                  </Box>
+                  <Box className="md:col-span-2">
+                    <Typography variant="caption" className="mb-1 text-muted-foreground">{t('form.alternativeScheduledBaskets')}</Typography>
+                    <Controller
+                      name={`items.${index}.shop_product_variant_ids`}
+                      control={control}
+                      render={({ field: f }) => {
+                        const ids = Array.isArray(f.value) ? f.value.filter(Boolean).map(Number) : [];
+                        const extraOpts = ids.filter((v) => !shopVariantMultiOptions.some((o) => Number(o.value) === v)).map((v) => ({ value: v, label: `#${v}` }));
+                        const options = [...extraOpts, ...shopVariantMultiOptions];
+                        return (
+                          <MultiSelect
+                            options={options} value={ids}
+                            onChange={(vals) => f.onChange((vals as (string | number)[]).map((x) => Number(x)))}
+                            placeholder={categoryId <= 0 ? t('form.selectCategoryBeforeVariants') : t('form.alternativeScheduledBasketsPlaceholder')}
+                            noOptionsMessage={t('noOptionsFound')} fullWidth isDisabled={categoryId <= 0}
+                          />
+                        );
+                      }}
+                    />
+                  </Box>
+                  <Box className="md:col-span-2 flex flex-wrap gap-4">
+                    <Controller name={`items.${index}.is_required`} control={control}
+                      render={({ field: f }) => (
+                        <div className="flex items-center gap-2 p-3 rounded-lg border border-border/50 flex-1 min-w-[140px]">
+                          <Switch checked={f.value} onChange={(e) => f.onChange((e.target as HTMLInputElement).checked)} />
+                          <Typography variant="body2">{t('form.isRequired')}</Typography>
+                        </div>
+                      )}
+                    />
+                    <Controller name={`items.${index}.is_extra`} control={control}
+                      render={({ field: f }) => (
+                        <div className="flex items-center gap-2 p-3 rounded-lg border border-border/50 flex-1 min-w-[140px]">
+                          <Switch checked={f.value} onChange={(e) => f.onChange((e.target as HTMLInputElement).checked)} />
+                          <Typography variant="body2">{t('form.isExtra')}</Typography>
+                        </div>
+                      )}
+                    />
+                  </Box>
+                </Box>
               </Box>
-            </Box>
-          ))}
+            ))}
+          </Box>
         </Box>
 
-        {/* Badges */}
-        <Box className="border-t border-border pt-6">
-          <RHFBadgeSelector name="badges" label={t('form.badgesLabel')} />
+        {/* ── Section: Badges ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-primary/[0.06] via-primary/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:medal-ribbons-star-bold" className="text-primary" width={15} />
+            </Box>
+            <Typography variant="subtitle2" className="font-semibold text-foreground">{t('form.badgesLabel')}</Typography>
+          </Box>
+          <Box className="p-6">
+            <RHFBadgeSelector name="badges" label={t('form.badgesLabel')} />
+          </Box>
         </Box>
       </CreateFormLayout>
     </>

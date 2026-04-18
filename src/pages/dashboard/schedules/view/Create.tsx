@@ -117,118 +117,139 @@ export default function CreatePage() {
         isEditMode={isEditMode}
         isLoading={isLoadingSchedule}
         loadingText={t('form.loadingSchedule')}
-        maxWidth="2xl"
         submitLabel={isEditMode ? t('form.updateSchedule') : t('form.createScheduleSubmit')}
         submittingLabel={isEditMode ? t('form.updatingSchedule') : t('form.creatingSchedule')}
       >
-        {/* Name EN */}
-        <Box className="group">
-          <Box className="flex items-center gap-2 mb-2">
-            <Iconify icon="solar:calendar-bold" className="text-primary" width={24} height={24} />
+        {/* ── Section: Names ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-primary/[0.06] via-primary/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:calendar-bold" className="text-primary" width={15} />
+            </Box>
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              {t('form.nameEn')} *
+              {t('form.nameEn')} / {t('form.nameAr')}
             </Typography>
           </Box>
-          <RHFTextField name="name.en" placeholder={t('form.scheduleNameEnPlaceholder')} fullWidth />
+          <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+            <Box className="group">
+              <Box className="flex items-center gap-2 mb-2">
+                <Iconify icon="solar:calendar-bold" className="text-primary" width={20} />
+                <Typography variant="subtitle2" className="font-semibold text-foreground">
+                  {t('form.nameEn')} *
+                </Typography>
+              </Box>
+              <RHFTextField name="name.en" placeholder={t('form.scheduleNameEnPlaceholder')} fullWidth />
+            </Box>
+            <Box className="group">
+              <Box className="flex items-center gap-2 mb-2">
+                <Iconify icon="solar:calendar-bold" className="text-primary" width={20} />
+                <Typography variant="subtitle2" className="font-semibold text-foreground">
+                  {t('form.nameAr')} *
+                </Typography>
+              </Box>
+              <RHFTextField name="name.ar" placeholder={t('form.scheduleNameArPlaceholder')} dir="rtl" fullWidth />
+            </Box>
+          </Box>
         </Box>
 
-        {/* Name AR */}
-        <Box className="group">
-          <Box className="flex items-center gap-2 mb-2">
-            <Iconify icon="solar:calendar-bold" className="text-primary" width={24} height={24} />
+        {/* ── Section: Configuration ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-violet-500/[0.06] via-violet-500/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:settings-bold" className="text-violet-500" width={15} />
+            </Box>
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              {t('form.nameAr')} *
+              {t('form.intervalDays')} & {t('form.discountType')}
             </Typography>
           </Box>
-          <RHFTextField name="name.ar" placeholder={t('form.scheduleNameArPlaceholder')} dir="rtl" fullWidth />
-        </Box>
-
-        {/* Interval Days */}
-        <Box className="group">
-          <Box className="flex items-center gap-2 mb-2">
-            <Iconify icon="solar:clock-circle-bold" className="text-primary" width={24} height={24} />
-            <Typography variant="subtitle2" className="font-semibold text-foreground">
-              {t('form.intervalDays')} *
-            </Typography>
-          </Box>
-          <RHFTextField name="interval_days" type="number" placeholder={t('form.placeholderThree')} fullWidth />
-          <Typography variant="caption" className="text-muted-foreground mt-1">
-            {t('form.intervalDaysHelper')}
-          </Typography>
-        </Box>
-
-        {/* Discount Type */}
-        <Box className="group">
-          <Box className="flex items-center gap-2 mb-2">
-            <Iconify icon="solar:tag-price-bold" className="text-primary" width={24} height={24} />
-            <Typography variant="subtitle2" className="font-semibold text-foreground">
-              {t('form.discountType')}
-            </Typography>
-          </Box>
-          <Controller
-            name="discount_type"
-            control={control}
-            render={({ field }) => (
-              <select
-                value={field.value ?? ''}
-                onChange={(e) => field.onChange(e.target.value || null)}
-                className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
-              >
-                <option value="">{t('form.noDiscount')}</option>
-                <option value="percentage">{t('form.percentageDiscount')}</option>
-                <option value="fixed">{t('form.fixedDiscount')}</option>
-              </select>
-            )}
-          />
-        </Box>
-
-        {/* Discount Value - only show when discount_type is selected */}
-        {discountType && (
-          <Box className="group">
-            <Box className="flex items-center gap-2 mb-2">
-              <Iconify icon="solar:dollar-bold" className="text-primary" width={24} height={24} />
-              <Typography variant="subtitle2" className="font-semibold text-foreground">
-                {t('form.discountValue')}
+          <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+            <Box className="group">
+              <Box className="flex items-center gap-2 mb-2">
+                <Iconify icon="solar:clock-circle-bold" className="text-violet-500" width={20} />
+                <Typography variant="subtitle2" className="font-semibold text-foreground">
+                  {t('form.intervalDays')} *
+                </Typography>
+              </Box>
+              <RHFTextField name="interval_days" type="number" placeholder={t('form.placeholderThree')} fullWidth />
+              <Typography variant="caption" className="text-muted-foreground mt-1">
+                {t('form.intervalDaysHelper')}
               </Typography>
             </Box>
-            <RHFTextField
-              name="discount_value"
-              type="number"
-              placeholder={
-                discountType === 'percentage'
-                  ? t('form.scheduleDiscountPlaceholderPercentage')
-                  : t('form.scheduleDiscountPlaceholderFixed')
-              }
-              fullWidth
-            />
-            <Typography variant="caption" className="text-muted-foreground mt-1">
-              {discountType === 'percentage' ? t('form.percentageHelper') : t('form.fixedHelper')}
-            </Typography>
-          </Box>
-        )}
-
-        {/* Active */}
-        <Box className="group">
-          <Controller
-            name="is_active"
-            control={control}
-            render={({ field }) => (
-              <div className="flex items-center gap-3 p-3 rounded-lg border border-border">
-                <Switch
-                  checked={field.value}
-                  onChange={(e) => field.onChange((e.target as HTMLInputElement).checked)}
-                />
-                <Box>
+            <Box className="group">
+              <Box className="flex items-center gap-2 mb-2">
+                <Iconify icon="solar:tag-price-bold" className="text-violet-500" width={20} />
+                <Typography variant="subtitle2" className="font-semibold text-foreground">
+                  {t('form.discountType')}
+                </Typography>
+              </Box>
+              <Controller
+                name="discount_type"
+                control={control}
+                render={({ field }) => (
+                  <select
+                    value={field.value ?? ''}
+                    onChange={(e) => field.onChange(e.target.value || null)}
+                    className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
+                  >
+                    <option value="">{t('form.noDiscount')}</option>
+                    <option value="percentage">{t('form.percentageDiscount')}</option>
+                    <option value="fixed">{t('form.fixedDiscount')}</option>
+                  </select>
+                )}
+              />
+            </Box>
+            {discountType && (
+              <Box className="group md:col-span-2 md:max-w-sm">
+                <Box className="flex items-center gap-2 mb-2">
+                  <Iconify icon="solar:dollar-bold" className="text-violet-500" width={20} />
                   <Typography variant="subtitle2" className="font-semibold text-foreground">
-                    {t('active')}
-                  </Typography>
-                  <Typography variant="caption" className="text-muted-foreground">
-                    {t('form.scheduleActiveHelper')}
+                    {t('form.discountValue')}
                   </Typography>
                 </Box>
-              </div>
+                <RHFTextField
+                  name="discount_value"
+                  type="number"
+                  placeholder={discountType === 'percentage' ? t('form.scheduleDiscountPlaceholderPercentage') : t('form.scheduleDiscountPlaceholderFixed')}
+                  fullWidth min={0} max={discountType === 'percentage' ? 100 : undefined}
+                />
+                <Typography variant="caption" className="text-muted-foreground mt-1">
+                  {discountType === 'percentage' ? t('form.percentageHelper') : t('form.fixedHelper')}
+                </Typography>
+              </Box>
             )}
-          />
+          </Box>
+        </Box>
+
+        {/* ── Section: Status ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-emerald-500/[0.06] via-emerald-500/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:bolt-bold" className="text-emerald-500" width={15} />
+            </Box>
+            <Typography variant="subtitle2" className="font-semibold text-foreground">{t('active')}</Typography>
+          </Box>
+          <Box className="p-6">
+            <Controller
+              name="is_active"
+              control={control}
+              render={({ field }) => (
+                <div className="flex items-center gap-3 p-4 rounded-xl border border-border/60 bg-background/60 hover:border-emerald-500/40 transition-colors">
+                  <Switch
+                    checked={field.value}
+                    onChange={(e) => field.onChange((e.target as HTMLInputElement).checked)}
+                  />
+                  <Box>
+                    <Typography variant="subtitle2" className="font-semibold text-foreground">
+                      {t('active')}
+                    </Typography>
+                    <Typography variant="caption" className="text-muted-foreground">
+                      {t('form.scheduleActiveHelper')}
+                    </Typography>
+                  </Box>
+                </div>
+              )}
+            />
+          </Box>
         </Box>
       </CreateFormLayout>
     </>

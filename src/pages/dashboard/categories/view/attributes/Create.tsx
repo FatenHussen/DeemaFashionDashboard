@@ -204,7 +204,6 @@ export default function CreatePage() {
         isEditMode={isEditMode}
         isLoading={isLoadingAttribute}
         loadingText={t('form.loadingCategoryAttribute')}
-        maxWidth="4xl"
         infoText={infoText}
         submitLabel={
           isEditMode ? t('form.updateCategoryAttributeSubmit') : t('form.createCategoryAttributeSubmit')
@@ -213,124 +212,152 @@ export default function CreatePage() {
           isEditMode ? t('form.updatingCategoryAttribute') : t('form.creatingCategoryAttribute')
         }
       >
-        {/* Category Selection */}
-        <Box className="group">
-          <Box className="flex items-center gap-2 mb-2">
-            <Iconify icon="solar:diagram-bold" className="text-primary" width={24} height={24} />
+        {/* ── Section: Configuration ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-violet-500/[0.06] via-violet-500/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:settings-bold" className="text-violet-500" width={15} />
+            </Box>
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              {t('form.categoryLabel')}
+              {t('form.categoryLabel')} & {t('form.attributeTypeLabel')}
             </Typography>
           </Box>
-          <RHFInfiniteSelect
-            name="category_id"
-            queryKey={['categories', 'infinite', 'attribute-form']}
-            fetcher={categoryFetcher}
-            placeholder={t('form.selectCategory')}
-            helperText={t('form.attributeCategoryHelper')}
-            initialLabel={categoryAttributeData?.data?.category}
-          />
+          <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+            <Box className="group">
+              <Box className="flex items-center gap-2 mb-2">
+                <Iconify icon="solar:diagram-bold" className="text-violet-500" width={20} height={20} />
+                <Typography variant="subtitle2" className="font-semibold text-foreground">
+                  {t('form.categoryLabel')}
+                </Typography>
+              </Box>
+              <RHFInfiniteSelect
+                name="category_id"
+                queryKey={['categories', 'infinite', 'attribute-form']}
+                fetcher={categoryFetcher}
+                placeholder={t('form.selectCategory')}
+                helperText={t('form.attributeCategoryHelper')}
+                initialLabel={categoryAttributeData?.data?.category}
+              />
+            </Box>
+
+            <Box className="group">
+              <Box className="flex items-center gap-2 mb-2">
+                <Iconify icon="solar:settings-bold" className="text-violet-500" width={20} height={20} />
+                <Typography variant="subtitle2" className="font-semibold text-foreground">
+                  {t('form.attributeTypeLabel')}
+                </Typography>
+              </Box>
+              <Controller
+                name="type"
+                control={control}
+                render={({ field: { onChange, value }, fieldState: { error } }) => (
+                  <SimpleSelect
+                    value={value || ''}
+                    onChange={onChange}
+                    options={typeOptions}
+                    placeholder={t('form.selectAttributeType')}
+                    error={!!error}
+                    helperText={error?.message || t('form.attributeTypeHelperText')}
+                    fullWidth
+                    className="transition-all duration-200"
+                  />
+                )}
+              />
+            </Box>
+          </Box>
         </Box>
 
-        {/* Name Field - Arabic */}
-        <Box className="group">
-          <Box className="flex items-center gap-2 mb-2">
-            <Iconify icon="solar:tag-bold" className="text-primary" width={24} height={24} />
+        {/* ── Section: Names ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-primary/[0.06] via-primary/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:tag-bold" className="text-primary" width={15} />
+            </Box>
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              {t('form.nameAr')}
+              {t('form.nameAr')} / {t('form.nameEn')}
             </Typography>
           </Box>
-          <RHFTextField
-            name="name.ar"
-            placeholder={t('form.colorNameAr')}
-            helperText={t('form.attributeNameArHelper')}
-            className="transition-all duration-200"
-            dir="rtl"
-          />
-        </Box>
+          <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+            <Box className="group">
+              <Box className="flex items-center gap-2 mb-2">
+                <Iconify icon="solar:tag-bold" className="text-primary" width={20} height={20} />
+                <Typography variant="subtitle2" className="font-semibold text-foreground">
+                  {t('form.nameAr')}
+                </Typography>
+              </Box>
+              <RHFTextField
+                name="name.ar"
+                placeholder={t('form.colorNameAr')}
+                helperText={t('form.attributeNameArHelper')}
+                className="transition-all duration-200"
+                dir="rtl"
+              />
+            </Box>
 
-        {/* Name Field - English */}
-        <Box className="group">
-          <Box className="flex items-center gap-2 mb-2">
-            <Iconify icon="solar:tag-bold" className="text-primary" width={24} height={24} />
-            <Typography variant="subtitle2" className="font-semibold text-foreground">
-              {t('form.nameEn')}
-            </Typography>
-          </Box>
-          <RHFTextField
-            name="name.en"
-            placeholder={t('form.colorNameEn')}
-            helperText={t('form.attributeNameEnHelper')}
-            className="transition-all duration-200"
-          />
-        </Box>
-
-        {/* Type Selection */}
-        <Box className="group">
-          <Box className="flex items-center gap-2 mb-2">
-            <Iconify icon="solar:settings-bold" className="text-primary" width={24} height={24} />
-            <Typography variant="subtitle2" className="font-semibold text-foreground">
-              {t('form.attributeTypeLabel')}
-            </Typography>
-          </Box>
-          <Controller
-            name="type"
-            control={control}
-            render={({ field: { onChange, value }, fieldState: { error } }) => (
-              <SimpleSelect
-                value={value || ''}
-                onChange={onChange}
-                options={typeOptions}
-                placeholder={t('form.selectAttributeType')}
-                error={!!error}
-                helperText={error?.message || t('form.attributeTypeHelperText')}
-                fullWidth
+            <Box className="group">
+              <Box className="flex items-center gap-2 mb-2">
+                <Iconify icon="solar:tag-bold" className="text-primary" width={20} height={20} />
+                <Typography variant="subtitle2" className="font-semibold text-foreground">
+                  {t('form.nameEn')}
+                </Typography>
+              </Box>
+              <RHFTextField
+                name="name.en"
+                placeholder={t('form.colorNameEn')}
+                helperText={t('form.attributeNameEnHelper')}
                 className="transition-all duration-200"
               />
-            )}
-          />
+            </Box>
+          </Box>
         </Box>
 
-        {/* Color values: read-only in edit (from API) */}
+        {/* ── Section: Color Values (edit mode only) ── */}
         {isEditMode && attributeType === 'color' && (
-          <Box className="group">
-            <Box className="flex items-center gap-2 mb-2">
-              <Iconify icon="solar:palette-bold" className="text-primary" width={24} height={24} />
+          <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+            <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-rose-500/[0.06] via-rose-500/[0.02] to-transparent">
+              <Box className="h-8 w-8 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center shrink-0">
+                <Iconify icon="solar:palette-bold" className="text-rose-500" width={15} />
+              </Box>
               <Typography variant="subtitle2" className="font-semibold text-foreground">
                 {t('form.attributeValuesSection')}
               </Typography>
             </Box>
-            <Typography variant="caption" className="text-muted-foreground block mb-3">
-              {t('form.attributeColorValuesReadOnlyHint')}
-            </Typography>
-            <Box className="flex flex-wrap gap-3 p-4 border border-border/60 rounded-lg bg-muted/20">
-              {(categoryAttributeData?.data?.values ?? []).map((val) => {
-                const hex = hexForDisplay(val.name?.en || val.name?.ar);
-                return (
-                  <Box
-                    key={val.id ?? `${hex}-${val.name?.en}-${val.name?.ar}`}
-                    className="flex flex-col items-center gap-1"
-                    title={hex}
-                  >
+            <Box className="p-6">
+              <Typography variant="caption" className="text-muted-foreground block mb-4">
+                {t('form.attributeColorValuesReadOnlyHint')}
+              </Typography>
+              <Box className="flex flex-wrap gap-3 p-4 border border-border/60 rounded-xl bg-muted/20">
+                {(categoryAttributeData?.data?.values ?? []).map((val) => {
+                  const hex = hexForDisplay(val.name?.en || val.name?.ar);
+                  return (
                     <Box
-                      className="h-10 w-10 shrink-0 rounded-full border border-border shadow-sm"
-                      style={{ backgroundColor: hex || undefined }}
-                    />
-                    <Typography variant="caption" className="text-muted-foreground max-w-[4.5rem] truncate">
-                      {hex || '—'}
-                    </Typography>
-                  </Box>
-                );
-              })}
+                      key={val.id ?? `${hex}-${val.name?.en}-${val.name?.ar}`}
+                      className="flex flex-col items-center gap-1"
+                      title={hex}
+                    >
+                      <Box
+                        className="h-10 w-10 shrink-0 rounded-full border border-border shadow-sm"
+                        style={{ backgroundColor: hex || undefined }}
+                      />
+                      <Typography variant="caption" className="text-muted-foreground max-w-[4.5rem] truncate">
+                        {hex || '—'}
+                      </Typography>
+                    </Box>
+                  );
+                })}
+              </Box>
             </Box>
           </Box>
         )}
 
-        {/* Values Section */}
+        {/* ── Section: Attribute Values ── */}
         {attributeType !== 'color' && (
-          <Box className="group">
-            <Box className="flex items-center justify-between mb-4">
-              <Box className="flex items-center gap-2">
-                <Iconify icon="solar:list-bold" className="text-primary" width={24} height={24} />
+          <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+            <Box className="flex items-center justify-between px-6 py-4 border-b border-border/40 bg-gradient-to-r from-amber-500/[0.06] via-amber-500/[0.02] to-transparent">
+              <Box className="flex items-center gap-3">
+                <Box className="h-8 w-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
+                  <Iconify icon="solar:list-bold" className="text-amber-500" width={15} />
+                </Box>
                 <Typography variant="subtitle2" className="font-semibold text-foreground">
                   {t('form.attributeValuesSection')}
                 </Typography>
@@ -342,49 +369,52 @@ export default function CreatePage() {
                 onClick={() => append({ name: { en: '', ar: '' } })}
                 className="flex items-center gap-2"
               >
-                <Iconify icon="solar:add-circle-bold" width={20} height={20} />
+                <Iconify icon="solar:add-circle-bold" width={18} height={18} />
                 {t('form.addAttributeValue')}
               </Button>
             </Box>
-
-            {fields.map((field, index) => (
-              <Box key={field.id} className="mb-4 p-4 border border-border/60 rounded-lg">
-                <Box className="flex items-center justify-between mb-3">
-                  <Typography variant="body2" className="font-medium text-foreground">
-                    {t('form.attributeValueIndex', { n: index + 1 })}
-                  </Typography>
-                  {fields.length > 1 && (
-                    <Button
-                      type="button"
-                      variant="text"
-                      color="error"
-                      size="small"
-                      onClick={() => remove(index)}
-                      className="flex items-center gap-2"
-                    >
-                      <Iconify icon="solar:trash-bin-trash-bold" width={16} height={16} />
-                      {t('form.removeAttributeValue')}
-                    </Button>
-                  )}
+            <Box className="p-6 flex flex-col gap-4">
+              {fields.map((field, index) => (
+                <Box
+                  key={field.id}
+                  className="rounded-xl border border-border/50 bg-background/60 overflow-hidden"
+                >
+                  <Box className="flex items-center justify-between px-4 py-3 border-b border-border/40 bg-muted/30">
+                    <Typography variant="body2" className="font-medium text-foreground">
+                      {t('form.attributeValueIndex', { n: index + 1 })}
+                    </Typography>
+                    {fields.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="text"
+                        color="error"
+                        size="small"
+                        onClick={() => remove(index)}
+                        className="flex items-center gap-1.5"
+                      >
+                        <Iconify icon="solar:trash-bin-trash-bold" width={14} height={14} />
+                        {t('form.removeAttributeValue')}
+                      </Button>
+                    )}
+                  </Box>
+                  <Box className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <RHFTextField
+                      name={`values.${index}.name.en`}
+                      placeholder={t('form.valueEn')}
+                      label={t('form.nameEn')}
+                      className="transition-all duration-200"
+                    />
+                    <RHFTextField
+                      name={`values.${index}.name.ar`}
+                      placeholder={t('form.valueAr')}
+                      label={t('form.nameAr')}
+                      className="transition-all duration-200"
+                      dir="rtl"
+                    />
+                  </Box>
                 </Box>
-
-                <Box className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <RHFTextField
-                    name={`values.${index}.name.en`}
-                    placeholder={t('form.valueEn')}
-                    label={t('form.nameEn')}
-                    className="transition-all duration-200"
-                  />
-                  <RHFTextField
-                    name={`values.${index}.name.ar`}
-                    placeholder={t('form.valueAr')}
-                    label={t('form.nameAr')}
-                    className="transition-all duration-200"
-                    dir="rtl"
-                  />
-                </Box>
-              </Box>
-            ))}
+              ))}
+            </Box>
           </Box>
         )}
       </CreateFormLayout>

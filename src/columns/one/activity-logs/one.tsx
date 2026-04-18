@@ -28,16 +28,6 @@ export const activityLogColumns = (
   options: ActivityLogColumnsOptions
 ): ColumnDef<ActivityLogItem>[] => [
   {
-    id: 'id',
-    accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
-    cell: ({ row }) => (
-      <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-        <span className="text-xs font-semibold text-primary">{row.original.id}</span>
-      </div>
-    ),
-  },
-  {
     id: 'user',
     accessorKey: 'user',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.user')} />,

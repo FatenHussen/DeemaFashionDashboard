@@ -1,6 +1,6 @@
-import { useState } from 'react';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
+import { useState, type ReactNode } from 'react';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { FAQ_TYPES } from '@/pages/dashboard/content/types/faq.types';
 import { faqColumns, type FaqFormValues } from '@/columns/one/faqs/one';
@@ -16,7 +16,6 @@ export default function Page() {
   const [pageSize, setPageSize] = useState(10);
   const [typeFilter, setTypeFilter] = useState('');
 
-  // Delete state (controlled externally for the dialog in DataTableRowActions)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
@@ -33,7 +32,6 @@ export default function Page() {
     setCurrentPage(1);
   };
 
-  // Called when user clicks Delete in the ⋮ menu
   const handleDeleteRequest = (id: number) => {
     setDeletingId(id);
     setDeleteDialogOpen(true);
@@ -68,15 +66,12 @@ export default function Page() {
       }
     : { current_page: 1, last_page: 1, per_page: 10, total: 0, from: 0, to: 0 };
 
-  const filterContent = (
-    <>
+  const sidebarContent = (
+    <FilterGroup label={t('columns.type')}>
       <select
         value={typeFilter}
-        onChange={(e) => {
-          setTypeFilter(e.target.value);
-          setCurrentPage(1);
-        }}
-        className="h-10 min-w-[140px] rounded-xl border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+        onChange={(e) => { setTypeFilter(e.target.value); setCurrentPage(1); }}
+        className="w-full h-10 rounded-xl border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
       >
         <option value="">{t('all')}</option>
         {FAQ_TYPES.map((type) => (
@@ -85,19 +80,7 @@ export default function Page() {
           </option>
         ))}
       </select>
-      {typeFilter && (
-        <button
-          type="button"
-          onClick={() => {
-            setTypeFilter('');
-            setCurrentPage(1);
-          }}
-          className="h-10 rounded-xl border border-border px-4 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted"
-        >
-          {t('resetFilter')}
-        </button>
-      )}
-    </>
+    </FilterGroup>
   );
 
   return (
@@ -119,7 +102,9 @@ export default function Page() {
         hasDetails
         detailsLink="/faqs/update"
         createPath="/faqs/create"
-        toolbarFilter={filterContent}
+        filterSidebar={sidebarContent}
+        activeFilterCount={typeFilter ? 1 : 0}
+        onFilterReset={() => { setTypeFilter(''); setCurrentPage(1); }}
         permissions={{
           create: true,
           update: true,
@@ -131,6 +116,7 @@ export default function Page() {
           type: t('columns.type'),
           question: t('columns.question'),
           answer: t('columns.answer'),
+          actions: t('columns.action'),
         }}
         pagination={pagination}
         currentPage={currentPage}
@@ -139,5 +125,14 @@ export default function Page() {
         onPageSizeChange={handlePageSizeChange}
       />
     </>
+  );
+}
+
+function FilterGroup({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{label}</label>
+      {children}
+    </div>
   );
 }

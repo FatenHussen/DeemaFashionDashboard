@@ -1,3 +1,5 @@
+import type { NotificationType } from '@/pages/dashboard/admin-notifications/types/notification.types';
+
 import { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DataTable } from '@/shared/ui/table-data/table-data';
@@ -16,11 +18,13 @@ export default function Page() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState('');
+  const [typeFilter, setTypeFilter] = useState<NotificationType | 'all'>('all');
 
   const { data: response, isLoading, error } = useFetchAdminNotifications(
     currentPage,
     pageSize,
-    search || undefined
+    search || undefined,
+    typeFilter
   );
 
   if (error) console.error('Error fetching admin notifications:', error);
@@ -33,6 +37,11 @@ export default function Page() {
 
   const handleSearchChange = useCallback((value: string) => {
     setSearch(value);
+    setCurrentPage(1);
+  }, []);
+
+  const handleTypeChange = useCallback((value: NotificationType | 'all') => {
+    setTypeFilter(value);
     setCurrentPage(1);
   }, []);
 
@@ -57,18 +66,19 @@ export default function Page() {
       <title>{t('form.adminNotificationsIndexDocumentTitle', { appName: CONFIG.appName })}</title>
 
       <DataTable
-        tableName={t("tableNames.adminNotifications")}
+        tableName={t('tableNames.adminNotifications')}
         columns={adminNotificationColumns(
-          { update: hasCreatePermission },
+          { update: false },
           t,
           '/admin-notifications/update'
         )}
         data={items}
-        hasDetails={false}
+        hasDetails
+        detailsLink="/admin-notifications/update"
         createPath="/admin-notifications/create"
         permissions={{
           create: hasCreatePermission,
-          update: hasCreatePermission,
+          update: false,
           delete: false,
         }}
         searchColumns={[]}
@@ -78,6 +88,8 @@ export default function Page() {
             table={table}
             search={search}
             onSearchChange={handleSearchChange}
+            typeFilter={typeFilter}
+            onTypeChange={handleTypeChange}
             t={t}
           />
         )}
@@ -86,8 +98,10 @@ export default function Page() {
           title: t('columns.title'),
           body: t('columns.body'),
           type: t('columns.type'),
-          is_fixed: t('form.notificationIsFixedLabel'),
+          channels: t('form.notificationChannelsLabel'),
+          media: t('form.notificationMediaLabel'),
           created_at: t('columns.createdAt'),
+          actions: t('columns.action'),
         }}
         pagination={pagination}
         currentPage={currentPage}

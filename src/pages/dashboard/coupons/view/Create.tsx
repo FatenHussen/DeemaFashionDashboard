@@ -10,9 +10,12 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Iconify } from '@/shared/components/iconify';
 import { formatTranslated } from '@/utils/format-translated';
 import { useParams, useNavigate, useLocation } from 'react-router';
+import { useFetchShops } from '@/pages/dashboard/vendor/hooks/shop';
 import { useFetchVendors } from '@/pages/dashboard/vendor/hooks/vendor';
+import { _CityApi } from '@/pages/dashboard/locations/api/city.services';
 import { useFetchProducts } from '@/pages/dashboard/products/hooks/product';
 import { RHFInfiniteSelect } from '@/shared/components/hook-form/rhf-infinite-select';
+import { _GovernorateApi } from '@/pages/dashboard/locations/api/governorate.services';
 import {
   useCreateCoupon,
   useUpdateCoupon,
@@ -26,7 +29,7 @@ import {
 } from '@/pages/dashboard/coupons/validation/coupon.validation';
 
 import { CONFIG } from 'src/global-config';
-import { Box, Switch, Typography } from 'src/shared/ui';
+import { Box, Button, Switch, Typography } from 'src/shared/ui';
 import { LoadingScreen } from 'src/shared/components/loading-screen';
 import { RHFSelect } from 'src/shared/components/hook-form/rhf-select';
 import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
@@ -35,11 +38,44 @@ import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout
 
 // ----------------------------------------------------------------------
 
+const governorateFetcher = (page: number, limit: number) =>
+  _GovernorateApi.getListGovernorates({ page, per_page: limit }).then((r) => ({
+    data: {
+      items: r.data.items.map((gov) => ({ id: gov.id, label: gov.name })),
+      pagination: r.data.pagination,
+    },
+  }));
+
+const cityFetcher = (page: number, limit: number) =>
+  _CityApi.getListCities({ page, per_page: limit }).then((r) => ({
+    data: {
+      items: r.data.items.map((city) => ({
+        id: city.id,
+        label: formatTranslated(city.name as Parameters<typeof formatTranslated>[0]),
+      })),
+      pagination: r.data.pagination,
+    },
+  }));
+
+// ----------------------------------------------------------------------
+
 function toISODateTimeLocal(d: string): string {
   if (!d) return '';
   const date = new Date(d);
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:00`;
+}
+
+/** Uppercase alphanumeric, excludes ambiguous 0/O and 1/I. */
+function generateCouponCode(length = 8): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const bytes = new Uint8Array(length);
+  crypto.getRandomValues(bytes);
+  let out = '';
+  for (let i = 0; i < length; i += 1) {
+    out += chars[bytes[i]! % chars.length];
+  }
+  return out;
 }
 
 export default function CreatePage() {
@@ -68,6 +104,7 @@ export default function CreatePage() {
 
   const { data: productsResponse } = useFetchProducts({ page: 1, limit: 200 });
   const { data: vendorsResponse } = useFetchVendors(1, 200);
+  const { data: shopsResponse } = useFetchShops(1, 200);
   const { data: couponResponse, isLoading: isLoadingCoupon } = useFetchCouponById(id || '');
   const createCouponMutation = useCreateCoupon();
   const updateCouponMutation = useUpdateCoupon();
@@ -80,6 +117,8 @@ export default function CreatePage() {
     (vendorsResponse?.data as { items?: { id: number; name: unknown }[] } | undefined)?.items ??
     (vendorsResponse?.data as { data?: { id: number; name: unknown }[] } | undefined)?.data ??
     [];
+  const shops =
+    (shopsResponse?.data as { items?: { id: number; name: unknown }[] } | undefined)?.items ?? [];
 
   const productOptions: MultiSelectOption[] = useMemo(
     () =>
@@ -103,6 +142,17 @@ export default function CreatePage() {
     [vendors, t]
   );
 
+  const shopOptions: MultiSelectOption[] = useMemo(
+    () =>
+      shops.map((s: { id: number; name: unknown }) => ({
+        value: s.id,
+        label:
+          formatTranslated(s.name as Parameters<typeof formatTranslated>[0]) ||
+          t('form.shopFallbackLabel', { id: s.id }),
+      })),
+    [shops, t]
+  );
+
   const defaultValues: CouponFormValues = {
     name: { en: '', ar: '' },
     code: '',
@@ -114,8 +164,11 @@ export default function CreatePage() {
     max_uses: 1,
     is_active: true,
     coupon_type: 'general',
+    governorate_id: null,
+    city_id: null,
     product_ids: [],
     vendor_ids: [],
+    shop_ids: [],
   };
 
   const couponSchema = useMemo(
@@ -128,7 +181,7 @@ export default function CreatePage() {
     defaultValues,
   });
 
-  const { handleSubmit, reset, control, watch } = methods;
+  const { handleSubmit, reset, control, watch, setValue } = methods;
   const couponType = watch('coupon_type');
   const affiliateId = watch('affiliate_id');
   const hasAffiliateId = !!affiliateId && affiliateId > 0;
@@ -142,9 +195,10 @@ export default function CreatePage() {
     isEditMode && loadedAffiliateId != null && loadedAffiliateId > 0;
 
   // Determine coupon type from API response
-  const inferCouponType = (data: CouponDetailsData): 'general' | 'product' | 'vendor' => {
+  const inferCouponType = (data: CouponDetailsData): 'general' | 'product' | 'vendor' | 'shop' => {
     if (data.products && data.products.length > 0) return 'product';
     if (data.vendors && data.vendors.length > 0) return 'vendor';
+    if (data.shops && data.shops.length > 0) return 'shop';
     return 'general';
   };
 
@@ -167,8 +221,11 @@ export default function CreatePage() {
         max_uses: Math.max(1, source.max_uses ?? 1),
         is_active: Boolean(source.is_active),
         coupon_type: type,
+        governorate_id: source.governorate_id ?? null,
+        city_id: source.city_id ?? null,
         product_ids: source.products?.map((p) => p.id) || [],
         vendor_ids: source.vendors?.map((v) => v.id) || [],
+        shop_ids: source.shops?.map((s) => s.id) || [],
       });
     }
   }, [couponResponse?.data, couponFromState, isEditMode, reset]);
@@ -189,6 +246,8 @@ export default function CreatePage() {
         end_at: couponLocalDateTimeToISO(data.end_at),
         max_uses: data.max_uses,
         is_active: data.is_active,
+        governorate_id: data.governorate_id || null,
+        city_id: data.city_id || null,
       };
 
       if (data.coupon_type === 'product' && data.product_ids?.length) {
@@ -196,6 +255,9 @@ export default function CreatePage() {
       }
       if (data.coupon_type === 'vendor' && data.vendor_ids?.length) {
         payload.vendors = data.vendor_ids.map((vid) => ({ id: vid }));
+      }
+      if (data.coupon_type === 'shop' && data.shop_ids?.length) {
+        payload.shops = data.shop_ids.map((sid) => ({ id: sid }));
       }
 
       if (isEditMode && id) {
@@ -239,218 +301,186 @@ export default function CreatePage() {
         isEditMode={isEditMode}
         isLoading={isEditMode && isLoadingCoupon}
         loadingText={t('form.loadingCoupon')}
-        maxWidth="2xl"
         submitLabel={isEditMode ? t('form.updateCouponSubmit') : t('form.createCouponSubmit')}
         submittingLabel={isEditMode ? t('form.updatingCouponSubmit') : t('form.creatingCouponSubmit')}
       >
-        {/* Affiliate ID */}
-        <Box className="group">
-          <Box className="flex items-center gap-2 mb-2">
-            <Iconify icon="solar:user-id-bold" className="text-primary" width={24} height={24} />
-            <Typography variant="subtitle2" className="font-semibold text-foreground">
-              {t('form.affiliateIdOptional')}
-            </Typography>
-          </Box>
-          <RHFInfiniteSelect
-            name="affiliate_id"
-            queryKey={['marketers', 'list']}
-            fetcher={() => marketersFetcher()}
-            placeholder={t('form.leaveEmptyNonAffiliate')}
-            helperText={hasAffiliateId ? t('form.couponAffiliateScopeHelper') : undefined}
-            disabled={lockAffiliateSelect}
-            onValueChange={(val) => {
-              if (val === 0) {
-                methods.setValue('affiliate_id', undefined as any);
-              } else if (val > 0) {
-                // Avoid stuck state: product/vendor type + empty scope when UI locks multi-selects.
-                methods.setValue('coupon_type', 'general');
-                methods.setValue('product_ids', []);
-                methods.setValue('vendor_ids', []);
-              }
-            }}
-          />
-        </Box>
-
-        {/* Coupon Type */}
-        <Box className="group">
-          <Box className="flex items-center gap-2 mb-2">
-            <Iconify icon="solar:tag-bold" className="text-primary" width={24} height={24} />
-            <Typography variant="subtitle2" className="font-semibold text-foreground">
-              {t('form.couponTypeLabel')}
-            </Typography>
-          </Box>
-          <Controller
-            name="coupon_type"
-            control={control}
-            render={({ field }) => (
-              <div className="flex gap-4">
-                {(
-                  [
-                    { value: 'general', label: t('form.couponTypeGeneral') },
-                    { value: 'product', label: t('form.couponTypeProducts') },
-                    { value: 'vendor', label: t('form.couponTypeVendors') },
-                  ] as const
-                ).map((opt) => (
-                  <label
-                    key={opt.value}
-                    className={`flex items-center gap-2 ${isEditMode || hasAffiliateId ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
-                  >
-                    <input
-                      type="radio"
-                      checked={field.value === opt.value}
-                      onChange={() => field.onChange(opt.value)}
-                      disabled={isEditMode || hasAffiliateId}
-                      className="accent-primary disabled:cursor-not-allowed"
-                    />
-                    <span className="text-sm">{opt.label}</span>
-                  </label>
-                ))}
-              </div>
-            )}
-          />
-        </Box>
-
-        {/* Products MultiSelect */}
-        {couponType === 'product' && (
-          <Box className="group">
-            <Box className="flex items-center gap-2 mb-2">
-              <Iconify
-                icon="solar:cart-large-2-bold"
-                className="text-primary"
-                width={24}
-                height={24}
-              />
-              <Typography variant="subtitle2" className="font-semibold text-foreground">
-                {t('form.couponTypeProducts')}
-              </Typography>
+        {/* ── Section: Names ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-primary/[0.06] via-primary/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:ticket-sale-bold" className="text-primary" width={15} />
             </Box>
-            <RHFMultiSelect
-              name="product_ids"
-              options={productOptions}
-              label={t('form.selectProducts')}
-              placeholder={hasAffiliateId ? t('form.couponManagedByAffiliate') : t('form.couponSearchSelectProducts')}
-              fullWidth
-              isDisabled={hasAffiliateId}
-            />
+            <Typography variant="subtitle2" className="font-semibold text-foreground">
+              {t('form.couponNameEn')} / {t('form.couponNameAr')}
+            </Typography>
           </Box>
-        )}
-
-        {/* Vendors MultiSelect */}
-        {couponType === 'vendor' && (
-          <Box className="group">
-            <Box className="flex items-center gap-2 mb-2">
-              <Iconify
-                icon="solar:users-group-rounded-bold"
-                className="text-primary"
-                width={24}
-                height={24}
-              />
-              <Typography variant="subtitle2" className="font-semibold text-foreground">
-                {t('form.couponTypeVendors')}
-              </Typography>
+          <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+            <Box>
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.couponNameEn')}</Typography>
+              <RHFTextField name="name.en" placeholder={t('form.summerSaleEn')} fullWidth />
             </Box>
-            <RHFMultiSelect
-              name="vendor_ids"
-              options={vendorOptions}
-              label={t('form.selectVendors')}
-              placeholder={hasAffiliateId ? t('form.couponManagedByAffiliate') : t('form.couponSearchSelectVendors')}
-              fullWidth
-              isDisabled={hasAffiliateId}
-            />
+            <Box>
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.couponNameAr')}</Typography>
+              <RHFTextField name="name.ar" placeholder={t('form.summerSaleAr')} dir="rtl" fullWidth />
+            </Box>
           </Box>
-        )}
-
-        {/* Name EN */}
-        <Box className="group">
-          <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
-            {t('form.couponNameEn')}
-          </Typography>
-          <RHFTextField name="name.en" placeholder={t('form.summerSaleEn')} fullWidth />
         </Box>
 
-        {/* Name AR */}
-        <Box className="group">
-          <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
-            {t('form.couponNameAr')}
-          </Typography>
-          <RHFTextField name="name.ar" placeholder={t('form.summerSaleAr')} dir="rtl" fullWidth />
-        </Box>
-
-        {/* Code */}
-        <Box className="group">
-          <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
-            {t('form.codeLabel')}
-          </Typography>
-          <RHFTextField name="code" placeholder={t('form.codePlaceholder')} fullWidth />
-        </Box>
-
-        {/* Discount Type & Value */}
-        <Box className="flex gap-4 flex-wrap">
-          <Box className="flex-1 min-w-[140px]">
-            <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
-              {t('form.discountType')}
+        {/* ── Section: Code & Discount ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-amber-500/[0.06] via-amber-500/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:tag-price-bold" className="text-amber-500" width={15} />
+            </Box>
+            <Typography variant="subtitle2" className="font-semibold text-foreground">
+              {t('form.couponDiscountCodeLabel')} & {t('form.discountType')}
             </Typography>
-            <RHFSelect
-              name="discount_type"
-              placeholder={t('form.discountType')}
-              options={[
-                { value: 'percentage', label: t('form.discountTypePercentage') },
-                { value: 'fixed', label: t('form.discountTypeFixed') },
-              ]}
-            />
           </Box>
-          <Box className="flex-1 min-w-[140px]">
-            <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
-              {t('form.discountValue')}
-            </Typography>
-            <RHFTextField
-              name="discount_value"
-              placeholder={watch('discount_type') === 'percentage' ? '20' : '50'}
-              type="number"
-              fullWidth
-            />
-          </Box>
-        </Box>
-
-        {/* Start Date */}
-        <Box className="group">
-          <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
-            {t('form.startAt')}
-          </Typography>
-          <RHFTextField name="start_at" type="datetime-local" fullWidth />
-        </Box>
-
-        {/* End Date */}
-        <Box className="group">
-          <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
-            {t('form.endAt')}
-          </Typography>
-          <RHFTextField name="end_at" type="datetime-local" fullWidth />
-        </Box>
-
-        {/* Max Uses */}
-        <Box className="group">
-          <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
-            {t('form.maxUses')}
-          </Typography>
-          <RHFTextField name="max_uses" type="number" placeholder={t('form.maxUsesPlaceholder')} fullWidth />
-        </Box>
-
-        {/* Active */}
-        <Box className="group">
-          <Controller
-            name="is_active"
-            control={control}
-            render={({ field }) => (
-              <div className="flex items-center gap-2">
-                <Switch
-                  checked={field.value}
-                  onChange={(e) => field.onChange((e.target as HTMLInputElement).checked)}
-                />
-                <Typography variant="body2">{t('active')}</Typography>
+          <Box className="p-6 flex flex-col gap-5">
+            <Box>
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.couponDiscountCodeLabel')}</Typography>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+                <RHFTextField name="code" placeholder={t('form.couponCodePlaceholder')} className="flex-1 min-w-0" fullWidth />
+                <Button type="button" variant="outlined" color="primary" size="medium" className="shrink-0 w-full sm:w-auto" onClick={() => setValue('code', generateCouponCode(), { shouldValidate: true, shouldDirty: true, shouldTouch: true })}>
+                  {t('form.couponCodeGenerate')}
+                </Button>
               </div>
+            </Box>
+            <Box className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <Box>
+                <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.discountType')}</Typography>
+                <RHFSelect name="discount_type" placeholder={t('form.discountType')} options={[{ value: 'percentage', label: t('form.discountTypePercentage') }, { value: 'fixed', label: t('form.discountTypeFixed') }]} />
+              </Box>
+              <Box>
+                <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.discountValue')}</Typography>
+                <RHFTextField name="discount_value" placeholder={watch('discount_type') === 'percentage' ? '20' : '50'} type="number" fullWidth min={0} max={watch('discount_type') === 'percentage' ? 100 : undefined} />
+              </Box>
+            </Box>
+          </Box>
+        </Box>
+
+        {/* ── Section: Schedule & Usage ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-violet-500/[0.06] via-violet-500/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:calendar-bold" className="text-violet-500" width={15} />
+            </Box>
+            <Typography variant="subtitle2" className="font-semibold text-foreground">
+              {t('form.startAt')} / {t('form.endAt')} & {t('form.maxUses')}
+            </Typography>
+          </Box>
+          <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+            <Box>
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.startAt')}</Typography>
+              <RHFTextField name="start_at" type="datetime-local" fullWidth />
+            </Box>
+            <Box>
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.endAt')}</Typography>
+              <RHFTextField name="end_at" type="datetime-local" fullWidth />
+            </Box>
+            <Box>
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.maxUses')}</Typography>
+              <RHFTextField name="max_uses" type="number" placeholder={t('form.maxUsesPlaceholder')} fullWidth />
+            </Box>
+          </Box>
+        </Box>
+
+        {/* ── Section: Affiliate & Scope ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-sky-500/[0.06] via-sky-500/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:user-id-bold" className="text-sky-500" width={15} />
+            </Box>
+            <Typography variant="subtitle2" className="font-semibold text-foreground">
+              {t('form.affiliateIdOptional')} & {t('form.couponTypeLabel')}
+            </Typography>
+          </Box>
+          <Box className="p-6 flex flex-col gap-5">
+            <Box>
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.affiliateIdOptional')}</Typography>
+              <RHFInfiniteSelect
+                name="affiliate_id"
+                queryKey={['marketers', 'list']}
+                fetcher={() => marketersFetcher()}
+                placeholder={t('form.leaveEmptyNonAffiliate')}
+                helperText={hasAffiliateId ? t('form.couponAffiliateScopeHelper') : undefined}
+                disabled={lockAffiliateSelect}
+                onValueChange={(val) => {
+                  if (val === 0) { methods.setValue('affiliate_id', undefined as any); }
+                  else if (val > 0) { methods.setValue('coupon_type', 'general'); methods.setValue('product_ids', []); methods.setValue('vendor_ids', []); methods.setValue('shop_ids', []); }
+                }}
+              />
+            </Box>
+            <Box>
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.couponTypeLabel')}</Typography>
+              <Controller
+                name="coupon_type"
+                control={control}
+                render={({ field }) => (
+                  <div className="flex flex-wrap gap-4">
+                    {([{ value: 'general', label: t('form.couponTypeGeneral') }, { value: 'product', label: t('form.couponTypeProducts') }, { value: 'vendor', label: t('form.couponTypeVendors') }, { value: 'shop', label: t('form.couponTypeShops') }] as const).map((opt) => (
+                      <label key={opt.value} className={`flex items-center gap-2 ${isEditMode || hasAffiliateId ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}>
+                        <input type="radio" checked={field.value === opt.value} onChange={() => field.onChange(opt.value)} disabled={isEditMode || hasAffiliateId} className="accent-primary disabled:cursor-not-allowed" />
+                        <span className="text-sm">{opt.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              />
+            </Box>
+            {couponType === 'product' && (
+              <Box>
+                <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5"><Iconify icon="solar:cart-large-2-bold" className="text-sky-500" width={16} />{t('form.couponTypeProducts')}</Typography>
+                <RHFMultiSelect name="product_ids" options={productOptions} label={t('form.selectProducts')} placeholder={hasAffiliateId ? t('form.couponManagedByAffiliate') : t('form.couponSearchSelectProducts')} fullWidth isDisabled={hasAffiliateId} />
+              </Box>
             )}
-          />
+            {couponType === 'vendor' && (
+              <Box>
+                <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5"><Iconify icon="solar:users-group-rounded-bold" className="text-sky-500" width={16} />{t('form.couponTypeVendors')}</Typography>
+                <RHFMultiSelect name="vendor_ids" options={vendorOptions} label={t('form.selectVendors')} placeholder={hasAffiliateId ? t('form.couponManagedByAffiliate') : t('form.couponSearchSelectVendors')} fullWidth isDisabled={hasAffiliateId} />
+              </Box>
+            )}
+            {couponType === 'shop' && (
+              <Box>
+                <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5"><Iconify icon="solar:shop-bold" className="text-sky-500" width={16} />{t('form.couponTypeShops')}</Typography>
+                <RHFMultiSelect name="shop_ids" options={shopOptions} label={t('form.selectShops')} placeholder={hasAffiliateId ? t('form.couponManagedByAffiliate') : t('form.couponSearchSelectShops')} fullWidth isDisabled={hasAffiliateId} />
+              </Box>
+            )}
+          </Box>
+        </Box>
+
+        {/* ── Section: Location & Status ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-emerald-500/[0.06] via-emerald-500/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:map-point-bold" className="text-emerald-500" width={15} />
+            </Box>
+            <Typography variant="subtitle2" className="font-semibold text-foreground">
+              {t('form.governorate')} / {t('form.city')} & {t('active')}
+            </Typography>
+          </Box>
+          <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+            <Box>
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5"><Iconify icon="solar:map-point-bold" className="text-emerald-500" width={16} />{t('form.governorate')}</Typography>
+              <RHFInfiniteSelect name="governorate_id" queryKey={['governorates', 'infinite', 'coupon-form']} fetcher={governorateFetcher} placeholder={t('form.selectGovernorate')} helperText={t('form.couponLocationGovernorateHelper')} onValueChange={() => setValue('city_id', null)} />
+            </Box>
+            <Box>
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5"><Iconify icon="solar:city-bold" className="text-emerald-500" width={16} />{t('form.city')}</Typography>
+              <RHFInfiniteSelect name="city_id" queryKey={['cities', 'infinite', 'coupon-form']} fetcher={cityFetcher} placeholder={t('form.selectCity')} helperText={t('form.couponLocationCityHelper')} />
+            </Box>
+            <Box className="md:col-span-2">
+              <Controller
+                name="is_active"
+                control={control}
+                render={({ field }) => (
+                  <div className="flex items-center gap-3 p-4 rounded-xl border border-border/60 bg-background/60 hover:border-emerald-500/40 transition-colors">
+                    <Switch checked={field.value} onChange={(e) => field.onChange((e.target as HTMLInputElement).checked)} />
+                    <Typography variant="subtitle2" className="font-semibold text-foreground">{t('active')}</Typography>
+                  </div>
+                )}
+              />
+            </Box>
+          </Box>
         </Box>
       </CreateFormLayout>
     </>

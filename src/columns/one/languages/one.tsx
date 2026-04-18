@@ -2,6 +2,7 @@ import type { TFunction } from 'i18next';
 import type { ColumnDef } from '@tanstack/react-table';
 
 import { z } from 'zod';
+import { createToggleColumn } from '@/shared/ui/table-data/data-table-toggle-cell';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 
@@ -45,12 +46,6 @@ export const languageColumns = (
   onDeleteCancel?: () => void,
   deletingId?: number | null
 ): ColumnDef<LanguageFormValues>[] => [
-  {
-    id: 'id',
-    accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
-    cell: ({ row }) => <div className="font-medium">{row.original.id}</div>,
-  },
   {
     id: 'flag_icon',
     accessorKey: 'flag_icon',
@@ -115,12 +110,16 @@ export const languageColumns = (
       );
     },
   },
+  ...(permissions.update
+    ? [createToggleColumn<LanguageFormValues>({ entityType: 'language' })]
+    : []),
   {
     id: 'actions',
     cell: ({ row }: any) => (
       <DataTableRowActions
         schema={LanguageSchema}
         row={row}
+        viewDetails={`/languages/update/${row.original.id}`}
         editItem={`/languages/update/${row.original.id}`}
         onDelete={onDelete}
         isDeleting={isDeleting}
@@ -128,7 +127,6 @@ export const languageColumns = (
         onDeleteConfirm={onDeleteConfirm}
         onDeleteCancel={onDeleteCancel}
         deletingId={deletingId}
-        adminToggleEntityType="language"
         permissions={permissions}
       />
     ),

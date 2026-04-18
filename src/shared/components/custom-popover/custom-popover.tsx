@@ -116,7 +116,7 @@ export function CustomPopover({
 
   const content = (
     <div
-      className="fixed inset-0 z-50"
+      className="fixed inset-0 z-[var(--layout-modal-zIndex)]"
       onClick={!disableBackdropClick && onClose ? onClose : undefined}
     >
       <div

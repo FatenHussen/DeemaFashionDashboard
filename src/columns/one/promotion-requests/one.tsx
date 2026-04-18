@@ -2,6 +2,7 @@ import type { TFunction } from 'i18next';
 import type { ColumnDef } from '@tanstack/react-table';
 
 import { z } from 'zod';
+import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 
 const PromotionRequestSchema = z.object({
@@ -27,19 +28,8 @@ const statusColors: Record<string, string> = {
 };
 
 export const promotionRequestColumns = (
-  t: TFunction<'table'>,
-  onViewDetails?: (id: number) => void
+  t: TFunction<'table'>
 ): ColumnDef<PromotionRequestTableItem>[] => [
-  {
-    id: 'id',
-    accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
-    cell: ({ row }) => (
-      <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-        <span className="text-xs font-semibold text-primary">{row.original.id}</span>
-      </div>
-    ),
-  },
   {
     id: 'user',
     accessorKey: 'user',
@@ -67,7 +57,9 @@ export const promotionRequestColumns = (
     accessorKey: 'status',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.status')} />,
     cell: ({ row }) => (
-      <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${statusColors[row.original.status] ?? 'bg-muted text-muted-foreground'}`}>
+      <span
+        className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${statusColors[row.original.status] ?? 'bg-muted text-muted-foreground'}`}
+      >
         {row.original.status}
       </span>
     ),
@@ -82,13 +74,13 @@ export const promotionRequestColumns = (
   },
   {
     id: 'actions',
-    cell: ({ row }) => (
-      <button
-        onClick={() => onViewDetails?.(row.original.id)}
-        className="text-primary hover:text-primary/80 text-sm font-medium"
-      >
-        {t('viewDetails')}
-      </button>
+    cell: ({ row }: any) => (
+      <DataTableRowActions
+        schema={PromotionRequestSchema}
+        row={row}
+        viewDetails={`/promotion-requests/${row.original.id}`}
+        permissions={{ update: false, delete: false }}
+      />
     ),
   },
 ];

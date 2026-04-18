@@ -8,7 +8,6 @@ import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actio
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 import { notificationTypeLabel } from '@/pages/dashboard/admin-notifications/utils/type-labels';
 
-/** Minimal row shape for row actions menu (full row still typed as NotificationFormValues). */
 const NotificationRowSchema = z.object({
   id: z.number(),
 });
@@ -18,6 +17,12 @@ const TYPE_COLORS: Record<string, string> = {
   user: 'bg-green-500/10 text-green-600 border-green-500/20',
   driver: 'bg-orange-500/10 text-orange-600 border-orange-500/20',
   vendor: 'bg-purple-500/10 text-purple-600 border-purple-500/20',
+};
+
+const CHANNEL_COLORS: Record<string, string> = {
+  fcm: 'bg-orange-500/10 text-orange-600 border-orange-500/20',
+  sms: 'bg-blue-500/10 text-blue-600 border-blue-500/20',
+  email: 'bg-purple-500/10 text-purple-600 border-purple-500/20',
 };
 
 export interface NotificationFormValues extends NotificationItem {
@@ -30,21 +35,18 @@ export const adminNotificationColumns = (
   updatePathBase: string
 ): ColumnDef<NotificationFormValues>[] => [
   {
-    id: 'id',
-    accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
-    cell: ({ row }) => (
-      <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
-        <span className="text-xs font-semibold text-primary">{row.original.id}</span>
-      </div>
-    ),
-  },
-  {
     id: 'title',
     accessorKey: 'title',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.title')} />,
     cell: ({ row }) => (
-      <p className="max-w-sm text-sm font-medium text-foreground truncate">{formatTranslated(row.original.title)}</p>
+      <div className="flex items-center gap-2 max-w-sm">
+        {row.original.emoji ? (
+          <span className="text-base shrink-0">{row.original.emoji}</span>
+        ) : null}
+        <p className="text-sm font-medium text-foreground truncate">
+          {formatTranslated(row.original.title)}
+        </p>
+      </div>
     ),
   },
   {
@@ -52,7 +54,9 @@ export const adminNotificationColumns = (
     accessorKey: 'body',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.body')} />,
     cell: ({ row }) => (
-      <p className="max-w-md text-sm text-muted-foreground line-clamp-2">{formatTranslated(row.original.body)}</p>
+      <p className="max-w-md text-sm text-muted-foreground line-clamp-2">
+        {formatTranslated(row.original.body)}
+      </p>
     ),
   },
   {
@@ -68,7 +72,9 @@ export const adminNotificationColumns = (
       const type = row.original.type;
       return (
         <span
-          className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${TYPE_COLORS[type] ?? 'bg-muted text-muted-foreground border-border'}`}
+          className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${
+            TYPE_COLORS[type] ?? 'bg-muted text-muted-foreground border-border'
+          }`}
         >
           {notificationTypeLabel(type, t)}
         </span>
@@ -76,21 +82,55 @@ export const adminNotificationColumns = (
     },
   },
   {
-    id: 'is_fixed',
-    accessorKey: 'is_fixed',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('form.notificationIsFixedLabel')} />,
+    id: 'channels',
+    accessorKey: 'channels',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title={t('form.notificationChannelsLabel')} />
+    ),
     cell: ({ row }) => {
-      const v = row.original.is_fixed;
-      if (v === undefined || v === null) return <span className="text-sm text-muted-foreground">—</span>;
+      const channels: string[] = row.original.channels ?? [];
       return (
-        <span className="text-sm text-muted-foreground">{v ? t('yes') : t('no')}</span>
+        <div className="flex flex-wrap gap-1">
+          {channels.map((ch) => (
+            <span
+              key={ch}
+              className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${
+                CHANNEL_COLORS[ch] ?? 'bg-muted text-muted-foreground border-border'
+              }`}
+            >
+              {ch.toUpperCase()}
+            </span>
+          ))}
+        </div>
+      );
+    },
+  },
+  {
+    id: 'media',
+    accessorKey: 'media',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title={t('form.notificationMediaLabel')} />
+    ),
+    cell: ({ row }) => {
+      const media = row.original.media;
+      if (!media?.url) return <span className="text-sm text-muted-foreground">—</span>;
+      return (
+        <a href={media.url} target="_blank" rel="noopener noreferrer" className="block">
+          <img
+            src={media.url}
+            alt="media"
+            className="h-10 w-10 rounded-md border border-border object-cover"
+          />
+        </a>
       );
     },
   },
   {
     id: 'created_at',
     accessorKey: 'created_at',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.createdAt')} />,
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title={t('columns.createdAt')} />
+    ),
     cell: ({ row }) => (
       <span className="text-sm text-muted-foreground">{row.original.created_at}</span>
     ),
@@ -101,9 +141,9 @@ export const adminNotificationColumns = (
       <DataTableRowActions
         schema={NotificationRowSchema}
         row={row}
-        editItem={`${updatePathBase}/${row.original.id}`}
+        viewDetails={`${updatePathBase}/${row.original.id}`}
         permissions={{
-          update: permissions.update,
+          update: false,
           delete: false,
         }}
       />

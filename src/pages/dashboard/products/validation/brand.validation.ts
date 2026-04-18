@@ -12,6 +12,10 @@ export const BrandSchema = zod.object({
     ar: zod.string().min(1, { message: t('brand.nameArRequired') }),
   }),
   image: zod.instanceof(File).optional().or(zod.literal('')).or(zod.null()),
+  /** 0 = not set */
+  category_id: zod.coerce.number().int().min(0),
+  governorate_id: zod.coerce.number().int().min(0),
+  city_id: zod.coerce.number().int().min(0),
 });
 
 export type BrandFormValues = zod.infer<typeof BrandSchema>;

@@ -89,7 +89,7 @@ export function NotificationItem({ notification }: NotificationItemProps) {
 
   const renderUnReadBadge = () =>
     notification.isUnRead && (
-      <Box className="absolute top-[26px] w-2 h-2 right-5 rounded-full bg-blue-500" />
+      <Box className="absolute top-[26px] w-2 h-2 right-5 rounded-full bg-primary" />
     );
 
   const renderFriendAction = () => (

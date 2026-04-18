@@ -77,6 +77,7 @@ export default function CreatePage() {
 
   const { handleSubmit, reset, watch, control } = methods;
   const selectedType = watch('type');
+  const promotionDiscountType = watch('discount_type');
 
   useEffect(() => {
     if (isEditMode && detailsResponse?.data) {
@@ -155,151 +156,127 @@ export default function CreatePage() {
         submitLabel={isEditMode ? t('form.updatePromotionSubmit') : t('form.createPromotionSubmit')}
         submittingLabel={isEditMode ? t('form.updatingPromotionSubmit') : t('form.creatingPromotionSubmit')}
       >
-        {/* Name EN */}
-        <Box className="group">
-          <Box className="flex items-center gap-2 mb-2">
-            <Iconify icon="solar:letter-bold" className="text-primary" width={24} />
-            <Typography variant="subtitle2" className="font-semibold">{t('form.nameEn')}</Typography>
-          </Box>
-          <RHFTextField name="name.en" placeholder={t('form.promotionNameEnPlaceholder')} helperText={t('form.promotionNameEnHelper')} />
-        </Box>
-
-        {/* Name AR */}
-        <Box className="group">
-          <Box className="flex items-center gap-2 mb-2">
-            <Iconify icon="solar:letter-bold" className="text-primary" width={24} />
-            <Typography variant="subtitle2" className="font-semibold">{t('form.nameAr')}</Typography>
-          </Box>
-          <RHFTextField name="name.ar" placeholder={t('form.promotionNameArPlaceholder')} dir="rtl" />
-        </Box>
-
-        {/* Description EN */}
-        <Box className="group">
-          <Box className="flex items-center gap-2 mb-2">
-            <Iconify icon="solar:document-text-bold" className="text-primary" width={24} />
-            <Typography variant="subtitle2" className="font-semibold">{t('form.descriptionEn')}</Typography>
-          </Box>
-          <RHFTextField name="description.en" placeholder={t('form.promotionDescEnPlaceholder')} />
-        </Box>
-
-        {/* Description AR */}
-        <Box className="group">
-          <Box className="flex items-center gap-2 mb-2">
-            <Iconify icon="solar:document-text-bold" className="text-primary" width={24} />
-            <Typography variant="subtitle2" className="font-semibold">{t('form.descriptionAr')}</Typography>
-          </Box>
-          <RHFTextField name="description.ar" placeholder={t('form.promotionDescArPlaceholder')} dir="rtl" />
-        </Box>
-
-        {/* Type */}
-        <Box className="group">
-          <Box className="flex items-center gap-2 mb-2">
-            <Iconify icon="solar:tag-bold" className="text-primary" width={24} />
-            <Typography variant="subtitle2" className="font-semibold">{t('form.promotionType')}</Typography>
-          </Box>
-          <Controller
-            name="type"
-            control={control}
-            render={({ field }) => (
-              <select
-                {...field}
-                className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
-              >
-                {PROMOTION_TYPES.map((pt) => (
-                  <option key={pt.value} value={pt.value}>{pt.label}</option>
-                ))}
-              </select>
-            )}
-          />
-        </Box>
-
-        {/* Discount Value */}
-        {(selectedType === 'simple_discount' || selectedType === 'spend_x_discount') && (
-          <>
-            <Box className="group">
-              <Box className="flex items-center gap-2 mb-2">
-                <Iconify icon="solar:percent-bold" className="text-primary" width={24} />
-                <Typography variant="subtitle2" className="font-semibold">{t('form.discountValueLabel')}</Typography>
-              </Box>
-              <RHFTextField name="discount_value" type="number" placeholder={t('form.discountValuePlaceholder')} helperText={t('form.discountValueHelper')} />
+        {/* ── Section: Names & Descriptions ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-primary/[0.06] via-primary/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:letter-bold" className="text-primary" width={15} />
             </Box>
-            <Box className="group">
-              <Box className="flex items-center gap-2 mb-2">
-                <Iconify icon="solar:tag-price-bold" className="text-primary" width={24} />
-                <Typography variant="subtitle2" className="font-semibold">{t('form.discountTypeLabel')}</Typography>
-              </Box>
-              {isEditMode && (
-                <Typography variant="caption" className="text-muted-foreground block mb-2">
-                  {t('form.discountTypeLockedOnEdit')}
-                </Typography>
-              )}
+            <Typography variant="subtitle2" className="font-semibold text-foreground">
+              {t('form.nameEn')} / {t('form.nameAr')}
+            </Typography>
+          </Box>
+          <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+            <Box>
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.nameEn')}</Typography>
+              <RHFTextField name="name.en" placeholder={t('form.promotionNameEnPlaceholder')} helperText={t('form.promotionNameEnHelper')} />
+            </Box>
+            <Box>
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.nameAr')}</Typography>
+              <RHFTextField name="name.ar" placeholder={t('form.promotionNameArPlaceholder')} dir="rtl" />
+            </Box>
+            <Box>
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.descriptionEn')}</Typography>
+              <RHFTextField name="description.en" placeholder={t('form.promotionDescEnPlaceholder')} />
+            </Box>
+            <Box>
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.descriptionAr')}</Typography>
+              <RHFTextField name="description.ar" placeholder={t('form.promotionDescArPlaceholder')} dir="rtl" />
+            </Box>
+          </Box>
+        </Box>
+
+        {/* ── Section: Promotion Type ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-violet-500/[0.06] via-violet-500/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:tag-bold" className="text-violet-500" width={15} />
+            </Box>
+            <Typography variant="subtitle2" className="font-semibold text-foreground">
+              {t('form.promotionType')}
+            </Typography>
+          </Box>
+          <Box className="p-6 flex flex-col gap-5">
+            <Box>
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.promotionType')}</Typography>
               <Controller
-                name="discount_type"
+                name="type"
                 control={control}
                 render={({ field }) => (
-                  <select
-                    {...field}
-                    value={field.value ?? ''}
-                    disabled={isEditMode}
-                    className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60 disabled:cursor-not-allowed"
-                  >
-                    <option value="">{t('form.selectDiscountType')}</option>
-                    {DISCOUNT_TYPES.map((dt) => (
-                      <option key={dt.value} value={dt.value}>{dt.label}</option>
+                  <select {...field} className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-violet-500/30">
+                    {PROMOTION_TYPES.map((pt) => (
+                      <option key={pt.value} value={pt.value}>{pt.label}</option>
                     ))}
                   </select>
                 )}
               />
             </Box>
-          </>
-        )}
 
-        {/* Min Spend */}
-        {selectedType === 'spend_x_discount' && (
-          <Box className="group">
-            <Box className="flex items-center gap-2 mb-2">
-              <Iconify icon="solar:cart-bold" className="text-primary" width={24} />
-              <Typography variant="subtitle2" className="font-semibold">{t('form.minSpendLabel')}</Typography>
-            </Box>
-            <RHFTextField name="min_spend" type="number" placeholder={t('form.minSpendPlaceholder')} helperText={t('form.minSpendHelper')} />
-          </Box>
-        )}
-
-        {/* Buy/Get quantities */}
-        {selectedType === 'buy_x_get_y' && (
-          <>
-            <Box className="group">
-              <Box className="flex items-center gap-2 mb-2">
-                <Iconify icon="solar:bag-bold" className="text-primary" width={24} />
-                <Typography variant="subtitle2" className="font-semibold">{t('form.buyQuantityLabel')}</Typography>
+            {(selectedType === 'simple_discount' || selectedType === 'spend_x_discount') && (
+              <Box className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <Box>
+                  <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5"><Iconify icon="solar:percent-bold" className="text-violet-500" width={16} />{t('form.discountValueLabel')}</Typography>
+                  <RHFTextField name="discount_value" type="number" placeholder={t('form.discountValuePlaceholder')} helperText={t('form.discountValueHelper')} min={0} max={(selectedType === 'simple_discount' || selectedType === 'spend_x_discount') && promotionDiscountType === 'percentage' ? 100 : undefined} />
+                </Box>
+                <Box>
+                  <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5"><Iconify icon="solar:tag-price-bold" className="text-violet-500" width={16} />{t('form.discountTypeLabel')}</Typography>
+                  {isEditMode && <Typography variant="caption" className="text-muted-foreground block mb-2">{t('form.discountTypeLockedOnEdit')}</Typography>}
+                  <Controller
+                    name="discount_type"
+                    control={control}
+                    render={({ field }) => (
+                      <select {...field} value={field.value ?? ''} disabled={isEditMode} className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-violet-500/30 disabled:opacity-60 disabled:cursor-not-allowed">
+                        <option value="">{t('form.selectDiscountType')}</option>
+                        {DISCOUNT_TYPES.map((dt) => <option key={dt.value} value={dt.value}>{dt.label}</option>)}
+                      </select>
+                    )}
+                  />
+                </Box>
               </Box>
-              <RHFTextField name="buy_quantity" type="number" placeholder={t('form.buyQuantityPlaceholder')} helperText={t('form.buyQuantityHelper')} />
-            </Box>
-            <Box className="group">
-              <Box className="flex items-center gap-2 mb-2">
-                <Iconify icon="solar:gift-bold" className="text-primary" width={24} />
-                <Typography variant="subtitle2" className="font-semibold">{t('form.getQuantityLabel')}</Typography>
-              </Box>
-              <RHFTextField name="get_quantity" type="number" placeholder={t('form.getQuantityPlaceholder')} helperText={t('form.getQuantityHelper')} />
-            </Box>
-          </>
-        )}
+            )}
 
-        {/* Dates */}
-        <Box className="group">
-          <Box className="flex items-center gap-2 mb-2">
-            <Iconify icon="solar:calendar-bold" className="text-primary" width={24} />
-            <Typography variant="subtitle2" className="font-semibold">{t('form.startDateOptional')}</Typography>
+            {selectedType === 'spend_x_discount' && (
+              <Box>
+                <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5"><Iconify icon="solar:cart-bold" className="text-violet-500" width={16} />{t('form.minSpendLabel')}</Typography>
+                <RHFTextField name="min_spend" type="number" placeholder={t('form.minSpendPlaceholder')} helperText={t('form.minSpendHelper')} />
+              </Box>
+            )}
+
+            {selectedType === 'buy_x_get_y' && (
+              <Box className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <Box>
+                  <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5"><Iconify icon="solar:bag-bold" className="text-violet-500" width={16} />{t('form.buyQuantityLabel')}</Typography>
+                  <RHFTextField name="buy_quantity" type="number" placeholder={t('form.buyQuantityPlaceholder')} helperText={t('form.buyQuantityHelper')} />
+                </Box>
+                <Box>
+                  <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5"><Iconify icon="solar:gift-bold" className="text-violet-500" width={16} />{t('form.getQuantityLabel')}</Typography>
+                  <RHFTextField name="get_quantity" type="number" placeholder={t('form.getQuantityPlaceholder')} helperText={t('form.getQuantityHelper')} />
+                </Box>
+              </Box>
+            )}
           </Box>
-          <RHFTextField name="starts_at" type="date" />
         </Box>
 
-        <Box className="group">
-          <Box className="flex items-center gap-2 mb-2">
-            <Iconify icon="solar:calendar-bold" className="text-primary" width={24} />
-            <Typography variant="subtitle2" className="font-semibold">{t('form.endDateOptional')}</Typography>
+        {/* ── Section: Schedule ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-amber-500/[0.06] via-amber-500/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:calendar-bold" className="text-amber-500" width={15} />
+            </Box>
+            <Typography variant="subtitle2" className="font-semibold text-foreground">
+              {t('form.startDateOptional')} / {t('form.endDateOptional')}
+            </Typography>
           </Box>
-          <RHFTextField name="ends_at" type="date" helperText={t('form.endDateHelper')} />
+          <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+            <Box>
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.startDateOptional')}</Typography>
+              <RHFTextField name="starts_at" type="date" />
+            </Box>
+            <Box>
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.endDateOptional')}</Typography>
+              <RHFTextField name="ends_at" type="date" helperText={t('form.endDateHelper')} />
+            </Box>
+          </Box>
         </Box>
       </CreateFormLayout>
     </>

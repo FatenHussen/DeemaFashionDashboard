@@ -1,6 +1,13 @@
 import type { BannerItem, BannerFormValues, BannerListResponse } from '../types/banner.types';
 
 import { apiRoutes, axiosInstance } from '@/api';
+import { couponLocalDateTimeToISO } from '@/pages/dashboard/coupons/validation/coupon.validation';
+
+function appendExpiresAt(formData: FormData, expiresAt: string | undefined) {
+  const v = expiresAt?.trim();
+  if (!v) return;
+  formData.append('expires_at', couponLocalDateTimeToISO(v));
+}
 
 export const _BannerApi = {
   getListBanners: async (
@@ -22,6 +29,7 @@ export const _BannerApi = {
     if (data.image instanceof File) {
       formData.append('image', data.image);
     }
+    appendExpiresAt(formData, data.expires_at);
 
     const response = await axiosInstance.post(apiRoutes.banner.create, formData, {
       headers: {
@@ -42,6 +50,7 @@ export const _BannerApi = {
     if (data.image instanceof File) {
       formData.append('image', data.image);
     }
+    appendExpiresAt(formData, data.expires_at);
 
     const response = await axiosInstance.post(apiRoutes.banner.update(id), formData, {
       headers: {

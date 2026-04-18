@@ -3,6 +3,7 @@ import { initReactI18next } from 'react-i18next';
 
 import en from '../locales/en.json';
 import ar from '../locales/ar.json';
+import { permissionTranslationsAr, permissionTranslationsEn } from '../locales/permission-translations';
 
 // ----------------------------------------------------------------------
 
@@ -18,13 +19,19 @@ i18n.use(initReactI18next).init({
       nav: en.nav,
       table: en.table,
       validation: en.validation,
-      common: en.common,
+      common: {
+        ...en.common,
+        ...permissionTranslationsEn,
+      },
     },
     ar: {
       nav: ar.nav,
       table: ar.table,
       validation: ar.validation,
-      common: ar.common,
+      common: {
+        ...ar.common,
+        ...permissionTranslationsAr,
+      },
     },
   },
   lng: savedLanguage,

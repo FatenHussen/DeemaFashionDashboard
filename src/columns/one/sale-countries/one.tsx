@@ -3,6 +3,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 import type { SaleCountryListItem } from '@/pages/dashboard/sale-countries/types/sale-country.types';
 
 import { z } from 'zod';
+import { createToggleColumn } from '@/shared/ui/table-data/data-table-toggle-cell';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 
@@ -23,16 +24,6 @@ export const saleCountryColumns = (
   deletingId?: number | null,
   onEdit?: (row: any) => void
 ): ColumnDef<SaleCountryListItem>[] => [
-  {
-    id: 'id',
-    accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
-    cell: ({ row }) => (
-      <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-        <span className="text-xs font-semibold text-primary">{row.original.id}</span>
-      </div>
-    ),
-  },
   {
     id: 'icon',
     accessorKey: 'icon',
@@ -79,12 +70,16 @@ export const saleCountryColumns = (
       </span>
     ),
   },
+  ...(permissions.update
+    ? [createToggleColumn<SaleCountryListItem>({ entityType: 'sale_country' })]
+    : []),
   {
     id: 'actions',
     cell: ({ row }: any) => (
       <DataTableRowActions
         schema={SaleCountrySchema}
         row={row}
+        viewDetails={`/sale-countries/update/${row.original.id}`}
         editItem={onEdit ? undefined : `/sale-countries/update/${row.original.id}`}
         onEdit={onEdit}
         onDelete={onDelete}
@@ -93,7 +88,6 @@ export const saleCountryColumns = (
         onDeleteConfirm={onDeleteConfirm}
         onDeleteCancel={onDeleteCancel}
         deletingId={deletingId}
-        adminToggleEntityType="sale_country"
         permissions={permissions}
       />
     ),

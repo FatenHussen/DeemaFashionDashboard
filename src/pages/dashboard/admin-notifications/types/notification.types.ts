@@ -3,6 +3,16 @@
 export const NOTIFICATION_TYPES = ['all', 'user', 'driver', 'vendor'] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
 
+export const NOTIFICATION_CHANNELS = ['fcm', 'sms', 'email'] as const;
+export type NotificationChannel = (typeof NOTIFICATION_CHANNELS)[number];
+
+// ── Media shape returned in responses ────────────────────────────────
+
+export interface NotificationMedia {
+  type: string;
+  url: string;
+}
+
 // ── List response  GET /admin/notifications ───────────────────────────
 
 export interface NotificationItem {
@@ -10,8 +20,10 @@ export interface NotificationItem {
   title: string;
   body: string;
   type: NotificationType;
-  /** When true, notification is fixed/pinned (API-dependent). */
-  is_fixed?: boolean;
+  target_page?: string | null;
+  channels: NotificationChannel[];
+  emoji?: string | null;
+  media?: NotificationMedia | null;
   created_at: string;
 }
 
@@ -41,7 +53,8 @@ export interface NotificationCreatePayload {
   title: string;
   body: string;
   type: NotificationType;
-  is_fixed: boolean;
+  channels: NotificationChannel[];
+  target_page?: string;
+  emoji?: string;
+  media?: File | null;
 }
-
-export type NotificationUpdatePayload = NotificationCreatePayload;

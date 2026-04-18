@@ -38,7 +38,7 @@ export default function Page() {
         data={items}
         hasDetails
         detailsLink="/affiliate-withdraw-requests"
-        permissions={{ create: false, update: true, delete: false }}
+        permissions={{ create: false, update: false, delete: false }}
         isLoading={isLoading}
         pagination={pagination}
         currentPage={currentPage}

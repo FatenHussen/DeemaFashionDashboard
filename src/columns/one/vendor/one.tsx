@@ -3,6 +3,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 
 import { z } from 'zod';
 import { formatTranslated } from '@/utils/format-translated';
+import { createToggleColumn } from '@/shared/ui/table-data/data-table-toggle-cell';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 
@@ -42,12 +43,6 @@ export const vendorColumns = (
   onDeleteCancel?: () => void,
   deletingId?: number | null
 ): ColumnDef<VendorFormValues>[] => [
-  {
-    id: 'id',
-    accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
-    cell: ({ row }) => <div className="font-medium">{row.original.id}</div>,
-  },
   {
     id: 'name',
     accessorKey: 'name',
@@ -89,12 +84,16 @@ export const vendorColumns = (
       <div className="text-sm text-muted-foreground">{row.original.created_at}</div>
     ),
   },
+  ...(permissions.update
+    ? [createToggleColumn<VendorFormValues>({ entityType: 'vendor' })]
+    : []),
   {
     id: 'actions',
     cell: ({ row }: any) => (
       <DataTableRowActions
         schema={VendorSchema}
         row={row}
+        viewDetails={`/vendor/update/${row.original.id}`}
         editItem={`/vendor/update/${row.original.id}`}
         onDelete={onDelete}
         isDeleting={isDeleting}
@@ -102,7 +101,6 @@ export const vendorColumns = (
         onDeleteConfirm={onDeleteConfirm}
         onDeleteCancel={onDeleteCancel}
         deletingId={deletingId}
-        adminToggleEntityType="vendor"
         permissions={permissions}
       />
     ),

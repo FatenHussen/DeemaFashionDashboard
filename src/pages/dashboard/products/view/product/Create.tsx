@@ -11,16 +11,16 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
 import { formatTranslated } from '@/utils/format-translated';
-import { useId, useRef, useMemo, useState, useEffect } from 'react';
 import { useFetchShops } from '@/pages/dashboard/vendor/hooks/shop';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { compressImage, compressImages } from '@/utils/compress-image';
 import { _VendorApi } from '@/pages/dashboard/vendor/api/vendor.services';
 import { _BrandApi } from '@/pages/dashboard/products/api/brand.services';
 import { _CountryApi } from '@/pages/dashboard/countries/api/country.services';
+import { useId, useRef, useMemo, useState, useEffect, useCallback } from 'react';
 import { InfiniteScrollSelect } from '@/shared/components/infinite-scroll-select';
 import { _CategoryApi } from '@/pages/dashboard/categories/api/category.services';
-import { RichTextEditor } from '@/shared/components/rich-text-editor/rich-text-editor';
+import { TinyMCEEditorField } from '@/shared/components/tinymce-editor/tinymce-editor';
 import { _SaleCountryApi } from '@/pages/dashboard/sale-countries/api/sale-country.services';
 import { useFetchCategoryAttributes } from '@/pages/dashboard/categories/hooks/category-attribute';
 import {
@@ -39,6 +39,8 @@ import {
 import {
   useUpdateProductVariant,
   useDeleteProductVariant,
+  useUpdateShopProductVariant,
+  useDeleteShopProductVariant,
 } from '@/pages/dashboard/products/hooks/product-variant';
 
 import { paths } from 'src/routes/paths';
@@ -98,8 +100,52 @@ const saleCountryFetcher = (page: number, limit: number) =>
     },
   }));
 
+/** Paginate static attribute value lists for InfiniteScrollSelect (e.g. many colors). */
+function createAttributeValuesFetcher(values: any[] | undefined) {
+  const vals = (values ?? []).filter((v) => v != null);
+  return (page: number, limit: number) => {
+    const items = vals.map((v: any) => ({
+      id: Number(v.id),
+      label:
+        typeof v.name === 'object'
+          ? (v.name?.en ?? v.name?.ar ?? String(v.id))
+          : String(v.name ?? v.id),
+    }));
+    const total = items.length;
+    const last_page = Math.max(1, Math.ceil(total / limit) || 1);
+    const start = (page - 1) * limit;
+    const slice = items.slice(start, start + limit);
+    return Promise.resolve({
+      data: {
+        items: slice,
+        pagination: {
+          current_page: page,
+          last_page,
+          per_page: limit,
+          total,
+        },
+      },
+    });
+  };
+}
+
 const inputCls =
   'w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary';
+
+function fieldInputClass(error?: boolean) {
+  return error
+    ? `${inputCls} border-destructive focus:ring-destructive/40`
+    : inputCls;
+}
+
+function FieldErrorText({ message }: { message?: string }) {
+  if (!message) return null;
+  return (
+    <Typography variant="caption" className="text-destructive mt-1 block">
+      {message}
+    </Typography>
+  );
+}
 
 /** Platform vendor id sent when "For me" is selected. */
 const INTERNAL_VENDOR_ID = 1;
@@ -199,6 +245,7 @@ function ExistingImagePreview({
   /** e.g. first gallery `images[0].url` when `thumbnail` tmp URL fails */
   fallbackUrl?: string | null;
 }) {
+  const { t } = useTranslation('table');
   const raw = typeof url === 'string' ? url.trim() : '';
   const fb = typeof fallbackUrl === 'string' ? fallbackUrl.trim() : '';
 
@@ -259,12 +306,12 @@ function ExistingImagePreview({
         />
       ) : exhaustedDirect ? (
         <Typography variant="caption" className="text-destructive">
-          Preview unavailable (file may be missing or blocked).
+          {t('form.productImagePreviewUnavailable')}
         </Typography>
       ) : null}
       {usedGalleryFallback && fb ? (
         <Typography variant="caption" className="text-muted-foreground">
-          Showing first gallery image — the saved URL (e.g. under /tmp/) could not be loaded as preview.
+          {t('form.productImagePreviewGalleryFallback')}
         </Typography>
       ) : null}
       <Typography variant="caption" className="text-muted-foreground">
@@ -277,7 +324,7 @@ function ExistingImagePreview({
           rel="noreferrer"
           className="text-xs text-primary break-all hover:underline"
         >
-          Open saved image URL in new tab
+          {t('form.productImageOpenSavedUrl')}
         </a>
       ) : null}
       {hrefFallback && hrefFallback !== hrefPrimary ? (
@@ -287,7 +334,7 @@ function ExistingImagePreview({
           rel="noreferrer"
           className="text-xs text-muted-foreground break-all hover:underline"
         >
-          Open fallback / gallery image URL
+          {t('form.productImageOpenFallbackUrl')}
         </a>
       ) : null}
     </Box>
@@ -296,14 +343,14 @@ function ExistingImagePreview({
 
 /** API returns `attribute` in one locale (often AR); category `name` may be {en, ar} — match any. */
 function categoryAttrLabelMatches(attr: any, apiAttributeLabel: string): boolean {
-  const api = String(apiAttributeLabel ?? '').trim();
+  const api = String(apiAttributeLabel ?? '').trim().toLowerCase();
   if (!api) return false;
   if (typeof attr?.name === 'object' && attr.name) {
-    const en = String(attr.name.en ?? '').trim();
-    const ar = String(attr.name.ar ?? '').trim();
+    const en = String(attr.name.en ?? '').trim().toLowerCase();
+    const ar = String(attr.name.ar ?? '').trim().toLowerCase();
     if (api === en || api === ar) return true;
   }
-  return api === String(attr?.name ?? '').trim();
+  return api === String(attr?.name ?? '').trim().toLowerCase();
 }
 
 function normalizeHexForCompare(s: string) {
@@ -344,31 +391,62 @@ function findAttributeValueId(attr: any, rawVal: string): number | undefined {
 
 /**
  * Build `attributes_values_ids` from the variant's own `attributes` rows (one value per attribute type).
- * Do **not** loop every `categoryAttributes` row — some APIs expose the same attribute once per value
- * or duplicate rows, which previously produced many IDs for a single "Size" and broke variant identity.
+ * Prefers `value_id` (or `id`) on each attribute row — the same field the API returns and Details.tsx uses.
+ * Falls back to string-label matching against categoryAttributes only when those direct IDs are absent.
  */
 function resolveVariantAttributeValueIds(
   v: { attributes?: Array<{ attribute: string; value: string }> },
   categoryAttrs: any[]
 ): number[] {
+  const attrs = (v.attributes ?? []) as any[];
+
+  // Fast path: every row already has a resolved value ID — use them directly.
+  const directIds = attrs
+    .map((a: any) => {
+      const vid = a.value_id ?? a.id;
+      return vid != null && !Number.isNaN(Number(vid)) ? Number(vid) : null;
+    })
+    .filter((id): id is number => id !== null);
+
+  if (directIds.length > 0 && directIds.length === attrs.length) {
+    return [...new Set(directIds)];
+  }
+
+  // Slow path: string-label matching (fallback for rows without value_id).
   // Last row wins per attribute label (API sometimes repeats the same attribute many times).
-  const lastRowByLabel = new Map<string, { attribute: string; value: string }>();
-  for (const row of v.attributes ?? []) {
-    const label = String((row as { attribute?: string }).attribute ?? '').trim();
+  const lastRowByLabel = new Map<string, any>();
+  for (const row of attrs) {
+    const rawLabel = (row as any).attribute;
+    const label =
+      typeof rawLabel === 'object' && rawLabel !== null
+        ? String(rawLabel.en ?? rawLabel.ar ?? '').trim()
+        : String(rawLabel ?? '').trim();
     if (!label) continue;
-    lastRowByLabel.set(label.toLowerCase(), row as { attribute: string; value: string });
+    lastRowByLabel.set(label.toLowerCase(), row);
   }
 
   const ids: number[] = [];
   for (const row of lastRowByLabel.values()) {
-    const label = String(row.attribute ?? '').trim();
+    // Direct ID available on this row — use it.
+    const vid = (row as any).value_id ?? null;
+    if (vid != null && !Number.isNaN(Number(vid))) {
+      ids.push(Number(vid));
+      continue;
+    }
+
+    const rawLabel = (row as any).attribute;
+    const label =
+      typeof rawLabel === 'object' && rawLabel !== null
+        ? String(rawLabel.en ?? rawLabel.ar ?? '').trim()
+        : String(rawLabel ?? '').trim();
     const attr = categoryAttrs.find((ca: any) => categoryAttrLabelMatches(ca, label));
     if (!attr) continue;
 
+    const rawValSrc = (row as any).value;
     const rawVal =
-      typeof row === 'object' && row != null && 'value' in row
-        ? String((row as { value?: string }).value ?? '')
-        : '';
+      typeof rawValSrc === 'object' && rawValSrc !== null
+        ? String(rawValSrc.en ?? rawValSrc.ar ?? '').trim()
+        : String(rawValSrc ?? '').trim();
     const idFound = findAttributeValueId(attr, rawVal);
     if (idFound != null && !Number.isNaN(idFound)) {
       ids.push(idFound);
@@ -416,6 +494,8 @@ export default function CreatePage() {
   const updateProductMutation = useUpdateProduct();
   const updateVariantMutation = useUpdateProductVariant();
   const deleteVariantMutation = useDeleteProductVariant();
+  const updateShopVariantMutation = useUpdateShopProductVariant();
+  const deleteShopVariantMutation = useDeleteShopProductVariant();
 
   const defaultValues: ProductFormValues = {
     category_id: 0,
@@ -438,6 +518,8 @@ export default function CreatePage() {
     model: '',
     barcode: '',
     time_prepare: '',
+    delivery_time: '',
+    expiry_date: '',
     is_instant_delivery: 0,
     is_visible: 1,
     thumbnail: undefined,
@@ -461,7 +543,7 @@ export default function CreatePage() {
     defaultValues,
   });
 
-  const { handleSubmit, reset, control, watch, setValue, getValues } = methods;
+  const { handleSubmit, reset, control, watch, setValue, getValues, formState: { errors } } = methods;
 
   useEffect(() => {
     setMainCategoryId(0);
@@ -476,12 +558,36 @@ export default function CreatePage() {
   }, [isEditMode, editCategoryMetaId, editCategoryResp?.data]);
 
   const categoryId = watch('category_id');
+
+  // ─── Restaurant mode detection ────────────────────────────────────────
+  const { data: selectedCategoryResp } = useFetchCategoryById(
+    categoryId && categoryId > 0 ? categoryId : ''
+  );
+  const restaurantMode = Boolean(
+    selectedCategoryResp?.data?.is_restaurant ??
+    (isEditMode && productResponse?.category?.is_restaurant)
+  );
+
+  // Null out restricted fields whenever restaurantMode becomes true
+  useEffect(() => {
+    if (!restaurantMode) return;
+    setValue('brand_id', 0);
+    setValue('sku', '');
+    setValue('model', '');
+    setValue('barcode', '');
+    setValue('country_id', 0);
+    setValue('sale_country_id', 0);
+  }, [restaurantMode, setValue]);
+  // ──────────────────────────────────────────────────────────────────────
+
   const imagesFiles = watch('images');
   const existingMediaIds = watch('existing_media_ids') ?? [];
   const watchedVariants = watch('variants') || [];
+  const watchedShopVariants = watch('shop_variants') || [];
   const watchedBoughtWith = watch('bought_with') || [];
   const vendorScope = watch('vendor_scope');
   const watchedVendorId = watch('vendor_id');
+  const discountTypeWatch = watch('discount_type');
   const effectiveShopVendorId =
     vendorScope === 'internal' ? INTERNAL_VENDOR_ID : Number(watchedVendorId) || 0;
   const { data: shopsResponse } = useFetchShops(1, 100, {
@@ -504,7 +610,7 @@ export default function CreatePage() {
   const { data: subcategoriesListResp, isLoading: isLoadingSubCats } = useFetchCategories(
     1,
     10,
-    mainCategoryId > 0 ? { category_id: mainCategoryId } : undefined,
+    mainCategoryId > 0 ? { parent_id: mainCategoryId } : undefined,
     { enabled: mainCategoryId > 0 }
   );
 
@@ -534,7 +640,7 @@ export default function CreatePage() {
       _CategoryApi.getListCategoriesPaginated({
         page,
         per_page: limit,
-        category_id: mainCategoryId,
+        parent_id: mainCategoryId,
       }).then((r) => ({
         data: {
           items: r.data.items.map((cat) => ({
@@ -556,9 +662,14 @@ export default function CreatePage() {
 
   // Fetch category attributes when category changes
   const { data: categoryAttributesAll, isLoading: isLoadingAttributes } =
-    useFetchCategoryAttributes(categoryId ? Number(categoryId) : undefined, 1, 100, {
-      requireCategoryId: true,
-    });
+    useFetchCategoryAttributes(
+      {
+        page: 1,
+        per_page: 100,
+        category_id: categoryId ? Number(categoryId) : undefined,
+      },
+      { requireCategoryId: true }
+    );
   const categoryAttributes =
     (categoryAttributesAll?.data as { items?: unknown[]; data?: unknown[] } | undefined)?.items ??
     (categoryAttributesAll?.data as { data?: unknown[] } | undefined)?.data ??
@@ -629,6 +740,24 @@ export default function CreatePage() {
   const { fields: shopVariantsFields, append: appendShopVariant, remove: removeShopVariant } =
     useFieldArray({ control, name: 'shop_variants' });
 
+  const handleRemoveVariant = useCallback(
+    (variantIndex: number) => {
+      const sv = getValues('shop_variants') ?? [];
+      const nextSv = sv
+        .filter((row) => Number(row?.variant_index) !== variantIndex)
+        .map((row) => ({
+          ...row,
+          variant_index:
+            Number(row?.variant_index) > variantIndex
+              ? Number(row.variant_index) - 1
+              : Number(row?.variant_index),
+        }));
+      setValue('shop_variants', nextSv, { shouldDirty: true });
+      removeVariant(variantIndex);
+    },
+    [getValues, setValue, removeVariant]
+  );
+
   // Populate form in edit mode
   useEffect(() => {
     if (isEditMode && productResponse && !isLoadingProduct) {
@@ -668,6 +797,11 @@ export default function CreatePage() {
         model: p.model ?? '',
         barcode: p.barcode ?? '',
         time_prepare: p.time_prepare ?? '',
+        delivery_time: p.delivery_time ?? '',
+        expiry_date:
+          p.expiry_date && typeof p.expiry_date === 'string'
+            ? p.expiry_date.slice(0, 10)
+            : '',
         is_instant_delivery: p.is_instant_delivery ? 1 : 0,
         is_visible: p.is_visible === false || p.is_visible === 0 ? 0 : 1,
         thumbnail: undefined,
@@ -688,6 +822,11 @@ export default function CreatePage() {
             images: [],
             existing_images_ids:
               (v.images ?? []).map((img: any) => Number(img.id)).filter((mediaId) => !Number.isNaN(mediaId)) ?? [],
+            sku: (v as any).sku ?? '',
+            name: { en: (v as any).name?.en ?? '', ar: (v as any).name?.ar ?? '' },
+            stock: (v as any).stock != null ? Number((v as any).stock) : undefined,
+            max_purchase_quantity: (v as any).max_purchase_quantity != null ? Number((v as any).max_purchase_quantity) : undefined,
+            delivery_time: (v as any).delivery_time ?? '',
           })) ?? [],
         category_details:
           p.category_details?.map((cd) => ({
@@ -709,6 +848,7 @@ export default function CreatePage() {
         shop_variants:
           p.variants?.flatMap((v, vIndex) =>
             (v.shops ?? []).map((s: any) => ({
+              id: s.id != null ? Number(s.id) : undefined,
               shop_id: Number(s.shop_id),
               variant_index: vIndex,
               price: Number(s.price) || 0,
@@ -716,10 +856,7 @@ export default function CreatePage() {
             }))
           ) ?? [],
         badges: p.badges?.length
-          ? p.badges.map((b: any) => ({
-              id: b.id,
-              position: b.postion || b.position || 'top',
-            }))
+          ? p.badges.map((b: any) => (typeof b === 'number' ? b : b.id))
           : [],
         icon_ids: (p.icons ?? []).map((ic) => ic.id),
       });
@@ -792,6 +929,11 @@ export default function CreatePage() {
           prev && Array.isArray(prev.existing_images_ids)
             ? prev.existing_images_ids
             : (v.images ?? []).map((img: any) => Number(img.id)).filter((mediaId) => !Number.isNaN(mediaId)) ?? [],
+        sku: (prev as any)?.sku ?? (v as any).sku ?? '',
+        name: (prev as any)?.name ?? { en: (v as any).name?.en ?? '', ar: (v as any).name?.ar ?? '' },
+        stock: (prev as any)?.stock ?? ((v as any).stock != null ? Number((v as any).stock) : undefined),
+        max_purchase_quantity: (prev as any)?.max_purchase_quantity ?? ((v as any).max_purchase_quantity != null ? Number((v as any).max_purchase_quantity) : undefined),
+        delivery_time: (prev as any)?.delivery_time ?? (v as any).delivery_time ?? '',
       };
     });
     // Only lock the guard if ALL variants got at least one attribute id resolved.
@@ -962,49 +1104,46 @@ export default function CreatePage() {
         };
       }
 
-      // Variants without attributes_values_ids are dropped entirely — API keys like variants[0][images][] are never sent.
-      const orphanVariantImages = payload.variants?.some(
-        (v) =>
-          ((v.images?.length ?? 0) > 0 || (v.existing_images_ids?.length ?? 0) > 0) &&
-          (!Array.isArray(v.attributes_values_ids) || v.attributes_values_ids.length === 0)
+      // Variants are optional: only rows with at least one attribute value are sent; incomplete rows are omitted.
+      const rawVariantRows = payload.variants ?? [];
+      const validVariants = rawVariantRows.filter(
+        (v) => Array.isArray(v.attributes_values_ids) && v.attributes_values_ids.length > 0
       );
-      if (orphanVariantImages) {
-        const orphanIdx = (payload.variants ?? []).findIndex(
-          (v) =>
-            ((v.images?.length ?? 0) > 0 || (v.existing_images_ids?.length ?? 0) > 0) &&
-            (!Array.isArray(v.attributes_values_ids) || v.attributes_values_ids.length === 0)
-        );
-        toast.error(
-          `Variant #${orphanIdx + 1} has images but no attributes selected. Select at least one attribute (e.g. size or color) so variant images are included in the request.`
-        );
-        return;
-      }
 
-      const validVariants =
-        payload.variants?.filter(
-          (v) => Array.isArray(v.attributes_values_ids) && v.attributes_values_ids.length > 0
-        ) ?? [];
-      if (
-        (payload.variants?.length ?? 0) > 0 &&
-        validVariants.length < (payload.variants?.length ?? 0)
-      ) {
-        const emptyIdx = (payload.variants ?? []).findIndex(
-          (v) => !Array.isArray(v.attributes_values_ids) || v.attributes_values_ids.length === 0
-        );
-        const isExisting = (payload.variants ?? [])[emptyIdx]?.id != null;
-        toast.error(
-          isExisting
-            ? `Variant #${emptyIdx + 1} (existing) could not load its attributes automatically — please re-select its attributes manually before saving.`
-            : `Variant #${emptyIdx + 1} has no attributes selected. Select at least one attribute or remove the empty row.`
-        );
-        return;
-      }
+      // After dropping variant rows, remap shop_variants.variant_index to the new indices.
+      const variantIndexMap = new Map<number, number>();
+      let nextVariantIdx = 0;
+      rawVariantRows.forEach((v, origIdx) => {
+        if (Array.isArray(v.attributes_values_ids) && v.attributes_values_ids.length > 0) {
+          variantIndexMap.set(origIdx, nextVariantIdx);
+          nextVariantIdx += 1;
+        }
+      });
+      const remappedShopVariants = (payload.shop_variants ?? [])
+        .filter((sv) => variantIndexMap.has(Number(sv.variant_index)))
+        .map((sv) => ({
+          ...sv,
+          variant_index: variantIndexMap.get(Number(sv.variant_index))!,
+        }));
+
       const finalPayload = {
         ...payload,
+        brand_id: payload.brand_id && payload.brand_id > 0 ? payload.brand_id : undefined,
+        country_id: payload.country_id && payload.country_id > 0 ? payload.country_id : undefined,
+        sale_country_id: payload.sale_country_id && payload.sale_country_id > 0 ? payload.sale_country_id : undefined,
         variants: validVariants,
+        shop_variants: remappedShopVariants,
         category_details: payload.category_details?.filter(
           (cd) => cd.category_detail_id && cd.category_detail_id > 0
         ),
+        ...(restaurantMode && {
+          brand_id: undefined,
+          sku: null,
+          model: null,
+          barcode: null,
+          country_id: undefined,
+          sale_country_id: undefined,
+        }),
       };
 
       const productImagesCompressed = finalPayload.images?.length
@@ -1020,7 +1159,7 @@ export default function CreatePage() {
       if (thumb instanceof File) thumb = await compressImage(thumb);
       let seoImg = finalPayload.seo_image;
       if (seoImg instanceof File) seoImg = await compressImage(seoImg);
-      const uploadPayload: ProductFormValues = {
+      const uploadPayload = {
         ...finalPayload,
         images: productImagesCompressed,
         variants: variantsCompressed,
@@ -1030,10 +1169,12 @@ export default function CreatePage() {
       const { vendor_scope: _omitVendorScope, ...apiPayload } = uploadPayload;
 
       if (isEditMode && id) {
-        console.log('[Product Form] Sending update payload:', { id, data: apiPayload });
+        // In edit mode, variants and shop_variants are managed independently via their own save/delete buttons.
+        const { variants: _omitVariants, shop_variants: _omitShopVariants, ...editApiPayload } = apiPayload as any;
+        console.log('[Product Form] Sending update payload:', { id, data: editApiPayload });
         await updateProductMutation.mutateAsync({
           id,
-          data: apiPayload as ProductCreateUpdatePayload,
+          data: editApiPayload as ProductCreateUpdatePayload,
         });
         toast.success(t('form.productUpdatedSuccess'));
       } else {
@@ -1080,8 +1221,8 @@ export default function CreatePage() {
   return (
     <CreateFormLayout
         methods={methods as any}
-        onSubmit={handleSubmit(onSubmit as any, (errors) => {
-          console.error('[Product Form] Validation errors:', errors);
+        onSubmit={handleSubmit(onSubmit as any, (formErrors) => {
+          console.error('[Product Form] Validation errors:', formErrors);
           const getFirstMessage = (obj: any): string | null => {
             if (!obj) return null;
             if (typeof obj.message === 'string') return obj.message;
@@ -1093,7 +1234,7 @@ export default function CreatePage() {
             }
             return null;
           };
-          const msg = getFirstMessage(errors);
+          const msg = getFirstMessage(formErrors);
           console.error('[Product Form] First error message:', msg);
           toast.error(msg || t('form.formValidationErrorGeneric'));
         })}
@@ -1128,284 +1269,534 @@ export default function CreatePage() {
           <Tab value="extras" label={t('form.productFormTabExtras')} />
         </Tabs>
 
+        {(errors.category_id || errors.vendor_id) && (
+          <Box className="mb-4 rounded-lg border border-destructive/40 bg-destructive/5 px-3 py-2 space-y-1">
+            {errors.category_id?.message ? (
+              <Typography variant="caption" className="text-destructive block">
+                {errors.category_id.message}
+              </Typography>
+            ) : null}
+            {errors.vendor_id?.message ? (
+              <Typography variant="caption" className="text-destructive block">
+                {errors.vendor_id.message}
+              </Typography>
+            ) : null}
+          </Box>
+        )}
+
         {productFormTab === 'basic' && (
           <Box className="space-y-6">
 
-        {/* ─── Brand ────────────────────────────────────────────── */}
-        <Box className="group">
-          <Box className="flex items-center justify-between gap-2 mb-2">
-            <Box className="flex items-center gap-2">
-              <Iconify icon="solar:medal-ribbons-star-bold" className="text-primary" width={20} />
+        {/* ─── Restaurant mode banner ───────────────────────────── */}
+        {restaurantMode && (
+          <Box className="flex items-start gap-3 p-4 rounded-lg border border-orange-500/30 bg-orange-500/10">
+            <Iconify icon="solar:shop-bold" className="text-orange-500 shrink-0 mt-0.5" width={20} />
+            <div>
+              <Typography variant="subtitle2" className="font-semibold text-orange-600">
+                {t('form.restaurantModeTitle')}
+              </Typography>
+              <Typography variant="caption" className="text-orange-600/80">
+                {t('form.restaurantModeHelper')}
+              </Typography>
+            </div>
+          </Box>
+        )}
+
+        {/* ════════════════════════════════════════════════════════
+            Card: Categories (الفئات)
+           ════════════════════════════════════════════════════════ */}
+        <Box className="rounded-xl border border-border bg-card p-6 space-y-4">
+          <Typography variant="subtitle1" className="font-bold text-foreground">
+            {t('form.productCategorySection')}
+          </Typography>
+
+          <Box className="group">
+            <Box className="flex items-center gap-2 mb-2">
+              <Iconify icon="solar:folder-bold" className="text-primary" width={20} />
               <Typography variant="subtitle2" className="font-semibold text-foreground">
-                {t('form.productBrand')}
+                {t('form.productMainCategory')}
               </Typography>
             </Box>
-            <Button
-              type="button"
-              variant="text"
-              size="small"
-              onClick={() =>
-                window.open(`${paths.dashboard.root}${paths.dashboard.brands}/create`, '_blank')
-              }
-              className="text-primary -mr-2"
-            >
-              <Iconify icon="solar:add-circle-bold" width={16} className="mr-1" />
-              {t('form.productCreateBrand')}
-            </Button>
+            <InfiniteScrollSelect
+              value={mainCategoryId}
+              onChange={(val) => {
+                setMainCategoryId(val);
+                setValue('category_id', 0);
+                setValue('variants', []);
+                setValue('category_details', []);
+              }}
+              queryKey={['categories', 'infinite', 'product-form', 'roots']}
+              fetcher={mainCategoryFetcher}
+              placeholder={t('form.selectMainCategory')}
+              initialLabel={mainCategoryInitialLabel}
+            />
           </Box>
-          <RHFInfiniteSelect
-            name="brand_id"
-            queryKey={['brands', 'infinite', 'product-form']}
-            fetcher={brandFetcher}
-            placeholder={t('form.selectBrandOptional')}
-            initialLabel={productResponse?.brand ? formatTranslated(productResponse.brand.name as any) : undefined}
-          />
-        </Box>
 
-        {/* ─── Vendor source (For me / Out) ─────────────────────── */}
-        <Box className="group">
-          <Box className="flex items-center gap-2 mb-2">
-            <Iconify icon="solar:shop-bold" className="text-primary" width={20} />
-            <Typography variant="subtitle2" className="font-semibold text-foreground">
-              {t('form.productVendorScope')}
-            </Typography>
-          </Box>
-          <Controller
-            name="vendor_scope"
-            control={control}
-            render={({ field }) => (
-              <Box className="flex flex-wrap gap-4">
-                <label className="flex items-center gap-2 cursor-pointer text-sm">
-                  <input
-                    type="radio"
-                    className="w-4 h-4"
-                    checked={field.value === 'internal'}
-                    onChange={() => {
-                      field.onChange('internal');
-                      setValue('vendor_id', INTERNAL_VENDOR_ID);
-                      setValue('shop_variants', []);
-                    }}
-                  />
-                  {t('form.vendorScopeForMe')}
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer text-sm">
-                  <input
-                    type="radio"
-                    className="w-4 h-4"
-                    checked={field.value === 'external'}
-                    onChange={() => {
-                      field.onChange('external');
-                      setValue('vendor_id', 0);
-                      setValue('shop_variants', []);
-                    }}
-                  />
-                  {t('form.vendorScopeOut')}
-                </label>
-              </Box>
-            )}
-          />
-          {vendorScope === 'external' && (
-            <Box className="mt-3">
+          {hasChildCategories ? (
+            <Box className="group">
+              <Label className="text-sm font-medium mb-1 block">{t('form.productSubcategory')}</Label>
               <RHFInfiniteSelect
-                name="vendor_id"
-                queryKey={['vendors', 'infinite', 'product-form']}
-                fetcher={vendorFetcher}
-                placeholder={t('form.selectVendorRequired')}
+                name="category_id"
+                queryKey={['categories', 'infinite', 'product-form', 'children', mainCategoryId]}
+                fetcher={childCategoryFetcher}
+                placeholder={t('form.selectSubcategory')}
                 initialLabel={
-                  productResponse?.vendor
-                    ? formatTranslated(productResponse.vendor.name as any)
+                  productResponse?.category?.name
+                    ? formatTranslated(productResponse.category.name as any)
                     : undefined
                 }
+                disabled={!mainCategoryId}
+                onValueChange={() => {
+                  setValue('variants', []);
+                  setValue('category_details', []);
+                }}
+              />
+            </Box>
+          ) : mainCategoryId > 0 && !isLoadingSubCats ? (
+            <Typography variant="caption" className="text-muted-foreground block">
+              {t('form.productCategoryUsesMainOnly')}
+            </Typography>
+          ) : null}
+        </Box>
+
+        {/* ════════════════════════════════════════════════════════
+            Card: General Info (المعلومات العامة)
+           ════════════════════════════════════════════════════════ */}
+        <Box className="rounded-xl border border-border bg-card p-6 space-y-5">
+          {/* <Typography variant="subtitle1" className="font-bold text-foreground">
+            {t('form.productGeneralInfoSection')}
+          </Typography> */}
+
+          {/* Name Arabic & English — two columns */}
+          <Box className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Box className="group">
+              <Box className="flex items-center gap-2 mb-2">
+                <Iconify icon="solar:letter-bold" className="text-primary" width={20} />
+                <Typography variant="subtitle2" className="font-semibold text-foreground">
+                  {t('form.productNameArRequired')}
+                </Typography>
+              </Box>
+              <Controller
+                name="name.ar"
+                control={control}
+                render={({ field, fieldState: { error } }) => (
+                  <div>
+                    <input
+                      {...field}
+                      type="text"
+                      dir="rtl"
+                      placeholder={t('form.productNameArPlaceholder')}
+                      className={fieldInputClass(!!error)}
+                    />
+                    <FieldErrorText message={error?.message} />
+                  </div>
+                )}
+              />
+            </Box>
+
+            <Box className="group">
+              <Box className="flex items-center gap-2 mb-2">
+                <Iconify icon="solar:letter-bold" className="text-primary" width={20} />
+                <Typography variant="subtitle2" className="font-semibold text-foreground">
+                  {t('form.productNameEnRequired')}
+                </Typography>
+              </Box>
+              <Controller
+                name="name.en"
+                control={control}
+                render={({ field, fieldState: { error } }) => (
+                  <div>
+                    <input
+                      {...field}
+                      type="text"
+                      placeholder={t('form.productNamePlaceholder')}
+                      className={fieldInputClass(!!error)}
+                    />
+                    <FieldErrorText message={error?.message} />
+                  </div>
+                )}
+              />
+            </Box>
+          </Box>
+
+          {/* SKU, Model, Barcode — three columns */}
+          {!restaurantMode && (
+            <Box className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Box className="group">
+                <Box className="flex items-center gap-2 mb-2">
+                  <Iconify icon="solar:tag-bold" className="text-primary" width={20} />
+                  <Typography variant="subtitle2" className="font-semibold text-foreground">
+                    {t('form.productSku')}
+                  </Typography>
+                </Box>
+                <Controller
+                  name="sku"
+                  control={control}
+                  render={({ field, fieldState: { error } }) => (
+                    <div>
+                      <input
+                        {...field}
+                        type="text"
+                        placeholder={t('form.skuPlaceholder')}
+                        className={fieldInputClass(!!error)}
+                      />
+                      <FieldErrorText message={error?.message} />
+                    </div>
+                  )}
+                />
+              </Box>
+
+              <Box className="group">
+                <Box className="flex items-center gap-2 mb-2">
+                  <Iconify icon="solar:widget-bold" className="text-primary" width={20} />
+                  <Typography variant="subtitle2" className="font-semibold text-foreground">
+                    {t('form.productModel')}
+                  </Typography>
+                </Box>
+                <Controller
+                  name="model"
+                  control={control}
+                  render={({ field, fieldState: { error } }) => (
+                    <div>
+                      <input
+                        {...field}
+                        type="text"
+                        placeholder={t('form.modelPlaceholder')}
+                        className={fieldInputClass(!!error)}
+                      />
+                      <FieldErrorText message={error?.message} />
+                    </div>
+                  )}
+                />
+              </Box>
+
+              <Box className="group">
+                <Box className="flex items-center gap-2 mb-2">
+                  <Iconify icon="solar:qr-code-bold" className="text-primary" width={20} />
+                  <Typography variant="subtitle2" className="font-semibold text-foreground">
+                    {t('form.productBarcode')}
+                  </Typography>
+                </Box>
+                <Controller
+                  name="barcode"
+                  control={control}
+                  render={({ field, fieldState: { error } }) => (
+                    <div>
+                      <input
+                        {...field}
+                        type="text"
+                        placeholder={t('form.barcodePlaceholder')}
+                        className={fieldInputClass(!!error)}
+                      />
+                      <FieldErrorText message={error?.message} />
+                    </div>
+                  )}
+                />
+              </Box>
+            </Box>
+          )}
+
+          {/* Brand (hidden for restaurant categories) */}
+          {!restaurantMode && (
+            <Box className="group">
+              <Box className="flex items-center justify-between gap-2 mb-2">
+                <Box className="flex items-center gap-2">
+                  <Iconify icon="solar:medal-ribbons-star-bold" className="text-primary" width={20} />
+                  <Typography variant="subtitle2" className="font-semibold text-foreground">
+                    {t('form.productBrand')}
+                  </Typography>
+                </Box>
+                <Button
+                  type="button"
+                  variant="text"
+                  size="small"
+                  onClick={() =>
+                    window.open(`${paths.dashboard.root}${paths.dashboard.brands}/create`, '_blank')
+                  }
+                  className="text-primary -mr-2"
+                >
+                  <Iconify icon="solar:add-circle-bold" width={16} className="mr-1" />
+                  {t('form.productCreateBrand')}
+                </Button>
+              </Box>
+              <RHFInfiniteSelect
+                name="brand_id"
+                queryKey={['brands', 'infinite', 'product-form']}
+                fetcher={brandFetcher}
+                placeholder={t('form.selectBrandOptional')}
+                initialLabel={productResponse?.brand ? formatTranslated(productResponse.brand.name as any) : undefined}
               />
             </Box>
           )}
-        </Box>
 
-        {/* ─── Name ─────────────────────────────────────────────── */}
-        <Box className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Vendor source (For me / Out) */}
           <Box className="group">
             <Box className="flex items-center gap-2 mb-2">
-              <Iconify icon="solar:letter-bold" className="text-primary" width={20} />
+              <Iconify icon="solar:shop-bold" className="text-primary" width={20} />
               <Typography variant="subtitle2" className="font-semibold text-foreground">
-                {t('form.productNameEnRequired')}
+                {t('form.productVendorScope')}
               </Typography>
             </Box>
             <Controller
-              name="name.en"
+              name="vendor_scope"
               control={control}
-              render={({ field, fieldState: { error } }) => (
-                <div>
-                  <input {...field} type="text" placeholder={t('form.productNamePlaceholder')} className={inputCls} />
-                  {error && (
-                    <Typography variant="caption" className="text-destructive mt-1">
-                      {error.message}
-                    </Typography>
-                  )}
-                </div>
+              render={({ field }) => (
+                <Box className="flex flex-wrap gap-4">
+                  <label className="flex items-center gap-2 cursor-pointer text-sm">
+                    <input
+                      type="radio"
+                      className="w-4 h-4"
+                      checked={field.value === 'internal'}
+                      onChange={() => {
+                        field.onChange('internal');
+                        setValue('vendor_id', INTERNAL_VENDOR_ID);
+                        setValue('shop_variants', []);
+                        setValue('delivery_time', '');
+                      }}
+                    />
+                    {t('form.vendorScopeForMe')}
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer text-sm">
+                    <input
+                      type="radio"
+                      className="w-4 h-4"
+                      checked={field.value === 'external'}
+                      onChange={() => {
+                        field.onChange('external');
+                        setValue('vendor_id', 0);
+                        setValue('shop_variants', []);
+                      }}
+                    />
+                    {t('form.vendorScopeOut')}
+                  </label>
+                </Box>
               )}
             />
-          </Box>
-          <Box className="group">
-            <Box className="flex items-center gap-2 mb-2">
-              <Iconify icon="solar:letter-bold" className="text-primary" width={20} />
-              <Typography variant="subtitle2" className="font-semibold text-foreground">
-                {t('form.productNameArRequired')}
-              </Typography>
-            </Box>
-            <Controller
-              name="name.ar"
-              control={control}
-              render={({ field, fieldState: { error } }) => (
-                <div>
-                  <input
-                    {...field}
-                    type="text"
-                    dir="rtl"
-                    placeholder={t('form.productNameArPlaceholder')}
-                    className={inputCls}
+            {vendorScope === 'external' && (
+              <Box className="mt-3 space-y-4">
+                <RHFInfiniteSelect
+                  name="vendor_id"
+                  queryKey={['vendors', 'infinite', 'product-form']}
+                  fetcher={vendorFetcher}
+                  placeholder={t('form.selectVendorRequired')}
+                  initialLabel={
+                    productResponse?.vendor
+                      ? formatTranslated(productResponse.vendor.name as any)
+                      : undefined
+                  }
+                />
+                <Box>
+                  <Box className="flex items-center gap-2 mb-2">
+                    <Iconify icon="solar:clock-circle-bold" className="text-primary" width={20} />
+                    <Typography variant="subtitle2" className="font-semibold text-foreground">
+                      {t('form.productDeliveryTime')}
+                    </Typography>
+                  </Box>
+                  <Controller
+                    name="delivery_time"
+                    control={control}
+                    render={({ field, fieldState: { error } }) => (
+                      <div>
+                        <input
+                          {...field}
+                          type="text"
+                          value={field.value ?? ''}
+                          placeholder={t('form.variantDeliveryTimePlaceholder')}
+                          className={fieldInputClass(!!error)}
+                        />
+                        <FieldErrorText message={error?.message} />
+                        <Typography variant="caption" className="text-muted-foreground mt-1 block">
+                          {t('form.productDeliveryTimeExternalHint')}
+                        </Typography>
+                      </div>
+                    )}
                   />
-                  {error && (
-                    <Typography variant="caption" className="text-destructive mt-1">
-                      {error.message}
-                    </Typography>
-                  )}
-                </div>
-              )}
-            />
-          </Box>
-        </Box>
-
-        {/* ─── Description ──────────────────────────────────────── */}
-        <Box className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Box className="group">
-            <Box className="flex items-center gap-2 mb-2">
-              <Iconify icon="solar:document-text-bold" className="text-primary" width={20} />
-              <Typography variant="subtitle2" className="font-semibold text-foreground">
-                {t('form.productDescEnRequired')}
-              </Typography>
-            </Box>
-            <Controller
-              name="description.en"
-              control={control}
-              render={({ field, fieldState: { error } }) => (
-                <div>
-                  <textarea
-                    {...field}
-                    rows={3}
-                    placeholder={t('form.productDescPlaceholder')}
-                    className={inputCls}
-                  />
-                  {error && (
-                    <Typography variant="caption" className="text-destructive mt-1">
-                      {error.message}
-                    </Typography>
-                  )}
-                </div>
-              )}
-            />
-          </Box>
-          <Box className="group">
-            <Box className="flex items-center gap-2 mb-2">
-              <Iconify icon="solar:document-text-bold" className="text-primary" width={20} />
-              <Typography variant="subtitle2" className="font-semibold text-foreground">
-                {t('form.productDescArRequired')}
-              </Typography>
-            </Box>
-            <Controller
-              name="description.ar"
-              control={control}
-              render={({ field, fieldState: { error } }) => (
-                <div>
-                  <textarea
-                    {...field}
-                    rows={3}
-                    dir="rtl"
-                    placeholder={t('form.productDescArPlaceholder')}
-                    className={inputCls}
-                  />
-                  {error && (
-                    <Typography variant="caption" className="text-destructive mt-1">
-                      {error.message}
-                    </Typography>
-                  )}
-                </div>
-              )}
-            />
+                </Box>
+              </Box>
+            )}
           </Box>
         </Box>
 
-        {/* ─── Country of origin & country of sale ─────────────── */}
-        <Box className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Box className="group">
-            <Box className="flex items-center justify-between gap-2 mb-2">
-              <Box className="flex items-center gap-2">
+        {/* ════════════════════════════════════════════════════════
+            Card: Description (الوصف)
+           ════════════════════════════════════════════════════════ */}
+        <Box className="rounded-xl border border-border bg-card p-6 space-y-5">
+          <Box className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Box className="group">
+              <Box className="flex items-center gap-2 mb-2">
+                <Iconify icon="solar:document-text-bold" className="text-primary" width={20} />
+                <Typography variant="subtitle2" className="font-semibold text-foreground">
+                  {t('form.productDescAr')}
+                </Typography>
+              </Box>
+              <Controller
+                name="description.ar"
+                control={control}
+                render={({ field, fieldState: { error } }) => (
+                  <div>
+                    <textarea
+                      {...field}
+                      rows={3}
+                      dir="rtl"
+                      placeholder={t('form.productDescArPlaceholder')}
+                      className={fieldInputClass(!!error)}
+                    />
+                    <FieldErrorText message={error?.message} />
+                  </div>
+                )}
+              />
+            </Box>
+
+            <Box className="group">
+              <Box className="flex items-center gap-2 mb-2">
+                <Iconify icon="solar:document-text-bold" className="text-primary" width={20} />
+                <Typography variant="subtitle2" className="font-semibold text-foreground">
+                  {t('form.productDescEn')}
+                </Typography>
+              </Box>
+              <Controller
+                name="description.en"
+                control={control}
+                render={({ field, fieldState: { error } }) => (
+                  <div>
+                    <textarea
+                      {...field}
+                      rows={3}
+                      placeholder={t('form.productDescPlaceholder')}
+                      className={fieldInputClass(!!error)}
+                    />
+                    <FieldErrorText message={error?.message} />
+                  </div>
+                )}
+              />
+            </Box>
+          </Box>
+
+          {/* Full Description */}
+          <Box className="border-t border-border pt-5 mt-2 space-y-5">
+            <Box className="group">
+              <Box className="flex items-center gap-2 mb-2">
+                <Iconify icon="solar:document-bold" className="text-primary" width={20} />
+                <Typography variant="subtitle2" className="font-semibold text-foreground">
+                  {t('form.productFullDescAr')}
+                </Typography>
+              </Box>
+              <Controller
+                name="full_description.ar"
+                control={control}
+                render={({ field, fieldState: { error } }) => (
+                  <div>
+                    <TinyMCEEditorField
+                      value={field.value ?? ''}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      placeholder={t('form.fullDescArPlaceholder')}
+                      dir="rtl"
+                      menubar
+                      toolsMenuWordCount
+                      height={320}
+                    />
+                    <FieldErrorText message={error?.message} />
+                  </div>
+                )}
+              />
+            </Box>
+
+            <Box className="group">
+              <Box className="flex items-center gap-2 mb-2">
+                <Iconify icon="solar:document-bold" className="text-primary" width={20} />
+                <Typography variant="subtitle2" className="font-semibold text-foreground">
+                  {t('form.productFullDescEn')}
+                </Typography>
+              </Box>
+              <Controller
+                name="full_description.en"
+                control={control}
+                render={({ field, fieldState: { error } }) => (
+                  <div>
+                    <TinyMCEEditorField
+                      value={field.value ?? ''}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      placeholder={t('form.fullDescPlaceholder')}
+                      dir="ltr"
+                      menubar
+                      toolsMenuWordCount
+                      height={320}
+                    />
+                    <FieldErrorText message={error?.message} />
+                  </div>
+                )}
+              />
+            </Box>
+          </Box>
+        </Box>
+
+        {/* ════════════════════════════════════════════════════════
+            Card: Countries (البلاد)
+           ════════════════════════════════════════════════════════ */}
+        {!restaurantMode && (
+        <Box className="rounded-xl border border-border bg-card p-6">
+          <Box className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Box className="group">
+              <Box className="flex items-center gap-2 mb-2">
                 <Iconify icon="solar:globe-bold" className="text-primary" width={20} />
                 <Typography variant="subtitle2" className="font-semibold text-foreground">
                   {t('form.countryOriginSelect')}
                 </Typography>
               </Box>
-              {/* <Button
-                type="button"
-                variant="text"
-                size="small"
-                onClick={() =>
-                  window.open(`${paths.dashboard.root}${paths.dashboard.countries}/create`, '_blank')
-                }
-                className="text-primary -mr-2"
-              >
-                <Iconify icon="solar:add-circle-bold" width={16} className="mr-1" />
-                {t('form.countryCreateShort')}
-              </Button> */}
+              <RHFInfiniteSelect
+                name="country_id"
+                queryKey={['countries', 'infinite', 'product-form', 'origin']}
+                fetcher={countryFetcher}
+                placeholder={t('form.selectCountryOriginOptional')}
+                pageSize={20}
+                initialLabel={(() => {
+                  const oc = productResponse?.origin_country;
+                  if (oc?.name != null) {
+                    return typeof oc.name === 'string' ? oc.name : formatTranslated(oc.name as any);
+                  }
+                  const c = productResponse?.country;
+                  if (
+                    c &&
+                    typeof c === 'object' &&
+                    'name' in c &&
+                    (c as { name?: string | { en: string; ar: string } }).name != null
+                  ) {
+                    return formatTranslated(
+                      (c as { name: string | { en: string; ar: string } }).name as any
+                    );
+                  }
+                  return undefined;
+                })()}
+              />
             </Box>
-            <RHFInfiniteSelect
-              name="country_id"
-              queryKey={['countries', 'infinite', 'product-form', 'origin']}
-              fetcher={countryFetcher}
-              placeholder={t('form.selectCountryOriginOptional')}
-              pageSize={20}
-              initialLabel={(() => {
-                const oc = productResponse?.origin_country;
-                if (oc?.name != null) {
-                  return typeof oc.name === 'string' ? oc.name : formatTranslated(oc.name as any);
+
+            <Box className="group">
+              <Box className="flex items-center gap-2 mb-2">
+                <Iconify icon="solar:map-point-bold" className="text-primary" width={20} />
+                <Typography variant="subtitle2" className="font-semibold text-foreground">
+                  {t('form.countrySaleSelect')}
+                </Typography>
+              </Box>
+              <RHFInfiniteSelect
+                name="sale_country_id"
+                queryKey={['sale-countries', 'infinite', 'product-form']}
+                fetcher={saleCountryFetcher}
+                placeholder={t('form.selectCountrySaleOptional')}
+                pageSize={20}
+                initialLabel={
+                  productResponse?.sale_country?.name
+                    ? typeof productResponse.sale_country.name === 'string'
+                      ? productResponse.sale_country.name
+                      : formatTranslated(productResponse.sale_country.name as any)
+                    : undefined
                 }
-                const c = productResponse?.country;
-                if (
-                  c &&
-                  typeof c === 'object' &&
-                  'name' in c &&
-                  (c as { name?: string | { en: string; ar: string } }).name != null
-                ) {
-                  return formatTranslated(
-                    (c as { name: string | { en: string; ar: string } }).name as any
-                  );
-                }
-                return undefined;
-              })()}
-            />
-          </Box>
-          <Box className="group">
-            <Box className="flex items-center gap-2 mb-2">
-              <Iconify icon="solar:map-point-bold" className="text-primary" width={20} />
-              <Typography variant="subtitle2" className="font-semibold text-foreground">
-                {t('form.countrySaleSelect')}
-              </Typography>
+              />
             </Box>
-            <RHFInfiniteSelect
-              name="sale_country_id"
-              queryKey={['sale-countries', 'infinite', 'product-form']}
-              fetcher={saleCountryFetcher}
-              placeholder={t('form.selectCountrySaleOptional')}
-              pageSize={20}
-              initialLabel={
-                productResponse?.sale_country?.name
-                  ? typeof productResponse.sale_country.name === 'string'
-                    ? productResponse.sale_country.name
-                    : formatTranslated(productResponse.sale_country.name as any)
-                  : undefined
-              }
-            />
           </Box>
         </Box>
+        )}
 
         {/* ─── Price, discount, cost ───────────────────────────── */}
         <Box className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1426,13 +1817,9 @@ export default function CreatePage() {
                     type="number"
                     placeholder="0.00"
                     onChange={(e) => field.onChange(Number(e.target.value))}
-                    className={inputCls}
+                    className={fieldInputClass(!!error)}
                   />
-                  {error && (
-                    <Typography variant="caption" className="text-destructive mt-1">
-                      {error.message}
-                    </Typography>
-                  )}
+                  <FieldErrorText message={error?.message} />
                 </div>
               )}
             />
@@ -1447,12 +1834,15 @@ export default function CreatePage() {
             <Controller
               name="discount_type"
               control={control}
-              render={({ field }) => (
-                <select {...field} className={inputCls}>
-                  <option value="none">{t('form.discountTypeNone')}</option>
-                  <option value="percentage">{t('form.discountTypePercentage')}</option>
-                  <option value="fixed">{t('form.discountTypeFixed')}</option>
-                </select>
+              render={({ field, fieldState: { error } }) => (
+                <div>
+                  <select {...field} className={fieldInputClass(!!error)}>
+                    <option value="none">{t('form.discountTypeNone')}</option>
+                    <option value="percentage">{t('form.discountTypePercentage')}</option>
+                    <option value="fixed">{t('form.discountTypeFixed')}</option>
+                  </select>
+                  <FieldErrorText message={error?.message} />
+                </div>
               )}
             />
           </Box>
@@ -1473,14 +1863,12 @@ export default function CreatePage() {
                     type="number"
                     placeholder="0"
                     value={field.value ?? 0}
+                    min={0}
+                    max={discountTypeWatch === 'percentage' ? 100 : undefined}
                     onChange={(e) => field.onChange(Number(e.target.value))}
-                    className={inputCls}
+                    className={fieldInputClass(!!error)}
                   />
-                  {error && (
-                    <Typography variant="caption" className="text-destructive mt-1">
-                      {error.message}
-                    </Typography>
-                  )}
+                  <FieldErrorText message={error?.message} />
                 </div>
               )}
             />
@@ -1492,17 +1880,20 @@ export default function CreatePage() {
             <Controller
               name="cost_price"
               control={control}
-              render={({ field }) => (
-                <input
-                  {...field}
-                  type="number"
-                  placeholder="0.00"
-                  value={field.value ?? ''}
-                  onChange={(e) =>
-                    field.onChange(e.target.value === '' ? undefined : Number(e.target.value))
-                  }
-                  className={inputCls}
-                />
+              render={({ field, fieldState: { error } }) => (
+                <div>
+                  <input
+                    {...field}
+                    type="number"
+                    placeholder="0.00"
+                    value={field.value ?? ''}
+                    onChange={(e) =>
+                      field.onChange(e.target.value === '' ? undefined : Number(e.target.value))
+                    }
+                    className={fieldInputClass(!!error)}
+                  />
+                  <FieldErrorText message={error?.message} />
+                </div>
               )}
             />
           </Box>
@@ -1527,13 +1918,9 @@ export default function CreatePage() {
                     type="number"
                     placeholder="0"
                     onChange={(e) => field.onChange(Number(e.target.value))}
-                    className={inputCls}
+                    className={fieldInputClass(!!error)}
                   />
-                  {error && (
-                    <Typography variant="caption" className="text-destructive mt-1">
-                      {error.message}
-                    </Typography>
-                  )}
+                  <FieldErrorText message={error?.message} />
                 </div>
               )}
             />
@@ -1548,8 +1935,16 @@ export default function CreatePage() {
             <Controller
               name="time_prepare"
               control={control}
-              render={({ field }) => (
-                <input {...field} type="text" placeholder={t('form.prepTimePlaceholder')} className={inputCls} />
+              render={({ field, fieldState: { error } }) => (
+                <div>
+                  <input
+                    {...field}
+                    type="text"
+                    placeholder={t('form.prepTimePlaceholder')}
+                    className={fieldInputClass(!!error)}
+                  />
+                  <FieldErrorText message={error?.message} />
+                </div>
               )}
             />
           </Box>
@@ -1560,8 +1955,16 @@ export default function CreatePage() {
             <Controller
               name="unit"
               control={control}
-              render={({ field }) => (
-                <input {...field} type="text" placeholder={t('form.unitPlaceholder')} className={inputCls} />
+              render={({ field, fieldState: { error } }) => (
+                <div>
+                  <input
+                    {...field}
+                    type="text"
+                    placeholder={t('form.unitPlaceholder')}
+                    className={fieldInputClass(!!error)}
+                  />
+                  <FieldErrorText message={error?.message} />
+                </div>
               )}
             />
           </Box>
@@ -1572,70 +1975,53 @@ export default function CreatePage() {
             <Controller
               name="warranty_period"
               control={control}
-              render={({ field }) => (
-                <input
-                  {...field}
-                  type="number"
-                  placeholder="0"
-                  value={field.value ?? ''}
-                  onChange={(e) =>
-                    field.onChange(e.target.value === '' ? undefined : Number(e.target.value))
-                  }
-                  className={inputCls}
-                />
+              render={({ field, fieldState: { error } }) => (
+                <div>
+                  <input
+                    {...field}
+                    type="number"
+                    placeholder="0"
+                    value={field.value ?? ''}
+                    onChange={(e) =>
+                      field.onChange(e.target.value === '' ? undefined : Number(e.target.value))
+                    }
+                    className={fieldInputClass(!!error)}
+                  />
+                  <FieldErrorText message={error?.message} />
+                </div>
               )}
             />
           </Box>
         </Box>
 
-        {/* ─── SKU / Model / Barcode ────────────────────────────── */}
-        <Box className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Box className="group">
-            <Box className="flex items-center gap-2 mb-2">
-              <Iconify icon="solar:tag-bold" className="text-primary" width={20} />
-              <Typography variant="subtitle2" className="font-semibold text-foreground">
-                {t('form.productSku')}
-              </Typography>
-            </Box>
-            <Controller
-              name="sku"
-              control={control}
-              render={({ field }) => (
-                <input {...field} type="text" placeholder={t('form.skuPlaceholder')} className={inputCls} />
-              )}
-            />
+        {/* ─── Expiry date ──────────────────────────────────────── */}
+        <Box className="group max-w-md">
+          <Box className="flex items-center gap-2 mb-2">
+            <Iconify icon="solar:calendar-date-bold" className="text-primary" width={20} />
+            <Typography variant="subtitle2" className="font-semibold text-foreground">
+              {t('form.productExpiryDate')}
+            </Typography>
           </Box>
-          <Box className="group">
-            <Box className="flex items-center gap-2 mb-2">
-              <Iconify icon="solar:widget-bold" className="text-primary" width={20} />
-              <Typography variant="subtitle2" className="font-semibold text-foreground">
-                {t('form.productModel')}
-              </Typography>
-            </Box>
-            <Controller
-              name="model"
-              control={control}
-              render={({ field }) => (
-                <input {...field} type="text" placeholder={t('form.modelPlaceholder')} className={inputCls} />
-              )}
-            />
-          </Box>
-          <Box className="group">
-            <Box className="flex items-center gap-2 mb-2">
-              <Iconify icon="solar:qr-code-bold" className="text-primary" width={20} />
-              <Typography variant="subtitle2" className="font-semibold text-foreground">
-                {t('form.productBarcode')}
-              </Typography>
-            </Box>
-            <Controller
-              name="barcode"
-              control={control}
-              render={({ field }) => (
-                <input {...field} type="text" placeholder={t('form.barcodePlaceholder')} className={inputCls} />
-              )}
-            />
-          </Box>
+          <Controller
+            name="expiry_date"
+            control={control}
+            render={({ field, fieldState: { error } }) => (
+              <div>
+                <input
+                  {...field}
+                  type="date"
+                  value={field.value ?? ''}
+                  className={fieldInputClass(!!error)}
+                />
+                <FieldErrorText message={error?.message} />
+                <Typography variant="caption" className="text-muted-foreground mt-1 block">
+                  {t('form.productExpiryDateHint')}
+                </Typography>
+              </div>
+            )}
+          />
         </Box>
+
         {/* ─── Product Images ───────────────────────────────────── */}
         <Box className="group">
           <Box className="flex items-center gap-2 mb-2">
@@ -1680,12 +2066,12 @@ export default function CreatePage() {
                       : t('form.noFileChosen')}
                   </Typography>
                 </div>
-                <Typography
-                  variant="caption"
-                  className={error ? 'text-destructive mt-1 block' : 'text-muted-foreground mt-1 block'}
-                >
-                  {error?.message || t('form.productImagesHelper')}
-                </Typography>
+                <FieldErrorText message={error?.message} />
+                {!error && (
+                  <Typography variant="caption" className="text-muted-foreground mt-1 block">
+                    {t('form.productImagesHelper')}
+                  </Typography>
+                )}
                 {(isEditMode && existingMediaIds.length > 0) || previewImages.length > 0 ? (
                   <Box className="mt-4 grid grid-cols-4 gap-4">
                     {isEditMode &&
@@ -1718,7 +2104,7 @@ export default function CreatePage() {
                       <img
                         key={`new-${i}`}
                         src={src}
-                        alt={`Preview ${i + 1}`}
+                        alt={t('form.productGalleryPreviewAlt', { n: i + 1 })}
                         className="w-full h-32 object-cover rounded-lg border-2 border-primary/40"
                       />
                     ))}
@@ -1740,7 +2126,7 @@ export default function CreatePage() {
           <Controller
             name="thumbnail"
             control={control}
-            render={({ field: { onChange, value, ref } }) => (
+            render={({ field: { onChange, value, ref }, fieldState: { error } }) => (
               <div>
                 <input
                   id={thumbnailInputId}
@@ -1756,10 +2142,13 @@ export default function CreatePage() {
                 />
                 <label
                   htmlFor={thumbnailInputId}
-                  className="inline-flex cursor-pointer rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                  className={`inline-flex cursor-pointer rounded-lg border bg-background px-3 py-2 text-sm ${
+                    error ? 'border-destructive' : 'border-border'
+                  }`}
                 >
                   {t('form.chooseThumbnail')}
                 </label>
+                <FieldErrorText message={error?.message} />
                 {value instanceof File ? (
                   <Typography variant="caption" className="ml-2">
                     {value.name}
@@ -1791,26 +2180,6 @@ export default function CreatePage() {
                 />
                 <Typography variant="body2" className="text-foreground">
                   {t('form.productInstantDeliveryLabel')}
-                </Typography>
-              </Label>
-            )}
-          />
-        </Box>
-
-        <Box className="group">
-          <Controller
-            name="is_visible"
-            control={control}
-            render={({ field: { onChange, value } }) => (
-              <Label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={value === 1}
-                  onChange={(e) => onChange(e.target.checked ? 1 : 0)}
-                  className="w-4 h-4 rounded border-border"
-                />
-                <Typography variant="body2" className="text-foreground">
-                  {t('form.visibleToCustomers')}
                 </Typography>
               </Label>
             )}
@@ -1868,6 +2237,239 @@ export default function CreatePage() {
                 })}
             </Box>
           )}
+        </Box>
+
+        {/* ─── Category Details ─────────────────────────────────── */}
+        <Box className="border-t border-border pt-6">
+          <Box className="flex items-center justify-between mb-4">
+            <Box className="flex items-center gap-2">
+              <Iconify icon="solar:list-check-bold" className="text-primary" width={20} />
+              <Typography variant="h6" className="font-semibold text-foreground">
+                {t('form.categoryDetailsTitle')}
+              </Typography>
+            </Box>
+            {availableCategoryDetails.length > 0 && (
+              <Button
+                type="button"
+                variant="outlined"
+                size="small"
+                onClick={() =>
+                  appendCategoryDetail({
+                    category_detail_id: availableCategoryDetails[0]?.id ?? 0,
+                    detail_value: { en: '', ar: '' },
+                  })
+                }
+              >
+                <Iconify icon="solar:add-circle-bold" width={16} className="mr-1" />
+                {t('form.addDetail')}
+              </Button>
+            )}
+          </Box>
+
+          {!categoryId || categoryId === 0 ? (
+            <Typography variant="body2" className="text-muted-foreground">
+              {t('form.selectCategoryFirstDetails')}
+            </Typography>
+          ) : availableCategoryDetails.length === 0 ? (
+            <Typography variant="body2" className="text-muted-foreground">
+              {t('form.noCategoryDetailsForCategory')}
+            </Typography>
+          ) : (
+            <Box className="space-y-4">
+              {categoryDetailsFields.map((field, index) => (
+                <Box key={field.id} className="p-4 border border-border rounded-lg space-y-3">
+                  <Box className="flex items-center gap-3">
+                    <Controller
+                      name={`category_details.${index}.category_detail_id`}
+                      control={control}
+                      render={({ field: f, fieldState: { error } }) => (
+                        <div className="flex-1 min-w-0">
+                          <select
+                            {...f}
+                            value={f.value}
+                            onChange={(e) => f.onChange(Number(e.target.value))}
+                            className={fieldInputClass(!!error)}
+                          >
+                            {availableCategoryDetails.map((cd: any) => (
+                              <option key={cd.id} value={cd.id}>
+                                {typeof cd.name === 'object' ? cd.name?.en ?? cd.name?.ar : cd.name}
+                              </option>
+                            ))}
+                          </select>
+                          <FieldErrorText message={error?.message} />
+                        </div>
+                      )}
+                    />
+                    <Button
+                      type="button"
+                      variant="text"
+                      size="small"
+                      onClick={() => removeCategoryDetail(index)}
+                      className="text-destructive shrink-0"
+                    >
+                      <Iconify icon="solar:trash-bin-bold" width={16} />
+                    </Button>
+                  </Box>
+                  <Box className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <Controller
+                      name={`category_details.${index}.detail_value.en`}
+                      control={control}
+                      render={({ field: f, fieldState: { error } }) => (
+                        <div>
+                          <input
+                            {...f}
+                            placeholder={t('form.productValueEn')}
+                            className={fieldInputClass(!!error)}
+                          />
+                          <FieldErrorText message={error?.message} />
+                        </div>
+                      )}
+                    />
+                    <Controller
+                      name={`category_details.${index}.detail_value.ar`}
+                      control={control}
+                      render={({ field: f, fieldState: { error } }) => (
+                        <div>
+                          <input
+                            {...f}
+                            dir="rtl"
+                            placeholder={t('form.categoryDetailValueArPlaceholder')}
+                            className={fieldInputClass(!!error)}
+                          />
+                          <FieldErrorText message={error?.message} />
+                        </div>
+                      )}
+                    />
+                  </Box>
+                </Box>
+              ))}
+            </Box>
+          )}
+        </Box>
+
+        {/* ─── Extra Details ────────────────────────────────────── */}
+        <Box className="border-t border-border pt-6">
+          <Box className="flex items-center justify-between mb-4">
+            <Box className="flex items-center gap-2">
+              <Iconify icon="solar:add-circle-bold" className="text-primary" width={20} />
+              <Typography variant="h6" className="font-semibold text-foreground">
+                {t('form.extraDetailsTitle')}
+              </Typography>
+            </Box>
+            <Button
+              type="button"
+              variant="outlined"
+              size="small"
+              onClick={() =>
+                appendExtraDetail({
+                  detail_key: { en: '', ar: '' },
+                  detail_value: { en: '', ar: '' },
+                  price: undefined,
+                })
+              }
+            >
+              <Iconify icon="solar:add-circle-bold" width={16} className="mr-1" />
+              {t('form.addDetail')}
+            </Button>
+          </Box>
+
+          <Box className="space-y-4">
+            {extraDetailsFields.map((field, index) => (
+              <Box key={field.id} className="p-4 border border-border rounded-lg">
+                <Box className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                  <Controller
+                    name={`extra_details.${index}.detail_key.en`}
+                    control={control}
+                    render={({ field: f, fieldState: { error } }) => (
+                      <div>
+                        <input
+                          {...f}
+                          placeholder={t('form.productKeyEnPlaceholder')}
+                          className={fieldInputClass(!!error)}
+                        />
+                        <FieldErrorText message={error?.message} />
+                      </div>
+                    )}
+                  />
+                  <Controller
+                    name={`extra_details.${index}.detail_key.ar`}
+                    control={control}
+                    render={({ field: f, fieldState: { error } }) => (
+                      <div>
+                        <input
+                          {...f}
+                          dir="rtl"
+                          placeholder={t('form.extraDetailKeyArPlaceholder')}
+                          className={fieldInputClass(!!error)}
+                        />
+                        <FieldErrorText message={error?.message} />
+                      </div>
+                    )}
+                  />
+                  <Controller
+                    name={`extra_details.${index}.detail_value.en`}
+                    control={control}
+                    render={({ field: f, fieldState: { error } }) => (
+                      <div>
+                        <input
+                          {...f}
+                          placeholder={t('form.productValueEnPlaceholder')}
+                          className={fieldInputClass(!!error)}
+                        />
+                        <FieldErrorText message={error?.message} />
+                      </div>
+                    )}
+                  />
+                  <Controller
+                    name={`extra_details.${index}.detail_value.ar`}
+                    control={control}
+                    render={({ field: f, fieldState: { error } }) => (
+                      <div>
+                        <input
+                          {...f}
+                          dir="rtl"
+                          placeholder={t('form.extraDetailValueArPlaceholder')}
+                          className={fieldInputClass(!!error)}
+                        />
+                        <FieldErrorText message={error?.message} />
+                      </div>
+                    )}
+                  />
+                  <Controller
+                    name={`extra_details.${index}.price`}
+                    control={control}
+                    render={({ field: f, fieldState: { error } }) => (
+                      <div>
+                        <input
+                          {...f}
+                          type="number"
+                          placeholder={t('form.extraPriceOptional')}
+                          value={f.value ?? ''}
+                          onChange={(e) =>
+                            f.onChange(e.target.value === '' ? undefined : Number(e.target.value))
+                          }
+                          className={fieldInputClass(!!error)}
+                        />
+                        <FieldErrorText message={error?.message} />
+                      </div>
+                    )}
+                  />
+                </Box>
+                <Box className="flex justify-end">
+                  <Button
+                    type="button"
+                    variant="text"
+                    size="small"
+                    onClick={() => removeExtraDetail(index)}
+                    className="text-destructive"
+                  >
+                    <Iconify icon="solar:trash-bin-bold" width={16} className="mr-1" />
+                    {t('form.remove')}
+                  </Button>
+                </Box>
+              </Box>
+            ))}
+          </Box>
         </Box>
           </Box>
         )}
@@ -1938,9 +2540,9 @@ export default function CreatePage() {
               type="button"
               variant="outlined"
               size="small"
-              disabled={!categoryId || categoryId === 0 || categoryAttributes.length === 0}
-              onClick={() =>
-                appendVariant({ attributes_values_ids: [], images: [], existing_images_ids: [] })
+          disabled={!categoryId || categoryId === 0 || categoryAttributes.length === 0}
+          onClick={() =>
+            appendVariant({ attributes_values_ids: [], images: [], existing_images_ids: [], sku: '', name: { en: '', ar: '' }, stock: undefined, max_purchase_quantity: undefined, delivery_time: '' })
               }
             >
               <Iconify icon="solar:add-circle-bold" width={16} className="mr-1" />
@@ -1964,15 +2566,32 @@ export default function CreatePage() {
             <Box className="space-y-4">
               {variantsFields.map((variant, variantIndex) => (
                 <Box key={variant.id} className="p-4 border border-border rounded-lg space-y-4">
-                  <Box className="flex items-center justify-between">
-                    <Typography variant="subtitle2" className="font-semibold text-foreground">
-                      {t('form.variantIndex', { n: variantIndex + 1 })}
-                    </Typography>
+                  <Box className="flex items-center justify-between flex-wrap gap-2">
+                    <Box className="flex items-center gap-2 flex-wrap">
+                      <Typography variant="subtitle2" className="font-semibold text-foreground">
+                        {t('form.variantIndex', { n: variantIndex + 1 })}
+                      </Typography>
+                      {shops.length > 0 ? (
+                        <Button
+                          type="button"
+                          variant="outlined"
+                          size="small"
+                          onClick={() =>
+                            document
+                              .getElementById(`variant-shop-section-${variantIndex}`)
+                              ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                          }
+                        >
+                          <Iconify icon="solar:shop-2-bold" width={16} className="mr-1" />
+                          {t('form.shopVariantsTitle')}
+                        </Button>
+                      ) : null}
+                    </Box>
                     <Button
                       type="button"
                       variant="text"
                       size="small"
-                      onClick={() => removeVariant(variantIndex)}
+                      onClick={() => handleRemoveVariant(variantIndex)}
                       className="text-destructive"
                     >
                       <Iconify icon="solar:trash-bin-bold" width={16} className="mr-1" />
@@ -1994,65 +2613,83 @@ export default function CreatePage() {
                         selectedIds.includes(Number(v.id))
                       );
 
-                      const getValColor = (v: any) => {
-                        const raw = typeof v?.name === 'object' ? v?.name?.en ?? v?.name?.ar : v?.name;
-                        const s = String(raw || '').trim();
-                        if (/^#[0-9a-fA-F]{3,8}$/.test(s)) return s;
-                        const colorMap: Record<string, string> = {
-                          red: '#ff0000', blue: '#0000ff', green: '#008000',
-                          white: '#ffffff', black: '#000000', yellow: '#ffff00',
-                          orange: '#ffa500', gray: '#808080', grey: '#808080',
-                          pink: '#ffc0cb', purple: '#800080', brown: '#a52a2a',
-                        };
-                        return colorMap[s.toLowerCase()] ?? '#cccccc';
-                      };
-
                       const isColor = String(attr.type).toLowerCase() === 'color';
+
+                      const colorInitialLabel = found
+                        ? formatTranslated(found.name as any)
+                        : undefined;
+
+                      const attrTypeLower = String(attr.type ?? '').toLowerCase();
+                      const attrTypeLabel =
+                        attrTypeLower === 'color'
+                          ? t('form.categoryAttrTypeColor')
+                          : attrTypeLower === 'select'
+                            ? t('form.categoryAttrTypeSelect')
+                            : attrTypeLower === 'text'
+                              ? t('form.categoryAttrTypeText')
+                              : String(attr.type ?? '');
+                      const attrRowName =
+                        typeof attr.name === 'object' && attr.name
+                          ? formatTranslated(attr.name as any)
+                          : String(attr.name ?? '');
 
                       return (
                         <Box key={attr.id} className="group">
                           <Typography variant="caption" className="text-muted-foreground mb-1 block">
-                            {typeof attr.name === 'object' ? attr.name?.en : attr.name} ({attr.type})
+                            {attrRowName} ({attrTypeLabel})
                           </Typography>
                           {isColor ? (
-                            <Box className="flex flex-wrap items-center gap-2">
-                              {(attr.values || []).map((val: any) => {
-                                const hex = getValColor(val);
-                                const isSelected = selectedIds.includes(Number(val.id));
-                                const label = typeof val.name === 'object' ? val.name?.en ?? val.name?.ar : val.name;
-                                return (
-                                  <button
-                                    key={val.id}
-                                    type="button"
-                                    onClick={() => {
-                                      const current = (watch(
-                                        `variants.${variantIndex}.attributes_values_ids`
-                                      ) || []) as number[];
-                                      const filtered = current.filter((i) => !attrValueIds.has(i));
-                                      const next = isSelected
-                                        ? filtered
-                                        : [...filtered, Number(val.id)];
-                                      setValue(
-                                        `variants.${variantIndex}.attributes_values_ids`,
-                                        next,
-                                        { shouldDirty: true }
-                                      );
-                                    }}
-                                    className={`flex items-center gap-2 rounded-lg border-2 p-2 transition-all hover:scale-105 ${
-                                      isSelected ? 'border-primary ring-2 ring-primary/30' : 'border-border hover:border-primary/50'
-                                    }`}
-                                    title={String(label || hex)}
-                                  >
-                                    <span
-                                      className="h-8 w-8 rounded-md border border-border/60 shrink-0"
-                                      style={{ background: hex }}
-                                    />
-                                    <Typography variant="caption" className="text-foreground truncate max-w-[80px]">
-                                      {label || hex}
-                                    </Typography>
-                                  </button>
-                                );
-                              })}
+                            <Box className="flex items-start gap-2">
+                              <div className="flex-1 min-w-0">
+                                <InfiniteScrollSelect
+                                  value={found ? Number(found.id) : 0}
+                                  onChange={(pickedId) => {
+                                    const current = (watch(
+                                      `variants.${variantIndex}.attributes_values_ids`
+                                    ) || []) as number[];
+                                    const filtered = current.filter((i) => !attrValueIds.has(i));
+                                    setValue(
+                                      `variants.${variantIndex}.attributes_values_ids`,
+                                      pickedId ? [...filtered, pickedId] : filtered,
+                                      { shouldDirty: true }
+                                    );
+                                  }}
+                                  queryKey={[
+                                    'product-form',
+                                    'variant-attr-color',
+                                    attr.id,
+                                    variantIndex,
+                                    (attr.values ?? []).length,
+                                  ]}
+                                  fetcher={createAttributeValuesFetcher(attr.values)}
+                                  placeholder={t('form.selectAttribute', {
+                                    name: String(attrNameLabel ?? ''),
+                                  })}
+                                  pageSize={15}
+                                  initialLabel={colorInitialLabel}
+                                />
+                              </div>
+                              {found ? (
+                                <Button
+                                  type="button"
+                                  variant="text"
+                                  size="small"
+                                  className="shrink-0 text-muted-foreground"
+                                  onClick={() => {
+                                    const current = (watch(
+                                      `variants.${variantIndex}.attributes_values_ids`
+                                    ) || []) as number[];
+                                    const filtered = current.filter((i) => !attrValueIds.has(i));
+                                    setValue(
+                                      `variants.${variantIndex}.attributes_values_ids`,
+                                      filtered,
+                                      { shouldDirty: true }
+                                    );
+                                  }}
+                                >
+                                  {t('form.clearAttributeSelection')}
+                                </Button>
+                              ) : null}
                             </Box>
                           ) : (
                             <select
@@ -2094,10 +2731,13 @@ export default function CreatePage() {
                     <Controller
                       name={`variants.${variantIndex}.images`}
                       control={control}
-                      render={({ field: { onChange, value, ref, name, onBlur } }) => {
+                      render={({
+                        field: { onChange, value, ref, name, onBlur },
+                        fieldState: { error },
+                      }) => {
                         const variantFileInputId = `variant-images-${variantIndex}-${variant.id}`;
                         return (
-                          <>
+                          <div>
                             <input
                               id={variantFileInputId}
                               ref={ref}
@@ -2118,7 +2758,9 @@ export default function CreatePage() {
                             <div className="flex flex-wrap items-center gap-3">
                               <label
                                 htmlFor={variantFileInputId}
-                                className="inline-flex cursor-pointer rounded-lg border border-border bg-background px-3 py-2 text-sm font-medium text-foreground hover:bg-muted"
+                                className={`inline-flex cursor-pointer rounded-lg border bg-background px-3 py-2 text-sm font-medium text-foreground hover:bg-muted ${
+                                  error ? 'border-destructive' : 'border-border'
+                                }`}
                               >
                                 {t('form.chooseFiles')}
                               </label>
@@ -2128,13 +2770,16 @@ export default function CreatePage() {
                                   : t('form.noFileChosen')}
                               </Typography>
                             </div>
-                          </>
+                            <FieldErrorText message={error?.message} />
+                            {!error && (
+                              <Typography variant="caption" className="text-muted-foreground mt-1 block">
+                                {t('form.variantImagesHelper')}
+                              </Typography>
+                            )}
+                          </div>
                         );
                       }}
                     />
-                    <Typography variant="caption" className="text-muted-foreground mt-1 block">
-                      {t('form.variantImagesHelper')}
-                    </Typography>
                     {(() => {
                       const vRowId = watch(`variants.${variantIndex}.id`);
                       const keepVIds = watch(`variants.${variantIndex}.existing_images_ids`) ?? [];
@@ -2183,85 +2828,116 @@ export default function CreatePage() {
                       <Typography variant="caption" className="text-muted-foreground mb-1 block">
                         {t('form.variantSku')}
                       </Typography>
-                      <input
-                        type="text"
-                        placeholder={t('form.variantSkuPlaceholder')}
-                        className={inputCls}
-                        defaultValue={
-                          isEditMode && productResponse?.variants?.[variantIndex]
-                            ? (productResponse.variants[variantIndex] as any)?.sku ?? ''
-                            : ''
-                        }
-                        data-variant-field={`sku-${variantIndex}`}
+                      <Controller
+                        name={`variants.${variantIndex}.sku`}
+                        control={control}
+                        render={({ field, fieldState: { error } }) => (
+                          <div>
+                            <input
+                              {...field}
+                              value={field.value ?? ''}
+                              type="text"
+                              placeholder={t('form.variantSkuPlaceholder')}
+                              className={fieldInputClass(!!error)}
+                            />
+                            <FieldErrorText message={error?.message} />
+                          </div>
+                        )}
                       />
                     </Box>
                     <Box>
                       <Typography variant="caption" className="text-muted-foreground mb-1 block">
                         {t('form.variantNameEn')}
                       </Typography>
-                      <input
-                        type="text"
-                        placeholder={t('form.variantNameEnPlaceholder')}
-                        className={inputCls}
-                        defaultValue={
-                          isEditMode && productResponse?.variants?.[variantIndex]
-                            ? (productResponse.variants[variantIndex] as any)?.name?.en ?? ''
-                            : ''
-                        }
-                        data-variant-field={`name-en-${variantIndex}`}
+                      <Controller
+                        name={`variants.${variantIndex}.name.en`}
+                        control={control}
+                        render={({ field, fieldState: { error } }) => (
+                          <div>
+                            <input
+                              {...field}
+                              value={field.value ?? ''}
+                              type="text"
+                              placeholder={t('form.variantNameEnPlaceholder')}
+                              className={fieldInputClass(!!error)}
+                            />
+                            <FieldErrorText message={error?.message} />
+                          </div>
+                        )}
                       />
                     </Box>
                     <Box>
                       <Typography variant="caption" className="text-muted-foreground mb-1 block">
                         {t('form.variantNameAr')}
                       </Typography>
-                      <input
-                        type="text"
-                        dir="rtl"
-                        placeholder={t('form.variantNameArPlaceholder')}
-                        className={inputCls}
-                        defaultValue={
-                          isEditMode && productResponse?.variants?.[variantIndex]
-                            ? (productResponse.variants[variantIndex] as any)?.name?.ar ?? ''
-                            : ''
-                        }
-                        data-variant-field={`name-ar-${variantIndex}`}
+                      <Controller
+                        name={`variants.${variantIndex}.name.ar`}
+                        control={control}
+                        render={({ field, fieldState: { error } }) => (
+                          <div>
+                            <input
+                              {...field}
+                              value={field.value ?? ''}
+                              type="text"
+                              dir="rtl"
+                              placeholder={t('form.variantNameArPlaceholder')}
+                              className={fieldInputClass(!!error)}
+                            />
+                            <FieldErrorText message={error?.message} />
+                          </div>
+                        )}
                       />
                     </Box>
                     <Box>
                       <Typography variant="caption" className="text-muted-foreground mb-1 block">
                         {t('form.variantStock')}
                       </Typography>
-                      <input
-                        type="number"
-                        placeholder={t('form.variantStockPlaceholder')}
-                        className={inputCls}
-                        defaultValue={
-                          isEditMode && productResponse?.variants?.[variantIndex]
-                            ? (productResponse.variants[variantIndex] as any)?.stock ?? ''
-                            : ''
-                        }
-                        data-variant-field={`stock-${variantIndex}`}
+                      <Controller
+                        name={`variants.${variantIndex}.stock`}
+                        control={control}
+                        render={({ field, fieldState: { error } }) => (
+                          <div>
+                            <input
+                              {...field}
+                              type="number"
+                              placeholder={t('form.variantStockPlaceholder')}
+                              value={field.value ?? ''}
+                              onChange={(e) =>
+                                field.onChange(e.target.value === '' ? undefined : Number(e.target.value))
+                              }
+                              className={fieldInputClass(!!error)}
+                            />
+                            <FieldErrorText message={error?.message} />
+                          </div>
+                        )}
                       />
                     </Box>
                     <Box>
                       <Typography variant="caption" className="text-muted-foreground mb-1 block">
                         {t('form.variantMaxPurchaseQuantity')}
                       </Typography>
-                      <input
-                        type="number"
-                        placeholder={t('form.variantMaxPurchaseQuantityPlaceholder')}
-                        className={inputCls}
-                        defaultValue={
-                          isEditMode && productResponse?.variants?.[variantIndex]
-                            ? (productResponse.variants[variantIndex] as any)?.max_purchase_quantity ?? ''
-                            : ''
-                        }
-                        data-variant-field={`max-purchase-qty-${variantIndex}`}
+                      <Controller
+                        name={`variants.${variantIndex}.max_purchase_quantity`}
+                        control={control}
+                        render={({ field, fieldState: { error } }) => (
+                          <div>
+                            <input
+                              {...field}
+                              type="number"
+                              placeholder={t('form.variantMaxPurchaseQuantityPlaceholder')}
+                              value={field.value ?? ''}
+                              onChange={(e) =>
+                                field.onChange(e.target.value === '' ? undefined : Number(e.target.value))
+                              }
+                              className={fieldInputClass(!!error)}
+                            />
+                            <FieldErrorText message={error?.message} />
+                            <Typography variant="caption" className="text-muted-foreground mt-1 block">
+                              {t('form.variantMaxPurchaseQuantityHint')}
+                            </Typography>
+                          </div>
+                        )}
                       />
-                      <Typography variant="caption" className="text-muted-foreground mt-1 block">
-                        {t('form.variantMaxPurchaseQuantityHint')}
-                      </Typography>
                     </Box>
                     <Box>
                       <Typography variant="caption" className="text-muted-foreground mb-1 block">
@@ -2274,26 +2950,52 @@ export default function CreatePage() {
                             className={`${inputCls} bg-muted`}
                             value={t('form.variantDeliveryTimeAuto')}
                             readOnly
-                            data-variant-field={`delivery-time-${variantIndex}`}
                           />
                           <Typography variant="caption" className="text-muted-foreground mt-1 block">
                             {t('form.variantDeliveryTimeHint')}
                           </Typography>
                         </Box>
                       ) : (
-                        <input
-                          type="text"
-                          placeholder={t('form.variantDeliveryTimePlaceholder')}
-                          className={inputCls}
-                          defaultValue={
-                            isEditMode && productResponse?.variants?.[variantIndex]
-                              ? (productResponse.variants[variantIndex] as any)?.delivery_time ?? ''
-                              : ''
-                          }
-                          data-variant-field={`delivery-time-${variantIndex}`}
+                        <Controller
+                          name={`variants.${variantIndex}.delivery_time`}
+                          control={control}
+                          render={({ field, fieldState: { error } }) => (
+                            <div>
+                              <input
+                                {...field}
+                                value={field.value ?? ''}
+                                type="text"
+                                placeholder={t('form.variantDeliveryTimePlaceholder')}
+                                className={fieldInputClass(!!error)}
+                              />
+                              <FieldErrorText message={error?.message} />
+                            </div>
+                          )}
                         />
                       )}
                     </Box>
+                  </Box>
+
+                  {/* ─── is_trend toggle ─── */}
+                  <Box className="flex items-center gap-3 border-t border-border pt-4">
+                    <label className="flex items-center gap-2 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        className="w-4 h-4 accent-primary"
+                        defaultChecked={
+                          isEditMode && productResponse?.variants?.[variantIndex]
+                            ? Boolean((productResponse.variants[variantIndex] as any)?.is_trend)
+                            : false
+                        }
+                        data-variant-field={`is-trend-${variantIndex}`}
+                      />
+                      <Typography variant="body2" className="font-medium text-foreground">
+                        {t('form.variantIsTrend')}
+                      </Typography>
+                    </label>
+                    <Typography variant="caption" className="text-muted-foreground">
+                      {t('form.variantIsTrendHint')}
+                    </Typography>
                   </Box>
 
                   {/* ─── Variant Save / Delete (edit mode only) ─── */}
@@ -2307,20 +3009,28 @@ export default function CreatePage() {
                         onClick={async () => {
                           const variantId = watch(`variants.${variantIndex}.id`);
                           if (!variantId) return;
-                          const card = document.querySelector(`[data-variant-field="sku-${variantIndex}"]`)?.closest('.space-y-4');
-                          const getField = (name: string) =>
-                            (card?.querySelector(`[data-variant-field="${name}-${variantIndex}"]`) as HTMLInputElement)?.value ?? '';
+                          const isTrendEl = document.querySelector(`[data-variant-field="is-trend-${variantIndex}"]`) as HTMLInputElement | null;
+                          const isTrendChecked = isTrendEl?.checked ?? false;
                           try {
+                            const newImgs = watch(`variants.${variantIndex}.images`);
                             await updateVariantMutation.mutateAsync({
                               id: variantId,
                               data: {
                                 attributes_values_ids: watch(`variants.${variantIndex}.attributes_values_ids`) || [],
                                 existing_images_ids: watch(`variants.${variantIndex}.existing_images_ids`) || [],
-                                sku: getField('sku'),
-                                name: { en: getField('name-en'), ar: getField('name-ar') },
-                                stock: Number(getField('stock')) || 0,
-                                max_purchase_quantity: Number(getField('max-purchase-qty')) || 0,
-                                delivery_time: vendorScope === 'internal' ? '12 - 48 ساعة' : getField('delivery-time'),
+                                images: Array.isArray(newImgs) && newImgs.length > 0 ? newImgs : undefined,
+                                sku: watch(`variants.${variantIndex}.sku`) ?? '',
+                                name: {
+                                  en: watch(`variants.${variantIndex}.name.en`) ?? '',
+                                  ar: watch(`variants.${variantIndex}.name.ar`) ?? '',
+                                },
+                                stock: watch(`variants.${variantIndex}.stock`) ?? 0,
+                                max_purchase_quantity: watch(`variants.${variantIndex}.max_purchase_quantity`) ?? 0,
+                                delivery_time:
+                                  vendorScope === 'internal'
+                                    ? t('form.variantDeliveryTimeApiInternal')
+                                    : watch(`variants.${variantIndex}.delivery_time`) ?? '',
+                                is_trend: isTrendChecked ? 1 : 0,
                               },
                             });
                             toast.success(t('form.variantSaveSuccess'));
@@ -2344,7 +3054,7 @@ export default function CreatePage() {
                           if (!window.confirm(t('form.variantDeleteConfirm'))) return;
                           try {
                             await deleteVariantMutation.mutateAsync(variantId);
-                            removeVariant(variantIndex);
+                            handleRemoveVariant(variantIndex);
                             toast.success(t('form.variantDeleteSuccess'));
                           } catch {
                             toast.error(t('form.variantDeleteFailed'));
@@ -2356,344 +3066,207 @@ export default function CreatePage() {
                       </Button>
                     </Box>
                   )}
-                </Box>
-              ))}
-            </Box>
-          )}
-        </Box>
-        {/* ─── Category Details ─────────────────────────────────── */}
-        <Box>
-          <Box className="flex items-center justify-between mb-4">
-            <Box className="flex items-center gap-2">
-              <Iconify icon="solar:list-check-bold" className="text-primary" width={20} />
-              <Typography variant="h6" className="font-semibold text-foreground">
-                {t('form.categoryDetailsTitle')}
-              </Typography>
-            </Box>
-            {availableCategoryDetails.length > 0 && (
-              <Button
-                type="button"
-                variant="outlined"
-                size="small"
-                onClick={() =>
-                  appendCategoryDetail({
-                    category_detail_id: availableCategoryDetails[0]?.id ?? 0,
-                    detail_value: { en: '', ar: '' },
-                  })
-                }
-              >
-                <Iconify icon="solar:add-circle-bold" width={16} className="mr-1" />
-                {t('form.addDetail')}
-              </Button>
-            )}
-          </Box>
 
-          {!categoryId || categoryId === 0 ? (
-            <Typography variant="body2" className="text-muted-foreground">
-              {t('form.selectCategoryFirstDetails')}
-            </Typography>
-          ) : availableCategoryDetails.length === 0 ? (
-            <Typography variant="body2" className="text-muted-foreground">
-              {t('form.noCategoryDetailsForCategory')}
-            </Typography>
-          ) : (
-            <Box className="space-y-4">
-              {categoryDetailsFields.map((field, index) => (
-                <Box key={field.id} className="p-4 border border-border rounded-lg space-y-3">
-                  <Box className="flex items-center gap-3">
-                    <Controller
-                      name={`category_details.${index}.category_detail_id`}
-                      control={control}
-                      render={({ field: f }) => (
-                        <select
-                          {...f}
-                          value={f.value}
-                          onChange={(e) => f.onChange(Number(e.target.value))}
-                          className={`${inputCls} flex-1`}
-                        >
-                          {availableCategoryDetails.map((cd: any) => (
-                            <option key={cd.id} value={cd.id}>
-                              {typeof cd.name === 'object' ? cd.name?.en ?? cd.name?.ar : cd.name}
-                            </option>
-                          ))}
-                        </select>
-                      )}
-                    />
-                    <Button
-                      type="button"
-                      variant="text"
-                      size="small"
-                      onClick={() => removeCategoryDetail(index)}
-                      className="text-destructive shrink-0"
-                    >
-                      <Iconify icon="solar:trash-bin-bold" width={16} />
-                    </Button>
-                  </Box>
-                  <Box className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <Controller
-                      name={`category_details.${index}.detail_value.en`}
-                      control={control}
-                      render={({ field: f }) => (
-                        <input {...f} placeholder={t('form.productValueEn')} className={inputCls} />
-                      )}
-                    />
-                    <Controller
-                      name={`category_details.${index}.detail_value.ar`}
-                      control={control}
-                      render={({ field: f }) => (
-                        <input
-                          {...f}
-                          dir="rtl"
-                          placeholder={t('form.categoryDetailValueArPlaceholder')}
-                          className={inputCls}
-                        />
-                      )}
-                    />
-                  </Box>
-                </Box>
-              ))}
-            </Box>
-          )}
-        </Box>
-
-        {/* ─── Extra Details ────────────────────────────────────── */}
-        <Box className="border-t border-border pt-6">
-          <Box className="flex items-center justify-between mb-4">
-            <Box className="flex items-center gap-2">
-              <Iconify icon="solar:add-circle-bold" className="text-primary" width={20} />
-              <Typography variant="h6" className="font-semibold text-foreground">
-                {t('form.extraDetailsTitle')}
-              </Typography>
-            </Box>
-            <Button
-              type="button"
-              variant="outlined"
-              size="small"
-              onClick={() =>
-                appendExtraDetail({
-                  detail_key: { en: '', ar: '' },
-                  detail_value: { en: '', ar: '' },
-                  price: undefined,
-                })
-              }
-            >
-              <Iconify icon="solar:add-circle-bold" width={16} className="mr-1" />
-              {t('form.addDetail')}
-            </Button>
-          </Box>
-
-          <Box className="space-y-4">
-            {extraDetailsFields.map((field, index) => (
-              <Box key={field.id} className="p-4 border border-border rounded-lg">
-                <Box className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
-                  <Controller
-                    name={`extra_details.${index}.detail_key.en`}
-                    control={control}
-                    render={({ field: f }) => (
-                      <input {...f} placeholder={t('form.productKeyEnPlaceholder')} className={inputCls} />
-                    )}
-                  />
-                  <Controller
-                    name={`extra_details.${index}.detail_key.ar`}
-                    control={control}
-                    render={({ field: f }) => (
-                      <input
-                        {...f}
-                        dir="rtl"
-                        placeholder={t('form.extraDetailKeyArPlaceholder')}
-                        className={inputCls}
-                      />
-                    )}
-                  />
-                  <Controller
-                    name={`extra_details.${index}.detail_value.en`}
-                    control={control}
-                    render={({ field: f }) => (
-                      <input {...f} placeholder={t('form.productValueEnPlaceholder')} className={inputCls} />
-                    )}
-                  />
-                  <Controller
-                    name={`extra_details.${index}.detail_value.ar`}
-                    control={control}
-                    render={({ field: f }) => (
-                      <input
-                        {...f}
-                        dir="rtl"
-                        placeholder={t('form.extraDetailValueArPlaceholder')}
-                        className={inputCls}
-                      />
-                    )}
-                  />
-                  <Controller
-                    name={`extra_details.${index}.price`}
-                    control={control}
-                    render={({ field: f }) => (
-                      <input
-                        {...f}
-                        type="number"
-                        placeholder={t('form.extraPriceOptional')}
-                        value={f.value ?? ''}
-                        onChange={(e) =>
-                          f.onChange(e.target.value === '' ? undefined : Number(e.target.value))
-                        }
-                        className={inputCls}
-                      />
-                    )}
-                  />
-                </Box>
-                <Box className="flex justify-end">
-                  <Button
-                    type="button"
-                    variant="text"
-                    size="small"
-                    onClick={() => removeExtraDetail(index)}
-                    className="text-destructive"
+                  {/* ─── Shop product variants (per variant) ───────────────── */}
+                  <Box
+                    id={`variant-shop-section-${variantIndex}`}
+                    className="border-t border-border pt-4 space-y-3 scroll-mt-24"
                   >
-                    <Iconify icon="solar:trash-bin-bold" width={16} className="mr-1" />
-                    {t('form.remove')}
-                  </Button>
-                </Box>
-              </Box>
-            ))}
-          </Box>
-        </Box>
-
-        {/* ─── Shop Variants ────────────────────────────────────── */}
-        <Box className="border-t border-border pt-6">
-          <Box className="flex items-center justify-between mb-4">
-            <Box className="flex items-center gap-2">
-              <Iconify icon="solar:shop-2-bold" className="text-primary" width={20} />
-              <Typography variant="h6" className="font-semibold text-foreground">
-                {t('form.shopVariantsTitle')}
-              </Typography>
-            </Box>
-            {watchedVariants.length > 0 && shops.length > 0 && (
-              <Button
-                type="button"
-                variant="outlined"
-                size="small"
-                onClick={() =>
-                  appendShopVariant({
-                    shop_id: shops[0]?.id ?? 0,
-                    variant_index: 0,
-                    price: 0,
-                    quantity: 0,
-                  })
-                }
-              >
-                <Iconify icon="solar:add-circle-bold" width={16} className="mr-1" />
-                {t('form.addShopVariant')}
-              </Button>
-            )}
-          </Box>
-
-          {watchedVariants.length === 0 ? (
-            <Typography variant="body2" className="text-muted-foreground">
-              {t('form.addVariantsFirstShop')}
-            </Typography>
-          ) : shops.length === 0 ? (
-            <Typography variant="body2" className="text-muted-foreground">
-              {t('form.noShopsAvailable')}
-            </Typography>
-          ) : (
-            <Box className="space-y-3">
-              {shopVariantsFields.map((field, index) => (
-                <Box
-                  key={field.id}
-                  className="grid grid-cols-1 md:grid-cols-4 gap-3 p-3 border border-border rounded-lg items-end"
-                >
-                  <Box>
-                    <Typography variant="caption" className="text-muted-foreground mb-1 block">
-                      {t('form.shop')}
-                    </Typography>
-                    <Controller
-                      name={`shop_variants.${index}.shop_id`}
-                      control={control}
-                      render={({ field: f }) => (
-                        <select
-                          {...f}
-                          value={f.value}
-                          onChange={(e) => f.onChange(Number(e.target.value))}
-                          className={inputCls}
-                        >
-                          {shops.map((s: any) => (
-                            <option key={s.id} value={s.id}>
-                              {typeof s.name === 'object' ? s.name?.en ?? s.name?.ar : s.name}
-                            </option>
-                          ))}
-                        </select>
-                      )}
-                    />
-                  </Box>
-                  <Box>
-                    <Typography variant="caption" className="text-muted-foreground mb-1 block">
-                      {t('form.variant')}
-                    </Typography>
-                    <Controller
-                      name={`shop_variants.${index}.variant_index`}
-                      control={control}
-                      render={({ field: f }) => (
-                        <select
-                          {...f}
-                          value={f.value}
-                          onChange={(e) => f.onChange(Number(e.target.value))}
-                          className={inputCls}
-                        >
-                          {watchedVariants.map((_: any, vi: number) => (
-                            <option key={vi} value={vi}>
-                              {t('form.variantOption', { n: vi + 1 })}
-                            </option>
-                          ))}
-                        </select>
-                      )}
-                    />
-                  </Box>
-                  <Box>
-                    <Typography variant="caption" className="text-muted-foreground mb-1 block">
-                      {t('form.priceLabel')}
-                    </Typography>
-                    <Controller
-                      name={`shop_variants.${index}.price`}
-                      control={control}
-                      render={({ field: f }) => (
-                        <input
-                          {...f}
-                          type="number"
-                          placeholder="0.00"
-                          onChange={(e) => f.onChange(Number(e.target.value))}
-                          className={inputCls}
-                        />
-                      )}
-                    />
-                  </Box>
-                  <Box>
-                    <Typography variant="caption" className="text-muted-foreground mb-1 block">
-                      {t('form.quantity')}
-                    </Typography>
-                    <Box className="flex gap-2">
-                      <Controller
-                        name={`shop_variants.${index}.quantity`}
-                        control={control}
-                        render={({ field: f }) => (
-                          <input
-                            {...f}
-                            type="number"
-                            placeholder="0"
-                            onChange={(e) => f.onChange(Number(e.target.value))}
-                            className={`${inputCls} flex-1`}
-                          />
-                        )}
-                      />
-                      <Button
-                        type="button"
-                        variant="text"
-                        size="small"
-                        onClick={() => removeShopVariant(index)}
-                        className="text-destructive shrink-0"
-                      >
-                        <Iconify icon="solar:trash-bin-bold" width={16} />
-                      </Button>
+                    <Box className="flex items-center gap-2">
+                      <Iconify icon="solar:shop-2-bold" className="text-primary" width={20} />
+                      <Typography variant="subtitle2" className="font-semibold text-foreground">
+                        {t('form.shopVariantsTitle')}
+                      </Typography>
                     </Box>
+                    {shops.length === 0 ? (
+                      <Typography variant="body2" className="text-muted-foreground">
+                        {t('form.noShopsAvailable')}
+                      </Typography>
+                    ) : (
+                      <>
+                        {shopVariantsFields.map((svField, svIdx) => {
+                          const boundVi = Number(watchedShopVariants?.[svIdx]?.variant_index);
+                          if (boundVi !== variantIndex) return null;
+                          return (
+                            <Box
+                              key={svField.id}
+                              className="grid grid-cols-1 md:grid-cols-3 gap-3 p-3 border border-border rounded-lg items-end"
+                            >
+                              <Box>
+                                <Typography variant="caption" className="text-muted-foreground mb-1 block">
+                                  {t('form.shop')}
+                                </Typography>
+                                <Controller
+                                  name={`shop_variants.${svIdx}.shop_id`}
+                                  control={control}
+                                  render={({ field: f, fieldState: { error } }) => (
+                                    <div>
+                                      <select
+                                        {...f}
+                                        value={f.value}
+                                        onChange={(e) => f.onChange(Number(e.target.value))}
+                                        className={fieldInputClass(!!error)}
+                                      >
+                                        {shops.map((s: any) => (
+                                          <option key={s.id} value={s.id}>
+                                            {typeof s.name === 'object' ? s.name?.en ?? s.name?.ar : s.name}
+                                          </option>
+                                        ))}
+                                      </select>
+                                      <FieldErrorText message={error?.message} />
+                                    </div>
+                                  )}
+                                />
+                              </Box>
+                              <Box>
+                                <Typography variant="caption" className="text-muted-foreground mb-1 block">
+                                  {t('form.priceLabel')}
+                                </Typography>
+                                <Controller
+                                  name={`shop_variants.${svIdx}.price`}
+                                  control={control}
+                                  render={({ field: f, fieldState: { error } }) => (
+                                    <div>
+                                      <input
+                                        {...f}
+                                        type="number"
+                                        placeholder={t('form.shopVariantPricePlaceholder')}
+                                        onChange={(e) => f.onChange(Number(e.target.value))}
+                                        className={fieldInputClass(!!error)}
+                                      />
+                                      <FieldErrorText message={error?.message} />
+                                    </div>
+                                  )}
+                                />
+                              </Box>
+                              <Box>
+                                <Typography variant="caption" className="text-muted-foreground mb-1 block">
+                                  {t('form.quantity')}
+                                </Typography>
+                                <Box className="flex gap-2">
+                                  <Controller
+                                    name={`shop_variants.${svIdx}.quantity`}
+                                    control={control}
+                                    render={({ field: f, fieldState: { error } }) => (
+                                      <div className="flex-1 min-w-0">
+                                        <input
+                                          {...f}
+                                          type="number"
+                                          placeholder={t('form.shopVariantQuantityPlaceholder')}
+                                          onChange={(e) => f.onChange(Number(e.target.value))}
+                                          className={fieldInputClass(!!error)}
+                                        />
+                                        <FieldErrorText message={error?.message} />
+                                      </div>
+                                    )}
+                                  />
+                                  {!isEditMode && (
+                                    <Button
+                                      type="button"
+                                      variant="text"
+                                      size="small"
+                                      onClick={() => removeShopVariant(svIdx)}
+                                      className="text-destructive shrink-0"
+                                    >
+                                      <Iconify icon="solar:trash-bin-bold" width={16} />
+                                    </Button>
+                                  )}
+                                </Box>
+                              </Box>
+                              {isEditMode && (
+                                <Box className="flex items-center gap-2 col-span-full border-t border-border pt-2 mt-1">
+                                  {watch(`shop_variants.${svIdx}.id`) ? (
+                                    <>
+                                      <Button
+                                        type="button"
+                                        variant="outlined"
+                                        size="small"
+                                        disabled={updateShopVariantMutation.isPending}
+                                        onClick={async () => {
+                                          const svId = watch(`shop_variants.${svIdx}.id`);
+                                          if (!svId) return;
+                                          try {
+                                            const variantIdx = watch(`shop_variants.${svIdx}.variant_index`);
+                                            const linkedVariantId =
+                                              variantIdx != null
+                                                ? watch(`variants.${variantIdx}.id`)
+                                                : undefined;
+                                            await updateShopVariantMutation.mutateAsync({
+                                              id: svId,
+                                              data: {
+                                                price: watch(`shop_variants.${svIdx}.price`),
+                                                quantity: watch(`shop_variants.${svIdx}.quantity`),
+                                                shop_id: watch(`shop_variants.${svIdx}.shop_id`),
+                                                product_variant_id: linkedVariantId ?? undefined,
+                                              },
+                                            });
+                                            toast.success(t('form.shopVariantSaveSuccess'));
+                                          } catch {
+                                            toast.error(t('form.shopVariantSaveFailed'));
+                                          }
+                                        }}
+                                      >
+                                        <Iconify icon="solar:diskette-bold" width={16} className="mr-1" />
+                                        {t('form.saveShopVariant')}
+                                      </Button>
+                                      <Button
+                                        type="button"
+                                        variant="text"
+                                        size="small"
+                                        className="text-destructive"
+                                        disabled={deleteShopVariantMutation.isPending}
+                                        onClick={async () => {
+                                          const svId = watch(`shop_variants.${svIdx}.id`);
+                                          if (!svId) return;
+                                          if (!window.confirm(t('form.shopVariantDeleteConfirm'))) return;
+                                          try {
+                                            await deleteShopVariantMutation.mutateAsync(svId);
+                                            removeShopVariant(svIdx);
+                                            toast.success(t('form.shopVariantDeleteSuccess'));
+                                          } catch {
+                                            toast.error(t('form.shopVariantDeleteFailed'));
+                                          }
+                                        }}
+                                      >
+                                        <Iconify icon="solar:trash-bin-bold" width={16} className="mr-1" />
+                                        {t('form.deleteShopVariant')}
+                                      </Button>
+                                    </>
+                                  ) : (
+                                    <Button
+                                      type="button"
+                                      variant="text"
+                                      size="small"
+                                      onClick={() => removeShopVariant(svIdx)}
+                                      className="text-destructive shrink-0"
+                                    >
+                                      <Iconify icon="solar:trash-bin-bold" width={16} className="mr-1" />
+                                      {t('form.remove')}
+                                    </Button>
+                                  )}
+                                </Box>
+                              )}
+                            </Box>
+                          );
+                        })}
+                        <Button
+                          type="button"
+                          variant="outlined"
+                          size="small"
+                          onClick={() =>
+                            appendShopVariant({
+                              shop_id: shops[0]?.id ?? 0,
+                              variant_index: variantIndex,
+                              price: 0,
+                              quantity: 0,
+                            })
+                          }
+                        >
+                          <Iconify icon="solar:add-circle-bold" width={16} className="mr-1" />
+                          {t('form.addShopVariant')}
+                        </Button>
+                      </>
+                    )}
                   </Box>
                 </Box>
               ))}
@@ -2714,52 +3287,88 @@ export default function CreatePage() {
             <Controller
               name="seo_title.en"
               control={control}
-              render={({ field }) => (
-                <input {...field} placeholder={t('form.seoTitleEnPlaceholder')} className={inputCls} />
+              render={({ field, fieldState: { error } }) => (
+                <div>
+                  <input
+                    {...field}
+                    placeholder={t('form.seoTitleEnPlaceholder')}
+                    className={fieldInputClass(!!error)}
+                  />
+                  <FieldErrorText message={error?.message} />
+                </div>
               )}
             />
             <Controller
               name="seo_title.ar"
               control={control}
-              render={({ field }) => (
-                <input {...field} dir="rtl" placeholder={t('form.seoTitleArPlaceholder')} className={inputCls} />
+              render={({ field, fieldState: { error } }) => (
+                <div>
+                  <input
+                    {...field}
+                    dir="rtl"
+                    placeholder={t('form.seoTitleArPlaceholder')}
+                    className={fieldInputClass(!!error)}
+                  />
+                  <FieldErrorText message={error?.message} />
+                </div>
               )}
             />
             <Controller
               name="seo_description.en"
               control={control}
-              render={({ field }) => (
-                <textarea
-                  {...field}
-                  placeholder={t('form.seoDescEnPlaceholder')}
-                  className={inputCls + ' min-h-[80px]'}
-                />
+              render={({ field, fieldState: { error } }) => (
+                <div>
+                  <textarea
+                    {...field}
+                    placeholder={t('form.seoDescEnPlaceholder')}
+                    className={`${fieldInputClass(!!error)} min-h-[80px]`}
+                  />
+                  <FieldErrorText message={error?.message} />
+                </div>
               )}
             />
             <Controller
               name="seo_description.ar"
               control={control}
-              render={({ field }) => (
-                <textarea
-                  {...field}
-                  dir="rtl"
-                  placeholder={t('form.seoDescArPlaceholder')}
-                  className={inputCls + ' min-h-[80px]'}
-                />
+              render={({ field, fieldState: { error } }) => (
+                <div>
+                  <textarea
+                    {...field}
+                    dir="rtl"
+                    placeholder={t('form.seoDescArPlaceholder')}
+                    className={`${fieldInputClass(!!error)} min-h-[80px]`}
+                  />
+                  <FieldErrorText message={error?.message} />
+                </div>
               )}
             />
             <Controller
               name="seo_keywords.en"
               control={control}
-              render={({ field }) => (
-                <input {...field} placeholder={t('form.seoKeywordsEnPlaceholder')} className={inputCls} />
+              render={({ field, fieldState: { error } }) => (
+                <div>
+                  <input
+                    {...field}
+                    placeholder={t('form.seoKeywordsEnPlaceholder')}
+                    className={fieldInputClass(!!error)}
+                  />
+                  <FieldErrorText message={error?.message} />
+                </div>
               )}
             />
             <Controller
               name="seo_keywords.ar"
               control={control}
-              render={({ field }) => (
-                <input {...field} dir="rtl" placeholder={t('form.seoKeywordsArPlaceholder')} className={inputCls} />
+              render={({ field, fieldState: { error } }) => (
+                <div>
+                  <input
+                    {...field}
+                    dir="rtl"
+                    placeholder={t('form.seoKeywordsArPlaceholder')}
+                    className={fieldInputClass(!!error)}
+                  />
+                  <FieldErrorText message={error?.message} />
+                </div>
               )}
             />
           </Box>
@@ -2770,7 +3379,7 @@ export default function CreatePage() {
             <Controller
               name="seo_image"
               control={control}
-              render={({ field: { onChange, value, ref } }) => (
+              render={({ field: { onChange, value, ref }, fieldState: { error } }) => (
                 <div>
                   <input
                     id={seoImageInputId}
@@ -2784,9 +3393,15 @@ export default function CreatePage() {
                       e.target.value = '';
                     }}
                   />
-                  <label htmlFor={seoImageInputId} className="inline-flex cursor-pointer rounded-lg border border-border px-3 py-2 text-sm">
+                  <label
+                    htmlFor={seoImageInputId}
+                    className={`inline-flex cursor-pointer rounded-lg border px-3 py-2 text-sm ${
+                      error ? 'border-destructive' : 'border-border'
+                    }`}
+                  >
                     {t('form.chooseSeoImage')}
                   </label>
+                  <FieldErrorText message={error?.message} />
                   {value instanceof File ? (
                     <Typography variant="caption" className="ml-2">
                       {(value as File).name}
@@ -2854,54 +3469,6 @@ export default function CreatePage() {
               })}
             </Box>
           )}
-        </Box>
-
-        {/* ─── Full Description ─────────────────────────────────── */}
-        <Box className="border-t border-border pt-6">
-          <Box className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Box className="group">
-            <Box className="flex items-center gap-2 mb-2">
-              <Iconify icon="solar:document-bold" className="text-primary" width={20} />
-              <Typography variant="subtitle2" className="font-semibold text-foreground">
-                {t('form.productFullDescEn')}
-              </Typography>
-            </Box>
-            <Controller
-              name="full_description.en"
-              control={control}
-              render={({ field }) => (
-                <RichTextEditor
-                  value={field.value ?? ''}
-                  onChange={field.onChange}
-                  onBlur={field.onBlur}
-                  placeholder={t('form.fullDescPlaceholder')}
-                  dir="ltr"
-                />
-              )}
-            />
-          </Box>
-          <Box className="group">
-            <Box className="flex items-center gap-2 mb-2">
-              <Iconify icon="solar:document-bold" className="text-primary" width={20} />
-              <Typography variant="subtitle2" className="font-semibold text-foreground">
-                {t('form.productFullDescAr')}
-              </Typography>
-            </Box>
-            <Controller
-              name="full_description.ar"
-              control={control}
-              render={({ field }) => (
-                <RichTextEditor
-                  value={field.value ?? ''}
-                  onChange={field.onChange}
-                  onBlur={field.onBlur}
-                  placeholder={t('form.fullDescArPlaceholder')}
-                  dir="rtl"
-                />
-              )}
-            />
-          </Box>
-        </Box>
         </Box>
           </Box>
         )}

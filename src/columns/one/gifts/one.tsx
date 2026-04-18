@@ -31,16 +31,6 @@ export const giftColumns = (
   onEdit?: (row: any) => void
 ): ColumnDef<GiftFormValues>[] => [
   {
-    id: 'id',
-    accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
-    cell: ({ row }) => (
-      <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
-        <span className="text-xs font-semibold text-primary">{row.original.id}</span>
-      </div>
-    ),
-  },
-  {
     id: 'name',
     accessorKey: 'name',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.name')} />,
@@ -96,6 +86,7 @@ export const giftColumns = (
       <DataTableRowActions
         schema={GiftSchema}
         row={row}
+        viewDetails={`/gifts/details/${row.original.id}`}
         editItem={onEdit ? undefined : `/gifts/update/${row.original.id}`}
         onEdit={onEdit}
         onDelete={onDelete}

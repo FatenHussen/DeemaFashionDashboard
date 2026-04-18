@@ -2,6 +2,8 @@ import type { TFunction } from 'i18next';
 import type { ColumnDef } from '@tanstack/react-table';
 import type { UserGiftData } from '@/pages/dashboard/user-gifts/types/user-gift.types';
 
+import { z } from 'zod';
+import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 
 export interface UserGiftFormValues extends UserGiftData {
@@ -15,16 +17,6 @@ const toStr = (val: string | { ar?: string; en?: string } | undefined): string =
 };
 
 export const userGiftColumns = (t: TFunction<'table'>): ColumnDef<UserGiftFormValues>[] => [
-  {
-    id: 'id',
-    accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
-    cell: ({ row }) => (
-      <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
-        <span className="text-xs font-semibold text-primary">{row.original.id}</span>
-      </div>
-    ),
-  },
   {
     id: 'gift_name',
     accessorKey: 'gift.name',
@@ -97,6 +89,17 @@ export const userGiftColumns = (t: TFunction<'table'>): ColumnDef<UserGiftFormVa
       <span className="text-sm text-muted-foreground">
         {new Date(row.original.created_at).toLocaleDateString()}
       </span>
+    ),
+  },
+  {
+    id: 'actions',
+    cell: ({ row }: any) => (
+      <DataTableRowActions
+        schema={z.object({ id: z.number() })}
+        row={row}
+        viewDetails={`/user-gifts/details/${row.original.id}`}
+        permissions={{ update: false, delete: false }}
+      />
     ),
   },
 ];

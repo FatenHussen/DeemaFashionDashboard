@@ -17,16 +17,6 @@ export const legalDocumentColumns = (
   t: TFunction<'table'>
 ): ColumnDef<LegalDocumentFormValues>[] => [
   {
-    id: 'id',
-    accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
-    cell: ({ row }) => (
-      <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
-        <span className="text-xs font-semibold text-primary">{row.original.id}</span>
-      </div>
-    ),
-  },
-  {
     id: 'key',
     accessorKey: 'key',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.key')} />,
@@ -58,6 +48,7 @@ export const legalDocumentColumns = (
       <DataTableRowActions
         schema={LegalDocumentSchema}
         row={row}
+        viewDetails={`/legal-documents/update/${row.original.id}`}
         editItem={`/legal-documents/update/${row.original.id}`}
         permissions={{ update: true, delete: false }}
       />

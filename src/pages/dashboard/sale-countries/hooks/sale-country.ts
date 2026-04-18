@@ -1,7 +1,7 @@
 import type { SaleCountryCreatePayload } from '../types/sale-country.types';
 
 import { queryKeys } from '@/api';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { _SaleCountryApi } from '../api/sale-country.services';
 

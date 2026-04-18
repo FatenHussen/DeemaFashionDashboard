@@ -21,7 +21,9 @@
     "re:build-npm": "npm run clean && npm install && npm run build",
     "tsc:dev": "yarn dev & yarn tsc:watch",
     "tsc:watch": "tsc --noEmit --watch",
-    "tsc:print": "npx tsc --showConfig"
+    "tsc:print": "npx tsc --showConfig",
+    "translate:ar": "node scripts/translate-en-to-ar.mjs",
+    "fix:ar-placeholders": "node scripts/fix-ar-placeholders.mjs"
   },
   "engines": {
     "node": ">=20"
@@ -110,6 +112,7 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-unused-imports": "^4.1.4",
     "globals": "^16.1.0",
+    "google-translate-api-x": "^10.7.2",
     "prettier": "^3.5.3",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.32.1",

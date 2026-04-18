@@ -25,7 +25,7 @@ export function NavSectionMini({
 
   return (
     <Nav className={mergeClasses([navSectionClasses.mini, className])} style={cssVars} {...other}>
-      <NavUl className="flex-auto gap-[var(--nav-item-gap)]">
+      <NavUl className="flex-auto items-center gap-[var(--nav-item-gap)]">
         {data.map((group) => (
           <Group
             key={String(group.subheader ?? group.items[0].title)}
@@ -62,8 +62,8 @@ function Group({
   if (!hasVisibleItems) return null;
 
   return (
-    <NavLi>
-      <NavUl className="gap-[var(--nav-item-gap)]">
+    <NavLi className="w-full">
+      <NavUl className="w-full items-center gap-[var(--nav-item-gap)]">
         {items.map((list) => (
           <NavList
             key={list.title}

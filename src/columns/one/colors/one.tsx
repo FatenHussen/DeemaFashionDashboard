@@ -3,6 +3,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 import type { ColorListItem } from '@/pages/dashboard/colors/types/color.types';
 
 import { z } from 'zod';
+import { createToggleColumn } from '@/shared/ui/table-data/data-table-toggle-cell';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 
@@ -24,16 +25,6 @@ export const colorColumns = (
   deletingId?: number | null,
   onEdit?: (row: any) => void
 ): ColumnDef<ColorListItem>[] => [
-  {
-    id: 'id',
-    accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
-    cell: ({ row }) => (
-      <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-        <span className="text-xs font-semibold text-primary">{row.original.id}</span>
-      </div>
-    ),
-  },
   {
     id: 'hex',
     accessorKey: 'hex',
@@ -81,12 +72,16 @@ export const colorColumns = (
       </span>
     ),
   },
+  ...(permissions.update
+    ? [createToggleColumn<ColorListItem>({ entityType: 'color' })]
+    : []),
   {
     id: 'actions',
     cell: ({ row }: any) => (
       <DataTableRowActions
         schema={ColorRowSchema}
         row={row}
+        viewDetails={`/colors/update/${row.original.id}`}
         editItem={onEdit ? undefined : `/colors/update/${row.original.id}`}
         onEdit={onEdit}
         onDelete={onDelete}
@@ -95,7 +90,6 @@ export const colorColumns = (
         onDeleteConfirm={onDeleteConfirm}
         onDeleteCancel={onDeleteCancel}
         deletingId={deletingId}
-        adminToggleEntityType="color"
         permissions={permissions}
       />
     ),

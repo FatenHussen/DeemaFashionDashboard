@@ -25,7 +25,7 @@
   gap: 0.25rem;
   padding: 0.5rem 0.75rem;
   border-bottom: 1px solid hsl(var(--border) / 0.5);
-  background: hsl(var(--muted) / 0.15);
+  background: #fff;
 }
 
 .rich-text-editor-toolbar button {
@@ -62,6 +62,8 @@
   outline: none;
   font-size: 0.875rem;
   line-height: 1.6;
+  background: #fff;
+  color: #111;
 }
 
 .rich-text-editor-root .ProseMirror p.is-editor-empty:first-child::before {

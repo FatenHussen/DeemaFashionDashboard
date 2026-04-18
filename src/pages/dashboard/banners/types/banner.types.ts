@@ -9,6 +9,7 @@ export interface BannerItem {
   is_active: number;
   order: number;
   created_at: string;
+  expires_at?: string | null;
 }
 
 export interface BannerListResponse {
@@ -55,4 +56,6 @@ export interface BannerFormValues {
   };
   image: File | null;
   link: string;
+  /** `datetime-local` value in the form; sent to API as ISO via services */
+  expires_at: string;
 }

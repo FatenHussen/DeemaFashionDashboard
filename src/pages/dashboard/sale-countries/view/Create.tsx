@@ -125,91 +125,99 @@ export default function CreatePage() {
           isEditMode ? t('form.updatingSaleCountrySubmit') : t('form.creatingSaleCountrySubmit')
         }
       >
-        <Box className="group">
-          <Box className="flex items-center gap-2 mb-2">
-            <Iconify icon="solar:letter-bold" className="text-primary" width={24} />
-            <Typography variant="subtitle2" className="font-semibold">
-              {t('form.nameEn')}
+        {/* ── Section: Names ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-primary/[0.06] via-primary/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:earth-bold" className="text-primary" width={15} />
+            </Box>
+            <Typography variant="subtitle2" className="font-semibold text-foreground">
+              {t('form.nameEn')} / {t('form.nameAr')}
             </Typography>
           </Box>
-          <RHFTextField
-            name="name.en"
-            placeholder={t('form.saleCountryNameEnPlaceholder')}
-            helperText={t('form.saleCountryNameEnHelper')}
-          />
+          <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+            <Box className="group">
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5">
+                <Iconify icon="solar:letter-bold" className="text-primary" width={16} />
+                {t('form.nameEn')}
+              </Typography>
+              <RHFTextField name="name.en" placeholder={t('form.saleCountryNameEnPlaceholder')} helperText={t('form.saleCountryNameEnHelper')} />
+            </Box>
+            <Box className="group">
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5">
+                <Iconify icon="solar:letter-bold" className="text-primary" width={16} />
+                {t('form.nameAr')}
+              </Typography>
+              <RHFTextField name="name.ar" placeholder={t('form.saleCountryNameArPlaceholder')} helperText={t('form.saleCountryNameArHelper')} dir="rtl" />
+            </Box>
+          </Box>
         </Box>
 
-        <Box className="group">
-          <Box className="flex items-center gap-2 mb-2">
-            <Iconify icon="solar:letter-bold" className="text-primary" width={24} />
-            <Typography variant="subtitle2" className="font-semibold">
-              {t('form.nameAr')}
+        {/* ── Section: Icon & Status ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-amber-500/[0.06] via-amber-500/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:gallery-add-bold" className="text-amber-500" width={15} />
+            </Box>
+            <Typography variant="subtitle2" className="font-semibold text-foreground">
+              {t('form.saleCountryIconLabel')} & {t('active')}
             </Typography>
           </Box>
-          <RHFTextField
-            name="name.ar"
-            placeholder={t('form.saleCountryNameArPlaceholder')}
-            helperText={t('form.saleCountryNameArHelper')}
-            dir="rtl"
-          />
-        </Box>
-
-        <Box className="group">
-          <Box className="flex items-center gap-2 mb-2">
-            <Iconify icon="solar:gallery-add-bold" className="text-primary" width={24} />
-            <Typography variant="subtitle2" className="font-semibold">
-              {isEditMode ? t('form.saleCountryIconLabel') : t('form.saleCountryIconLabelRequired')}
-            </Typography>
-          </Box>
-          <Controller
-            name="icon"
-            control={control}
-            render={({ field: { onChange, ...field }, fieldState: { error } }) => (
-              <div className="w-full">
-                <Input
-                  {...field}
-                  value={undefined}
-                  type="file"
-                  accept="image/jpeg,image/png,image/jpg,image/gif,image/svg+xml,image/webp"
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                    const file = e.target.files?.[0];
-                    onChange(file || null);
-                  }}
-                  error={!!error}
-                  helperText={
-                    error?.message ||
-                    (isEditMode ? t('form.saleCountryIconHelperEdit') : t('form.saleCountryIconHelper'))
-                  }
-                  fullWidth
-                />
-                {previewIcon && (
-                  <Box className="mt-3">
-                    <img
-                      src={previewIcon}
-                      alt={t('form.saleCountryIconPreviewAlt')}
-                      className="w-16 h-16 object-cover rounded-lg border border-border"
+          <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+            <Box className="group">
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5">
+                <Iconify icon="solar:gallery-add-bold" className="text-amber-500" width={16} />
+                {isEditMode ? t('form.saleCountryIconLabel') : t('form.saleCountryIconLabelRequired')}
+              </Typography>
+              <Controller
+                name="icon"
+                control={control}
+                render={({ field: { onChange, ...field }, fieldState: { error } }) => (
+                  <div className="w-full">
+                    <Input
+                      {...field}
+                      value={undefined}
+                      type="file"
+                      accept="image/jpeg,image/png,image/jpg,image/gif,image/svg+xml,image/webp"
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                        const file = e.target.files?.[0];
+                        onChange(file || null);
+                      }}
+                      error={!!error}
+                      helperText={error?.message || (isEditMode ? t('form.saleCountryIconHelperEdit') : t('form.saleCountryIconHelper'))}
+                      fullWidth
                     />
-                  </Box>
+                    {previewIcon && (
+                      <Box className="mt-3">
+                        <Box className="relative inline-block">
+                          <Box className="absolute -inset-1 rounded-xl bg-amber-500/20 blur-sm" />
+                          <img src={previewIcon} alt={t('form.saleCountryIconPreviewAlt')} className="relative w-16 h-16 object-cover rounded-xl border border-border/60 shadow-sm" />
+                        </Box>
+                      </Box>
+                    )}
+                  </div>
                 )}
-              </div>
-            )}
-          />
-        </Box>
-
-        <Box className="group">
-          <Controller
-            name="is_active"
-            control={control}
-            render={({ field }) => (
-              <div className="flex items-center gap-2">
-                <Switch
-                  checked={field.value}
-                  onChange={(e) => field.onChange((e.target as HTMLInputElement).checked)}
-                />
-                <Typography variant="body2">{t('active')}</Typography>
-              </div>
-            )}
-          />
+              />
+            </Box>
+            <Box className="group flex flex-col justify-center">
+              <Controller
+                name="is_active"
+                control={control}
+                render={({ field }) => (
+                  <div className="flex items-center gap-3 p-4 rounded-xl border border-border/60 bg-background/60 hover:border-amber-500/40 transition-colors">
+                    <Switch
+                      checked={field.value}
+                      onChange={(e) => field.onChange((e.target as HTMLInputElement).checked)}
+                    />
+                    <Box>
+                      <Typography variant="subtitle2" className="font-semibold text-foreground">{t('active')}</Typography>
+                      <Typography variant="caption" className="text-muted-foreground">{t('form.saleCountryIconHelperEdit')}</Typography>
+                    </Box>
+                  </div>
+                )}
+              />
+            </Box>
+          </Box>
         </Box>
       </CreateFormLayout>
     </>

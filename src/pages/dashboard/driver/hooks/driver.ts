@@ -3,9 +3,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { _DriverApi, type DriverCreateUpdatePayload } from '../api/driver.services';
 
-export const useFetchDrivers = (page: number = 1, limit: number = 25) => useQuery({
-    queryKey: queryKeys.driver.list({ page, limit }),
-    queryFn: () => _DriverApi.getListDrivers({ page, per_page: limit }),
+export const useFetchDrivers = (
+  page: number = 1,
+  limit: number = 25,
+  filters?: { status?: string; is_active?: number }
+) =>
+  useQuery({
+    queryKey: queryKeys.driver.list({ page, limit, ...filters }),
+    queryFn: () => _DriverApi.getListDrivers({ page, per_page: limit, ...filters }),
   });
 
 export const useFetchDriverById = (id: number | string) => useQuery({

@@ -42,11 +42,7 @@ export function LayoutSection({
         className={mergeClasses([
           layoutClasses.root,
           ' relative min-h-screen',
-          'bg-gradient-to-br from-background via-background to-background',
-          // Subtle grid pattern overlay - only on main content area, not sidebar
-          'after:absolute after:inset-0 after:pointer-events-none after:z-0',
-          'after:bg-[linear-gradient(rgba(0,0,0,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.02)_1px,transparent_1px)]',
-          'after:bg-[size:20px_20px]',
+          'bg-background',
           className,
         ])}
         {...other}

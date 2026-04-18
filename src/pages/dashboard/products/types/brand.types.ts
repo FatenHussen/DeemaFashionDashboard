@@ -6,6 +6,12 @@ export interface BrandData {
   image: string;
   created_at: string;
   updated_at: string;
+  category_id?: number | null;
+  governorate_id?: number | null;
+  city_id?: number | null;
+  category?: { id: number; name: string | { en: string; ar: string } } | null;
+  governorate?: { id: number; name: string } | null;
+  city?: { id: number; name: string | { en: string; ar: string } } | null;
 }
 
 export interface BrandListResponse {
@@ -34,4 +40,8 @@ export interface BrandCreateUpdatePayload {
     ar: string;
   };
   image?: File | string | null;
+  /** Omit or `0` when not set */
+  category_id?: number;
+  governorate_id?: number;
+  city_id?: number;
 }

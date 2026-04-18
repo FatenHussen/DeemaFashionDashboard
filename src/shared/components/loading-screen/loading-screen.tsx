@@ -18,7 +18,14 @@ export function LoadingScreen({ portal, className, ...other }: LoadingScreenProp
       {...other}
     >
       <div className="w-full max-w-[360px] h-1 bg-muted rounded-full overflow-hidden">
-        <div className="h-full bg-blue-600 animate-pulse" style={{ width: '30%' }} />
+        <div
+          className="h-full bg-primary rounded-full animate-[shimmer_1.5s_ease-in-out_infinite]"
+          style={{
+            width: '40%',
+            background: 'linear-gradient(90deg, transparent, rgb(var(--primary)), transparent)',
+            backgroundSize: '200% 100%',
+          }}
+        />
       </div>
     </div>
   );

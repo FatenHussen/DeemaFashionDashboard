@@ -30,7 +30,11 @@ export function RHFSelect({
       control={control}
       render={({ field, fieldState: { error } }) => (
         <div className={className}>
-          <Select value={field.value} onValueChange={field.onChange} disabled={disabled}>
+          <Select
+            value={field.value === '' || field.value == null ? undefined : String(field.value)}
+            onValueChange={field.onChange}
+            disabled={disabled}
+          >
             <SelectTrigger className="w-full">
               <SelectValue placeholder={placeholder} />
             </SelectTrigger>

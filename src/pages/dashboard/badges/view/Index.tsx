@@ -66,7 +66,8 @@ export default function Page() {
         )}
         data={rawItems as BadgeTableItem[]}
         createPath="/badges/create"
-        hasDetails={false}
+        hasDetails
+        detailsLink="/badges/update"
         permissions={{
           create: hasPermission('create', 'badge'),
           update: hasPermission('update', 'badge'),

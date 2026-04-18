@@ -99,7 +99,8 @@ export default function Page() {
         )}
         data={serviceData}
         createPath="/services/create"
-        hasDetails={false}
+        hasDetails
+        detailsLink="/services/update"
         permissions={{
           create: hasPermission('create', 'service'),
           update: hasPermission('update', 'service'),

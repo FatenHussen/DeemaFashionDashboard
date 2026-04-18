@@ -63,6 +63,7 @@ export default function Page() {
           key: t('columns.key'),
           title: t('columns.title'),
           created_at: t('columns.created'),
+          actions: t('columns.action'),
         }}
         pagination={pagination}
         currentPage={currentPage}

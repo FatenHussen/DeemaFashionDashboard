@@ -34,12 +34,6 @@ export const sectionColumns = (
   deletingId?: number | null
 ): ColumnDef<SectionFormValues>[] => [
   {
-    id: 'id',
-    accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
-    cell: ({ row }) => <div className="font-medium">{row.original.id}</div>,
-  },
-  {
     id: 'name',
     accessorKey: 'name',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.name')} />,

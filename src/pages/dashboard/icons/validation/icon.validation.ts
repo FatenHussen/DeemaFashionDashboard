@@ -14,6 +14,12 @@ export const IconCreateSchema = z.object({
     en: z.string().optional(),
     ar: z.string().optional(),
   }).optional(),
+  full_description: z
+    .object({
+      en: z.string().optional(),
+      ar: z.string().optional(),
+    })
+    .optional(),
   is_active: z.boolean().optional(),
 });
 

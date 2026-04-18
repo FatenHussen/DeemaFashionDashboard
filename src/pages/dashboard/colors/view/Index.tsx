@@ -2,15 +2,15 @@ import type { ColorListItem } from '@/pages/dashboard/colors/types/color.types';
 
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router';
-import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { colorColumns } from '@/columns/one/colors/one';
+import { useState, useEffect, type ReactNode } from 'react';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { usePermissions } from '@/auth/hooks/use-permissions';
 import { useDeleteColor, useFetchColors } from '@/pages/dashboard/colors/hooks/color';
 
+import { Input } from 'src/shared/ui';
 import { CONFIG } from 'src/global-config';
-import { Box, Input, Typography } from 'src/shared/ui';
 
 export default function Page() {
   const { t } = useTranslation('table');
@@ -57,9 +57,7 @@ export default function Page() {
         await deleteMutation.mutateAsync(deletingId);
         toast.success(t('deleteSuccess'));
         setDeletingId(null);
-      } catch {
-        return;
-      }
+      } catch { return; }
     }
   };
   const onDeleteCancel = () => setDeletingId(null);
@@ -82,40 +80,38 @@ export default function Page() {
     : { current_page: 1, last_page: 1, per_page: 10, total: 0, from: 0, to: 0 };
 
   const { canAny } = usePermissions();
-  /** Backend may register `color.*` (common) or `Color.*` — match either. */
   const colorCan = (action: 'create' | 'update' | 'delete') =>
     canAny([`color.${action}`, `Color.${action}`]);
 
+  const activeFilterCount = [
+    hexFilter.trim() || undefined,
+    activeFilter || undefined,
+    sortField || undefined,
+  ].filter(Boolean).length;
+
   const toolbarFilter = (
-    <Box className="flex flex-wrap items-end gap-3">
-      <Box className="flex min-w-[140px] flex-col gap-1">
-        <Typography variant="caption" className="text-muted-foreground">
-          {t('form.colorSearchLabel')}
-        </Typography>
-        <Input
-          value={searchInput}
-          onChange={(e) => setSearchInput(e.target.value)}
-          placeholder={t('form.colorSearchPlaceholder')}
-          className="h-9"
-        />
-      </Box>
-      <Box className="flex min-w-[120px] flex-col gap-1">
-        <Typography variant="caption" className="text-muted-foreground">
-          {t('form.colorHexFilterLabel')}
-        </Typography>
-        <Input
+    <Input
+      value={searchInput}
+      onChange={(e) => setSearchInput(e.target.value)}
+      placeholder={t('form.colorSearchPlaceholder')}
+      className="h-9 min-w-[160px] flex-1 max-w-xs"
+    />
+  );
+
+  const sidebarContent = (
+    <>
+      <FilterGroup label={t('form.colorHexFilterLabel')}>
+        <input
           value={hexFilter}
           onChange={(e) => setHexFilter(e.target.value.slice(0, 7))}
           placeholder="#FF0000"
-          className="h-9 font-mono"
+          className="w-full h-9 rounded-md border border-border bg-background px-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary"
         />
-      </Box>
-      <Box className="flex min-w-[130px] flex-col gap-1">
-        <Typography variant="caption" className="text-muted-foreground">
-          {t('form.colorStatusFilter')}
-        </Typography>
+      </FilterGroup>
+
+      <FilterGroup label={t('form.colorStatusFilter')}>
         <select
-          className="h-9 rounded-md border border-border bg-background px-3 text-sm"
+          className="w-full h-9 rounded-md border border-border bg-background px-3 text-sm"
           value={activeFilter}
           onChange={(e) => setActiveFilter(e.target.value)}
         >
@@ -123,13 +119,11 @@ export default function Page() {
           <option value="1">{t('active')}</option>
           <option value="0">{t('inactive')}</option>
         </select>
-      </Box>
-      <Box className="flex min-w-[140px] flex-col gap-1">
-        <Typography variant="caption" className="text-muted-foreground">
-          {t('form.colorSortField')}
-        </Typography>
+      </FilterGroup>
+
+      <FilterGroup label={t('form.colorSortField')}>
         <select
-          className="h-9 rounded-md border border-border bg-background px-3 text-sm"
+          className="w-full h-9 rounded-md border border-border bg-background px-3 text-sm"
           value={sortField}
           onChange={(e) => setSortField(e.target.value as typeof sortField)}
         >
@@ -139,23 +133,21 @@ export default function Page() {
           <option value="is_active">{t('columns.status')}</option>
           <option value="created_at">{t('columns.createdAt')}</option>
         </select>
-      </Box>
+      </FilterGroup>
+
       {sortField ? (
-        <Box className="flex min-w-[120px] flex-col gap-1">
-          <Typography variant="caption" className="text-muted-foreground">
-            {t('form.colorSortOrder')}
-          </Typography>
+        <FilterGroup label={t('form.colorSortOrder')}>
           <select
-            className="h-9 rounded-md border border-border bg-background px-3 text-sm"
+            className="w-full h-9 rounded-md border border-border bg-background px-3 text-sm"
             value={sortOrder}
             onChange={(e) => setSortOrder(e.target.value as 'asc' | 'desc')}
           >
             <option value="asc">{t('form.colorSortAsc')}</option>
             <option value="desc">{t('form.colorSortDesc')}</option>
           </select>
-        </Box>
+        </FilterGroup>
       ) : null}
-    </Box>
+    </>
   );
 
   return (
@@ -179,7 +171,8 @@ export default function Page() {
         )}
         data={items}
         createPath="/colors/create"
-        hasDetails={false}
+        hasDetails
+        detailsLink="/colors/update"
         searchColumns={[]}
         permissions={{
           create: colorCan('create'),
@@ -193,7 +186,24 @@ export default function Page() {
         onPageChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}
         toolbarFilter={toolbarFilter}
+        filterSidebar={sidebarContent}
+        activeFilterCount={activeFilterCount}
+        onFilterReset={() => {
+          setHexFilter('');
+          setActiveFilter('');
+          setSortField('');
+          setSortOrder('desc');
+        }}
       />
     </>
+  );
+}
+
+function FilterGroup({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{label}</label>
+      {children}
+    </div>
   );
 }

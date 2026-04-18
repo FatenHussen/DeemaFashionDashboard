@@ -3,7 +3,7 @@ import type {
   UserCreatePayload,
   UserUpdatePayload,
   UserDetailsResponse,
-  UserConvertAffiliatePayload,
+  UserReactivateAffiliatePayload,
 } from '../types/user.types';
 
 import { apiRoutes, axiosInstance } from '@/api';
@@ -12,7 +12,6 @@ export const _UserApi = {
   getListUsers: async (params?: {
     page?: number;
     per_page?: number;
-    is_affiliate?: number;
     affiliate_approved?: number;
     area_id?: number;
   }): Promise<UserListResponse> => {
@@ -38,15 +37,20 @@ export const _UserApi = {
     id: number | string,
     data: UserUpdatePayload
   ): Promise<any> => {
-    const response = await axiosInstance.patch(apiRoutes.user.update(id), data);
+    const response = await axiosInstance.put(apiRoutes.user.update(id), data);
     return response.data;
   },
 
-  convertToAffiliate: async (
+  reactivateAffiliate: async (
     id: number | string,
-    data: UserConvertAffiliatePayload
+    data: UserReactivateAffiliatePayload
   ): Promise<any> => {
-    const response = await axiosInstance.patch(apiRoutes.user.update(id), data);
+    const response = await axiosInstance.post(apiRoutes.user.reactivateAffiliate(id), data);
+    return response.data;
+  },
+
+  demoteAffiliate: async (id: number | string): Promise<any> => {
+    const response = await axiosInstance.post(apiRoutes.user.demoteAffiliate(id));
     return response.data;
   },
 

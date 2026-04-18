@@ -1,8 +1,7 @@
 import type { TFunction } from 'i18next';
 
-import { useState } from 'react';
-import { Button } from '@/shared/ui/button';
 import { useTranslation } from 'react-i18next';
+import { useState, type ReactNode } from 'react';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { useFetchVendorSubscriptions } from '@/pages/dashboard/vendor/hooks/vendor-subscription';
 import { VENDOR_SUBSCRIPTION_STATUSES } from '@/pages/dashboard/vendor/types/vendor-subscription.types';
@@ -48,19 +47,10 @@ export default function Page() {
     setCurrentPage(1);
   };
 
-  const handleApplyFilters = () => {
+  const handleApplySearch = () => {
     setAppliedSearch(search);
     setCurrentPage(1);
   };
-
-  const handleResetFilters = () => {
-    setStatusFilter('');
-    setSearch('');
-    setAppliedSearch('');
-    setCurrentPage(1);
-  };
-
-  const hasActiveFilters = !!statusFilter || !!appliedSearch;
 
   const items: VendorSubscriptionFormValues[] = response?.data?.items || [];
   const apiPagination = response?.data?.pagination;
@@ -75,23 +65,32 @@ export default function Page() {
       }
     : { current_page: 1, last_page: 1, per_page: 10, total: 0, from: 0, to: 0 };
 
-  const filterContent = (
-    <>
+  const toolbarSearch = (
+    <div className="flex items-center gap-2 min-w-0 flex-1">
       <input
         type="text"
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        onKeyDown={(e) => e.key === 'Enter' && handleApplyFilters()}
+        onKeyDown={(e) => e.key === 'Enter' && handleApplySearch()}
         placeholder={t('searchByShopName')}
-        className="h-10 min-w-[180px] rounded-xl border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50"
+        className="h-10 min-w-[180px] flex-1 rounded-xl border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50"
       />
+      <button
+        type="button"
+        onClick={handleApplySearch}
+        className="h-10 rounded-xl border border-input bg-background px-4 text-sm font-medium hover:bg-muted shrink-0"
+      >
+        {t('apply')}
+      </button>
+    </div>
+  );
+
+  const sidebarContent = (
+    <FilterGroup label={t('columns.status')}>
       <select
         value={statusFilter}
-        onChange={(e) => {
-          setStatusFilter(e.target.value);
-          setCurrentPage(1);
-        }}
-        className="h-10 min-w-[120px] rounded-xl border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+        onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
+        className="w-full h-10 rounded-xl border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
       >
         <option value="">{t('allStatuses')}</option>
         {VENDOR_SUBSCRIPTION_STATUSES.map((s) => (
@@ -100,15 +99,7 @@ export default function Page() {
           </option>
         ))}
       </select>
-      <Button variant="outlined" size="small" onClick={handleApplyFilters} className="h-10 px-4 rounded-xl">
-        {t('apply')}
-      </Button>
-      {hasActiveFilters && (
-        <Button variant="text" size="small" onClick={handleResetFilters} className="h-10 px-4 rounded-xl text-muted-foreground hover:text-foreground">
-          {t('resetFilter')}
-        </Button>
-      )}
-    </>
+    </FilterGroup>
   );
 
   return (
@@ -121,7 +112,10 @@ export default function Page() {
         data={items}
         hasDetails
         detailsLink="/vendor-subscriptions"
-        toolbarFilter={filterContent}
+        toolbarFilter={toolbarSearch}
+        filterSidebar={sidebarContent}
+        activeFilterCount={statusFilter ? 1 : 0}
+        onFilterReset={() => { setStatusFilter(''); setCurrentPage(1); }}
         permissions={{
           create: false,
           update: false,
@@ -137,6 +131,7 @@ export default function Page() {
           auto_renew: t('columns.autoRenew'),
           status: t('columns.status'),
           created_at: t('columns.created'),
+          actions: t('columns.action'),
         }}
         pagination={pagination}
         currentPage={currentPage}
@@ -145,5 +140,14 @@ export default function Page() {
         onPageSizeChange={handlePageSizeChange}
       />
     </>
+  );
+}
+
+function FilterGroup({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{label}</label>
+      {children}
+    </div>
   );
 }

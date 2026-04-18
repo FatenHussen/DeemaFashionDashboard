@@ -27,7 +27,7 @@ export function NavList({
 
   const isActive = isActiveLink(pathname, data.path, data.deepMatch ?? !!data.children);
 
-  const { value: open, onFalse: onClose, onToggle } = useBoolean(isActive);
+  const { value: open, onFalse: onClose, onToggle } = useBoolean(false);
 
   useEffect(() => {
     if (!isActive) {

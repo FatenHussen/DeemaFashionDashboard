@@ -91,10 +91,7 @@ export default function CreatePage() {
         serves: (source as any).serves ?? '',
         prepare_time: (source as any).prepare_time ?? '',
         badges: source.badges?.length
-          ? source.badges.map((b: any) => ({
-              id: b.id,
-              position: b.postion || b.position || 'top',
-            }))
+          ? source.badges.map((b: any) => (typeof b === 'number' ? b : b.id))
           : [],
         items: source.items?.length
           ? source.items.map((it: any) => ({
@@ -180,151 +177,185 @@ export default function CreatePage() {
         isEditMode={isEditMode}
         isLoading={isEditMode && isLoadingDetails}
         loadingText={t('form.loadingRecipe')}
-        maxWidth="2xl"
         submitLabel={isEditMode ? t('form.updateRecipeSubmit') : t('form.createRecipeSubmit')}
         submittingLabel={isEditMode ? t('form.updatingRecipe') : t('form.creatingRecipe')}
       >
-        {/* Name */}
-        <Box className="group">
-          <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('columns.name')}</Typography>
-          <div className="flex flex-col gap-2">
-            <RHFTextField name="name.en" placeholder={t('form.recipeNameEn')} fullWidth />
-            <RHFTextField name="name.ar" placeholder={t('form.recipeNameAr')} dir="rtl" fullWidth />
-          </div>
+        {/* ── Section: Names ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-primary/[0.06] via-primary/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:chef-hat-bold" className="text-primary" width={15} />
+            </Box>
+            <Typography variant="subtitle2" className="font-semibold text-foreground">
+              {t('columns.name')} & {t('columns.description')}
+            </Typography>
+          </Box>
+          <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+            <Box className="group">
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5">
+                <Iconify icon="solar:text-bold" className="text-primary" width={16} />
+                {t('form.recipeNameEn')}
+              </Typography>
+              <RHFTextField name="name.en" placeholder={t('form.recipeNameEn')} fullWidth />
+            </Box>
+            <Box className="group">
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5">
+                <Iconify icon="solar:text-bold" className="text-primary" width={16} />
+                {t('form.recipeNameAr')}
+              </Typography>
+              <RHFTextField name="name.ar" placeholder={t('form.recipeNameAr')} dir="rtl" fullWidth />
+            </Box>
+            <Box className="group">
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5">
+                <Iconify icon="solar:document-text-bold" className="text-muted-foreground" width={16} />
+                {t('form.descriptionEnPlaceholder')}
+              </Typography>
+              <RHFTextField name="description.en" placeholder={t('form.descriptionEnPlaceholder')} fullWidth />
+            </Box>
+            <Box className="group">
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5">
+                <Iconify icon="solar:document-text-bold" className="text-muted-foreground" width={16} />
+                {t('form.descriptionArPlaceholder')}
+              </Typography>
+              <RHFTextField name="description.ar" placeholder={t('form.descriptionArPlaceholder')} dir="rtl" fullWidth />
+            </Box>
+          </Box>
         </Box>
 
-        {/* Description */}
-        <Box className="group">
-          <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('columns.description')}</Typography>
-          <div className="flex flex-col gap-2">
-            <RHFTextField name="description.en" placeholder={t('form.descriptionEnPlaceholder')} fullWidth />
-            <RHFTextField name="description.ar" placeholder={t('form.descriptionArPlaceholder')} dir="rtl" fullWidth />
-          </div>
-        </Box>
-
-        {/* Image */}
-        <Box className="group">
-          <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
-            {t('form.recipeImageRequiredLabel')} <span className="text-destructive">*</span>
-          </Typography>
-          <Controller
-            name="image"
-            control={control}
-            render={({ field: f, fieldState }) => (
-              <div className="flex flex-col gap-2">
-                {/* Preview */}
-                {imagePreview && (
-                  <div className="relative w-full h-40 rounded-lg overflow-hidden border border-border">
-                    <img
-                      src={imagePreview}
-                      alt={t('form.recipePreviewAlt')}
-                      className="w-full h-full object-cover"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setImagePreview(null);
-                        f.onChange(null);
+        {/* ── Section: Media ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-amber-500/[0.06] via-amber-500/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:camera-add-bold" className="text-amber-500" width={15} />
+            </Box>
+            <Typography variant="subtitle2" className="font-semibold text-foreground">
+              {t('form.recipeImageRequiredLabel')} & {t('form.videoUrl')}
+            </Typography>
+          </Box>
+          <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+            <Box className="group">
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
+                {t('form.recipeImageRequiredLabel')} <span className="text-destructive">*</span>
+              </Typography>
+              <Controller
+                name="image"
+                control={control}
+                render={({ field: f, fieldState }) => (
+                  <div className="flex flex-col gap-2">
+                    {imagePreview && (
+                      <div className="relative w-full h-36 rounded-xl overflow-hidden border border-border">
+                        <img src={imagePreview} alt={t('form.recipePreviewAlt')} className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => { setImagePreview(null); f.onChange(null); }}
+                          className="absolute top-2 right-2 bg-destructive text-white rounded-full p-1 hover:bg-destructive/80"
+                        >
+                          <Iconify icon="solar:close-circle-bold" width={16} />
+                        </button>
+                      </div>
+                    )}
+                    {!imagePreview && (
+                      <button
+                        type="button"
+                        onClick={() => imageInputRef.current?.click()}
+                        className="w-full h-36 rounded-xl border-2 border-dashed border-border hover:border-primary/50 bg-muted/20 hover:bg-muted/40 transition-colors flex flex-col items-center justify-center gap-2 text-muted-foreground"
+                      >
+                        <Iconify icon="solar:camera-add-bold" width={28} />
+                        <span className="text-sm">{t('form.recipeClickToUploadImage')}</span>
+                        <span className="text-xs">{t('form.recipeImageFormatsHint')}</span>
+                      </button>
+                    )}
+                    {imagePreview && (
+                      <button type="button" onClick={() => imageInputRef.current?.click()} className="text-xs text-primary hover:underline text-left">
+                        {t('form.recipeChangeImage')}
+                      </button>
+                    )}
+                    <input ref={imageInputRef} type="file" accept="image/*" className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) { f.onChange(file); setImagePreview(URL.createObjectURL(file)); }
+                        e.target.value = '';
                       }}
-                      className="absolute top-2 right-2 bg-destructive text-white rounded-full p-1 hover:bg-destructive/80"
-                    >
-                      <Iconify icon="solar:close-circle-bold" width={16} />
-                    </button>
+                    />
+                    {fieldState.error && <span className="text-xs text-destructive">{fieldState.error.message}</span>}
                   </div>
                 )}
+              />
+            </Box>
 
-                {/* Upload area */}
-                {!imagePreview && (
-                  <button
-                    type="button"
-                    onClick={() => imageInputRef.current?.click()}
-                    className="w-full h-32 rounded-lg border-2 border-dashed border-border hover:border-primary/50 bg-muted/20 hover:bg-muted/40 transition-colors flex flex-col items-center justify-center gap-2 text-muted-foreground"
-                  >
-                    <Iconify icon="solar:camera-add-bold" width={28} />
-                    <span className="text-sm">{t('form.recipeClickToUploadImage')}</span>
-                    <span className="text-xs">{t('form.recipeImageFormatsHint')}</span>
-                  </button>
-                )}
-
-                {imagePreview && (
-                  <button
-                    type="button"
-                    onClick={() => imageInputRef.current?.click()}
-                    className="text-xs text-primary hover:underline text-left"
-                  >
-                    {t('form.recipeChangeImage')}
-                  </button>
-                )}
-
-                <input
-                  ref={imageInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      f.onChange(file);
-                      setImagePreview(URL.createObjectURL(file));
-                    }
-                    e.target.value = '';
-                  }}
-                />
-
-                {fieldState.error && (
-                  <span className="text-xs text-destructive">{fieldState.error.message}</span>
-                )}
-              </div>
-            )}
-          />
+            <Box className="group">
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
+                {t('form.videoUrl')}
+              </Typography>
+              <RHFTextField name="video_url" placeholder={t('form.videoUrlPlaceholder')} fullWidth />
+            </Box>
+          </Box>
         </Box>
 
-        {/* Video URL */}
-        <Box className="group">
-          <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.videoUrl')}</Typography>
-          <RHFTextField name="video_url" placeholder={t('form.videoUrlPlaceholder')} fullWidth />
-        </Box>
-
-        {/* Numeric fields */}
-        <Box className="flex gap-4 flex-wrap">
-          <Box className="flex-1 min-w-[130px]">
-            <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
-              {t('form.recipeDiscountLabel')}
+        {/* ── Section: Details ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-violet-500/[0.06] via-violet-500/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:graph-new-bold" className="text-violet-500" width={15} />
+            </Box>
+            <Typography variant="subtitle2" className="font-semibold text-foreground">
+              {t('form.recipeDiscountLabel')} · {t('form.deliveryPrice')} · {t('columns.servings')} · {t('columns.prepTime')}
             </Typography>
-            <RHFTextField name="discount" type="number" placeholder={t('form.placeholderZero')} fullWidth />
           </Box>
-          <Box className="flex-1 min-w-[130px]">
-            <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.deliveryPrice')}</Typography>
-            <RHFTextField name="delivery_price" type="number" placeholder={t('form.placeholderZero')} fullWidth />
-          </Box>
-          <Box className="flex-1 min-w-[130px]">
-            <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('columns.servings')}</Typography>
-            <RHFTextField name="serves" placeholder={t('form.servesPlaceholder')} fullWidth />
-          </Box>
-          <Box className="flex-1 min-w-[130px]">
-            <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('columns.prepTime')}</Typography>
-            <RHFTextField name="prepare_time" placeholder={t('form.prepareTimePlaceholder')} fullWidth />
+          <Box className="p-6 grid grid-cols-2 md:grid-cols-4 gap-5">
+            <Box>
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground text-sm">{t('form.recipeDiscountLabel')}</Typography>
+              <RHFTextField name="discount" type="number" placeholder={t('form.placeholderZero')} fullWidth />
+            </Box>
+            <Box>
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground text-sm">{t('form.deliveryPrice')}</Typography>
+              <RHFTextField name="delivery_price" type="number" placeholder={t('form.placeholderZero')} fullWidth />
+            </Box>
+            <Box>
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground text-sm">{t('columns.servings')}</Typography>
+              <RHFTextField name="serves" placeholder={t('form.servesPlaceholder')} fullWidth />
+            </Box>
+            <Box>
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground text-sm">{t('columns.prepTime')}</Typography>
+              <RHFTextField name="prepare_time" placeholder={t('form.prepareTimePlaceholder')} fullWidth />
+            </Box>
           </Box>
         </Box>
 
         {/* Badges */}
-        <Box className="group">
-          <RHFBadgeSelector
-            name="badges"
-            label={t('form.badgesLabel')}
-            helperText={t('form.badgesHelperRecipe')}
-          />
+        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-sky-500/[0.06] via-sky-500/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:medal-ribbons-star-bold" className="text-sky-500" width={15} />
+            </Box>
+            <Typography variant="subtitle2" className="font-semibold text-foreground">
+              {t('form.badgesLabel')}
+            </Typography>
+          </Box>
+          <Box className="p-6">
+            <RHFBadgeSelector
+              name="badges"
+              label={t('form.badgesLabel')}
+              helperText={t('form.badgesHelperRecipe')}
+            />
+          </Box>
         </Box>
 
         {/* ── Items ── */}
-        <Box className="group">
-          <Box className="flex items-center justify-between mb-3">
-            <Typography variant="subtitle2" className="font-semibold text-foreground">
-              {t('form.recipeItemsSectionTitle')}
-            </Typography>
+        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="flex items-center justify-between px-6 py-4 border-b border-border/40 bg-gradient-to-r from-emerald-500/[0.06] via-emerald-500/[0.02] to-transparent">
+            <Box className="flex items-center gap-3">
+              <Box className="h-8 w-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
+                <Iconify icon="solar:cart-large-2-bold" className="text-emerald-500" width={15} />
+              </Box>
+              <Typography variant="subtitle2" className="font-semibold text-foreground">
+                {t('form.recipeItemsSectionTitle')}
+              </Typography>
+            </Box>
             <Button
               type="button"
               variant="outlined"
+              size="small"
               onClick={() => {
                 appendItem({ shop_product_variant_id: 0, switchable_category_id: undefined, quantity: 1, is_required: true, min_quantity: 1, max_quantity: 1 });
                 setItemSelects((prev) => [...prev, { categoryId: 0, shopId: 0 }]);
@@ -337,6 +368,7 @@ export default function CreatePage() {
               {t('form.recipeAddItem')}
             </Button>
           </Box>
+        <Box className="p-6 flex flex-col gap-4">
 
           {itemFields.map((field, index) => {
             const sel = itemSelects[index] ?? { categoryId: 0, shopId: 0 };
@@ -546,16 +578,23 @@ export default function CreatePage() {
             );
           })}
         </Box>
+        </Box>
 
         {/* ── Steps ── */}
-        <Box className="group">
-          <Box className="flex items-center justify-between mb-3">
-            <Typography variant="subtitle2" className="font-semibold text-foreground">
-              {t('form.recipeStepsSectionTitle')}
-            </Typography>
+        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="flex items-center justify-between px-6 py-4 border-b border-border/40 bg-gradient-to-r from-rose-500/[0.06] via-rose-500/[0.02] to-transparent">
+            <Box className="flex items-center gap-3">
+              <Box className="h-8 w-8 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center shrink-0">
+                <Iconify icon="solar:list-check-bold" className="text-rose-500" width={15} />
+              </Box>
+              <Typography variant="subtitle2" className="font-semibold text-foreground">
+                {t('form.recipeStepsSectionTitle')}
+              </Typography>
+            </Box>
             <Button
               type="button"
               variant="outlined"
+              size="small"
               onClick={() =>
                 appendStep({
                   step_number: stepFields.length + 1,
@@ -570,63 +609,49 @@ export default function CreatePage() {
               {t('form.recipeAddStep')}
             </Button>
           </Box>
-
-          {stepFields.length === 0 && (
-            <div className="text-center py-6 text-sm text-muted-foreground border border-dashed border-border rounded-lg">
-              {t('form.recipeStepsEmptyHint')}
-            </div>
-          )}
-
-          {stepFields.map((field, index) => (
-            <Box key={field.id} className="border border-border rounded-lg p-3 mb-3 flex flex-col gap-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold text-foreground">
-                  {t('form.recipeStepNumber', { number: index + 1 })}
-                </span>
-                <Button
-                  type="button"
-                  variant="text"
-                  onClick={() => removeStep(index)}
-                  className="text-destructive"
-                >
-                  <Iconify icon="solar:trash-bin-trash-bold" width={16} />
-                </Button>
+          <Box className="p-6 flex flex-col gap-4">
+            {stepFields.length === 0 && (
+              <div className="text-center py-8 text-sm text-muted-foreground border border-dashed border-border/50 rounded-xl">
+                {t('form.recipeStepsEmptyHint')}
               </div>
+            )}
 
-              {/* Heat Level */}
-              <Box>
-                <Typography variant="subtitle2" className="mb-1 text-xs text-muted-foreground">
-                  {t('form.recipeHeatLevelLabel')}
-                </Typography>
-                <div className="flex flex-col gap-1">
-                  <RHFTextField name={`steps.${index}.heat_level.en`} placeholder={t('form.heatLevelEn')} fullWidth />
-                  <RHFTextField name={`steps.${index}.heat_level.ar`} placeholder={t('form.heatLevelAr')} dir="rtl" fullWidth />
-                </div>
+            {stepFields.map((field, index) => (
+              <Box key={field.id} className="rounded-xl border border-border/50 bg-background/60 overflow-hidden">
+                <Box className="flex items-center justify-between px-4 py-3 border-b border-border/40 bg-muted/30">
+                  <span className="text-sm font-semibold text-foreground">
+                    {t('form.recipeStepNumber', { number: index + 1 })}
+                  </span>
+                  <Button type="button" variant="text" onClick={() => removeStep(index)} className="text-destructive">
+                    <Iconify icon="solar:trash-bin-trash-bold" width={16} />
+                  </Button>
+                </Box>
+                <Box className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Box>
+                    <Typography variant="subtitle2" className="mb-1 text-xs text-muted-foreground">{t('form.recipeHeatLevelLabel')}</Typography>
+                    <div className="flex flex-col gap-1">
+                      <RHFTextField name={`steps.${index}.heat_level.en`} placeholder={t('form.heatLevelEn')} fullWidth />
+                      <RHFTextField name={`steps.${index}.heat_level.ar`} placeholder={t('form.heatLevelAr')} dir="rtl" fullWidth />
+                    </div>
+                  </Box>
+                  <Box>
+                    <Typography variant="subtitle2" className="mb-1 text-xs text-muted-foreground">{t('form.recipeTimeLabel')}</Typography>
+                    <div className="flex flex-col gap-1">
+                      <RHFTextField name={`steps.${index}.time_minutes.en`} placeholder={t('form.timeMinutesEn')} fullWidth />
+                      <RHFTextField name={`steps.${index}.time_minutes.ar`} placeholder={t('form.timeMinutesAr')} dir="rtl" fullWidth />
+                    </div>
+                  </Box>
+                  <Box>
+                    <Typography variant="subtitle2" className="mb-1 text-xs text-muted-foreground">{t('form.recipeInstructionLabel')}</Typography>
+                    <div className="flex flex-col gap-1">
+                      <RHFTextField name={`steps.${index}.instruction.en`} placeholder={t('form.stepInstructionsEn')} fullWidth />
+                      <RHFTextField name={`steps.${index}.instruction.ar`} placeholder={t('form.stepInstructionsAr')} dir="rtl" fullWidth />
+                    </div>
+                  </Box>
+                </Box>
               </Box>
-
-              {/* Time */}
-              <Box>
-                <Typography variant="subtitle2" className="mb-1 text-xs text-muted-foreground">
-                  {t('form.recipeTimeLabel')}
-                </Typography>
-                <div className="flex flex-col gap-1">
-                  <RHFTextField name={`steps.${index}.time_minutes.en`} placeholder={t('form.timeMinutesEn')} fullWidth />
-                  <RHFTextField name={`steps.${index}.time_minutes.ar`} placeholder={t('form.timeMinutesAr')} dir="rtl" fullWidth />
-                </div>
-              </Box>
-
-              {/* Instruction */}
-              <Box>
-                <Typography variant="subtitle2" className="mb-1 text-xs text-muted-foreground">
-                  {t('form.recipeInstructionLabel')}
-                </Typography>
-                <div className="flex flex-col gap-1">
-                  <RHFTextField name={`steps.${index}.instruction.en`} placeholder={t('form.stepInstructionsEn')} fullWidth />
-                  <RHFTextField name={`steps.${index}.instruction.ar`} placeholder={t('form.stepInstructionsAr')} dir="rtl" fullWidth />
-                </div>
-              </Box>
-            </Box>
-          ))}
+            ))}
+          </Box>
         </Box>
       </CreateFormLayout>
     </>

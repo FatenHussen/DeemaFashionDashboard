@@ -17,6 +17,7 @@ export const BannerUpdateSchema = zod.object({
   }),
   image: zod.instanceof(File).optional().or(zod.null()),
   link: zod.union([zod.string().url(), zod.literal('')]).optional().default(''),
+  expires_at: zod.string().optional().default(''),
 });
 
 export type BannerUpdateFormValues = zod.infer<typeof BannerUpdateSchema>;

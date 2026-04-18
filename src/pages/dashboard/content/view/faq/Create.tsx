@@ -100,118 +100,85 @@ export default function CreatePage() {
           title={isEditMode ? t('form.editFaq') : t('form.createFaq')}
           description={isEditMode ? t('form.editFaqDesc') : t('form.createFaqDesc')}
           isEditMode={isEditMode}
-          maxWidth="2xl"
           submitLabel={isEditMode ? t('form.updateFaqSubmit') : t('form.createFaqSubmit')}
           submittingLabel={isEditMode ? t('form.savingFaqSubmit') : t('form.creatingFaqSubmit')}
         >
-          {/* Type */}
-          <Box className="col-span-2">
-            <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
-              {t('form.faqTypeLabel')} <span className="text-destructive">*</span>
-            </Typography>
-            <Controller
-              name="type"
-              control={control}
-              render={({ field, fieldState: { error: fieldError } }) => (
-                <Box>
-                  <select
-                    {...field}
-                    className={`h-10 w-full rounded-md border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary ${
-                      fieldError ? 'border-destructive' : 'border-input'
-                    }`}
-                  >
-                    {FAQ_TYPES.map((type) => (
-                      <option key={type} value={type}>
-                        {faqTypeLabel(t, type)}
-                      </option>
-                    ))}
-                  </select>
-                  {fieldError && (
-                    <p className="mt-1 text-xs text-destructive">{fieldError.message}</p>
-                  )}
-                </Box>
-              )}
-            />
+          {/* ── Section: Type ── */}
+          <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+            <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-primary/[0.06] via-primary/[0.02] to-transparent">
+              <Box className="h-8 w-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+                <Iconify icon="solar:tag-bold" className="text-primary" width={15} />
+              </Box>
+              <Typography variant="subtitle2" className="font-semibold text-foreground">
+                {t('form.faqTypeLabel')}
+              </Typography>
+            </Box>
+            <Box className="p-6">
+              <Controller
+                name="type"
+                control={control}
+                render={({ field, fieldState: { error: fieldError } }) => (
+                  <Box>
+                    <select {...field} className={`h-10 w-full rounded-md border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary ${fieldError ? 'border-destructive' : 'border-input'}`}>
+                      {FAQ_TYPES.map((type) => (<option key={type} value={type}>{faqTypeLabel(t, type)}</option>))}
+                    </select>
+                    {fieldError && <p className="mt-1 text-xs text-destructive">{fieldError.message}</p>}
+                  </Box>
+                )}
+              />
+            </Box>
           </Box>
 
-          {/* Question */}
-          <Box className="col-span-2">
-            <Typography variant="subtitle1" className="mb-3 font-semibold">
-              {t('columns.question')}
-            </Typography>
-            <Box className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          {/* ── Section: Question ── */}
+          <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+            <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-violet-500/[0.06] via-violet-500/[0.02] to-transparent">
+              <Box className="h-8 w-8 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center shrink-0">
+                <Iconify icon="solar:question-circle-bold" className="text-violet-500" width={15} />
+              </Box>
+              <Typography variant="subtitle2" className="font-semibold text-foreground">
+                {t('columns.question')}
+              </Typography>
+            </Box>
+            <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
               <Box>
-                <Typography variant="subtitle2" className="mb-1 text-xs text-muted-foreground">
-                  {t('form.labelEnglishShort')} <span className="text-destructive">*</span>
-                </Typography>
+                <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.labelEnglishShort')} <span className="text-destructive">*</span></Typography>
                 <RHFTextField name="question.en" placeholder={t('form.faqQuestionPlaceholder')} fullWidth />
               </Box>
               <Box>
-                <Typography variant="subtitle2" className="mb-1 text-xs text-muted-foreground">
-                  {t('form.labelArabicShort')} <span className="text-destructive">*</span>
-                </Typography>
+                <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.labelArabicShort')} <span className="text-destructive">*</span></Typography>
                 <RHFTextField name="question.ar" placeholder={t('form.faqQuestionArExample')} fullWidth />
               </Box>
             </Box>
           </Box>
 
-          {/* Answer */}
-          <Box className="col-span-2">
-            <Typography variant="subtitle1" className="mb-3 font-semibold">
-              {t('columns.answer')}
-            </Typography>
-            <Box className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              {/* English */}
-              <Box>
-                <Typography variant="subtitle2" className="mb-1 text-xs text-muted-foreground">
-                  {t('form.labelEnglishShort')} <span className="text-destructive">*</span>
-                </Typography>
-                <Controller
-                  name="answer.en"
-                  control={control}
-                  render={({ field, fieldState: { error: fieldError } }) => (
-                    <Box>
-                      <textarea
-                        {...field}
-                        rows={5}
-                        placeholder={t('form.enterAnswerEn')}
-                        className={`w-full resize-y rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary ${
-                          fieldError ? 'border-destructive' : 'border-input'
-                        }`}
-                      />
-                      {fieldError && (
-                        <p className="mt-1 text-xs text-destructive">{fieldError.message}</p>
-                      )}
-                    </Box>
-                  )}
-                />
+          {/* ── Section: Answer ── */}
+          <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+            <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-amber-500/[0.06] via-amber-500/[0.02] to-transparent">
+              <Box className="h-8 w-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
+                <Iconify icon="solar:chat-round-dots-bold" className="text-amber-500" width={15} />
               </Box>
-
-              {/* Arabic */}
+              <Typography variant="subtitle2" className="font-semibold text-foreground">
+                {t('columns.answer')}
+              </Typography>
+            </Box>
+            <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
               <Box>
-                <Typography variant="subtitle2" className="mb-1 text-xs text-muted-foreground">
-                  {t('form.labelArabicShort')} <span className="text-destructive">*</span>
-                </Typography>
-                <Controller
-                  name="answer.ar"
-                  control={control}
-                  render={({ field, fieldState: { error: fieldError } }) => (
-                    <Box>
-                      <textarea
-                        {...field}
-                        rows={5}
-                        dir="rtl"
-                        placeholder={t('form.faqAnswerArPlaceholder')}
-                        className={`w-full resize-y rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary ${
-                          fieldError ? 'border-destructive' : 'border-input'
-                        }`}
-                      />
-                      {fieldError && (
-                        <p className="mt-1 text-xs text-destructive">{fieldError.message}</p>
-                      )}
-                    </Box>
-                  )}
-                />
+                <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.labelEnglishShort')} <span className="text-destructive">*</span></Typography>
+                <Controller name="answer.en" control={control} render={({ field, fieldState: { error: fieldError } }) => (
+                  <Box>
+                    <textarea {...field} rows={5} placeholder={t('form.enterAnswerEn')} className={`w-full resize-y rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary ${fieldError ? 'border-destructive' : 'border-input'}`} />
+                    {fieldError && <p className="mt-1 text-xs text-destructive">{fieldError.message}</p>}
+                  </Box>
+                )} />
+              </Box>
+              <Box>
+                <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.labelArabicShort')} <span className="text-destructive">*</span></Typography>
+                <Controller name="answer.ar" control={control} render={({ field, fieldState: { error: fieldError } }) => (
+                  <Box>
+                    <textarea {...field} rows={5} dir="rtl" placeholder={t('form.faqAnswerArPlaceholder')} className={`w-full resize-y rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary ${fieldError ? 'border-destructive' : 'border-input'}`} />
+                    {fieldError && <p className="mt-1 text-xs text-destructive">{fieldError.message}</p>}
+                  </Box>
+                )} />
               </Box>
             </Box>
           </Box>

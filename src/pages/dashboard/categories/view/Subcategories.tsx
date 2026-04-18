@@ -43,7 +43,7 @@ export default function Page() {
   const { data: categoriesResponse, isLoading, error } = useFetchCategories(
     currentPage,
     pageSize,
-    validParentId ? { category_id: parentCategoryId } : undefined,
+    validParentId ? { parent_id: parentCategoryId } : undefined,
     { enabled: validParentId }
   );
   const deleteCategoryMutation = useDeleteCategory(currentPage, pageSize);

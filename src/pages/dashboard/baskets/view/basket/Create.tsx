@@ -80,6 +80,7 @@ export default function CreatePage() {
 
   const { handleSubmit, reset, control, watch, setValue } = methods;
   const categoryId = watch('category_id') ?? 0;
+  const basketDiscountType = watch('discount_type');
   const { fields, append, remove } = useFieldArray({ control, name: 'items' });
 
   useEffect(() => {
@@ -104,10 +105,7 @@ export default function CreatePage() {
             }))
           : [{ shop_product_variant_id: 0, quantity: 1 }],
         badges: source.badges?.length
-          ? source.badges.map((b: any) => ({
-              id: b.id,
-              position: b.postion || b.position || 'top',
-            }))
+          ? source.badges.map((b: any) => (typeof b === 'number' ? b : b.id))
           : [],
       });
     }
@@ -160,182 +158,226 @@ export default function CreatePage() {
         isEditMode={isEditMode}
         isLoading={isEditMode && isLoadingBasket}
         loadingText={t('form.loadingBasket')}
-        maxWidth="2xl"
         submitLabel={isEditMode ? t('form.updateBasketSubmit') : t('form.createBasketSubmit')}
         submittingLabel={isEditMode ? t('form.updatingBasket') : t('form.creatingBasket')}
       >
-        {/* Category */}
-        <Box className="group">
-          <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.categoryLabel')}</Typography>
-          <Controller
-            name="category_id"
-            control={control}
-            render={({ field }) => (
-              <InfiniteScrollSelect
-                value={field.value ?? 0}
-                onChange={(val) => {
-                  field.onChange(val);
-                  setValue('items', [{ shop_product_variant_id: 0, quantity: 1 }]);
-                }}
-                queryKey={['category', 'basket']}
-                fetcher={(page) =>
-                  _CategoryApi.getListCategoriesPaginated({ page, per_page: 15 }).then((res) => ({
-                    data: {
-                      items:
-                        page === 1
-                          ? [
-                              { id: 0, label: t('form.selectCategoryPlaceholder') },
-                              ...res.data.items.map((c: any) => ({
-                                id: c.id,
-                                label: formatTranslated(c.name as Parameters<typeof formatTranslated>[0]),
-                              })),
-                            ]
-                          : res.data.items.map((c: any) => ({
-                              id: c.id,
-                              label: formatTranslated(c.name as Parameters<typeof formatTranslated>[0]),
-                            })),
-                      pagination: res.data.pagination,
-                    },
-                  }))
-                }
-                placeholder={t('form.selectCategory')}
-                initialLabel={(() => {
-                  const src = basketResponse?.data;
-                  const cat = src?.category;
-                  return cat?.name
-                    ? formatTranslated(cat.name as Parameters<typeof formatTranslated>[0])
-                    : undefined;
-                })()}
-              />
-            )}
-          />
-        </Box>
-
-        {/* Name EN */}
-        <Box className="group">
-          <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.nameEn')}</Typography>
-          <RHFTextField name="name.en" placeholder={t('form.basketNameEn')} fullWidth />
-        </Box>
-
-        {/* Name AR */}
-        <Box className="group">
-          <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.nameAr')}</Typography>
-          <RHFTextField name="name.ar" placeholder={t('form.basketNameAr')} dir="rtl" fullWidth />
-        </Box>
-
-        {/* Discount */}
-        <Box className="flex flex-wrap gap-4">
-          <Box className="min-w-[140px] flex-1">
-            <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
-              {t('form.discountType')}
-            </Typography>
-            <Controller
-              name="discount_type"
-              control={control}
-              render={({ field }) => (
-                <select {...field} className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm">
-                  <option value="percentage">{t('form.discountTypePercentage')}</option>
-                  <option value="fixed">{t('form.discountTypeFixed')}</option>
-                </select>
-              )}
-            />
-          </Box>
-          <Box className="min-w-[140px] flex-1">
-            <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.discountValue')}</Typography>
-            <RHFTextField name="discount" type="number" placeholder={t('form.placeholderZero')} fullWidth />
-          </Box>
-        </Box>
-
-        {/* Offer ends at */}
-        <Box className="group">
-          <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.offerEndsAt')}</Typography>
-          <RHFTextField name="offer_ends_at" type="date" fullWidth />
-        </Box>
-
-        {/* Delivery Price */}
-        <Box className="group">
-          <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.deliveryPrice')}</Typography>
-          <RHFTextField name="delivery_price" type="number" placeholder={t('form.placeholderZero')} fullWidth />
-        </Box>
-
-        {/* Items */}
-        <Box className="group">
-          <Box className="mb-2 flex items-center justify-between">
+        {/* ── Section: Category & Names ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-violet-500/[0.06] via-violet-500/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:widget-5-bold" className="text-violet-500" width={15} />
+            </Box>
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              {t('form.basketItems')}
+              {t('form.categoryLabel')} & {t('columns.name')}
             </Typography>
-            <Button
-              type="button"
-              variant="outlined"
-              onClick={() => append({ shop_product_variant_id: 0, quantity: 1 })}
-              className="text-xs"
-            >
+          </Box>
+          <Box className="p-6 flex flex-col gap-5">
+            <Box className="group">
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5">
+                <Iconify icon="solar:folder-bold" className="text-violet-500" width={16} />
+                {t('form.categoryLabel')}
+              </Typography>
+              <Controller
+                name="category_id"
+                control={control}
+                render={({ field }) => (
+                  <InfiniteScrollSelect
+                    value={field.value ?? 0}
+                    onChange={(val) => {
+                      field.onChange(val);
+                      setValue('items', [{ shop_product_variant_id: 0, quantity: 1 }]);
+                    }}
+                    queryKey={['category', 'basket']}
+                    fetcher={(page) =>
+                      _CategoryApi.getListCategoriesPaginated({ page, per_page: 15 }).then((res) => ({
+                        data: {
+                          items:
+                            page === 1
+                              ? [
+                                  { id: 0, label: t('form.selectCategoryPlaceholder') },
+                                  ...res.data.items.map((c: any) => ({
+                                    id: c.id,
+                                    label: formatTranslated(c.name as Parameters<typeof formatTranslated>[0]),
+                                  })),
+                                ]
+                              : res.data.items.map((c: any) => ({
+                                  id: c.id,
+                                  label: formatTranslated(c.name as Parameters<typeof formatTranslated>[0]),
+                                })),
+                          pagination: res.data.pagination,
+                        },
+                      }))
+                    }
+                    placeholder={t('form.selectCategory')}
+                    initialLabel={(() => {
+                      const src = basketResponse?.data;
+                      const cat = src?.category;
+                      return cat?.name
+                        ? formatTranslated(cat.name as Parameters<typeof formatTranslated>[0])
+                        : undefined;
+                    })()}
+                  />
+                )}
+              />
+            </Box>
+            <Box className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <Box className="group">
+                <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5">
+                  <Iconify icon="solar:text-bold" className="text-violet-500" width={16} />
+                  {t('form.nameEn')}
+                </Typography>
+                <RHFTextField name="name.en" placeholder={t('form.basketNameEn')} fullWidth />
+              </Box>
+              <Box className="group">
+                <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5">
+                  <Iconify icon="solar:text-bold" className="text-violet-500" width={16} />
+                  {t('form.nameAr')}
+                </Typography>
+                <RHFTextField name="name.ar" placeholder={t('form.basketNameAr')} dir="rtl" fullWidth />
+              </Box>
+            </Box>
+          </Box>
+        </Box>
+
+        {/* ── Section: Pricing ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-amber-500/[0.06] via-amber-500/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:tag-price-bold" className="text-amber-500" width={15} />
+            </Box>
+            <Typography variant="subtitle2" className="font-semibold text-foreground">
+              {t('form.discountType')} · {t('form.offerEndsAt')} · {t('form.deliveryPrice')}
+            </Typography>
+          </Box>
+          <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+            <Box className="group">
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5">
+                <Iconify icon="solar:percent-bold" className="text-amber-500" width={16} />
+                {t('form.discountType')}
+              </Typography>
+              <Controller
+                name="discount_type"
+                control={control}
+                render={({ field }) => (
+                  <select {...field} className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm">
+                    <option value="percentage">{t('form.discountTypePercentage')}</option>
+                    <option value="fixed">{t('form.discountTypeFixed')}</option>
+                  </select>
+                )}
+              />
+            </Box>
+            <Box className="group">
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5">
+                <Iconify icon="solar:tag-price-bold" className="text-amber-500" width={16} />
+                {t('form.discountValue')}
+              </Typography>
+              <RHFTextField
+                name="discount"
+                type="number"
+                placeholder={t('form.placeholderZero')}
+                fullWidth
+                min={0}
+                max={basketDiscountType === 'percentage' ? 100 : undefined}
+              />
+            </Box>
+            <Box className="group">
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5">
+                <Iconify icon="solar:calendar-date-bold" className="text-amber-500" width={16} />
+                {t('form.offerEndsAt')}
+              </Typography>
+              <RHFTextField name="offer_ends_at" type="date" fullWidth />
+            </Box>
+            <Box className="group">
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5">
+                <Iconify icon="solar:delivery-bold" className="text-amber-500" width={16} />
+                {t('form.deliveryPrice')}
+              </Typography>
+              <RHFTextField name="delivery_price" type="number" placeholder={t('form.placeholderZero')} fullWidth />
+            </Box>
+          </Box>
+        </Box>
+
+        {/* ── Section: Items ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="flex items-center justify-between px-6 py-4 border-b border-border/40 bg-gradient-to-r from-emerald-500/[0.06] via-emerald-500/[0.02] to-transparent">
+            <Box className="flex items-center gap-3">
+              <Box className="h-8 w-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
+                <Iconify icon="solar:cart-large-2-bold" className="text-emerald-500" width={15} />
+              </Box>
+              <Typography variant="subtitle2" className="font-semibold text-foreground">
+                {t('form.basketItems')}
+              </Typography>
+            </Box>
+            <Button type="button" variant="outlined" size="small" onClick={() => append({ shop_product_variant_id: 0, quantity: 1 })} className="text-xs">
               <Iconify icon="solar:add-circle-bold" width={16} className="mr-1" />
               {t('form.addBasketItem')}
             </Button>
           </Box>
-          {fields.map((field, index) => (
-            <Box key={field.id} className="mb-2 flex items-center gap-2">
-              <Box className="flex-1">
-                <Controller
-                  name={`items.${index}.shop_product_variant_id`}
-                  control={control}
-                  render={({ field: f }) => {
-                    const apiItems = basketResponse?.data?.items;
-                    const lineFromApi = Array.isArray(apiItems) ? apiItems[index] : undefined;
-                    const numericValue = Number(f.value) || 0;
-                    return (
-                      <InfiniteScrollSelect
-                        value={numericValue}
-                        onChange={(variantId) => f.onChange(Number(variantId) || 0)}
-                        queryKey={['shopProductVariant', 'list', categoryId]}
-                        fetcher={(page, limit) => {
-                          const perPage = limit ?? 10;
-                          if (!categoryId || categoryId <= 0) {
-                            return Promise.resolve({
-                              data: {
-                                items:
-                                  page === 1
-                                    ? [{ id: 0, label: t('form.selectCategoryBeforeVariants') }]
-                                    : [],
-                                pagination: {
-                                  current_page: page,
-                                  last_page: page,
-                                  per_page: perPage,
-                                  total: 0,
+          <Box className="p-6 flex flex-col gap-3">
+            {fields.map((field, index) => (
+              <Box key={field.id} className="flex items-center gap-3 p-3 rounded-xl border border-border/40 bg-background/60">
+                <Box className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-xs font-semibold text-emerald-600">
+                  {index + 1}
+                </Box>
+                <Box className="flex-1">
+                  <Controller
+                    name={`items.${index}.shop_product_variant_id`}
+                    control={control}
+                    render={({ field: f }) => {
+                      const apiItems = basketResponse?.data?.items;
+                      const lineFromApi = Array.isArray(apiItems) ? apiItems[index] : undefined;
+                      const numericValue = Number(f.value) || 0;
+                      return (
+                        <InfiniteScrollSelect
+                          value={numericValue}
+                          onChange={(variantId) => f.onChange(Number(variantId) || 0)}
+                          queryKey={['shopProductVariant', 'list', categoryId]}
+                          fetcher={(page, limit) => {
+                            const perPage = limit ?? 10;
+                            if (!categoryId || categoryId <= 0) {
+                              return Promise.resolve({
+                                data: {
+                                  items: page === 1 ? [{ id: 0, label: t('form.selectCategoryBeforeVariants') }] : [],
+                                  pagination: { current_page: page, last_page: page, per_page: perPage, total: 0 },
                                 },
-                              },
-                            });
-                          }
-                          return _ShopProductVariantApi.getList({
-                            page,
-                            per_page: perPage,
-                            category_id: categoryId,
-                          });
-                        }}
-                        placeholder={t('form.variantId')}
-                        initialLabel={basketLineVariantInitialLabel(lineFromApi as BasketItem | undefined)}
-                        disabled={categoryId <= 0}
-                      />
-                    );
-                  }}
-                />
+                              });
+                            }
+                            return _ShopProductVariantApi.getList({ page, per_page: perPage, category_id: categoryId });
+                          }}
+                          placeholder={t('form.variantId')}
+                          initialLabel={basketLineVariantInitialLabel(lineFromApi as BasketItem | undefined)}
+                          disabled={categoryId <= 0}
+                        />
+                      );
+                    }}
+                  />
+                </Box>
+                <Box className="w-24 shrink-0">
+                  <RHFTextField name={`items.${index}.quantity`} placeholder={t('form.quantity')} type="number" fullWidth />
+                </Box>
+                {fields.length > 1 && (
+                  <Button type="button" variant="text" onClick={() => remove(index)} className="shrink-0 text-destructive">
+                    <Iconify icon="solar:trash-bin-trash-bold" width={18} />
+                  </Button>
+                )}
               </Box>
-              <Box className="w-24">
-                <RHFTextField name={`items.${index}.quantity`} placeholder={t('form.quantity')} type="number" fullWidth />
-              </Box>
-              {fields.length > 1 && (
-                <Button type="button" variant="text" onClick={() => remove(index)} className="shrink-0 text-destructive">
-                  <Iconify icon="solar:trash-bin-trash-bold" width={18} />
-                </Button>
-              )}
-            </Box>
-          ))}
+            ))}
+          </Box>
         </Box>
 
-        {/* Badges */}
-        <Box className="border-t border-border pt-6">
-          <RHFBadgeSelector name="badges" label={t('form.badgesLabel')} />
+        {/* ── Section: Badges ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-sky-500/[0.06] via-sky-500/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:medal-ribbons-star-bold" className="text-sky-500" width={15} />
+            </Box>
+            <Typography variant="subtitle2" className="font-semibold text-foreground">
+              {t('form.badgesLabel')}
+            </Typography>
+          </Box>
+          <Box className="p-6">
+            <RHFBadgeSelector name="badges" label={t('form.badgesLabel')} />
+          </Box>
         </Box>
       </CreateFormLayout>
     </>

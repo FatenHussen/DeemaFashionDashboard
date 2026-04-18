@@ -87,17 +87,24 @@ export function Searchbar({ data: navItems = [], className, ...other }: Searchba
       onClick={onOpen}
       className={`flex items-center ${
         isSmUp
-          ? 'pe-1 rounded-xl cursor-pointer bg-muted hover:bg-muted/80 transition-colors'
+          ? 'gap-2 pe-2 ps-2 rounded-full cursor-pointer border border-transparent bg-transparent hover:border-primary/25 hover:bg-primary/6 transition-all duration-200'
           : ''
       } ${className || ''}`}
       {...other}
     >
-      <Box component={isSmUp ? 'span' : 'button'} className={isSmUp ? 'p-1 inline-flex text-muted-foreground' : ''}>
+      <Box
+        component={isSmUp ? 'span' : 'button'}
+        className={
+          isSmUp
+            ? 'p-1 inline-flex text-muted-foreground hover:text-primary transition-colors'
+            : ''
+        }
+      >
         <Iconify icon="eva:search-fill" />
       </Box>
 
       <Label
-        className={`text-foreground cursor-inherit bg-muted text-xs shadow-sm ${
+        className={`text-muted-foreground cursor-inherit rounded-md border border-border/60 bg-card/90 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide shadow-sm ${
           isSmUp ? 'inline-flex' : 'hidden'
         }`}
       >

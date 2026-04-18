@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { issueIfPercentageDiscountOver100 } from 'src/utils/discount-percentage-zod';
+
 import i18n from 'src/lib/i18n';
 
 const t = (key: string) => i18n.t(key, { ns: 'validation' });
@@ -37,9 +39,12 @@ const couponFormBase = z.object({
   end_at: z.string().min(1, t('coupon.endDateRequired')),
   max_uses: z.coerce.number().min(1, t('coupon.maxUsesMin')),
   is_active: z.boolean(),
-  coupon_type: z.enum(['general', 'product', 'vendor']),
+  coupon_type: z.enum(['general', 'product', 'vendor', 'shop']),
+  governorate_id: z.number().optional().or(z.null()),
+  city_id: z.number().optional().or(z.null()),
   product_ids: z.array(z.number()).optional(),
   vendor_ids: z.array(z.number()).optional(),
+  shop_ids: z.array(z.number()).optional(),
 });
 
 export type CouponFormValues = z.infer<typeof couponFormBase>;
@@ -63,6 +68,13 @@ function scopeRefine(data: CouponFormValues, ctx: z.RefinementCtx) {
       path: ['vendor_ids'],
     });
   }
+  if (data.coupon_type === 'shop' && (!data.shop_ids || data.shop_ids.length === 0)) {
+    ctx.addIssue({
+      code: 'custom',
+      message: t('coupon.selectAtLeastOneShop'),
+      path: ['shop_ids'],
+    });
+  }
 }
 
 function endAfterStartRefine(data: CouponFormValues, ctx: z.RefinementCtx) {
@@ -78,10 +90,15 @@ function endAfterStartRefine(data: CouponFormValues, ctx: z.RefinementCtx) {
   }
 }
 
+function discountPercentageRefine(data: CouponFormValues, ctx: z.RefinementCtx) {
+  issueIfPercentageDiscountOver100(ctx, data.discount_type, data.discount_value, ['discount_value']);
+}
+
 /** Create: API requires start_at after now and max_uses ≥ 1. */
 export const CouponCreateSchema = couponFormBase.superRefine((data, ctx) => {
   scopeRefine(data, ctx);
   endAfterStartRefine(data, ctx);
+  discountPercentageRefine(data, ctx);
 
   const start = parseCouponDateTimeLocal(data.start_at);
   if (!start) return;
@@ -100,6 +117,7 @@ export const CouponCreateSchema = couponFormBase.superRefine((data, ctx) => {
 export const CouponUpdateSchema = couponFormBase.superRefine((data, ctx) => {
   scopeRefine(data, ctx);
   endAfterStartRefine(data, ctx);
+  discountPercentageRefine(data, ctx);
 });
 
 /** @deprecated Use CouponCreateSchema or CouponUpdateSchema */

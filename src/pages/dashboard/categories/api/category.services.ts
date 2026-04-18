@@ -22,12 +22,29 @@ export const _CategoryApi = {
     parent_id?: number;
     /** List direct children of this category (API query param). */
     category_id?: number;
+    sort_field?: string;
+    sort_order?: 'asc' | 'desc';
+    search?: string;
+    /** Admin list filter (preferred over `search` when both are used). */
+    name?: string;
+    is_active?: 0 | 1 | boolean;
+    is_restaurant?: 0 | 1 | boolean;
   }): Promise<CategoryListResponse> => {
     const searchParams = new URLSearchParams();
     if (params?.page) searchParams.set('page', String(params.page));
     if (params?.per_page) searchParams.set('per_page', String(params.per_page));
     if (params?.parent_id != null) searchParams.set('parent_id', String(params.parent_id));
     if (params?.category_id != null) searchParams.set('category_id', String(params.category_id));
+    if (params?.sort_field) searchParams.set('sort_field', params.sort_field);
+    if (params?.sort_order) searchParams.set('sort_order', params.sort_order);
+    if (params?.name?.trim()) searchParams.set('name', params.name.trim());
+    else if (params?.search?.trim()) searchParams.set('search', params.search.trim());
+    if (params?.is_active === true || params?.is_active === 1) searchParams.set('is_active', '1');
+    else if (params?.is_active === false || params?.is_active === 0) searchParams.set('is_active', '0');
+    if (params?.is_restaurant === true || params?.is_restaurant === 1)
+      searchParams.set('is_restaurant', '1');
+    else if (params?.is_restaurant === false || params?.is_restaurant === 0)
+      searchParams.set('is_restaurant', '0');
     const query = searchParams.toString();
     const url = query ? `${apiRoutes.category.list}?${query}` : apiRoutes.category.list;
     const response = await axiosInstance.get<CategoryListResponse>(url);
@@ -58,6 +75,7 @@ export const _CategoryApi = {
     }
 
     formData.append('is_active', data.is_active ? '1' : '0');
+    formData.append('is_restaurant', data.is_restaurant ? '1' : '0');
 
     const response = await axiosInstance.post(apiRoutes.category.create, formData, {
       headers: {
@@ -88,6 +106,7 @@ export const _CategoryApi = {
     }
 
     formData.append('is_active', data.is_active ? '1' : '0');
+    formData.append('is_restaurant', data.is_restaurant ? '1' : '0');
 
     const response = await axiosInstance.put(apiRoutes.category.update(id), formData, {
       headers: {

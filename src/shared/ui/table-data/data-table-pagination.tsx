@@ -205,10 +205,10 @@ export function DataTablePagination<TData>({
               key={page as number}
               type="button"
               onClick={() => handlePageChange(page as number)}
-              className={`flex h-8 min-w-8 shrink-0 items-center justify-center rounded-md px-2 text-xs font-medium sm:min-w-8 sm:text-sm ${
+              className={`flex h-8 min-w-8 shrink-0 items-center justify-center rounded-lg px-2 text-xs font-medium sm:min-w-8 sm:text-sm transition-colors duration-150 ${
                 (page as number) === currentPageIndex - 1
-                  ? 'bg-primary text-primary-foreground'
-                  : 'hover:bg-muted'
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'hover:bg-muted text-foreground/70 hover:text-foreground'
               }`}
               disabled={(page as number) === currentPageIndex - 1}
             >
@@ -263,7 +263,7 @@ export function DataTablePagination<TData>({
   );
 
   return (
-    <div className="w-full min-w-0 px-2 py-3 sm:py-4">
+    <div className="w-full min-w-0 px-3 py-3 border-t border-border/40 bg-muted/20 sm:py-3.5">
       {/* Narrow: two compact rows */}
       <div className="flex min-[640px]:hidden flex-col gap-2.5">
         <div className="flex min-w-0 flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs text-muted-foreground">

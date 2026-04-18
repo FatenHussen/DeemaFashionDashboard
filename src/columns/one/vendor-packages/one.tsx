@@ -3,6 +3,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 import type { VendorPackageItem } from '@/pages/dashboard/vendor/types/vendor-package.types';
 
 import { z } from 'zod';
+import { createToggleColumn } from '@/shared/ui/table-data/data-table-toggle-cell';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 
@@ -31,16 +32,6 @@ export const vendorPackageColumns = (
   onDeleteCancel?: () => void,
   deletingId?: number | null
 ): ColumnDef<VendorPackageFormValues>[] => [
-  {
-    id: 'id',
-    accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
-    cell: ({ row }) => (
-      <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
-        <span className="text-xs font-semibold text-primary">{row.original.id}</span>
-      </div>
-    ),
-  },
   {
     id: 'name',
     accessorKey: 'name',
@@ -115,6 +106,9 @@ export const vendorPackageColumns = (
       </span>
     ),
   },
+  ...(permissions.update
+    ? [createToggleColumn<VendorPackageFormValues>({ entityType: 'vendor_package' })]
+    : []),
   {
     id: 'actions',
     cell: ({ row }: any) => (
@@ -129,7 +123,6 @@ export const vendorPackageColumns = (
         onDeleteConfirm={onDeleteConfirm}
         onDeleteCancel={onDeleteCancel}
         deletingId={deletingId}
-        adminToggleEntityType="vendor_package"
         permissions={permissions}
       />
     ),

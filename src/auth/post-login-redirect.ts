@@ -1,9 +1,6 @@
 import { paths } from 'src/routes/paths';
 
-import { CONFIG } from 'src/global-config';
 import { apiRoutes, axiosInstance } from 'src/api';
-
-import { can } from './permissions';
 
 /**
  * Normalize a permission value to string (handles objects like { name: "user.view" })
@@ -62,74 +59,9 @@ export async function fetchPermissionsFromMe(): Promise<string[]> {
 }
 
 /**
- * Ordered list of nav items (path + required permission) in sidebar order.
- * Used to determine post-login redirect when user doesn't have statistics permission.
- * Statistics is handled first in getPostLoginRedirectPath; this list matches the rest of the sidebar.
+ * Default landing path after login (and when a route guard needs a safe redirect).
+ * Uses session user from `admin/auth/login` (stored as `user_data`); token is never shown on this page.
  */
-const NAV_REDIRECT_ORDER: { path: string; permission: string }[] = [
-  { path: paths.dashboard.reports, permission: 'reports.view' },
-  { path: paths.dashboard.categories, permission: 'category.view' },
-  { path: paths.dashboard.categoryAttributes, permission: 'categoryattribute.view' },
-  { path: paths.dashboard.categoryDetails, permission: 'categorydetail.view' },
-  { path: paths.dashboard.brands, permission: 'brand.view' },
-  { path: paths.dashboard.products, permission: 'product.view' },
-  { path: paths.dashboard.sections, permission: 'section.view' },
-  { path: paths.dashboard.pageSections, permission: 'pagesection.view' },
-  { path: paths.dashboard.banners, permission: 'banner.view' },
-  { path: paths.dashboard.recipes, permission: 'recipe.view' },
-  { path: paths.dashboard.baskets, permission: 'basket.view' },
-  { path: paths.dashboard.scheduledBaskets, permission: 'scheduledbasket.view' },
-  { path: paths.dashboard.locations, permission: 'governorate.view' },
-  { path: paths.dashboard.city, permission: 'city.view' },
-  { path: paths.dashboard.area, permission: 'area.view' },
-  { path: paths.dashboard.users, permission: 'user.view' },
-  { path: paths.dashboard.vendor, permission: 'vendor.view' },
-  { path: paths.dashboard.vendorUsers, permission: 'vendoruser.view' },
-  { path: paths.dashboard.sellerRegistrations, permission: 'sellerregistration.view' },
-  { path: paths.dashboard.shop, permission: 'shop.view' },
-  { path: paths.dashboard.driver, permission: 'driver.view' },
-  { path: paths.dashboard.orders, permission: 'order.view' },
-  { path: paths.dashboard.packages, permission: 'package.view' },
-  { path: paths.dashboard.subscriptions, permission: 'subscription.view' },
-  { path: paths.dashboard.vendorPackages, permission: 'vendorpackage.view' },
-  { path: paths.dashboard.vendorSubscriptions, permission: 'vendorsubscription.view' },
-  { path: paths.dashboard.gifts, permission: 'gift.view' },
-  { path: paths.dashboard.userGifts, permission: 'gift.view' },
-  { path: paths.dashboard.userPoints, permission: 'pointwallet.view' },
-  { path: paths.dashboard.pointExchanges, permission: 'pointexchange.view' },
-  { path: paths.dashboard.coupons, permission: 'coupon.view' },
-  { path: paths.dashboard.services, permission: 'service.view' },
-  // { path: `${paths.dashboard.languages}/translations`, permission: 'language.view' },
-  { path: paths.dashboard.currencies, permission: 'currency.view' },
-  { path: paths.dashboard.legalDocuments, permission: 'legaldocument.view' },
-  { path: paths.dashboard.faqs, permission: 'faq.view' },
-  { path: paths.dashboard.complaints, permission: 'complaint.view' },
-  { path: paths.dashboard.adminNotifications, permission: 'notification.view' },
-  { path: paths.dashboard.root, permission: 'admin.view' },
-  { path: paths.dashboard.role, permission: 'role.view' },
-];
-
-/**
- * Get the post-login redirect path based on user permissions.
- * - If user has stats.view (or stats.index or statistics.view) → redirect to statistics page
- * - Else → redirect to first sidebar tab they have permission for
- * - Fallback → CONFIG.auth.redirectPath
- */
-export function getPostLoginRedirectPath(permissions: string[] | undefined | null): string {
-  const perms = permissions ?? [];
-
-  // 1. Statistics if user has permission (stats.index, stats.view, or statistics.view)
-  if (can(perms, 'stats.index') || can(perms, 'stats.view') || can(perms, 'statistics.view')) {
-    return paths.dashboard.statistics;
-  }
-
-  // 2. First sidebar item user has permission for
-  for (const { path, permission } of NAV_REDIRECT_ORDER) {
-    if (can(perms, permission)) {
-      return path;
-    }
-  }
-
-  // 3. Fallback
-  return CONFIG.auth.redirectPath;
+export function getPostLoginRedirectPath(_permissions?: string[] | null): string {
+  return paths.dashboard.profile;
 }

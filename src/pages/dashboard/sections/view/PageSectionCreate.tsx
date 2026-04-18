@@ -132,15 +132,18 @@ export default function CreatePage() {
           en: nameObj?.en ?? nameStr,
           ar: nameObj?.ar ?? nameStr,
         },
-        section_id: ps.section_id ?? pageSection.id,
-        page_id: ps.page_id ?? pageSection.id,
-        display_type_id: pageSection.display_type_id,
-        position: pageSection.position,
-        order: pageSection.order,
+        section_id: ps.section_id ?? ps.section?.id ?? '',
+        page_id: ps.page_id ?? ps.page?.id ?? '',
+        display_type_id: pageSection.display_type_id ?? '',
+        position: pageSection.position ?? 'after',
+        order: pageSection.order ?? 1,
         background_color: pageSection.background_color || '',
         background_card_color: pageSection.background_card_color || '',
         filters: {},
       });
+      if (ps.filters && typeof ps.filters === 'object' && !Array.isArray(ps.filters)) {
+        setFilterValues(ps.filters);
+      }
     }
   }, [pageSectionData, isEditMode, isLoadingPageSection, reset]);
 
@@ -226,6 +229,13 @@ export default function CreatePage() {
         methods={methods}
         onSubmit={handleSubmit(onSubmit, (errors) => {
           console.log('PageSection form validation errors:', errors);
+          const firstError = Object.values(errors)[0] as any;
+          const message =
+            firstError?.message ||
+            firstError?.en?.message ||
+            firstError?.ar?.message ||
+            t('form.pleaseFixValidationErrors', { defaultValue: 'Please fix the highlighted fields.' });
+          toast.error(message);
         })}
         onCancel={handleCancel}
         isSubmitting={isSubmitting}
@@ -235,173 +245,225 @@ export default function CreatePage() {
         isEditMode={isEditMode}
         isLoading={isLoadingPageSection}
         loadingText={t('form.loadingPageSection')}
-        maxWidth="4xl"
         infoText={infoText}
         submitLabel={isEditMode ? t('form.updatePageSectionSubmit') : t('form.createPageSectionSubmit')}
         submittingLabel={isEditMode ? t('form.updatingPageSection') : t('form.creatingPageSection')}
       >
-        {/* Section - First: select section to enable display types with manual_model */}
-        <Box className="group">
-          <Box className="flex items-center gap-2 mb-2">
-            <Iconify icon="solar:widget-bold" className="text-primary" width={24} height={24} />
+        {/* ── Section: Configuration ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-violet-500/[0.06] via-violet-500/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:widget-bold" className="text-violet-500" width={15} />
+            </Box>
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              {t('form.pageSectionFormSectionLabel')}
+              {t('form.pageSectionFormSectionLabel')} & {t('form.pageSectionFormPageLabel')}
             </Typography>
           </Box>
-          <RHFInfiniteSelect
-            name="section_id"
-            queryKey={['pageSection', 'sections', 'infinite']}
-            fetcher={sectionFetcher}
-            placeholder={t('form.selectSection')}
-            helperText={t('form.selectSectionHelper')}
-            initialLabel={
-              sectionsData?.data?.items?.find(
-                (s: SectionItem) =>
-                  s.id === Number((pageSectionData?.data as any)?.section_id ?? 0)
-              )?.name
-            }
-          />
+          <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+            <Box className="group">
+              <Box className="flex items-center gap-2 mb-2">
+                <Iconify icon="solar:widget-bold" className="text-violet-500" width={20} height={20} />
+                <Typography variant="subtitle2" className="font-semibold text-foreground">
+                  {t('form.pageSectionFormSectionLabel')}
+                </Typography>
+              </Box>
+              <RHFInfiniteSelect
+                name="section_id"
+                queryKey={['pageSection', 'sections', 'infinite']}
+                fetcher={sectionFetcher}
+                placeholder={t('form.selectSection')}
+                helperText={t('form.selectSectionHelper')}
+                initialLabel={
+                  sectionsData?.data?.items?.find(
+                    (s: SectionItem) =>
+                      s.id === Number((pageSectionData?.data as any)?.section_id ?? 0)
+                  )?.name
+                }
+              />
+            </Box>
+
+            <Box className="group">
+              <Box className="flex items-center gap-2 mb-2">
+                <Iconify icon="solar:document-bold" className="text-violet-500" width={20} height={20} />
+                <Typography variant="subtitle2" className="font-semibold text-foreground">
+                  {t('form.pageSectionFormPageLabel')}
+                </Typography>
+              </Box>
+              <RHFInfiniteSelect
+                name="page_id"
+                queryKey={['pageSection', 'pages', 'infinite']}
+                fetcher={() => pageFetcher()}
+                placeholder={t('form.selectPage')}
+                helperText={t('form.selectPageHelper')}
+                initialLabel={
+                  (pageSectionData?.data as any)?.page_title ??
+                  (pageSectionData?.data as any)?.page?.title
+                }
+              />
+            </Box>
+          </Box>
         </Box>
 
-        {/* English Name */}
-        <Box className="group">
-          <Box className="flex items-center gap-2 mb-2">
-            <Iconify icon="solar:text-bold" className="text-primary" width={24} height={24} />
+        {/* ── Section: Names ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-primary/[0.06] via-primary/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:text-bold" className="text-primary" width={15} />
+            </Box>
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              {t('form.sectionNameEnglishLabel')}
+              {t('form.sectionNameEnglishLabel')} / {t('form.sectionNameArabicLabel')}
             </Typography>
           </Box>
-          <RHFTextField
-            name="name.en"
-            placeholder={t('form.sectionNameEnPlaceholder')}
-            helperText={t('form.sectionNameEnHelper')}
-            className="transition-all duration-200"
-          />
+          <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+            <Box className="group">
+              <Box className="flex items-center gap-2 mb-2">
+                <Iconify icon="solar:text-bold" className="text-primary" width={20} height={20} />
+                <Typography variant="subtitle2" className="font-semibold text-foreground">
+                  {t('form.sectionNameEnglishLabel')}
+                </Typography>
+              </Box>
+              <RHFTextField
+                name="name.en"
+                placeholder={t('form.sectionNameEnPlaceholder')}
+                helperText={t('form.sectionNameEnHelper')}
+                className="transition-all duration-200"
+              />
+            </Box>
+
+            <Box className="group">
+              <Box className="flex items-center gap-2 mb-2">
+                <Iconify icon="solar:text-bold" className="text-primary" width={20} height={20} />
+                <Typography variant="subtitle2" className="font-semibold text-foreground">
+                  {t('form.sectionNameArabicLabel')}
+                </Typography>
+              </Box>
+              <RHFTextField
+                name="name.ar"
+                placeholder={t('form.sectionNameArPlaceholder')}
+                helperText={t('form.sectionNameArHelper')}
+                className="transition-all duration-200"
+                dir="rtl"
+              />
+            </Box>
+          </Box>
         </Box>
 
-        {/* Arabic Name */}
-        <Box className="group">
-          <Box className="flex items-center gap-2 mb-2">
-            <Iconify icon="solar:text-bold" className="text-primary" width={24} height={24} />
+        {/* ── Section: Display Type ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-sky-500/[0.06] via-sky-500/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:gallery-bold" className="text-sky-500" width={15} />
+            </Box>
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              {t('form.sectionNameArabicLabel')}
+              {t('form.pageSectionFormDisplayTypeLabel')}
             </Typography>
           </Box>
-          <RHFTextField
-            name="name.ar"
-            placeholder={t('form.sectionNameArPlaceholder')}
-            helperText={t('form.sectionNameArHelper')}
-            className="transition-all duration-200"
-            dir="rtl"
-          />
-        </Box>
-
-        {/* Page */}
-        <Box className="group">
-          <Box className="flex items-center gap-2 mb-2">
-            <Iconify icon="solar:document-bold" className="text-primary" width={24} height={24} />
-            <Typography variant="subtitle2" className="font-semibold text-foreground">
-              {t('form.pageSectionFormPageLabel')}
-            </Typography>
-          </Box>
-          <RHFInfiniteSelect
-            name="page_id"
-            queryKey={['pageSection', 'pages', 'infinite']}
-            fetcher={() => pageFetcher()}
-            placeholder={t('form.selectPage')}
-            helperText={t('form.selectPageHelper')}
-            initialLabel={
-              (pageSectionData?.data as any)?.page_title ??
-              (pageSectionData?.data as any)?.page?.title
-            }
-          />
-        </Box>
-
-        {/* Display Type - fetches with manual_model from selected section, shows as images */}
-        <DisplayTypeImageSelect
-          name="display_type_id"
-          manualModel={
-            selectedSection?.manual?.manual_model ??
-            (sectionDetailsData?.data as any)?.manual?.manual_model ??
-            null
-          }
-          selectedSection={selectedSection}
-          sectionId={sectionIdForDetails || null}
-          helperText={t('form.selectDisplayHelper')}
-          currentDisplayTypeId={pageSectionData?.data?.display_type_id}
-        />
-
-        {/* Position */}
-        <Box className="group">
-          <Box className="flex items-center gap-2 mb-2">
-            <Iconify
-              icon="solar:align-vertical-spacing-bold"
-              className="text-primary"
-              width={24}
-              height={24}
+          <Box className="p-6">
+            <DisplayTypeImageSelect
+              name="display_type_id"
+              manualModel={
+                selectedSection?.manual?.manual_model ??
+                (sectionDetailsData?.data as any)?.manual?.manual_model ??
+                null
+              }
+              selectedSection={selectedSection}
+              sectionId={sectionIdForDetails || null}
+              helperText={t('form.selectDisplayHelper')}
+              currentDisplayTypeId={pageSectionData?.data?.display_type_id}
             />
-            <Typography variant="subtitle2" className="font-semibold text-foreground">
-              {t('form.pageSectionFormPositionLabel')}
-            </Typography>
           </Box>
-          <RHFSelect
-            name="position"
-            options={positionOptions}
-            placeholder={t('form.selectPosition')}
-            helperText={t('form.selectPositionHelper')}
-            className="transition-all duration-200"
-          />
         </Box>
 
-        {/* Order */}
-        <Box className="group">
-          <Box className="flex items-center gap-2 mb-2">
-            <Iconify icon="solar:sort-bold" className="text-primary" width={24} height={24} />
+        {/* ── Section: Layout ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-emerald-500/[0.06] via-emerald-500/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:align-vertical-spacing-bold" className="text-emerald-500" width={15} />
+            </Box>
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              {t('form.pageSectionFormOrderLabel')}
+              {t('form.pageSectionFormPositionLabel')} & {t('form.pageSectionFormOrderLabel')}
             </Typography>
           </Box>
-          <RHFTextField
-            name="order"
-            type="number"
-            placeholder={t('form.displayOrderPlaceholder')}
-            helperText={t('form.displayOrderHelper')}
-            className="transition-all duration-200"
-          />
+          <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+            <Box className="group">
+              <Box className="flex items-center gap-2 mb-2">
+                <Iconify icon="solar:align-vertical-spacing-bold" className="text-emerald-500" width={20} height={20} />
+                <Typography variant="subtitle2" className="font-semibold text-foreground">
+                  {t('form.pageSectionFormPositionLabel')}
+                </Typography>
+              </Box>
+              <RHFSelect
+                name="position"
+                options={positionOptions}
+                placeholder={t('form.selectPosition')}
+                helperText={t('form.selectPositionHelper')}
+                className="transition-all duration-200"
+              />
+            </Box>
+
+            <Box className="group">
+              <Box className="flex items-center gap-2 mb-2">
+                <Iconify icon="solar:sort-bold" className="text-emerald-500" width={20} height={20} />
+                <Typography variant="subtitle2" className="font-semibold text-foreground">
+                  {t('form.pageSectionFormOrderLabel')}
+                </Typography>
+              </Box>
+              <RHFTextField
+                name="order"
+                type="number"
+                placeholder={t('form.displayOrderPlaceholder')}
+                helperText={t('form.displayOrderHelper')}
+                className="transition-all duration-200"
+              />
+            </Box>
+          </Box>
         </Box>
 
-        {/* Background Color */}
-        <Box className="group">
-          <Box className="flex items-center gap-2 mb-2">
-            <Iconify icon="solar:pallete-bold" className="text-primary" width={24} height={24} />
+        {/* ── Section: Appearance ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-rose-500/[0.06] via-rose-500/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:pallete-bold" className="text-rose-500" width={15} />
+            </Box>
             <Typography variant="subtitle2" className="font-semibold text-foreground">
               {t('form.pageSectionFormBackgroundColorOptional')}
             </Typography>
           </Box>
-          <RHFColorPicker name="background_color" helperText={t('form.bgColorHelper')} />
-        </Box>
+          <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+            <Box className="group">
+              <Box className="flex items-center gap-2 mb-2">
+                <Iconify icon="solar:pallete-bold" className="text-rose-500" width={20} height={20} />
+                <Typography variant="subtitle2" className="font-semibold text-foreground">
+                  {t('form.pageSectionFormBackgroundColorOptional')}
+                </Typography>
+              </Box>
+              <RHFColorPicker name="background_color" helperText={t('form.bgColorHelper')} />
+            </Box>
 
-        {/* Background Card Color */}
-        <Box className="group">
-          <Box className="flex items-center gap-2 mb-2">
-            <Iconify icon="solar:pallete-2-bold" className="text-primary" width={24} height={24} />
-            <Typography variant="subtitle2" className="font-semibold text-foreground">
-              {t('form.pageSectionFormBackgroundCardColorOptional')}
-            </Typography>
+            <Box className="group">
+              <Box className="flex items-center gap-2 mb-2">
+                <Iconify icon="solar:pallete-2-bold" className="text-rose-500" width={20} height={20} />
+                <Typography variant="subtitle2" className="font-semibold text-foreground">
+                  {t('form.pageSectionFormBackgroundCardColorOptional')}
+                </Typography>
+              </Box>
+              <RHFColorPicker name="background_card_color" helperText={t('form.bgCardColorHelper')} />
+            </Box>
           </Box>
-          <RHFColorPicker name="background_card_color" helperText={t('form.bgCardColorHelper')} />
         </Box>
 
-        {/* Dynamic Filters Section */}
+        {/* ── Section: Dynamic Filters ── */}
         {selectedSection && Object.keys(sectionFilters).length > 0 && (
-          <Box className="col-span-2">
-            <Box className="flex items-center gap-2 mb-4">
-              <Iconify icon="solar:filter-bold" className="text-primary" width={24} height={24} />
-              <Typography variant="h6" className="font-semibold text-foreground">
+          <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+            <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-amber-500/[0.06] via-amber-500/[0.02] to-transparent">
+              <Box className="h-8 w-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
+                <Iconify icon="solar:filter-bold" className="text-amber-500" width={15} />
+              </Box>
+              <Typography variant="subtitle2" className="font-semibold text-foreground">
                 {t('form.pageSectionFormFiltersTitle')}
               </Typography>
             </Box>
-            <Box className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
               {Object.entries(sectionFilters).map(([filterKey, filterConfig]) => (
                 <DynamicFilterField
                   key={filterKey}

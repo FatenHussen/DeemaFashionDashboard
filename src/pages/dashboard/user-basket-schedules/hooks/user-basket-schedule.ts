@@ -49,3 +49,15 @@ export const useDeleteUserBasketSchedule = () => {
     },
   });
 };
+
+export const useSetUserBasketScheduleActive = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, nextActive }: { id: number | string; nextActive: boolean }) =>
+      nextActive ? _UserBasketScheduleApi.enable(id) : _UserBasketScheduleApi.disable(id),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['userBasketSchedule', 'list'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.userBasketSchedule.details(variables.id) });
+    },
+  });
+};

@@ -1,13 +1,21 @@
 import type { ReactNode } from 'react';
 import type { TFunction } from 'i18next';
 
-import { useEffect } from 'react';
+import { toast } from 'react-toastify';
 import { Button } from '@/shared/ui/button';
+import { Dialog } from '@/shared/ui/dialog';
 import { useTranslation } from 'react-i18next';
+import { useRef, useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
 import { formatTranslated } from '@/utils/format-translated';
 import { useFetchProductById } from '@/pages/dashboard/products/hooks/product';
+import {
+  useUpdateProductVariant,
+  useDeleteProductVariant,
+  useUpdateShopProductVariant,
+  useDeleteShopProductVariant,
+} from '@/pages/dashboard/products/hooks/product-variant';
 
 import { paths } from 'src/routes/paths';
 
@@ -97,11 +105,332 @@ function DetailRow({ label, value, emptyLabel }: { label: string; value: ReactNo
   );
 }
 
+// ----------------------------------------------------------------------
+// Product Variant Edit Modal
+
+interface EditVariantModalProps {
+  open: boolean;
+  variant: any;
+  onClose: () => void;
+  onSuccess: () => void;
+}
+
+function EditVariantModal({ open, variant, onClose, onSuccess }: EditVariantModalProps) {
+  const { t } = useTranslation('table');
+  const { mutate: updateVariant, isPending } = useUpdateProductVariant();
+
+  const [isTrend, setIsTrend] = useState<number>(variant?.is_trend ?? 0);
+  const [isActive, setIsActive] = useState<number>(variant?.is_active ?? 1);
+  const [newImages, setNewImages] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (open && variant) {
+      setIsTrend(variant.is_trend ?? 0);
+      setIsActive(variant.is_active ?? 1);
+      setNewImages([]);
+    }
+  }, [open, variant]);
+
+  const existingImages: { id: number; url: string }[] = variant?.images ?? [];
+  const [keptImageIds, setKeptImageIds] = useState<number[]>([]);
+
+  useEffect(() => {
+    if (open && variant) {
+      setKeptImageIds((variant.images ?? []).map((img: any) => img.id));
+    }
+  }, [open, variant]);
+
+  const handleSubmit = () => {
+    if (!variant?.id) return;
+    const attrIds: number[] = (variant.attributes ?? []).map((a: any) => a.value_id ?? a.id).filter(Boolean);
+    updateVariant(
+      {
+        id: variant.id,
+        data: {
+          is_trend: isTrend,
+          is_active: isActive,
+          attributes_values_ids: attrIds,
+          existing_images_ids: keptImageIds,
+          images: newImages.length > 0 ? newImages : undefined,
+        },
+      },
+      {
+        onSuccess: () => {
+          toast.success(t('form.variantSaveSuccess'));
+          onSuccess();
+          onClose();
+        },
+        onError: () => {
+          toast.error(t('form.variantSaveFailed'));
+        },
+      }
+    );
+  };
+
+  return (
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="sm"
+      title={t('form.productDetailsEditVariantTitle', { id: variant?.id ?? '' })}
+      content={
+        <Box className="space-y-4">
+          {/* is_trend */}
+          <Box>
+            <Typography variant="body2" className="text-muted-foreground mb-1 font-medium">
+              {t('form.productDetailsVariantIsTrendLabel')}
+            </Typography>
+            <Box className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setIsTrend(1)}
+                className={`px-4 py-1.5 rounded-md border text-sm font-medium transition-colors ${isTrend === 1 ? 'bg-primary text-primary-foreground border-primary' : 'border-border text-muted-foreground hover:border-primary/60'}`}
+              >
+                {t('yes')}
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsTrend(0)}
+                className={`px-4 py-1.5 rounded-md border text-sm font-medium transition-colors ${isTrend === 0 ? 'bg-primary text-primary-foreground border-primary' : 'border-border text-muted-foreground hover:border-primary/60'}`}
+              >
+                {t('no')}
+              </button>
+            </Box>
+          </Box>
+
+          {/* is_active */}
+          <Box>
+            <Typography variant="body2" className="text-muted-foreground mb-1 font-medium">
+              {t('form.productDetailsVariantIsActiveLabel')}
+            </Typography>
+            <Box className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setIsActive(1)}
+                className={`px-4 py-1.5 rounded-md border text-sm font-medium transition-colors ${isActive === 1 ? 'bg-primary text-primary-foreground border-primary' : 'border-border text-muted-foreground hover:border-primary/60'}`}
+              >
+                {t('yes')}
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsActive(0)}
+                className={`px-4 py-1.5 rounded-md border text-sm font-medium transition-colors ${isActive === 0 ? 'bg-primary text-primary-foreground border-primary' : 'border-border text-muted-foreground hover:border-primary/60'}`}
+              >
+                {t('no')}
+              </button>
+            </Box>
+          </Box>
+
+          {/* existing images */}
+          {existingImages.length > 0 && (
+            <Box>
+              <Typography variant="body2" className="text-muted-foreground mb-2 font-medium">
+                {t('form.productDetailsVariantExistingImagesLabel')}
+              </Typography>
+              <Box className="flex flex-wrap gap-2">
+                {existingImages.map((img) => {
+                  const kept = keptImageIds.includes(img.id);
+                  return (
+                    <button
+                      key={img.id}
+                      type="button"
+                      onClick={() =>
+                        setKeptImageIds((prev) =>
+                          kept ? prev.filter((x) => x !== img.id) : [...prev, img.id]
+                        )
+                      }
+                      className={`relative rounded-lg border-2 transition-all overflow-hidden ${kept ? 'border-primary' : 'border-border opacity-40'}`}
+                    >
+                      <img src={img.url} alt="" className="w-14 h-14 object-cover" />
+                      {!kept && (
+                        <Box className="absolute inset-0 flex items-center justify-center bg-black/40">
+                          <Iconify icon="solar:trash-bin-minimalistic-bold" className="text-white" width={18} />
+                        </Box>
+                      )}
+                    </button>
+                  );
+                })}
+              </Box>
+            </Box>
+          )}
+
+          {/* new images */}
+          <Box>
+            <Typography variant="body2" className="text-muted-foreground mb-2 font-medium">
+              {t('form.productDetailsVariantUploadNewLabel')}
+            </Typography>
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                if (e.target.files) setNewImages(Array.from(e.target.files));
+              }}
+            />
+            <Button variant="outlined" size="small" onClick={() => fileInputRef.current?.click()}>
+              <Iconify icon="solar:upload-bold" width={16} className="mr-1" />
+              {newImages.length > 0
+                ? t('form.productDetailsVariantFilesSelected', { count: newImages.length })
+                : t('form.chooseFiles')}
+            </Button>
+          </Box>
+        </Box>
+      }
+      actions={
+        <>
+          <Button variant="outlined" onClick={onClose} disabled={isPending}>
+            {t('cancel')}
+          </Button>
+          <Button variant="contained" onClick={handleSubmit} disabled={isPending}>
+            {isPending ? t('form.savingVariant') : t('save')}
+          </Button>
+        </>
+      }
+    />
+  );
+}
+
+// ----------------------------------------------------------------------
+// Shop Product Variant Edit Modal
+
+interface EditShopVariantModalProps {
+  open: boolean;
+  shopVariant: any;
+  onClose: () => void;
+  onSuccess: () => void;
+}
+
+function EditShopVariantModal({ open, shopVariant, onClose, onSuccess }: EditShopVariantModalProps) {
+  const { t } = useTranslation('table');
+  const { mutate: updateShopVariant, isPending } = useUpdateShopProductVariant();
+
+  const [price, setPrice] = useState<string>('');
+  const [quantity, setQuantity] = useState<string>('');
+  const [shopId, setShopId] = useState<string>('');
+  const [productVariantId, setProductVariantId] = useState<string>('');
+
+  useEffect(() => {
+    if (open && shopVariant) {
+      setPrice(shopVariant.price != null ? String(shopVariant.price) : '');
+      setQuantity(shopVariant.quantity != null ? String(shopVariant.quantity) : '');
+      setShopId(shopVariant.shop_id != null ? String(shopVariant.shop_id) : '');
+      setProductVariantId(shopVariant.product_variant_id != null ? String(shopVariant.product_variant_id) : '');
+    }
+  }, [open, shopVariant]);
+
+  const handleSubmit = () => {
+    if (!shopVariant?.id) return;
+    updateShopVariant(
+      {
+        id: shopVariant.id,
+        data: {
+          price: price !== '' ? Number(price) : undefined,
+          quantity: quantity !== '' ? Number(quantity) : undefined,
+          shop_id: shopId !== '' ? Number(shopId) : undefined,
+          product_variant_id: productVariantId !== '' ? Number(productVariantId) : undefined,
+        },
+      },
+      {
+        onSuccess: () => {
+          toast.success(t('form.shopVariantSaveSuccess'));
+          onSuccess();
+          onClose();
+        },
+        onError: () => {
+          toast.error(t('form.shopVariantSaveFailed'));
+        },
+      }
+    );
+  };
+
+  return (
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="sm"
+      title={t('form.productDetailsEditShopVariantTitle', { id: shopVariant?.id ?? '' })}
+      content={
+        <Box className="space-y-3">
+          {[
+            { label: t('form.priceLabel'), value: price, setter: setPrice },
+            { label: t('form.quantity'), value: quantity, setter: setQuantity },
+            { label: t('form.productDetailsShopFieldShopId'), value: shopId, setter: setShopId },
+            {
+              label: t('form.productDetailsShopFieldProductVariantId'),
+              value: productVariantId,
+              setter: setProductVariantId,
+            },
+          ].map(({ label, value, setter }) => (
+            <Box key={label}>
+              <Typography variant="body2" className="text-muted-foreground mb-1 font-medium">
+                {label}
+              </Typography>
+              <input
+                type="number"
+                value={value}
+                onChange={(e) => setter(e.target.value)}
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+              />
+            </Box>
+          ))}
+        </Box>
+      }
+      actions={
+        <>
+          <Button variant="outlined" onClick={onClose} disabled={isPending}>
+            {t('cancel')}
+          </Button>
+          <Button variant="contained" onClick={handleSubmit} disabled={isPending}>
+            {isPending ? t('form.savingVariant') : t('save')}
+          </Button>
+        </>
+      }
+    />
+  );
+}
+
+// ----------------------------------------------------------------------
+
 export default function DetailsPage() {
   const { t, i18n } = useTranslation('table');
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { data: productResponse, isLoading, error } = useFetchProductById(id || '');
+  const { data: productResponse, isLoading, error, refetch } = useFetchProductById(id || '');
+
+  const { mutate: deleteVariant } = useDeleteProductVariant();
+  const { mutate: deleteShopVariant } = useDeleteShopProductVariant();
+
+  const [editVariant, setEditVariant] = useState<any>(null);
+  const [deleteVariantId, setDeleteVariantId] = useState<number | null>(null);
+  const [editShopVariant, setEditShopVariant] = useState<any>(null);
+  const [deleteShopVariantId, setDeleteShopVariantId] = useState<number | null>(null);
+
+  const handleDeleteVariant = () => {
+    if (!deleteVariantId) return;
+    deleteVariant(deleteVariantId, {
+      onSuccess: () => {
+        toast.success(t('form.variantDeleteSuccess'));
+        setDeleteVariantId(null);
+        refetch();
+      },
+      onError: () => toast.error(t('form.variantDeleteFailed')),
+    });
+  };
+
+  const handleDeleteShopVariant = () => {
+    if (!deleteShopVariantId) return;
+    deleteShopVariant(deleteShopVariantId, {
+      onSuccess: () => {
+        toast.success(t('form.productDetailsShopVariantDeleteSuccess'));
+        setDeleteShopVariantId(null);
+        refetch();
+      },
+      onError: () => toast.error(t('form.productDetailsShopVariantDeleteFailed')),
+    });
+  };
 
   const na = t('form.productDetailsNotAvailable');
 
@@ -136,12 +465,12 @@ export default function DetailsPage() {
   }
 
   const product = productResponse as any;
+  const isRestaurant = Boolean(product?.category?.is_restaurant);
   const yes = t('form.productDetailsYes');
   const no = t('form.productDetailsNo');
 
   return (
-    <>
-      <Box className="relative min-h-screen overflow-hidden bg-background p-6">
+    <Box className="relative min-h-screen overflow-hidden bg-background p-6">
         <Box className="pointer-events-none fixed inset-0 bg-gradient-to-br from-background via-background to-muted/30" />
         <Box className="pointer-events-none fixed inset-0 opacity-[0.03] dark:opacity-[0.05]">
           <Box className="absolute inset-0 bg-[linear-gradient(to_right,rgba(0,0,0,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(0,0,0,0.03)_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:32px_32px]" />
@@ -212,11 +541,13 @@ export default function DetailsPage() {
                   value={formatTranslated(product.category?.name) ?? product.category_id}
                   emptyLabel={na}
                 />
-                <DetailRow
-                  label={t('form.brand')}
-                  value={product.brand?.name ?? '—'}
-                  emptyLabel={na}
-                />
+                {!isRestaurant && (
+                  <DetailRow
+                    label={t('form.brand')}
+                    value={product.brand?.name ?? '—'}
+                    emptyLabel={na}
+                  />
+                )}
                 <DetailRow
                   label={t('form.productVendor')}
                   value={product.vendor ? formatTranslated(product.vendor.name as any) : '—'}
@@ -227,26 +558,25 @@ export default function DetailsPage() {
                   value={product.approval_status_label ?? product.approval_status ?? '—'}
                   emptyLabel={na}
                 />
-                <DetailRow
-                  label={t('form.productDetailsVisibleCustomers')}
-                  value={
-                    product.is_visible === false || product.is_visible === 0 ? no : yes
-                  }
-                  emptyLabel={na}
-                />
-                <DetailRow
-                  label={t('form.countryOriginSelect')}
-                  value={productCountryOriginDisplay(product)}
-                  emptyLabel={na}
-                />
-                <DetailRow
-                  label={t('form.countrySaleSelect')}
-                  value={productCountrySaleDisplay(product)}
-                  emptyLabel={na}
-                />
-                <DetailRow label={t('columns.sku')} value={product.sku} emptyLabel={na} />
-                <DetailRow label={t('form.model')} value={product.model} emptyLabel={na} />
-                <DetailRow label={t('form.barcode')} value={product.barcode} emptyLabel={na} />
+                {!isRestaurant && (
+                  <>
+                    <Box className="col-span-1 md:col-span-2 lg:col-span-3 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <DetailRow
+                        label={t('form.countryOriginSelect')}
+                        value={productCountryOriginDisplay(product)}
+                        emptyLabel={na}
+                      />
+                      <DetailRow
+                        label={t('form.countrySaleSelect')}
+                        value={productCountrySaleDisplay(product)}
+                        emptyLabel={na}
+                      />
+                    </Box>
+                    <DetailRow label={t('columns.sku')} value={product.sku} emptyLabel={na} />
+                    <DetailRow label={t('form.model')} value={product.model} emptyLabel={na} />
+                    <DetailRow label={t('form.barcode')} value={product.barcode} emptyLabel={na} />
+                  </>
+                )}
                 <DetailRow
                   label={t('form.timeToPrepare')}
                   value={product.time_prepare}
@@ -267,12 +597,12 @@ export default function DetailsPage() {
                 {t('form.productDetailsSectionPricing')}
               </Typography>
               <Box className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <DetailRow label={t('columns.price')} value={`$${product.price}`} emptyLabel={na} />
+                <DetailRow label={t('columns.price')} value={`ل.س ${product.price}`} emptyLabel={na} />
                 <DetailRow
                   label={t('columns.priceAfterDiscount')}
                   value={
                     product.price_after_discount != null
-                      ? `$${product.price_after_discount}`
+                      ? `ل.س ${product.price_after_discount}`
                       : '—'
                   }
                   emptyLabel={na}
@@ -290,7 +620,7 @@ export default function DetailsPage() {
                 />
                 <DetailRow
                   label={t('form.productDetailsCostPrice')}
-                  value={product.cost_price != null ? `$${product.cost_price}` : '—'}
+                  value={product.cost_price != null ? `ل.س ${product.cost_price}` : '—'}
                   emptyLabel={na}
                 />
                 <DetailRow
@@ -410,12 +740,33 @@ export default function DetailsPage() {
                 <Box className="space-y-4">
                   {product.variants.map((variant: any, i: number) => (
                     <Box key={variant.id ?? i} className="rounded-lg border border-border/40 p-4 space-y-3">
-                      <Typography variant="subtitle2" className="font-medium">
-                        {t('form.productDetailsVariantHeader', {
-                          n: i + 1,
-                          id: variant.id,
-                        })}
-                      </Typography>
+                      {/* Variant header with actions */}
+                      <Box className="flex items-center justify-between">
+                        <Typography variant="subtitle2" className="font-medium">
+                          {t('form.productDetailsVariantHeader', {
+                            n: i + 1,
+                            id: variant.id,
+                          })}
+                        </Typography>
+                        <Box className="flex items-center gap-1">
+                          <Button
+                            size="small"
+                            variant="text"
+                            onClick={() => setEditVariant(variant)}
+                            className="text-primary hover:bg-primary/10 min-w-0 px-2"
+                          >
+                            <Iconify icon="solar:pen-bold" width={16} />
+                          </Button>
+                          <Button
+                            size="small"
+                            variant="text"
+                            onClick={() => setDeleteVariantId(variant.id)}
+                            className="text-destructive hover:bg-destructive/10 min-w-0 px-2"
+                          >
+                            <Iconify icon="solar:trash-bin-minimalistic-bold" width={16} />
+                          </Button>
+                        </Box>
+                      </Box>
 
                       {/* Attributes */}
                       {variant.attributes?.length > 0 && (
@@ -462,8 +813,24 @@ export default function DetailsPage() {
                               <Box key={si} className="flex items-center justify-between rounded-md border border-border/40 bg-muted/20 px-3 py-2 text-sm">
                                 <span className="font-medium">{shop.shop_name}</span>
                                 <Box className="flex items-center gap-3 text-muted-foreground">
-                                  <span>${shop.price}</span>
+                                  <span>ل.س {shop.price}</span>
                                   <span>×{shop.quantity}</span>
+                                  <Button
+                                    size="small"
+                                    variant="text"
+                                    onClick={() => setEditShopVariant(shop)}
+                                    className="text-primary hover:bg-primary/10 min-w-0 px-1.5 h-7"
+                                  >
+                                    <Iconify icon="solar:pen-bold" width={14} />
+                                  </Button>
+                                  <Button
+                                    size="small"
+                                    variant="text"
+                                    onClick={() => setDeleteShopVariantId(shop.id)}
+                                    className="text-destructive hover:bg-destructive/10 min-w-0 px-1.5 h-7"
+                                  >
+                                    <Iconify icon="solar:trash-bin-minimalistic-bold" width={14} />
+                                  </Button>
                                 </Box>
                               </Box>
                             ))}
@@ -475,6 +842,72 @@ export default function DetailsPage() {
                 </Box>
               </Box>
             )}
+
+            {/* Edit Variant Modal */}
+            {editVariant && (
+              <EditVariantModal
+                open={!!editVariant}
+                variant={editVariant}
+                onClose={() => setEditVariant(null)}
+                onSuccess={() => refetch()}
+              />
+            )}
+
+            {/* Delete Variant Confirm */}
+            <Dialog
+              open={deleteVariantId !== null}
+              onClose={() => setDeleteVariantId(null)}
+              maxWidth="xs"
+              title={t('form.productDetailsDeleteVariantTitle')}
+              content={
+                <Typography variant="body2">
+                  {t('form.productDetailsDeleteVariantBody', { id: deleteVariantId ?? '' })}
+                </Typography>
+              }
+              actions={
+                <>
+                  <Button variant="outlined" onClick={() => setDeleteVariantId(null)}>
+                    {t('cancel')}
+                  </Button>
+                  <Button variant="contained" onClick={handleDeleteVariant} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                    {t('delete')}
+                  </Button>
+                </>
+              }
+            />
+
+            {/* Edit Shop Variant Modal */}
+            {editShopVariant && (
+              <EditShopVariantModal
+                open={!!editShopVariant}
+                shopVariant={editShopVariant}
+                onClose={() => setEditShopVariant(null)}
+                onSuccess={() => refetch()}
+              />
+            )}
+
+            {/* Delete Shop Variant Confirm */}
+            <Dialog
+              open={deleteShopVariantId !== null}
+              onClose={() => setDeleteShopVariantId(null)}
+              maxWidth="xs"
+              title={t('form.productDetailsDeleteShopVariantTitle')}
+              content={
+                <Typography variant="body2">
+                  {t('form.productDetailsDeleteShopVariantBody', { id: deleteShopVariantId ?? '' })}
+                </Typography>
+              }
+              actions={
+                <>
+                  <Button variant="outlined" onClick={() => setDeleteShopVariantId(null)}>
+                    {t('cancel')}
+                  </Button>
+                  <Button variant="contained" onClick={handleDeleteShopVariant} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                    {t('delete')}
+                  </Button>
+                </>
+              }
+            />
 
             {/* Category Details */}
             {product.category_details?.length > 0 && (
@@ -490,8 +923,14 @@ export default function DetailsPage() {
                         {cd.name}
                       </Typography>
                       <Box className="flex gap-4 text-sm">
-                        <span><span className="text-muted-foreground">EN: </span>{cd.value?.en}</span>
-                        <span><span className="text-muted-foreground">AR: </span>{cd.value?.ar}</span>
+                        <span>
+                          <span className="text-muted-foreground">{t('form.productDetailsLangEn')}: </span>
+                          {cd.value?.en}
+                        </span>
+                        <span>
+                          <span className="text-muted-foreground">{t('form.productDetailsLangAr')}: </span>
+                          {cd.value?.ar}
+                        </span>
                       </Box>
                     </Box>
                   ))}
@@ -539,7 +978,7 @@ export default function DetailsPage() {
                             <Typography variant="caption" className="text-muted-foreground">
                               {t('form.productDetailsExtraPrice')}
                             </Typography>
-                            <Typography variant="body2">${ed.price}</Typography>
+                            <Typography variant="body2">ل.س {ed.price}</Typography>
                           </Box>
                         ) : null}
                       </Box>
@@ -575,6 +1014,5 @@ export default function DetailsPage() {
           </Box>
         </Box>
       </Box>
-    </>
   );
 }

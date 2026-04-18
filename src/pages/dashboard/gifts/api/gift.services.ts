@@ -1,4 +1,4 @@
-import type { GiftListResponse, GiftDetailsResponse, GiftCreateUpdatePayload, BulkGiftCreatePayload } from '../types/gift.types';
+import type { GiftListResponse, GiftDetailsResponse, BulkGiftCreatePayload, GiftCreateUpdatePayload } from '../types/gift.types';
 
 import { apiRoutes, axiosInstance } from '@/api';
 

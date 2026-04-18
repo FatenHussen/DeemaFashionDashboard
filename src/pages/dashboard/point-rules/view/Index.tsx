@@ -67,7 +67,8 @@ export default function Page() {
           handleEdit
         )}
         data={rawItems as PointRuleTableItem[]}
-        hasDetails={false}
+        hasDetails
+        detailsLink="/point-rules/update"
         permissions={{
           create: false,
           update: hasPermission('update', 'pointrule'),

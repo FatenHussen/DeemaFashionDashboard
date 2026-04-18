@@ -37,7 +37,7 @@ export default function DetailsPage() {
       <title>{t('form.currencyDetailsDocumentTitle', { appName: CONFIG.appName })}</title>
       <Box className="relative min-h-screen overflow-hidden bg-background p-6">
         <Box className="pointer-events-none fixed inset-0 bg-gradient-to-br from-background via-background to-muted/30" />
-        <Box className="relative max-w-4xl mx-auto">
+        <Box className="relative w-full">
           <Box className="mb-6">
             <Button variant="text" onClick={() => navigate('/currencies')} className="mb-4 -ml-2 text-muted-foreground hover:text-foreground">
               <Iconify icon="solar:arrow-left-bold" width={20} className="mr-2" /> {t('form.backToCurrencies')}

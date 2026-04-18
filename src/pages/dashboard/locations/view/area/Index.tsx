@@ -117,7 +117,7 @@ export default function Page() {
           city: 'City',
           governorate: 'Governorate',
           created_at: 'Created At',
-          actions: 'Actions',
+          actions: t('columns.action'),
         }}
         pagination={pagination}
         currentPage={currentPage}

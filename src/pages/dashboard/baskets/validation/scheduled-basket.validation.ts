@@ -1,10 +1,13 @@
 import { z } from 'zod';
 
+import { issueIfPercentageDiscountOver100 } from 'src/utils/discount-percentage-zod';
+
 import i18n from 'src/lib/i18n';
 
 const t = (key: string) => i18n.t(key, { ns: 'validation' });
 
-export const ScheduledBasketSchema = z.object({
+export const ScheduledBasketSchema = z
+  .object({
   category_id: z.coerce.number().min(1, t('scheduledBasket.categoryRequired')),
   name: z.object({
     en: z.string().min(1, t('scheduledBasket.nameEnRequired')),
@@ -47,13 +50,18 @@ export const ScheduledBasketSchema = z.object({
     }),
   is_active: z.boolean(),
   badges: z
-    .array(
-      z.object({
-        id: z.number(),
-        position: z.enum(['top', 'bottom']),
-      })
-    )
+    .array(z.number())
     .default([]),
-});
+  })
+  .superRefine((data, ctx) => {
+    issueIfPercentageDiscountOver100(ctx, data.discount_type, data.discount, ['discount']);
+    (data.schedules ?? []).forEach((row, i) => {
+      issueIfPercentageDiscountOver100(ctx, row.discount_type ?? undefined, row.discount_value, [
+        'schedules',
+        i,
+        'discount_value',
+      ]);
+    });
+  });
 
 export type ScheduledBasketFormValues = z.infer<typeof ScheduledBasketSchema>;

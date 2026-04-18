@@ -27,4 +27,14 @@ export const _UserBasketScheduleApi = {
     const response = await axiosInstance.delete(apiRoutes.userBasketSchedule.delete(id));
     return response.data;
   },
+
+  disable: async (id: number | string): Promise<any> => {
+    const response = await axiosInstance.post(apiRoutes.userBasketSchedule.disable(id));
+    return response.data;
+  },
+
+  enable: async (id: number | string): Promise<any> => {
+    const response = await axiosInstance.post(apiRoutes.userBasketSchedule.enable(id));
+    return response.data;
+  },
 };

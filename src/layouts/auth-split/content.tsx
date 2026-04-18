@@ -31,7 +31,7 @@ export function AuthSplitContent({
     <div
       className={mergeClasses([
         layoutClasses.content,
-        'flex flex-auto items-center flex-col',
+        'flex min-w-0 flex-auto items-center flex-col',
         paddingClass,
         className,
       ])}

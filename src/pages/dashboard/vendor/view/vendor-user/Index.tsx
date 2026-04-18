@@ -142,7 +142,7 @@ export default function Page() {
           shops_count: 'Shops',
           is_active: 'Status',
           created_at: 'Created',
-          actions: 'Actions',
+          actions: t('columns.action'),
         }}
         pagination={pagination}
         currentPage={currentPage}
