@@ -243,12 +243,12 @@ export function CreateFormLayout<T extends Record<string, any>>({
         )}
 
         {/* Form Card */}
-        <Box className="rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm shadow-sm overflow-hidden">
+        <Box className="rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm shadow-sm">
           <Form methods={methods} onSubmit={onSubmit}>
             {/* Content */}
             <Box
               className={mergeClasses([
-                'p-5 sm:p-6 md:p-8',
+                'p-5 sm:p-6 md:p-8 pb-28 sm:pb-32',
                 formInnerClassName ?? 'flex flex-col gap-6',
               ])}
             >
@@ -256,7 +256,7 @@ export function CreateFormLayout<T extends Record<string, any>>({
             </Box>
 
             {/* Sticky Actions */}
-            <Box className="sticky bottom-0 z-10 border-t border-border/50 bg-card/95 backdrop-blur-md">
+            <Box className="sticky bottom-0 z-10 border-t border-border/50 bg-card/95 backdrop-blur-md rounded-b-2xl">
               <Box className="px-5 sm:px-6 md:px-8 py-4 flex items-center justify-between gap-4 flex-wrap">
                 <Box className="flex items-center gap-2 text-xs text-muted-foreground">
                   <span className="h-1.5 w-1.5 rounded-full bg-primary/50" />

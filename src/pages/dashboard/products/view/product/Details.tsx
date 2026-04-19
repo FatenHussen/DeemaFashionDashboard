@@ -597,12 +597,12 @@ export default function DetailsPage() {
                 {t('form.productDetailsSectionPricing')}
               </Typography>
               <Box className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <DetailRow label={t('columns.price')} value={`ل.س ${product.price}`} emptyLabel={na} />
+                <DetailRow label={t('columns.price')} value={`${t('currencySyrianPound')} ${product.price}`} emptyLabel={na} />
                 <DetailRow
                   label={t('columns.priceAfterDiscount')}
                   value={
                     product.price_after_discount != null
-                      ? `ل.س ${product.price_after_discount}`
+                      ? `${t('currencySyrianPound')} ${product.price_after_discount}`
                       : '—'
                   }
                   emptyLabel={na}
@@ -620,7 +620,7 @@ export default function DetailsPage() {
                 />
                 <DetailRow
                   label={t('form.productDetailsCostPrice')}
-                  value={product.cost_price != null ? `ل.س ${product.cost_price}` : '—'}
+                  value={product.cost_price != null ? `${t('currencySyrianPound')} ${product.cost_price}` : '—'}
                   emptyLabel={na}
                 />
                 <DetailRow
@@ -813,7 +813,7 @@ export default function DetailsPage() {
                               <Box key={si} className="flex items-center justify-between rounded-md border border-border/40 bg-muted/20 px-3 py-2 text-sm">
                                 <span className="font-medium">{shop.shop_name}</span>
                                 <Box className="flex items-center gap-3 text-muted-foreground">
-                                  <span>ل.س {shop.price}</span>
+                                  <span>{t('currencySyrianPound')} {shop.price}</span>
                                   <span>×{shop.quantity}</span>
                                   <Button
                                     size="small"
@@ -978,7 +978,7 @@ export default function DetailsPage() {
                             <Typography variant="caption" className="text-muted-foreground">
                               {t('form.productDetailsExtraPrice')}
                             </Typography>
-                            <Typography variant="body2">ل.س {ed.price}</Typography>
+                            <Typography variant="body2">{t('currencySyrianPound')} {ed.price}</Typography>
                           </Box>
                         ) : null}
                       </Box>

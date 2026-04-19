@@ -162,7 +162,7 @@ export default function CreatePage() {
         submittingLabel={isEditMode ? t('form.updatingBasket') : t('form.creatingBasket')}
       >
         {/* ── Section: Category & Names ── */}
-        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+        <Box className="rounded-2xl border border-border/50 bg-card/50 shadow-sm">
           <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-violet-500/[0.06] via-violet-500/[0.02] to-transparent">
             <Box className="h-8 w-8 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center shrink-0">
               <Iconify icon="solar:widget-5-bold" className="text-violet-500" width={15} />
@@ -240,7 +240,7 @@ export default function CreatePage() {
         </Box>
 
         {/* ── Section: Pricing ── */}
-        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+        <Box className="rounded-2xl border border-border/50 bg-card/50 shadow-sm">
           <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-amber-500/[0.06] via-amber-500/[0.02] to-transparent">
             <Box className="h-8 w-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
               <Iconify icon="solar:tag-price-bold" className="text-amber-500" width={15} />
@@ -298,7 +298,7 @@ export default function CreatePage() {
         </Box>
 
         {/* ── Section: Items ── */}
-        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+        <Box className="rounded-2xl border border-border/50 bg-card/50 shadow-sm">
           <Box className="flex items-center justify-between px-6 py-4 border-b border-border/40 bg-gradient-to-r from-emerald-500/[0.06] via-emerald-500/[0.02] to-transparent">
             <Box className="flex items-center gap-3">
               <Box className="h-8 w-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
@@ -366,7 +366,7 @@ export default function CreatePage() {
         </Box>
 
         {/* ── Section: Badges ── */}
-        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+        <Box className="rounded-2xl border border-border/50 bg-card/50 shadow-sm">
           <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-sky-500/[0.06] via-sky-500/[0.02] to-transparent">
             <Box className="h-8 w-8 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center shrink-0">
               <Iconify icon="solar:medal-ribbons-star-bold" className="text-sky-500" width={15} />

@@ -147,8 +147,8 @@ export default function CreatePage() {
     <>
       <title>
         {isEditMode
-          ? `Edit Shop Vendor Service | Dashboard - ${CONFIG.appName}`
-          : `Create Shop Vendor Service | Dashboard - ${CONFIG.appName}`}
+          ? t('form.shopVendorServiceEditDocumentTitle', { appName: CONFIG.appName })
+          : t('form.shopVendorServiceCreateDocumentTitle', { appName: CONFIG.appName })}
       </title>
 
       <CreateFormLayout
@@ -182,7 +182,7 @@ export default function CreatePage() {
       >
         {/* ── Section: Assignment (create only) ── */}
         {!isEditMode && (
-          <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="rounded-2xl border border-border/50 bg-card/50 shadow-sm">
             <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-violet-500/[0.06] via-violet-500/[0.02] to-transparent">
               <Box className="h-8 w-8 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center shrink-0">
                 <Iconify icon="solar:case-minimalistic-bold" className="text-violet-500" width={15} />
@@ -211,7 +211,7 @@ export default function CreatePage() {
         )}
 
         {/* ── Section: Pricing ── */}
-        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+        <Box className="rounded-2xl border border-border/50 bg-card/50 shadow-sm">
           <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-amber-500/[0.06] via-amber-500/[0.02] to-transparent">
             <Box className="h-8 w-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
               <Iconify icon="solar:tag-price-bold" className="text-amber-500" width={15} />
@@ -238,7 +238,7 @@ export default function CreatePage() {
             <Box className="group">
               <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5">
                 <Iconify icon="solar:clock-circle-bold" className="text-amber-500" width={16} />
-                {t('columns.duration')} (min)
+                {t('columns.duration')} {t('form.durationMinutesShort')}
               </Typography>
               <RHFTextField name="duration_minutes" type="number" placeholder={t('form.durationPlaceholder')} />
             </Box>
@@ -246,7 +246,7 @@ export default function CreatePage() {
         </Box>
 
         {/* ── Section: Status ── */}
-        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+        <Box className="rounded-2xl border border-border/50 bg-card/50 shadow-sm">
           <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-emerald-500/[0.06] via-emerald-500/[0.02] to-transparent">
             <Box className="h-8 w-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
               <Iconify icon="solar:bolt-bold" className="text-emerald-500" width={15} />

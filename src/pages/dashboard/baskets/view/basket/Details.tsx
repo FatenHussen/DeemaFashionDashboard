@@ -11,8 +11,6 @@ import { CONFIG } from 'src/global-config';
 import { Box, Typography } from 'src/shared/ui';
 import { LoadingScreen } from 'src/shared/components/loading-screen';
 
-const metadata = { title: `Basket Details | Dashboard - ${CONFIG.appName}` };
-
 function formatName(name: unknown): string {
   if (name && typeof name === 'object') {
     const o = name as { en?: string; ar?: string };
@@ -64,7 +62,7 @@ export default function DetailsPage() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.basketDetailsDocumentTitle', { appName: CONFIG.appName })}</title>
       <Box className="relative min-h-screen overflow-hidden bg-background p-6">
         <Box className="relative w-full">
           <Box className="mb-6">

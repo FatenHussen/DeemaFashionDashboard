@@ -1,26 +1,32 @@
 import type { ReactNode } from 'react';
+import type { SortableEntity } from '@/shared/ui/table-data/sort-items-dialog';
 
 import { toast } from 'react-toastify';
 import { Input } from '@/shared/ui/input';
+import { Button } from '@/shared/ui/button';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
-import { useState, useEffect, useCallback } from 'react';
+import { Iconify } from '@/shared/components/iconify';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { formatTranslated } from '@/utils/format-translated';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { usePermissions } from '@/auth/hooks/use-permissions';
 import { getApiErrorMessage } from '@/lib/get-api-error-message';
+import { SortItemsDialog } from '@/shared/ui/table-data/sort-items-dialog';
 import { _CategoryApi } from '@/pages/dashboard/categories/api/category.services';
 import { DataTableBreadcrumb } from '@/shared/ui/table-data/data-table-breadcrumb';
 import { categoryColumns, type CategoryFormValues } from '@/columns/one/categories/one';
-import { useDeleteCategory, useFetchCategories } from '@/pages/dashboard/categories/hooks/category';
+import {
+  useSortCategories,
+  useDeleteCategory,
+  useFetchCategories,
+} from '@/pages/dashboard/categories/hooks/category';
 
 import { CONFIG } from 'src/global-config';
 
 // ----------------------------------------------------------------------
 
 const MAX_CATEGORY_DEPTH = 5;
-
-const metadata = { title: `Categories | Dashboard - ${CONFIG.appName}` };
 
 type SortField = '' | 'id' | 'order' | 'name' | 'created_at' | 'children_count';
 
@@ -51,6 +57,7 @@ export default function Page() {
   const [debouncedName, setDebouncedName] = useState('');
   const [isActiveFilter, setIsActiveFilter] = useState<'' | '1' | '0'>('');
   const [isRestaurantFilter, setIsRestaurantFilter] = useState<'' | '1' | '0'>('');
+  const [isSortOpen, setIsSortOpen] = useState(false);
 
   useEffect(() => {
     const id = window.setTimeout(() => {
@@ -79,10 +86,56 @@ export default function Page() {
       ...(debouncedName ? { name: debouncedName } : {}),
       ...(isActiveFilter === '' ? {} : { is_active: isActiveFilter === '1' }),
       ...(isRestaurantFilter === '' ? {} : { is_restaurant: isRestaurantFilter === '1' }),
-      ...(sortField ? { sort_field: sortField, sort_order: sortOrder } : {}),
+      // Default to `order asc` so the saved drag-and-drop order is reflected
+      // when the user hasn't picked an explicit sort.
+      ...(sortField
+        ? { sort_field: sortField, sort_order: sortOrder }
+        : { sort_field: 'order', sort_order: 'asc' as const }),
     }
   );
   const deleteCategoryMutation = useDeleteCategory(currentPage, pageSize);
+  const sortCategoriesMutation = useSortCategories();
+
+  // Fetch ALL siblings under the current parent (sorted by `order` asc) for the
+  // drag-and-drop dialog. We deliberately do not paginate here so the saved
+  // `ordered_ids` array stays consistent with what the backend expects.
+  const { data: sortItemsResp, isFetching: isSortItemsLoading } = useQuery({
+    queryKey: ['categories', 'sort-items', parentId],
+    queryFn: () =>
+      _CategoryApi.getListCategoriesPaginated({
+        page: 1,
+        per_page: 500,
+        parent_id: parentId,
+        sort_field: 'order',
+        sort_order: 'asc',
+      }),
+    enabled: isSortOpen,
+  });
+
+  const sortItems: SortableEntity[] = useMemo(() => {
+    const rows = sortItemsResp?.data?.items ?? [];
+    return rows.map((row) => ({
+      id: row.id,
+      label:
+        typeof row.name === 'object'
+          ? formatTranslated(row.name as { en?: string; ar?: string })
+          : String(row.name ?? ''),
+      image: (row as { icon?: string | null }).icon ?? null,
+    }));
+  }, [sortItemsResp]);
+
+  const handleSortSave = async (orderedIds: number[]) => {
+    try {
+      await sortCategoriesMutation.mutateAsync({
+        ordered_ids: orderedIds,
+        parent_id: parentId > 0 ? parentId : undefined,
+      });
+      toast.success(t('orderUpdatedSuccess'));
+      setIsSortOpen(false);
+    } catch (e) {
+      toast.error(getApiErrorMessage(e, t('orderUpdatedError')));
+    }
+  };
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -101,7 +154,7 @@ export default function Page() {
     if (deletingId) {
       try {
         await deleteCategoryMutation.mutateAsync(deletingId);
-        toast.success(t('deleteSuccess') || 'Category deleted successfully');
+        toast.success(t('deleteSuccess'));
         setDeletingId(null);
       } catch {
         return;
@@ -180,7 +233,7 @@ export default function Page() {
       onChange={(e) => setSortField(e.target.value as SortField)}
     >
       <option value="">{t('categorySortDefault')}</option>
-      <option value="id">ID</option>
+      <option value="id">{t('columns.id')}</option>
       <option value="name">{t('columns.name')}</option>
       <option value="order">{t('columns.order')}</option>
       <option value="children_count">{t('columns.children')}</option>
@@ -265,24 +318,37 @@ export default function Page() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.categoriesIndexDocumentTitle', { appName: CONFIG.appName })}</title>
 
       {isError ? (
         <div className="mx-3 mb-3 rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive sm:mx-4 md:mx-6">
-          {getApiErrorMessage(error, 'Failed to load categories.')}
+          {getApiErrorMessage(error, t('form.categoriesLoadErrorFallback'))}
         </div>
       ) : null}
 
       <DataTable
         tableTop={
-          <DataTableBreadcrumb
-            ariaLabel={t('categoryBreadcrumbLabel')}
-            rootLabel={t('categoryBreadcrumbRoot')}
-            items={trail.map((s) => ({ id: s.id, label: s.name }))}
-            onNavigate={(next) =>
-              setTrail(next.map((s) => ({ id: Number(s.id), name: s.label })))
-            }
-          />
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <DataTableBreadcrumb
+              ariaLabel={t('categoryBreadcrumbLabel')}
+              rootLabel={t('categoryBreadcrumbRoot')}
+              items={trail.map((s) => ({ id: s.id, label: s.name }))}
+              onNavigate={(next) =>
+                setTrail(next.map((s) => ({ id: Number(s.id), name: s.label })))
+              }
+            />
+            {hasPermission('update', 'category') ? (
+              <Button
+                variant="outlined"
+                color="primary"
+                size="small"
+                onClick={() => setIsSortOpen(true)}
+              >
+                <Iconify icon="lucide:arrow-up-down" width={16} className="me-1.5" />
+                {t('reorder')}
+              </Button>
+            ) : null}
+          </div>
         }
         tableName={t('tableNames.category')}
         columns={categoryColumns(
@@ -341,6 +407,21 @@ export default function Page() {
         pageSize={pageSize}
         onPageChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}
+      />
+
+      <SortItemsDialog
+        open={isSortOpen}
+        onClose={() => setIsSortOpen(false)}
+        items={sortItems}
+        title={t('reorderCategoriesTitle')}
+        description={
+          parentId > 0
+            ? t('reorderCategoriesScopeChild')
+            : t('reorderCategoriesScopeRoot')
+        }
+        onSave={handleSortSave}
+        isSubmitting={sortCategoriesMutation.isPending}
+        isLoading={isSortItemsLoading}
       />
     </>
   );

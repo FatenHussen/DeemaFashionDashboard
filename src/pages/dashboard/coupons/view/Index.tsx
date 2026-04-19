@@ -40,7 +40,7 @@ export default function Page() {
     if (deletingId) {
       try {
         await deleteCouponMutation.mutateAsync(deletingId);
-        toast.success(t('deleteSuccess') || 'Coupon deleted successfully');
+        toast.success(t('deleteSuccess'));
         setDeletingId(null);
       } catch { return; }
     }

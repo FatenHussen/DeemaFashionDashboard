@@ -15,8 +15,6 @@ import {
 
 import { CONFIG } from 'src/global-config';
 
-const metadata = { title: `Page Sections | Dashboard - ${CONFIG.appName}` };
-
 export default function Page() {
   const { t } = useTranslation('table');
   const [currentPage, setCurrentPage] = useState(1);
@@ -51,7 +49,7 @@ export default function Page() {
     if (deletingId) {
       try {
         await deletePageSectionMutation.mutateAsync(deletingId);
-        toast.success(t('deleteSuccess') || 'Page Section deleted successfully');
+        toast.success(t('deleteSuccess'));
         setDeletingId(null);
       } catch { return; }
     }
@@ -93,10 +91,10 @@ export default function Page() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.pageSectionsIndexDocumentTitle', { appName: CONFIG.appName })}</title>
 
       <DataTable
-        tableName="Page Section"
+        tableName={t('tableNames.pageSection')}
         columns={pageSectionColumns(
           {
             update: hasPermission('update', 'pagesection'),
@@ -120,7 +118,7 @@ export default function Page() {
         }}
         isLoading={isLoading}
         columnTranslations={{
-          id: 'ID',
+          id: t('columns.id'),
           name: t('columns.name'),
           type: t('columns.type'),
           manual_model: t('columns.manualModel'),

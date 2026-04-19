@@ -24,8 +24,6 @@ import { CONFIG } from 'src/global-config';
 
 // ----------------------------------------------------------------------
 
-const metadata = { title: `Inventory | Dashboard - ${CONFIG.appName}` };
-
 const INTERNAL_VENDOR_ID = 1;
 
 type InventoryTab = 'tikmool' | 'vendors';
@@ -174,7 +172,7 @@ export default function InventoryPage() {
     if (!deletingId) return;
     try {
       await deleteProductMutation.mutateAsync(deletingId);
-      toast.success(t('deleteSuccess') || 'Product deleted successfully');
+      toast.success(t('deleteSuccess'));
       setDeletingId(null);
     } catch {
       return;
@@ -188,15 +186,9 @@ export default function InventoryPage() {
   const handleQuantityUpdate = async (id: number, quantity: number) => {
     try {
       await updateQuantityMutation.mutateAsync({ id, quantity });
-      toast.success(
-        t('quantityUpdatedSuccess', { defaultValue: 'Stock updated successfully' })
-      );
+      toast.success(t('quantityUpdatedSuccess'));
     } catch (e) {
-      toast.error(
-        e instanceof Error
-          ? e.message
-          : t('quantityUpdatedError', { defaultValue: 'Could not update stock' })
-      );
+      toast.error(e instanceof Error ? e.message : t('quantityUpdatedError'));
       throw e;
     }
   };
@@ -268,7 +260,7 @@ export default function InventoryPage() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.inventoryIndexDocumentTitle', { appName: CONFIG.appName })}</title>
 
       {/* Tabs */}
       <div className="mb-4 flex gap-1 rounded-xl border border-border bg-muted/40 p-1 w-fit">
@@ -394,7 +386,7 @@ export default function InventoryPage() {
             </FilterGroup>
 
             {activeTab === 'vendors' && (
-              <FilterGroup label={t('columns.vendor') || 'Vendor'}>
+              <FilterGroup label={t('columns.vendor')}>
                 <select
                   className={filterSelectClass}
                   value={vendorFilter}
@@ -410,7 +402,7 @@ export default function InventoryPage() {
               </FilterGroup>
             )}
 
-            <FilterGroup label="Shop">
+            <FilterGroup label={t('columns.shop')}>
               <select
                 className={filterSelectClass}
                 value={shopFilter}

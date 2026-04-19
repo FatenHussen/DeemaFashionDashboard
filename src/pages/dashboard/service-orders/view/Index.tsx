@@ -14,8 +14,6 @@ import { useFetchServiceOrders, useChangeServiceOrderStatus } from '../hooks';
 
 // ----------------------------------------------------------------------
 
-const metadata = { title: `Service Orders | Dashboard - ${CONFIG.appName}` };
-
 const STATUS_FILTERS: { key: string; label: string; icon: string }[] = [
   { key: 'all', label: 'all', icon: 'solar:list-bold' },
   { key: 'pending', label: 'statusPending', icon: 'solar:hourglass-bold' },
@@ -110,7 +108,7 @@ export default function Page() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.serviceOrdersIndexDocumentTitle', { appName: CONFIG.appName })}</title>
 
       <DataTable
         tableName={t('tableNames.serviceOrder')}

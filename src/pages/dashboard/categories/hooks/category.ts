@@ -105,6 +105,25 @@ export const useUpdateCategory = (page?: number, limit?: number) => {
   });
 };
 
+export const useSortCategories = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: { ordered_ids: number[]; parent_id?: number | null }) =>
+      _CategoryApi.sortCategories(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ['category', 'list'],
+        refetchType: 'active',
+      });
+      queryClient.refetchQueries({
+        queryKey: ['category', 'list'],
+        type: 'active',
+      });
+    },
+  });
+};
+
 export const useDeleteCategory = (page?: number, limit?: number) => {
   const queryClient = useQueryClient();
 

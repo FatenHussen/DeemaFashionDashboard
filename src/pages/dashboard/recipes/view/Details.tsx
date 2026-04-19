@@ -81,12 +81,13 @@ function canEmbedRecipeVideoInPage(url: string): boolean {
 }
 
 function RecipeVideoPlayer({ url }: { url: string }) {
+  const { t } = useTranslation('table');
   const yt = youtubeVideoIdFromUrl(url);
   if (yt) {
     return (
       <Box className="relative aspect-video w-full overflow-hidden rounded-lg bg-black">
         <iframe
-          title="Recipe video"
+          title={t('recipeVideoTitle')}
           src={`https://www.youtube-nocookie.com/embed/${yt}`}
           className="absolute inset-0 h-full w-full border-0"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
@@ -100,7 +101,7 @@ function RecipeVideoPlayer({ url }: { url: string }) {
     return (
       <Box className="relative aspect-video w-full overflow-hidden rounded-lg bg-black">
         <iframe
-          title="Recipe video"
+          title={t('recipeVideoTitle')}
           src={`https://player.vimeo.com/video/${vim}`}
           className="absolute inset-0 h-full w-full border-0"
           allow="autoplay; fullscreen; picture-in-picture"
@@ -161,7 +162,7 @@ export default function DetailsPage() {
 
   return (
     <>
-      <title>{`${nameStr} | ${CONFIG.appName}`}</title>
+      <title>{t('form.recipeDetailsDocumentTitle', { appName: CONFIG.appName, name: nameStr })}</title>
       <Box className="relative min-h-screen overflow-hidden bg-background p-6">
         <Box className="pointer-events-none fixed inset-0 bg-gradient-to-br from-background via-background to-muted/30" />
         <Box className="relative w-full">

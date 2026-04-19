@@ -218,7 +218,7 @@ export default function Page() {
           }}
           className="w-full h-10 rounded-xl border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
         >
-          <option value="id">id</option>
+          <option value="id">{t('columns.id')}</option>
           <option value="created_at">{t('columns.createdAt')}</option>
           <option value="amount">{t('columns.amount')}</option>
           <option value="type">{t('columns.type')}</option>

@@ -11,8 +11,6 @@ import { useFetchSchedules, useDeleteSchedule } from '@/pages/dashboard/schedule
 
 import { CONFIG } from 'src/global-config';
 
-const metadata = { title: `Schedules | Dashboard - ${CONFIG.appName}` };
-
 const SORT_FIELDS = ['id', 'name', 'interval_days', 'discount_value', 'created_at'] as const;
 
 function scheduleSortFieldLabel(f: (typeof SORT_FIELDS)[number], t: (k: string) => string): string {
@@ -192,7 +190,7 @@ export default function Page() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.schedulesIndexDocumentTitle', { appName: CONFIG.appName })}</title>
       <DataTable
         tableName={t('tableNames.schedule')}
         columns={scheduleColumns(

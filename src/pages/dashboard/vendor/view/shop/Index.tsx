@@ -11,8 +11,6 @@ import { CONFIG } from 'src/global-config';
 
 // ----------------------------------------------------------------------
 
-const metadata = { title: `Shops | Dashboard - ${CONFIG.appName}` };
-
 const SHOP_STATUS_FILTERS: { key: string; label: string; icon: string }[] = [
   { key: 'all', label: 'all', icon: 'solar:list-bold' },
   { key: 'open', label: 'shopStatusFilterOpen', icon: 'solar:shop-2-bold' },
@@ -65,7 +63,7 @@ export default function Page() {
     if (deletingId) {
       try {
         await deleteShopMutation.mutateAsync(deletingId);
-        toast.success(t('deleteSuccess') || 'Shop deleted successfully');
+        toast.success(t('deleteSuccess'));
         setDeletingId(null);
       } catch { return; }
     }
@@ -158,7 +156,7 @@ export default function Page() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.shopsIndexDocumentTitle', { appName: CONFIG.appName })}</title>
 
       <DataTable
         tableName={t("tableNames.shop")}

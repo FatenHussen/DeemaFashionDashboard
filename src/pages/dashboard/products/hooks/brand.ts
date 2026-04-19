@@ -51,3 +51,14 @@ export const useDeleteBrand = () => {
     },
   });
 };
+
+export const useSortBrands = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: { ordered_ids: number[] }) => _BrandApi.sortBrands(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['brand', 'list'] });
+    },
+  });
+};

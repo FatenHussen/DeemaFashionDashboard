@@ -9,8 +9,6 @@ import { useDeleteCountry, useFetchCountries } from '@/pages/dashboard/countries
 
 import { CONFIG } from 'src/global-config';
 
-const metadata = { title: `Countries | Dashboard - ${CONFIG.appName}` };
-
 export default function Page() {
   const { t } = useTranslation('table');
   const navigate = useNavigate();
@@ -58,7 +56,7 @@ export default function Page() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.countriesIndexDocumentTitle', { appName: CONFIG.appName })}</title>
       <DataTable
         tableName={t("tableNames.country")}
         columns={countryColumns(

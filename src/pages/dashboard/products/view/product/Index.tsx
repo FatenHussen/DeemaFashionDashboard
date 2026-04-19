@@ -32,8 +32,6 @@ import { CONFIG } from 'src/global-config';
 
 // ----------------------------------------------------------------------
 
-const metadata = { title: `Products | Dashboard - ${CONFIG.appName}` };
-
 const SORT_FIELDS = ['id', 'name', 'price', 'created_at', 'quantity'] as const;
 
 export default function Page() {
@@ -180,7 +178,7 @@ export default function Page() {
     if (deletingId) {
       try {
         await deleteProductMutation.mutateAsync(deletingId);
-        toast.success(t('deleteSuccess') || 'Product deleted successfully');
+        toast.success(t('deleteSuccess'));
         setDeletingId(null);
       } catch {
         return;
@@ -207,7 +205,7 @@ export default function Page() {
       await approveProductMutation.mutateAsync(id);
       toast.success(t('approveSuccess'));
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Approve failed');
+      toast.error(e instanceof Error ? e.message : t('approveFailed'));
     }
   };
 
@@ -232,7 +230,7 @@ export default function Page() {
       setRejectDialogId(null);
       setRejectReason('');
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Reject failed');
+      toast.error(e instanceof Error ? e.message : t('rejectFailed'));
     }
   };
 
@@ -304,11 +302,11 @@ export default function Page() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.productsIndexDocumentTitle', { appName: CONFIG.appName })}</title>
 
       {isError ? (
         <div className="mx-3 mb-3 rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive sm:mx-4 md:mx-6">
-          {getApiErrorMessage(error, 'Failed to load products.')}
+          {getApiErrorMessage(error, t('form.productsLoadErrorFallback'))}
         </div>
       ) : null}
 
@@ -442,7 +440,7 @@ export default function Page() {
               />
             </FilterGroup>
 
-            <FilterGroup label="Vendor">
+            <FilterGroup label={t('columns.vendor')}>
               <select
                 className={filterSelectClass}
                 value={vendorFilter}
@@ -457,7 +455,7 @@ export default function Page() {
               </select>
             </FilterGroup>
 
-            <FilterGroup label="Shop">
+            <FilterGroup label={t('columns.shop')}>
               <select
                 className={filterSelectClass}
                 value={shopFilter}

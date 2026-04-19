@@ -66,7 +66,7 @@ export function DataTableViewOptionsCustom<TData>({
     //   }
 
     if (!selectedColumns || selectedColumns.length === 0) {
-      toast.error('Please select at least one column to export');
+      toast.error(t('form.exportSelectColumnsError'));
       return;
     }
 

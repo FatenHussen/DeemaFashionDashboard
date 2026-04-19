@@ -9,8 +9,6 @@ import { useFetchBaskets, useDeleteBasket } from '@/pages/dashboard/baskets/hook
 
 import { CONFIG } from 'src/global-config';
 
-const metadata = { title: `Baskets | Dashboard - ${CONFIG.appName}` };
-
 export default function Page() {
   const { t } = useTranslation('table');
   const navigate = useNavigate();
@@ -33,7 +31,7 @@ export default function Page() {
     if (deletingId) {
       try {
         await deleteBasketMutation.mutateAsync(deletingId);
-        toast.success(t('deleteSuccess') || 'Basket deleted successfully');
+        toast.success(t('deleteSuccess'));
         setDeletingId(null);
       } catch { return; }
     }
@@ -63,7 +61,7 @@ export default function Page() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.basketsIndexDocumentTitle', { appName: CONFIG.appName })}</title>
       <DataTable
         tableName={t("tableNames.basket")}
         columns={basketColumns(

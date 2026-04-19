@@ -10,10 +10,8 @@ import { CONFIG } from 'src/global-config';
 
 // ----------------------------------------------------------------------
 
-const metadata = { title: `Area | Dashboard - ${CONFIG.appName}` };
-
 export default function Page() {
-  const { t } = useTranslation('table');
+  const { t } = useTranslation(['table', 'nav']);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [deletingId, setDeletingId] = useState<number | null>(null);
@@ -44,7 +42,7 @@ export default function Page() {
     if (deletingId) {
       try {
         await deleteAreaMutation.mutateAsync(deletingId);
-        toast.success(t('deleteSuccess') || 'Area deleted successfully');
+        toast.success(t('deleteSuccess'));
         setDeletingId(null);
       } catch { return; }
     }
@@ -84,10 +82,10 @@ export default function Page() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.areasIndexDocumentTitle', { appName: CONFIG.appName })}</title>
 
       <DataTable
-        tableName="Area"
+        tableName={t('nav:area')}
         columns={areaColumns(
           {
             update: hasPermission('update', 'area'),
@@ -112,11 +110,11 @@ export default function Page() {
         }}
         isLoading={isLoading}
         columnTranslations={{
-          id: 'ID',
-          name: 'Name',
-          city: 'City',
-          governorate: 'Governorate',
-          created_at: 'Created At',
+          id: t('columns.id'),
+          name: t('columns.name'),
+          city: t('columns.city'),
+          governorate: t('columns.governorate'),
+          created_at: t('columns.createdAt'),
           actions: t('columns.action'),
         }}
         pagination={pagination}

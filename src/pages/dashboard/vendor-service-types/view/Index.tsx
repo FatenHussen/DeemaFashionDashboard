@@ -17,8 +17,6 @@ import {
 
 // ----------------------------------------------------------------------
 
-const metadata = { title: `Vendor Service Types | Dashboard - ${CONFIG.appName}` };
-
 export default function Page() {
   const { t } = useTranslation('table');
   const [currentPage, setCurrentPage] = useState(1);
@@ -60,7 +58,7 @@ export default function Page() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.vendorServiceTypesIndexDocumentTitle', { appName: CONFIG.appName })}</title>
 
       <DataTable
         tableName={t('tableNames.vendorServiceType')}

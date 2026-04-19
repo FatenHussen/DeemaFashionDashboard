@@ -1,4 +1,5 @@
 import { Button } from '@/shared/ui/button';
+import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
 import { formatTranslated } from '@/utils/format-translated';
@@ -12,9 +13,8 @@ import { LoadingScreen } from 'src/shared/components/loading-screen';
 
 // ----------------------------------------------------------------------
 
-const metadata = { title: `Area Details | Dashboard - ${CONFIG.appName}` };
-
 export default function DetailsPage() {
+  const { t } = useTranslation('table');
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: area, isLoading, error } = useFetchAreaById(id || '');
@@ -30,14 +30,14 @@ export default function DetailsPage() {
           <Box className="flex items-center gap-2 mb-2">
             <Iconify icon="solar:danger-bold" className="w-5 h-5 text-destructive" />
             <Typography variant="h6" className="text-destructive">
-              Error Loading Area
+              {t('form.areaDetailsErrorTitle')}
             </Typography>
           </Box>
           <Typography variant="body2" className="text-muted-foreground mb-4">
-            {error instanceof Error ? error.message : 'Failed to load area information'}
+            {error instanceof Error ? error.message : t('form.areaDetailsErrorBody')}
           </Typography>
           <Button variant="outlined" onClick={() => navigate('/locations/area')}>
-            Back to Areas
+            {t('form.areaDetailsBackToAreas')}
           </Button>
         </Box>
       </Box>
@@ -49,7 +49,7 @@ export default function DetailsPage() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.areaDetailsDocumentTitle', { appName: CONFIG.appName })}</title>
       <Box className="relative min-h-screen overflow-hidden bg-background p-6">
         <Box className="pointer-events-none fixed inset-0 bg-gradient-to-br from-background via-background to-muted/30" />
         <Box className="pointer-events-none fixed inset-0 opacity-[0.03] dark:opacity-[0.05]">
@@ -64,7 +64,7 @@ export default function DetailsPage() {
               className="mb-4 -ml-2 text-muted-foreground hover:text-foreground"
             >
               <Iconify icon="solar:arrow-left-bold" width={20} className="mr-2" />
-              Back to Areas
+              {t('form.areaDetailsBackToAreas')}
             </Button>
 
             <Box className="flex items-center gap-4 mb-2">
@@ -90,7 +90,7 @@ export default function DetailsPage() {
                 className="gap-2"
               >
                 <Iconify icon="solar:pen-bold" width={18} />
-                Edit
+                {t('edit')}
               </Button>
             </Box>
           </Box>
@@ -98,12 +98,12 @@ export default function DetailsPage() {
           <Box className="rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm shadow-sm overflow-hidden">
             <Box className="p-6">
               <Typography variant="h6" className="font-semibold mb-4">
-                Area Information
+                {t('form.areaDetailsInformationHeading')}
               </Typography>
               <Box className="grid gap-4 sm:grid-cols-2">
                 <Box>
                   <Typography variant="caption" className="text-muted-foreground">
-                    City
+                    {t('columns.city')}
                   </Typography>
                   <Typography variant="body1" className="font-medium">
                     {area.city?.name ?? '-'}
@@ -111,7 +111,7 @@ export default function DetailsPage() {
                 </Box>
                 <Box>
                   <Typography variant="caption" className="text-muted-foreground">
-                    Governorate
+                    {t('columns.governorate')}
                   </Typography>
                   <Typography variant="body1" className="font-medium">
                     {area.city?.governorate?.name ?? '-'}
@@ -119,7 +119,7 @@ export default function DetailsPage() {
                 </Box>
                 <Box>
                   <Typography variant="caption" className="text-muted-foreground">
-                    Base Fee
+                    {t('form.areaDetailsBaseFee')}
                   </Typography>
                   <Typography variant="body1" className="font-medium">
                     {baseFee}
@@ -127,7 +127,7 @@ export default function DetailsPage() {
                 </Box>
                 <Box>
                   <Typography variant="caption" className="text-muted-foreground">
-                    Coordinates
+                    {t('form.areaDetailsCoordinates')}
                   </Typography>
                   <Typography variant="body1" className="font-medium font-mono text-sm">
                     {area.lat && area.lng ? `${area.lat}, ${area.lng}` : '-'}
@@ -140,7 +140,7 @@ export default function DetailsPage() {
 
             <Box className="p-6">
               <Typography variant="h6" className="font-semibold mb-4">
-                Map
+                {t('form.areaDetailsMapHeading')}
               </Typography>
               <MapDisplay
                 lat={area.lat ?? ''}

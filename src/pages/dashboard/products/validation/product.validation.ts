@@ -192,7 +192,7 @@ export const ProductSchema = zod
     if (!hasNew && !hasKept) {
       ctx.addIssue({
         code: zod.ZodIssueCode.custom,
-        message: t('product.mediaRequired') || 'At least one product image is required',
+        message: t('product.mediaRequired'),
         path: ['images'],
       });
     }

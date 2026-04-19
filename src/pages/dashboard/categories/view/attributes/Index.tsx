@@ -21,8 +21,6 @@ import { CONFIG } from 'src/global-config';
 
 // ----------------------------------------------------------------------
 
-const metadata = { title: `Category Attributes | Dashboard - ${CONFIG.appName}` };
-
 function FilterGroup({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-1.5">
@@ -40,7 +38,7 @@ const filterSelectClass =
 const ATTRIBUTE_TYPES = ['color', 'square', 'circle'] as const;
 
 export default function Page() {
-  const { t } = useTranslation('table');
+  const { t } = useTranslation(['table', 'nav']);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [deletingId, setDeletingId] = useState<number | null>(null);
@@ -100,7 +98,7 @@ export default function Page() {
     if (deletingId) {
       try {
         await deleteCategoryAttributeMutation.mutateAsync(deletingId);
-        toast.success(t('deleteSuccess') || 'Category attribute deleted successfully');
+        toast.success(t('deleteSuccess'));
         setDeletingId(null);
       } catch {
         return;
@@ -154,16 +152,16 @@ export default function Page() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.categoryAttributesIndexDocumentTitle', { appName: CONFIG.appName })}</title>
 
       {isError ? (
         <div className="mx-3 mb-3 rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive sm:mx-4 md:mx-6">
-          {getApiErrorMessage(error, 'Failed to load category attributes.')}
+          {getApiErrorMessage(error, t('form.categoryAttributesLoadErrorFallback'))}
         </div>
       ) : null}
 
       <DataTable
-        tableName="Category Attributes"
+        tableName={t('nav:categoryAttributes')}
         columns={categoryAttributeColumns(
           {
             update: hasPermission('update', 'categoryattribute'),
@@ -249,10 +247,10 @@ export default function Page() {
         activeFilterCount={activeFilterCount}
         onFilterReset={onFilterReset}
         columnTranslations={{
-          id: 'ID',
-          name: 'Name',
-          category: 'Category',
-          type: 'Type',
+          id: t('columns.id'),
+          name: t('columns.name'),
+          category: t('columns.category'),
+          type: t('columns.type'),
           actions: t('columns.action'),
         }}
         pagination={pagination}

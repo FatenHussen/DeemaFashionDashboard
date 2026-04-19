@@ -119,5 +119,27 @@ export const _CategoryApi = {
     const response = await axiosInstance.delete(apiRoutes.category.delete(id));
     return response.data;
   },
+  /**
+   * Persist new sort order for categories.
+   * - `ordered_ids`: full array of category IDs in the desired order (no duplicates).
+   * - `parent_id`: optional — restrict the reorder scope to siblings under this parent.
+   */
+  sortCategories: async (payload: {
+    ordered_ids: number[];
+    parent_id?: number | null;
+  }): Promise<{
+    status: boolean;
+    message: string;
+    data?: { updated_count: number };
+  }> => {
+    const body: { ordered_ids: number[]; parent_id?: number } = {
+      ordered_ids: payload.ordered_ids,
+    };
+    if (payload.parent_id != null && payload.parent_id > 0) {
+      body.parent_id = payload.parent_id;
+    }
+    const response = await axiosInstance.post(apiRoutes.category.sort, body);
+    return response.data;
+  },
 };
 

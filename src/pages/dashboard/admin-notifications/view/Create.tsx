@@ -25,12 +25,6 @@ import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout
 
 // ----------------------------------------------------------------------
 
-const CHANNEL_LABELS: Record<NotificationChannel, string> = {
-  fcm: 'Push (FCM)',
-  sms: 'SMS',
-  email: 'Email',
-};
-
 const CHANNEL_COLORS: Record<NotificationChannel, string> = {
   fcm: 'text-orange-600 border-orange-400 bg-orange-50 dark:bg-orange-950/30',
   sms: 'text-blue-600 border-blue-400 bg-blue-50 dark:bg-blue-950/30',
@@ -59,6 +53,12 @@ export default function CreatePage() {
   });
 
   const { handleSubmit, control, watch, setValue } = methods;
+
+  const CHANNEL_LABELS: Record<NotificationChannel, string> = {
+    fcm: t('form.notificationChannelFcm'),
+    sms: t('form.notificationChannelSms'),
+    email: t('form.notificationChannelEmail'),
+  };
 
   const mediaInputRef = useRef<HTMLInputElement>(null);
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
@@ -135,7 +135,7 @@ export default function CreatePage() {
           submittingLabel={t('form.sending')}
         >
           {/* ── Section: Content ── */}
-          <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="rounded-2xl border border-border/50 bg-card/50 shadow-sm">
             <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-primary/[0.06] via-primary/[0.02] to-transparent">
               <Box className="h-8 w-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
                 <Iconify icon="solar:bell-bold" className="text-primary" width={15} />
@@ -162,7 +162,7 @@ export default function CreatePage() {
           </Box>
 
           {/* ── Section: Audience & Channels ── */}
-          <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="rounded-2xl border border-border/50 bg-card/50 shadow-sm">
             <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-violet-500/[0.06] via-violet-500/[0.02] to-transparent">
               <Box className="h-8 w-8 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center shrink-0">
                 <Iconify icon="solar:users-group-rounded-bold" className="text-violet-500" width={15} />
@@ -212,7 +212,7 @@ export default function CreatePage() {
           </Box>
 
           {/* ── Section: Target Page & Media ── */}
-          <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="rounded-2xl border border-border/50 bg-card/50 shadow-sm">
             <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-amber-500/[0.06] via-amber-500/[0.02] to-transparent">
               <Box className="h-8 w-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
                 <Iconify icon="solar:gallery-add-bold" className="text-amber-500" width={15} />
@@ -232,7 +232,7 @@ export default function CreatePage() {
                 <input ref={mediaInputRef} type="file" accept="image/jpeg,image/jpg,image/png,image/gif,image/webp" className="hidden" onChange={handleMediaChange} />
                 {mediaPreview ? (
                   <div className="relative inline-block">
-                    <img src={mediaPreview} alt="media preview" className="h-32 w-auto rounded-lg border border-border object-cover" />
+                    <img src={mediaPreview} alt={t('form.notificationMediaPreviewAlt')} className="h-32 w-auto rounded-lg border border-border object-cover" />
                     <button type="button" onClick={clearMedia} className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-destructive text-white shadow-md hover:bg-destructive/80">
                       <Iconify icon="solar:close-circle-bold" width={16} />
                     </button>

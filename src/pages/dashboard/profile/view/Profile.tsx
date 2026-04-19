@@ -14,7 +14,6 @@ import { formatPermissionLabel } from 'src/lib/format-permission-label';
 
 // ----------------------------------------------------------------------
 
-const metadata = { title: `Profile | Dashboard - ${CONFIG.appName}` };
 
 type SessionUser = {
   id?: number;
@@ -76,10 +75,12 @@ export default function ProfilePage() {
     return <LoadingScreen />;
   }
 
+  const pageTitle = `${t('profileMetaTitle')} | ${CONFIG.appName}`;
+
   if (!authenticated || !sessionUser) {
     return (
       <>
-        <title>{metadata.title}</title>
+        <title>{pageTitle}</title>
         <Box className="flex min-h-[400px] items-center justify-center px-4">
           <Box className="w-full max-w-md rounded-2xl border border-border/60 bg-background/80 p-8 text-center shadow-lg backdrop-blur-sm">
             <Iconify icon="solar:user-circle-bold" className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
@@ -101,7 +102,7 @@ export default function ProfilePage() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{pageTitle}</title>
 
       <Box className="relative w-full max-w-none px-4 py-8 sm:px-6 lg:px-8 xl:px-10">
         {/* Decorative background — full-bleed within main */}
@@ -176,7 +177,7 @@ export default function ProfilePage() {
                           variant="standard"
                           className="rounded-md border border-primary/20 bg-primary/10 px-2.5 py-0.5 text-xs font-medium capitalize text-primary"
                         >
-                          {role}
+                          {t(`roles.${role}`, { defaultValue: role })}
                         </Badge>
                       ))
                     ) : (

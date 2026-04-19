@@ -12,8 +12,6 @@ import { useFetchVendorUsers, useDeleteVendorUser, useUpdateVendorUser, useFetch
 
 // ----------------------------------------------------------------------
 
-const metadata = { title: `Vendor Users | Dashboard - ${CONFIG.appName}` };
-
 export default function Page() {
   const { t } = useTranslation('table');
   const [currentPage, setCurrentPage] = useState(1);
@@ -58,7 +56,7 @@ export default function Page() {
     if (!pendingDeleteId) return;
     try {
       await deleteVendorUserMutation.mutateAsync(pendingDeleteId);
-      toast.success('Vendor user deleted successfully');
+      toast.success(t('vendorUserDeletedSuccess'));
     } catch { return; } finally {
       setIsDeleteDialogOpen(false);
       setPendingDeleteId(null);
@@ -90,26 +88,26 @@ export default function Page() {
         password_confirmation: data.password_confirmation,
       } as any,
     });
-    toast.success('Password updated successfully');
+    toast.success(t('form.passwordUpdatedSuccess'));
     setPasswordDialogTargetId(null);
     setPasswordDialogOpen(false);
   };
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.vendorUsersIndexDocumentTitle', { appName: CONFIG.appName })}</title>
 
       <UpdatePasswordDialog
         open={passwordDialogOpen}
         onOpenChange={setPasswordDialogOpen}
         onSubmit={handlePasswordSubmit}
         isSubmitting={updateVendorUserMutation.isPending}
-        entityName="Vendor User"
+        entityName={t('tableNames.vendorUser')}
         minLength={8}
       />
 
       <DataTable
-        tableName="Vendor Users"
+        tableName={t('tableNames.vendorUser')}
         columns={vendorUserColumns(
           {
             update: hasPermission('update', 'vendoruser'),
@@ -135,13 +133,13 @@ export default function Page() {
         }}
         isLoading={isLoading}
         columnTranslations={{
-          id: 'ID',
-          name: 'Name',
-          email: 'Email',
-          vendor_name: 'Vendor',
-          shops_count: 'Shops',
-          is_active: 'Status',
-          created_at: 'Created',
+          id: t('columns.id'),
+          name: t('columns.name'),
+          email: t('columns.email'),
+          vendor_name: t('columns.vendor'),
+          shops_count: t('columns.shops'),
+          is_active: t('columns.status'),
+          created_at: t('columns.created'),
           actions: t('columns.action'),
         }}
         pagination={pagination}

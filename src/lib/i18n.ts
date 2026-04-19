@@ -9,7 +9,7 @@ import { permissionTranslationsAr, permissionTranslationsEn } from '../locales/p
 
 export const LANGUAGE_STORAGE_KEY = 'app-language';
 
-const savedLanguage = localStorage.getItem(LANGUAGE_STORAGE_KEY) || 'en';
+const savedLanguage = localStorage.getItem(LANGUAGE_STORAGE_KEY) || 'ar';
 
 // ----------------------------------------------------------------------
 
@@ -35,7 +35,7 @@ i18n.use(initReactI18next).init({
     },
   },
   lng: savedLanguage,
-  fallbackLng: 'en',
+  fallbackLng: 'ar',
   defaultNS: 'table',
   ns: ['table', 'nav', 'validation', 'common'],
   interpolation: {

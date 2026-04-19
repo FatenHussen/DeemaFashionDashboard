@@ -13,6 +13,10 @@ export type BrandListQueryParams = {
   is_active?: 0 | 1 | boolean;
   category_id?: number;
   origin_country_id?: number;
+  /** Sort field — defaults to `order` to reflect drag-and-drop sorting. */
+  sort_field?: string;
+  /** Sort direction — defaults to `asc` when `sort_field` is set. */
+  sort_order?: 'asc' | 'desc';
 };
 
 export const _BrandApi = {
@@ -27,6 +31,10 @@ export const _BrandApi = {
       searchParams.set('origin_country_id', String(params.origin_country_id));
     if (params?.is_active === true || params?.is_active === 1) searchParams.set('is_active', '1');
     else if (params?.is_active === false || params?.is_active === 0) searchParams.set('is_active', '0');
+    if (params?.sort_field) {
+      searchParams.set('sort_field', params.sort_field);
+      searchParams.set('sort_order', params.sort_order ?? 'asc');
+    }
 
     const query = searchParams.toString();
     const url = query ? `${apiRoutes.brand.list}?${query}` : apiRoutes.brand.list;
@@ -87,6 +95,22 @@ export const _BrandApi = {
   },
   deleteBrand: async (id: number | string): Promise<any> => {
     const response = await axiosInstance.delete(apiRoutes.brand.delete(id));
+    return response.data;
+  },
+  /**
+   * Persist new sort order for brands.
+   * `ordered_ids` must be the full array of brand IDs in the desired order (no duplicates).
+   */
+  sortBrands: async (payload: {
+    ordered_ids: number[];
+  }): Promise<{
+    status: boolean;
+    message: string;
+    data?: { updated_count: number };
+  }> => {
+    const response = await axiosInstance.post(apiRoutes.brand.sort, {
+      ordered_ids: payload.ordered_ids,
+    });
     return response.data;
   },
 };

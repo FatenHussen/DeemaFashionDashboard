@@ -28,7 +28,7 @@ interface LocalizationState {
 
 // ----------------------------------------------------------------------
 
-const savedLanguage = localStorage.getItem(LANGUAGE_STORAGE_KEY) || 'en';
+const savedLanguage = localStorage.getItem(LANGUAGE_STORAGE_KEY) || 'ar';
 
 // Apply saved language to DOM immediately on store init
 applyLangToDOM(savedLanguage);

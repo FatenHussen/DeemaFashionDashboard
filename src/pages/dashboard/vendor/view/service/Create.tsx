@@ -113,7 +113,7 @@ export default function CreatePage() {
         submittingLabel={isEditMode ? t('form.updatingServiceSubmit') : t('form.creatingServiceSubmit')}
       >
         {/* ── Section: Names ── */}
-        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+        <Box className="rounded-2xl border border-border/50 bg-card/50 shadow-sm">
           <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-primary/[0.06] via-primary/[0.02] to-transparent">
             <Box className="h-8 w-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
               <Iconify icon="solar:service-bold" className="text-primary" width={15} />

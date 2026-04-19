@@ -64,6 +64,8 @@ export const apiRoutes = {
     update: (id: number | string) => `${ROOTS.ADMIN}/brands/${id}`,
     delete: (id: number | string) => `${ROOTS.ADMIN}/brands/${id}`,
     details: (id: number | string) => `${ROOTS.ADMIN}/brands/${id}`,
+    /** Persist drag-and-drop ordering. Body: `{ ordered_ids: number[] }`. */
+    sort: `${ROOTS.ADMIN}/brands/sort`,
   },
   // Governorate routes
   governorate: {
@@ -96,6 +98,8 @@ export const apiRoutes = {
     update: (id: number | string) => `${ROOTS.ADMIN}/categories/${id}`,
     delete: (id: number | string) => `${ROOTS.ADMIN}/categories/${id}`,
     details: (id: number | string) => `${ROOTS.ADMIN}/categories/${id}`,
+    /** Persist drag-and-drop ordering. Body: `{ ordered_ids: number[], parent_id?: number }`. */
+    sort: `${ROOTS.ADMIN}/categories/sort`,
   },
   // Category Attribute routes
   categoryAttribute: {

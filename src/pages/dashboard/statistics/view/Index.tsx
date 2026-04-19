@@ -49,8 +49,6 @@ import {
 
 // ----------------------------------------------------------------------
 
-const metadata = { title: `Statistics | Dashboard - ${CONFIG.appName}` };
-
 /** Cohesive palette: distinct, accessible, works on light/dark cards */
 const CHART_COLORS = [
   '#0d9488',
@@ -475,7 +473,7 @@ export default function StatisticsPage() {
   const categoriesPieData = useMemo(() => {
     const raw = topCategoriesData?.data?.data ?? [];
     return raw.map((d) => ({
-      name: (d.category_name?.[lang as 'ar' | 'en'] ?? d.category_name?.en ?? '') || 'N/A',
+      name: (d.category_name?.[lang as 'ar' | 'en'] ?? d.category_name?.en ?? '') || t('notAvailableShort'),
       value: d.revenue,
     }));
   }, [topCategoriesData, lang]);
@@ -578,7 +576,7 @@ export default function StatisticsPage() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.statisticsIndexDocumentTitle', { appName: CONFIG.appName })}</title>
       <m.div className="flex w-full flex-col p-4 sm:p-6" {...STATS_MOTION.shell}>
         <div className="relative overflow-hidden rounded-[28px] bg-gradient-to-br from-primary/20 via-card to-primary/10 p-1 shadow-[0_28px_80px_-28px_rgba(0,0,0,0.25)] sm:p-1.5">
           <div className="rounded-[24px] bg-card/95 p-4 shadow-2xl backdrop-blur-sm sm:p-6 md:p-8">

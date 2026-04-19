@@ -3,6 +3,7 @@ import './rich-text-editor.css';
 import { useEffect } from 'react';
 import Link from '@tiptap/extension-link';
 import StarterKit from '@tiptap/starter-kit';
+import { useTranslation } from 'react-i18next';
 import { mergeClasses } from 'minimal-shared/utils';
 import Underline from '@tiptap/extension-underline';
 import TextAlign from '@tiptap/extension-text-align';
@@ -32,6 +33,7 @@ export function RichTextEditor({
   disabled = false,
   className,
 }: RichTextEditorProps) {
+  const { t } = useTranslation('table');
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -86,13 +88,13 @@ export function RichTextEditor({
       dir={dir}
     >
       {editor && (
-        <div className="rich-text-editor-toolbar" role="toolbar" aria-label="Formatting">
+        <div className="rich-text-editor-toolbar" role="toolbar" aria-label={t('form.richTextToolbarLabel')}>
           <button
             type="button"
             className={btn(editor.isActive('bold'))}
             onClick={() => editor.chain().focus().toggleBold().run()}
             aria-pressed={editor.isActive('bold')}
-            title="Bold"
+            title={t('form.richTextBold')}
           >
             <span className="font-bold">B</span>
           </button>
@@ -101,7 +103,7 @@ export function RichTextEditor({
             className={btn(editor.isActive('italic'))}
             onClick={() => editor.chain().focus().toggleItalic().run()}
             aria-pressed={editor.isActive('italic')}
-            title="Italic"
+            title={t('form.richTextItalic')}
           >
             <span className="italic">I</span>
           </button>
@@ -110,7 +112,7 @@ export function RichTextEditor({
             className={btn(editor.isActive('underline'))}
             onClick={() => editor.chain().focus().toggleUnderline().run()}
             aria-pressed={editor.isActive('underline')}
-            title="Underline"
+            title={t('form.richTextUnderline')}
           >
             <span className="underline">U</span>
           </button>
@@ -118,7 +120,7 @@ export function RichTextEditor({
             type="button"
             className={btn(editor.isActive('heading', { level: 2 }))}
             onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-            title="Heading"
+            title={t('form.richTextHeading')}
           >
             H2
           </button>
@@ -126,7 +128,7 @@ export function RichTextEditor({
             type="button"
             className={btn(editor.isActive('bulletList'))}
             onClick={() => editor.chain().focus().toggleBulletList().run()}
-            title="Bullet list"
+            title={t('form.richTextBulletList')}
           >
             <Iconify icon="solar:list-bold" width={18} />
           </button>
@@ -134,7 +136,7 @@ export function RichTextEditor({
             type="button"
             className={btn(editor.isActive('orderedList'))}
             onClick={() => editor.chain().focus().toggleOrderedList().run()}
-            title="Numbered list"
+            title={t('form.richTextNumberedList')}
           >
             <Iconify icon="solar:list-numbers-bold" width={18} />
           </button>
@@ -142,7 +144,7 @@ export function RichTextEditor({
             type="button"
             className={btn(editor.isActive({ textAlign: 'left' }))}
             onClick={() => editor.chain().focus().setTextAlign('left').run()}
-            title="Align left"
+            title={t('form.richTextAlignLeft')}
           >
             <Iconify icon="solar:align-left-bold" width={18} />
           </button>
@@ -150,7 +152,7 @@ export function RichTextEditor({
             type="button"
             className={btn(editor.isActive({ textAlign: 'center' }))}
             onClick={() => editor.chain().focus().setTextAlign('center').run()}
-            title="Align center"
+            title={t('form.richTextAlignCenter')}
           >
             <Iconify icon="solar:align-center-bold" width={18} />
           </button>
@@ -158,7 +160,7 @@ export function RichTextEditor({
             type="button"
             className={btn(editor.isActive({ textAlign: 'right' }))}
             onClick={() => editor.chain().focus().setTextAlign('right').run()}
-            title="Align right"
+            title={t('form.richTextAlignRight')}
           >
             <Iconify icon="solar:align-right-bold" width={18} />
           </button>
@@ -166,7 +168,7 @@ export function RichTextEditor({
             type="button"
             className={btn(false)}
             onClick={() => {
-              const url = window.prompt('Link URL');
+              const url = window.prompt(t('form.richTextLinkPrompt'));
               if (url === null) return;
               if (url === '') {
                 editor.chain().focus().extendMarkRange('link').unsetLink().run();
@@ -174,7 +176,7 @@ export function RichTextEditor({
               }
               editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
             }}
-            title="Link"
+            title={t('form.richTextLink')}
           >
             <Iconify icon="solar:link-bold" width={18} />
           </button>
@@ -182,7 +184,7 @@ export function RichTextEditor({
             type="button"
             className={btn(false)}
             onClick={() => editor.chain().focus().undo().run()}
-            title="Undo"
+            title={t('form.richTextUndo')}
           >
             <Iconify icon="solar:undo-left-bold" width={18} />
           </button>
@@ -190,7 +192,7 @@ export function RichTextEditor({
             type="button"
             className={btn(false)}
             onClick={() => editor.chain().focus().redo().run()}
-            title="Redo"
+            title={t('form.richTextRedo')}
           >
             <Iconify icon="solar:undo-right-bold" width={18} />
           </button>

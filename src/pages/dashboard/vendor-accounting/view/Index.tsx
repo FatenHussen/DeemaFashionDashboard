@@ -13,8 +13,6 @@ import { useFetchVendorAccounting, useFetchVendorAccountingSummary } from '../ho
 
 // ----------------------------------------------------------------------
 
-const metadata = { title: `Vendor Accounting | Dashboard - ${CONFIG.appName}` };
-
 const formatCurrency = (val: number) =>
   val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -173,7 +171,7 @@ export default function VendorAccountingPage() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.vendorAccountingIndexDocumentTitle', { appName: CONFIG.appName })}</title>
 
       <div className="flex flex-col gap-6 p-1">
         {/* Header */}
@@ -320,7 +318,7 @@ export default function VendorAccountingPage() {
             paid: t('vendorAccounting.paid'),
             available_for_withdraw: t('vendorAccounting.availableForWithdraw'),
             status: t('columns.status'),
-            actions: t('columns.action') ?? 'Actions',
+            actions: t('columns.action'),
           }}
           pagination={pagination}
           currentPage={currentPage}

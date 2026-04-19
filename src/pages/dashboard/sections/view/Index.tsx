@@ -38,7 +38,7 @@ export default function Page() {
     if (deletingId) {
       try {
         await deleteSectionMutation.mutateAsync(deletingId);
-        toast.success(t('deleteSuccess') || 'Section deleted successfully');
+        toast.success(t('deleteSuccess'));
         setDeletingId(null);
       } catch { return; }
     }
@@ -74,7 +74,7 @@ export default function Page() {
 
   return (
     <>
-      <title>{`${t('nav:sections')} | Dashboard - ${CONFIG.appName}`}</title>
+      <title>{t('form.sectionsIndexDocumentTitle', { appName: CONFIG.appName })}</title>
 
       <DataTable
         tableName={t('tableNames.section')}

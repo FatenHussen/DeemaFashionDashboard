@@ -157,7 +157,7 @@ function FilterSidebar({ open, onClose, onReset, onApply, children, activeFilter
             type="button"
             onClick={onClose}
             className="relative w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors shrink-0"
-            aria-label="Close filters"
+            aria-label={t('form.closeFiltersAria')}
           >
             <X className="w-4 h-4" />
           </button>

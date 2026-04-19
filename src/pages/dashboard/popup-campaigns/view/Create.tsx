@@ -15,6 +15,8 @@ import { Box, Input, Typography } from 'src/shared/ui';
 import { LoadingScreen } from 'src/shared/components/loading-screen';
 import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
 
+import { useFetchPages } from '@/pages/dashboard/sections/hooks/usePageSections';
+
 import {
   useCreatePopupCampaign,
   useUpdatePopupCampaign,
@@ -142,8 +144,16 @@ export default function CreatePage() {
   const [formFieldsInput, setFormFieldsInput] = useState<string>('');
 
   const { data: detailResponse, isLoading: isLoadingDetail } = useFetchPopupCampaignById(id || '');
+  const { data: pagesResponse, isLoading: isLoadingPages } = useFetchPages();
   const createMutation = useCreatePopupCampaign();
   const updateMutation = useUpdatePopupCampaign();
+
+  const pageOptions = useMemo(() => {
+    const items = pagesResponse?.data ?? [];
+    return items
+      .filter((p) => typeof p?.slug === 'string' && p.slug.trim() !== '')
+      .map((p) => ({ value: p.slug, label: p.title || p.slug }));
+  }, [pagesResponse]);
 
   const typeOptions = useMemo(
     () =>
@@ -384,7 +394,16 @@ export default function CreatePage() {
             <Typography variant="subtitle2" className="mb-2 font-semibold">
               {t('form.popupCampaignSlug')}
             </Typography>
-            <RHFTextField name="slug" placeholder={t('form.popupCampaignSlugPlaceholder')} />
+            <RHFSelect
+              name="slug"
+              options={pageOptions}
+              placeholder={
+                isLoadingPages
+                  ? t('form.popupCampaignSlugLoading')
+                  : t('form.popupCampaignSlugPlaceholder')
+              }
+              disabled={isLoadingPages}
+            />
             <Typography variant="caption" className="text-muted-foreground mt-1 block">
               {t('form.popupCampaignSlugHint')}
             </Typography>
@@ -463,19 +482,19 @@ export default function CreatePage() {
             <Typography variant="subtitle2" className="mb-2 font-semibold">
               {t('form.popupCampaignButtonText')}
             </Typography>
-            <RHFTextField name="button_text" placeholder="Shop Now" />
+            <RHFTextField name="button_text" placeholder={t('popupCampaign.buttonTextPlaceholder')} />
           </Box>
           <Box className="group">
             <Typography variant="subtitle2" className="mb-2 font-semibold">
               {t('form.popupCampaignButtonUrl')}
             </Typography>
-            <RHFTextField name="button_url" placeholder="https://example.com" />
+            <RHFTextField name="button_url" placeholder={t('popupCampaign.buttonUrlPlaceholder')} />
           </Box>
           <Box className="group md:col-span-2">
             <Typography variant="subtitle2" className="mb-2 font-semibold">
               {t('form.popupCampaignSecondaryButton')}
             </Typography>
-            <RHFTextField name="secondary_button_text" placeholder="Learn More" />
+            <RHFTextField name="secondary_button_text" placeholder={t('popupCampaign.secondaryButtonPlaceholder')} />
           </Box>
         </Box>
 
@@ -500,7 +519,7 @@ export default function CreatePage() {
                 setShowOnPagesInput(v);
                 setValue('show_on_pages', parseCsv(v), { shouldValidate: true });
               }}
-              placeholder="home, category, product"
+              placeholder={t('popupCampaign.showOnPagesPlaceholder')}
               fullWidth
             />
             <Typography variant="caption" className="text-muted-foreground mt-1 block">
@@ -583,7 +602,7 @@ export default function CreatePage() {
                   setFormFieldsInput(v);
                   setValue('form_fields', parseCsv(v), { shouldValidate: true });
                 }}
-                placeholder="name, email, phone"
+                placeholder={t('popupCampaign.formFieldsPlaceholder')}
                 fullWidth
               />
               <Typography variant="caption" className="text-muted-foreground mt-1 block">

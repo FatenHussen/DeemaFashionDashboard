@@ -14,8 +14,6 @@ import { useFetchShopVendorServices, useDeleteShopVendorService } from '../hooks
 
 // ----------------------------------------------------------------------
 
-const metadata = { title: `Shop Vendor Services | Dashboard - ${CONFIG.appName}` };
-
 export default function Page() {
   const { t } = useTranslation('table');
   const [currentPage, setCurrentPage] = useState(1);
@@ -57,7 +55,7 @@ export default function Page() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.shopVendorServicesIndexDocumentTitle', { appName: CONFIG.appName })}</title>
 
       <DataTable
         tableName={t('tableNames.shopVendorService')}

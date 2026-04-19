@@ -8,19 +8,38 @@ interface RHFColorPickerProps {
   helperText?: string;
 }
 
+const POPOVER_ESTIMATED_HEIGHT = 240;
+const STICKY_BAR_ESTIMATED_HEIGHT = 80;
+
 export function RHFColorPicker({ name, helperText }: RHFColorPickerProps) {
   const { control } = useFormContext();
   const [open, setOpen] = useState(false);
-  const popoverRef = useRef<HTMLDivElement>(null);
+  const [placement, setPlacement] = useState<'bottom' | 'top'>('bottom');
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
         setOpen(false);
       }
     };
     if (open) document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const trigger = triggerRef.current;
+    if (!trigger) return;
+    const rect = trigger.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom - STICKY_BAR_ESTIMATED_HEIGHT;
+    const spaceAbove = rect.top;
+    if (spaceBelow < POPOVER_ESTIMATED_HEIGHT && spaceAbove > spaceBelow) {
+      setPlacement('top');
+    } else {
+      setPlacement('bottom');
+    }
   }, [open]);
 
   return (
@@ -29,8 +48,8 @@ export function RHFColorPicker({ name, helperText }: RHFColorPickerProps) {
       control={control}
       render={({ field, fieldState: { error } }) => (
         <Box className="w-full">
-          <Box className="relative" ref={popoverRef}>
-            <Box className="flex items-center gap-3">
+          <Box className="relative" ref={wrapperRef}>
+            <Box className="flex items-center gap-3" ref={triggerRef}>
               <button
                 type="button"
                 onClick={() => setOpen((v) => !v)}
@@ -49,7 +68,11 @@ export function RHFColorPicker({ name, helperText }: RHFColorPickerProps) {
             </Box>
 
             {open && (
-              <Box className="absolute z-50 mt-2 p-3 rounded-xl border border-border bg-card shadow-xl">
+              <Box
+                className={`absolute z-[100] p-3 rounded-xl border border-border bg-card shadow-xl ${
+                  placement === 'top' ? 'bottom-full mb-2' : 'top-full mt-2'
+                }`}
+              >
                 <HexColorPicker
                   color={field.value || '#000000'}
                   onChange={field.onChange}

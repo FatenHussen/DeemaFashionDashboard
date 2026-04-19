@@ -10,8 +10,6 @@ import { useFetchBanners, useDeleteBanner } from '@/pages/dashboard/banners/hook
 
 import { CONFIG } from 'src/global-config';
 
-const metadata = { title: `Banners | Dashboard - ${CONFIG.appName}` };
-
 export default function Page() {
   const { t } = useTranslation('table');
   const navigate = useNavigate();
@@ -43,7 +41,7 @@ export default function Page() {
     if (deletingId) {
       try {
         await deleteBannerMutation.mutateAsync(deletingId);
-        toast.success(t('deleteSuccess') || 'Banner deleted successfully');
+        toast.success(t('deleteSuccess'));
         setDeletingId(null);
       } catch { return; }
     }
@@ -98,7 +96,7 @@ export default function Page() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.bannersIndexDocumentTitle', { appName: CONFIG.appName })}</title>
 
       <DataTable
         tableName={t("tableNames.banner")}

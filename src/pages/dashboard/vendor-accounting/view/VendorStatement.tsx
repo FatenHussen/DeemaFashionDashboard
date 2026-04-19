@@ -16,8 +16,6 @@ import { ProcessWithdrawRequestModal } from '../components/process-withdraw-requ
 
 // ----------------------------------------------------------------------
 
-const metadata = { title: `Vendor Statement | Dashboard - ${CONFIG.appName}` };
-
 const formatCurrency = (val: number) =>
   val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -135,7 +133,7 @@ export default function VendorStatementPage() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.vendorStatementDocumentTitle', { appName: CONFIG.appName })}</title>
 
       {processingRequest && (
         <ProcessWithdrawRequestModal
@@ -255,7 +253,7 @@ export default function VendorStatementPage() {
               status: t('columns.status'),
               payment_method: t('vendorAccounting.paymentMethod'),
               requested_at: t('vendorAccounting.requestedAt'),
-              actions: t('columns.action') ?? 'Actions',
+              actions: t('columns.action'),
             }}
             pagination={pagination}
             currentPage={withdrawPage}

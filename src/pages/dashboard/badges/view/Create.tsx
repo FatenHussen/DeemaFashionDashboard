@@ -187,7 +187,7 @@ export default function CreatePage() {
         submittingLabel={isEditMode ? t('form.updatingBadgeSubmit') : t('form.creatingBadgeSubmit')}
       >
         {/* ── Section: Position ── */}
-        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+        <Box className="rounded-2xl border border-border/50 bg-card/50 shadow-sm">
           <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-primary/[0.06] via-primary/[0.02] to-transparent">
             <Box className="h-8 w-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
               <Iconify icon="solar:sort-vertical-bold" className="text-primary" width={15} />
@@ -217,7 +217,7 @@ export default function CreatePage() {
         </Box>
 
         {/* ── Section: Badge Mode ── */}
-        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+        <Box className="rounded-2xl border border-border/50 bg-card/50 shadow-sm">
           <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-violet-500/[0.06] via-violet-500/[0.02] to-transparent">
             <Box className="h-8 w-8 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center shrink-0">
               <Iconify icon="solar:widget-2-bold-duotone" className="text-violet-500" width={15} />
@@ -289,7 +289,7 @@ export default function CreatePage() {
                     {previewImage && (
                       <Box className="relative inline-block">
                         <Box className="rounded-xl border border-border shadow-sm overflow-hidden bg-muted/30"><img src={previewImage} alt={t('form.badgeImagePreviewAlt')} className="w-28 h-28 object-contain" /></Box>
-                        <span className="absolute top-1 left-1 px-1.5 py-0.5 rounded bg-purple-500/90 text-white text-[9px] font-bold uppercase tracking-wider">GIF</span>
+                        <span className="absolute top-1 left-1 px-1.5 py-0.5 rounded bg-purple-500/90 text-white text-[9px] font-bold uppercase tracking-wider">{t('gifBadge')}</span>
                         <button type="button" onClick={() => { setPreviewImage(null); onChange(null); }} className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-destructive text-white flex items-center justify-center shadow-sm hover:bg-destructive/90 transition-colors"><Iconify icon="solar:close-bold" width={12} /></button>
                       </Box>
                     )}

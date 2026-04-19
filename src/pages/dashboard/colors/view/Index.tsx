@@ -128,7 +128,7 @@ export default function Page() {
           onChange={(e) => setSortField(e.target.value as typeof sortField)}
         >
           <option value="">{t('form.colorSortDefault')}</option>
-          <option value="id">ID</option>
+          <option value="id">{t('columns.id')}</option>
           <option value="hex">{t('columns.hex')}</option>
           <option value="is_active">{t('columns.status')}</option>
           <option value="created_at">{t('columns.createdAt')}</option>

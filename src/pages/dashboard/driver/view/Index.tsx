@@ -77,7 +77,7 @@ export default function Page() {
     if (deletingId) {
       try {
         await deleteDriverMutation.mutateAsync(deletingId);
-        toast.success(t('deleteSuccess') || 'Driver deleted successfully');
+        toast.success(t('deleteSuccess'));
         setDeletingId(null);
       } catch { return; }
     }

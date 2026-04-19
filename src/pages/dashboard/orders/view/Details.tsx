@@ -32,8 +32,6 @@ import OrderTrackingMap from '../components/OrderTrackingMap';
 
 // ----------------------------------------------------------------------
 
-const metadata = { title: `Order Details | Dashboard - ${CONFIG.appName}` };
-
 const statusColors: Record<string, string> = {
   pending: 'bg-yellow-500/20 text-yellow-600',
   preparing: 'bg-blue-500/20 text-blue-600',
@@ -210,7 +208,7 @@ export default function DetailsPage() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.orderDetailsDocumentTitle', { appName: CONFIG.appName })}</title>
       <Box className="relative min-h-screen overflow-hidden bg-background px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
         <Box className="pointer-events-none fixed inset-0 bg-gradient-to-br from-background via-background to-muted/30" />
 
@@ -799,8 +797,8 @@ export default function DetailsPage() {
                         {item.product_name}
                       </Typography>
                       <Typography variant="caption" className="text-muted-foreground block">
-                        Qty: {item.quantity} × {item.price}
-                        {item.discount > 0 && ` · Discount: ${item.discount}`}
+                        {t('form.orderItemQtyPriceLine', { qty: item.quantity, price: item.price })}
+                        {item.discount > 0 && ` · ${t('form.orderItemDiscountInline', { amount: item.discount })}`}
                       </Typography>
                       {item.variant_attributes &&
                         (Array.isArray(item.variant_attributes)

@@ -11,8 +11,6 @@ import { useFetchUsers, useDeleteUser, useUpdateUser, useFetchUserById } from '@
 
 import { CONFIG } from 'src/global-config';
 
-const metadata = { title: `Users | Dashboard - ${CONFIG.appName}` };
-
 export default function Page() {
   const { t } = useTranslation('table');
   const navigate = useNavigate();
@@ -66,7 +64,7 @@ export default function Page() {
     if (deletingId) {
       try {
         await deleteUserMutation.mutateAsync(deletingId);
-        toast.success(t('deleteSuccess') || 'User deleted successfully');
+        toast.success(t('deleteSuccess'));
         setDeletingId(null);
       } catch { return; }
     }
@@ -102,7 +100,7 @@ export default function Page() {
         password_confirmation: data.password_confirmation,
       },
     });
-    toast.success('Password updated successfully');
+    toast.success(t('form.passwordUpdatedSuccess'));
     setPasswordDialogTargetId(null);
     setPasswordDialogOpen(false);
   };
@@ -169,14 +167,14 @@ export default function Page() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.usersIndexDocumentTitle', { appName: CONFIG.appName })}</title>
 
       <UpdatePasswordDialog
         open={passwordDialogOpen}
         onOpenChange={setPasswordDialogOpen}
         onSubmit={handlePasswordSubmit}
         isSubmitting={updateUserMutation.isPending}
-        entityName="User"
+        entityName={t('tableNames.user')}
         minLength={6}
       />
 

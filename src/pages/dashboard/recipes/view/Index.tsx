@@ -9,8 +9,6 @@ import { useFetchRecipes, useDeleteRecipe } from '@/pages/dashboard/recipes/hook
 
 import { CONFIG } from 'src/global-config';
 
-const metadata = { title: `Recipes | Dashboard - ${CONFIG.appName}` };
-
 export default function Page() {
   const { t } = useTranslation('table');
   const navigate = useNavigate();
@@ -28,7 +26,7 @@ export default function Page() {
     if (deletingId) {
       try {
         await deleteMutation.mutateAsync(deletingId);
-        toast.success(t('deleteSuccess') || 'Recipe deleted successfully');
+        toast.success(t('deleteSuccess'));
         setDeletingId(null);
       } catch { return; }
     }
@@ -49,7 +47,7 @@ export default function Page() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.recipesIndexDocumentTitle', { appName: CONFIG.appName })}</title>
       <DataTable
         tableName={t("tableNames.recipe")}
         columns={recipeColumns(

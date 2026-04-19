@@ -48,7 +48,7 @@ export default function Page() {
     if (deletingId) {
       try {
         await deleteMutation.mutateAsync(deletingId);
-        toast.success(t('deleteSuccess') || 'Vendor package deleted successfully');
+        toast.success(t('deleteSuccess'));
         setDeletingId(null);
       } catch { return; }
     }

@@ -207,7 +207,7 @@ export default function DetailsPage() {
           </Button>
           <div className="flex flex-wrap items-center gap-2">
             <span className="rounded-full border border-border/80 bg-muted/40 px-3 py-1 font-mono text-xs text-muted-foreground">
-              ID · {item.id}
+              {t('form.idChip', { id: item.id })}
             </span>
           </div>
         </div>

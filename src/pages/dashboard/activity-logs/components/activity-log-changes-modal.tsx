@@ -41,13 +41,13 @@ function FormatValue({ value }: { value: unknown }) {
       <div className="space-y-2 text-sm">
         {value.en !== undefined && (
           <div>
-            <span className="text-xs font-medium text-muted-foreground">EN </span>
+            <span className="text-xs font-medium text-muted-foreground">{t('languageCodeEnShort')} </span>
             <span className="break-words">{value.en === null ? '—' : String(value.en)}</span>
           </div>
         )}
         {value.ar !== undefined && (
           <div dir="rtl" className="text-end">
-            <span className="text-xs font-medium text-muted-foreground">AR </span>
+            <span className="text-xs font-medium text-muted-foreground">{t('languageCodeArShort')} </span>
             <span className="break-words">{value.ar === null ? '—' : String(value.ar)}</span>
           </div>
         )}

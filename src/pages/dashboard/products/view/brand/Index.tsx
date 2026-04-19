@@ -1,23 +1,31 @@
+import type { SortableEntity } from '@/shared/ui/table-data/sort-items-dialog';
+
 import { toast } from 'react-toastify';
 import { Input } from '@/shared/ui/input';
+import { Button } from '@/shared/ui/button';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
+import { Iconify } from '@/shared/components/iconify';
 import { formatTranslated } from '@/utils/format-translated';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { usePermissions } from '@/auth/hooks/use-permissions';
-import { useRef, useState, useEffect, useCallback } from 'react';
 import { getApiErrorMessage } from '@/lib/get-api-error-message';
+import { _BrandApi } from '@/pages/dashboard/products/api/brand.services';
+import { SortItemsDialog } from '@/shared/ui/table-data/sort-items-dialog';
+import { useRef, useMemo, useState, useEffect, useCallback } from 'react';
 import { useFetchCountries } from '@/pages/dashboard/countries/hooks/country';
 import { brandColumns, type BrandFormValues } from '@/columns/one/products/one';
 import { _CategoryApi } from '@/pages/dashboard/categories/api/category.services';
-import { useFetchBrands, useDeleteBrand } from '@/pages/dashboard/products/hooks/brand';
+import {
+  useSortBrands,
+  useFetchBrands,
+  useDeleteBrand,
+} from '@/pages/dashboard/products/hooks/brand';
 
 import { CONFIG } from 'src/global-config';
 
 // ----------------------------------------------------------------------
-
-const metadata = { title: `Brands | Dashboard - ${CONFIG.appName}` };
 
 function FilterGroup({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -46,6 +54,7 @@ export default function Page() {
   const [isActiveFilter, setIsActiveFilter] = useState<'' | '1' | '0'>('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [originCountryFilter, setOriginCountryFilter] = useState('');
+  const [isSortOpen, setIsSortOpen] = useState(false);
 
   useEffect(() => {
     const id = window.setTimeout(() => {
@@ -89,12 +98,46 @@ export default function Page() {
   } = useFetchBrands({
     page,
     per_page: limit,
+    sort_field: 'order',
+    sort_order: 'asc',
     ...(debouncedName ? { name: debouncedName } : {}),
     ...(isActiveFilter === '' ? {} : { is_active: isActiveFilter === '1' }),
     ...(categoryFilter ? { category_id: Number(categoryFilter) } : {}),
     ...(originCountryFilter ? { origin_country_id: Number(originCountryFilter) } : {}),
   });
   const deleteBrandMutation = useDeleteBrand();
+  const sortBrandsMutation = useSortBrands();
+
+  // Fetch ALL brands (sorted by `order` asc) for the sort dialog. We deliberately
+  // do not paginate here so the saved `ordered_ids` payload covers every brand.
+  const { data: sortItemsResp, isFetching: isSortItemsLoading } = useQuery({
+    queryKey: ['brand', 'sort-items'],
+    queryFn: () =>
+      _BrandApi.getListBrands({ page: 1, per_page: 500 }),
+    enabled: isSortOpen,
+  });
+
+  const sortItems: SortableEntity[] = useMemo(() => {
+    const rows = sortItemsResp?.data?.items ?? [];
+    return rows.map((row) => ({
+      id: row.id,
+      label:
+        typeof row.name === 'object'
+          ? formatTranslated(row.name as { en?: string; ar?: string })
+          : String(row.name ?? ''),
+      image: row.image ?? null,
+    }));
+  }, [sortItemsResp]);
+
+  const handleSortSave = async (orderedIds: number[]) => {
+    try {
+      await sortBrandsMutation.mutateAsync({ ordered_ids: orderedIds });
+      toast.success(t('orderUpdatedSuccess'));
+      setIsSortOpen(false);
+    } catch (e) {
+      toast.error(getApiErrorMessage(e, t('orderUpdatedError')));
+    }
+  };
 
   const onDelete = (id: number) => {
     setDeletingId(id);
@@ -104,7 +147,7 @@ export default function Page() {
     if (deletingId) {
       try {
         await deleteBrandMutation.mutateAsync(deletingId);
-        toast.success(t('deleteSuccess') || 'Brand deleted successfully');
+        toast.success(t('deleteSuccess'));
         setDeletingId(null);
       } catch {
         return;
@@ -176,15 +219,30 @@ export default function Page() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.brandsIndexDocumentTitle', { appName: CONFIG.appName })}</title>
 
       {isError ? (
         <div className="mx-3 mb-3 rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive sm:mx-4 md:mx-6">
-          {getApiErrorMessage(error, 'Failed to load brands.')}
+          {getApiErrorMessage(error, t('form.brandsLoadErrorFallback'))}
         </div>
       ) : null}
 
       <DataTable
+        tableTop={
+          hasPermission('update', 'brand') ? (
+            <div className="flex items-center justify-end">
+              <Button
+                variant="outlined"
+                color="primary"
+                size="small"
+                onClick={() => setIsSortOpen(true)}
+              >
+                <Iconify icon="lucide:arrow-up-down" width={16} className="me-1.5" />
+                {t('reorder')}
+              </Button>
+            </div>
+          ) : undefined
+        }
         tableName={t('tableNames.brand')}
         columns={brandColumns(
           {
@@ -288,6 +346,17 @@ export default function Page() {
         onPageChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}
         pageSizeOptions={[10, 25, 50, 100]}
+      />
+
+      <SortItemsDialog
+        open={isSortOpen}
+        onClose={() => setIsSortOpen(false)}
+        items={sortItems}
+        title={t('reorderBrandsTitle')}
+        description={t('reorderBrandsDescription')}
+        onSave={handleSortSave}
+        isSubmitting={sortBrandsMutation.isPending}
+        isLoading={isSortItemsLoading}
       />
     </>
   );

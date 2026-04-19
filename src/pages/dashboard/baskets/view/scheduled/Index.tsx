@@ -10,8 +10,6 @@ import { useFetchScheduledBaskets, useDeleteScheduledBasket } from '@/pages/dash
 import { Input } from 'src/shared/ui';
 import { CONFIG } from 'src/global-config';
 
-const metadata = { title: `Scheduled Baskets | Dashboard - ${CONFIG.appName}` };
-
 export default function Page() {
   const { t } = useTranslation('table');
   const navigate = useNavigate();
@@ -43,7 +41,7 @@ export default function Page() {
     if (deletingId) {
       try {
         await deleteScheduledBasketMutation.mutateAsync(deletingId);
-        toast.success(t('deleteSuccess') || 'Scheduled basket deleted successfully');
+        toast.success(t('deleteSuccess'));
         setDeletingId(null);
       } catch { return; }
     }
@@ -71,7 +69,7 @@ export default function Page() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.scheduledBasketsIndexDocumentTitle', { appName: CONFIG.appName })}</title>
       <DataTable
         tableName={t("tableNames.scheduledBasket")}
         columns={scheduledBasketColumns(

@@ -12,8 +12,6 @@ import { ProcessWithdrawRequestModal } from '../components/process-withdraw-requ
 
 // ----------------------------------------------------------------------
 
-const metadata = { title: `Withdraw Requests | Dashboard - ${CONFIG.appName}` };
-
 export default function WithdrawRequestsPage() {
   const { t } = useTranslation('table');
 
@@ -56,7 +54,7 @@ export default function WithdrawRequestsPage() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.withdrawRequestsDocumentTitle', { appName: CONFIG.appName })}</title>
 
       {processingRequest && (
         <ProcessWithdrawRequestModal
@@ -78,7 +76,7 @@ export default function WithdrawRequestsPage() {
           status: t('columns.status'),
           payment_method: t('vendorAccounting.paymentMethod'),
           requested_at: t('vendorAccounting.requestedAt'),
-          actions: t('columns.action') ?? 'Actions',
+          actions: t('columns.action'),
         }}
         pagination={pagination}
         currentPage={currentPage}

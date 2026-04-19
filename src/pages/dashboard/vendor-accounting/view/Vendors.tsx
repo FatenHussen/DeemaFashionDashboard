@@ -17,8 +17,6 @@ import { useFetchVendorAccounting } from '../hooks';
 
 // ----------------------------------------------------------------------
 
-const metadata = { title: `Vendors Accounting | Dashboard - ${CONFIG.appName}` };
-
 function formatCurrency(value: number | undefined | null) {
   if (value === null || value === undefined) return '—';
   return value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -298,7 +296,7 @@ export default function VendorAccountingVendorsPage() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.vendorsAccountingDocumentTitle', { appName: CONFIG.appName })}</title>
 
       <DataTable
         tableName={t('tableNames.vendorAccounting')}

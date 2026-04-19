@@ -10,8 +10,6 @@ import {
 
 import { CONFIG } from 'src/global-config';
 
-const metadata = { title: `User Basket Schedules | Dashboard - ${CONFIG.appName}` };
-
 export default function Page() {
   const { t } = useTranslation('table');
   const [currentPage, setCurrentPage] = useState(1);
@@ -45,7 +43,7 @@ export default function Page() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.userBasketSchedulesIndexDocumentTitle', { appName: CONFIG.appName })}</title>
       <DataTable
         tableName="UserBasketSchedule"
         columns={userBasketScheduleColumns(t, {

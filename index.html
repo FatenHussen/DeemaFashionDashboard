@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="ar" dir="rtl">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/logo/logo.jpg" />
@@ -9,7 +9,7 @@
     <script>
       // Apply saved language direction before React mounts to prevent flash
       (function () {
-        var lang = localStorage.getItem('app-language') || 'en';
+        var lang = localStorage.getItem('app-language') || 'ar';
         var dir = lang === 'ar' ? 'rtl' : 'ltr';
         document.documentElement.lang = lang;
         document.documentElement.dir = dir;

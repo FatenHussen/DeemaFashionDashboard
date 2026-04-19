@@ -8,8 +8,6 @@ import { CONFIG } from 'src/global-config';
 import { Box, Typography } from 'src/shared/ui';
 import { LoadingScreen } from 'src/shared/components/loading-screen';
 
-const metadata = { title: `Scheduled Basket Details | Dashboard - ${CONFIG.appName}` };
-
 function formatName(name: unknown): string {
   if (name && typeof name === 'object') {
     const o = name as { en?: string; ar?: string };
@@ -50,7 +48,7 @@ export default function DetailsPage() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.scheduledBasketDetailsDocumentTitle', { appName: CONFIG.appName })}</title>
       <Box className="relative min-h-screen overflow-hidden bg-background p-6">
         <Box className="relative w-full">
           <Box className="mb-6">
@@ -163,7 +161,7 @@ export default function DetailsPage() {
             <Box className="mb-4 overflow-hidden rounded-2xl border border-border/50 bg-card/80 shadow-sm backdrop-blur-sm">
               <Box className="p-6">
                 <Typography variant="h6" className="mb-4 font-semibold">
-                  {t('form.scheduleSection') || 'Delivery schedules'}
+                  {t('form.scheduleSection')}
                 </Typography>
                 <Box className="space-y-4">
                   {scheduledBasket.schedules.map((sch) => (
@@ -171,15 +169,15 @@ export default function DetailsPage() {
                       <Typography variant="subtitle1" className="font-semibold">{formatName(sch.title)}</Typography>
                       <Box className="mt-2 grid gap-2 sm:grid-cols-2 text-sm">
                         <span>
-                          <span className="text-muted-foreground">{t('form.numberOfDays') || 'Days'}: </span>
+                          <span className="text-muted-foreground">{t('form.numberOfDays')}: </span>
                           {sch.number_of_days}
                         </span>
                         <span>
-                          <span className="text-muted-foreground">{t('form.scheduleDiscountType') || 'Schedule discount'}: </span>
+                          <span className="text-muted-foreground">{t('form.scheduleDiscountType')}: </span>
                           {sch.discount_type ? `${sch.discount_type} ${sch.discount_value ?? ''}` : '—'}
                         </span>
                         <span>
-                          <span className="text-muted-foreground">{t('form.scheduleActive') || 'Active'}: </span>
+                          <span className="text-muted-foreground">{t('form.scheduleActive')}: </span>
                           {sch.is_active ? t('active') : t('inactive')}
                         </span>
                         {sch.is_default != null && (
@@ -229,7 +227,7 @@ export default function DetailsPage() {
                       <Box className="flex flex-wrap items-start justify-between gap-2">
                         <Box>
                           <Typography variant="subtitle2" className="font-semibold">
-                            {formatName(item.product?.name) || `Variant #${item.shop_product_variant_id}`}
+                            {formatName(item.product?.name) || t('variantNumber', { id: item.shop_product_variant_id })}
                           </Typography>
                           {item.product?.brand ? (
                             <Typography variant="caption" className="text-muted-foreground">{item.product.brand}</Typography>
@@ -258,10 +256,10 @@ export default function DetailsPage() {
                       </Box>
                       <Box className="mt-2 flex flex-wrap gap-2 text-xs">
                         <span className="rounded bg-muted px-2 py-0.5">
-                          {t('form.scheduledBasketDetailsRequiredFlag')}: {String(item.is_required)}
+                          {t('form.scheduledBasketDetailsRequiredFlag')}: {item.is_required ? t('yes') : t('no')}
                         </span>
                         <span className="rounded bg-muted px-2 py-0.5">
-                          {t('form.scheduledBasketDetailsExtraFlag')}: {String(item.is_extra)}
+                          {t('form.scheduledBasketDetailsExtraFlag')}: {item.is_extra ? t('yes') : t('no')}
                         </span>
                         {item.min_quantity != null && (
                           <span className="rounded bg-muted px-2 py-0.5">
@@ -307,7 +305,7 @@ export default function DetailsPage() {
                   {scheduledBasket.extras.map((item, i) => (
                     <Box key={item.id ?? `ex-${i}`} className="flex items-center justify-between rounded-xl border border-border/50 bg-background p-3">
                       <Typography variant="subtitle2" className="font-semibold">
-                        {formatName(item.product?.name) || `Variant #${item.shop_product_variant_id}`}
+                        {formatName(item.product?.name) || t('variantNumber', { id: item.shop_product_variant_id })}
                       </Typography>
                       <Typography variant="body2" className="text-muted-foreground">
                         {t('form.scheduledBasketDetailsQty')}: {item.quantity}

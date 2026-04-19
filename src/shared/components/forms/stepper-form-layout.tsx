@@ -360,7 +360,7 @@ export function StepperFormLayout<T extends Record<string, any>>({
         </Box>
 
         {/* Form Card */}
-        <Box className="rounded-2xl border border-border/60 bg-card/80 backdrop-blur-sm shadow-sm overflow-hidden">
+        <Box className="rounded-2xl border border-border/60 bg-card/80 backdrop-blur-sm shadow-sm">
           <Form methods={methods} onSubmit={onSubmit}>
             {/* Content */}
             <Box className="p-6 md:p-8 min-h-[400px]">
@@ -384,7 +384,7 @@ export function StepperFormLayout<T extends Record<string, any>>({
             </Box>
 
             {/* Sticky Actions */}
-            <Box className="sticky bottom-0 z-10 border-t border-border/60 bg-card/95 backdrop-blur-md shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] dark:shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.3)]">
+            <Box className="sticky bottom-0 z-10 border-t border-border/60 bg-card/95 backdrop-blur-md rounded-b-2xl shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] dark:shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.3)]">
               <Box className="px-6 md:px-8 py-4 flex items-center justify-between gap-4 flex-wrap">
                 <Box className="flex items-center gap-2 text-xs text-muted-foreground">
                   <Box className="h-1.5 w-1.5 rounded-full bg-primary/60" />

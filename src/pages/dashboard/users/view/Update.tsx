@@ -299,7 +299,7 @@ export default function UpdatePage() {
         submittingLabel={t('form.updatingUser')}
       >
         {/* ── Section: Personal Info ── */}
-        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+        <Box className="rounded-2xl border border-border/50 bg-card/50 shadow-sm">
           <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-primary/[0.06] via-primary/[0.02] to-transparent">
             <Box className="h-8 w-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
               <Iconify icon="solar:user-rounded-bold" className="text-primary" width={15} />
@@ -343,7 +343,7 @@ export default function UpdatePage() {
         </Box>
 
         {/* ── Section: Password ── */}
-        <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+        <Box className="rounded-2xl border border-border/50 bg-card/50 shadow-sm">
           <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-violet-500/[0.06] via-violet-500/[0.02] to-transparent">
             <Box className="h-8 w-8 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center shrink-0">
               <Iconify icon="solar:lock-password-bold" className="text-violet-500" width={15} />
@@ -366,7 +366,7 @@ export default function UpdatePage() {
 
         {/* ── Section: Affiliate Settings ── */}
         {showApprovedAffiliateSection && (
-          <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="rounded-2xl border border-border/50 bg-card/50 shadow-sm">
             <Box className="flex items-center justify-between px-6 py-4 border-b border-border/40 bg-gradient-to-r from-amber-500/[0.06] via-amber-500/[0.02] to-transparent">
               <Box className="flex items-center gap-3">
                 <Box className="h-8 w-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
@@ -440,7 +440,7 @@ export default function UpdatePage() {
 
         {/* ── Section: Affiliate Reactivate ── */}
         {showReactivateSection && (
-          <Box className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden shadow-sm">
+          <Box className="rounded-2xl border border-border/50 bg-card/50 shadow-sm">
             <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-sky-500/[0.06] via-sky-500/[0.02] to-transparent">
               <Box className="h-8 w-8 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center shrink-0">
                 <Iconify icon="solar:user-add-bold" className="text-sky-500" width={15} />

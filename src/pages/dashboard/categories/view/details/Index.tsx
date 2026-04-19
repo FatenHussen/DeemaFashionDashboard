@@ -16,10 +16,8 @@ import { CONFIG } from 'src/global-config';
 
 // ----------------------------------------------------------------------
 
-const metadata = { title: `Category Details | Dashboard - ${CONFIG.appName}` };
-
 export default function Page() {
-  const { t } = useTranslation('table');
+  const { t } = useTranslation(['table', 'nav']);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [deletingId, setDeletingId] = useState<number | null>(null);
@@ -54,7 +52,7 @@ export default function Page() {
     if (deletingId) {
       try {
         await deleteCategoryDetailMutation.mutateAsync(deletingId);
-        toast.success(t('deleteSuccess') || 'Category detail deleted successfully');
+        toast.success(t('deleteSuccess'));
         setDeletingId(null);
       } catch { return; }
     }
@@ -92,10 +90,10 @@ export default function Page() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.categoryDetailsIndexDocumentTitle', { appName: CONFIG.appName })}</title>
 
       <DataTable
-        tableName="Category Details"
+        tableName={t('nav:categoryDetails')}
         columns={categoryDetailColumns(
           {
             update: hasPermission('update', 'categorydetail'),
@@ -120,9 +118,9 @@ export default function Page() {
         }}
         isLoading={isLoading}
         columnTranslations={{
-          id: 'ID',
-          name: 'Name',
-          category: 'Category',
+          id: t('columns.id'),
+          name: t('columns.name'),
+          category: t('columns.category'),
           actions: t('columns.action'),
         }}
         pagination={pagination}

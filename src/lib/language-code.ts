@@ -11,9 +11,9 @@ export function getActiveLanguageCode(): string {
     localStorage.getItem(LANGUAGE_STORAGE_KEY) ||
     i18n.resolvedLanguage ||
     i18n.language ||
-    'en';
+    'ar';
   const code = String(raw).split(/[-_]/)[0]?.toLowerCase();
-  return code && /^[a-z]{2,3}$/i.test(code) ? code : 'en';
+  return code && /^[a-z]{2,3}$/i.test(code) ? code : 'ar';
 }
 
 export function isActiveLanguageArabic(): boolean {

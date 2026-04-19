@@ -28,7 +28,7 @@ export default function Page() {
     if (deletingId) {
       try {
         await deletePackageMutation.mutateAsync(deletingId);
-        toast.success(t('deleteSuccess') || 'Package deleted successfully');
+        toast.success(t('deleteSuccess'));
         setDeletingId(null);
       } catch { return; }
     }

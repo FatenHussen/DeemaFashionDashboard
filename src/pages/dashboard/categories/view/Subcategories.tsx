@@ -18,8 +18,6 @@ import { Iconify } from 'src/shared/components/iconify';
 
 // ----------------------------------------------------------------------
 
-const metadata = { title: `Subcategories | Dashboard - ${CONFIG.appName}` };
-
 export default function Page() {
   const { t } = useTranslation('table');
   const navigate = useNavigate();
@@ -72,7 +70,7 @@ export default function Page() {
     if (deletingId) {
       try {
         await deleteCategoryMutation.mutateAsync(deletingId);
-        toast.success(t('deleteSuccess') || 'Category deleted successfully');
+        toast.success(t('deleteSuccess'));
         setDeletingId(null);
       } catch {
         return;
@@ -115,7 +113,7 @@ export default function Page() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.subcategoriesIndexDocumentTitle', { appName: CONFIG.appName })}</title>
 
       <div className="mb-4">
         <Button

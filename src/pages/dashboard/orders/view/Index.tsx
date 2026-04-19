@@ -11,8 +11,6 @@ import { AssignDriverModal } from '@/pages/dashboard/orders/components/AssignDri
 
 import { CONFIG } from 'src/global-config';
 
-const metadata = { title: `Orders | Dashboard - ${CONFIG.appName}` };
-
 export default function Page() {
   const { t } = useTranslation('table');
   const navigate = useNavigate();
@@ -172,7 +170,7 @@ export default function Page() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.ordersIndexDocumentTitle', { appName: CONFIG.appName })}</title>
 
       <AssignDriverModal
         open={!!assignDriverOrder}
