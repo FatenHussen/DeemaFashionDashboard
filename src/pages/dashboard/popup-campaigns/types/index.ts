@@ -1,4 +1,9 @@
-/** Marketing / admin popup campaigns — aligns with `PopupCampaignRequest`. */
+/**
+ * Admin popup campaigns — aligns with `PopupCampaign` admin resource.
+ * HTTP routes use `apiRoutes.popupCampaign` (`/admin/popup-campaigns` relative to `VITE_SERVER_URL`; with a typical base
+ * like `https://host/api` this is `/api/admin/popup-campaigns`).
+ * Translatable fields are `{ ar, en }` objects. Primary CTA destination is `button_url` only (`cta_type` / `cta_value` removed).
+ */
 
 export type LocalizedString = { en: string; ar: string };
 

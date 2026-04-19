@@ -16,7 +16,23 @@ const axiosInstance = axios.create({
 axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
-    const message = error?.response?.data?.message || error?.message || 'Something went wrong!';
+    const data = error?.response?.data as
+      | { message?: string; errors?: Record<string, string[] | string> }
+      | undefined;
+    let message = (typeof data?.message === 'string' && data.message.trim() ? data.message : null) ||
+      error?.message ||
+      'Something went wrong!';
+    // Laravel validation: surface the first field error (message alone is often generic).
+    const errors = data?.errors;
+    if (errors && typeof errors === 'object') {
+      for (const val of Object.values(errors)) {
+        const first = Array.isArray(val) ? val[0] : val;
+        if (typeof first === 'string' && first.trim()) {
+          message = first;
+          break;
+        }
+      }
+    }
     console.error('Axios error:', message);
     return Promise.reject(new Error(message));
   }

@@ -528,7 +528,10 @@ export const apiRoutes = {
     delete: (id: number | string) => `${ROOTS.ADMIN}/quick-actions/${id}`,
     details: (id: number | string) => `${ROOTS.ADMIN}/quick-actions/${id}`,
   },
-  // Popup Campaign routes
+  /**
+   * Popup campaigns (auth:admin). Backend path: `/api/admin/popup-campaigns` when `VITE_SERVER_URL` is e.g. `https://host/api`
+   * (same pattern as other `${ROOTS.ADMIN}/...` routes).
+   */
   popupCampaign: {
     list: `${ROOTS.ADMIN}/popup-campaigns`,
     create: `${ROOTS.ADMIN}/popup-campaigns`,

@@ -256,7 +256,7 @@ export function CreateFormLayout<T extends Record<string, any>>({
             </Box>
 
             {/* Sticky Actions */}
-            <Box className="sticky bottom-0 z-10 border-t border-border/50 bg-card/95 backdrop-blur-md rounded-b-2xl">
+            <Box className="sticky bottom-0 z-50 border-t border-border/50 bg-card/95 backdrop-blur-md rounded-b-2xl pointer-events-auto">
               <Box className="px-5 sm:px-6 md:px-8 py-4 flex items-center justify-between gap-4 flex-wrap">
                 <Box className="flex items-center gap-2 text-xs text-muted-foreground">
                   <span className="h-1.5 w-1.5 rounded-full bg-primary/50" />

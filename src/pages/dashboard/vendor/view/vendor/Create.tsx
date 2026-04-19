@@ -1,4 +1,4 @@
-import type { VendorCreateUpdatePayload } from '@/pages/dashboard/vendor/types/vendor.types';
+import type { VendorCreateUpdatePayload, VendorData } from '@/pages/dashboard/vendor/types/vendor.types';
 
 import { useEffect } from 'react';
 import { toast } from 'react-toastify';
@@ -23,6 +23,39 @@ import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
 import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
 
 // ----------------------------------------------------------------------
+
+/** API expects `commission_rate` when type is percentage; vendor form has no commission fields. */
+function commissionPayloadForVendorApi(
+  vendorData: VendorData | undefined,
+  isEditMode: boolean
+): Pick<
+  VendorCreateUpdatePayload,
+  'commission_type' | 'settlement_cycle' | 'commission_rate' | 'fixed_commission'
+> {
+  const settlement: 'weekly' | 'monthly' =
+    isEditMode && vendorData?.settlement_cycle === 'weekly' ? 'weekly' : 'monthly';
+
+  if (isEditMode && vendorData) {
+    if (vendorData.commission_type === 'fixed') {
+      return {
+        commission_type: 'fixed',
+        settlement_cycle: settlement,
+        fixed_commission: Number(vendorData.fixed_commission ?? 0),
+      };
+    }
+    return {
+      commission_type: 'percentage',
+      settlement_cycle: settlement,
+      commission_rate: vendorData.commission_rate ?? 0,
+    };
+  }
+
+  return {
+    commission_type: 'percentage',
+    settlement_cycle: 'monthly',
+    commission_rate: 0,
+  };
+}
 
 export default function CreatePage() {
   const { t } = useTranslation('table');
@@ -97,8 +130,7 @@ export default function CreatePage() {
           contract_date: data.contract_date,
           contract_number: data.contract_number,
           contract_duration_months: data.contract_duration_months,
-          commission_type: 'percentage',
-          settlement_cycle: 'monthly',
+          ...commissionPayloadForVendorApi(vendorData, isEditMode),
           is_active: data.is_active,
         };
 

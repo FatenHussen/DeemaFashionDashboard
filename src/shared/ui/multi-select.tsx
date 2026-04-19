@@ -131,7 +131,9 @@ export function MultiSelect({
 }: MultiSelectProps) {
   const selectOptions: MultiSelectOption[] = options;
 
-  const selectValue = selectOptions.filter((opt) => value.includes(opt.value));
+  const selectValue = selectOptions.filter((opt) =>
+    value.some((v) => String(v) === String(opt.value))
+  );
 
   const handleChange = (newValue: MultiValue<MultiSelectOption>) => {
     onChange?.(newValue.map((opt) => opt.value));
