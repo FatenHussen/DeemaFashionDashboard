@@ -9,7 +9,9 @@ export interface AdminData {
   id: number;
   name: string;
   email: string;
-  is_active: number;
+  phone?: string | null;
+  is_active: number | boolean;
+  /** API may return role names only, e.g. `["employee"]`, or full objects */
   roles: (string | { id: number; name: string })[];
   /** Present when API returns assigned cities as id list */
   city_ids?: number[];
@@ -35,6 +37,7 @@ export interface AdminListResponse {
 export interface AdminCreateUpdatePayload {
   name: string;
   email: string;
+  phone?: string;
   password?: string;
   password_confirmation?: string;
   roles?: { id: number }[];

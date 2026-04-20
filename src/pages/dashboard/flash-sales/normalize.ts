@@ -29,12 +29,37 @@ export function normalizeFlashSaleListItem(raw: Record<string, unknown>): FlashS
   };
 }
 
+/** Parse `products` or `product_ids` from API (IDs only or `{ id }` objects). */
+export function parseFlashSaleProductIds(raw: Record<string, unknown>): number[] {
+  const fromProducts = raw.products;
+  const fromIds = raw.product_ids;
+  const arr = Array.isArray(fromProducts)
+    ? fromProducts
+    : Array.isArray(fromIds)
+      ? fromIds
+      : [];
+  const ids = arr
+    .map((x) => {
+      if (typeof x === 'number' && Number.isFinite(x)) return x;
+      if (typeof x === 'string' && x.trim() !== '') return Number(x);
+      if (x != null && typeof x === 'object' && 'id' in (x as object)) {
+        const id = Number((x as { id: unknown }).id);
+        return Number.isFinite(id) ? id : NaN;
+      }
+      return NaN;
+    })
+    .filter((n) => Number.isFinite(n) && n > 0);
+  return [...new Set(ids)];
+}
+
 /** Normalize a flash-sale record from list/show/update responses. */
 export function normalizeFlashSaleRecord(raw: Record<string, unknown>): FlashSaleModel {
   const base = normalizeFlashSaleListItem(raw);
+  const product_ids = parseFlashSaleProductIds(raw);
   return {
     ...base,
     created_at: raw.created_at != null ? String(raw.created_at) : undefined,
     updated_at: raw.updated_at != null ? String(raw.updated_at) : undefined,
+    ...(product_ids.length > 0 ? { product_ids } : {}),
   };
 }

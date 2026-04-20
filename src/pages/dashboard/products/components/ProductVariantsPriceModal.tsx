@@ -52,6 +52,15 @@ type Props = {
   onClose: () => void;
   canEditShopPrices: boolean;
   onBasePriceUpdate?: (id: number, price: number) => Promise<void>;
+  /**
+   * When `GET .../products/:id/variants` returns no rows, allow editing product-level stock
+   * (same as the legacy inventory quantity update).
+   */
+  productQuantityFallback?: {
+    quantity: number;
+    onSave: (quantity: number) => Promise<void>;
+    canEdit: boolean;
+  };
 };
 
 /** Shop offer edits: `PUT /admin/shop-product-variants/:id` (see `_ShopProductVariantApi.update`). */
@@ -192,99 +201,106 @@ function ShopVariantRowEditor({
   const usdNum = parseFloat(price) || 0;
   const sypNum = dualPriceReady ? usdToLocalAmount(usdNum, sypRate) : 0;
 
+  const fieldShell = 'flex min-w-0 flex-col gap-1';
+  const labelClass = 'text-xs leading-snug text-muted-foreground';
+
   return (
-    <div className="flex flex-col gap-2 rounded-md border border-border/60 bg-muted/10 px-3 py-2 lg:flex-row lg:items-end lg:flex-wrap">
-      <div className="min-w-[120px] flex-1 text-sm font-medium text-foreground">{shopName}</div>
-      {dualPriceReady ? (
-        <div className="flex w-full min-w-0 flex-[2] flex-col gap-2 sm:flex-row">
-          <div className="flex min-w-0 flex-1 flex-col gap-1">
-            <span className="text-xs text-muted-foreground">{t('form.productPriceUsdLabel')}</span>
+    <div className="space-y-3 rounded-md border border-border/60 bg-muted/10 px-3 py-3">
+      <div className="text-sm font-medium text-foreground">{shopName}</div>
+      <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {dualPriceReady ? (
+          <>
+            <div className={fieldShell}>
+              <span className={labelClass}>{t('form.productPriceUsdLabel')}</span>
+              <Input
+                type="number"
+                step="any"
+                min={0}
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                className="h-9 w-full min-w-0"
+              />
+            </div>
+            <div className={fieldShell}>
+              <span className={labelClass}>{t('form.productPriceSypLabel')}</span>
+              <Input
+                type="number"
+                step="any"
+                min={0}
+                value={usdNum === 0 && sypNum === 0 ? '' : sypNum}
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  const v = raw === '' ? 0 : parseFloat(raw);
+                  setPrice(String(localAmountToUsd(Number.isFinite(v) ? v : 0, sypRate)));
+                }}
+                className="h-9 w-full min-w-0"
+              />
+            </div>
+          </>
+        ) : (
+          <div className={fieldShell}>
+            <span className={labelClass}>{labels.price}</span>
             <Input
               type="number"
-              step="any"
+              step="0.01"
               min={0}
               value={price}
               onChange={(e) => setPrice(e.target.value)}
-              className="h-9"
+              className="h-9 w-full min-w-0"
             />
           </div>
-          <div className="flex min-w-0 flex-1 flex-col gap-1">
-            <span className="text-xs text-muted-foreground">{t('form.productPriceSypLabel')}</span>
-            <Input
-              type="number"
-              step="any"
-              min={0}
-              value={usdNum === 0 && sypNum === 0 ? '' : sypNum}
-              onChange={(e) => {
-                const raw = e.target.value;
-                const v = raw === '' ? 0 : parseFloat(raw);
-                setPrice(String(localAmountToUsd(Number.isFinite(v) ? v : 0, sypRate)));
-              }}
-              className="h-9"
-            />
-          </div>
-        </div>
-      ) : (
-        <div className="flex flex-1 flex-col gap-1">
-          <span className="text-xs text-muted-foreground">{labels.price}</span>
+        )}
+        <div className={fieldShell}>
+          <span className={labelClass}>{labels.cost}</span>
           <Input
             type="number"
             step="0.01"
             min={0}
-            value={price}
-            onChange={(e) => setPrice(e.target.value)}
-            className="h-9"
+            value={costPrice}
+            onChange={(e) => setCostPrice(e.target.value)}
+            className="h-9 w-full min-w-0"
           />
         </div>
-      )}
-      <div className="flex flex-1 flex-col gap-1">
-        <span className="text-xs text-muted-foreground">{labels.cost}</span>
-        <Input
-          type="number"
-          step="0.01"
-          min={0}
-          value={costPrice}
-          onChange={(e) => setCostPrice(e.target.value)}
-          className="h-9"
-        />
+        <div className={fieldShell}>
+          <span className={labelClass}>{labels.discount}</span>
+          <Input
+            type="number"
+            step="0.01"
+            min={0}
+            value={discount}
+            onChange={(e) => setDiscount(e.target.value)}
+            className="h-9 w-full min-w-0"
+          />
+        </div>
+        <div className={fieldShell}>
+          <span className={labelClass}>{labels.priceAfterDiscount}</span>
+          <span className="flex min-h-9 items-center text-sm tabular-nums text-foreground">
+            {shopVariant.price_after_discount ?? '—'}
+          </span>
+        </div>
+        <div className={fieldShell}>
+          <span className={labelClass}>{labels.stock}</span>
+          <Input
+            type="number"
+            min={0}
+            value={quantity}
+            onChange={(e) => setQuantity(e.target.value)}
+            className="h-9 w-full min-w-0"
+          />
+        </div>
       </div>
-      <div className="flex min-w-[88px] flex-1 flex-col gap-1">
-        <span className="text-xs text-muted-foreground">{labels.discount}</span>
-        <Input
-          type="number"
-          step="0.01"
-          min={0}
-          value={discount}
-          onChange={(e) => setDiscount(e.target.value)}
-          className="h-9"
-        />
+      <div className="flex justify-end border-t border-border/50 pt-3">
+        <Button
+          type="button"
+          size="small"
+          variant="contained"
+          disabled={!dirty || isPending}
+          onClick={handleSave}
+          className="h-9 shrink-0"
+        >
+          {isPending ? <Iconify icon="svg-spinners:ring-resize" width={18} /> : labels.save}
+        </Button>
       </div>
-      <div className="flex min-w-[100px] flex-1 flex-col gap-1">
-        <span className="text-xs text-muted-foreground">{labels.priceAfterDiscount}</span>
-        <span className="flex h-9 items-center text-sm tabular-nums text-foreground">
-          {shopVariant.price_after_discount ?? '—'}
-        </span>
-      </div>
-      <div className="flex flex-1 flex-col gap-1">
-        <span className="text-xs text-muted-foreground">{labels.stock}</span>
-        <Input
-          type="number"
-          min={0}
-          value={quantity}
-          onChange={(e) => setQuantity(e.target.value)}
-          className="h-9"
-        />
-      </div>
-      <Button
-        type="button"
-        size="small"
-        variant="contained"
-        disabled={!dirty || isPending}
-        onClick={handleSave}
-        className="h-9 shrink-0"
-      >
-        {isPending ? <Iconify icon="svg-spinners:ring-resize" width={18} /> : labels.save}
-      </Button>
     </div>
   );
 }
@@ -296,11 +312,14 @@ export function ProductVariantsPriceModal({
   onClose,
   canEditShopPrices,
   onBasePriceUpdate,
+  productQuantityFallback,
 }: Props) {
   const { t } = useTranslation('table');
   const [page, setPage] = useState(1);
   const [basePrice, setBasePrice] = useState('');
   const [savingBase, setSavingBase] = useState(false);
+  const [fallbackQtyInput, setFallbackQtyInput] = useState('');
+  const [savingFallbackQty, setSavingFallbackQty] = useState(false);
 
   const { data: currenciesResponse } = useFetchCurrencies(1, 100);
   const activeCurrencies = useMemo(() => {
@@ -347,8 +366,41 @@ export function ProductVariantsPriceModal({
     }
   }, [data?.items, fallbackListPrice]);
 
+  useEffect(() => {
+    if (open && productQuantityFallback != null) {
+      setFallbackQtyInput(String(productQuantityFallback.quantity ?? 0));
+    }
+  }, [open, productId, productQuantityFallback?.quantity]);
+
   const pagination = data?.pagination;
   const items = data?.items ?? [];
+
+  const handleSaveFallbackQuantity = async () => {
+    if (!productQuantityFallback?.canEdit || productId == null) return;
+    const n = Number(fallbackQtyInput);
+    if (Number.isNaN(n) || n < 0 || !Number.isFinite(n)) {
+      toast.error(t('productVariantsModalInvalidQuantity'));
+      return;
+    }
+    const rounded = Math.floor(n);
+    setSavingFallbackQty(true);
+    try {
+      await productQuantityFallback.onSave(rounded);
+      refetch();
+    } catch {
+      /* toast from caller */
+    } finally {
+      setSavingFallbackQty(false);
+    }
+  };
+
+  const fallbackQtyInitial = Math.floor(Number(productQuantityFallback?.quantity) || 0);
+  const fallbackQtyParsed = Math.floor(Number(fallbackQtyInput) || 0);
+  const fallbackQtySaveDisabled =
+    savingFallbackQty ||
+    Number.isNaN(fallbackQtyParsed) ||
+    fallbackQtyParsed < 0 ||
+    fallbackQtyParsed === fallbackQtyInitial;
 
   const referenceBasePrice = items[0]?.product?.price ?? fallbackListPrice;
   const baseUsdNum = parseFloat(basePrice) || 0;
@@ -495,7 +547,44 @@ export function ProductVariantsPriceModal({
           )}
 
           {!isLoading && !isError && items.length === 0 && (
-            <p className="py-8 text-center text-sm text-muted-foreground">{t('noItemsFound')}</p>
+            <div className="space-y-4 py-2">
+              {productQuantityFallback ? (
+                <div className="rounded-lg border border-border/60 bg-muted/10 p-4 space-y-3">
+                  <p className="text-sm font-medium text-foreground">{t('form.quantity')}</p>
+                  <p className="text-xs text-muted-foreground">{t('inventoryVariantsEmptyHint')}</p>
+                  <Input
+                    type="number"
+                    min={0}
+                    step={1}
+                    value={fallbackQtyInput}
+                    onChange={(e) => setFallbackQtyInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') void handleSaveFallbackQuantity();
+                    }}
+                    disabled={!productQuantityFallback.canEdit || savingFallbackQty}
+                    className="h-10 max-w-xs"
+                  />
+                  {productQuantityFallback.canEdit && (
+                    <Button
+                      type="button"
+                      size="small"
+                      variant="contained"
+                      disabled={fallbackQtySaveDisabled}
+                      onClick={() => void handleSaveFallbackQuantity()}
+                      className="h-9"
+                    >
+                      {savingFallbackQty ? (
+                        <Iconify icon="svg-spinners:ring-resize" width={18} />
+                      ) : (
+                        t('save')
+                      )}
+                    </Button>
+                  )}
+                </div>
+              ) : (
+                <p className="py-8 text-center text-sm text-muted-foreground">{t('noItemsFound')}</p>
+              )}
+            </div>
           )}
 
           {!isLoading &&

@@ -25,11 +25,11 @@ export const useFetchPopupCampaigns = (
       }),
   });
 
-export const useFetchPopupCampaignById = (id: number | string) =>
+export const useFetchPopupCampaignById = (id: number | string | undefined, enabled = true) =>
   useQuery({
-    queryKey: queryKeys.popupCampaign.details(id),
-    queryFn: () => _PopupCampaignApi.getById(id),
-    enabled: !!id,
+    queryKey: queryKeys.popupCampaign.details(id ?? ''),
+    queryFn: () => _PopupCampaignApi.getById(id!),
+    enabled: Boolean(enabled && id != null && String(id).length > 0),
   });
 
 export const useCreatePopupCampaign = () => {

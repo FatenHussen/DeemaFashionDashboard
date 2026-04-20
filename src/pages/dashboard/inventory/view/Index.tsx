@@ -14,10 +14,12 @@ import { _BrandApi } from '@/pages/dashboard/products/api/brand.services';
 import { _VendorApi } from '@/pages/dashboard/vendor/api/vendor.services';
 import { _CategoryApi } from '@/pages/dashboard/categories/api/category.services';
 import { type ProductFormValues, inventoryProductColumns } from '@/columns/one/products/one';
+import { ProductVariantsPriceModal } from '@/pages/dashboard/products/components/ProductVariantsPriceModal';
 import {
   useFetchProducts,
   useDeleteProduct,
   useUpdateProductQuantity,
+  useUpdateProductPrice,
 } from '@/pages/dashboard/products/hooks/product';
 
 import { CONFIG } from 'src/global-config';
@@ -45,6 +47,13 @@ export default function InventoryPage() {
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const deleteProductMutation = useDeleteProduct();
   const updateQuantityMutation = useUpdateProductQuantity();
+  const updatePriceMutation = useUpdateProductPrice();
+
+  const [variantsModal, setVariantsModal] = useState<{
+    productId: number;
+    listRowPrice: number;
+    productQuantity: number;
+  } | null>(null);
 
   const [activeTab, setActiveTab] = useState<InventoryTab>('tikmool');
 
@@ -193,6 +202,16 @@ export default function InventoryPage() {
     }
   };
 
+  const handlePriceUpdate = async (id: number, price: number) => {
+    try {
+      await updatePriceMutation.mutateAsync({ id, price });
+      toast.success(t('priceUpdatedSuccess'));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : t('priceUpdatedError'));
+      throw e;
+    }
+  };
+
   const handlePageChange = (newPage: number) => {
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev);
@@ -303,7 +322,9 @@ export default function InventoryPage() {
           onDeleteConfirm,
           onDeleteCancel,
           deletingId,
-          canUpdateProduct ? handleQuantityUpdate : undefined
+          canUpdateProduct ? handleQuantityUpdate : undefined,
+          (productId, listRowPrice, productQuantity) =>
+            setVariantsModal({ productId, listRowPrice, productQuantity })
         )}
         data={listData as ProductFormValues[]}
         hasDetails
@@ -463,6 +484,26 @@ export default function InventoryPage() {
           expiry_date: t('columns.expiryDate'),
           actions: t('columns.action'),
         }}
+      />
+
+      <ProductVariantsPriceModal
+        open={variantsModal !== null}
+        productId={variantsModal?.productId ?? null}
+        fallbackListPrice={variantsModal?.listRowPrice}
+        onClose={() => setVariantsModal(null)}
+        canEditShopPrices={canUpdateProduct}
+        onBasePriceUpdate={canUpdateProduct ? handlePriceUpdate : undefined}
+        productQuantityFallback={
+          variantsModal
+            ? {
+                quantity: variantsModal.productQuantity,
+                canEdit: canUpdateProduct,
+                onSave: async (quantity) => {
+                  await handleQuantityUpdate(variantsModal.productId, quantity);
+                },
+              }
+            : undefined
+        }
       />
     </>
   );

@@ -27,14 +27,18 @@ export function NavList({
 
   const isActive = isActiveLink(pathname, data.path, data.deepMatch ?? !!data.children);
 
-  const { value: open, onFalse: onClose, onToggle } = useBoolean(false);
+  const { value: open, onFalse: onClose, onTrue: onOpen, onToggle } = useBoolean(false);
 
   useEffect(() => {
-    if (!isActive) {
+    if (!data.children) {
+      return;
+    }
+    if (isActive) {
+      onOpen();
+    } else {
       onClose();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname]);
+  }, [pathname, isActive, data.children, onOpen, onClose]);
 
   const handleToggleMenu = useCallback(() => {
     if (data.children) {

@@ -10,10 +10,39 @@ import {
 
 import { CONFIG } from 'src/global-config';
 import { Box, Typography } from 'src/shared/ui';
-import { Separator } from 'src/shared/ui/separator';
 import { LoadingScreen } from 'src/shared/components/loading-screen';
 
 // ----------------------------------------------------------------------
+
+const RESOURCE_PALETTE = [
+  { ring: 'ring-sky-200/60 dark:ring-sky-800/40', bar: 'from-sky-500 to-blue-500', soft: 'bg-sky-500/10', text: 'text-sky-700 dark:text-sky-300', emoji: '🛡️' },
+  { ring: 'ring-emerald-200/60 dark:ring-emerald-800/40', bar: 'from-emerald-500 to-teal-500', soft: 'bg-emerald-500/10', text: 'text-emerald-700 dark:text-emerald-300', emoji: '🌿' },
+  { ring: 'ring-violet-200/60 dark:ring-violet-800/40', bar: 'from-violet-500 to-fuchsia-500', soft: 'bg-violet-500/10', text: 'text-violet-700 dark:text-violet-300', emoji: '✨' },
+  { ring: 'ring-amber-200/60 dark:ring-amber-800/40', bar: 'from-amber-500 to-orange-500', soft: 'bg-amber-500/10', text: 'text-amber-700 dark:text-amber-300', emoji: '🔆' },
+  { ring: 'ring-rose-200/60 dark:ring-rose-800/40', bar: 'from-rose-500 to-pink-500', soft: 'bg-rose-500/10', text: 'text-rose-700 dark:text-rose-300', emoji: '💗' },
+  { ring: 'ring-cyan-200/60 dark:ring-cyan-800/40', bar: 'from-cyan-500 to-sky-500', soft: 'bg-cyan-500/10', text: 'text-cyan-700 dark:text-cyan-300', emoji: '💧' },
+  { ring: 'ring-indigo-200/60 dark:ring-indigo-800/40', bar: 'from-indigo-500 to-violet-500', soft: 'bg-indigo-500/10', text: 'text-indigo-700 dark:text-indigo-300', emoji: '🪄' },
+  { ring: 'ring-lime-200/60 dark:ring-lime-800/40', bar: 'from-lime-500 to-green-500', soft: 'bg-lime-500/10', text: 'text-lime-700 dark:text-lime-300', emoji: '🌱' },
+];
+
+function paletteFor(resource: string) {
+  let h = 0;
+  for (let i = 0; i < resource.length; i += 1) h = (h * 31 + resource.charCodeAt(i)) >>> 0;
+  return RESOURCE_PALETTE[h % RESOURCE_PALETTE.length];
+}
+
+function actionStyle(name: string): { chip: string; icon: string } {
+  const action = (name.split('.')[1] || '').toLowerCase();
+  if (action.includes('view') || action.includes('read') || action.includes('list') || action.includes('show'))
+    return { chip: 'border-sky-300/60 bg-sky-50/80 text-sky-800 dark:border-sky-700/50 dark:bg-sky-950/30 dark:text-sky-200', icon: 'solar:eye-bold' };
+  if (action.includes('create') || action.includes('add') || action.includes('store'))
+    return { chip: 'border-emerald-300/60 bg-emerald-50/80 text-emerald-800 dark:border-emerald-700/50 dark:bg-emerald-950/30 dark:text-emerald-200', icon: 'solar:add-circle-bold' };
+  if (action.includes('update') || action.includes('edit'))
+    return { chip: 'border-amber-300/60 bg-amber-50/80 text-amber-800 dark:border-amber-700/50 dark:bg-amber-950/30 dark:text-amber-200', icon: 'solar:pen-bold' };
+  if (action.includes('delete') || action.includes('destroy') || action.includes('remove'))
+    return { chip: 'border-rose-300/60 bg-rose-50/80 text-rose-800 dark:border-rose-700/50 dark:bg-rose-950/30 dark:text-rose-200', icon: 'solar:trash-bin-trash-bold' };
+  return { chip: 'border-violet-300/60 bg-violet-50/80 text-violet-800 dark:border-violet-700/50 dark:bg-violet-950/30 dark:text-violet-200', icon: 'solar:bolt-bold' };
+}
 
 export default function DetailsPage() {
   const { t } = useTranslation('table');
@@ -60,161 +89,218 @@ export default function DetailsPage() {
     });
   }
 
+  const permCount = role.permissions?.length ?? 0;
+
   return (
     <>
       <title>{t('form.roleDetailsDocumentTitle', { appName: CONFIG.appName })}</title>
-      <Box className="relative min-h-screen overflow-hidden bg-background p-6">
-        {/* Subtle background gradient */}
-        <Box className="pointer-events-none fixed inset-0 bg-gradient-to-br from-background via-background to-muted/30" />
-
-        {/* Refined grid overlay */}
-        <Box className="pointer-events-none fixed inset-0 opacity-[0.03] dark:opacity-[0.05]">
-          <Box className="absolute inset-0 bg-[linear-gradient(to_right,rgba(0,0,0,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(0,0,0,0.03)_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:32px_32px]" />
+      <Box className="relative min-h-screen w-full overflow-hidden bg-background">
+        <Box className="pointer-events-none fixed inset-0 bg-gradient-to-br from-primary/[0.07] via-background to-muted/40" />
+        <Box className="pointer-events-none fixed inset-0 opacity-[0.04] dark:opacity-[0.06]">
+          <Box className="absolute inset-0 bg-[linear-gradient(to_right,rgba(0,0,0,0.04)_1px,transparent_1px),linear-gradient(to_bottom,rgba(0,0,0,0.04)_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.06)_1px,transparent_1px)] bg-[size:40px_40px]" />
         </Box>
 
-        <Box className="relative max-w-4xl mx-auto">
-          {/* Header */}
-          <Box className="mb-6">
-            <Button
-              variant="text"
-              onClick={() => navigate('/role')}
-              className="mb-4 -ml-2 text-muted-foreground hover:text-foreground"
-            >
-              <Iconify icon="solar:arrow-left-bold" width={20} className="mr-2" />
-              {t('form.backToRoles')}
-            </Button>
+        <Box className="relative w-full px-4 sm:px-6 lg:px-8 py-6 md:py-8">
+          <Button
+            variant="text"
+            onClick={() => navigate('/role')}
+            className="mb-5 -ml-2 text-muted-foreground hover:text-foreground"
+          >
+            <Iconify icon="solar:arrow-left-bold" width={20} className="mr-2" />
+            {t('form.backToRoles')}
+          </Button>
 
-            <Box className="flex items-center gap-4 mb-2">
-              <Box className="w-16 h-16 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
-                <Iconify icon="solar:user-id-bold" className="text-primary" width={32} height={32} />
-              </Box>
-              <Box className="flex-1">
-                <Typography variant="h4" className="font-bold text-foreground mb-1">
-                  {role.name}
-                </Typography>
-                <Typography variant="body2" className="text-muted-foreground">
-                  {t('form.roleDetailsSubtitle')}
-                </Typography>
-              </Box>
-              <Button
-                variant="contained"
-                onClick={() => navigate(`/role/update/${id}`)}
-                className="gap-2"
-              >
-                <Iconify icon="solar:pen-bold" width={18} />
-                {t('form.editRole')}
-              </Button>
-            </Box>
-          </Box>
+          {/* Hero — full width */}
+          <Box className="relative mb-8 overflow-hidden rounded-2xl border border-border/50 bg-card/80 shadow-lg backdrop-blur-sm">
+            <Box className="absolute inset-0 bg-gradient-to-r from-primary/15 via-primary/[0.06] to-transparent" />
+            <Box className="pointer-events-none absolute -right-16 top-1/2 h-64 w-64 -translate-y-1/2 rounded-full bg-primary/20 blur-3xl" />
+            <Box className="pointer-events-none absolute right-1/4 top-0 h-32 w-32 rounded-full bg-primary/10 blur-2xl" />
 
-          {/* Details Card */}
-          <Box className="rounded-xl border border-border/50 shadow-lg bg-background/95 backdrop-blur-sm overflow-hidden">
-            <Box className="p-6 space-y-6">
-              {/* Basic Information */}
-              <Box>
-                <Typography variant="h6" className="font-semibold text-foreground mb-4 flex items-center gap-2">
-                  <Iconify icon="solar:info-circle-bold" width={20} />
-                  {t('form.roleBasicInformationSection')}
-                </Typography>
-                <Box className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Box className="space-y-2">
-                    <Typography variant="body2" className="text-muted-foreground font-medium">
-                      {t('columns.roleName')}
-                    </Typography>
-                    <Box className="flex items-center gap-2">
-                      <Iconify icon="solar:user-id-bold" className="text-primary" width={18} />
-                      <Typography variant="body1" className="font-semibold text-foreground capitalize">
-                        {role.name}
-                      </Typography>
-                    </Box>
+            <Box className="relative flex flex-col gap-6 p-6 md:flex-row md:items-center md:justify-between md:p-8 lg:p-10">
+              <Box className="flex min-w-0 flex-1 items-start gap-4 md:gap-6">
+                <Box className="relative shrink-0">
+                  <Box className="absolute inset-0 rounded-2xl bg-primary/25 blur-lg" />
+                  <Box className="relative flex h-20 w-20 items-center justify-center rounded-2xl border border-primary/30 bg-background/90 shadow-sm md:h-24 md:w-24">
+                    <Iconify icon="solar:user-id-bold" className="text-primary" width={40} height={40} />
                   </Box>
-
-                  <Box className="space-y-2">
-                    <Typography variant="body2" className="text-muted-foreground font-medium">
-                      {t('columns.guard')}
-                    </Typography>
-                    <Box className="flex items-center gap-2">
-                      <Iconify icon="solar:shield-check-bold" className="text-primary" width={18} />
-                      <Typography variant="body1" className="text-foreground">
-                        {role.guard_name}
-                      </Typography>
-                    </Box>
+                </Box>
+                <Box className="min-w-0 flex-1 space-y-2">
+                  <Box className="flex items-center gap-2">
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300/60 bg-emerald-50/70 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-emerald-700 backdrop-blur dark:border-emerald-700/50 dark:bg-emerald-950/30 dark:text-emerald-300">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                      {t('form.role', { defaultValue: 'Role' })}
+                    </span>
+                    <span aria-hidden className="text-base">👋</span>
                   </Box>
-
-                  <Box className="space-y-2">
-                    <Typography variant="body2" className="text-muted-foreground font-medium">
-                      {t('columns.createdAt')}
-                    </Typography>
-                    <Box className="flex items-center gap-2">
-                      <Iconify icon="solar:calendar-date-bold" className="text-primary" width={18} />
-                      <Typography variant="body1" className="text-foreground">
-                        {role.created_at}
-                      </Typography>
-                    </Box>
+                  <Typography
+                    variant="h4"
+                    className="break-words font-bold capitalize text-foreground md:text-3xl"
+                  >
+                    {role.name}
+                  </Typography>
+                  <Typography variant="body2" className="text-muted-foreground max-w-2xl">
+                    {t('form.roleDetailsSubtitle')}
+                  </Typography>
+                  <Box className="flex flex-wrap gap-2 pt-2">
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-background/60 px-3 py-1 text-xs font-medium text-muted-foreground backdrop-blur">
+                      <Iconify icon="solar:shield-check-bold" width={14} className="text-primary" />
+                      {role.guard_name}
+                    </span>
+                    {role.id != null && (
+                      <span className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-background/60 px-3 py-1 text-xs font-medium text-muted-foreground backdrop-blur">
+                        <Iconify icon="solar:hashtag-bold" width={14} className="text-primary" />
+                        {role.id}
+                      </span>
+                    )}
                   </Box>
-
-                  {role.id && (
-                    <Box className="space-y-2">
-                      <Typography variant="body2" className="text-muted-foreground font-medium">
-                        {t('columns.id')}
-                      </Typography>
-                      <Box className="flex items-center gap-2">
-                        <Box className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
-                          <span className="text-xs font-semibold text-primary">{role.id}</span>
-                        </Box>
-                      </Box>
-                    </Box>
-                  )}
                 </Box>
               </Box>
 
-              <Separator />
-
-              {/* Permissions */}
-              <Box>
-                <Typography variant="h6" className="font-semibold text-foreground mb-4 flex items-center gap-2">
-                  <Iconify icon="solar:lock-password-outline" width={20} />
-                  {t('form.rolePermissionsSection')}
-                  {role.permissions && Array.isArray(role.permissions) && (
-                    <Typography variant="body2" className="text-muted-foreground font-normal ml-2">
-                      (
-                      {t('form.roleDetailsPermissionsCount', {
-                        count: role.permissions.length,
-                      })}
-                      )
+              <Box className="flex shrink-0 flex-col gap-3 sm:flex-row md:flex-col lg:flex-row">
+                <Box className="grid grid-cols-2 gap-3 sm:min-w-[220px]">
+                  <Box className="rounded-xl border border-border/50 bg-background/70 px-4 py-3 text-center backdrop-blur">
+                    <Typography variant="h5" className="font-bold text-primary">
+                      {permCount}
                     </Typography>
-                  )}
-                </Typography>
+                    <Typography variant="caption" className="text-muted-foreground">
+                      {t('form.rolePermissionsSection')}
+                    </Typography>
+                  </Box>
+                  <Box className="rounded-xl border border-border/50 bg-background/70 px-4 py-3 text-center backdrop-blur">
+                    <Typography
+                      variant="caption"
+                      className="line-clamp-2 font-medium leading-snug text-foreground"
+                    >
+                      {role.created_at}
+                    </Typography>
+                    <Typography variant="caption" className="text-muted-foreground">
+                      {t('columns.createdAt')}
+                    </Typography>
+                  </Box>
+                </Box>
+                <Button
+                  variant="contained"
+                  onClick={() => navigate(`/role/update/${id}`)}
+                  className="h-11 gap-2 self-stretch sm:self-auto md:self-stretch lg:self-auto"
+                >
+                  <Iconify icon="solar:pen-bold" width={18} />
+                  {t('form.editRole')}
+                </Button>
+              </Box>
+            </Box>
+          </Box>
 
-                {role.permissions && Array.isArray(role.permissions) && role.permissions.length > 0 ? (
-                  <Box className="space-y-4">
-                    {Object.entries(groupedPermissions).map(([resource, perms]) => (
-                      <Box key={resource} className="space-y-2">
-                        <Typography variant="body2" className="text-muted-foreground font-medium">
-                          {translatePermissionResource(resource, t)}
-                        </Typography>
-                        <Box className="flex flex-wrap gap-2">
-                          {(perms ?? []).map((permission) => (
-                            <Box
-                              key={permission.id}
-                              className="px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20 text-primary text-sm font-medium"
+          {/* Two columns — metadata + permissions grid */}
+          <Box className="grid grid-cols-1 gap-6 xl:grid-cols-12 xl:gap-8">
+            <Box className="space-y-4 xl:col-span-4">
+              <Typography variant="subtitle2" className="flex items-center gap-2 font-semibold">
+                <Iconify icon="solar:info-circle-bold" width={18} className="text-primary" />
+                {t('form.roleBasicInformationSection')}
+              </Typography>
+              <Box className="space-y-3">
+                <Box className="rounded-xl border border-border/50 bg-card/90 p-4 shadow-sm backdrop-blur-sm">
+                  <Typography variant="caption" className="font-medium text-muted-foreground">
+                    {t('columns.roleName')}
+                  </Typography>
+                  <Box className="mt-1 flex items-center gap-2">
+                    <Iconify icon="solar:user-id-bold" className="text-primary" width={18} />
+                    <Typography variant="body1" className="font-semibold capitalize text-foreground">
+                      {role.name}
+                    </Typography>
+                  </Box>
+                </Box>
+                <Box className="rounded-xl border border-border/50 bg-card/90 p-4 shadow-sm backdrop-blur-sm">
+                  <Typography variant="caption" className="font-medium text-muted-foreground">
+                    {t('columns.guard')}
+                  </Typography>
+                  <Box className="mt-1 flex items-center gap-2">
+                    <Iconify icon="solar:shield-check-bold" className="text-primary" width={18} />
+                    <Typography variant="body1" className="text-foreground">{role.guard_name}</Typography>
+                  </Box>
+                </Box>
+                <Box className="rounded-xl border border-border/50 bg-card/90 p-4 shadow-sm backdrop-blur-sm">
+                  <Typography variant="caption" className="font-medium text-muted-foreground">
+                    {t('columns.createdAt')}
+                  </Typography>
+                  <Box className="mt-1 flex items-center gap-2">
+                    <Iconify icon="solar:calendar-date-bold" className="text-primary" width={18} />
+                    <Typography variant="body1" className="text-foreground">{role.created_at}</Typography>
+                  </Box>
+                </Box>
+              </Box>
+            </Box>
+
+            <Box className="min-w-0 xl:col-span-8">
+              <Typography variant="subtitle2" className="mb-4 flex flex-wrap items-center gap-2 font-semibold">
+                <Iconify icon="solar:lock-password-bold" width={18} className="text-primary" />
+                {t('form.rolePermissionsSection')}
+                {role.permissions && Array.isArray(role.permissions) && (
+                  <Typography variant="caption" className="font-normal text-muted-foreground">
+                    {t('form.roleDetailsPermissionsCount', { count: role.permissions.length })}
+                  </Typography>
+                )}
+              </Typography>
+
+              {role.permissions && Array.isArray(role.permissions) && role.permissions.length > 0 ? (
+                <Box className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  {Object.entries(groupedPermissions).map(([resource, perms]) => {
+                    const palette = paletteFor(resource);
+                    return (
+                      <Box
+                        key={resource}
+                        className={`group relative overflow-hidden rounded-2xl border border-border/60 bg-card/90 p-4 shadow-sm backdrop-blur-sm ring-1 ${palette.ring} transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg`}
+                      >
+                        <Box
+                          className={`pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${palette.bar}`}
+                        />
+                        <Box className="mb-3 flex items-center justify-between gap-3">
+                          <Box className="flex min-w-0 items-center gap-2">
+                            <span
+                              className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${palette.soft} text-base`}
+                              aria-hidden
                             >
-                              {translatePermissionName(permission.name, t)}
-                            </Box>
-                          ))}
+                              {palette.emoji}
+                            </span>
+                            <Typography
+                              variant="subtitle2"
+                              className={`truncate font-semibold capitalize ${palette.text}`}
+                            >
+                              {translatePermissionResource(resource, t)}
+                            </Typography>
+                          </Box>
+                          <span className="shrink-0 rounded-full border border-border/60 bg-background/70 px-2 py-0.5 font-mono text-[11px] text-muted-foreground">
+                            {(perms ?? []).length}
+                          </span>
+                        </Box>
+                        <Box className="flex flex-wrap gap-1.5">
+                          {(perms ?? []).map((permission) => {
+                            const a = actionStyle(permission.name);
+                            return (
+                              <span
+                                key={permission.id}
+                                className={`inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-xs font-medium ${a.chip}`}
+                              >
+                                <Iconify icon={a.icon} width={12} />
+                                {translatePermissionName(permission.name, t)}
+                              </span>
+                            );
+                          })}
                         </Box>
                       </Box>
-                    ))}
-                  </Box>
-                ) : (
-                  <Box className="text-center py-8">
-                    <Iconify icon="solar:lock-password-outline" className="w-12 h-12 text-muted-foreground/50 mx-auto mb-2" />
-                    <Typography variant="body2" className="text-muted-foreground">
-                      {t('noPermissions')}
-                    </Typography>
-                  </Box>
-                )}
-              </Box>
+                    );
+                  })}
+                </Box>
+              ) : (
+                <Box className="rounded-xl border border-dashed border-border py-14 text-center">
+                  <Iconify
+                    icon="solar:lock-password-outline"
+                    className="mx-auto mb-3 h-12 w-12 text-muted-foreground/50"
+                  />
+                  <Typography variant="body2" className="text-muted-foreground">
+                    {t('noPermissions')}
+                  </Typography>
+                </Box>
+              )}
             </Box>
           </Box>
         </Box>

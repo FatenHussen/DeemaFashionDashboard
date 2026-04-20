@@ -12,6 +12,7 @@ export const AdminSchema = zod.object({
     .string()
     .min(1, { message: t('admin.emailRequired') })
     .email({ message: t('admin.emailInvalid') }),
+  phone: zod.string().min(1, { message: t('admin.phoneRequired') }),
   password: zod
     .string()
     .min(6, { message: t('admin.passwordMin') })

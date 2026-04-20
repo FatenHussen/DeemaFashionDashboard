@@ -68,6 +68,7 @@ export default function Page() {
       data: {
         name: admin?.name ?? '',
         email: admin?.email ?? '',
+        phone: admin?.phone ?? '',
         password: data.password,
         password_confirmation: data.password_confirmation,
       },
@@ -137,7 +138,7 @@ export default function Page() {
         data={adminData}
         createPath="/admin/create"
         hasDetails
-        detailsLink="/admin/update"
+        detailsLink="/admin/details"
         permissions={{
           create: hasPermission('create', 'admin'),
           update: hasPermission('update', 'admin'),

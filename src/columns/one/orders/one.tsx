@@ -7,6 +7,7 @@ import { Iconify } from '@/shared/components/iconify';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 import {
   type OrderData,
+  type OrderStatus,
   normalizeOrderStatus,
 } from '@/pages/dashboard/orders/types/order.types';
 import {
@@ -32,12 +33,35 @@ export interface OrderFormValues extends OrderData {
   [key: string]: any;
 }
 
-const statusColors: Record<string, string> = {
-  pending: 'bg-amber-500/15 text-amber-800 ring-1 ring-amber-500/25 dark:text-amber-300',
-  preparing: 'bg-sky-500/15 text-sky-800 ring-1 ring-sky-500/25 dark:text-sky-300',
-  out_delivery: 'bg-violet-500/15 text-violet-800 ring-1 ring-violet-500/25 dark:text-violet-300',
-  delivered: 'bg-emerald-500/15 text-emerald-800 ring-1 ring-emerald-500/25 dark:text-emerald-300',
-  cancelled: 'bg-muted text-muted-foreground ring-1 ring-border',
+const ORDER_STATUS_BADGE: Record<
+  OrderStatus,
+  { icon: string; className: string }
+> = {
+  pending: {
+    icon: 'solar:hourglass-bold',
+    className:
+      'bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800/50 text-amber-700 dark:text-amber-300',
+  },
+  preparing: {
+    icon: 'solar:chef-hat-bold',
+    className:
+      'bg-sky-50 dark:bg-sky-950/20 border-sky-200 dark:border-sky-800/50 text-sky-700 dark:text-sky-300',
+  },
+  out_delivery: {
+    icon: 'solar:delivery-bold',
+    className:
+      'bg-violet-50 dark:bg-violet-950/20 border-violet-200 dark:border-violet-800/50 text-violet-700 dark:text-violet-300',
+  },
+  delivered: {
+    icon: 'solar:check-circle-bold',
+    className:
+      'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/50 text-emerald-700 dark:text-emerald-300',
+  },
+  cancelled: {
+    icon: 'solar:close-circle-bold',
+    className:
+      'bg-slate-100 dark:bg-slate-900/30 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300',
+  },
 };
 
 function toNum(v: unknown): number {
@@ -177,12 +201,14 @@ export const orderColumns = (
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.status')} />,
     cell: ({ row }) => {
       const n = normalizeOrderStatus(row.original.status);
+      const cfg = ORDER_STATUS_BADGE[n] ?? ORDER_STATUS_BADGE.pending;
       return (
-        <span
-          className={`inline-flex max-w-full min-w-0 items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium ${statusColors[n] || 'bg-muted text-muted-foreground'}`}
+        <div
+          className={`flex max-w-full min-w-0 items-center gap-1.5 whitespace-nowrap rounded-lg border px-2.5 py-1 w-fit ${cfg.className}`}
         >
-          {n.replace('_', ' ')}
-        </span>
+          <Iconify icon={cfg.icon} width={14} height={14} className="shrink-0" />
+          <span className="text-xs font-medium capitalize">{n.replace(/_/g, ' ')}</span>
+        </div>
       );
     },
   },
@@ -223,8 +249,8 @@ export const orderColumns = (
               <button
                 type="button"
                 className="inline-flex min-h-9 min-w-9 items-center justify-center rounded-xl border border-border/70 bg-card/90 p-2 text-muted-foreground shadow-sm transition-all hover:border-primary/30 hover:bg-primary/8 hover:text-primary hover:shadow-md active:scale-95 sm:min-h-10 sm:min-w-10"
-                title={t('orderActionsMenu')}
-                aria-label={t('orderActionsMenu')}
+                title={t('orderRowActions')}
+                aria-label={t('orderRowActions')}
               >
                 <Iconify icon="solar:menu-dots-bold" width={20} />
               </button>
@@ -253,7 +279,7 @@ export const orderColumns = (
                     className="gap-2"
                   >
                     <Iconify icon="solar:user-id-bold" width={18} className="text-muted-foreground" />
-                    {t('btnAssignDriver')}
+                    {t('assignOrderToDriver')}
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     disabled={!canRejectOrder}
@@ -265,7 +291,7 @@ export const orderColumns = (
                     className="gap-2 text-destructive focus:text-destructive"
                   >
                     <Iconify icon="solar:close-circle-bold" width={18} />
-                    {t('rejectOrderMenu')}
+                    {t('rejectOrder')}
                   </DropdownMenuItem>
                 </>
               ) : null}

@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { Input } from '@/shared/ui/input';
 import { Button } from '@/shared/ui/button';
 import { Dialog } from '@/shared/ui/dialog';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type MouseEvent } from 'react';
 import { Iconify } from '@/shared/components/iconify';
 import { formatTranslated } from '@/utils/format-translated';
 import { createToggleColumn } from '@/shared/ui/table-data/data-table-toggle-cell';
@@ -516,12 +516,22 @@ function inventoryExpiryLabel(value: unknown): string {
 function EditableInventoryStockCell({
   productId,
   currentQuantity,
+  listRowPrice,
+  onOpenVariantsModal,
   onQuantityUpdate,
   canEdit,
   t,
 }: {
   productId: number;
   currentQuantity: number;
+  /** Passed to `ProductVariantsPriceModal` as `fallbackListPrice`. */
+  listRowPrice?: number;
+  /** Opens variants modal (uses `GET .../products/:id/variants`). When set, the simple quantity dialog is not used. */
+  onOpenVariantsModal?: (
+    productId: number,
+    listRowPrice: number,
+    productQuantity: number
+  ) => void;
   onQuantityUpdate?: (id: number, quantity: number) => Promise<void>;
   canEdit: boolean;
   t: TFunction<'table'>;
@@ -568,16 +578,22 @@ function EditableInventoryStockCell({
     }
   };
 
+  const openStockUi = (e: MouseEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    if (onOpenVariantsModal) {
+      onOpenVariantsModal(productId, listRowPrice ?? 0, quantity);
+      return;
+    }
+    handleOpen();
+  };
+
+  const clickable = Boolean(onOpenVariantsModal) || (canEdit && Boolean(onQuantityUpdate));
+
   return (
     <>
       <div
-        className={`flex items-center gap-2 group ${
-          canEdit && onQuantityUpdate ? 'cursor-pointer' : ''
-        }`}
-        onClick={(e) => {
-          e.stopPropagation();
-          handleOpen();
-        }}
+        className={`flex items-center gap-2 group ${clickable ? 'cursor-pointer' : ''}`}
+        onClick={openStockUi}
       >
         <Iconify
           icon="solar:box-bold"
@@ -594,9 +610,9 @@ function EditableInventoryStockCell({
         >
           {quantity}
         </span>
-        {canEdit && onQuantityUpdate && (
+        {clickable && (
           <Iconify
-            icon="solar:pen-bold"
+            icon={onOpenVariantsModal ? 'solar:layers-minimalistic-bold' : 'solar:pen-bold'}
             className="text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
             width={14}
             height={14}
@@ -604,39 +620,41 @@ function EditableInventoryStockCell({
         )}
       </div>
 
-      <Dialog
-        open={open}
-        onClose={handleClose}
-        title={t('columns.stock')}
-        maxWidth="sm"
-        content={
-          <div className="space-y-2">
-            <label className="text-muted-foreground text-sm block">{t('form.quantity')}</label>
-            <Input
-              type="number"
-              min={0}
-              step={1}
-              value={value}
-              onChange={(e) => setValue(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') void handleSave();
-              }}
-              disabled={isSaving}
-              className="h-10"
-            />
-          </div>
-        }
-        actions={
-          <>
-            <Button variant="text" onClick={handleClose} disabled={isSaving}>
-              {t('cancel')}
-            </Button>
-            <Button variant="contained" onClick={() => void handleSave()} disabled={isSaving}>
-              {isSaving ? t('updating') : t('save')}
-            </Button>
-          </>
-        }
-      />
+      {!onOpenVariantsModal && (
+        <Dialog
+          open={open}
+          onClose={handleClose}
+          title={t('columns.stock')}
+          maxWidth="sm"
+          content={
+            <div className="space-y-2">
+              <label className="text-muted-foreground text-sm block">{t('form.quantity')}</label>
+              <Input
+                type="number"
+                min={0}
+                step={1}
+                value={value}
+                onChange={(e) => setValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') void handleSave();
+                }}
+                disabled={isSaving}
+                className="h-10"
+              />
+            </div>
+          }
+          actions={
+            <>
+              <Button variant="text" onClick={handleClose} disabled={isSaving}>
+                {t('cancel')}
+              </Button>
+              <Button variant="contained" onClick={() => void handleSave()} disabled={isSaving}>
+                {isSaving ? t('updating') : t('save')}
+              </Button>
+            </>
+          }
+        />
+      )}
     </>
   );
 }
@@ -653,7 +671,12 @@ export const inventoryProductColumns = (
   onDeleteConfirm?: () => void,
   onDeleteCancel?: () => void,
   deletingId?: number | null,
-  onQuantityUpdate?: (id: number, quantity: number) => Promise<void>
+  onQuantityUpdate?: (id: number, quantity: number) => Promise<void>,
+  onOpenInventoryVariantsModal?: (
+    productId: number,
+    listRowPrice: number,
+    productQuantity: number
+  ) => void
 ): ColumnDef<ProductFormValues>[] => [
   {
     id: 'name',
@@ -684,6 +707,8 @@ export const inventoryProductColumns = (
       <EditableInventoryStockCell
         productId={row.original.id}
         currentQuantity={row.original.quantity ?? 0}
+        listRowPrice={row.original.price}
+        onOpenVariantsModal={onOpenInventoryVariantsModal}
         onQuantityUpdate={onQuantityUpdate}
         canEdit={permissions.update}
         t={t}

@@ -129,7 +129,7 @@ export const adminColumns = (
       <DataTableRowActions
         schema={AdminSchema}
         row={row}
-        viewDetails={`/admin/update/${row.original.id}`}
+        viewDetails={`/admin/details/${row.original.id}`}
         editItem={`/admin/update/${row.original.id}`}
         onDelete={onDelete}
         onUpdatePassword={onUpdatePassword}

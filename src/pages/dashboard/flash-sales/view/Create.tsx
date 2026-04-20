@@ -10,6 +10,7 @@ import { useParams, useNavigate } from 'react-router';
 import { formatTranslated } from '@/utils/format-translated';
 import { _VendorApi } from '@/pages/dashboard/vendor/api/vendor.services';
 import { useFetchProducts } from '@/pages/dashboard/products/hooks/product';
+import type { ProductData } from '@/pages/dashboard/products/types/product.types';
 import { _CategoryApi } from '@/pages/dashboard/categories/api/category.services';
 import { RHFInfiniteSelect } from '@/shared/components/hook-form/rhf-infinite-select';
 
@@ -42,6 +43,12 @@ function defaultEndDateLocal(): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+function resolveProductListImageUrl(img: string | null | undefined): string | null {
+  if (img == null || String(img).trim() === '') return null;
+  const s = String(img).trim();
+  return s.startsWith('http') ? s : `${CONFIG.serverUrl}/${s.replace(/^\//, '')}`;
+}
+
 export default function CreatePage() {
   const { t } = useTranslation('table');
   const { id } = useParams<{ id?: string }>();
@@ -55,22 +62,41 @@ export default function CreatePage() {
   } = useFetchFlashSaleById(id, Boolean(isEditMode && id));
   const detail = detailRes?.data;
 
-  const { data: productsResponse } = useFetchProducts({ page: 1, limit: 200 });
+  const { data: productsResponse } = useFetchProducts({ page: 1, limit: 500 });
   const createMutation = useCreateFlashSale();
   const updateMutation = useUpdateFlashSale();
 
   const productOptions: MultiSelectOption[] = useMemo(() => {
-    const products =
-      (productsResponse?.data as { items?: { id: number; name: unknown }[] } | undefined)?.items ??
-      (productsResponse?.data as { data?: { id: number; name: unknown }[] } | undefined)?.data ??
-      [];
-    return products.map((p: { id: number; name: unknown }) => ({
-      value: p.id,
-      label:
-        formatTranslated(p.name as Parameters<typeof formatTranslated>[0]) ||
-        t('form.productFallbackLabel', { id: p.id }),
-    }));
-  }, [productsResponse?.data, t]);
+    const raw = productsResponse?.data as
+      | { items?: ProductData[]; data?: ProductData[] }
+      | undefined;
+    const products = raw?.items ?? raw?.data ?? [];
+    const byId = new Map<number, MultiSelectOption>();
+
+    for (const p of products) {
+      const img = p.thumbnail ?? p.image ?? (p.images?.[0] ? String(p.images[0]) : null);
+      byId.set(p.id, {
+        value: p.id,
+        label:
+          formatTranslated(p.name as Parameters<typeof formatTranslated>[0]) ||
+          t('form.productFallbackLabel', { id: p.id }),
+        imageUrl: resolveProductListImageUrl(img),
+      });
+    }
+
+    const selectedIds = isEditMode ? detail?.product_ids ?? [] : [];
+    for (const productId of selectedIds) {
+      if (!byId.has(productId)) {
+        byId.set(productId, {
+          value: productId,
+          label: t('form.productFallbackLabel', { id: productId }),
+          imageUrl: null,
+        });
+      }
+    }
+
+    return Array.from(byId.values());
+  }, [productsResponse?.data, t, isEditMode, detail?.product_ids]);
 
   const categoryFetcher = (page: number, limit: number) =>
     _CategoryApi.getListCategoriesPaginated({ page, per_page: limit }).then((r) => {
@@ -128,7 +154,7 @@ export default function CreatePage() {
       is_active: Boolean(detail.is_active),
       discount_type: normalizeFlashSaleDiscountType(detail.discount_type),
       discount: detail.discount,
-      product_ids: [],
+      product_ids: detail.product_ids ?? [],
       category_id: 0,
       vendor_id: 0,
     });
@@ -396,6 +422,7 @@ export default function CreatePage() {
               label={t('form.selectProducts')}
               placeholder={t('form.flashSaleProductsPlaceholder')}
               fullWidth
+              showOptionImages
             />
           </Box>
         </Box>

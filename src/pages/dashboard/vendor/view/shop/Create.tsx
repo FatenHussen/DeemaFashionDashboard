@@ -1,5 +1,5 @@
 import { toast } from 'react-toastify';
-import { useMemo, useEffect } from 'react';
+import { useMemo, useEffect, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useNavigate } from 'react-router';
@@ -67,6 +67,16 @@ const SHOP_DAY_KEYS = [
 ] as const;
 
 type ShopDayKey = (typeof SHOP_DAY_KEYS)[number];
+
+function ShopStepCanvas({ children }: { children: ReactNode }) {
+  return (
+    <Box className="relative overflow-hidden rounded-2xl border border-border/50 bg-gradient-to-br from-card/95 via-card/90 to-primary/[0.045] shadow-[0_22px_64px_-28px_rgba(0,0,0,0.2)] ring-1 ring-primary/[0.07] dark:shadow-[0_26px_72px_-32px_rgba(0,0,0,0.5)]">
+      <Box className="pointer-events-none absolute -right-16 -top-28 h-64 w-64 rounded-full bg-primary/[0.11] blur-3xl" />
+      <Box className="pointer-events-none absolute -bottom-28 -left-12 h-52 w-52 rounded-full bg-primary/[0.05] blur-3xl" />
+      <Box className="relative p-6 md:p-8 lg:p-9">{children}</Box>
+    </Box>
+  );
+}
 
 const DEFAULT_WORKING_HOURS_TEMPLATE: ShopFormValues['working_hours'] = {
   monday: { open: '09:00', close: '18:00' },
@@ -467,7 +477,8 @@ export default function CreatePage() {
       description: t('form.shopStepBasicDesc'),
       icon: 'solar:case-minimalistic-bold',
       content: (
-        <Box className="space-y-6">
+        <ShopStepCanvas>
+          <Box className="space-y-6">
           {/* Vendor Selection */}
           <Box className="group">
             <Box className="flex items-center gap-2.5 mb-3">
@@ -657,7 +668,8 @@ export default function CreatePage() {
               helperText={t('form.badgesHelperShop')}
             />
           </Box>
-        </Box>
+          </Box>
+        </ShopStepCanvas>
       ),
     },
     {
@@ -665,104 +677,110 @@ export default function CreatePage() {
       description: t('form.shopStepLocationDesc'),
       icon: 'solar:case-minimalistic-bold',
       content: (
-        <Box className="space-y-6">
-          {/* Address - Bilingual */}
-          <Box className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Box className="group">
-              <Box className="flex items-center gap-2.5 mb-3">
-                <Box className="w-7 h-7 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
-                  <Iconify
-                    icon="solar:case-minimalistic-bold"
-                    className="text-primary"
-                    width={16}
-                    height={16}
+        <ShopStepCanvas>
+          <Box className="grid grid-cols-1 gap-8 xl:grid-cols-2 xl:items-start">
+            <Box className="space-y-6">
+              <Typography variant="overline" className="text-primary/90 font-semibold tracking-wider">
+                {t('form.shopStepLocationLabel')}
+              </Typography>
+              {/* Address - Bilingual */}
+              <Box className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Box className="group">
+                  <Box className="flex items-center gap-2.5 mb-3">
+                    <Box className="w-7 h-7 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
+                      <Iconify
+                        icon="solar:case-minimalistic-bold"
+                        className="text-primary"
+                        width={16}
+                        height={16}
+                      />
+                    </Box>
+                    <Typography variant="subtitle2" className="font-semibold text-foreground">
+                      {t('form.addressAr')}
+                    </Typography>
+                  </Box>
+                  <RHFTextField
+                    name="address.ar"
+                    placeholder={t('form.addressPlaceholderAr')}
+                    helperText={t('form.shopAddressArHelper')}
+                    className="transition-all duration-200"
                   />
                 </Box>
-<Typography variant="subtitle2" className="font-semibold text-foreground">
-                {t('form.addressAr')}
-                </Typography>
-              </Box>
-              <RHFTextField
-                name="address.ar"
-                placeholder={t('form.addressPlaceholderAr')}
-                helperText={t('form.shopAddressArHelper')}
-                className="transition-all duration-200"
-              />
-            </Box>
 
-            <Box className="group">
-              <Box className="flex items-center gap-2.5 mb-3">
-                <Box className="w-7 h-7 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
-                  <Iconify
-                    icon="solar:case-minimalistic-bold"
-                    className="text-primary"
-                    width={16}
-                    height={16}
+                <Box className="group">
+                  <Box className="flex items-center gap-2.5 mb-3">
+                    <Box className="w-7 h-7 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
+                      <Iconify
+                        icon="solar:case-minimalistic-bold"
+                        className="text-primary"
+                        width={16}
+                        height={16}
+                      />
+                    </Box>
+                    <Typography variant="subtitle2" className="font-semibold text-foreground">
+                      {t('form.addressEn')}
+                    </Typography>
+                  </Box>
+                  <RHFTextField
+                    name="address.en"
+                    placeholder={t('form.addressPlaceholderEn')}
+                    helperText={t('form.shopAddressEnHelper')}
+                    className="transition-all duration-200"
                   />
                 </Box>
-<Typography variant="subtitle2" className="font-semibold text-foreground">
-                {t('form.addressEn')}
-                </Typography>
               </Box>
-              <RHFTextField
-                name="address.en"
-                placeholder={t('form.addressPlaceholderEn')}
-                helperText={t('form.shopAddressEnHelper')}
-                className="transition-all duration-200"
-              />
             </Box>
-          </Box>
 
-          {/* Map Picker - Select location by clicking on the map */}
-          <Box className="group">
-            <Box className="flex items-center gap-2.5 mb-3">
-              <Box className="w-7 h-7 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
-                <Iconify
-                  icon="solar:map-point-bold"
-                  className="text-primary"
-                  width={16}
-                  height={16}
+            {/* Map — full column on wide screens */}
+            <Box className="space-y-4 xl:sticky xl:top-6">
+              <Box className="flex items-center gap-2.5">
+                <Box className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary/25 to-primary/5 ring-1 ring-primary/20">
+                  <Iconify icon="solar:map-point-bold" className="text-primary" width={22} height={22} />
+                </Box>
+                <Box>
+                  <Typography variant="subtitle2" className="font-semibold text-foreground">
+                    {t('form.shopLocationOnMap')}
+                  </Typography>
+                  <Typography variant="caption" className="text-muted-foreground">
+                    {t('form.shopMapClickHelper')}
+                  </Typography>
+                </Box>
+              </Box>
+              <Box className="rounded-2xl border border-border/60 bg-muted/20 p-3 shadow-inner dark:bg-muted/10">
+                <MapPicker
+                  lat={String(watch('lat') ?? '')}
+                  lng={String(watch('lng') ?? '')}
+                  onChange={(latStr, lngStr) => {
+                    const latNum = parseFloat(latStr);
+                    const lngNum = parseFloat(lngStr);
+                    if (!Number.isNaN(latNum)) methods.setValue('lat', latNum);
+                    if (!Number.isNaN(lngNum)) methods.setValue('lng', lngNum);
+                  }}
+                  height="min(52vh, 520px)"
+                  className="w-full"
                 />
               </Box>
-              <Typography variant="subtitle2" className="font-semibold text-foreground">
-                {t('form.shopLocationOnMap')}
-              </Typography>
-            </Box>
-            <Typography variant="caption" className="text-muted-foreground block mb-2">
-              {t('form.shopMapClickHelper')}
-            </Typography>
-            <MapPicker
-              lat={String(watch('lat') ?? '')}
-              lng={String(watch('lng') ?? '')}
-              onChange={(latStr, lngStr) => {
-                const latNum = parseFloat(latStr);
-                const lngNum = parseFloat(lngStr);
-                if (!Number.isNaN(latNum)) methods.setValue('lat', latNum);
-                if (!Number.isNaN(lngNum)) methods.setValue('lng', lngNum);
-              }}
-              height="320px"
-              className="w-full"
-            />
-            <Box className="mt-3 grid grid-cols-2 gap-4">
-              <Box>
-                <Typography variant="caption" className="text-muted-foreground">
-                  {t('form.latitudeLabel')}
-                </Typography>
-                <Typography variant="body2" className="font-mono font-medium">
-                  {watch('lat') ?? '-'}
-                </Typography>
-              </Box>
-              <Box>
-                <Typography variant="caption" className="text-muted-foreground">
-                  {t('form.longitudeLabel')}
-                </Typography>
-                <Typography variant="body2" className="font-mono font-medium">
-                  {watch('lng') ?? '-'}
-                </Typography>
+              <Box className="grid grid-cols-2 gap-4 rounded-xl border border-border/50 bg-card/60 px-4 py-3">
+                <Box>
+                  <Typography variant="caption" className="text-muted-foreground">
+                    {t('form.latitudeLabel')}
+                  </Typography>
+                  <Typography variant="body2" className="font-mono font-medium">
+                    {watch('lat') ?? '-'}
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography variant="caption" className="text-muted-foreground">
+                    {t('form.longitudeLabel')}
+                  </Typography>
+                  <Typography variant="body2" className="font-mono font-medium">
+                    {watch('lng') ?? '-'}
+                  </Typography>
+                </Box>
               </Box>
             </Box>
           </Box>
-        </Box>
+        </ShopStepCanvas>
       ),
     },
     {
@@ -770,7 +788,8 @@ export default function CreatePage() {
       description: t('form.shopStepContactDesc'),
       icon: 'solar:phone-bold',
       content: (
-        <Box className="space-y-6">
+        <ShopStepCanvas>
+          <Box className="space-y-6">
           <Box className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Box className="group">
               <Box className="flex items-center gap-2.5 mb-3">
@@ -839,7 +858,8 @@ export default function CreatePage() {
               />
             </Box>
           </Box>
-        </Box>
+          </Box>
+        </ShopStepCanvas>
       ),
     },
     {
@@ -847,13 +867,15 @@ export default function CreatePage() {
       description: t('form.shopStepHoursDesc'),
       icon: 'solar:clock-circle-bold',
       content: (
-        <Box className="space-y-6">
-          <Box className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <ShopStepCanvas>
+          <Box className="space-y-6">
+          <Box className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-4">
             {SHOP_DAY_KEYS.map((dayKey) => (
               <WorkingHoursField key={dayKey} day={dayKey} />
             ))}
           </Box>
-        </Box>
+          </Box>
+        </ShopStepCanvas>
       ),
     },
     {
@@ -861,7 +883,8 @@ export default function CreatePage() {
       description: t('form.shopStepSettingsDesc'),
       icon: 'solar:settings-bold',
       content: (
-        <Box className="space-y-6">
+        <ShopStepCanvas>
+          <Box className="space-y-6">
           {/* Classification, pricing, payments, coupons */}
           <Box className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Box className="group md:col-span-2">
@@ -1069,7 +1092,8 @@ export default function CreatePage() {
               )}
             />
           </Box>
-        </Box>
+          </Box>
+        </ShopStepCanvas>
       ),
     },
   ];
@@ -1108,10 +1132,20 @@ export default function CreatePage() {
         errorMessage={errorMessage}
         title={isEditMode ? t('form.editShop') : t('form.createShop')}
         description={isEditMode ? t('form.editShopDesc') : t('form.createShopDesc')}
+        icon={
+          <Box className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/35 via-primary/15 to-transparent shadow-lg shadow-primary/15 ring-2 ring-primary/25">
+            <Iconify
+              icon={isEditMode ? 'solar:shop-2-bold' : 'solar:shop-bold'}
+              className="text-primary"
+              width={30}
+              height={30}
+            />
+          </Box>
+        }
         isEditMode={isEditMode}
         isLoading={isLoadingShop}
         loadingText={t('form.loadingShop')}
-        maxWidth="4xl"
+        maxWidth="full"
         steps={steps}
         stepValidationFields={SHOP_STEP_VALIDATION_FIELDS}
         reviewHint={t('reviewBeforeSubmit')}

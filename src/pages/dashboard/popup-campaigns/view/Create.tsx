@@ -168,7 +168,12 @@ export default function CreatePage() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [formFieldsInput, setFormFieldsInput] = useState<string>('');
 
-  const { data: detailResponse, isLoading: isLoadingDetail } = useFetchPopupCampaignById(id || '');
+  const {
+    data: detailResponse,
+    isLoading: isLoadingDetail,
+    isError: isDetailError,
+  } = useFetchPopupCampaignById(id, Boolean(isEditMode && id));
+  const detail = detailResponse?.data;
   const { data: pagesResponse, isLoading: isLoadingPages } = useFetchPages();
   const createMutation = useCreatePopupCampaign();
   const updateMutation = useUpdatePopupCampaign();
@@ -184,8 +189,8 @@ export default function CreatePage() {
   const showOnPagesOptions = useMemo(() => {
     const known = new Set(pageOptions.map((o) => String(o.value)));
     const extra: { value: string; label: string }[] = [];
-    if (isEditMode && detailResponse?.data) {
-      for (const s of toStringArray(detailResponse.data.show_on_pages)) {
+    if (isEditMode && detail) {
+      for (const s of toStringArray(detail.show_on_pages)) {
         if (s && !known.has(s)) {
           known.add(s);
           extra.push({ value: s, label: s });
@@ -193,7 +198,7 @@ export default function CreatePage() {
       }
     }
     return extra.length ? [...pageOptions, ...extra] : pageOptions;
-  }, [pageOptions, isEditMode, detailResponse?.data]);
+  }, [pageOptions, isEditMode, detail]);
 
   const typeOptions = useMemo(
     () =>
@@ -296,8 +301,8 @@ export default function CreatePage() {
   const formEnabled = watch('form_enabled');
 
   useEffect(() => {
-    if (!isEditMode || !detailResponse?.data) return;
-    const d = detailResponse.data;
+    if (!isEditMode || !detail) return;
+    const d = detail;
     const pages = toStringArray(d.show_on_pages);
     const fields = toStringArray(d.form_fields);
     reset({
@@ -325,7 +330,7 @@ export default function CreatePage() {
     });
     setFormFieldsInput(fields.join(', '));
     setPreviewUrl(resolveStorageUrl(d.media_path as string | null | undefined));
-  }, [isEditMode, detailResponse, reset]);
+  }, [isEditMode, detail, reset]);
 
   /** If the CMS only has one page, pre-select it so submit is not blocked on an easy-to-miss field. */
   useEffect(() => {
@@ -344,10 +349,10 @@ export default function CreatePage() {
       reader.readAsDataURL(mediaFile);
     } else if (!isEditMode && !mediaFile) {
       setPreviewUrl(null);
-    } else if (isEditMode && !mediaFile && detailResponse?.data?.media_path) {
-      setPreviewUrl(resolveStorageUrl(detailResponse.data.media_path));
+    } else if (isEditMode && !mediaFile && detail?.media_path) {
+      setPreviewUrl(resolveStorageUrl(detail.media_path));
     }
-  }, [mediaFile, isEditMode, detailResponse?.data?.media_path]);
+  }, [mediaFile, isEditMode, detail?.media_path]);
 
   const parseCsv = (value: string): string[] =>
     value
@@ -366,7 +371,7 @@ export default function CreatePage() {
         await updateMutation.mutateAsync({
           id,
           formData: buildFormData(data as PopupCampaignUpdateFormValues, true, {
-            existingMediaPath: detailResponse?.data?.media_path,
+            existingMediaPath: detail?.media_path,
           }),
         });
         toast.success(t('form.popupCampaignUpdatedSuccess'));
@@ -415,7 +420,32 @@ export default function CreatePage() {
   const fileAccept =
     mediaType === 'video' ? 'video/*' : mediaType === 'gif' ? 'image/gif' : 'image/*';
 
-  if (isEditMode && isLoadingDetail) return <LoadingScreen />;
+  if (isEditMode && id && isLoadingDetail) return <LoadingScreen />;
+
+  if (isEditMode && id && !isLoadingDetail && (isDetailError || !detail?.id)) {
+    return (
+      <>
+        <title>
+          {t('form.popupCampaignFormTitleEdit')} | {CONFIG.appName}
+        </title>
+        <Box className="p-6 max-w-lg">
+          <Typography variant="h6" className="mb-2">
+            {t('form.popupCampaignEditNotFound')}
+          </Typography>
+          <Typography variant="body2" className="text-muted-foreground mb-4">
+            {t('form.popupCampaignEditNotFoundHint')}
+          </Typography>
+          <button
+            type="button"
+            className="text-primary underline text-sm"
+            onClick={() => navigate(paths.dashboard.popupCampaigns.root)}
+          >
+            {t('form.popupCampaignBackToList')}
+          </button>
+        </Box>
+      </>
+    );
+  }
 
   return (
     <>
@@ -440,326 +470,386 @@ export default function CreatePage() {
             : t('form.popupCampaignFormDescCreate')
         }
         isEditMode={isEditMode}
-        maxWidth="5xl"
         submitLabel={isEditMode ? t('edit') : t('create')}
         submittingLabel={isEditMode ? t('updating') : t('form.creating')}
       >
-        <Typography variant="overline" className="text-muted-foreground block mb-3">
-          {t('form.popupCampaignSectionCore')}
-        </Typography>
-        <Box className="grid gap-6 md:grid-cols-2">
-          <Box className="group">
-            <Box className="flex items-center gap-2 mb-2">
-              <Iconify icon="solar:letter-bold" className="text-primary" width={24} height={24} />
-              <Typography variant="subtitle2" className="font-semibold text-foreground">
-                {t('form.bannerEnglishTitleLabel')}
+        {/* ── Section: Core ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-primary/[0.06] via-primary/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:widget-bold" className="text-primary" width={15} />
+            </Box>
+            <Typography variant="subtitle2" className="font-semibold text-foreground">
+              {t('form.popupCampaignSectionCore')}
+            </Typography>
+          </Box>
+          <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+            <Box className="group">
+              <Box className="flex items-center gap-2 mb-2">
+                <Iconify icon="solar:letter-bold" className="text-primary" width={20} height={20} />
+                <Typography variant="subtitle2" className="font-semibold text-foreground">
+                  {t('form.bannerEnglishTitleLabel')}
+                </Typography>
+              </Box>
+              <RHFTextField name="title.en" placeholder={t('form.popupCampaignTitleEnPlaceholder')} fullWidth />
+            </Box>
+            <Box className="group">
+              <Box className="flex items-center gap-2 mb-2">
+                <Iconify icon="solar:letter-bold" className="text-primary" width={20} height={20} />
+                <Typography variant="subtitle2" className="font-semibold text-foreground">
+                  {t('form.bannerArabicTitleLabel')}
+                </Typography>
+              </Box>
+              <RHFTextField name="title.ar" placeholder={t('form.bannerTitleArExample')} dir="rtl" fullWidth />
+            </Box>
+
+            <Box id="popup-campaign-field-slug" className="group scroll-mt-28">
+              <Typography variant="subtitle2" className="mb-2 font-semibold">
+                {t('form.popupCampaignSlug')}
+              </Typography>
+              <RHFSelect
+                name="slug"
+                options={pageOptions}
+                placeholder={
+                  isLoadingPages
+                    ? t('form.popupCampaignSlugLoading')
+                    : pageOptions.length === 0 && !isLoadingPages
+                      ? t('form.popupCampaignSlugEmpty')
+                      : t('form.popupCampaignSlugPlaceholder')
+                }
+                disabled={isLoadingPages}
+              />
+              <Typography variant="caption" className="text-muted-foreground mt-1 block">
+                {t('form.popupCampaignSlugHint')}
               </Typography>
             </Box>
-            <RHFTextField name="title.en" placeholder={t('form.popupCampaignTitleEnPlaceholder')} />
-          </Box>
-          <Box className="group">
-            <Box className="flex items-center gap-2 mb-2">
-              <Iconify icon="solar:letter-bold" className="text-primary" width={24} height={24} />
-              <Typography variant="subtitle2" className="font-semibold text-foreground">
-                {t('form.bannerArabicTitleLabel')}
+            <Box className="group">
+              <Typography variant="subtitle2" className="mb-2 font-semibold">
+                {t('form.popupCampaignPriority')}
+              </Typography>
+              <RHFTextField name="priority" type="number" placeholder="0" min={0} fullWidth />
+            </Box>
+
+            <Box className="group">
+              <Typography variant="subtitle2" className="mb-2 font-semibold">
+                {t('form.popupCampaignCampaignType')}
+              </Typography>
+              <RHFSelect name="type" options={[...typeOptions]} placeholder="" />
+              <Typography variant="caption" className="text-muted-foreground mt-1 block">
+                {t('form.popupCampaignTypeHint')}
               </Typography>
             </Box>
-            <RHFTextField name="title.ar" placeholder={t('form.bannerTitleArExample')} dir="rtl" />
-          </Box>
-
-          <Box id="popup-campaign-field-slug" className="group scroll-mt-28">
-            <Typography variant="subtitle2" className="mb-2 font-semibold">
-              {t('form.popupCampaignSlug')}
-            </Typography>
-            <RHFSelect
-              name="slug"
-              options={pageOptions}
-              placeholder={
-                isLoadingPages
-                  ? t('form.popupCampaignSlugLoading')
-                  : pageOptions.length === 0 && !isLoadingPages
-                    ? t('form.popupCampaignSlugEmpty')
-                    : t('form.popupCampaignSlugPlaceholder')
-              }
-              disabled={isLoadingPages}
-            />
-            <Typography variant="caption" className="text-muted-foreground mt-1 block">
-              {t('form.popupCampaignSlugHint')}
-            </Typography>
-          </Box>
-          <Box className="group">
-            <Typography variant="subtitle2" className="mb-2 font-semibold">
-              {t('form.popupCampaignPriority')}
-            </Typography>
-            <RHFTextField name="priority" type="number" placeholder="0" min={0} />
-          </Box>
-
-          <Box className="group">
-            <Typography variant="subtitle2" className="mb-2 font-semibold">
-              {t('form.popupCampaignCampaignType')}
-            </Typography>
-            <RHFSelect name="type" options={[...typeOptions]} placeholder="" />
-            <Typography variant="caption" className="text-muted-foreground mt-1 block">
-              {t('form.popupCampaignTypeHint')}
-            </Typography>
-          </Box>
-          <Box className="group">
-            <Typography variant="subtitle2" className="mb-2 font-semibold">
-              {t('columns.status')}
-            </Typography>
-            <RHFSelect name="status" options={[...statusOptions]} placeholder="" />
+            <Box className="group">
+              <Typography variant="subtitle2" className="mb-2 font-semibold">
+                {t('columns.status')}
+              </Typography>
+              <RHFSelect name="status" options={[...statusOptions]} placeholder="" />
+            </Box>
           </Box>
         </Box>
 
-        <Typography variant="overline" className="text-muted-foreground block mt-8 mb-3">
-          {t('form.popupCampaignSectionContent')}
-        </Typography>
-        <Box className="grid gap-6 md:grid-cols-2">
-          <Box className="group">
-            <Typography variant="subtitle2" className="mb-2 font-semibold">
-              {t('form.popupCampaignHeadlineEn')}
-            </Typography>
-            <RHFTextField name="headline.en" placeholder="" />
-          </Box>
-          <Box className="group">
-            <Typography variant="subtitle2" className="mb-2 font-semibold">
-              {t('form.popupCampaignHeadlineAr')}
-            </Typography>
-            <RHFTextField name="headline.ar" placeholder="" dir="rtl" />
-          </Box>
-          <Box className="group">
-            <Typography variant="subtitle2" className="mb-2 font-semibold">
-              {t('form.popupCampaignSubheadlineEn')}
-            </Typography>
-            <RHFTextField name="subheadline.en" placeholder="" />
-          </Box>
-          <Box className="group">
-            <Typography variant="subtitle2" className="mb-2 font-semibold">
-              {t('form.popupCampaignSubheadlineAr')}
-            </Typography>
-            <RHFTextField name="subheadline.ar" placeholder="" dir="rtl" />
-          </Box>
-          <Box className="group md:col-span-2">
-            <Typography variant="subtitle2" className="mb-2 font-semibold">
-              {t('form.popupCampaignDescriptionEn')}
-            </Typography>
-            <RHFTextField name="description.en" placeholder="" />
-          </Box>
-          <Box className="group md:col-span-2">
-            <Typography variant="subtitle2" className="mb-2 font-semibold">
-              {t('form.popupCampaignDescriptionAr')}
-            </Typography>
-            <RHFTextField name="description.ar" placeholder="" dir="rtl" />
-          </Box>
-        </Box>
-
-        <Typography variant="overline" className="text-muted-foreground block mt-8 mb-3">
-          {t('form.popupCampaignSectionButtons')}
-        </Typography>
-        <Box className="grid gap-4 md:grid-cols-2">
-          <Box className="group">
-            <Typography variant="subtitle2" className="mb-2 font-semibold">
-              {t('form.popupCampaignButtonText')}
-            </Typography>
-            <RHFTextField name="button_text" placeholder={t('popupCampaign.buttonTextPlaceholder')} />
-          </Box>
-          <Box className="group">
-            <Typography variant="subtitle2" className="mb-2 font-semibold">
-              {t('form.popupCampaignButtonUrl')}
-            </Typography>
-            <RHFTextField name="button_url" placeholder={t('popupCampaign.buttonUrlPlaceholder')} />
-          </Box>
-          <Box className="group md:col-span-2">
-            <Typography variant="subtitle2" className="mb-2 font-semibold">
-              {t('form.popupCampaignSecondaryButton')}
-            </Typography>
-            <RHFTextField name="secondary_button_text" placeholder={t('popupCampaign.secondaryButtonPlaceholder')} />
-          </Box>
-        </Box>
-
-        <Typography variant="overline" className="text-muted-foreground block mt-8 mb-3">
-          {t('form.popupCampaignSectionPlacement')}
-        </Typography>
-        <Box className="mt-2 grid gap-6 md:grid-cols-2">
-          <Box className="group">
-            <Typography variant="subtitle2" className="mb-2 font-semibold">
-              {t('form.popupCampaignAudience')}
-            </Typography>
-            <RHFSelect name="audience_type" options={[...audienceOptions]} placeholder="" />
-          </Box>
-          <Box className="group">
-            <Typography variant="subtitle2" className="mb-2 font-semibold">
-              {t('form.popupCampaignShowOnPages')}
-            </Typography>
-            <RHFMultiSelect
-              name="show_on_pages"
-              options={showOnPagesOptions}
-              placeholder={
-                isLoadingPages
-                  ? t('form.popupCampaignSlugLoading')
-                  : t('popupCampaign.showOnPagesPlaceholder')
-              }
-              fullWidth
-              isDisabled={isLoadingPages}
-              isSearchable
-            />
-            <Typography variant="caption" className="text-muted-foreground mt-1 block">
-              {t('form.popupCampaignShowOnPagesHint')}
+        {/* ── Section: Content ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-violet-500/[0.06] via-violet-500/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:text-bold" className="text-violet-500" width={15} />
+            </Box>
+            <Typography variant="subtitle2" className="font-semibold text-foreground">
+              {t('form.popupCampaignSectionContent')}
             </Typography>
           </Box>
-        </Box>
-
-        <Typography variant="overline" className="text-muted-foreground block mt-8 mb-3">
-          {t('form.popupCampaignSectionTrigger')}
-        </Typography>
-        <Box className="grid gap-4 md:grid-cols-2">
-          <Box className="group">
-            <Typography variant="subtitle2" className="mb-2 font-semibold">
-              {t('form.popupCampaignTriggerType')}
-            </Typography>
-            <RHFSelect name="trigger_type" options={[...triggerOptions]} placeholder="" />
-          </Box>
-          <Box className="group">
-            <Typography variant="subtitle2" className="mb-2 font-semibold">
-              {t('form.popupCampaignTriggerValue')}
-            </Typography>
-            <RHFTextField
-              name="trigger_value"
-              type="number"
-              placeholder="0"
-              min={0}
-              disabled={triggerType === 'on_load' || triggerType === 'exit_intent'}
-            />
-            <Typography variant="caption" className="text-muted-foreground mt-1 block">
-              {t('form.popupCampaignTriggerValueHint')}
-            </Typography>
-          </Box>
-          <Box className="group">
-            <Typography variant="subtitle2" className="mb-2 font-semibold">
-              {t('form.popupCampaignShowEvery')}
-            </Typography>
-            <RHFTextField name="show_every" type="number" placeholder="0" min={0} />
-          </Box>
-          <Box className="group">
-            <Typography variant="subtitle2" className="mb-2 font-semibold">
-              {t('form.popupCampaignMaxImpressions')}
-            </Typography>
-            <RHFTextField name="max_impressions" type="number" placeholder="0" min={0} />
-          </Box>
-        </Box>
-
-        <Typography variant="overline" className="text-muted-foreground block mt-8 mb-3">
-          {t('form.popupCampaignSectionForm')}
-        </Typography>
-        <Box className="grid gap-4 md:grid-cols-2">
-          <Box className="group md:col-span-2">
-            <Controller
-              name="form_enabled"
-              control={control}
-              render={({ field }) => (
-                <label className="inline-flex items-center gap-2 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={!!field.value}
-                    onChange={(e) => field.onChange(e.target.checked)}
-                    className="h-4 w-4 rounded border-input"
-                  />
-                  <Typography variant="subtitle2" className="font-semibold">
-                    {t('form.popupCampaignFormEnabled')}
-                  </Typography>
-                </label>
-              )}
-            />
-          </Box>
-          {formEnabled && (
+          <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+            <Box className="group">
+              <Typography variant="subtitle2" className="mb-2 font-semibold">
+                {t('form.popupCampaignHeadlineEn')}
+              </Typography>
+              <RHFTextField name="headline.en" placeholder="" fullWidth />
+            </Box>
+            <Box className="group">
+              <Typography variant="subtitle2" className="mb-2 font-semibold">
+                {t('form.popupCampaignHeadlineAr')}
+              </Typography>
+              <RHFTextField name="headline.ar" placeholder="" dir="rtl" fullWidth />
+            </Box>
+            <Box className="group">
+              <Typography variant="subtitle2" className="mb-2 font-semibold">
+                {t('form.popupCampaignSubheadlineEn')}
+              </Typography>
+              <RHFTextField name="subheadline.en" placeholder="" fullWidth />
+            </Box>
+            <Box className="group">
+              <Typography variant="subtitle2" className="mb-2 font-semibold">
+                {t('form.popupCampaignSubheadlineAr')}
+              </Typography>
+              <RHFTextField name="subheadline.ar" placeholder="" dir="rtl" fullWidth />
+            </Box>
             <Box className="group md:col-span-2">
               <Typography variant="subtitle2" className="mb-2 font-semibold">
-                {t('form.popupCampaignFormFields')}
+                {t('form.popupCampaignDescriptionEn')}
               </Typography>
-              <Input
-                value={formFieldsInput}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setFormFieldsInput(v);
-                  setValue('form_fields', parseCsv(v), { shouldValidate: true });
-                }}
-                placeholder={t('popupCampaign.formFieldsPlaceholder')}
+              <RHFTextField name="description.en" placeholder="" fullWidth />
+            </Box>
+            <Box className="group md:col-span-2">
+              <Typography variant="subtitle2" className="mb-2 font-semibold">
+                {t('form.popupCampaignDescriptionAr')}
+              </Typography>
+              <RHFTextField name="description.ar" placeholder="" dir="rtl" fullWidth />
+            </Box>
+          </Box>
+        </Box>
+
+        {/* ── Section: Buttons ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-amber-500/[0.06] via-amber-500/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:cursor-bold" className="text-amber-500" width={15} />
+            </Box>
+            <Typography variant="subtitle2" className="font-semibold text-foreground">
+              {t('form.popupCampaignSectionButtons')}
+            </Typography>
+          </Box>
+          <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+            <Box className="group">
+              <Typography variant="subtitle2" className="mb-2 font-semibold">
+                {t('form.popupCampaignButtonText')}
+              </Typography>
+              <RHFTextField name="button_text" placeholder={t('popupCampaign.buttonTextPlaceholder')} fullWidth />
+            </Box>
+            <Box className="group">
+              <Typography variant="subtitle2" className="mb-2 font-semibold">
+                {t('form.popupCampaignButtonUrl')}
+              </Typography>
+              <RHFTextField name="button_url" placeholder={t('popupCampaign.buttonUrlPlaceholder')} fullWidth />
+            </Box>
+            <Box className="group md:col-span-2">
+              <Typography variant="subtitle2" className="mb-2 font-semibold">
+                {t('form.popupCampaignSecondaryButton')}
+              </Typography>
+              <RHFTextField
+                name="secondary_button_text"
+                placeholder={t('popupCampaign.secondaryButtonPlaceholder')}
+                fullWidth
+              />
+            </Box>
+          </Box>
+        </Box>
+
+        {/* ── Section: Placement ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-emerald-500/[0.06] via-emerald-500/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:map-point-bold" className="text-emerald-500" width={15} />
+            </Box>
+            <Typography variant="subtitle2" className="font-semibold text-foreground">
+              {t('form.popupCampaignSectionPlacement')}
+            </Typography>
+          </Box>
+          <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+            <Box className="group">
+              <Typography variant="subtitle2" className="mb-2 font-semibold">
+                {t('form.popupCampaignAudience')}
+              </Typography>
+              <RHFSelect name="audience_type" options={[...audienceOptions]} placeholder="" />
+            </Box>
+            <Box className="group">
+              <Typography variant="subtitle2" className="mb-2 font-semibold">
+                {t('form.popupCampaignShowOnPages')}
+              </Typography>
+              <RHFMultiSelect
+                name="show_on_pages"
+                options={showOnPagesOptions}
+                placeholder={
+                  isLoadingPages
+                    ? t('form.popupCampaignSlugLoading')
+                    : t('popupCampaign.showOnPagesPlaceholder')
+                }
+                fullWidth
+                isDisabled={isLoadingPages}
+                isSearchable
+              />
+              <Typography variant="caption" className="text-muted-foreground mt-1 block">
+                {t('form.popupCampaignShowOnPagesHint')}
+              </Typography>
+            </Box>
+          </Box>
+        </Box>
+
+        {/* ── Section: Trigger ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-sky-500/[0.06] via-sky-500/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:alarm-bold" className="text-sky-500" width={15} />
+            </Box>
+            <Typography variant="subtitle2" className="font-semibold text-foreground">
+              {t('form.popupCampaignSectionTrigger')}
+            </Typography>
+          </Box>
+          <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+            <Box className="group">
+              <Typography variant="subtitle2" className="mb-2 font-semibold">
+                {t('form.popupCampaignTriggerType')}
+              </Typography>
+              <RHFSelect name="trigger_type" options={[...triggerOptions]} placeholder="" />
+            </Box>
+            <Box className="group">
+              <Typography variant="subtitle2" className="mb-2 font-semibold">
+                {t('form.popupCampaignTriggerValue')}
+              </Typography>
+              <RHFTextField
+                name="trigger_value"
+                type="number"
+                placeholder="0"
+                min={0}
+                disabled={triggerType === 'on_load' || triggerType === 'exit_intent'}
                 fullWidth
               />
               <Typography variant="caption" className="text-muted-foreground mt-1 block">
-                {t('form.popupCampaignFormFieldsHint')}
+                {t('form.popupCampaignTriggerValueHint')}
               </Typography>
             </Box>
-          )}
+            <Box className="group">
+              <Typography variant="subtitle2" className="mb-2 font-semibold">
+                {t('form.popupCampaignShowEvery')}
+              </Typography>
+              <RHFTextField name="show_every" type="number" placeholder="0" min={0} fullWidth />
+            </Box>
+            <Box className="group">
+              <Typography variant="subtitle2" className="mb-2 font-semibold">
+                {t('form.popupCampaignMaxImpressions')}
+              </Typography>
+              <RHFTextField name="max_impressions" type="number" placeholder="0" min={0} fullWidth />
+            </Box>
+          </Box>
         </Box>
 
-        <Typography variant="overline" className="text-muted-foreground block mt-8 mb-3">
-          {t('form.popupCampaignSectionMedia')}
-        </Typography>
-        <Box className="grid gap-4 md:grid-cols-2">
-          <Box className="group">
-            <Typography variant="subtitle2" className="mb-2 font-semibold">
-              {t('form.popupCampaignMediaType')}
+        {/* ── Section: Lead form ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-indigo-500/[0.06] via-indigo-500/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:clipboard-list-bold" className="text-indigo-500" width={15} />
+            </Box>
+            <Typography variant="subtitle2" className="font-semibold text-foreground">
+              {t('form.popupCampaignSectionForm')}
             </Typography>
-            <RHFSelect name="media_type" options={[...mediaTypeOptions]} placeholder="" />
           </Box>
-          <Box className="group md:col-span-2">
-            <Typography variant="subtitle2" className="mb-2 font-semibold">
-              {t('form.popupCampaignMediaFile')}
+          <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+            <Box className="group md:col-span-2">
+              <Controller
+                name="form_enabled"
+                control={control}
+                render={({ field }) => (
+                  <label className="inline-flex items-center gap-2 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={!!field.value}
+                      onChange={(e) => field.onChange(e.target.checked)}
+                      className="h-4 w-4 rounded border-input"
+                    />
+                    <Typography variant="subtitle2" className="font-semibold">
+                      {t('form.popupCampaignFormEnabled')}
+                    </Typography>
+                  </label>
+                )}
+              />
+            </Box>
+            {formEnabled && (
+              <Box className="group md:col-span-2">
+                <Typography variant="subtitle2" className="mb-2 font-semibold">
+                  {t('form.popupCampaignFormFields')}
+                </Typography>
+                <Input
+                  value={formFieldsInput}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setFormFieldsInput(v);
+                    setValue('form_fields', parseCsv(v), { shouldValidate: true });
+                  }}
+                  placeholder={t('popupCampaign.formFieldsPlaceholder')}
+                  fullWidth
+                />
+                <Typography variant="caption" className="text-muted-foreground mt-1 block">
+                  {t('form.popupCampaignFormFieldsHint')}
+                </Typography>
+              </Box>
+            )}
+          </Box>
+        </Box>
+
+        {/* ── Section: Media ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-rose-500/[0.06] via-rose-500/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:gallery-bold" className="text-rose-500" width={15} />
+            </Box>
+            <Typography variant="subtitle2" className="font-semibold text-foreground">
+              {t('form.popupCampaignSectionMedia')}
             </Typography>
-            <Controller
-              name="media"
-              control={control}
-              render={({ field: { onChange, value, ...field }, fieldState: { error } }) => (
-                <div className="w-full">
-                  <Input
-                    {...field}
-                    type="file"
-                    accept={fileAccept}
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      onChange(file || null);
-                    }}
-                    error={!!error}
-                    helperText={
-                      error?.message ||
-                      (isEditMode
-                        ? t('form.popupCampaignMediaHelperEdit')
-                        : t('form.popupCampaignMediaHelperCreate'))
-                    }
-                    fullWidth
-                  />
-                  {previewUrl && mediaType === 'image' && (
-                    <Box className="mt-4">
-                      <img
-                        src={previewUrl}
-                        alt=""
-                        className="max-h-48 rounded-lg border border-border/60 object-contain"
-                      />
-                    </Box>
-                  )}
-                  {previewUrl && mediaType === 'gif' && (
-                    <Box className="mt-4">
-                      <img
-                        src={previewUrl}
-                        alt=""
-                        className="max-h-48 rounded-lg border border-border/60 object-contain"
-                      />
-                    </Box>
-                  )}
-                  {previewUrl && mediaType === 'video' && (
-                    <Box className="mt-4">
-                      <video
-                        src={previewUrl}
-                        className="max-h-56 w-full max-w-md rounded-lg border border-border/60"
-                        controls
-                        muted
-                      />
-                    </Box>
-                  )}
-                </div>
-              )}
-            />
+          </Box>
+          <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+            <Box className="group">
+              <Typography variant="subtitle2" className="mb-2 font-semibold">
+                {t('form.popupCampaignMediaType')}
+              </Typography>
+              <RHFSelect name="media_type" options={[...mediaTypeOptions]} placeholder="" />
+            </Box>
+            <Box className="group md:col-span-2">
+              <Typography variant="subtitle2" className="mb-2 font-semibold">
+                {t('form.popupCampaignMediaFile')}
+              </Typography>
+              <Controller
+                name="media"
+                control={control}
+                render={({ field: { onChange, value, ...field }, fieldState: { error } }) => (
+                  <div className="w-full">
+                    <Input
+                      {...field}
+                      type="file"
+                      accept={fileAccept}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        onChange(file || null);
+                      }}
+                      error={!!error}
+                      helperText={
+                        error?.message ||
+                        (isEditMode
+                          ? t('form.popupCampaignMediaHelperEdit')
+                          : t('form.popupCampaignMediaHelperCreate'))
+                      }
+                      fullWidth
+                    />
+                    {previewUrl && mediaType === 'image' && (
+                      <Box className="mt-4">
+                        <img
+                          src={previewUrl}
+                          alt=""
+                          className="max-h-48 rounded-lg border border-border/60 object-contain"
+                        />
+                      </Box>
+                    )}
+                    {previewUrl && mediaType === 'gif' && (
+                      <Box className="mt-4">
+                        <img
+                          src={previewUrl}
+                          alt=""
+                          className="max-h-48 rounded-lg border border-border/60 object-contain"
+                        />
+                      </Box>
+                    )}
+                    {previewUrl && mediaType === 'video' && (
+                      <Box className="mt-4">
+                        <video
+                          src={previewUrl}
+                          className="max-h-56 w-full max-w-md rounded-lg border border-border/60"
+                          controls
+                          muted
+                        />
+                      </Box>
+                    )}
+                  </div>
+                )}
+              />
+            </Box>
           </Box>
         </Box>
       </CreateFormLayout>

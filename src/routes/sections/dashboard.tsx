@@ -16,6 +16,7 @@ import { usePathname } from '../hooks';
 
 const IndexPage = lazy(() => import('@/pages/dashboard/admin/view/Index'));
 const CreatePage = lazy(() => import('@/pages/dashboard/admin/view/Create'));
+const AdminDetailsPage = lazy(() => import('@/pages/dashboard/admin/view/Details'));
 
 const VendorIndexPage = lazy(() => import('@/pages/dashboard/vendor/view/vendor/Index'));
 const VendorCreatePage = lazy(() => import('@/pages/dashboard/vendor/view/vendor/Create'));
@@ -418,6 +419,14 @@ export const dashboardRoutes: RouteObject[] = [
         element: (
           <RequirePermission permission="admin.create">
             <CreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'details/:id',
+        element: (
+          <RequirePermission permission="admin.view">
+            <AdminDetailsPage />
           </RequirePermission>
         ),
       },

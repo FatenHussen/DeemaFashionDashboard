@@ -15,6 +15,8 @@ import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { InfiniteScrollSelect } from '@/shared/components/infinite-scroll-select';
 import { TinyMCEEditorField } from '@/shared/components/tinymce-editor/tinymce-editor';
 import { _CategoryApi } from '@/pages/dashboard/categories/api/category.services';
+import type { CategoryData } from '@/pages/dashboard/categories/types/category.types';
+import { buildParentPickerOptions } from '@/pages/dashboard/categories/utils/build-parent-picker-options';
 import { _ShopProductVariantApi } from '@/shared/api/shop-product-variant.services';
 import {
   BasketSchema,
@@ -109,24 +111,19 @@ export default function CreatePage() {
   });
 
   const categorySelectOptions = useMemo(() => {
-    const items = categoriesListResponse?.data?.items ?? [];
-    const fromList = items.map((c: { id: number; name: unknown }) => ({
-      value: c.id,
-      label: formatTranslated(c.name as Parameters<typeof formatTranslated>[0]),
+    const items = (categoriesListResponse?.data?.items ?? []) as CategoryData[];
+    const hierarchical = buildParentPickerOptions(items).map((r) => ({
+      value: r.id,
+      label: r.label,
     }));
     const src = basketResponse?.data;
     const fromApi = (src?.categories ?? []).map((c) => ({
       value: c.id,
       label: formatTranslated(c.name as Parameters<typeof formatTranslated>[0]),
     }));
-    const seen = new Set<number>();
-    const merged: { value: number; label: string }[] = [];
-    for (const o of [...fromApi, ...fromList]) {
-      if (seen.has(Number(o.value))) continue;
-      seen.add(Number(o.value));
-      merged.push(o);
-    }
-    return merged;
+    const inTree = new Set(hierarchical.map((o) => Number(o.value)));
+    const extra = fromApi.filter((o) => !inTree.has(Number(o.value)));
+    return [...extra, ...hierarchical];
   }, [categoriesListResponse?.data?.items, basketResponse?.data?.categories]);
   const basketDiscountType = watch('discount_type');
   const { fields, append, remove } = useFieldArray({ control, name: 'items' });

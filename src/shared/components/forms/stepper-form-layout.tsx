@@ -32,7 +32,7 @@ export interface StepperFormLayoutProps<T extends Record<string, any>> {
   isEditMode?: boolean;
   isLoading?: boolean;
   loadingText?: string;
-  maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl';
+  maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | 'full';
 
   // Stepper configuration
   steps: StepperStep[];
@@ -86,7 +86,10 @@ export function StepperFormLayout<T extends Record<string, any>>({
     '2xl': 'max-w-2xl',
     '3xl': 'max-w-3xl',
     '4xl': 'max-w-4xl',
+    full: 'w-full max-w-none',
   };
+
+  const isFullWidth = maxWidth === 'full';
 
   const resolvedLoadingText = loadingText ?? t('loading');
   const resolvedCancelLabel = cancelLabel ?? t('cancel');
@@ -123,7 +126,13 @@ export function StepperFormLayout<T extends Record<string, any>>({
   };
 
   return (
-    <Box className="relative min-h-screen overflow-hidden bg-background p-6">
+    <Box
+      className={`relative min-h-screen overflow-hidden bg-background ${
+        isFullWidth
+          ? 'px-4 py-6 sm:px-6 sm:py-8 lg:px-10 lg:py-10 xl:px-14'
+          : 'p-6'
+      }`}
+    >
       {/* Subtle background gradient */}
       <Box className="pointer-events-none fixed inset-0 bg-gradient-to-br from-background via-background to-muted/30" />
 
@@ -147,22 +156,29 @@ export function StepperFormLayout<T extends Record<string, any>>({
 
         {/* Header */}
         <Box className="mb-8">
-          <Box className="rounded-2xl border border-border/60 bg-card/80 backdrop-blur-sm shadow-sm">
-            {/* <Box className="p-6"> */}
-            <Box className="flex items-start justify-between gap-6 flex-wrap">
+          <Box
+            className={`rounded-2xl border border-border/60 bg-card/80 backdrop-blur-sm shadow-sm ${
+              isFullWidth ? 'overflow-hidden ring-1 ring-primary/[0.06]' : ''
+            }`}
+          >
+            <Box
+              className={`flex items-start justify-between gap-6 flex-wrap p-6 ${
+                isFullWidth ? 'md:p-8 bg-gradient-to-br from-card via-card to-primary/[0.03]' : ''
+              }`}
+            >
               <Box className="flex items-start gap-4 flex-1 min-w-0">
                 {/* Icon badge */}
                 <Box className="relative flex-shrink-0">
-                  <Box className="w-14 h-14 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shadow-sm">
-                    {icon ?? (
+                  {icon ?? (
+                    <Box className="flex h-14 w-14 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 shadow-sm">
                       <Iconify
                         icon={isEditMode ? 'solar:pen-bold' : 'solar:add-circle-bold'}
                         className="text-primary"
                         width={28}
                         height={28}
                       />
-                    )}
-                  </Box>
+                    </Box>
+                  )}
                 </Box>
 
                 <Box className="flex-1 min-w-0">
@@ -208,7 +224,6 @@ export function StepperFormLayout<T extends Record<string, any>>({
                 {resolvedCancelLabel}
               </Button>
             </Box>
-            {/* </Box> */}
           </Box>
         </Box>
 
@@ -249,7 +264,11 @@ export function StepperFormLayout<T extends Record<string, any>>({
 
         {/* Stepper */}
         <Box className="mb-8">
-          <Box className="rounded-2xl border border-border/60 bg-card/80 backdrop-blur-sm shadow-sm p-6">
+          <Box
+            className={`rounded-2xl border border-border/60 bg-card/80 backdrop-blur-sm shadow-sm p-6 ${
+              isFullWidth ? 'ring-1 ring-border/40' : ''
+            }`}
+          >
             {/* Desktop Stepper */}
             <Box className="hidden md:flex items-center justify-between">
               {steps.map((step, index) => {
@@ -360,10 +379,16 @@ export function StepperFormLayout<T extends Record<string, any>>({
         </Box>
 
         {/* Form Card */}
-        <Box className="rounded-2xl border border-border/60 bg-card/80 backdrop-blur-sm shadow-sm">
+        <Box
+          className={`rounded-2xl border border-border/60 bg-card/80 backdrop-blur-sm shadow-sm ${
+            isFullWidth ? 'shadow-xl shadow-primary/[0.04] ring-1 ring-primary/[0.05]' : ''
+          }`}
+        >
           <Form methods={methods} onSubmit={onSubmit}>
             {/* Content */}
-            <Box className="p-6 md:p-8 min-h-[400px]">
+            <Box
+              className={`min-h-[400px] p-6 md:p-8 ${isFullWidth ? 'lg:p-10 xl:p-12' : ''}`}
+            >
               {reviewHint && (
                 <Box className="mb-6 flex items-start gap-3 rounded-xl border border-primary/15 bg-primary/5 px-4 py-3">
                   <Box className="mt-0.5 h-2 w-2 shrink-0 rounded-full bg-primary/70" />

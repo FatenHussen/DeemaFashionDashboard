@@ -166,6 +166,12 @@ export function DataTable<TData, TValue>({
   const visibleColumns = table.getVisibleLeafColumns().filter((col) => col.id !== 'actions');
   const visibleColumnsCount = visibleColumns.length;
   const isTwoColumns = visibleColumnsCount === 2;
+  /** Reserve width for the sticky actions column — two 50% data cols alone = 100%, which squeezes actions and forces horizontal overflow */
+  const twoDataPlusActionsWidths = (isActions: boolean) => {
+    if (!isTwoColumns) return undefined;
+    if (isActions) return '4.5rem';
+    return 'calc((100% - 4.5rem) / 2)';
+  };
 
   return (
     <div className="w-full min-w-0 space-y-4 px-3 py-4 sm:px-4 md:px-6 md:py-5">
@@ -226,9 +232,7 @@ export function DataTable<TData, TValue>({
                 )}
                 {headerGroup.headers.map((header) => {
                   const isActionsColumn = header.id === 'actions';
-                  // For 2 columns, distribute 50% each (excluding actions column)
-                  const columnWidth =
-                    isTwoColumns && !isActionsColumn ? '50%' : isActionsColumn ? 'auto' : undefined;
+                  const columnWidth = twoDataPlusActionsWidths(isActionsColumn) ?? (isActionsColumn ? 'auto' : undefined);
                   const meta = header.column.columnDef.meta;
                   return (
                     <TableHead
@@ -317,13 +321,8 @@ export function DataTable<TData, TValue>({
                       )}
                       {row.getVisibleCells().map((cell) => {
                         const isActionsColumn = cell.column.id === 'actions';
-                        // For 2 columns, distribute 50% each (excluding actions column)
                         const columnWidth =
-                          isTwoColumns && !isActionsColumn
-                            ? '50%'
-                            : isActionsColumn
-                              ? 'auto'
-                              : undefined;
+                          twoDataPlusActionsWidths(isActionsColumn) ?? (isActionsColumn ? 'auto' : undefined);
                         const meta = cell.column.columnDef.meta;
                         return (
                           <TableCell

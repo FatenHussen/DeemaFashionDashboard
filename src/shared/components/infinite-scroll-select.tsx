@@ -199,11 +199,15 @@ export function InfiniteScrollSelect({
       {isOpen &&
         createPortal(
           <>
-            {/* Click-outside overlay */}
-            <div className="fixed inset-0 z-40" onClick={handleClose} />
+            {/* Above app modals (`--layout-modal-zIndex`); z-40/z-50 stayed behind modal overlays. */}
+            <div
+              className="fixed inset-0 z-[calc(var(--layout-modal-zIndex)+10)]"
+              onClick={handleClose}
+              aria-hidden
+            />
 
             <div
-              className="fixed z-50 rounded-md border border-border bg-background shadow-lg min-w-[200px]"
+              className="fixed z-[calc(var(--layout-modal-zIndex)+20)] min-w-[200px] rounded-md border border-border bg-background shadow-lg"
               style={{
                 top: dropdownPosition.top,
                 left: dropdownPosition.left,

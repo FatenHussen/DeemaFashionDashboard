@@ -33,6 +33,8 @@ export interface FlashSaleModel {
   is_active: boolean;
   discount: number;
   discount_type: FlashSaleDiscountType;
+  /** Product IDs from `products` or `product_ids` on show/update responses. */
+  product_ids?: number[];
   created_at?: string;
   updated_at?: string;
 }

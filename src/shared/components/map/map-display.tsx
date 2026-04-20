@@ -37,8 +37,11 @@ export function MapDisplay({ lat, lng, title, height = '300px', className = '' }
     const center: [number, number] = [numLat, numLng];
 
     const map = L.map(containerRef.current).setView(center, DEFAULT_ZOOM);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap',
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+      subdomains: 'abcd',
+      maxZoom: 20,
     }).addTo(map);
 
     L.marker(center, { icon: defaultIcon }).addTo(map).bindPopup(title || 'Location');
@@ -66,7 +69,7 @@ export function MapDisplay({ lat, lng, title, height = '300px', className = '' }
   return (
     <div
       ref={containerRef}
-      className={`rounded-lg border border-border/60 overflow-hidden ${className}`}
+      className={`relative z-0 rounded-lg border border-border/60 overflow-hidden ${className}`}
       style={{ height }}
     />
   );
