@@ -23,9 +23,18 @@ export const _BasketApi = {
 
   createBasket: async (data: BasketCreateUpdatePayload): Promise<any> => {
     const formData = new FormData();
-    formData.append('category_id', String(data.category_id));
+    data.category_ids.forEach((cid) => {
+      formData.append('category_ids[]', String(cid));
+    });
+    if (data.category_id != null) {
+      formData.append('category_id', String(data.category_id));
+    }
     formData.append('name[ar]', data.name.ar);
     formData.append('name[en]', data.name.en);
+    if (data.description) {
+      formData.append('description[en]', data.description.en || '');
+      formData.append('description[ar]', data.description.ar || '');
+    }
     formData.append('discount_type', data.discount_type);
     if (data.discount !== undefined) formData.append('discount', String(data.discount));
     if (data.offer_ends_at) formData.append('offer_ends_at', data.offer_ends_at);
@@ -51,9 +60,18 @@ export const _BasketApi = {
 
   updateBasket: async (id: number | string, data: BasketCreateUpdatePayload): Promise<any> => {
     const formData = new FormData();
-    formData.append('category_id', String(data.category_id));
+    data.category_ids.forEach((cid) => {
+      formData.append('category_ids[]', String(cid));
+    });
+    if (data.category_id != null) {
+      formData.append('category_id', String(data.category_id));
+    }
     formData.append('name[ar]', data.name.ar);
     formData.append('name[en]', data.name.en);
+    if (data.description) {
+      formData.append('description[en]', data.description.en || '');
+      formData.append('description[ar]', data.description.ar || '');
+    }
     formData.append('discount_type', data.discount_type);
     if (data.discount !== undefined) formData.append('discount', String(data.discount));
     if (data.offer_ends_at) formData.append('offer_ends_at', data.offer_ends_at);

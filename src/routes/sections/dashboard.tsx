@@ -182,6 +182,9 @@ const VendorSubscriptionIndexPage = lazy(
 const VendorSubscriptionDetailsPage = lazy(
   () => import('@/pages/dashboard/vendor/view/subscription/Details')
 );
+const VendorSubscriptionCreatePage = lazy(
+  () => import('@/pages/dashboard/vendor/view/subscription/Create')
+);
 
 // Admin Notifications
 const AdminNotificationIndexPage = lazy(
@@ -304,6 +307,7 @@ const PromotionRequestDetailsPage = lazy(() => import('@/pages/dashboard/promoti
 
 // Point Rules
 const PointRuleIndexPage = lazy(() => import('@/pages/dashboard/point-rules/view/Index'));
+const PointRuleDetailsPage = lazy(() => import('@/pages/dashboard/point-rules/view/Details'));
 const PointRuleCreatePage = lazy(() => import('@/pages/dashboard/point-rules/view/Create'));
 
 // Schedules
@@ -1559,6 +1563,14 @@ export const dashboardRoutes: RouteObject[] = [
         index: true,
       },
       {
+        path: 'create',
+        element: (
+          <RequirePermission permission="vendorsubscription.create">
+            <VendorSubscriptionCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
         path: ':id',
         element: (
           <RequirePermission permission="vendorsubscription.view">
@@ -2027,6 +2039,14 @@ export const dashboardRoutes: RouteObject[] = [
       //     </RequirePermission>
       //   ),
       // },
+      {
+        path: 'details/:id',
+        element: (
+          <RequirePermission permission="pointrule.view">
+            <PointRuleDetailsPage />
+          </RequirePermission>
+        ),
+      },
       {
         path: 'update/:id',
         element: (

@@ -38,6 +38,7 @@ export interface ScheduledBasketItem {
     image?: string;
     brand?: string;
   };
+  variant_image?: string | null;
   variant?: {
     id: number;
     attributes?: Array<{ name: string; value: string }>;
@@ -57,7 +58,10 @@ export interface ScheduledBasketBadge {
 export interface ScheduledBasketData {
   id: number;
   name: string | { ar?: string; en?: string };
-  category?: { id: number; name: string | { ar?: string; en?: string } };
+  description?: { ar?: string; en?: string } | string;
+  category_ids?: number[];
+  categories?: Array<{ id: number; name: string | { ar?: string; en?: string } }>;
+  category?: { id: number; name: string | { ar?: string; en?: string } } | string;
   image?: string;
   num_varieties?: number;
   original_price?: number;
@@ -125,8 +129,10 @@ export interface ScheduledBasketSchedulePayload {
 }
 
 export interface ScheduledBasketCreateUpdatePayload {
-  category_id: number;
+  category_ids: number[];
+  category_id?: number;
   name: { ar: string; en: string };
+  description?: { ar: string; en: string };
   discount?: number;
   discount_type: 'fixed' | 'percentage';
   delivery_price?: number;

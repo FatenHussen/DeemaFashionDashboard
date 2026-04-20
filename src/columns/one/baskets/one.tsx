@@ -3,6 +3,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 import type { BasketData } from '@/pages/dashboard/baskets/types/basket.types';
 
 import { z } from 'zod';
+import { formatTranslated } from '@/utils/format-translated';
 import { createToggleColumn } from '@/shared/ui/table-data/data-table-toggle-cell';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
@@ -46,9 +47,24 @@ export const basketColumns = (
     accessorKey: 'category',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.category')} />,
     cell: ({ row }) => {
-      const cat = row.original.category;
-      const name = typeof cat === 'object' && cat ? (cat as { name?: string })?.name : null;
-      return <span className="text-sm">{name ?? '-'}</span>;
+      const r = row.original;
+      if (r.categories?.length) {
+        const text = r.categories
+          .map((c) => formatTranslated(c.name as Parameters<typeof formatTranslated>[0]))
+          .filter(Boolean)
+          .join(' · ');
+        return <span className="text-sm">{text || '-'}</span>;
+      }
+      const cat = r.category;
+      if (typeof cat === 'string') return <span className="text-sm">{cat || '-'}</span>;
+      if (cat && typeof cat === 'object' && 'name' in cat) {
+        return (
+          <span className="text-sm">
+            {formatTranslated((cat as { name: unknown }).name as Parameters<typeof formatTranslated>[0]) || '-'}
+          </span>
+        );
+      }
+      return <span className="text-sm">-</span>;
     },
   },
   {

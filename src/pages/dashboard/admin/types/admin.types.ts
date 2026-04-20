@@ -1,11 +1,20 @@
 // ----------------------------------------------------------------------
 
+export interface AdminCityRef {
+  id: number;
+  name?: string | { ar: string; en: string };
+}
+
 export interface AdminData {
   id: number;
   name: string;
   email: string;
   is_active: number;
   roles: (string | { id: number; name: string })[];
+  /** Present when API returns assigned cities as id list */
+  city_ids?: number[];
+  /** Present when API returns nested city objects */
+  cities?: AdminCityRef[];
   created_at: string;
 }
 
@@ -29,4 +38,5 @@ export interface AdminCreateUpdatePayload {
   password?: string;
   password_confirmation?: string;
   roles?: { id: number }[];
+  city_ids?: number[];
 }

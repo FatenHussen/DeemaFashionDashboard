@@ -19,6 +19,8 @@ export interface GiftData {
   category?: { id: number; name: string | GiftTranslation };
   terms_conditions?: GiftTranslation | string;
   shop_product_variant_id?: number | null;
+  /** From shop product variant / list API */
+  variant_image?: string | null;
   exchanges_count?: number;
   created_at: string;
   updated_at: string;

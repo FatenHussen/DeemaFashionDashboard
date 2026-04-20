@@ -32,6 +32,7 @@ export const permissionTranslationsEn = {
     unpublish: 'Unpublish',
     activate: 'Activate',
     deactivate: 'Deactivate',
+    remove: 'Remove',
   },
   permResource: {
     activitylog: 'Activity log',
@@ -131,6 +132,7 @@ export const permissionTranslationsAr = {
     unpublish: 'إلغاء النشر',
     activate: 'تفعيل',
     deactivate: 'تعطيل',
+    remove: 'إزالة',
   },
   permResource: {
     activitylog: 'سجل النشاط',

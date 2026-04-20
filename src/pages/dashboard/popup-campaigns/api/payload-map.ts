@@ -49,11 +49,6 @@ export function fromApiTrigger(api: string): PopupCampaignTriggerType {
 const UI_TYPES = new Set(['modal', 'slide_in', 'fullscreen']);
 const UI_STATUS = new Set(['draft', 'active', 'paused', 'archived']);
 
-/** Translatable JSON strings for Laravel casts. */
-export function encodeLocaleJson(loc: { en: string; ar: string }): string {
-  return JSON.stringify({ en: loc.en ?? '', ar: loc.ar ?? '' });
-}
-
 export function slugify(input: string): string {
   const s = input
     .trim()

@@ -14,6 +14,7 @@ export interface VendorServiceRow {
   name: string | { ar?: string; en?: string };
   description?: string | { ar?: string; en?: string } | null;
   vendor_service_type?: { id: number; name: string | { ar?: string; en?: string } };
+  type?: { id: number; name: string | { ar?: string; en?: string } };
   vendor_service_type_id?: number;
   is_active: boolean;
   created_at?: string;
@@ -57,8 +58,9 @@ export const vendorServiceColumns = (
     accessorKey: 'vendor_service_type',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.type')} />,
     cell: ({ row }) => {
-      const typeName = row.original.vendor_service_type
-        ? formatTranslated(row.original.vendor_service_type.name)
+      const serviceType = row.original.vendor_service_type ?? row.original.type;
+      const typeName = serviceType
+        ? formatTranslated(serviceType.name)
         : (row.original.vendor_service_type_id ? `#${row.original.vendor_service_type_id}` : '-');
       return (
         <div className="flex items-center gap-2">

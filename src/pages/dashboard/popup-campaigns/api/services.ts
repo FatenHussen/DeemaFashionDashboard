@@ -1,3 +1,10 @@
+/**
+ * Popup campaign admin API client.
+ *
+ * Create/update use `multipart/form-data`: Laravel expects nested keys `title[en]`, `title[ar]`, same for
+ * headline/subheadline/description; file field `media` plus `media_path` placeholder `__pending_upload__` on create
+ * when uploading a new file (backend stores path after upload).
+ */
 import type { PopupCampaignListResponse, PopupCampaignDetailResponse } from '../types';
 
 import { apiRoutes, axiosInstance } from '@/api';
@@ -53,11 +60,16 @@ export const _PopupCampaignApi = {
   },
 
   create: async (formData: FormData): Promise<PopupCampaignDetailResponse> => {
+    // Do not set Content-Type manually — axios must send multipart boundary or Laravel may not parse fields/files.
     const response = await axiosInstance.post<PopupCampaignDetailResponse>(
       apiRoutes.popupCampaign.create,
       formData,
-      { headers: { 'Content-Type': 'multipart/form-data' } }
+      { maxBodyLength: Infinity, maxContentLength: Infinity }
     );
+    const body = response.data as PopupCampaignDetailResponse & { status?: boolean; message?: string };
+    if (body && body.status === false) {
+      throw new Error(typeof body.message === 'string' && body.message.trim() ? body.message : 'Request failed');
+    }
     return response.data;
   },
 
@@ -65,11 +77,16 @@ export const _PopupCampaignApi = {
     id: number | string,
     formData: FormData
   ): Promise<PopupCampaignDetailResponse> => {
+    // Same as create: let axios set multipart boundary (manual Content-Type breaks parsing).
     const response = await axiosInstance.put<PopupCampaignDetailResponse>(
       apiRoutes.popupCampaign.update(id),
       formData,
-      { headers: { 'Content-Type': 'multipart/form-data' } }
+      { maxBodyLength: Infinity, maxContentLength: Infinity }
     );
+    const body = response.data as PopupCampaignDetailResponse & { status?: boolean; message?: string };
+    if (body && body.status === false) {
+      throw new Error(typeof body.message === 'string' && body.message.trim() ? body.message : 'Request failed');
+    }
     return response.data;
   },
 

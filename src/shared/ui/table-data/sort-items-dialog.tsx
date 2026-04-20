@@ -1,9 +1,9 @@
 import type { DragEndEvent } from '@dnd-kit/core';
 
-import { useTranslation } from 'react-i18next';
 import { Modal } from '@/shared/ui/modal';
 import { Button } from '@/shared/ui/button';
-import { useState, useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useMemo, useState, useEffect } from 'react';
 import { Iconify } from '@/shared/components/iconify';
 import {
   arrayMove,

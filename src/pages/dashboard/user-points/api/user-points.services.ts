@@ -42,12 +42,18 @@ export const _UserPointsApi = {
   },
 
   addPoints: async (userId: number | string, data: UserPointsAddDeductPayload): Promise<any> => {
-    const response = await axiosInstance.post(apiRoutes.userPoints.add(userId), data);
+    const response = await axiosInstance.post(apiRoutes.userPoints.add, {
+      user_id: Number(userId),
+      ...data,
+    });
     return response.data;
   },
 
   deductPoints: async (userId: number | string, data: UserPointsAddDeductPayload): Promise<any> => {
-    const response = await axiosInstance.post(apiRoutes.userPoints.deduct(userId), data);
+    const response = await axiosInstance.post(apiRoutes.userPoints.deduct, {
+      user_id: Number(userId),
+      ...data,
+    });
     return response.data;
   },
 

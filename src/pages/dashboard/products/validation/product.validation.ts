@@ -32,6 +32,12 @@ export const ProductSchema = zod
       .optional(),
     country_id: zod.coerce.number().min(0).optional(),
     sale_country_id: zod.coerce.number().min(0).optional(),
+    /** UI: amount in selected currency; `price` is always USD for the API. */
+    price_currency_id: zod.coerce.number().min(0).optional().default(0),
+    price_local: zod.preprocess(
+      (v) => (v === '' || v === null || v === undefined ? 0 : v),
+      zod.coerce.number().min(0)
+    ),
     price: zod.coerce.number().min(0, { message: t('product.pricePositive') }),
     discount: zod.coerce.number().min(0).default(0),
     discount_type: zod.enum(['none', 'percentage', 'fixed']).default('none'),
@@ -103,6 +109,8 @@ export const ProductSchema = zod
           ),
           existing_images_ids: zod.array(zod.coerce.number()).optional(),
           sku: zod.string().optional(),
+          model: zod.string().optional(),
+          barcode: zod.string().optional(),
           name: zod.object({ en: zod.string(), ar: zod.string() }).optional(),
           stock: zod.preprocess(
             (v) => (v === '' || v === null || v === undefined ? undefined : v),
@@ -168,6 +176,14 @@ export const ProductSchema = zod
           shop_id: zod.coerce.number(),
           variant_index: zod.coerce.number(),
           price: zod.coerce.number().min(0),
+          cost_price: zod.preprocess(
+            (v) => (v === '' || v === null || v === undefined ? undefined : v),
+            zod.coerce.number().min(0).optional()
+          ),
+          discount: zod.preprocess(
+            (v) => (v === '' || v === null || v === undefined ? undefined : v),
+            zod.coerce.number().min(0).optional()
+          ),
           quantity: zod.coerce.number().min(0),
         })
       )

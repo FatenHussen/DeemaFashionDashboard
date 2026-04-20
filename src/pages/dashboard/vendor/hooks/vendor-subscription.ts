@@ -1,7 +1,7 @@
-import type { VendorSubscriptionFilters } from '../types/vendor-subscription.types';
+import type { VendorSubscriptionCreatePayload, VendorSubscriptionFilters } from '../types/vendor-subscription.types';
 
 import { queryKeys } from '@/api';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { _VendorSubscriptionApi } from '../api/vendor-subscription.services';
 
@@ -28,3 +28,23 @@ export const useFetchVendorSubscriptionById = (id: number | string) =>
     queryFn: () => _VendorSubscriptionApi.getById(id),
     enabled: !!id,
   });
+
+export const useCreateVendorSubscription = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: VendorSubscriptionCreatePayload) => _VendorSubscriptionApi.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['vendorSubscription', 'list'] });
+    },
+  });
+};
+
+export const useDeleteVendorSubscription = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number | string) => _VendorSubscriptionApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['vendorSubscription', 'list'] });
+    },
+  });
+};

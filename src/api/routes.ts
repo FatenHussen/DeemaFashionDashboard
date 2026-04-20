@@ -283,8 +283,8 @@ export const apiRoutes = {
     list: `${ROOTS.ADMIN}/user-points`,
     details: (userId: number | string) => `${ROOTS.ADMIN}/user-points/${userId}`,
     transactions: (userId: number | string) => `${ROOTS.ADMIN}/user-points/${userId}/transactions`,
-    add: (userId: number | string) => `${ROOTS.ADMIN}/user-points/${userId}/add`,
-    deduct: (userId: number | string) => `${ROOTS.ADMIN}/user-points/${userId}/deduct`,
+    add: `${ROOTS.ADMIN}/points/add`,
+    deduct: `${ROOTS.ADMIN}/points/deduct`,
     statistics: `${ROOTS.ADMIN}/user-points/statistics`,
   },
   // Currency routes
@@ -332,7 +332,9 @@ export const apiRoutes = {
   // Vendor Subscription routes
   vendorSubscription: {
     list: `${ROOTS.ADMIN}/vendor-subscriptions`,
+    create: `${ROOTS.ADMIN}/vendor-subscriptions`,
     details: (id: number | string) => `${ROOTS.ADMIN}/vendor-subscriptions/${id}`,
+    delete: (id: number | string) => `${ROOTS.ADMIN}/vendor-subscriptions/${id}`,
   },
   // Admin Notifications (broadcast push notifications)
   adminNotification: {
@@ -528,7 +530,10 @@ export const apiRoutes = {
     delete: (id: number | string) => `${ROOTS.ADMIN}/quick-actions/${id}`,
     details: (id: number | string) => `${ROOTS.ADMIN}/quick-actions/${id}`,
   },
-  // Popup Campaign routes
+  /**
+   * Popup campaigns (auth:admin). Backend path: `/api/admin/popup-campaigns` when `VITE_SERVER_URL` is e.g. `https://host/api`
+   * (same pattern as other `${ROOTS.ADMIN}/...` routes).
+   */
   popupCampaign: {
     list: `${ROOTS.ADMIN}/popup-campaigns`,
     create: `${ROOTS.ADMIN}/popup-campaigns`,

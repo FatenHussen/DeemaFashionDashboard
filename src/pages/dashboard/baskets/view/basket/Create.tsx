@@ -1,15 +1,19 @@
 import type { BasketItem } from '@/pages/dashboard/baskets/types/basket.types';
 
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { toast } from 'react-toastify';
 import { Button } from '@/shared/ui/button';
+import { MultiSelect } from '@/shared/ui/multi-select';
 import { useTranslation } from 'react-i18next';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Iconify } from '@/shared/components/iconify';
 import { useParams, useNavigate } from 'react-router';
 import { formatTranslated } from '@/utils/format-translated';
+import { resolveStorageImageUrl, shopVariantOptionColorHex, shopVariantOptionImage } from '@/utils/shop-variant-image';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { InfiniteScrollSelect } from '@/shared/components/infinite-scroll-select';
+import { TinyMCEEditorField } from '@/shared/components/tinymce-editor/tinymce-editor';
 import { _CategoryApi } from '@/pages/dashboard/categories/api/category.services';
 import { _ShopProductVariantApi } from '@/shared/api/shop-product-variant.services';
 import {
@@ -21,15 +25,31 @@ import {
   useUpdateBasket,
   useFetchBasketById,
 } from '@/pages/dashboard/baskets/hooks/basket';
+import type { BasketCreateUpdatePayload } from '@/pages/dashboard/baskets/types/basket.types';
 
-import { CONFIG } from 'src/global-config';
 import { Box, Typography } from 'src/shared/ui';
 import { LoadingScreen } from 'src/shared/components/loading-screen';
 import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
 import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
 import { RHFBadgeSelector } from 'src/shared/components/hook-form/rhf-badge-selector';
+import { CONFIG } from 'src/global-config';
 
 // ----------------------------------------------------------------------
+
+function FieldErrorText({ message }: { message?: string }) {
+  if (!message) return null;
+  return (
+    <Typography variant="caption" className="text-destructive mt-1 block">
+      {message}
+    </Typography>
+  );
+}
+
+const getTranslation = (val: any, lang: 'ar' | 'en') => {
+  if (!val) return '';
+  if (typeof val === 'string') return lang === 'en' ? val : '';
+  return val[lang] || '';
+};
 
 /** Shown in variant dropdown before options load / when selected row is off the first page (edit basket). */
 function basketLineVariantInitialLabel(row: BasketItem | undefined): string | undefined {
@@ -62,8 +82,9 @@ export default function CreatePage() {
   const updateBasketMutation = useUpdateBasket();
 
   const defaultValues: BasketFormValues = {
-    category_id: 0,
+    category_ids: [],
     name: { en: '', ar: '' },
+    description: { en: '', ar: '' },
     offer_ends_at: '',
     discount: 0,
     discount_type: 'percentage',
@@ -79,7 +100,34 @@ export default function CreatePage() {
   });
 
   const { handleSubmit, reset, control, watch, setValue } = methods;
-  const categoryId = watch('category_id') ?? 0;
+  const categoryIds = watch('category_ids') ?? [];
+  const primaryCategoryId = categoryIds[0] ?? 0;
+
+  const { data: categoriesListResponse } = useQuery({
+    queryKey: ['categories', 'basket-form-options'],
+    queryFn: () => _CategoryApi.getListCategoriesPaginated({ page: 1, per_page: 500 }),
+  });
+
+  const categorySelectOptions = useMemo(() => {
+    const items = categoriesListResponse?.data?.items ?? [];
+    const fromList = items.map((c: { id: number; name: unknown }) => ({
+      value: c.id,
+      label: formatTranslated(c.name as Parameters<typeof formatTranslated>[0]),
+    }));
+    const src = basketResponse?.data;
+    const fromApi = (src?.categories ?? []).map((c) => ({
+      value: c.id,
+      label: formatTranslated(c.name as Parameters<typeof formatTranslated>[0]),
+    }));
+    const seen = new Set<number>();
+    const merged: { value: number; label: string }[] = [];
+    for (const o of [...fromApi, ...fromList]) {
+      if (seen.has(Number(o.value))) continue;
+      seen.add(Number(o.value));
+      merged.push(o);
+    }
+    return merged;
+  }, [categoriesListResponse?.data?.items, basketResponse?.data?.categories]);
   const basketDiscountType = watch('discount_type');
   const { fields, append, remove } = useFieldArray({ control, name: 'items' });
 
@@ -90,9 +138,19 @@ export default function CreatePage() {
       const name = typeof source.name === 'object' ? source.name : { en: String(source.name || ''), ar: String(source.name || '') };
       const discountNum = typeof source.discount === 'string' ? parseFloat(source.discount) : (source.discount ?? source.discount_value ?? 0);
       const offerDate = source.offer_ends_at ? (source.offer_ends_at.includes('-') ? source.offer_ends_at.split('T')[0] : source.offer_ends_at) : '';
+      const idsFromPivot =
+        source.category_ids?.length ? source.category_ids : source.categories?.map((c) => c.id) ?? [];
+      const legacyId = typeof source.category === 'object' && source.category && 'id' in source.category ? source.category.id : undefined;
+      const category_ids =
+        idsFromPivot.length > 0 ? idsFromPivot : legacyId != null ? [legacyId] : [];
+
       reset({
-        category_id: source.category?.id || 0,
+        category_ids,
         name: { en: (name as any)?.en || '', ar: (name as any)?.ar || '' },
+        description: {
+          en: getTranslation(source.description, 'en'),
+          ar: getTranslation(source.description, 'ar'),
+        },
         offer_ends_at: offerDate,
         discount: Number.isNaN(discountNum) ? 0 : Number(discountNum),
         discount_type: source.discount_type || 'percentage',
@@ -116,7 +174,19 @@ export default function CreatePage() {
 
   const onSubmit = async (data: BasketFormValues) => {
     try {
-      const payload = { ...data } as any;
+      const payload: BasketCreateUpdatePayload = {
+        category_ids: data.category_ids,
+        category_id: data.category_ids[0],
+        name: data.name,
+        description: data.description,
+        offer_ends_at: data.offer_ends_at,
+        discount: data.discount,
+        discount_type: data.discount_type,
+        delivery_price: data.delivery_price,
+        image: data.image,
+        items: data.items,
+        badges: data.badges,
+      };
       if (isEditMode && id) {
         await updateBasketMutation.mutateAsync({ id, data: payload });
         toast.success(t('form.basketUpdatedSuccess'));
@@ -168,7 +238,7 @@ export default function CreatePage() {
               <Iconify icon="solar:widget-5-bold" className="text-violet-500" width={15} />
             </Box>
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              {t('form.categoryLabel')} & {t('columns.name')}
+              {t('form.categoryLabel')} · {t('columns.name')} · {t('columns.description')}
             </Typography>
           </Box>
           <Box className="p-6 flex flex-col gap-5">
@@ -178,46 +248,28 @@ export default function CreatePage() {
                 {t('form.categoryLabel')}
               </Typography>
               <Controller
-                name="category_id"
+                name="category_ids"
                 control={control}
-                render={({ field }) => (
-                  <InfiniteScrollSelect
-                    value={field.value ?? 0}
-                    onChange={(val) => {
-                      field.onChange(val);
-                      setValue('items', [{ shop_product_variant_id: 0, quantity: 1 }]);
-                    }}
-                    queryKey={['category', 'basket']}
-                    fetcher={(page) =>
-                      _CategoryApi.getListCategoriesPaginated({ page, per_page: 15 }).then((res) => ({
-                        data: {
-                          items:
-                            page === 1
-                              ? [
-                                  { id: 0, label: t('form.selectCategoryPlaceholder') },
-                                  ...res.data.items.map((c: any) => ({
-                                    id: c.id,
-                                    label: formatTranslated(c.name as Parameters<typeof formatTranslated>[0]),
-                                  })),
-                                ]
-                              : res.data.items.map((c: any) => ({
-                                  id: c.id,
-                                  label: formatTranslated(c.name as Parameters<typeof formatTranslated>[0]),
-                                })),
-                          pagination: res.data.pagination,
-                        },
-                      }))
-                    }
-                    placeholder={t('form.selectCategory')}
-                    initialLabel={(() => {
-                      const src = basketResponse?.data;
-                      const cat = src?.category;
-                      return cat?.name
-                        ? formatTranslated(cat.name as Parameters<typeof formatTranslated>[0])
-                        : undefined;
-                    })()}
-                  />
-                )}
+                render={({ field, fieldState: { error } }) => {
+                  const ids = Array.isArray(field.value) ? field.value.map(Number).filter((n) => n > 0) : [];
+                  return (
+                    <div>
+                      <MultiSelect
+                        options={categorySelectOptions}
+                        value={ids}
+                        onChange={(vals) => {
+                          field.onChange((vals as (string | number)[]).map((x) => Number(x)));
+                          setValue('items', [{ shop_product_variant_id: 0, quantity: 1 }]);
+                        }}
+                        placeholder={t('form.selectCategory')}
+                        noOptionsMessage={t('noOptionsFound')}
+                        fullWidth
+                        error={!!error}
+                        helperText={error?.message}
+                      />
+                    </div>
+                  );
+                }}
               />
             </Box>
             <Box className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -234,6 +286,64 @@ export default function CreatePage() {
                   {t('form.nameAr')}
                 </Typography>
                 <RHFTextField name="name.ar" placeholder={t('form.basketNameAr')} dir="rtl" fullWidth />
+              </Box>
+            </Box>
+
+            <Box className="border-t border-border pt-5 mt-2 space-y-5">
+              <Box className="group">
+                <Box className="flex items-center gap-2 mb-2">
+                  <Iconify icon="solar:document-bold" className="text-primary" width={20} />
+                  <Typography variant="subtitle2" className="font-semibold text-foreground">
+                    {t('form.productFullDescAr')}
+                  </Typography>
+                </Box>
+                <Controller
+                  name="description.ar"
+                  control={control}
+                  render={({ field, fieldState: { error } }) => (
+                    <div>
+                      <TinyMCEEditorField
+                        value={field.value ?? ''}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        placeholder={t('form.fullDescArPlaceholder')}
+                        dir="rtl"
+                        menubar
+                        toolsMenuWordCount
+                        height={320}
+                      />
+                      <FieldErrorText message={error?.message} />
+                    </div>
+                  )}
+                />
+              </Box>
+
+              <Box className="group">
+                <Box className="flex items-center gap-2 mb-2">
+                  <Iconify icon="solar:document-bold" className="text-primary" width={20} />
+                  <Typography variant="subtitle2" className="font-semibold text-foreground">
+                    {t('form.productFullDescEn')}
+                  </Typography>
+                </Box>
+                <Controller
+                  name="description.en"
+                  control={control}
+                  render={({ field, fieldState: { error } }) => (
+                    <div>
+                      <TinyMCEEditorField
+                        value={field.value ?? ''}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        placeholder={t('form.fullDescPlaceholder')}
+                        dir="ltr"
+                        menubar
+                        toolsMenuWordCount
+                        height={320}
+                      />
+                      <FieldErrorText message={error?.message} />
+                    </div>
+                  )}
+                />
               </Box>
             </Box>
           </Box>
@@ -331,10 +441,10 @@ export default function CreatePage() {
                         <InfiniteScrollSelect
                           value={numericValue}
                           onChange={(variantId) => f.onChange(Number(variantId) || 0)}
-                          queryKey={['shopProductVariant', 'list', categoryId]}
+                          queryKey={['shopProductVariant', 'list', categoryIds.join(',')]}
                           fetcher={(page, limit) => {
                             const perPage = limit ?? 10;
-                            if (!categoryId || categoryId <= 0) {
+                            if (!categoryIds.length) {
                               return Promise.resolve({
                                 data: {
                                   items: page === 1 ? [{ id: 0, label: t('form.selectCategoryBeforeVariants') }] : [],
@@ -342,11 +452,29 @@ export default function CreatePage() {
                                 },
                               });
                             }
-                            return _ShopProductVariantApi.getList({ page, per_page: perPage, category_id: categoryId });
+                            if (categoryIds.length === 1) {
+                              return _ShopProductVariantApi.getList({
+                                page,
+                                per_page: perPage,
+                                category_id: categoryIds[0],
+                              });
+                            }
+                            return _ShopProductVariantApi.getList({
+                              page,
+                              per_page: perPage,
+                              category_ids: categoryIds,
+                              category_id: primaryCategoryId,
+                            });
                           }}
                           placeholder={t('form.variantId')}
                           initialLabel={basketLineVariantInitialLabel(lineFromApi as BasketItem | undefined)}
-                          disabled={categoryId <= 0}
+                          initialImage={resolveStorageImageUrl(
+                            (lineFromApi as BasketItem | undefined)?.variant_image ??
+                              (lineFromApi as BasketItem | undefined)?.product?.image
+                          )}
+                          getOptionImage={(item) => shopVariantOptionImage(item)}
+                          getOptionColorHex={(item) => shopVariantOptionColorHex(item)}
+                          disabled={categoryIds.length === 0}
                         />
                       );
                     }}

@@ -18,6 +18,7 @@ export const AdminSchema = zod.object({
     .optional()
     .or(zod.literal('')),
   role_ids: zod.array(zod.number()).min(1, { message: t('admin.atLeastOneRole') }),
+  city_ids: zod.array(zod.number()),
 });
 
 export type AdminFormValues = zod.infer<typeof AdminSchema>;

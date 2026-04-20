@@ -6,10 +6,12 @@ import { useTranslation } from 'react-i18next';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { formatTranslated } from '@/utils/format-translated';
+import { resolveStorageImageUrl, shopVariantOptionColorHex, shopVariantOptionImage } from '@/utils/shop-variant-image';
 import { useRef, useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router';
 import { useInfiniteSelect } from '@/shared/hooks/use-infinite-select';
 import { InfiniteScrollSelect } from '@/shared/components/infinite-scroll-select';
+import { ShopVariantColorSwatch } from '@/shared/components/shop-variant-color-swatch';
 import { _CategoryApi } from '@/pages/dashboard/categories/api/category.services';
 import { _ShopProductVariantApi } from '@/shared/api/shop-product-variant.services';
 import { useCreateGift, useUpdateGift, useFetchGiftById, useBulkCreateGifts } from '@/pages/dashboard/gifts/hooks/gift';
@@ -21,7 +23,7 @@ import {
 
 import { CONFIG } from 'src/global-config';
 import { Iconify } from 'src/shared/components/iconify';
-import { Box, Tab, Tabs, Switch, Typography } from 'src/shared/ui';
+import { Box, Input, Tab, Tabs, Switch, Typography } from 'src/shared/ui';
 import { LoadingScreen } from 'src/shared/components/loading-screen';
 import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
 import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
@@ -56,6 +58,8 @@ function VariantMultiPicker({ selectedIds, onChange, t, error }: VariantMultiPic
   const [categoryId, setCategoryId] = useState<number | undefined>(undefined);
   const [search, setSearch] = useState('');
   const [labelMap, setLabelMap] = useState<Map<number, string>>(new Map());
+  const [imageById, setImageById] = useState<Map<number, string>>(new Map());
+  const [colorHexById, setColorHexById] = useState<Map<number, string>>(new Map());
   const listRef = useRef<HTMLDivElement>(null);
 
   const { allItems, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
@@ -74,6 +78,28 @@ function VariantMultiPicker({ selectedIds, onChange, t, error }: VariantMultiPic
     setLabelMap((prev) => {
       const next = new Map(prev);
       allItems.forEach((item) => next.set(item.id, formatTranslated((item as any).label)));
+      return next;
+    });
+  }, [allItems]);
+
+  useEffect(() => {
+    setImageById((prev) => {
+      const next = new Map(prev);
+      allItems.forEach((item) => {
+        const url = shopVariantOptionImage(item);
+        if (url) next.set(item.id, url);
+      });
+      return next;
+    });
+  }, [allItems]);
+
+  useEffect(() => {
+    setColorHexById((prev) => {
+      const next = new Map(prev);
+      allItems.forEach((item) => {
+        const hex = shopVariantOptionColorHex(item);
+        if (hex) next.set(item.id, hex);
+      });
       return next;
     });
   }, [allItems]);
@@ -224,6 +250,8 @@ function VariantMultiPicker({ selectedIds, onChange, t, error }: VariantMultiPic
         ) : (
           filtered.map((item) => {
             const checked = selectedIds.includes(item.id);
+            const rowImg = shopVariantOptionImage(item);
+            const rowHex = shopVariantOptionColorHex(item);
             return (
               <label
                 key={item.id}
@@ -237,8 +265,20 @@ function VariantMultiPicker({ selectedIds, onChange, t, error }: VariantMultiPic
                   onChange={() => toggleItem(item.id)}
                   className="h-4 w-4 rounded border-border accent-primary cursor-pointer shrink-0"
                 />
+                {rowHex ? <ShopVariantColorSwatch hex={rowHex} size="lg" /> : null}
+                {rowImg ? (
+                  <img
+                    src={rowImg}
+                    alt=""
+                    className="h-8 w-8 shrink-0 rounded-md border border-border/50 object-cover bg-muted"
+                  />
+                ) : (
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-dashed border-border/60 bg-muted/30">
+                    <Iconify icon="solar:gallery-minimalistic-bold" width={16} className="text-muted-foreground/60" />
+                  </span>
+                )}
                 <span
-                  className={`text-sm truncate ${checked ? 'font-medium text-foreground' : 'text-foreground/80'}`}
+                  className={`min-w-0 flex-1 truncate text-sm ${checked ? 'font-medium text-foreground' : 'text-foreground/80'}`}
                 >
                   {formatTranslated((item as any).label)}
                 </span>
@@ -263,6 +303,16 @@ function VariantMultiPicker({ selectedIds, onChange, t, error }: VariantMultiPic
                 key={id}
                 className="inline-flex items-center gap-1 rounded-full bg-primary/10 border border-primary/20 px-2 py-0.5 text-xs font-medium text-primary"
               >
+                {colorHexById.get(id) ? (
+                  <ShopVariantColorSwatch hex={colorHexById.get(id)!} size="sm" />
+                ) : null}
+                {imageById.get(id) ? (
+                  <img
+                    src={imageById.get(id)}
+                    alt=""
+                    className="h-4 w-4 shrink-0 rounded object-cover border border-primary/20"
+                  />
+                ) : null}
                 <span className="max-w-32 truncate">{labelMap.get(id) || `#${id}`}</span>
                 <button
                   type="button"
@@ -414,6 +464,25 @@ export default function CreatePage() {
 
   const { handleSubmit, reset, control, watch, setValue } = methods;
   const giftMode = watch('giftMode');
+  const imageField = watch('image');
+  const giftSourceForImage = detailsResponse?.data ?? fromState;
+  const existingGiftImageUrl =
+    giftMode === 'external' && giftSourceForImage?.image
+      ? String(giftSourceForImage.image)
+      : null;
+
+  const [newGiftImagePreview, setNewGiftImagePreview] = useState<string | null>(null);
+  useEffect(() => {
+    if (imageField instanceof File) {
+      const reader = new FileReader();
+      reader.onloadend = () => setNewGiftImagePreview(reader.result as string);
+      reader.readAsDataURL(imageField);
+    } else {
+      setNewGiftImagePreview(null);
+    }
+  }, [imageField]);
+
+  const giftImageDisplaySrc = newGiftImagePreview ?? existingGiftImageUrl;
 
   const handleGiftModeChange = useCallback(
     (next: GiftFormMode) => {
@@ -423,6 +492,7 @@ export default function CreatePage() {
       } else {
         setValue('name', { ar: '', en: '' });
         setValue('description', { ar: '', en: '' });
+        setValue('image', null);
       }
     },
     [setValue]
@@ -468,7 +538,7 @@ export default function CreatePage() {
     const base: GiftCreateUpdatePayload = {
       name: rest.name,
       description: rest.description,
-      image: rest.image,
+      image: mode === 'external' ? rest.image : undefined,
       points_required: rest.points_required,
       stock_quantity: rest.stock_quantity,
       is_active: rest.is_active,
@@ -536,6 +606,13 @@ export default function CreatePage() {
     return vid ? t('form.giftVariantInitialLabel', { id: vid }) : undefined;
   })();
 
+  const variantInitialImage = (() => {
+    const src = detailsResponse?.data ?? fromState;
+    if (!src) return undefined;
+    const g = src as GiftData;
+    return resolveStorageImageUrl(g.variant_image ?? g.image);
+  })();
+
   return (
     <>
       <title>
@@ -586,7 +663,18 @@ export default function CreatePage() {
                       control={control}
                       render={({ field, fieldState }) => (
                         <>
-                          <InfiniteScrollSelect value={field.value?.[0] ?? 0} onChange={(val) => field.onChange(val ? [val] : [])} queryKey={['shopProductVariant', 'gift', 'tikmool']} fetcher={variantFetcher} placeholder={t('form.selectProductVariant')} initialLabel={variantInitialLabel} pageSize={15} />
+                          <InfiniteScrollSelect
+                            value={field.value?.[0] ?? 0}
+                            onChange={(val) => field.onChange(val ? [val] : [])}
+                            queryKey={['shopProductVariant', 'gift', 'tikmool']}
+                            fetcher={variantFetcher}
+                            placeholder={t('form.selectProductVariant')}
+                            initialLabel={variantInitialLabel}
+                            initialImage={variantInitialImage}
+                            getOptionImage={(item) => shopVariantOptionImage(item)}
+                            getOptionColorHex={(item) => shopVariantOptionColorHex(item)}
+                            pageSize={15}
+                          />
                           {fieldState.error && <Typography variant="caption" className="mt-1 text-destructive">{(fieldState.error as any).message || (fieldState.error as any).root?.message}</Typography>}
                         </>
                       )}
@@ -625,6 +713,56 @@ export default function CreatePage() {
                     <RHFTextField name="description.ar" placeholder={t('form.descriptionArPlaceholder')} dir="rtl" fullWidth />
                   </Box>
                 </Box>
+
+                <Box className="group">
+                  <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
+                    {t('form.giftImageLabel')} ({t('form.fieldOptional')})
+                  </Typography>
+                  <Controller
+                    name="image"
+                    control={control}
+                    render={({ field: { onChange, ...field }, fieldState: { error } }) => (
+                      <div className="w-full">
+                        <Input
+                          {...field}
+                          type="file"
+                          accept="image/*"
+                          value={undefined}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            onChange(file ?? null);
+                          }}
+                          error={!!error}
+                          helperText={error?.message || t('form.giftImageUploadHelper')}
+                          fullWidth
+                          className="transition-all duration-200"
+                        />
+                        {giftImageDisplaySrc && (
+                          <Box className="mt-5 flex items-center gap-4">
+                            <Box className="relative">
+                              <Box className="absolute -inset-1 rounded-2xl bg-primary/15 blur-sm" />
+                              <img
+                                src={giftImageDisplaySrc}
+                                alt={t('form.giftImagePreviewAlt')}
+                                className="relative h-28 w-28 object-cover rounded-xl border border-border/60 shadow-sm"
+                              />
+                            </Box>
+                            {imageField instanceof File && (
+                              <button
+                                type="button"
+                                onClick={() => onChange(null)}
+                                className="text-sm font-medium text-destructive hover:text-destructive/80"
+                              >
+                                {t('form.giftImageClearNew')}
+                              </button>
+                            )}
+                          </Box>
+                        )}
+                      </div>
+                    )}
+                  />
+                </Box>
+
                 <GiftSharedFields t={t} control={control} detailsResponse={detailsResponse} fromState={fromState} />
               </Box>
             )}

@@ -1,4 +1,5 @@
 import type {
+  VendorSubscriptionCreatePayload,
   VendorSubscriptionFilters,
   VendorSubscriptionListResponse,
   VendorSubscriptionDetailsResponse,
@@ -27,5 +28,17 @@ export const _VendorSubscriptionApi = {
       apiRoutes.vendorSubscription.details(id)
     );
     return response.data;
+  },
+
+  create: async (data: VendorSubscriptionCreatePayload): Promise<VendorSubscriptionDetailsResponse> => {
+    const response = await axiosInstance.post<VendorSubscriptionDetailsResponse>(
+      apiRoutes.vendorSubscription.create,
+      data
+    );
+    return response.data;
+  },
+
+  delete: async (id: number | string): Promise<void> => {
+    await axiosInstance.delete(apiRoutes.vendorSubscription.delete(id));
   },
 };

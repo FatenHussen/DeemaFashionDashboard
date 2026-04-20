@@ -1,4 +1,4 @@
-import type { BasketItem } from '@/pages/dashboard/baskets/types/basket.types';
+import type { BasketData, BasketItem } from '@/pages/dashboard/baskets/types/basket.types';
 
 import { Button } from '@/shared/ui/button';
 import { useTranslation } from 'react-i18next';
@@ -17,6 +17,21 @@ function formatName(name: unknown): string {
     return o.en || o.ar || '—';
   }
   return String(name ?? '—');
+}
+
+function categorySubtitle(basket: BasketData): string {
+  if (basket.categories?.length) {
+    return basket.categories
+      .map((c) => formatTranslated(c.name as Parameters<typeof formatTranslated>[0]))
+      .filter(Boolean)
+      .join(' · ');
+  }
+  const cat = basket.category;
+  if (typeof cat === 'string') return cat;
+  if (cat && typeof cat === 'object' && 'name' in cat) {
+    return formatTranslated((cat as { name: unknown }).name as Parameters<typeof formatTranslated>[0]);
+  }
+  return '—';
 }
 
 function itemTitle(item: BasketItem): string {
@@ -55,7 +70,7 @@ export default function DetailsPage() {
   }
 
   const nameStr = formatName(basket.name);
-  const catName = basket.category ? formatName(basket.category.name) : '—';
+  const catName = categorySubtitle(basket);
   const discountNum = basket.discount ?? basket.discount_value ?? 0;
   const discountText =
     basket.discount_type === 'percentage' ? `${discountNum}%` : String(discountNum);

@@ -12,6 +12,8 @@ import { _ShopApi } from '@/pages/dashboard/vendor/api/shop.services';
 import { InfiniteScrollSelect } from '@/shared/components/infinite-scroll-select';
 import { _CategoryApi } from '@/pages/dashboard/categories/api/category.services';
 import { _ShopProductVariantApi } from '@/shared/api/shop-product-variant.services';
+import { TinyMCEEditorField } from '@/shared/components/tinymce-editor/tinymce-editor';
+import { resolveStorageImageUrl, shopVariantOptionColorHex, shopVariantOptionImage } from '@/utils/shop-variant-image';
 import { RecipeSchema, type RecipeFormValues } from '@/pages/dashboard/recipes/validation/recipe.validation';
 import { useCreateRecipe, useUpdateRecipe, useFetchRecipeById } from '@/pages/dashboard/recipes/hooks/recipe';
 
@@ -23,6 +25,15 @@ import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout
 import { RHFBadgeSelector } from 'src/shared/components/hook-form/rhf-badge-selector';
 
 // ----------------------------------------------------------------------
+
+function FieldErrorText({ message }: { message?: string }) {
+  if (!message) return null;
+  return (
+    <Typography variant="caption" className="text-destructive mt-1 block">
+      {message}
+    </Typography>
+  );
+}
 
 const getTranslation = (val: any, lang: 'ar' | 'en') => {
   if (!val) return '';
@@ -53,12 +64,19 @@ export default function CreatePage() {
   const [itemSwitchableLabels, setItemSwitchableLabels] = useState<string[]>(['']);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
+  const [existingImages, setExistingImages] = useState<Array<{ id: number; url: string }>>([]);
+  const [newImagePreviews, setNewImagePreviews] = useState<string[]>([]);
+  const imagesInputRef = useRef<HTMLInputElement>(null);
 
   const defaultValues: RecipeFormValues = {
     name: { en: '', ar: '' },
     description: { en: '', ar: '' },
     image: null,
+    images: [],
+    existing_images_ids: [],
     video_url: '',
+    video_title: { en: '', ar: '' },
+    video_desc: { en: '', ar: '' },
     discount: 0,
     delivery_price: 0,
     serves: '',
@@ -73,7 +91,7 @@ export default function CreatePage() {
     defaultValues,
   });
 
-  const { handleSubmit, reset, control, setValue } = methods;
+  const { handleSubmit, reset, control, watch, setValue } = methods;
 
   const { fields: itemFields, append: appendItem, remove: removeItem } = useFieldArray({ control, name: 'items' });
   const { fields: stepFields, append: appendStep, remove: removeStep } = useFieldArray({ control, name: 'steps' });
@@ -81,11 +99,18 @@ export default function CreatePage() {
   useEffect(() => {
     const source = isEditMode ? (detailsResponse?.data ?? fromState) : null;
     if (source) {
+      const sourceExistingImageIds = Array.isArray(source.images)
+        ? source.images.map((img: any) => Number(img.id)).filter((x) => !Number.isNaN(x))
+        : [];
       reset({
         name: { en: getTranslation(source.name, 'en'), ar: getTranslation(source.name, 'ar') },
         description: { en: getTranslation(source.description, 'en'), ar: getTranslation(source.description, 'ar') },
         image: null,
+        images: [],
+        existing_images_ids: sourceExistingImageIds,
         video_url: source.video_url || '',
+        video_title: { en: getTranslation((source as any).video_title, 'en'), ar: getTranslation((source as any).video_title, 'ar') },
+        video_desc: { en: getTranslation((source as any).video_desc, 'en'), ar: getTranslation((source as any).video_desc, 'ar') },
         discount: Number(source.discount) || 0,
         delivery_price: source.delivery_price || 0,
         serves: (source as any).serves ?? '',
@@ -122,8 +147,22 @@ export default function CreatePage() {
         }));
       }
       if (source.image) setImagePreview(source.image);
+      if (Array.isArray(source.images)) {
+        setExistingImages(
+          source.images
+            .filter((img: any) => img && img.id != null && img.url)
+            .map((img: any) => ({ id: Number(img.id), url: String(img.url) }))
+        );
+      } else {
+        setExistingImages([]);
+      }
+      setNewImagePreviews([]);
     }
   }, [detailsResponse?.data, fromState, isEditMode, reset]);
+
+  useEffect(() => () => {
+    newImagePreviews.forEach((url) => URL.revokeObjectURL(url));
+  }, [newImagePreviews]);
 
   const isSubmitting = createMutation.isPending || updateMutation.isPending;
   const errorMessage = createMutation.error?.message || updateMutation.error?.message || null;
@@ -205,19 +244,63 @@ export default function CreatePage() {
               </Typography>
               <RHFTextField name="name.ar" placeholder={t('form.recipeNameAr')} dir="rtl" fullWidth />
             </Box>
-            <Box className="group">
-              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5">
-                <Iconify icon="solar:document-text-bold" className="text-muted-foreground" width={16} />
-                {t('form.descriptionEnPlaceholder')}
-              </Typography>
-              <RHFTextField name="description.en" placeholder={t('form.descriptionEnPlaceholder')} fullWidth />
-            </Box>
-            <Box className="group">
-              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5">
-                <Iconify icon="solar:document-text-bold" className="text-muted-foreground" width={16} />
-                {t('form.descriptionArPlaceholder')}
-              </Typography>
-              <RHFTextField name="description.ar" placeholder={t('form.descriptionArPlaceholder')} dir="rtl" fullWidth />
+
+            <Box className="md:col-span-2 border-t border-border pt-5 mt-2 space-y-5">
+              <Box className="group">
+                <Box className="flex items-center gap-2 mb-2">
+                  <Iconify icon="solar:document-bold" className="text-primary" width={20} />
+                  <Typography variant="subtitle2" className="font-semibold text-foreground">
+                    {t('form.productFullDescAr')}
+                  </Typography>
+                </Box>
+                <Controller
+                  name="description.ar"
+                  control={control}
+                  render={({ field, fieldState: { error } }) => (
+                    <div>
+                      <TinyMCEEditorField
+                        value={field.value ?? ''}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        placeholder={t('form.fullDescArPlaceholder')}
+                        dir="rtl"
+                        menubar
+                        toolsMenuWordCount
+                        height={320}
+                      />
+                      <FieldErrorText message={error?.message} />
+                    </div>
+                  )}
+                />
+              </Box>
+
+              <Box className="group">
+                <Box className="flex items-center gap-2 mb-2">
+                  <Iconify icon="solar:document-bold" className="text-primary" width={20} />
+                  <Typography variant="subtitle2" className="font-semibold text-foreground">
+                    {t('form.productFullDescEn')}
+                  </Typography>
+                </Box>
+                <Controller
+                  name="description.en"
+                  control={control}
+                  render={({ field, fieldState: { error } }) => (
+                    <div>
+                      <TinyMCEEditorField
+                        value={field.value ?? ''}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        placeholder={t('form.fullDescPlaceholder')}
+                        dir="ltr"
+                        menubar
+                        toolsMenuWordCount
+                        height={320}
+                      />
+                      <FieldErrorText message={error?.message} />
+                    </div>
+                  )}
+                />
+              </Box>
             </Box>
           </Box>
         </Box>
@@ -288,6 +371,124 @@ export default function CreatePage() {
                 {t('form.videoUrl')}
               </Typography>
               <RHFTextField name="video_url" placeholder={t('form.videoUrlPlaceholder')} fullWidth />
+            </Box>
+
+            <Box className="md:col-span-2 border-t border-border pt-5 mt-2 grid grid-cols-1 md:grid-cols-2 gap-5">
+              <Box>
+                <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5">
+                  <Iconify icon="solar:videocamera-record-bold" className="text-primary" width={16} />
+                  {t('form.recipeVideoTitleEn')}
+                </Typography>
+                <RHFTextField name="video_title.en" placeholder={t('form.recipeVideoTitleEn')} fullWidth />
+              </Box>
+              <Box>
+                <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5">
+                  <Iconify icon="solar:videocamera-record-bold" className="text-primary" width={16} />
+                  {t('form.recipeVideoTitleAr')}
+                </Typography>
+                <RHFTextField name="video_title.ar" placeholder={t('form.recipeVideoTitleAr')} dir="rtl" fullWidth />
+              </Box>
+              <Box>
+                <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5">
+                  <Iconify icon="solar:document-bold" className="text-primary" width={16} />
+                  {t('form.recipeVideoDescEn')}
+                </Typography>
+                <RHFTextField name="video_desc.en" placeholder={t('form.recipeVideoDescEn')} fullWidth />
+              </Box>
+              <Box>
+                <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5">
+                  <Iconify icon="solar:document-bold" className="text-primary" width={16} />
+                  {t('form.recipeVideoDescAr')}
+                </Typography>
+                <RHFTextField name="video_desc.ar" placeholder={t('form.recipeVideoDescAr')} dir="rtl" fullWidth />
+              </Box>
+            </Box>
+
+            <Box className="md:col-span-2 border-t border-border pt-5 mt-2">
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5">
+                <Iconify icon="solar:gallery-add-bold" className="text-amber-500" width={18} />
+                {t('form.recipeImagesLabel')}
+              </Typography>
+              <Controller
+                name="images"
+                control={control}
+                render={({ field: f, fieldState }) => {
+                  const files = (Array.isArray(f.value) ? f.value : []) as File[];
+                  return (
+                    <div className="flex flex-col gap-3">
+                      {(existingImages.length > 0 || newImagePreviews.length > 0) && (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                          {existingImages.map((img) => (
+                            <div key={`existing-${img.id}`} className="relative h-28 rounded-xl overflow-hidden border border-border bg-muted/20">
+                              <img src={img.url} alt="" className="w-full h-full object-cover" />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setExistingImages((prev) => prev.filter((x) => x.id !== img.id));
+                                  const currentIds = (watch('existing_images_ids') ?? []) as number[];
+                                  setValue(
+                                    'existing_images_ids',
+                                    currentIds.filter((id) => id !== img.id),
+                                    { shouldDirty: true }
+                                  );
+                                }}
+                                className="absolute top-1 right-1 bg-destructive text-white rounded-full p-1 hover:bg-destructive/80"
+                              >
+                                <Iconify icon="solar:close-circle-bold" width={14} />
+                              </button>
+                            </div>
+                          ))}
+                          {newImagePreviews.map((src, idx) => (
+                            <div key={`new-${idx}`} className="relative h-28 rounded-xl overflow-hidden border border-border bg-muted/20">
+                              <img src={src} alt="" className="w-full h-full object-cover" />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  URL.revokeObjectURL(src);
+                                  setNewImagePreviews((prev) => prev.filter((_, i) => i !== idx));
+                                  const nextFiles = files.filter((_, i) => i !== idx);
+                                  f.onChange(nextFiles);
+                                }}
+                                className="absolute top-1 right-1 bg-destructive text-white rounded-full p-1 hover:bg-destructive/80"
+                              >
+                                <Iconify icon="solar:close-circle-bold" width={14} />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => imagesInputRef.current?.click()}
+                        className="w-full h-24 rounded-xl border-2 border-dashed border-border hover:border-primary/50 bg-muted/20 hover:bg-muted/40 transition-colors flex flex-col items-center justify-center gap-1 text-muted-foreground"
+                      >
+                        <Iconify icon="solar:gallery-add-bold" width={22} />
+                        <span className="text-sm">{t('form.recipeClickToUploadImages')}</span>
+                        <span className="text-xs">{t('form.recipeImageFormatsHint')}</span>
+                      </button>
+                      <input
+                        ref={imagesInputRef}
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        className="hidden"
+                        onChange={(e) => {
+                          const picked = Array.from(e.target.files ?? []);
+                          if (picked.length) {
+                            const previews = picked.map((file) => URL.createObjectURL(file));
+                            setNewImagePreviews((prev) => [...prev, ...previews]);
+                            f.onChange([...files, ...picked]);
+                          }
+                          e.target.value = '';
+                        }}
+                      />
+                      {fieldState.error && (
+                        <span className="text-xs text-destructive">{fieldState.error.message}</span>
+                      )}
+                    </div>
+                  );
+                }}
+              />
             </Box>
           </Box>
         </Box>
@@ -461,33 +662,44 @@ export default function CreatePage() {
                   <Controller
                     name={`items.${index}.shop_product_variant_id`}
                     control={control}
-                    render={({ field: f }) => (
-                      <InfiniteScrollSelect
-                        value={f.value || 0}
-                        onChange={(val) => {
-                          f.onChange(val);
-                          // Clear initialLabel once user picks a new item
-                          setItemVariantLabels((prev) => {
-                            const next = [...prev];
-                            next[index] = '';
-                            return next;
-                          });
-                        }}
-                        queryKey={['shopProductVariant', 'recipe-item', index, sel.shopId, sel.categoryId]}
-                        fetcher={(page) =>
-                          _ShopProductVariantApi.getList({
-                            page,
-                            per_page: 10,
-                            shop_id: sel.shopId || undefined,
-                            category_id: sel.categoryId || undefined,
-                          })
-                        }
-                        placeholder={
-                          sel.shopId ? t('form.recipeSelectProductVariant') : t('form.recipeSelectShopFirst')
-                        }
-                        initialLabel={itemVariantLabels[index]}
-                      />
-                    )}
+                    render={({ field: f }) => {
+                      const recipeSrc = detailsResponse?.data ?? fromState;
+                      const rawLine = recipeSrc?.items?.[index] as
+                        | { main_item?: { image_url?: string | null }; variant_image?: string | null }
+                        | undefined;
+                      const initialVariantImage = resolveStorageImageUrl(
+                        rawLine?.main_item?.image_url ?? rawLine?.variant_image
+                      );
+                      return (
+                        <InfiniteScrollSelect
+                          value={f.value || 0}
+                          onChange={(val) => {
+                            f.onChange(val);
+                            setItemVariantLabels((prev) => {
+                              const next = [...prev];
+                              next[index] = '';
+                              return next;
+                            });
+                          }}
+                          queryKey={['shopProductVariant', 'recipe-item', index, sel.shopId, sel.categoryId]}
+                          fetcher={(page) =>
+                            _ShopProductVariantApi.getList({
+                              page,
+                              per_page: 10,
+                              shop_id: sel.shopId || undefined,
+                              category_id: sel.categoryId || undefined,
+                            })
+                          }
+                          placeholder={
+                            sel.shopId ? t('form.recipeSelectProductVariant') : t('form.recipeSelectShopFirst')
+                          }
+                          initialLabel={itemVariantLabels[index]}
+                          initialImage={initialVariantImage}
+                          getOptionImage={(item) => shopVariantOptionImage(item)}
+                          getOptionColorHex={(item) => shopVariantOptionColorHex(item)}
+                        />
+                      );
+                    }}
                   />
                 </Box>
 

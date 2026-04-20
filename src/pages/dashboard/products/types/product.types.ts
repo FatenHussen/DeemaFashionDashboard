@@ -39,6 +39,14 @@ export interface ProductData {
   expiry_date?: string | null;
 }
 
+/** Per-currency breakdown from product detail API (`price_currencies`, `cost_price_currencies`, etc.) */
+export interface ProductDetailCurrencyAmount {
+  amount: number;
+  currency: string;
+  symbol: string;
+  formatted: string;
+}
+
 /** Product as returned in the SINGLE/DETAIL response (bilingual fields + relations) */
 export interface ProductDetailData {
   id: number;
@@ -62,10 +70,18 @@ export interface ProductDetailData {
   /** Sale market (from `/admin/sale-countries`); `name` may be a plain string */
   sale_country?: { id: number; name: string | { en: string; ar: string }; icon?: string | null } | null;
   price: number;
+  /** Human-readable primary price when API provides it */
+  price_formatted?: string | null;
+  /** Map keyed by ISO currency code (e.g. USD, SYP) */
+  price_currencies?: Record<string, ProductDetailCurrencyAmount> | null;
   price_after_discount: number | null;
+  price_after_discount_formatted?: string | null;
+  price_after_discount_currencies?: Record<string, ProductDetailCurrencyAmount> | null;
   discount?: number | null;
   discount_type?: 'none' | 'percentage' | 'fixed' | string | null;
   cost_price?: number | null;
+  cost_price_formatted?: string | null;
+  cost_price_currencies?: Record<string, ProductDetailCurrencyAmount> | null;
   quantity: number | null;
   unit?: string | null;
   warranty_period?: number | null;
@@ -93,8 +109,20 @@ export interface ProductDetailData {
   seo_image?: string | null;
   variants: Array<{
     id: number;
+    sku?: string | null;
+    model?: string | null;
+    barcode?: string | null;
     attributes: Array<{ attribute: string; value: string; type: string }>;
-    shops: Array<{ shop_id: number; shop_name: string; price: number; quantity: number }>;
+    shops: Array<{
+      id?: number;
+      shop_id: number;
+      shop_name: string;
+      price: number;
+      discount?: number | null;
+      price_after_discount?: number | null;
+      cost_price?: number | null;
+      quantity: number;
+    }>;
     images: Array<{ id: number; url: string }>;
   }>;
   category_details: Array<{
@@ -185,6 +213,8 @@ export interface ProductCreateUpdatePayload {
     images?: File[];
     existing_images_ids?: number[];
     sku?: string;
+    model?: string;
+    barcode?: string;
     name?: { en: string; ar: string };
     stock?: number;
     max_purchase_quantity?: number;
@@ -211,6 +241,8 @@ export interface ProductCreateUpdatePayload {
     shop_id: number;
     variant_index: number;
     price: number;
+    cost_price?: number;
+    discount?: number;
     quantity: number;
   }>;
 
@@ -224,6 +256,9 @@ export interface ProductCreateUpdatePayload {
 export interface AdminProductVariantListItem {
   id: number;
   product_id: number;
+  sku?: string | null;
+  model?: string | null;
+  barcode?: string | null;
   /** Variant-specific image URL (may be absolute or a storage path). */
   variant_image?: string | null;
   product: {
@@ -246,6 +281,8 @@ export interface AdminProductVariantListItem {
     id: number;
     shop: { id: number; name: string };
     price: number;
+    discount?: number | null;
+    price_after_discount?: number | null;
     cost_price?: number;
     quantity: number;
   }>;

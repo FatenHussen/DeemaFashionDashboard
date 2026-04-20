@@ -9,6 +9,8 @@ export interface ProductVariantUpdatePayload {
   images?: File[];
   existing_images_ids?: number[];
   sku?: string;
+  model?: string;
+  barcode?: string;
   name?: { en: string; ar: string };
   stock?: number;
   max_purchase_quantity?: number;
@@ -21,6 +23,8 @@ const buildVariantFormData = (data: ProductVariantUpdatePayload): FormData => {
   if (data.is_trend !== undefined) formData.append('is_trend', String(data.is_trend));
   if (data.is_active !== undefined) formData.append('is_active', String(data.is_active));
   if (data.sku !== undefined) formData.append('sku', data.sku);
+  if (data.model !== undefined) formData.append('model', data.model);
+  if (data.barcode !== undefined) formData.append('barcode', data.barcode);
   if (data.name?.en !== undefined) formData.append('name[en]', data.name.en);
   if (data.name?.ar !== undefined) formData.append('name[ar]', data.name.ar);
   if (data.stock !== undefined) formData.append('stock', String(data.stock));

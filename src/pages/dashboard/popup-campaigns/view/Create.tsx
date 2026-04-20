@@ -1,21 +1,24 @@
+import type { FieldErrors } from 'react-hook-form';
+
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
-import { useMemo, useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Iconify } from '@/shared/components/iconify';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 import { RHFSelect } from '@/shared/components/hook-form/rhf-select';
 import { RHFTextField } from '@/shared/components/hook-form/rhf-text-field';
+import { useFetchPages } from '@/pages/dashboard/sections/hooks/usePageSections';
 
 import { paths } from 'src/routes/paths';
 
 import { CONFIG } from 'src/global-config';
 import { Box, Input, Typography } from 'src/shared/ui';
+import { getApiErrorMessage } from 'src/lib/get-api-error-message';
 import { LoadingScreen } from 'src/shared/components/loading-screen';
 import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
-
-import { useFetchPages } from '@/pages/dashboard/sections/hooks/usePageSections';
+import { RHFMultiSelect } from 'src/shared/components/hook-form/rhf-multi-select';
 
 import {
   useCreatePopupCampaign,
@@ -23,21 +26,20 @@ import {
   useFetchPopupCampaignById,
 } from '../hooks';
 import {
-  PopupCampaignCreateSchema,
-  PopupCampaignUpdateSchema,
-  type PopupCampaignCreateFormValues,
-  type PopupCampaignUpdateFormValues,
-} from '../validation';
-import {
   slugify,
   fromApiType,
   toApiStatus,
   fromApiStatus,
   fromApiTrigger,
   fromApiAudience,
-  encodeLocaleJson,
   toApiAudienceType,
 } from '../api/payload-map';
+import {
+  PopupCampaignCreateSchema,
+  PopupCampaignUpdateSchema,
+  type PopupCampaignCreateFormValues,
+  type PopupCampaignUpdateFormValues,
+} from '../validation';
 
 // ----------------------------------------------------------------------
 
@@ -74,6 +76,21 @@ function toStringArray(v: unknown): string[] {
   return [];
 }
 
+function findFirstErrorFieldName(errors: unknown, prefix = ''): string | null {
+  if (!errors || typeof errors !== 'object') return null;
+  const o = errors as Record<string, unknown>;
+  if (typeof o.message === 'string' && o.message.trim() !== '') {
+    return prefix || null;
+  }
+  for (const key of Object.keys(o)) {
+    if (key === 'ref') continue;
+    const next = prefix ? `${prefix}.${key}` : key;
+    const found = findFirstErrorFieldName(o[key], next);
+    if (found) return found;
+  }
+  return null;
+}
+
 function resolveStorageUrl(path: string | null | undefined): string | null {
   if (path == null || String(path).trim() === '') return null;
   const s = String(path).trim();
@@ -81,6 +98,15 @@ function resolveStorageUrl(path: string | null | undefined): string | null {
   const base = (CONFIG.serverUrl || '').replace(/\/$/, '');
   if (!base) return s.startsWith('/') ? s : `/${s}`;
   return `${base}/${s.replace(/^\//, '')}`;
+}
+
+function appendLocaleField(
+  fd: FormData,
+  key: 'title' | 'headline' | 'subheadline' | 'description',
+  loc: { en: string; ar: string }
+) {
+  fd.append(`${key}[en]`, (loc.en ?? '').trim());
+  fd.append(`${key}[ar]`, (loc.ar ?? '').trim());
 }
 
 function buildFormData(
@@ -91,10 +117,10 @@ function buildFormData(
   const fd = new FormData();
   const slug = (data.slug ?? '').trim() || slugify(data.title.en);
 
-  fd.append('title', encodeLocaleJson(data.title));
-  fd.append('headline', encodeLocaleJson(data.headline));
-  fd.append('subheadline', encodeLocaleJson(data.subheadline));
-  fd.append('description', encodeLocaleJson(data.description));
+  appendLocaleField(fd, 'title', data.title);
+  appendLocaleField(fd, 'headline', data.headline);
+  appendLocaleField(fd, 'subheadline', data.subheadline);
+  appendLocaleField(fd, 'description', data.description);
   fd.append('slug', slug);
   fd.append('priority', String(data.priority ?? 0));
 
@@ -140,7 +166,6 @@ export default function CreatePage() {
   const navigate = useNavigate();
   const isEditMode = !!id;
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [showOnPagesInput, setShowOnPagesInput] = useState<string>('');
   const [formFieldsInput, setFormFieldsInput] = useState<string>('');
 
   const { data: detailResponse, isLoading: isLoadingDetail } = useFetchPopupCampaignById(id || '');
@@ -154,6 +179,21 @@ export default function CreatePage() {
       .filter((p) => typeof p?.slug === 'string' && p.slug.trim() !== '')
       .map((p) => ({ value: p.slug, label: p.title || p.slug }));
   }, [pagesResponse]);
+
+  /** Keep slugs from saved campaign that are not in the CMS pages list (avoid dropping on edit). */
+  const showOnPagesOptions = useMemo(() => {
+    const known = new Set(pageOptions.map((o) => String(o.value)));
+    const extra: { value: string; label: string }[] = [];
+    if (isEditMode && detailResponse?.data) {
+      for (const s of toStringArray(detailResponse.data.show_on_pages)) {
+        if (s && !known.has(s)) {
+          known.add(s);
+          extra.push({ value: s, label: s });
+        }
+      }
+    }
+    return extra.length ? [...pageOptions, ...extra] : pageOptions;
+  }, [pageOptions, isEditMode, detailResponse?.data]);
 
   const typeOptions = useMemo(
     () =>
@@ -249,7 +289,7 @@ export default function CreatePage() {
     defaultValues: isEditMode ? updateDefaults : createDefaults,
   });
 
-  const { handleSubmit, reset, control, watch, setValue } = methods;
+  const { handleSubmit, reset, control, watch, setValue, setFocus, getValues } = methods;
   const mediaFile = watch('media');
   const mediaType = watch('media_type');
   const triggerType = watch('trigger_type');
@@ -283,10 +323,19 @@ export default function CreatePage() {
       show_every: Number(d.show_every ?? 0),
       max_impressions: Number(d.max_impressions ?? 0),
     });
-    setShowOnPagesInput(pages.join(', '));
     setFormFieldsInput(fields.join(', '));
     setPreviewUrl(resolveStorageUrl(d.media_path as string | null | undefined));
   }, [isEditMode, detailResponse, reset]);
+
+  /** If the CMS only has one page, pre-select it so submit is not blocked on an easy-to-miss field. */
+  useEffect(() => {
+    if (isEditMode) return;
+    if (isLoadingPages) return;
+    const current = String(getValues('slug') ?? '').trim();
+    if (current) return;
+    if (pageOptions.length !== 1) return;
+    setValue('slug', pageOptions[0].value, { shouldValidate: true, shouldDirty: true });
+  }, [isEditMode, isLoadingPages, pageOptions, getValues, setValue]);
 
   useEffect(() => {
     if (mediaFile instanceof File) {
@@ -305,8 +354,6 @@ export default function CreatePage() {
       .split(',')
       .map((s) => s.trim())
       .filter(Boolean);
-
-  if (isEditMode && isLoadingDetail) return <LoadingScreen />;
 
   const isSubmitting = createMutation.isPending || updateMutation.isPending;
   const errorMessage = createMutation.error?.message || updateMutation.error?.message || null;
@@ -330,15 +377,45 @@ export default function CreatePage() {
         toast.success(t('form.popupCampaignCreatedSuccess'));
       }
       navigate(paths.dashboard.popupCampaigns.root);
-    } catch {
-      /* handled by axios */
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, t('form.popupCampaignSaveError')));
     }
   };
+
+  const onValidationFailed = useCallback(
+    (errors: FieldErrors<PopupCampaignCreateFormValues | PopupCampaignUpdateFormValues>) => {
+      if (errors.slug) {
+        toast.error(t('form.popupCampaignSlugRequiredToast'));
+      } else if ('media' in errors && errors.media) {
+        toast.error(t('form.popupCampaignMediaRequiredToast'));
+      } else {
+        toast.error(t('formValidationFailed'));
+      }
+      const name = findFirstErrorFieldName(errors);
+      if (name) setFocus(name as any);
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          if (name === 'slug') {
+            document.getElementById('popup-campaign-field-slug')?.scrollIntoView({
+              behavior: 'smooth',
+              block: 'center',
+            });
+            return;
+          }
+          const active = document.activeElement as HTMLElement | null;
+          active?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+        });
+      });
+    },
+    [setFocus, t]
+  );
 
   const handleCancel = () => navigate(paths.dashboard.popupCampaigns.root);
 
   const fileAccept =
     mediaType === 'video' ? 'video/*' : mediaType === 'gif' ? 'image/gif' : 'image/*';
+
+  if (isEditMode && isLoadingDetail) return <LoadingScreen />;
 
   return (
     <>
@@ -350,7 +427,7 @@ export default function CreatePage() {
 
       <CreateFormLayout
         methods={methods as any}
-        onSubmit={handleSubmit(onSubmit as any)}
+        onSubmit={handleSubmit(onSubmit as any, onValidationFailed)}
         onCancel={handleCancel}
         isSubmitting={isSubmitting}
         errorMessage={errorMessage}
@@ -390,7 +467,7 @@ export default function CreatePage() {
             <RHFTextField name="title.ar" placeholder={t('form.bannerTitleArExample')} dir="rtl" />
           </Box>
 
-          <Box className="group">
+          <Box id="popup-campaign-field-slug" className="group scroll-mt-28">
             <Typography variant="subtitle2" className="mb-2 font-semibold">
               {t('form.popupCampaignSlug')}
             </Typography>
@@ -400,7 +477,9 @@ export default function CreatePage() {
               placeholder={
                 isLoadingPages
                   ? t('form.popupCampaignSlugLoading')
-                  : t('form.popupCampaignSlugPlaceholder')
+                  : pageOptions.length === 0 && !isLoadingPages
+                    ? t('form.popupCampaignSlugEmpty')
+                    : t('form.popupCampaignSlugPlaceholder')
               }
               disabled={isLoadingPages}
             />
@@ -512,15 +591,17 @@ export default function CreatePage() {
             <Typography variant="subtitle2" className="mb-2 font-semibold">
               {t('form.popupCampaignShowOnPages')}
             </Typography>
-            <Input
-              value={showOnPagesInput}
-              onChange={(e) => {
-                const v = e.target.value;
-                setShowOnPagesInput(v);
-                setValue('show_on_pages', parseCsv(v), { shouldValidate: true });
-              }}
-              placeholder={t('popupCampaign.showOnPagesPlaceholder')}
+            <RHFMultiSelect
+              name="show_on_pages"
+              options={showOnPagesOptions}
+              placeholder={
+                isLoadingPages
+                  ? t('form.popupCampaignSlugLoading')
+                  : t('popupCampaign.showOnPagesPlaceholder')
+              }
               fullWidth
+              isDisabled={isLoadingPages}
+              isSearchable
             />
             <Typography variant="caption" className="text-muted-foreground mt-1 block">
               {t('form.popupCampaignShowOnPagesHint')}

@@ -24,7 +24,7 @@ import {
 } from '@/pages/dashboard/sections/hooks/usePageSections';
 
 import { CONFIG } from 'src/global-config';
-import { Box, Typography } from 'src/shared/ui';
+import { Box, SimpleSelect, Typography } from 'src/shared/ui';
 import { RHFSelect } from 'src/shared/components/hook-form/rhf-select';
 import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
 import { RHFColorPicker } from 'src/shared/components/hook-form/rhf-color-picker';
@@ -209,13 +209,19 @@ export default function CreatePage() {
 
   const infoText = isEditMode ? t('form.pageSectionFormInfoEdit') : t('form.pageSectionFormInfoCreate');
 
-  // Get filters from selected section
-  const sectionFilters =
-    selectedSection?.filters &&
-    typeof selectedSection.filters === 'object' &&
-    !Array.isArray(selectedSection.filters)
-      ? (selectedSection.filters as Record<string, FilterConfig>)
-      : {};
+  // Prefer full section details: API sections expose filters under `api.filters`.
+  const sectionFilters = useMemo(() => {
+    const data = sectionDetailsData?.data as any;
+    const fromApi = data?.api?.filters;
+    if (fromApi && typeof fromApi === 'object' && !Array.isArray(fromApi)) {
+      return fromApi as Record<string, FilterConfig>;
+    }
+    const fromList = selectedSection?.filters;
+    if (fromList && typeof fromList === 'object' && !Array.isArray(fromList)) {
+      return fromList as Record<string, FilterConfig>;
+    }
+    return {};
+  }, [sectionDetailsData, selectedSection]);
 
   return (
     <>
@@ -453,7 +459,7 @@ export default function CreatePage() {
         </Box>
 
         {/* ── Section: Dynamic Filters ── */}
-        {selectedSection && Object.keys(sectionFilters).length > 0 && (
+        {sectionIdForDetails && Object.keys(sectionFilters).length > 0 && (
           <Box className="rounded-2xl border border-border/50 bg-card/50 shadow-sm">
             <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-amber-500/[0.06] via-amber-500/[0.02] to-transparent">
               <Box className="h-8 w-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
@@ -597,6 +603,10 @@ function DisplayTypeImageSelect({
   );
 }
 
+function formatFilterItemLabel(raw: string) {
+  return raw.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+}
+
 function DynamicFilterField({
   filterKey,
   filterConfig,
@@ -609,7 +619,7 @@ function DynamicFilterField({
   onChange: (value: any) => void;
 }) {
   const { t } = useTranslation('table');
-  const label = filterKey.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+  const label = formatFilterItemLabel(filterKey);
   const nameForPlaceholder = filterKey.replace(/_/g, ' ');
 
   if (filterConfig.type === 'number') {
@@ -624,6 +634,30 @@ function DynamicFilterField({
           onChange={(e) => onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
           className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
           placeholder={t('form.filterEnterPlaceholder', { name: nameForPlaceholder })}
+        />
+      </Box>
+    );
+  }
+
+  if (
+    filterConfig.type === 'select' &&
+    Array.isArray(filterConfig.items) &&
+    filterConfig.items.length > 0
+  ) {
+    return (
+      <Box className="group">
+        <Typography variant="subtitle2" className="font-semibold text-foreground mb-2">
+          {label}
+        </Typography>
+        <SimpleSelect
+          fullWidth
+          value={value != null && value !== '' ? String(value) : ''}
+          onChange={(v) => onChange(v === '' ? undefined : v)}
+          placeholder={t('form.filterSelectPlaceholder', { name: nameForPlaceholder })}
+          options={filterConfig.items.map((item) => ({
+            value: item,
+            label: formatFilterItemLabel(item),
+          }))}
         />
       </Box>
     );

@@ -154,6 +154,7 @@ export const paths = {
     legalDocuments: ROOTS.LEGAL_DOCUMENTS,
     faqs: ROOTS.FAQS,
     vendorSubscriptions: ROOTS.VENDOR_SUBSCRIPTIONS,
+    vendorSubscriptionsCreate: `${ROOTS.VENDOR_SUBSCRIPTIONS}/create`,
     adminNotifications: ROOTS.ADMIN_NOTIFICATIONS,
     vendorPackages: ROOTS.VENDOR_PACKAGES,
     vendorUsers: ROOTS.VENDOR_USERS,

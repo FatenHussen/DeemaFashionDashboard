@@ -102,7 +102,7 @@ export const pointRuleColumns = (
       <DataTableRowActions
         schema={PointRuleSchema}
         row={row}
-        viewDetails={`/point-rules/update/${row.original.id}`}
+        viewDetails={`/point-rules/details/${row.original.id}`}
         editItem={onEdit ? undefined : `/point-rules/update/${row.original.id}`}
         onEdit={onEdit}
         onDelete={onDelete}

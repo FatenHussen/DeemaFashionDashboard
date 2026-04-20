@@ -6,13 +6,21 @@ import i18n from 'src/lib/i18n';
 
 const t = (key: string) => i18n.t(key, { ns: 'validation' });
 
+const translationField = z.object({
+  ar: z.string().optional().default(''),
+  en: z.string().optional().default(''),
+});
+
 export const BasketSchema = z
   .object({
-    category_id: z.coerce.number().min(1, t('basket.categoryRequired')),
+    category_ids: z
+      .array(z.coerce.number().int().positive())
+      .min(1, t('basket.categoryRequired')),
     name: z.object({
       en: z.string().min(1, t('basket.nameEnRequired')),
       ar: z.string().min(1, t('basket.nameArRequired')),
     }),
+    description: translationField.optional(),
     offer_ends_at: z.string().optional(),
     discount: z.coerce.number().min(0).optional(),
     discount_type: z.enum(['fixed', 'percentage']),

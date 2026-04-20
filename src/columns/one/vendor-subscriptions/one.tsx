@@ -25,7 +25,14 @@ const vendorOrShopLabel = (row: VendorSubscriptionListItem): string =>
   row.vendor_name ?? row.shop_name ?? '—';
 
 export const vendorSubscriptionColumns = (
-  t: TFunction<'table'>
+  permissions: { update: boolean; delete: boolean },
+  t: TFunction<'table'>,
+  onDelete?: (id: number) => void,
+  isDeleting?: boolean,
+  isDeleteDialogOpen?: boolean,
+  onDeleteConfirm?: () => void,
+  onDeleteCancel?: () => void,
+  deletingId?: number | null
 ): ColumnDef<VendorSubscriptionFormValues>[] => [
   {
     id: 'shop_name',
@@ -104,7 +111,13 @@ export const vendorSubscriptionColumns = (
         schema={VendorSubscriptionSchema}
         row={row}
         viewDetails={`/vendor-subscriptions/${row.original.id}`}
-        permissions={{ update: false, delete: false }}
+        onDelete={onDelete}
+        isDeleting={isDeleting}
+        isDeleteDialogOpen={isDeleteDialogOpen}
+        onDeleteConfirm={onDeleteConfirm}
+        onDeleteCancel={onDeleteCancel}
+        deletingId={deletingId}
+        permissions={permissions}
       />
     ),
   },

@@ -70,12 +70,20 @@ export interface RecipeTotals {
   discount_value: number;
 }
 
+export interface RecipeImage {
+  id: number;
+  url: string;
+}
+
 export interface RecipeData {
   id: number;
   name: { ar?: string; en?: string } | string;
   description?: { ar?: string; en?: string } | string;
   image?: string;
+  images?: RecipeImage[];
   video_url?: string;
+  video_title?: { ar?: string; en?: string } | string;
+  video_desc?: { ar?: string; en?: string } | string;
   discount?: number | string;
   rating?: number;
   price?: number;
@@ -121,7 +129,11 @@ export interface RecipeCreateUpdatePayload {
   name: { ar: string; en: string };
   description?: { ar: string; en: string };
   image?: File | null;
+  images?: File[];
+  existing_images_ids?: number[];
   video_url?: string;
+  video_title?: { ar: string; en: string };
+  video_desc?: { ar: string; en: string };
   discount?: number;
   delivery_price?: number;
   serves?: string;
