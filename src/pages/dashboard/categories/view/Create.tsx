@@ -2,11 +2,13 @@ import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useParams, useNavigate } from 'react-router';
+import { useParams, useNavigate, useSearchParams } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
-import { useState, useEffect, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { formatTranslated } from '@/utils/format-translated';
 import { _CategoryApi } from '@/pages/dashboard/categories/api/category.services';
+import { buildParentPickerOptions } from '@/pages/dashboard/categories/utils/build-parent-picker-options';
 import { RHFInfiniteSelect } from '@/shared/components/hook-form/rhf-infinite-select';
 import {
   CategorySchema,
@@ -29,25 +31,52 @@ export default function CreatePage() {
   const { t } = useTranslation('table');
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const isEditMode = !!id;
   const [previewImage, setPreviewImage] = useState<string | null>(null);
 
-  const parentCategoryFetcher = useCallback(
-    (page: number, limit: number) =>
-      _CategoryApi.getListCategoriesPaginated({ page, per_page: limit }).then((r) => {
-        const items = (r.data?.items ?? []).map((cat) => ({
-          id: cat.id,
-          label: typeof cat.name === 'object' ? formatTranslated(cat.name) : String(cat.name ?? ''),
-        }));
-        return {
-          data: {
-            items: page === 1 ? [{ id: 0, label: t('form.noParent') }, ...items] : items,
-            pagination:
-              r.data?.pagination ?? { current_page: 1, last_page: 1, per_page: limit, total: 0 },
-          },
-        };
+  const queryParentId = useMemo(() => {
+    const raw = searchParams.get('parent_id');
+    if (raw == null || raw === '') return null;
+    const n = Number(raw);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  }, [searchParams]);
+
+  const { data: flatForParent, dataUpdatedAt: flatParentDataUpdatedAt } = useQuery({
+    queryKey: ['categories', 'flat-parent-picker'],
+    queryFn: () => _CategoryApi.getListCategoriesPaginated({ page: 1, per_page: 500 }),
+  });
+
+  const parentPickerRows = useMemo(
+    () =>
+      buildParentPickerOptions(flatForParent?.data?.items ?? [], {
+        excludeCategoryId: isEditMode && id ? Number(id) : undefined,
       }),
-    [t]
+    [flatForParent?.data?.items, id, isEditMode]
+  );
+
+  const parentCategoryFetcher = useCallback(
+    (page: number, limit: number) => {
+      const none = { id: 0, label: t('form.noParent') };
+      const rows = parentPickerRows.map((r) => ({ id: r.id, label: r.label }));
+      const allRows = [none, ...rows];
+      const total = allRows.length;
+      const lastPage = Math.max(1, Math.ceil(total / limit));
+      const start = (page - 1) * limit;
+      const items = allRows.slice(start, start + limit);
+      return Promise.resolve({
+        data: {
+          items,
+          pagination: {
+            current_page: page,
+            last_page: lastPage,
+            per_page: limit,
+            total,
+          },
+        },
+      });
+    },
+    [parentPickerRows, t]
   );
 
   // Hooks for fetching and mutations
@@ -55,25 +84,35 @@ export default function CreatePage() {
   const createCategoryMutation = useCreateCategory();
   const updateCategoryMutation = useUpdateCategory();
 
-  const defaultValues: CategoryFormValues = {
-    name: {
-      en: '',
-      ar: '',
-    },
-    icon: null,
-    parent_id: null,
-    order: 0,
-    is_active: true,
-    is_restaurant: false,
-  };
+  const defaultValues: CategoryFormValues = useMemo(
+    () => ({
+      name: {
+        en: '',
+        ar: '',
+      },
+      icon: null,
+      parent_id: !isEditMode ? queryParentId : null,
+      order: 0,
+      is_active: true,
+      is_restaurant: false,
+    }),
+    [isEditMode, queryParentId]
+  );
 
   const methods = useForm<CategoryFormValues>({
     resolver: zodResolver(CategorySchema),
     defaultValues,
   });
 
-  const { handleSubmit, reset, control, watch } = methods;
+  const { handleSubmit, reset, control, watch, setValue } = methods;
   const iconValue = watch('icon');
+
+  useEffect(() => {
+    if (isEditMode) return;
+    if (queryParentId != null && queryParentId > 0) {
+      setValue('parent_id', queryParentId);
+    }
+  }, [isEditMode, queryParentId, setValue]);
 
   // Fetch category data if in edit mode
   useEffect(() => {
@@ -237,7 +276,13 @@ export default function CreatePage() {
               </Box>
               <RHFInfiniteSelect
                 name="parent_id"
-                queryKey={['categories', 'infinite', 'parent-form']}
+                queryKey={[
+                  'categories',
+                  'infinite',
+                  'parent-form',
+                  flatParentDataUpdatedAt ?? 0,
+                  isEditMode ? id : '',
+                ]}
                 fetcher={parentCategoryFetcher}
                 placeholder={t('form.parentCategoryPlaceholder')}
                 helperText={t('form.selectParentCategoryHelper')}

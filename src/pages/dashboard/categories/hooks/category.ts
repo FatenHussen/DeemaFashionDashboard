@@ -4,8 +4,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { _CategoryApi, type CategoryCreateUpdatePayload } from '../api/category.services';
 
 export type CategoryListFilter = {
-  /** Filter by parent: `0` = root categories; a positive id = direct children of that category. */
-  parent_id?: number;
+  /** Filter by parent: `0` or `null` = root categories (API: `parent_id=null`); positive id = direct children. */
+  parent_id?: number | null;
   /** Alternative API param for listing children (some backends use this instead of `parent_id`). */
   category_id?: number;
   sort_field?: string;

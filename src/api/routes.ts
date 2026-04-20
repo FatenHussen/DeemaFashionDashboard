@@ -473,6 +473,14 @@ export const apiRoutes = {
     delete: (id: number | string) => `${ROOTS.ADMIN}/point-rules/${id}`,
     details: (id: number | string) => `${ROOTS.ADMIN}/point-rules/${id}`,
   },
+  /** Delivery fee distance tiers (`auth:admin`). */
+  deliveryDistanceRange: {
+    list: `${ROOTS.ADMIN}/delivery-distance-ranges`,
+    create: `${ROOTS.ADMIN}/delivery-distance-ranges`,
+    update: (id: number | string) => `${ROOTS.ADMIN}/delivery-distance-ranges/${id}`,
+    delete: (id: number | string) => `${ROOTS.ADMIN}/delivery-distance-ranges/${id}`,
+    details: (id: number | string) => `${ROOTS.ADMIN}/delivery-distance-ranges/${id}`,
+  },
   // Schedule routes
   /** Delivery schedules (subscriptions discounts). Backend: `/api/admin/schedules`. */
   schedule: {

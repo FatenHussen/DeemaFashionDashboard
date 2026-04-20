@@ -423,6 +423,17 @@ export default function DetailsPage() {
                               {recipeItem.main_item.variant.join(' · ')}
                             </Typography>
                           ) : null}
+                          <Typography variant="caption" className="mt-1 block font-mono text-muted-foreground">
+                            {t('form.productSku')}: {recipeItem.main_item?.sku ?? '—'} · {t('form.productModel')}:{' '}
+                            {recipeItem.main_item?.model ?? '—'} · {t('form.productBarcode')}:{' '}
+                            {recipeItem.main_item?.barcode ?? '—'}
+                          </Typography>
+                          <Typography variant="caption" className="mt-1 block text-muted-foreground">
+                            {t('form.priceLabel')}:{' '}
+                            {recipeItem.main_item?.price != null ? String(recipeItem.main_item.price) : '—'} ·{' '}
+                            {t('columns.discount')}: {recipeItem.main_item?.discount ?? '—'} ·{' '}
+                            {t('columns.priceAfterDiscount')}: {recipeItem.main_item?.price_after_discount ?? '—'}
+                          </Typography>
                         </Box>
                         <Typography variant="body2" className="font-medium">
                           {recipeItem.main_item?.price_formatted != null
@@ -451,15 +462,27 @@ export default function DetailsPage() {
                             {recipeItem.alternatives.map((alt) => (
                               <Box
                                 key={alt.shop_product_variant_id}
-                                className="flex flex-wrap items-center justify-between gap-2 text-sm"
+                                className="flex flex-wrap items-start justify-between gap-2 text-sm"
                               >
-                                <span>
-                                  {alt.name}
-                                  {alt.variant?.length ? ` (${alt.variant.join(', ')})` : ''}
-                                </span>
-                                <span className="text-muted-foreground">
-                                  {alt.price_formatted ?? alt.price}
-                                </span>
+                                <Box className="min-w-0">
+                                  <Typography variant="body2" component="div">
+                                    {alt.name}
+                                    {alt.variant?.length ? ` (${alt.variant.join(', ')})` : ''}
+                                  </Typography>
+                                  <Typography variant="caption" className="mt-0.5 block font-mono text-muted-foreground">
+                                    {t('form.productSku')}: {alt.sku ?? '—'} · {t('form.productModel')}: {alt.model ?? '—'} ·{' '}
+                                    {t('form.productBarcode')}: {alt.barcode ?? '—'}
+                                  </Typography>
+                                </Box>
+                                <Box className="text-end text-muted-foreground shrink-0">
+                                  <Typography variant="body2" component="div">
+                                    {t('form.priceLabel')}: {alt.price_formatted ?? alt.price}
+                                  </Typography>
+                                  <Typography variant="caption" component="div" className="text-xs">
+                                    {t('columns.discount')}: {alt.discount ?? '—'} · {t('columns.priceAfterDiscount')}:{' '}
+                                    {alt.price_after_discount ?? '—'}
+                                  </Typography>
+                                </Box>
                               </Box>
                             ))}
                           </Box>

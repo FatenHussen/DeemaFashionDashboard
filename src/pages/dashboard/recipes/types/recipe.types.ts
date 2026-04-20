@@ -39,7 +39,12 @@ export interface RecipeItemMainItem {
   image_url?: string | null;
   name: string;
   variant: string[];
+  sku?: string | null;
+  model?: string | null;
+  barcode?: string | null;
   price: number;
+  discount?: number | null;
+  price_after_discount?: number | null;
   currency?: string;
   currency_symbol?: string;
   price_formatted?: string;
@@ -51,10 +56,15 @@ export interface RecipeItemAlternative {
   name: string;
   image_url?: string | null;
   price: number;
+  discount?: number | null;
+  price_after_discount?: number | null;
   currency?: string;
   currency_symbol?: string;
   price_formatted?: string;
   variant: string[];
+  sku?: string | null;
+  model?: string | null;
+  barcode?: string | null;
 }
 
 export interface RecipeItemData {

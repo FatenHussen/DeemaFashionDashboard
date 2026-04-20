@@ -152,7 +152,7 @@ export default function Page() {
           }
         )}
         data={categoryData}
-        createPath="/categories/create"
+        createPath={`/categories/create?parent_id=${parentCategoryId}`}
         hasDetails={false}
         permissions={{
           create: hasPermission('create', 'category'),

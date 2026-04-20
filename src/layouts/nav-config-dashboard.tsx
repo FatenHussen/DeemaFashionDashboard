@@ -286,6 +286,12 @@ export function getNavData(t: TFunction<'nav'>): NavSectionProps['data'] {
         // Languages / translation manager (disabled — see routes `paths` and dashboard `languages` route)
         // { title: t('translationManager'), path: '/languages/translations', icon: ICONS.file, requiredPermission: 'language.view' },
         { title: t('currencies'), path: paths.dashboard.currencies, icon: ICONS.banking, requiredPermission: 'currency.view' },
+        {
+          title: t('deliveryDistanceRanges'),
+          path: paths.dashboard.deliveryDistanceRanges,
+          icon: <Iconify icon="solar:routing-2-bold" width={22} height={22} />,
+          requiredPermission: 'deliverydistancerange.view',
+        },
         { title: t('legalDocuments'), path: paths.dashboard.legalDocuments, icon: ICONS.lock, requiredPermission: 'legaldocument.view' },
         { title: t('faqs'), path: paths.dashboard.faqs, icon: ICONS.blog, requiredPermission: 'faq.view' },
         { title: t('complaints'), path: paths.dashboard.complaints, icon: ICONS.chat, requiredPermission: 'complaint.view' },

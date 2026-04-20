@@ -211,6 +211,18 @@ export default function DetailsPage() {
                             {item.shop_variant.shop_name}
                           </Typography>
                         ) : null}
+                        <Typography variant="caption" className="mt-1 block font-mono text-muted-foreground">
+                          {t('form.productSku')}: {item.product_variant?.sku ?? '—'} · {t('form.productModel')}:{' '}
+                          {item.product_variant?.model ?? '—'} · {t('form.productBarcode')}:{' '}
+                          {item.product_variant?.barcode ?? '—'}
+                        </Typography>
+                        {item.shop_variant ? (
+                          <Typography variant="caption" className="mt-1 block text-muted-foreground">
+                            {t('form.priceLabel')}: {item.shop_variant.price ?? '—'} · {t('columns.discount')}:{' '}
+                            {item.shop_variant.discount ?? '—'} · {t('columns.priceAfterDiscount')}:{' '}
+                            {item.shop_variant.price_after_discount ?? '—'}
+                          </Typography>
+                        ) : null}
                         {Array.isArray(item.variant) && item.variant.length > 0 ? (
                           <Typography variant="caption" className="mt-1 block text-muted-foreground">
                             {item.variant.map((v) => String(v)).join(' · ')}

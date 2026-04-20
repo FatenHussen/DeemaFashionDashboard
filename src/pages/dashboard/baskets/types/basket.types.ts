@@ -22,7 +22,16 @@ export interface BasketItem {
     shop_id: number;
     shop_name: string;
     price: number;
+    discount?: number | null;
+    price_after_discount?: number | null;
+    cost_price?: number | null;
     quantity: number;
+  };
+  /** Product variant identifiers when API embeds them */
+  product_variant?: {
+    sku?: string | null;
+    model?: string | null;
+    barcode?: string | null;
   };
   created_at?: string;
   updated_at?: string;

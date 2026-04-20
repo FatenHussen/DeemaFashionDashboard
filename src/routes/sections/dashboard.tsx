@@ -162,6 +162,16 @@ const CurrencyIndexPage = lazy(() => import('@/pages/dashboard/currencies/view/I
 const CurrencyCreatePage = lazy(() => import('@/pages/dashboard/currencies/view/Create'));
 const CurrencyDetailsPage = lazy(() => import('@/pages/dashboard/currencies/view/Details'));
 
+const DeliveryDistanceRangeIndexPage = lazy(
+  () => import('@/pages/dashboard/delivery-distance-ranges/view/Index')
+);
+const DeliveryDistanceRangeCreatePage = lazy(
+  () => import('@/pages/dashboard/delivery-distance-ranges/view/Create')
+);
+const DeliveryDistanceRangeDetailsPage = lazy(
+  () => import('@/pages/dashboard/delivery-distance-ranges/view/Details')
+);
+
 // Recipes
 const RecipeIndexPage = lazy(() => import('@/pages/dashboard/recipes/view/Index'));
 const RecipeCreatePage = lazy(() => import('@/pages/dashboard/recipes/view/Create'));
@@ -1425,6 +1435,44 @@ export const dashboardRoutes: RouteObject[] = [
         element: (
           <RequirePermission permission="currency.view">
             <CurrencyDetailsPage />
+          </RequirePermission>
+        ),
+      },
+    ],
+  },
+  {
+    path: 'delivery-distance-ranges',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: (
+          <RequirePermission permission="deliverydistancerange.view">
+            <DeliveryDistanceRangeIndexPage />
+          </RequirePermission>
+        ),
+        index: true,
+      },
+      {
+        path: 'create',
+        element: (
+          <RequirePermission permission="deliverydistancerange.create">
+            <DeliveryDistanceRangeCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'update/:id',
+        element: (
+          <RequirePermission permission="deliverydistancerange.update">
+            <DeliveryDistanceRangeCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'details/:id',
+        element: (
+          <RequirePermission permission="deliverydistancerange.view">
+            <DeliveryDistanceRangeDetailsPage />
           </RequirePermission>
         ),
       },

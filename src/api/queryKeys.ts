@@ -81,7 +81,7 @@ export const queryKeys = {
     list: (params?: {
       page?: number;
       limit?: number;
-      parent_id?: number;
+      parent_id?: number | null;
       category_id?: number;
       sort_field?: string;
       sort_order?: 'asc' | 'desc';
@@ -362,6 +362,11 @@ export const queryKeys = {
   pointRule: {
     list: (params?: { page?: number; per_page?: number }) => ['pointRule', 'list', params] as const,
     details: (id: number | string) => ['pointRule', 'details', id] as const,
+  },
+  deliveryDistanceRange: {
+    list: (params?: { page?: number; per_page?: number }) =>
+      ['deliveryDistanceRange', 'list', params] as const,
+    details: (id: number | string) => ['deliveryDistanceRange', 'details', id] as const,
   },
   // Schedule query keys
   schedule: {

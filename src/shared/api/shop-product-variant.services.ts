@@ -33,6 +33,16 @@ export interface ShopProductVariantListResponse {
   };
 }
 
+/** Appends API pricing fields to the option label (order: price · discount · price_after_discount). */
+function formatShopProductVariantListLabel(item: ShopProductVariantItem): string {
+  const base = typeof item.label === 'string' ? item.label : String(item.label ?? '');
+  const bits: string[] = [];
+  if (item.price != null) bits.push(String(item.price));
+  if (item.discount != null) bits.push(String(item.discount));
+  if (item.price_after_discount != null) bits.push(String(item.price_after_discount));
+  return bits.length ? `${base} — ${bits.join(' · ')}` : base;
+}
+
 const emptyResponse = (page: number, perPage: number): ShopProductVariantListResponse => ({
   status: true,
   message: '',
@@ -93,11 +103,14 @@ export const _ShopProductVariantApi = {
       }
       const items = data.data.items
         .filter((i: any) => i != null && i.id != null && String(i.id).trim() !== '')
-        .map((i: any) => ({
-          ...i,
-          id: typeof i.id === 'number' ? i.id : Number(i.id),
-          label: typeof i.label === 'string' ? i.label : String(i.label ?? ''),
-        }))
+        .map((i: any) => {
+          const row: ShopProductVariantItem = {
+            ...i,
+            id: typeof i.id === 'number' ? i.id : Number(i.id),
+            label: typeof i.label === 'string' ? i.label : String(i.label ?? ''),
+          };
+          return { ...row, label: formatShopProductVariantListLabel(row) };
+        })
         .filter((i: ShopProductVariantItem) => Number.isFinite(i.id) && i.id > 0);
       return {
         status: data.status ?? true,

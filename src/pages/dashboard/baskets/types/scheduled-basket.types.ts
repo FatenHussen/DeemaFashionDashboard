@@ -17,6 +17,8 @@ export interface ScheduledBasketItemAlternative {
   name?: string;
   image_url?: string;
   price?: number;
+  discount?: number | null;
+  price_after_discount?: number | null;
 }
 
 export interface ScheduledBasketItem {
@@ -41,7 +43,15 @@ export interface ScheduledBasketItem {
   variant_image?: string | null;
   variant?: {
     id: number;
+    sku?: string | null;
+    model?: string | null;
+    barcode?: string | null;
     attributes?: Array<{ name: string; value: string }>;
+  };
+  shop_variant?: {
+    price: number;
+    discount?: number | null;
+    price_after_discount?: number | null;
   };
   alternatives?: ScheduledBasketItemAlternative[];
   created_at?: string;

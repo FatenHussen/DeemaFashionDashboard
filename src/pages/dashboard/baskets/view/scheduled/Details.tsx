@@ -255,6 +255,17 @@ export default function DetailsPage() {
                               {item.variant.attributes.map((a) => `${a.name}: ${a.value}`).join(' · ')}
                             </Typography>
                           ) : null}
+                          <Typography variant="caption" className="mt-1 block font-mono text-muted-foreground">
+                            {t('form.productSku')}: {item.variant?.sku ?? '—'} · {t('form.productModel')}:{' '}
+                            {item.variant?.model ?? '—'} · {t('form.productBarcode')}: {item.variant?.barcode ?? '—'}
+                          </Typography>
+                          {item.shop_variant ? (
+                            <Typography variant="caption" className="mt-1 block text-muted-foreground">
+                              {t('form.priceLabel')}: {item.shop_variant.price ?? '—'} · {t('columns.discount')}:{' '}
+                              {item.shop_variant.discount ?? '—'} · {t('columns.priceAfterDiscount')}:{' '}
+                              {item.shop_variant.price_after_discount ?? '—'}
+                            </Typography>
+                          ) : null}
                         </Box>
                         <Box className="text-end text-sm">
                           <div>
@@ -299,7 +310,11 @@ export default function DetailsPage() {
                             {item.alternatives.map((alt) => (
                               <span key={alt.shop_product_variant_id} className="rounded-md border border-border/50 px-2 py-1 text-xs">
                                 {alt.name || `#${alt.shop_product_variant_id}`}
-                                {alt.price != null ? ` — ${alt.price}` : ''}
+                                {alt.price != null ? ` — ${t('form.priceLabel')}: ${alt.price}` : ''}
+                                {alt.discount != null ? ` · ${t('columns.discount')}: ${alt.discount}` : ''}
+                                {alt.price_after_discount != null
+                                  ? ` · ${t('columns.priceAfterDiscount')}: ${alt.price_after_discount}`
+                                  : ''}
                               </span>
                             ))}
                           </Box>
