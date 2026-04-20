@@ -10,6 +10,7 @@ export const _VendorApi = {
   getListVendor: async (params?: {
     page?: number;
     limit?: number;
+    search?: string;
   }): Promise<VendorListResponse> => {
     const response = await axiosInstance.get<VendorListResponse>(apiRoutes.vendor.list, {
       params,

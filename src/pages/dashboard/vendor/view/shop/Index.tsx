@@ -1,6 +1,6 @@
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
-import { useState, type ReactNode } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import { Iconify } from '@/shared/components/iconify';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { usePermissions } from '@/auth/hooks/use-permissions';
@@ -33,11 +33,17 @@ export default function Page() {
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [shopStatusFilter, setShopStatusFilter] = useState('');
   const [shopTypeFilter, setShopTypeFilter] = useState('');
+  const [search, setSearch] = useState<string>('');
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
 
   // Fetch shops using the hook
   const { data: shopsResponse, isLoading, error } = useFetchShops(currentPage, pageSize, {
     ...(shopStatusFilter ? { shop_status: shopStatusFilter } : {}),
     ...(shopTypeFilter ? { shop_type: shopTypeFilter } : {}),
+    ...(search.trim() ? { search: search.trim() } : {}),
   });
   const deleteShopMutation = useDeleteShop();
 
@@ -206,6 +212,7 @@ export default function Page() {
         pageSize={pageSize}
         onPageChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}
+        onSearchChange={setSearch}
       />
     </>
   );

@@ -3,10 +3,16 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { _AdminApi, type AdminCreateUpdatePayload } from '../api/admin.services';
 
-export const useFetchAdmins = (page: number = 1, limit: number = 25) =>
+export const useFetchAdmins = (
+  page: number = 1,
+  limit: number = 25,
+  params?: {
+    search?: string;
+  }
+) =>
   useQuery({
-    queryKey: queryKeys.admin.list({ page, limit }),
-    queryFn: () => _AdminApi.getListAdmin(),
+    queryKey: queryKeys.admin.list({ page, limit, ...params }),
+    queryFn: () => _AdminApi.getListAdmin({ page, per_page: limit, ...params }),
   });
 
 export const useFetchAdminById = (id: number | string) =>

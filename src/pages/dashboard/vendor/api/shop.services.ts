@@ -57,6 +57,7 @@ export const _ShopApi = {
     shop_status?: string;
     /** Admin / user listing: filter by shop classification */
     shop_type?: string;
+    search?: string;
   }): Promise<ShopListResponse> => {
     const response = await axiosInstance.get<ShopListResponse>(apiRoutes.shop.list, { params });
     return response.data;

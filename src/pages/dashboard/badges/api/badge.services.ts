@@ -13,7 +13,7 @@ function buildBadgeFormData(data: BadgeCreatePayload): FormData {
 }
 
 export const _BadgeApi = {
-  getListBadges: async (params?: { page?: number; per_page?: number; type?: string }): Promise<BadgeListResponse> => {
+  getListBadges: async (params?: { page?: number; per_page?: number; type?: string; search?: string }): Promise<BadgeListResponse> => {
     const response = await axiosInstance.get<BadgeListResponse>(apiRoutes.badge.list, { params });
     return response.data;
   },

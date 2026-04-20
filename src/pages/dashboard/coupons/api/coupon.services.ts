@@ -8,7 +8,7 @@ import { apiRoutes, axiosInstance } from '@/api';
 
 export const _CouponApi = {
   getListCoupons: async (
-    params?: { page?: number; per_page?: number }
+    params?: { page?: number; per_page?: number; search?: string }
   ): Promise<CouponListResponse> => {
     const response = await axiosInstance.get<CouponListResponse>(apiRoutes.coupon.list, {
       params,

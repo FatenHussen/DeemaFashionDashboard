@@ -89,7 +89,7 @@ export const packageColumns = (
               : 'bg-red-500/20 text-red-600'
           }`}
         >
-          {isActive ? 'Active' : 'Inactive'}
+          {isActive ? t('active') : t('inactive')}
         </span>
       );
     },

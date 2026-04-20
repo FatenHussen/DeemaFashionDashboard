@@ -15,6 +15,7 @@ export const useFetchUsers = (
   params?: {
     affiliate_approved?: number;
     area_id?: number;
+    search?: string;
   }
 ) =>
   useQuery({

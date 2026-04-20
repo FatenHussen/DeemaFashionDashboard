@@ -5,10 +5,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { _VendorApi } from '../api/vendor.services';
 
-export const useFetchVendors = (page: number = 1, limit: number = 25) =>
+export const useFetchVendors = (
+  page: number = 1,
+  limit: number = 25,
+  params?: { search?: string }
+) =>
   useQuery({
-    queryKey: queryKeys.vendor.list({ page, limit }),
-    queryFn: () => _VendorApi.getListVendor({ page, limit }),
+    queryKey: queryKeys.vendor.list({ page, limit, ...params }),
+    queryFn: () => _VendorApi.getListVendor({ page, limit, ...params }),
   });
 
 export const useFetchVendorById = (id: number | string) => useQuery({

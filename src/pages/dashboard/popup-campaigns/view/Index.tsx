@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
 import { DataTable } from '@/shared/ui/table-data/table-data';
@@ -21,13 +21,16 @@ export default function Page() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [deletingId, setDeletingId] = useState<number | null>(null);
-  const [search, setSearch] = useState('');
-  const [appliedSearch, setAppliedSearch] = useState('');
+  const [search, setSearch] = useState<string>('');
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
 
   const { data: response, isLoading } = useFetchPopupCampaigns(
     currentPage,
     pageSize,
-    appliedSearch.trim() || undefined
+    search.trim() || undefined
   );
   const deleteMutation = useDeletePopupCampaign();
 
@@ -45,11 +48,6 @@ export default function Page() {
     }
   };
 
-  const handleApplySearch = () => {
-    setAppliedSearch(search);
-    setCurrentPage(1);
-  };
-
   const items: PopupCampaignRow[] = response?.data?.items || [];
   const apiPagination = response?.data?.pagination;
   const pagination = apiPagination
@@ -65,26 +63,6 @@ export default function Page() {
 
   const { can } = usePermissions();
   const hasPermission = (action: string) => can(`popupcampaign.${action}`);
-
-  const toolbarSearch = (
-    <div className="flex items-center gap-2 min-w-0 flex-1">
-      <input
-        type="text"
-        placeholder={t('form.popupCampaignSearchPlaceholder')}
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        onKeyDown={(e) => e.key === 'Enter' && handleApplySearch()}
-        className="h-10 min-w-[200px] flex-1 rounded-xl border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-      />
-      <button
-        type="button"
-        onClick={handleApplySearch}
-        className="h-10 rounded-xl border border-input bg-background px-4 text-sm font-medium hover:bg-muted shrink-0"
-      >
-        {t('apply')}
-      </button>
-    </div>
-  );
 
   return (
     <>
@@ -109,8 +87,6 @@ export default function Page() {
         createPath={paths.dashboard.popupCampaigns.create}
         hasDetails
         detailsLink="/popup-campaigns/update"
-        searchColumns={[]}
-        toolbarFilter={toolbarSearch}
         permissions={{
           create: hasPermission('create'),
           update: hasPermission('update'),
@@ -133,6 +109,8 @@ export default function Page() {
           setPageSize(size);
           setCurrentPage(1);
         }}
+        onSearchChange={setSearch}
+        searchPlaceholder={t('form.popupCampaignSearchPlaceholder')}
       />
     </>
   );

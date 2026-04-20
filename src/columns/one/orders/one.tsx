@@ -177,11 +177,12 @@ export const orderColumns = (
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.status')} />,
     cell: ({ row }) => {
       const n = normalizeOrderStatus(row.original.status);
+      const statusKey = `status${n.split('_').map((s, i) => i === 0 ? s.charAt(0).toUpperCase() + s.slice(1) : s.charAt(0).toUpperCase() + s.slice(1)).join('')}`;
       return (
         <span
           className={`inline-flex max-w-full min-w-0 items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium ${statusColors[n] || 'bg-muted text-muted-foreground'}`}
         >
-          {n.replace('_', ' ')}
+          {t(statusKey, n.replace('_', ' '))}
         </span>
       );
     },
@@ -192,7 +193,7 @@ export const orderColumns = (
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.driver')} />,
     cell: ({ row }) => (
       <span className="text-sm text-muted-foreground">
-        {row.original.driver?.phone || 'Not assigned'}
+        {row.original.driver?.phone || t('columns.notAssigned')}
       </span>
     ),
   },

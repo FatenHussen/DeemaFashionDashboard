@@ -1,7 +1,6 @@
 import type { ProductData } from '@/pages/dashboard/products/types/product.types';
 
 import { toast } from 'react-toastify';
-import { Input } from '@/shared/ui/input';
 import { Button } from '@/shared/ui/button';
 import { Dialog } from '@/shared/ui/dialog';
 import { useTranslation } from 'react-i18next';
@@ -48,8 +47,7 @@ export default function Page() {
   const page = Number(searchParams.get('page')) || 1;
   const limit = Number(searchParams.get('limit')) || 10;
 
-  const [searchInput, setSearchInput] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState<string | undefined>(undefined);
+  const [search, setSearch] = useState('');
   const [approvalStatus, setApprovalStatus] = useState('');
   const [sortField, setSortField] = useState('');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
@@ -72,29 +70,10 @@ export default function Page() {
   /** Avoid deps on setPageOne/setSearchParams — they change after URL updates and would re-run this effect and reset page. */
   const setPageOneRef = useRef(setPageOne);
   setPageOneRef.current = setPageOne;
-  const debouncedInitRef = useRef(false);
-  const prevDebouncedSearchRef = useRef<string | undefined>(undefined);
 
   useEffect(() => {
-    const id = window.setTimeout(() => {
-      const v = searchInput.trim();
-      setDebouncedSearch(v || undefined);
-    }, 400);
-    return () => window.clearTimeout(id);
-  }, [searchInput]);
-
-  useEffect(() => {
-    if (!debouncedInitRef.current) {
-      debouncedInitRef.current = true;
-      prevDebouncedSearchRef.current = debouncedSearch;
-      return;
-    }
-    if (prevDebouncedSearchRef.current === debouncedSearch) {
-      return;
-    }
-    prevDebouncedSearchRef.current = debouncedSearch;
     setPageOneRef.current();
-  }, [debouncedSearch]);
+  }, [search]);
 
   const prevCategoryFilterRef = useRef(categoryFilter);
   useEffect(() => {
@@ -147,7 +126,7 @@ export default function Page() {
   const { data: productsResponse, isLoading, isError, error } = useFetchProducts({
     page,
     limit,
-    search: debouncedSearch,
+    ...(search.trim() ? { search: search.trim() } : {}),
     ...(approvalStatus ? { approval_status: approvalStatus } : {}),
     ...(categoryFilter ? { category_id: Number(categoryFilter) } : {}),
     ...(brandFilter ? { brand_id: Number(brandFilter) } : {}),
@@ -348,15 +327,8 @@ export default function Page() {
           delete: hasPermission('delete', 'product'),
         }}
         isLoading={isLoading}
-        searchColumns={[]}
-        toolbarFilter={
-          <Input
-            placeholder={t('productListSearchPlaceholder')}
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            className="h-10 max-w-xs min-w-[200px] flex-1"
-          />
-        }
+        onSearchChange={setSearch}
+        searchPlaceholder={t('productListSearchPlaceholder')}
         activeFilterCount={
           [
             approvalStatus,

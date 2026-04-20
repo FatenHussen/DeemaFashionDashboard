@@ -1,7 +1,7 @@
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
-import { useState, type ReactNode } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { usePermissions } from '@/auth/hooks/use-permissions';
 import { useFetchAreas } from '@/pages/dashboard/locations/hooks/area';
@@ -18,21 +18,27 @@ export default function Page() {
   const [pageSize, setPageSize] = useState(10);
   const [affiliateApprovedFilter, setAffiliateApprovedFilter] = useState<string>('');
   const [areaFilter, setAreaFilter] = useState<string>('');
+  const [search, setSearch] = useState<string>('');
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
   const [passwordDialogTargetId, setPasswordDialogTargetId] = useState<number | null>(null);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
 
   const { data: areasResponse } = useFetchAreas();
   const { data: userDetailsResponse } = useFetchUserById(passwordDialogTargetId ?? '');
   const areas = areasResponse?.data?.items || [];
 
-  const params: Record<string, number> = {
+  const params: Record<string, number | string> = {
     affiliate_approved:
       affiliateApprovedFilter !== ''
         ? parseInt(affiliateApprovedFilter, 10)
         : 1,
   };
   if (areaFilter !== '') params.area_id = parseInt(areaFilter, 10);
+  if (search.trim()) params.search = search.trim();
 
   const { data: usersResponse, isLoading, error } = useFetchUsers(
     currentPage,
@@ -225,6 +231,7 @@ export default function Page() {
         pageSize={pageSize}
         onPageChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}
+        onSearchChange={setSearch}
       />
     </>
   );

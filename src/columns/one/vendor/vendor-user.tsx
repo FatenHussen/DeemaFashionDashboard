@@ -92,7 +92,7 @@ export const vendorUserColumns = (
               : 'bg-red-500/20 text-red-700 dark:text-red-400'
           }`}
         >
-          {isActive ? 'Active' : 'Inactive'}
+          {isActive ? t('active') : t('inactive')}
         </span>
       );
     },

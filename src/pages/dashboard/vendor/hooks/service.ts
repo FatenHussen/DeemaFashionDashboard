@@ -3,10 +3,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { _ServiceApi, type ServiceCreateUpdatePayload } from '../api/service.services';
 
-export const useFetchServices = (page: number = 1, limit: number = 25) =>
+export const useFetchServices = (
+  page: number = 1,
+  limit: number = 25,
+  params?: { search?: string }
+) =>
   useQuery({
-    queryKey: queryKeys.service.list({ page, limit }),
-    queryFn: () => _ServiceApi.getListServices(page, limit),
+    queryKey: queryKeys.service.list({ page, limit, ...params }),
+    queryFn: () => _ServiceApi.getListServices(page, limit, params),
   });
 
 export const useFetchServiceById = (id: number | string) =>

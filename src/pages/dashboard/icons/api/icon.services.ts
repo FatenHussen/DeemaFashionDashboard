@@ -3,7 +3,7 @@ import type { IconListResponse, IconCreatePayload, IconDetailsResponse } from '.
 import { apiRoutes, axiosInstance } from '@/api';
 
 export const _IconApi = {
-  getListIcons: async (params?: { page?: number; per_page?: number }): Promise<IconListResponse> => {
+  getListIcons: async (params?: { page?: number; per_page?: number; search?: string }): Promise<IconListResponse> => {
     const response = await axiosInstance.get<IconListResponse>(apiRoutes.icon.list, { params });
     return response.data;
   },

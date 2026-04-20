@@ -64,7 +64,7 @@ export const currencyColumns = (
     accessorKey: 'is_default',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.default')} />,
     cell: ({ row }) => row.original.is_default ? (
-      <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-blue-500/20 text-blue-600">Default</span>
+      <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-blue-500/20 text-blue-600">{t('columns.default')}</span>
     ) : <span className="text-muted-foreground text-xs">-</span>,
   },
   {
@@ -73,7 +73,7 @@ export const currencyColumns = (
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.status')} />,
     cell: ({ row }) => (
       <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${row.original.is_active ? 'bg-green-500/20 text-green-600' : 'bg-red-500/20 text-red-600'}`}>
-        {row.original.is_active ? 'Active' : 'Inactive'}
+        {row.original.is_active ? t('active') : t('inactive')}
       </span>
     ),
   },

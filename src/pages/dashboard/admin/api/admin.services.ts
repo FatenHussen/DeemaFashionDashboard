@@ -5,8 +5,14 @@ import { apiRoutes, axiosInstance } from '@/api';
 export type { AdminCreateUpdatePayload };
 
 export const _AdminApi = {
-  getListAdmin: async (): Promise<AdminListResponse> => {
-    const response = await axiosInstance.get<AdminListResponse>(apiRoutes.admin.list);
+  getListAdmin: async (params?: {
+    page?: number;
+    per_page?: number;
+    search?: string;
+  }): Promise<AdminListResponse> => {
+    const response = await axiosInstance.get<AdminListResponse>(apiRoutes.admin.list, {
+      params,
+    });
     return response.data;
   },
   createAdmin: async (data: AdminCreateUpdatePayload): Promise<any> => {

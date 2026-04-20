@@ -71,6 +71,7 @@ export const _SaleCountryApi = {
     page?: number;
     per_page?: number;
     is_active?: number | string;
+    search?: string;
   }): Promise<SaleCountryListNormalizedResponse> => {
     const page = params?.page ?? 1;
     const perPage = params?.per_page ?? 10;
@@ -81,6 +82,7 @@ export const _SaleCountryApi = {
         ...(params?.is_active !== undefined && params.is_active !== ''
           ? { is_active: params.is_active }
           : {}),
+        ...(params?.search?.trim() ? { search: params.search.trim() } : {}),
       },
     });
     return normalizeListResponse(response.data, page, perPage);

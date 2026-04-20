@@ -5,10 +5,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { _CurrencyApi } from '../api/currency.services';
 
-export const useFetchCurrencies = (page: number = 1, perPage: number = 10) =>
+export const useFetchCurrencies = (
+  page: number = 1,
+  perPage: number = 10,
+  params?: { search?: string }
+) =>
   useQuery({
-    queryKey: queryKeys.currency.list({ page, per_page: perPage }),
-    queryFn: () => _CurrencyApi.getListCurrencies({ page, per_page: perPage }),
+    queryKey: queryKeys.currency.list({ page, per_page: perPage, ...params }),
+    queryFn: () => _CurrencyApi.getListCurrencies({ page, per_page: perPage, ...params }),
   });
 
 export const useFetchCurrencyById = (id: number | string) =>

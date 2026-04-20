@@ -5,10 +5,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { _RecipeApi } from '../api/recipe.services';
 
-export const useFetchRecipes = (page: number = 1, perPage: number = 10) =>
+export const useFetchRecipes = (page: number = 1, perPage: number = 10, search?: string) =>
   useQuery({
-    queryKey: queryKeys.recipe.list({ page, per_page: perPage }),
-    queryFn: () => _RecipeApi.getListRecipes({ page, per_page: perPage }),
+    queryKey: queryKeys.recipe.list({ page, per_page: perPage, search }),
+    queryFn: () => _RecipeApi.getListRecipes({ page, per_page: perPage, search }),
   });
 
 export const useFetchRecipeById = (id: number | string) =>

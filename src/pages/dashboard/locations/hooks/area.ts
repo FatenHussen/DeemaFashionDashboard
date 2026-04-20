@@ -3,9 +3,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { _AreaApi, type AreaCreateUpdatePayload } from '../api/area.services';
 
-export const useFetchAreas = (page: number = 1, limit: number = 25) => useQuery({
-    queryKey: queryKeys.area.list({ page, limit }),
-    queryFn: () => _AreaApi.getListAreas(),
+export const useFetchAreas = (
+  page: number = 1,
+  limit: number = 25,
+  params?: { search?: string }
+) => useQuery({
+    queryKey: queryKeys.area.list({ page, limit, ...params }),
+    queryFn: () => _AreaApi.getListAreas({ page, per_page: limit, ...params }),
   });
 
 export const useFetchAreaById = (id: number | string) => useQuery({

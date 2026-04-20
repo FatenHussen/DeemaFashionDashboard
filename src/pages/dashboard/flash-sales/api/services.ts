@@ -50,6 +50,7 @@ export const _FlashSaleApi = {
   getList: async (params?: {
     page?: number;
     per_page?: number;
+    search?: string;
   }): Promise<FlashSaleListResponse> => {
     const response = await axiosInstance.get<FlashSaleListResponse>(apiRoutes.flashSale.list, {
       params,

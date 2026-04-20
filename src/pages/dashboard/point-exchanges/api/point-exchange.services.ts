@@ -8,7 +8,7 @@ import { apiRoutes, axiosInstance } from '@/api';
 
 export const _PointExchangeApi = {
   getListPointExchanges: async (
-    params?: { page?: number; per_page?: number }
+    params?: { page?: number; per_page?: number; search?: string }
   ): Promise<PointExchangeListResponse> => {
     const response = await axiosInstance.get<PointExchangeListResponse>(apiRoutes.pointExchange.list, {
       params,

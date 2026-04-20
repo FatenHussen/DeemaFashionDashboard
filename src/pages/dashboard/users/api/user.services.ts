@@ -14,6 +14,7 @@ export const _UserApi = {
     per_page?: number;
     affiliate_approved?: number;
     area_id?: number;
+    search?: string;
   }): Promise<UserListResponse> => {
     const response = await axiosInstance.get<UserListResponse>(apiRoutes.user.list, {
       params,

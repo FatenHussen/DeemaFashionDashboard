@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
@@ -14,9 +14,16 @@ export default function Page() {
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [search, setSearch] = useState<string>('');
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
-  const { data: response, isLoading } = useFetchBadges(currentPage, pageSize);
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
+
+  const params = search.trim() ? { search: search.trim() } : undefined;
+
+  const { data: response, isLoading } = useFetchBadges(currentPage, pageSize, params);
   const deleteMutation = useDeleteBadge();
 
   const handlePageChange = (page: number) => setCurrentPage(page);
@@ -79,6 +86,7 @@ export default function Page() {
         pageSize={pageSize}
         onPageChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}
+        onSearchChange={setSearch}
       />
     </>
   );

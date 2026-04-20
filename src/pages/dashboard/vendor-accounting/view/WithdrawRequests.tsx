@@ -1,6 +1,6 @@
 import type { WithdrawStatus, WithdrawRequest } from '../types';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { withdrawRequestColumns } from '@/columns/one/vendor-accounting/withdraw-requests';
@@ -21,11 +21,15 @@ export default function WithdrawRequestsPage() {
   const [search, setSearch] = useState('');
   const [processingRequest, setProcessingRequest] = useState<WithdrawRequest | null>(null);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
+
   const { data, isLoading } = useFetchWithdrawRequests({
     page: currentPage,
     per_page: pageSize,
     status: statusFilter,
-    search: search || undefined,
+    search: search.trim() || undefined,
   });
 
   const items: WithdrawRequest[] = data?.data?.items ?? [];
@@ -86,33 +90,22 @@ export default function WithdrawRequestsPage() {
           setPageSize(size);
           setCurrentPage(1);
         }}
+        onSearchChange={setSearch}
         toolbarFilter={
-          <div className="flex flex-wrap items-center gap-3">
-            <input
-              type="text"
-              placeholder={t('vendorAccounting.searchWithdrawRequests')}
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="h-9 w-56 rounded-lg border border-input bg-background px-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-            />
-            <select
-              value={statusFilter ?? ''}
-              onChange={(e) => {
-                const val = e.target.value as WithdrawStatus | '';
-                setStatusFilter(val || undefined);
-                setCurrentPage(1);
-              }}
-              className="h-9 rounded-lg border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-            >
-              <option value="">{t('allStatuses')}</option>
-              <option value="pending">{t('statusPending')}</option>
-              <option value="paid">{t('vendorAccounting.statusPaid')}</option>
-              <option value="rejected">{t('statusRejected')}</option>
-            </select>
-          </div>
+          <select
+            value={statusFilter ?? ''}
+            onChange={(e) => {
+              const val = e.target.value as WithdrawStatus | '';
+              setStatusFilter(val || undefined);
+              setCurrentPage(1);
+            }}
+            className="h-9 rounded-lg border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          >
+            <option value="">{t('allStatuses')}</option>
+            <option value="pending">{t('statusPending')}</option>
+            <option value="paid">{t('vendorAccounting.statusPaid')}</option>
+            <option value="rejected">{t('statusRejected')}</option>
+          </select>
         }
       />
     </>

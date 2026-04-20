@@ -5,10 +5,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { _VendorUserApi } from '../api/vendor-user.services';
 
-export const useFetchVendorUsers = (page: number = 1, perPage: number = 10) =>
+export const useFetchVendorUsers = (
+  page: number = 1,
+  perPage: number = 10,
+  params?: { search?: string }
+) =>
   useQuery({
-    queryKey: queryKeys.vendorUser.list({ page, per_page: perPage }),
-    queryFn: () => _VendorUserApi.getList({ page, per_page: perPage }),
+    queryKey: queryKeys.vendorUser.list({ page, per_page: perPage, ...params }),
+    queryFn: () => _VendorUserApi.getList({ page, per_page: perPage, ...params }),
   });
 
 export const useFetchVendorUserById = (id: number | string) =>

@@ -10,6 +10,7 @@ export const _LegalDocumentApi = {
   getList: async (params?: {
     page?: number;
     per_page?: number;
+    search?: string;
   }): Promise<LegalDocumentListResponse> => {
     const response = await axiosInstance.get<LegalDocumentListResponse>(
       apiRoutes.legalDocument.list,

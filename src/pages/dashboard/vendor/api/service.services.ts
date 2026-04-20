@@ -8,10 +8,14 @@ import { apiRoutes, axiosInstance } from '@/api';
 export type { ServiceCreateUpdatePayload };
 
 export const _ServiceApi = {
-  getListServices: async (page: number = 1, limit: number = 25): Promise<ServiceListResponse> => {
-    const response = await axiosInstance.get<ServiceListResponse>(
-      `${apiRoutes.service.list}?page=${page}&limit=${limit}`
-    );
+  getListServices: async (
+    page: number = 1,
+    perPage: number = 25,
+    params?: { search?: string }
+  ): Promise<ServiceListResponse> => {
+    const response = await axiosInstance.get<ServiceListResponse>(apiRoutes.service.list, {
+      params: { page, per_page: perPage, ...params },
+    });
     return response.data;
   },
   createService: async (data: ServiceCreateUpdatePayload): Promise<any> => {

@@ -1,7 +1,6 @@
 import type { SortableEntity } from '@/shared/ui/table-data/sort-items-dialog';
 
 import { toast } from 'react-toastify';
-import { Input } from '@/shared/ui/input';
 import { Button } from '@/shared/ui/button';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router';
@@ -49,19 +48,11 @@ export default function Page() {
   const page = Number(searchParams.get('page')) || 1;
   const limit = Number(searchParams.get('limit')) || 10;
 
-  const [nameInput, setNameInput] = useState('');
-  const [debouncedName, setDebouncedName] = useState('');
+  const [search, setSearch] = useState('');
   const [isActiveFilter, setIsActiveFilter] = useState<'' | '1' | '0'>('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [originCountryFilter, setOriginCountryFilter] = useState('');
   const [isSortOpen, setIsSortOpen] = useState(false);
-
-  useEffect(() => {
-    const id = window.setTimeout(() => {
-      setDebouncedName(nameInput.trim());
-    }, 400);
-    return () => window.clearTimeout(id);
-  }, [nameInput]);
 
   const setPageOne = useCallback(() => {
     setSearchParams((prev) => {
@@ -79,7 +70,7 @@ export default function Page() {
       return;
     }
     setPageOne();
-  }, [debouncedName, isActiveFilter, categoryFilter, originCountryFilter, setPageOne]);
+  }, [search, isActiveFilter, categoryFilter, originCountryFilter, setPageOne]);
 
   const { data: categoriesResp } = useQuery({
     queryKey: ['categories', 'brand-index-filter'],
@@ -100,7 +91,7 @@ export default function Page() {
     per_page: limit,
     sort_field: 'order',
     sort_order: 'asc',
-    ...(debouncedName ? { name: debouncedName } : {}),
+    ...(search.trim() ? { search: search.trim() } : {}),
     ...(isActiveFilter === '' ? {} : { is_active: isActiveFilter === '1' }),
     ...(categoryFilter ? { category_id: Number(categoryFilter) } : {}),
     ...(originCountryFilter ? { origin_country_id: Number(originCountryFilter) } : {}),
@@ -203,14 +194,12 @@ export default function Page() {
   };
 
   const activeFilterCount =
-    (debouncedName ? 1 : 0) +
     (isActiveFilter ? 1 : 0) +
     (categoryFilter ? 1 : 0) +
     (originCountryFilter ? 1 : 0);
 
   const onFilterReset = () => {
-    setNameInput('');
-    setDebouncedName('');
+    setSearch('');
     setIsActiveFilter('');
     setCategoryFilter('');
     setOriginCountryFilter('');
@@ -266,16 +255,9 @@ export default function Page() {
           delete: hasPermission('delete', 'brand'),
         }}
         isLoading={isLoading}
-        searchColumns={[]}
         hasFilter
-        toolbarFilter={
-          <Input
-            placeholder={t('search')}
-            value={nameInput}
-            onChange={(e) => setNameInput(e.target.value)}
-            className="h-10 max-w-xs min-w-[200px] flex-1"
-          />
-        }
+        onSearchChange={setSearch}
+        searchPlaceholder={t('search')}
         filterSidebar={
           <div className="flex flex-col gap-5">
             <FilterGroup label={t('statusLabel')}>

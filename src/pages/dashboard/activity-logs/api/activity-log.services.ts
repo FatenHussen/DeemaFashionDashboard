@@ -30,6 +30,7 @@ export const _ActivityLogApi = {
     per_page?: number;
     action?: string;
     model?: string;
+    search?: string;
   }): Promise<ActivityLogListResponse> => {
     const response = await axiosInstance.get(apiRoutes.activityLog.list, { params });
     return normalizeActivityLogListPayload(response.data);

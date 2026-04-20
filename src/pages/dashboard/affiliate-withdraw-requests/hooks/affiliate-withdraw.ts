@@ -8,7 +8,7 @@ import { _AffiliateWithdrawApi } from '../api/affiliate-withdraw.services';
 export const useFetchAffiliateWithdrawRequests = (
   page: number = 1,
   perPage: number = 10,
-  filters?: { status?: string; affiliate_id?: string }
+  filters?: { status?: string; affiliate_id?: string; search?: string }
 ) =>
   useQuery({
     queryKey: queryKeys.affiliateWithdraw.list({ page, per_page: perPage, ...filters }),

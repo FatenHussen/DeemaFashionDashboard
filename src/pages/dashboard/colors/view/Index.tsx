@@ -9,7 +9,6 @@ import { DataTable } from '@/shared/ui/table-data/table-data';
 import { usePermissions } from '@/auth/hooks/use-permissions';
 import { useDeleteColor, useFetchColors } from '@/pages/dashboard/colors/hooks/color';
 
-import { Input } from 'src/shared/ui';
 import { CONFIG } from 'src/global-config';
 
 export default function Page() {
@@ -18,26 +17,20 @@ export default function Page() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [deletingId, setDeletingId] = useState<number | null>(null);
-  const [searchInput, setSearchInput] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [search, setSearch] = useState<string>('');
   const [activeFilter, setActiveFilter] = useState('');
   const [hexFilter, setHexFilter] = useState('');
   const [sortField, setSortField] = useState<'' | 'id' | 'hex' | 'is_active' | 'created_at'>('');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   useEffect(() => {
-    const id = window.setTimeout(() => setDebouncedSearch(searchInput.trim()), 400);
-    return () => window.clearTimeout(id);
-  }, [searchInput]);
-
-  useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedSearch, activeFilter, hexFilter, sortField, sortOrder]);
+  }, [search, activeFilter, hexFilter, sortField, sortOrder]);
 
   const { data: response, isLoading } = useFetchColors({
     page: currentPage,
     per_page: pageSize,
-    ...(debouncedSearch ? { search: debouncedSearch } : {}),
+    ...(search.trim() ? { search: search.trim() } : {}),
     ...(activeFilter === '' ? {} : { is_active: activeFilter === '1' }),
     ...(hexFilter.trim() ? { hex: hexFilter.trim().slice(0, 7) } : {}),
     ...(sortField ? { sort_field: sortField, sort_order: sortOrder } : {}),
@@ -88,15 +81,6 @@ export default function Page() {
     activeFilter || undefined,
     sortField || undefined,
   ].filter(Boolean).length;
-
-  const toolbarFilter = (
-    <Input
-      value={searchInput}
-      onChange={(e) => setSearchInput(e.target.value)}
-      placeholder={t('form.colorSearchPlaceholder')}
-      className="h-9 min-w-[160px] flex-1 max-w-xs"
-    />
-  );
 
   const sidebarContent = (
     <>
@@ -173,7 +157,6 @@ export default function Page() {
         createPath="/colors/create"
         hasDetails
         detailsLink="/colors/update"
-        searchColumns={[]}
         permissions={{
           create: colorCan('create'),
           update: colorCan('update'),
@@ -185,7 +168,7 @@ export default function Page() {
         pageSize={pageSize}
         onPageChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}
-        toolbarFilter={toolbarFilter}
+        onSearchChange={setSearch}
         filterSidebar={sidebarContent}
         activeFilterCount={activeFilterCount}
         onFilterReset={() => {

@@ -3,10 +3,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { _PromotionRequestApi } from '../api/promotion-request.services';
 
-export const useFetchPromotionRequests = (page: number = 1, perPage: number = 10, status?: string) =>
+export const useFetchPromotionRequests = (page: number = 1, perPage: number = 10, status?: string, search?: string) =>
   useQuery({
-    queryKey: queryKeys.promotionRequest.list({ page, per_page: perPage, status }),
-    queryFn: () => _PromotionRequestApi.getList({ page, per_page: perPage, status }),
+    queryKey: queryKeys.promotionRequest.list({ page, per_page: perPage, status, search }),
+    queryFn: () => _PromotionRequestApi.getList({ page, per_page: perPage, status, search }),
   });
 
 export const useFetchPromotionRequestById = (id: number | string) =>

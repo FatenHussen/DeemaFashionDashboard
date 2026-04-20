@@ -8,7 +8,7 @@ import { _UserGiftApi } from '../api/user-gift.services';
 export const useFetchUserGifts = (
   page: number = 1,
   perPage: number = 10,
-  filters?: { user_id?: number; gift_id?: number; status?: string }
+  filters?: { user_id?: number; gift_id?: number; status?: string; search?: string }
 ) =>
   useQuery({
     queryKey: queryKeys.userGift.list({ page, per_page: perPage, ...filters }),

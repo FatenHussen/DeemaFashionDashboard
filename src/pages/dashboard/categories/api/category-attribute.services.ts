@@ -13,6 +13,7 @@ export type CategoryAttributeListParams = {
   per_page?: number;
   category_id?: number | string;
   name?: string;
+  search?: string;
   type?: string;
   is_active?: 0 | 1 | boolean;
 };
@@ -34,7 +35,7 @@ export const _CategoryAttributeApi = {
   getListCategoryAttributes: async (
     params: CategoryAttributeListParams = {}
   ): Promise<CategoryAttributeListResponse> => {
-    const { page = 1, per_page = 25, category_id, name, type, is_active } = params;
+    const { page = 1, per_page = 25, category_id, name, search, type, is_active } = params;
     const searchParams = new URLSearchParams();
     appendIf(searchParams, 'page', page);
     appendIf(searchParams, 'per_page', per_page);
@@ -47,6 +48,7 @@ export const _CategoryAttributeApi = {
       appendIf(searchParams, 'category_id', category_id);
     }
     if (name?.trim()) searchParams.set('name', name.trim());
+    if (search?.trim()) searchParams.set('search', search.trim());
     appendIf(searchParams, 'type', type);
     if (is_active === true || is_active === 1) searchParams.set('is_active', '1');
     else if (is_active === false || is_active === 0) searchParams.set('is_active', '0');

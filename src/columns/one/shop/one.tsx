@@ -257,7 +257,7 @@ export const shopColumns = (
             height={14}
             className="flex-shrink-0"
           />
-          <span className="text-xs font-medium">{isActive ? 'Active' : 'Inactive'}</span>
+          <span className="text-xs font-medium">{isActive ? t('active') : t('inactive')}</span>
         </div>
       );
     },

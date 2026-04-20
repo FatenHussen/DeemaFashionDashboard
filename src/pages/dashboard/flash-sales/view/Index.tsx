@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { DataTable } from '@/shared/ui/table-data/table-data';
@@ -19,8 +19,16 @@ export default function Page() {
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [search, setSearch] = useState<string>('');
 
-  const { data: response, isLoading } = useFetchFlashSales(currentPage, pageSize);
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
+
+  const params: { search?: string } = {};
+  if (search.trim()) params.search = search.trim();
+
+  const { data: response, isLoading } = useFetchFlashSales(currentPage, pageSize, params);
 
   const onEditNavigate = (row: FlashSaleRow) => {
     navigate(paths.dashboard.flashSales.update(row.id));
@@ -53,7 +61,6 @@ export default function Page() {
         createPath={paths.dashboard.flashSales.create}
         hasDetails={false}
         rowClickToDetails={false}
-        searchColumns={[]}
         permissions={{
           create: hasPermission('create'),
           update: hasPermission('update'),
@@ -74,6 +81,7 @@ export default function Page() {
           setPageSize(size);
           setCurrentPage(1);
         }}
+        onSearchChange={setSearch}
       />
     </>
   );

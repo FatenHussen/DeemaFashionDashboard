@@ -68,7 +68,7 @@ export const giftColumns = (
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.status')} />,
     cell: ({ row }) => (
       <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${row.original.is_active ? 'bg-green-500/20 text-green-600' : 'bg-red-500/20 text-red-600'}`}>
-        {row.original.is_active ? 'Active' : 'Inactive'}
+        {row.original.is_active ? t('active') : t('inactive')}
       </span>
     ),
   },

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
 import { DataTable } from '@/shared/ui/table-data/table-data';
@@ -18,13 +18,21 @@ export default function Page() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [search, setSearch] = useState<string>('');
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
+
+  const governorateParams: { search?: string } = {};
+  if (search.trim()) governorateParams.search = search.trim();
 
   // Fetch governorates using the hook
   const {
     data: governoratesResponse,
     isLoading,
     error,
-  } = useFetchGovernorates(currentPage, pageSize);
+  } = useFetchGovernorates(currentPage, pageSize, governorateParams);
   const deleteGovernorateMutation = useDeleteGovernorate(currentPage, pageSize);
 
   // Log error for debugging
@@ -124,6 +132,7 @@ export default function Page() {
         pageSize={pageSize}
         onPageChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}
+        onSearchChange={setSearch}
       />
     </>
   );

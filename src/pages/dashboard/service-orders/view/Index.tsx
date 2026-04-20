@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Iconify } from '@/shared/components/iconify';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { usePermissions } from '@/auth/hooks/use-permissions';
-import { useMemo, useState, useCallback, type ReactNode } from 'react';
+import { useMemo, useState, useEffect, useCallback, type ReactNode } from 'react';
 import { serviceOrderColumns, type ServiceOrderRow } from '@/columns/one/service-orders/one';
 
 import { CONFIG } from 'src/global-config';
@@ -30,11 +30,17 @@ export default function Page() {
   const [pageSize, setPageSize] = useState(10);
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
   const [changingOrderId, setChangingOrderId] = useState<number | null>(null);
+  const [search, setSearch] = useState<string>('');
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
 
   const { data: response, isLoading } = useFetchServiceOrders(
     currentPage,
     pageSize,
-    statusFilter
+    statusFilter,
+    search.trim() || undefined
   );
   const changeStatusMutation = useChangeServiceOrderStatus();
 
@@ -114,7 +120,6 @@ export default function Page() {
         tableName={t('tableNames.serviceOrder')}
         columns={columns}
         data={items}
-        searchColumns={[]}
         filterSidebar={sidebarContent}
         activeFilterCount={statusFilter ? 1 : 0}
         onFilterReset={() => { setStatusFilter(undefined); setCurrentPage(1); }}
@@ -139,6 +144,7 @@ export default function Page() {
         pageSize={pageSize}
         onPageChange={setCurrentPage}
         onPageSizeChange={(size) => { setPageSize(size); setCurrentPage(1); }}
+        onSearchChange={setSearch}
       />
     </>
   );

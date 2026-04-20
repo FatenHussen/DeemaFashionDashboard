@@ -8,6 +8,7 @@ import { apiRoutes, axiosInstance } from '@/api';
 
 export type BrandListQueryParams = {
   name?: string;
+  search?: string;
   page?: number;
   per_page?: number;
   is_active?: 0 | 1 | boolean;
@@ -25,6 +26,7 @@ export const _BrandApi = {
     if (params?.page) searchParams.set('page', String(params.page));
     if (params?.per_page) searchParams.set('per_page', String(params.per_page));
     if (params?.name?.trim()) searchParams.set('name', params.name.trim());
+    if (params?.search?.trim()) searchParams.set('search', params.search.trim());
     if (params?.category_id != null && params.category_id > 0)
       searchParams.set('category_id', String(params.category_id));
     if (params?.origin_country_id != null && params.origin_country_id > 0)

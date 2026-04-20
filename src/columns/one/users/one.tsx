@@ -112,7 +112,7 @@ export const userColumns = (
       const aff = row.original.affiliate;
       const isAff = aff?.is_affiliate ?? false;
       const approved = aff?.affiliate_approved ?? false;
-      const label = !isAff ? 'No' : approved ? 'Approved' : 'Pending';
+      const label = !isAff ? t('no') : approved ? t('columns.approved') : t('columns.pending');
       const variant = !isAff
         ? 'bg-muted text-muted-foreground'
         : approved

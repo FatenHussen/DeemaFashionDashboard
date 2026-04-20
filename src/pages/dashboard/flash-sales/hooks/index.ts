@@ -5,13 +5,18 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { _FlashSaleApi } from '../api/services';
 
-export const useFetchFlashSales = (page: number = 1, perPage: number = 10) =>
+export const useFetchFlashSales = (
+  page: number = 1,
+  perPage: number = 10,
+  params?: { search?: string }
+) =>
   useQuery({
-    queryKey: queryKeys.flashSale.list({ page, per_page: perPage }),
+    queryKey: queryKeys.flashSale.list({ page, per_page: perPage, ...params }),
     queryFn: () =>
       _FlashSaleApi.getList({
         page,
         per_page: perPage,
+        ...params,
       }),
   });
 

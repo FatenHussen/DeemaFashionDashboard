@@ -1,6 +1,6 @@
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
-import { useState, type ReactNode } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { usePermissions } from '@/auth/hooks/use-permissions';
 import {
@@ -22,11 +22,17 @@ export default function Page() {
   const [minPrice, setMinPrice] = useState<string>('');
   const [maxPrice, setMaxPrice] = useState<string>('');
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [search, setSearch] = useState<string>('');
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
 
   const filters: Record<string, any> = {};
   if (isActiveFilter !== '') filters.is_active = parseInt(isActiveFilter, 10);
   if (minPrice !== '') filters.min_price = parseFloat(minPrice);
   if (maxPrice !== '') filters.max_price = parseFloat(maxPrice);
+  if (search.trim()) filters.search = search.trim();
 
   const { data: response, isLoading, error } = useFetchVendorPackages(
     currentPage,
@@ -160,6 +166,7 @@ export default function Page() {
         pageSize={pageSize}
         onPageChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}
+        onSearchChange={setSearch}
       />
     </>
   );

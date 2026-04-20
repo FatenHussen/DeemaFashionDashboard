@@ -1,6 +1,7 @@
 import type { HTMLAttributes } from 'react';
 
 import { useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { usePopover } from 'minimal-shared/hooks';
 
 import { Label } from 'src/shared/components/label';
@@ -20,6 +21,7 @@ export type WorkspacesPopoverProps = HTMLAttributes<HTMLButtonElement> & {
 };
 
 export function WorkspacesPopover({ data = [], className, ...other }: WorkspacesPopoverProps) {
+  const { t } = useTranslation('common');
   const { open, anchorEl, onClose, onOpen } = usePopover();
 
   const [workspace, setWorkspace] = useState(data[0]);
@@ -114,7 +116,7 @@ export function WorkspacesPopover({ data = [], className, ...other }: Workspaces
         className="w-full px-3 py-2 flex items-center gap-2 text-sm font-medium hover:bg-muted transition-colors"
       >
         <Iconify width={18} icon="mingcute:add-line" className="w-6 h-6 flex items-center justify-center" />
-        <span>Create workspace</span>
+        <span>{t('createWorkspace')}</span>
       </button>
     </CustomPopover>
   );

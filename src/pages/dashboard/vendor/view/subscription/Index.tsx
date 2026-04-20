@@ -1,7 +1,7 @@
 import type { TFunction } from 'i18next';
 
 import { useTranslation } from 'react-i18next';
-import { useState, type ReactNode } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { useFetchVendorSubscriptions } from '@/pages/dashboard/vendor/hooks/vendor-subscription';
 import { VENDOR_SUBSCRIPTION_STATUSES } from '@/pages/dashboard/vendor/types/vendor-subscription.types';
@@ -28,14 +28,17 @@ export default function Page() {
   const [pageSize, setPageSize] = useState(10);
   const [statusFilter, setStatusFilter] = useState('');
   const [search, setSearch] = useState('');
-  const [appliedSearch, setAppliedSearch] = useState('');
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
 
   const { data: response, isLoading, error } = useFetchVendorSubscriptions(
     currentPage,
     pageSize,
     {
       status: statusFilter || undefined,
-      search: appliedSearch || undefined,
+      search: search.trim() || undefined,
     }
   );
 
@@ -44,11 +47,6 @@ export default function Page() {
   const handlePageChange = (page: number) => setCurrentPage(page);
   const handlePageSizeChange = (size: number) => {
     setPageSize(size);
-    setCurrentPage(1);
-  };
-
-  const handleApplySearch = () => {
-    setAppliedSearch(search);
     setCurrentPage(1);
   };
 
@@ -64,26 +62,6 @@ export default function Page() {
         to: Math.min(apiPagination.current_page * apiPagination.per_page, apiPagination.total),
       }
     : { current_page: 1, last_page: 1, per_page: 10, total: 0, from: 0, to: 0 };
-
-  const toolbarSearch = (
-    <div className="flex items-center gap-2 min-w-0 flex-1">
-      <input
-        type="text"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        onKeyDown={(e) => e.key === 'Enter' && handleApplySearch()}
-        placeholder={t('searchByShopName')}
-        className="h-10 min-w-[180px] flex-1 rounded-xl border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50"
-      />
-      <button
-        type="button"
-        onClick={handleApplySearch}
-        className="h-10 rounded-xl border border-input bg-background px-4 text-sm font-medium hover:bg-muted shrink-0"
-      >
-        {t('apply')}
-      </button>
-    </div>
-  );
 
   const sidebarContent = (
     <FilterGroup label={t('columns.status')}>
@@ -112,7 +90,6 @@ export default function Page() {
         data={items}
         hasDetails
         detailsLink="/vendor-subscriptions"
-        toolbarFilter={toolbarSearch}
         filterSidebar={sidebarContent}
         activeFilterCount={statusFilter ? 1 : 0}
         onFilterReset={() => { setStatusFilter(''); setCurrentPage(1); }}
@@ -138,6 +115,7 @@ export default function Page() {
         pageSize={pageSize}
         onPageChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}
+        onSearchChange={setSearch}
       />
     </>
   );

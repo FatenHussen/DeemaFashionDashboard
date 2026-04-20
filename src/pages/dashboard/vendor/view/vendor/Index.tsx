@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
 import { DataTable } from '@/shared/ui/table-data/table-data';
@@ -15,8 +15,17 @@ export default function Page() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [search, setSearch] = useState<string>('');
 
-  const { data: vendorsResponse, isLoading, error } = useFetchVendors(currentPage, pageSize);
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
+
+  const { data: vendorsResponse, isLoading, error } = useFetchVendors(
+    currentPage,
+    pageSize,
+    search.trim() ? { search: search.trim() } : undefined
+  );
   const deleteVendorMutation = useDeleteVendor();
 
   if (error) console.error('Error fetching vendors:', error);
@@ -97,6 +106,7 @@ export default function Page() {
         pageSize={pageSize}
         onPageChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}
+        onSearchChange={setSearch}
       />
     </>
   );

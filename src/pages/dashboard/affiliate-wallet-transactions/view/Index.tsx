@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState, useEffect, type ReactNode } from 'react';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { affiliateWalletTransactionColumns } from '@/columns/one/affiliate-wallet-transactions/one';
 import { useFetchAffiliateWalletTransactions } from '@/pages/dashboard/affiliate-wallet-transactions/hooks/affiliate-wallet-transaction';
@@ -17,7 +17,6 @@ export default function Page() {
   const [pageSize, setPageSize] = useState(10);
 
   const [search, setSearch] = useState('');
-  const [appliedSearch, setAppliedSearch] = useState('');
 
   const [type, setType] = useState<'commission' | 'withdraw' | ''>('');
   const [affiliateId, setAffiliateId] = useState('');
@@ -31,10 +30,14 @@ export default function Page() {
   >(DEFAULT_SORT_FIELD);
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>(DEFAULT_SORT_ORDER);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
+
   const filters = useMemo(() => {
     const oid = orderId.trim() ? Number(orderId) : NaN;
     return {
-      ...(appliedSearch.trim() ? { search: appliedSearch.trim() } : {}),
+      ...(search.trim() ? { search: search.trim() } : {}),
       ...(type ? { type } : {}),
       ...(affiliateId.trim() ? { affiliate_id: affiliateId.trim() } : {}),
       ...(!Number.isNaN(oid) ? { order_id: oid } : {}),
@@ -46,7 +49,7 @@ export default function Page() {
       sort_order: sortOrder,
     };
   }, [
-    appliedSearch,
+    search,
     type,
     affiliateId,
     orderId,
@@ -63,11 +66,6 @@ export default function Page() {
     pageSize,
     filters
   );
-
-  const handleApplySearch = () => {
-    setAppliedSearch(search);
-    setCurrentPage(1);
-  };
 
   const handlePageChange = (page: number) => setCurrentPage(page);
   const handlePageSizeChange = (size: number) => {
@@ -92,26 +90,6 @@ export default function Page() {
     [type, affiliateId.trim(), orderId.trim(), from, to, minAmount, maxAmount].filter(Boolean)
       .length +
     (sortField !== DEFAULT_SORT_FIELD || sortOrder !== DEFAULT_SORT_ORDER ? 1 : 0);
-
-  const toolbarSearch = (
-    <div className="flex items-center gap-2 min-w-0 flex-1">
-      <input
-        type="text"
-        placeholder={t('form.affiliateWalletTxSearchPlaceholder')}
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        onKeyDown={(e) => e.key === 'Enter' && handleApplySearch()}
-        className="h-10 min-w-[200px] flex-1 rounded-xl border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-      />
-      <button
-        type="button"
-        onClick={handleApplySearch}
-        className="h-10 rounded-xl border border-input bg-background px-4 text-sm font-medium hover:bg-muted shrink-0"
-      >
-        {t('apply')}
-      </button>
-    </div>
-  );
 
   const sidebarContent = (
     <>
@@ -251,12 +229,10 @@ export default function Page() {
         hasDetails
         rowClickToDetails
         detailsLink={paths.dashboard.affiliateWalletTransactions}
-        toolbarFilter={toolbarSearch}
         filterSidebar={sidebarContent}
         activeFilterCount={activeFilterCount}
         onFilterReset={() => {
           setSearch('');
-          setAppliedSearch('');
           setType('');
           setAffiliateId('');
           setOrderId('');
@@ -285,6 +261,7 @@ export default function Page() {
         pageSize={pageSize}
         onPageChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}
+        onSearchChange={setSearch}
       />
     </>
   );
