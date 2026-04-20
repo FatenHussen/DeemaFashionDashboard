@@ -49,6 +49,13 @@ interface DataTableToolbarProps<TData> {
   onFilterReset?: () => void;
   /** Called when the user confirms the filter sidebar (footer primary). Omit to only close the drawer. */
   onFilterApply?: () => void;
+  /**
+   * When set, the built-in search becomes server-side: the input is debounced (400ms) and the
+   * value is forwarded via this callback instead of `table.setGlobalFilter` (client-side filter).
+   */
+  onSearchChange?: (value: string) => void;
+  /** Optional placeholder for the search input (defaults to t('search')). */
+  searchPlaceholder?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -226,23 +233,43 @@ export function DataTableToolbar<TData>({
   activeFilterCount,
   onFilterReset,
   onFilterApply,
+  onSearchChange,
+  searchPlaceholder,
 }: DataTableToolbarProps<TData>) {
   const [searchValue, setSearchValue] = useState('');
   const [filterSidebarOpen, setFilterSidebarOpen] = useState(false);
   const navigate = useNavigate();
   const { t } = useTranslation('table');
 
-  const availableColumns =
-    searchColumns ||
-    table
-      .getAllLeafColumns()
-      .filter((column) => column.getCanFilter())
-      .map((column) => column.id);
+  const isServerSearch = typeof onSearchChange === 'function';
+
+  const availableColumns = isServerSearch
+    ? ['__server_search__']
+    : searchColumns ||
+      table
+        .getAllLeafColumns()
+        .filter((column) => column.getCanFilter())
+        .map((column) => column.id);
 
   const isFiltered = table.getState().columnFilters.length > 0 || table.getState().globalFilter;
 
+  // Debounce server-side search so we don't fire a request per keystroke.
+  useEffect(() => {
+    if (!isServerSearch) {
+      return undefined;
+    }
+    const id = window.setTimeout(() => {
+      onSearchChange?.(searchValue.trim());
+    }, 400);
+    return () => window.clearTimeout(id);
+  }, [searchValue, isServerSearch, onSearchChange]);
+
   const handleSearchChange = (value: string) => {
     setSearchValue(value);
+    if (isServerSearch) {
+      // Debounced useEffect above will call onSearchChange — don't filter client-side.
+      return;
+    }
     if (availableColumns.length === 1) {
       table.getColumn(availableColumns[0])?.setFilterValue(value);
     } else if (availableColumns.length > 1) {
@@ -254,6 +281,9 @@ export function DataTableToolbar<TData>({
     table.resetColumnFilters();
     table.resetGlobalFilter();
     setSearchValue('');
+    if (isServerSearch) {
+      onSearchChange?.('');
+    }
   };
 
   const canImport = VALID_IMPORT_TYPES.includes(tableName);
@@ -304,7 +334,7 @@ export function DataTableToolbar<TData>({
                 <Search className="w-4 h-4" />
               </div>
               <Input
-                placeholder={t('search')}
+                placeholder={searchPlaceholder || t('search')}
                 value={searchValue}
                 onChange={(event) => handleSearchChange(event.target.value)}
                 onFocus={() => setIsSearchFocused(true)}

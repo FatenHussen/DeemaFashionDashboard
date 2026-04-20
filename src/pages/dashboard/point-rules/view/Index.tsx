@@ -1,5 +1,5 @@
-import { useState } from 'react';
 import { useNavigate } from 'react-router';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { usePermissions } from '@/auth/hooks/use-permissions';
@@ -21,8 +21,16 @@ export default function Page() {
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [search, setSearch] = useState<string>('');
 
-  const { data: response, isLoading } = useFetchPointRules(currentPage, pageSize);
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
+
+  const pointRuleFilters: { is_active?: string; search?: string } = {};
+  if (search.trim()) pointRuleFilters.search = search.trim();
+
+  const { data: response, isLoading } = useFetchPointRules(currentPage, pageSize, pointRuleFilters);
 
   const handlePageChange = (page: number) => setCurrentPage(page);
   const handlePageSizeChange = (size: number) => {
@@ -80,6 +88,7 @@ export default function Page() {
         pageSize={pageSize}
         onPageChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}
+        onSearchChange={setSearch}
       />
     </>
   );

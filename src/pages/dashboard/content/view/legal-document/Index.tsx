@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { useFetchLegalDocuments } from '@/pages/dashboard/content/hooks/legal-document';
@@ -13,8 +13,17 @@ export default function Page() {
   const { t } = useTranslation('table');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [search, setSearch] = useState<string>('');
 
-  const { data: response, isLoading, error } = useFetchLegalDocuments(currentPage, pageSize);
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
+
+  const { data: response, isLoading, error } = useFetchLegalDocuments(
+    currentPage,
+    pageSize,
+    search.trim() ? { search: search.trim() } : undefined
+  );
 
   if (error) {
     console.error('Error fetching legal documents:', error);
@@ -70,6 +79,7 @@ export default function Page() {
         pageSize={pageSize}
         onPageChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}
+        onSearchChange={setSearch}
       />
     </>
   );

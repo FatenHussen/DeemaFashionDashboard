@@ -1,15 +1,14 @@
 import type { ProductData } from '@/pages/dashboard/products/types/product.types';
 
 import { toast } from 'react-toastify';
-import { Input } from '@/shared/ui/input';
 import { useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { formatTranslated } from '@/utils/format-translated';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { usePermissions } from '@/auth/hooks/use-permissions';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useFetchShops } from '@/pages/dashboard/vendor/hooks/shop';
-import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { _BrandApi } from '@/pages/dashboard/products/api/brand.services';
 import { _VendorApi } from '@/pages/dashboard/vendor/api/vendor.services';
 import { _CategoryApi } from '@/pages/dashboard/categories/api/category.services';
@@ -60,8 +59,7 @@ export default function InventoryPage() {
   const page = Number(searchParams.get('page')) || 1;
   const limit = Number(searchParams.get('limit')) || 10;
 
-  const [searchInput, setSearchInput] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState<string | undefined>(undefined);
+  const [search, setSearch] = useState<string>('');
   const [approvalStatus, setApprovalStatus] = useState('');
   const [isVisibleFilter, setIsVisibleFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
@@ -80,30 +78,10 @@ export default function InventoryPage() {
     });
   }, [setSearchParams]);
 
-  const setPageOneRef = useRef(setPageOne);
-  setPageOneRef.current = setPageOne;
-
-  const debouncedInitRef = useRef(false);
-  const prevDebouncedSearchRef = useRef<string | undefined>(undefined);
-
   useEffect(() => {
-    const id = window.setTimeout(() => {
-      const v = searchInput.trim();
-      setDebouncedSearch(v || undefined);
-    }, 400);
-    return () => window.clearTimeout(id);
-  }, [searchInput]);
-
-  useEffect(() => {
-    if (!debouncedInitRef.current) {
-      debouncedInitRef.current = true;
-      prevDebouncedSearchRef.current = debouncedSearch;
-      return;
-    }
-    if (prevDebouncedSearchRef.current === debouncedSearch) return;
-    prevDebouncedSearchRef.current = debouncedSearch;
-    setPageOneRef.current();
-  }, [debouncedSearch]);
+    setPageOne();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search]);
 
   const resetAllFilters = () => {
     setApprovalStatus('');
@@ -119,8 +97,7 @@ export default function InventoryPage() {
   const handleTabChange = (tab: InventoryTab) => {
     setActiveTab(tab);
     resetAllFilters();
-    setSearchInput('');
-    setDebouncedSearch(undefined);
+    setSearch('');
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev);
       next.set('page', '1');
@@ -155,7 +132,7 @@ export default function InventoryPage() {
   const queryParams = {
     page,
     limit,
-    search: debouncedSearch,
+    ...(search.trim() ? { search: search.trim() } : {}),
     vendor_id:
       activeTab === 'tikmool'
         ? INTERNAL_VENDOR_ID
@@ -335,15 +312,8 @@ export default function InventoryPage() {
           delete: canDeleteProduct,
         }}
         isLoading={isLoading}
-        searchColumns={[]}
-        toolbarFilter={
-          <Input
-            placeholder={t('productListSearchPlaceholder')}
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            className="h-10 max-w-xs min-w-[200px] flex-1"
-          />
-        }
+        onSearchChange={setSearch}
+        searchPlaceholder={t('productListSearchPlaceholder')}
         activeFilterCount={activeFilterCount}
         onFilterReset={() => {
           resetAllFilters();

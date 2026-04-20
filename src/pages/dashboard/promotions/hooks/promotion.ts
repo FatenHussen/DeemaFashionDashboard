@@ -5,10 +5,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { _PromotionApi } from '../api/promotion.services';
 
-export const useFetchPromotions = (page: number = 1, perPage: number = 10) =>
+export const useFetchPromotions = (page: number = 1, perPage: number = 10, search?: string) =>
   useQuery({
-    queryKey: queryKeys.promotion.list({ page, per_page: perPage }),
-    queryFn: () => _PromotionApi.getListPromotions({ page, per_page: perPage }),
+    queryKey: queryKeys.promotion.list({ page, per_page: perPage, search }),
+    queryFn: () => _PromotionApi.getListPromotions({ page, per_page: perPage, search }),
   });
 
 export const useFetchPromotionById = (id: number | string) =>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { affiliateWithdrawColumns } from '@/columns/one/affiliate-withdraw-requests/one';
@@ -10,8 +10,15 @@ export default function Page() {
   const { t } = useTranslation('table');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [search, setSearch] = useState<string>('');
 
-  const { data: response, isLoading } = useFetchAffiliateWithdrawRequests(currentPage, pageSize);
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
+
+  const filters = search.trim() ? { search: search.trim() } : undefined;
+
+  const { data: response, isLoading } = useFetchAffiliateWithdrawRequests(currentPage, pageSize, filters);
 
   const handlePageChange = (page: number) => setCurrentPage(page);
   const handlePageSizeChange = (size: number) => { setPageSize(size); setCurrentPage(1); };
@@ -45,6 +52,7 @@ export default function Page() {
         pageSize={pageSize}
         onPageChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}
+        onSearchChange={setSearch}
       />
     </>
   );

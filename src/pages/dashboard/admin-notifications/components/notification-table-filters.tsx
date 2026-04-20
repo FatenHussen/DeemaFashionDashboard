@@ -3,10 +3,8 @@ import type { Table } from '@tanstack/react-table';
 import type { NotificationFormValues } from '@/columns/one/admin-notifications/one';
 import type { NotificationType } from '@/pages/dashboard/admin-notifications/types/notification.types';
 
-import { X, Search } from 'lucide-react';
-import { Input } from '@/shared/ui/input';
+import { X } from 'lucide-react';
 import { Button } from '@/shared/ui/button';
-import { useState, useEffect } from 'react';
 import { mergeClasses } from 'minimal-shared/utils';
 import { Iconify } from '@/shared/components/iconify';
 import { NOTIFICATION_TYPES } from '@/pages/dashboard/admin-notifications/types/notification.types';
@@ -32,37 +30,19 @@ const CHIP_IDLE =
 
 type Props = {
   table: Table<NotificationFormValues>;
-  search: string;
-  onSearchChange: (value: string) => void;
   typeFilter: NotificationType | 'all';
   onTypeChange: (value: NotificationType | 'all') => void;
   t: TFunction<'table'>;
 };
 
 export function AdminNotificationTableFilters({
-  search,
-  onSearchChange,
   typeFilter,
   onTypeChange,
   t,
 }: Props) {
-  const [localSearch, setLocalSearch] = useState(search);
-  const [searchFocused, setSearchFocused] = useState(false);
-
-  useEffect(() => {
-    setLocalSearch(search);
-  }, [search]);
-
-  useEffect(() => {
-    const id = window.setTimeout(() => onSearchChange(localSearch), 380);
-    return () => window.clearTimeout(id);
-  }, [localSearch, onSearchChange]);
-
-  const hasActiveFilters = Boolean(localSearch.trim()) || typeFilter !== 'all';
+  const hasActiveFilters = typeFilter !== 'all';
 
   const clearAll = () => {
-    setLocalSearch('');
-    onSearchChange('');
     onTypeChange('all');
   };
 
@@ -92,42 +72,6 @@ export function AdminNotificationTableFilters({
                   {t('form.notificationFiltersHint')}
                 </p>
               </div>
-            </div>
-
-            <div
-              className={mergeClasses([
-                'relative flex items-center transition-all duration-300',
-                searchFocused ? 'scale-[1.01]' : '',
-              ])}
-            >
-              <Search
-                className={mergeClasses([
-                  'absolute start-3 z-10 h-4 w-4 transition-colors',
-                  searchFocused ? 'text-primary' : 'text-muted-foreground',
-                ])}
-              />
-              <Input
-                value={localSearch}
-                onChange={(e) => setLocalSearch(e.target.value)}
-                onFocus={() => setSearchFocused(true)}
-                onBlur={() => setSearchFocused(false)}
-                placeholder={t('search')}
-                className={mergeClasses([
-                  'h-11 w-full rounded-xl border-border/50 bg-background/90 ps-10 pe-10 text-sm shadow-sm',
-                  'transition-all duration-300 placeholder:text-muted-foreground/55',
-                  'focus-visible:border-primary/45 focus-visible:ring-2 focus-visible:ring-primary/20',
-                ])}
-              />
-              {localSearch ? (
-                <button
-                  type="button"
-                  onClick={() => setLocalSearch('')}
-                  className="absolute end-2 z-10 rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                  aria-label={t('clear')}
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              ) : null}
             </div>
           </div>
 

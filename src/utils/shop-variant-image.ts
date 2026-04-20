@@ -1,6 +1,6 @@
-import { CONFIG } from 'src/global-config';
-
 import { formatTranslated, type TranslatedValue } from '@/utils/format-translated';
+
+import { CONFIG } from 'src/global-config';
 
 // ----------------------------------------------------------------------
 

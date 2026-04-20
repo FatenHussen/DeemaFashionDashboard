@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { mergeClasses } from 'minimal-shared/utils';
 
 import { RouterLink } from 'src/routes/components';
@@ -21,6 +22,8 @@ export function FormReturnLink({
   children,
   ...other
 }: FormReturnLinkProps) {
+  const { t } = useTranslation('table');
+
   return (
     <RouterLink
       href={href}
@@ -31,7 +34,7 @@ export function FormReturnLink({
       {...other}
     >
       {icon || <Iconify width={16} icon="eva:arrow-ios-back-fill" />}
-      {label || 'Return to sign in'}
+      {label || t('auth.returnToSignIn')}
       {children}
     </RouterLink>
   );

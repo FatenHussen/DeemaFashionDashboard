@@ -10,8 +10,14 @@ import { apiRoutes, axiosInstance } from '@/api';
 export type { RoleCreateUpdatePayload };
 
 export const _RoleApi = {
-  getListRoles: async (): Promise<RoleListResponse> => {
-    const response = await axiosInstance.get<RoleListResponse>(apiRoutes.role.list);
+  getListRoles: async (params?: {
+    page?: number;
+    per_page?: number;
+    search?: string;
+  }): Promise<RoleListResponse> => {
+    const response = await axiosInstance.get<RoleListResponse>(apiRoutes.role.list, {
+      params,
+    });
     return response.data;
   },
   getRoleById: async (id: number | string): Promise<RoleDetailsResponse> => {

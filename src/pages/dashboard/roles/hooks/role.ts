@@ -3,9 +3,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { _RoleApi, type RoleCreateUpdatePayload } from '../api/role.services';
 
-export const useFetchRoles = (page: number = 1, limit: number = 25) => useQuery({
-    queryKey: queryKeys.role.list({ page, limit }),
-    queryFn: () => _RoleApi.getListRoles(),
+export const useFetchRoles = (page: number = 1, limit: number = 25, search?: string) => useQuery({
+    queryKey: queryKeys.role.list({ page, limit, search }),
+    queryFn: () => _RoleApi.getListRoles({ page, per_page: limit, search }),
   });
 
 export const useFetchRoleById = (id: number | string) => useQuery({

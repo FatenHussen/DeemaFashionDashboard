@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import type { VendorAccountingRow, VendorSettlementCycle } from '../types';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Iconify } from '@/shared/components/iconify';
 import { DataTable } from '@/shared/ui/table-data/table-data';
@@ -44,9 +44,12 @@ export default function VendorAccountingPage() {
 
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [isActiveFilter, setIsActiveFilter] = useState<string>('');
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
 
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
@@ -68,13 +71,12 @@ export default function VendorAccountingPage() {
   } = useFetchVendorAccounting({
     page: currentPage,
     per_page: pageSize,
-    search: search || undefined,
+    search: search.trim() || undefined,
     is_active: isActiveFilter !== '' ? isActiveFilter === 'true' : undefined,
     ...appliedRange,
   });
 
   const applySidebarFilters = () => {
-    setSearch(searchInput);
     setAppliedRange({
       from_date: fromDate || undefined,
       to_date: toDate || undefined,
@@ -84,7 +86,6 @@ export default function VendorAccountingPage() {
   };
 
   const resetSidebarFilters = () => {
-    setSearchInput('');
     setSearch('');
     setIsActiveFilter('');
     setFromDate('');
@@ -236,19 +237,8 @@ export default function VendorAccountingPage() {
           tableName={t('tableNames.vendorAccounting')}
           columns={vendorAccountingColumns(t)}
           data={items}
-          searchColumns={[]}
           filterSidebar={
             <div className="flex flex-col gap-5">
-              <FilterGroup label={t('filterSearch')}>
-                <input
-                  type="text"
-                  value={searchInput}
-                  onChange={(e) => setSearchInput(e.target.value)}
-                  placeholder={t('vendorAccounting.searchVendors')}
-                  className="h-9 w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/25"
-                />
-              </FilterGroup>
-
               <FilterGroup label={t('filterByActive')}>
                 {[
                   { key: '', label: t('all') },
@@ -328,6 +318,7 @@ export default function VendorAccountingPage() {
             setPageSize(size);
             setCurrentPage(1);
           }}
+          onSearchChange={setSearch}
         />
       </div>
     </>

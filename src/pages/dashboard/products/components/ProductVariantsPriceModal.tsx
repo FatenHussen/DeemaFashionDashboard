@@ -1,19 +1,19 @@
-import type { AdminProductVariantListItem } from '@/pages/dashboard/products/types/product.types';
 import type { CurrencyData } from '@/pages/dashboard/currencies/types/currency.types';
+import type { AdminProductVariantListItem } from '@/pages/dashboard/products/types/product.types';
 
 import { queryKeys } from '@/api';
 import { toast } from 'react-toastify';
 import { Input } from '@/shared/ui/input';
-import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/shared/ui/button';
 import { Dialog } from '@/shared/ui/dialog';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
+import { useMemo, useState, useEffect } from 'react';
 import { Iconify } from '@/shared/components/iconify';
 import { formatTranslated } from '@/utils/format-translated';
 import { _ProductApi } from '@/pages/dashboard/products/api/product.services';
-import { useUpdateShopProductVariant } from '@/pages/dashboard/products/hooks/product-variant';
 import { useFetchCurrencies } from '@/pages/dashboard/currencies/hooks/currency';
+import { useUpdateShopProductVariant } from '@/pages/dashboard/products/hooks/product-variant';
 
 import { CONFIG } from 'src/global-config';
 

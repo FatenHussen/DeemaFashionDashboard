@@ -10,6 +10,7 @@ export const _SellerRegistrationApi = {
   getList: async (params?: {
     page?: number;
     per_page?: number;
+    search?: string;
   }): Promise<SellerRegistrationListResponse> => {
     const response = await axiosInstance.get<SellerRegistrationListResponse>(
       apiRoutes.sellerRegistration.list,

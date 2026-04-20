@@ -3,9 +3,9 @@ import type { ScheduleListParams } from '@/pages/dashboard/schedules/types/sched
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
-import { useMemo, useState, type ReactNode } from 'react';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { usePermissions } from '@/auth/hooks/use-permissions';
+import { useMemo, useState, useEffect, type ReactNode } from 'react';
 import { scheduleColumns, type ScheduleTableItem } from '@/columns/one/schedules/one';
 import { useFetchSchedules, useDeleteSchedule } from '@/pages/dashboard/schedules/hooks/schedule';
 
@@ -35,11 +35,14 @@ export default function Page() {
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
   const [search, setSearch] = useState('');
-  const [appliedSearch, setAppliedSearch] = useState('');
   const [activeFilter, setActiveFilter] = useState<'all' | 'true' | 'false'>('all');
   const [discountTypeFilter, setDiscountTypeFilter] = useState<'all' | 'percentage' | 'fixed'>('all');
   const [sortField, setSortField] = useState<(typeof SORT_FIELDS)[number]>('created_at');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
 
   const listParams = useMemo((): ScheduleListParams => {
     const params: ScheduleListParams = {
@@ -48,20 +51,15 @@ export default function Page() {
       sort_field: sortField,
       sort_order: sortOrder,
     };
-    if (appliedSearch.trim()) params.search = appliedSearch.trim();
+    if (search.trim()) params.search = search.trim();
     if (activeFilter === 'true') params.is_active = true;
     if (activeFilter === 'false') params.is_active = false;
     if (discountTypeFilter !== 'all') params.discount_type = discountTypeFilter;
     return params;
-  }, [currentPage, pageSize, appliedSearch, activeFilter, discountTypeFilter, sortField, sortOrder]);
+  }, [currentPage, pageSize, search, activeFilter, discountTypeFilter, sortField, sortOrder]);
 
   const { data: response, isLoading } = useFetchSchedules(listParams);
   const deleteMutation = useDeleteSchedule();
-
-  const handleApplySearch = () => {
-    setAppliedSearch(search.trim());
-    setCurrentPage(1);
-  };
 
   const handlePageChange = (page: number) => setCurrentPage(page);
   const handlePageSizeChange = (size: number) => {
@@ -107,26 +105,6 @@ export default function Page() {
     sortField !== 'created_at' ? sortField : undefined,
     sortOrder !== 'desc' ? sortOrder : undefined,
   ].filter(Boolean).length;
-
-  const toolbarSearch = (
-    <div className="flex items-center gap-2 min-w-0 flex-1">
-      <input
-        type="text"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        onKeyDown={(e) => e.key === 'Enter' && handleApplySearch()}
-        placeholder={t('form.scheduleListSearchPlaceholder')}
-        className="h-10 min-w-[180px] flex-1 rounded-xl border border-input bg-background px-3 text-sm placeholder:text-muted-foreground focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary"
-      />
-      <button
-        type="button"
-        onClick={handleApplySearch}
-        className="h-10 rounded-xl border border-input bg-background px-4 text-sm font-medium hover:bg-muted shrink-0"
-      >
-        {t('apply')}
-      </button>
-    </div>
-  );
 
   const sidebarContent = (
     <>
@@ -208,12 +186,10 @@ export default function Page() {
         createPath="/schedules/create"
         hasDetails
         detailsLink="/schedules/update"
-        toolbarFilter={toolbarSearch}
         filterSidebar={sidebarContent}
         activeFilterCount={activeFilterCount}
         onFilterReset={() => {
           setSearch('');
-          setAppliedSearch('');
           setActiveFilter('all');
           setDiscountTypeFilter('all');
           setSortField('created_at');
@@ -232,6 +208,8 @@ export default function Page() {
         pageSize={pageSize}
         onPageChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}
+        onSearchChange={setSearch}
+        searchPlaceholder={t('form.scheduleListSearchPlaceholder')}
       />
     </>
   );

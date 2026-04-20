@@ -8,7 +8,7 @@ import { _ComplaintApi } from '../api/complaint.services';
 export const useFetchComplaints = (
   page: number = 1,
   perPage: number = 10,
-  params?: { status?: string; user_id?: number }
+  params?: { status?: string; user_id?: number; search?: string }
 ) =>
   useQuery({
     queryKey: queryKeys.complaint.list({ page, per_page: perPage, ...params }),

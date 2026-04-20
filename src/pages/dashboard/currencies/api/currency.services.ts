@@ -3,7 +3,7 @@ import type { CurrencyListResponse, CurrencyDetailsResponse, CurrencyCreateUpdat
 import { apiRoutes, axiosInstance } from '@/api';
 
 export const _CurrencyApi = {
-  getListCurrencies: async (params?: { page?: number; per_page?: number }): Promise<CurrencyListResponse> => {
+  getListCurrencies: async (params?: { page?: number; per_page?: number; search?: string }): Promise<CurrencyListResponse> => {
     const response = await axiosInstance.get<CurrencyListResponse>(apiRoutes.currency.list, { params });
     return response.data;
   },

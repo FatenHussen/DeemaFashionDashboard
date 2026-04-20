@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { useState, type ReactNode } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { usePermissions } from '@/auth/hooks/use-permissions';
 import { useFetchComplaints } from '@/pages/dashboard/complaints/hooks/complaint';
@@ -12,12 +12,20 @@ export default function Page() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [statusFilter, setStatusFilter] = useState<string>('');
+  const [search, setSearch] = useState<string>('');
 
-  const params = statusFilter ? { status: statusFilter } : undefined;
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
+
+  const params: { status?: string; search?: string } = {};
+  if (statusFilter) params.status = statusFilter;
+  if (search.trim()) params.search = search.trim();
+
   const { data: complaintsResponse, isLoading, error } = useFetchComplaints(
     currentPage,
     pageSize,
-    params
+    Object.keys(params).length > 0 ? params : undefined
   );
 
   if (error) {
@@ -113,6 +121,7 @@ export default function Page() {
         pageSize={pageSize}
         onPageChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}
+        onSearchChange={setSearch}
       />
     </>
   );

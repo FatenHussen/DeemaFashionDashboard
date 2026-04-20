@@ -5,10 +5,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { _PackageApi } from '../api/package.services';
 
-export const useFetchPackages = (page: number = 1, perPage: number = 10) =>
+export const useFetchPackages = (
+  page: number = 1,
+  perPage: number = 10,
+  params?: { search?: string }
+) =>
   useQuery({
-    queryKey: queryKeys.package.list({ page, per_page: perPage }),
-    queryFn: () => _PackageApi.getListPackages({ page, per_page: perPage }),
+    queryKey: queryKeys.package.list({ page, per_page: perPage, ...params }),
+    queryFn: () => _PackageApi.getListPackages({ page, per_page: perPage, ...params }),
   });
 
 export const useFetchPackageById = (id: number | string) =>

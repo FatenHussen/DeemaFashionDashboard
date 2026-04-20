@@ -8,9 +8,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { _PageSectionApi } from '../api/page-section.services';
 
 // Fetch list of page sections
-export const useFetchPageSections = (page: number = 1, limit: number = 25) => useQuery({
-    queryKey: queryKeys.pageSection.list({ page, limit }),
-    queryFn: () => _PageSectionApi.getListPageSections(page, limit),
+export const useFetchPageSections = (page: number = 1, limit: number = 25, search?: string) => useQuery({
+    queryKey: queryKeys.pageSection.list({ page, limit, search }),
+    queryFn: () => _PageSectionApi.getListPageSections(page, limit, search),
   });
 
 // Fetch page section details

@@ -1,6 +1,6 @@
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
-import { useState, type ReactNode } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { FAQ_TYPES } from '@/pages/dashboard/content/types/faq.types';
 import { faqColumns, type FaqFormValues } from '@/columns/one/faqs/one';
@@ -15,12 +15,18 @@ export default function Page() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [typeFilter, setTypeFilter] = useState('');
+  const [search, setSearch] = useState<string>('');
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
+
   const { data: response, isLoading, error } = useFetchFaqs(currentPage, pageSize, {
     type: typeFilter || undefined,
+    ...(search.trim() ? { search: search.trim() } : {}),
   });
   const deleteMutation = useDeleteFaq();
 
@@ -123,6 +129,7 @@ export default function Page() {
         pageSize={pageSize}
         onPageChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}
+        onSearchChange={setSearch}
       />
     </>
   );

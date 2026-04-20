@@ -7,15 +7,15 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Iconify } from '@/shared/components/iconify';
 import { MultiSelect } from '@/shared/ui/multi-select';
 import { formatTranslated } from '@/utils/format-translated';
-import { resolveStorageImageUrl, shopVariantOptionColorHex, shopVariantOptionImage } from '@/utils/shop-variant-image';
 import { useParams, useNavigate, useLocation } from 'react-router';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { InfiniteScrollSelect } from '@/shared/components/infinite-scroll-select';
-import { TinyMCEEditorField } from '@/shared/components/tinymce-editor/tinymce-editor';
 import { _CategoryApi } from '@/pages/dashboard/categories/api/category.services';
 import type { CategoryData } from '@/pages/dashboard/categories/types/category.types';
 import { buildParentPickerOptions } from '@/pages/dashboard/categories/utils/build-parent-picker-options';
 import { _ShopProductVariantApi } from '@/shared/api/shop-product-variant.services';
+import { TinyMCEEditorField } from '@/shared/components/tinymce-editor/tinymce-editor';
+import { resolveStorageImageUrl, shopVariantOptionImage, shopVariantOptionColorHex } from '@/utils/shop-variant-image';
 import {
   ScheduledBasketSchema,
   type ScheduledBasketFormValues,

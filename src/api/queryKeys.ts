@@ -31,7 +31,7 @@ export const queryKeys = {
   },
   // Role query keys
   role: {
-    list: (params?: { page?: number; limit?: number }) => ['role', 'list', params] as const,
+    list: (params?: { page?: number; limit?: number; search?: string }) => ['role', 'list', params] as const,
     details: (id: number | string) => ['role', 'details', id] as const,
   },
   // Permission query keys
@@ -115,7 +115,7 @@ export const queryKeys = {
   },
   // Section query keys
   section: {
-    list: (params?: { page?: number; limit?: number }) => ['section', 'list', params] as const,
+    list: (params?: { page?: number; limit?: number; search?: string }) => ['section', 'list', params] as const,
     details: (id: number | string) => ['section', 'details', id] as const,
     itemTypes: () => ['section', 'item-types'] as const,
     manualItems: (manualModel: string, url: string, params?: { page?: number; limit?: number; search?: string }) =>
@@ -149,7 +149,7 @@ export const queryKeys = {
   },
   // Page Section query keys
   pageSection: {
-    list: (params?: { page?: number; limit?: number }) => ['pageSection', 'list', params] as const,
+    list: (params?: { page?: number; limit?: number; search?: string }) => ['pageSection', 'list', params] as const,
     details: (id: number | string) => ['pageSection', 'details', id] as const,
     pages: () => ['pageSection', 'pages'] as const,
     displayTypes: () => ['pageSection', 'display-types'] as const,
@@ -234,7 +234,7 @@ export const queryKeys = {
   },
   // Recipe query keys
   recipe: {
-    list: (params?: { page?: number; per_page?: number }) => ['recipe', 'list', params] as const,
+    list: (params?: { page?: number; per_page?: number; search?: string }) => ['recipe', 'list', params] as const,
     details: (id: number | string) => ['recipe', 'details', id] as const,
   },
   // Product Variant query keys
@@ -338,7 +338,7 @@ export const queryKeys = {
   },
   // Promotion query keys
   promotion: {
-    list: (params?: { page?: number; per_page?: number }) => ['promotion', 'list', params] as const,
+    list: (params?: { page?: number; per_page?: number; search?: string }) => ['promotion', 'list', params] as const,
     details: (id: number | string) => ['promotion', 'details', id] as const,
   },
   // Country query keys
@@ -354,7 +354,7 @@ export const queryKeys = {
   },
   // Promotion Request query keys
   promotionRequest: {
-    list: (params?: { page?: number; per_page?: number; status?: string }) =>
+    list: (params?: { page?: number; per_page?: number; status?: string; search?: string }) =>
       ['promotionRequest', 'list', params] as const,
     details: (id: number | string) => ['promotionRequest', 'details', id] as const,
   },

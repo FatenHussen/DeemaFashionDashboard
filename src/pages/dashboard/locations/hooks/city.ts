@@ -3,10 +3,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { _CityApi, type CityCreateUpdatePayload } from '../api/city.services';
 
-export const useFetchCities = (page: number = 1, limit: number = 25) =>
+export const useFetchCities = (
+  page: number = 1,
+  limit: number = 25,
+  params?: { search?: string }
+) =>
   useQuery({
-    queryKey: queryKeys.city.list({ page, limit }),
-    queryFn: () => _CityApi.getListCities({ page, per_page: limit }),
+    queryKey: queryKeys.city.list({ page, limit, ...params }),
+    queryFn: () => _CityApi.getListCities({ page, per_page: limit, ...params }),
   });
 
 export const useFetchCityById = (id: number | string) => useQuery({

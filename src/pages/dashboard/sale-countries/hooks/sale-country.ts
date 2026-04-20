@@ -8,19 +8,22 @@ import { _SaleCountryApi } from '../api/sale-country.services';
 export const useFetchSaleCountries = (
   page: number = 1,
   perPage: number = 10,
-  isActive?: number | string
+  isActive?: number | string,
+  search?: string
 ) =>
   useQuery({
     queryKey: queryKeys.saleCountry.list({
       page,
       per_page: perPage,
       ...(isActive !== undefined && isActive !== '' ? { is_active: isActive } : {}),
+      ...(search?.trim() ? { search: search.trim() } : {}),
     }),
     queryFn: () =>
       _SaleCountryApi.getListSaleCountries({
         page,
         per_page: perPage,
         ...(isActive !== undefined && isActive !== '' ? { is_active: isActive } : {}),
+        ...(search?.trim() ? { search: search.trim() } : {}),
       }),
   });
 

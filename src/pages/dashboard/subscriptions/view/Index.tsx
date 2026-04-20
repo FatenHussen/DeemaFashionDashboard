@@ -1,8 +1,8 @@
 import type { SubscriptionListParams } from '@/pages/dashboard/subscriptions/types/subscription.types';
 
 import { useTranslation } from 'react-i18next';
-import { useMemo, useState, type ReactNode } from 'react';
 import { DataTable } from '@/shared/ui/table-data/table-data';
+import { useMemo, useState, useEffect, type ReactNode } from 'react';
 import { useFetchSubscriptions } from '@/pages/dashboard/subscriptions/hooks/subscription';
 import { subscriptionColumns, type SubscriptionRow } from '@/columns/one/subscriptions/one';
 
@@ -19,13 +19,17 @@ export default function Page() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState<string>('');
   const [userId, setUserId] = useState('');
   const [packageId, setPackageId] = useState('');
   const [startFrom, setStartFrom] = useState('');
   const [startTo, setStartTo] = useState('');
   const [sortField, setSortField] = useState<(typeof SORT_FIELDS)[number]>('created_at');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
 
   const listParams = useMemo((): SubscriptionListParams => {
     const uid = userId.trim() ? Number(userId) : undefined;
@@ -72,16 +76,6 @@ export default function Page() {
     sortField !== 'created_at' ? sortField : undefined,
     sortOrder !== 'desc' ? sortOrder : undefined,
   ].filter(Boolean).length;
-
-  const toolbarSearch = (
-    <input
-      type="text"
-      placeholder={t('subscriptionSearchPlaceholder')}
-      value={search}
-      onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
-      className="h-10 min-w-[180px] flex-1 rounded-xl border border-input bg-background px-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-    />
-  );
 
   const sidebarContent = (
     <>
@@ -181,7 +175,6 @@ export default function Page() {
         hasDetails
         detailsLink="/subscriptions/details"
         pageSizeOptions={[...SUBSCRIPTION_PAGE_SIZE_OPTIONS]}
-        toolbarFilter={toolbarSearch}
         filterSidebar={sidebarContent}
         activeFilterCount={activeFilterCount}
         onFilterReset={() => {
@@ -218,6 +211,7 @@ export default function Page() {
         pageSize={pageSize}
         onPageChange={(page: number) => setCurrentPage(page)}
         onPageSizeChange={(size: number) => { setPageSize(size); setCurrentPage(1); }}
+        onSearchChange={setSearch}
       />
     </>
   );

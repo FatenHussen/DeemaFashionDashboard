@@ -1,4 +1,4 @@
-import type { VendorCreateUpdatePayload, VendorData } from '@/pages/dashboard/vendor/types/vendor.types';
+import type { VendorData, VendorCreateUpdatePayload } from '@/pages/dashboard/vendor/types/vendor.types';
 
 import { useEffect } from 'react';
 import { toast } from 'react-toastify';

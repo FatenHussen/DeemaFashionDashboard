@@ -1,7 +1,7 @@
 import type { NotificationType } from '@/pages/dashboard/admin-notifications/types/notification.types';
 
-import { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useState, useEffect, useCallback } from 'react';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { usePermissions } from '@/auth/hooks/use-permissions';
 import { useFetchAdminNotifications } from '@/pages/dashboard/admin-notifications/hooks/notification';
@@ -17,13 +17,17 @@ export default function Page() {
   const { t } = useTranslation('table');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState<string>('');
   const [typeFilter, setTypeFilter] = useState<NotificationType | 'all'>('all');
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
 
   const { data: response, isLoading, error } = useFetchAdminNotifications(
     currentPage,
     pageSize,
-    search || undefined,
+    search.trim() || undefined,
     typeFilter
   );
 
@@ -34,11 +38,6 @@ export default function Page() {
     setPageSize(size);
     setCurrentPage(1);
   };
-
-  const handleSearchChange = useCallback((value: string) => {
-    setSearch(value);
-    setCurrentPage(1);
-  }, []);
 
   const handleTypeChange = useCallback((value: NotificationType | 'all') => {
     setTypeFilter(value);
@@ -81,13 +80,10 @@ export default function Page() {
           update: false,
           delete: false,
         }}
-        searchColumns={[]}
         isLoading={isLoading}
         toolbarFilter={({ table }) => (
           <AdminNotificationTableFilters
             table={table}
-            search={search}
-            onSearchChange={handleSearchChange}
             typeFilter={typeFilter}
             onTypeChange={handleTypeChange}
             t={t}
@@ -108,6 +104,7 @@ export default function Page() {
         pageSize={pageSize}
         onPageChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}
+        onSearchChange={setSearch}
       />
     </>
   );

@@ -17,26 +17,17 @@ export default function Page() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
-  const [searchInput, setSearchInput] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState<string | undefined>(undefined);
-
-  useEffect(() => {
-    const debounceTimer = window.setTimeout(() => {
-      const v = searchInput.trim();
-      setDebouncedSearch(v || undefined);
-    }, 400);
-    return () => clearTimeout(debounceTimer);
-  }, [searchInput]);
+  const [search, setSearch] = useState<string>('');
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedSearch]);
+  }, [search]);
 
   const { data: ordersResponse, isLoading, error } = useFetchOrders(
     currentPage,
     pageSize,
     statusFilter,
-    debouncedSearch
+    search.trim() || undefined
   );
   const [assignDriverOrder, setAssignDriverOrder] = useState<OrderFormValues | null>(null);
   const [rejectOrder, setRejectOrder] = useState<OrderFormValues | null>(null);
@@ -116,33 +107,6 @@ export default function Page() {
     { key: 'cancelled' as const, label: t('statusCancelled'), icon: 'solar:close-circle-bold' },
   ];
 
-  const toolbarSearch = (
-    <div className="relative min-w-0 flex-1 max-w-full lg:max-w-md">
-      <span className="pointer-events-none absolute start-3 top-1/2 z-10 -translate-y-1/2 text-muted-foreground">
-        <Iconify icon="solar:magnifer-bold" width={18} height={18} />
-      </span>
-      <input
-        type="search"
-        enterKeyHint="search"
-        placeholder={t('searchOrders')}
-        value={searchInput}
-        onChange={(e) => setSearchInput(e.target.value)}
-        className="h-11 w-full rounded-2xl border border-border/60 bg-background/90 py-2.5 ps-10 pe-10 text-sm shadow-sm backdrop-blur-sm transition-all placeholder:text-muted-foreground/70 focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/20 hover:border-primary/25"
-        aria-label={t('searchOrders')}
-      />
-      {searchInput ? (
-        <button
-          type="button"
-          onClick={() => setSearchInput('')}
-          className="absolute end-2 top-1/2 z-10 -translate-y-1/2 rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          aria-label={t('clear')}
-        >
-          <Iconify icon="solar:close-circle-bold" width={18} height={18} />
-        </button>
-      ) : null}
-    </div>
-  );
-
   const sidebarContent = (
     <FilterGroup label={t('columns.status')}>
       <div className="flex flex-col gap-2">
@@ -192,8 +156,6 @@ export default function Page() {
         data={orderData}
         hasDetails
         detailsLink="/orders/details"
-        searchColumns={[]}
-        toolbarFilter={toolbarSearch}
         filterSidebar={sidebarContent}
         activeFilterCount={statusFilter ? 1 : 0}
         onFilterReset={() => { setStatusFilter(undefined); setCurrentPage(1); }}
@@ -219,6 +181,8 @@ export default function Page() {
         pageSize={pageSize}
         onPageChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}
+        onSearchChange={setSearch}
+        searchPlaceholder={t('searchOrders')}
       />
     </>
   );

@@ -104,7 +104,7 @@ export const couponColumns = (
     cell: ({ row }) => {
       const isActive = row.original.is_active;
       const isExpired = row.original.is_expired;
-      const label = isExpired ? 'Expired' : isActive ? 'Active' : 'Inactive';
+      const label = isExpired ? t('columns.expired') : isActive ? t('active') : t('inactive');
       const variant = isExpired ? 'secondary' : isActive ? 'default' : 'destructive';
       return (
         <span

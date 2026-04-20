@@ -85,7 +85,7 @@ const buildFormData = (data: RecipeCreateUpdatePayload): FormData => {
 };
 
 export const _RecipeApi = {
-  getListRecipes: async (params?: { page?: number; per_page?: number }): Promise<RecipeListResponse> => {
+  getListRecipes: async (params?: { page?: number; per_page?: number; search?: string }): Promise<RecipeListResponse> => {
     const response = await axiosInstance.get<RecipeListResponse>(apiRoutes.recipe.list, { params });
     return response.data;
   },

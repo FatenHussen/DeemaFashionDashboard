@@ -3,9 +3,9 @@ import type { DriverAvailabilityKey } from '@/shared/utils/driver-status-badge';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
 import { Iconify } from '@/shared/components/iconify';
-import { useMemo, useState, type ReactNode } from 'react';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { usePermissions } from '@/auth/hooks/use-permissions';
+import { useMemo, useState, useEffect, type ReactNode } from 'react';
 import { driverColumns, type DriverFormValues } from '@/columns/one/driver/one';
 import { UpdatePasswordDialog } from '@/shared/components/update-password-dialog';
 import { normalizeDriverAvailabilityStatus } from '@/shared/utils/driver-status-badge';
@@ -39,13 +39,19 @@ export default function Page() {
   const [statusFilter, setStatusFilter] = useState('');
   const [isActiveFilter, setIsActiveFilter] = useState('');
   const [assignOrderRow, setAssignOrderRow] = useState<DriverFormValues | null>(null);
+  const [search, setSearch] = useState<string>('');
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
 
   const listFilters = useMemo(() => {
-    const f: { status?: string; is_active?: number } = {};
+    const f: { status?: string; is_active?: number; search?: string } = {};
     if (statusFilter) f.status = statusFilter;
     if (isActiveFilter !== '') f.is_active = parseInt(isActiveFilter, 10);
+    if (search.trim()) f.search = search.trim();
     return Object.keys(f).length ? f : undefined;
-  }, [statusFilter, isActiveFilter]);
+  }, [statusFilter, isActiveFilter, search]);
 
   const { data: driversResponse, isLoading, error } = useFetchDrivers(currentPage, pageSize, listFilters);
   const { data: driverDetailsResponse } = useFetchDriverById(passwordDialogTargetId ?? '');
@@ -333,6 +339,7 @@ export default function Page() {
         pageSize={pageSize}
         onPageChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}
+        onSearchChange={setSearch}
       />
     </>
   );

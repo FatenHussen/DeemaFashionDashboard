@@ -6,14 +6,14 @@ import { useTranslation } from 'react-i18next';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { formatTranslated } from '@/utils/format-translated';
-import { resolveStorageImageUrl, shopVariantOptionColorHex, shopVariantOptionImage } from '@/utils/shop-variant-image';
 import { useRef, useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router';
 import { useInfiniteSelect } from '@/shared/hooks/use-infinite-select';
 import { InfiniteScrollSelect } from '@/shared/components/infinite-scroll-select';
-import { ShopVariantColorSwatch } from '@/shared/components/shop-variant-color-swatch';
 import { _CategoryApi } from '@/pages/dashboard/categories/api/category.services';
 import { _ShopProductVariantApi } from '@/shared/api/shop-product-variant.services';
+import { ShopVariantColorSwatch } from '@/shared/components/shop-variant-color-swatch';
+import { resolveStorageImageUrl, shopVariantOptionImage, shopVariantOptionColorHex } from '@/utils/shop-variant-image';
 import { useCreateGift, useUpdateGift, useFetchGiftById, useBulkCreateGifts } from '@/pages/dashboard/gifts/hooks/gift';
 import {
   GiftSchema,
@@ -23,8 +23,8 @@ import {
 
 import { CONFIG } from 'src/global-config';
 import { Iconify } from 'src/shared/components/iconify';
-import { Box, Input, Tab, Tabs, Switch, Typography } from 'src/shared/ui';
 import { LoadingScreen } from 'src/shared/components/loading-screen';
+import { Box, Tab, Tabs, Input, Switch, Typography } from 'src/shared/ui';
 import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
 import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
 

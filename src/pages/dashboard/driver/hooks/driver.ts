@@ -6,7 +6,7 @@ import { _DriverApi, type DriverCreateUpdatePayload } from '../api/driver.servic
 export const useFetchDrivers = (
   page: number = 1,
   limit: number = 25,
-  filters?: { status?: string; is_active?: number }
+  filters?: { status?: string; is_active?: number; search?: string }
 ) =>
   useQuery({
     queryKey: queryKeys.driver.list({ page, limit, ...filters }),

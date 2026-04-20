@@ -1,5 +1,5 @@
-import { useState } from 'react';
 import { toast } from 'react-toastify';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { usePermissions } from '@/auth/hooks/use-permissions';
@@ -15,9 +15,17 @@ export default function Page() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [search, setSearch] = useState<string>('');
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
+
+  const cityParams: { search?: string } = {};
+  if (search.trim()) cityParams.search = search.trim();
 
   // Fetch cities using the hook
-  const { data: citiesResponse, isLoading, error } = useFetchCities(currentPage, pageSize);
+  const { data: citiesResponse, isLoading, error } = useFetchCities(currentPage, pageSize, cityParams);
   const deleteCityMutation = useDeleteCity(currentPage, pageSize);
 
   // Log error for debugging
@@ -121,6 +129,7 @@ export default function Page() {
         pageSize={pageSize}
         onPageChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}
+        onSearchChange={setSearch}
       />
     </>
   );

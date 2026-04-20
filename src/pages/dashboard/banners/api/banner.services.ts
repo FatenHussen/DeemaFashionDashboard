@@ -11,7 +11,7 @@ function appendExpiresAt(formData: FormData, expiresAt: string | undefined) {
 
 export const _BannerApi = {
   getListBanners: async (
-    params?: { page?: number; per_page?: number }
+    params?: { page?: number; per_page?: number; search?: string }
   ): Promise<BannerListResponse> => {
     const response = await axiosInstance.get<BannerListResponse>(apiRoutes.banner.list, {
       params,

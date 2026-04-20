@@ -2,7 +2,6 @@ import type { ReactNode } from 'react';
 import type { SortableEntity } from '@/shared/ui/table-data/sort-items-dialog';
 
 import { toast } from 'react-toastify';
-import { Input } from '@/shared/ui/input';
 import { Button } from '@/shared/ui/button';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
@@ -53,18 +52,10 @@ export default function Page() {
   const [sortField, setSortField] = useState<SortField>('');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
-  const [nameSearchInput, setNameSearchInput] = useState('');
-  const [debouncedName, setDebouncedName] = useState('');
+  const [search, setSearch] = useState<string>('');
   const [isActiveFilter, setIsActiveFilter] = useState<'' | '1' | '0'>('');
   const [isRestaurantFilter, setIsRestaurantFilter] = useState<'' | '1' | '0'>('');
   const [isSortOpen, setIsSortOpen] = useState(false);
-
-  useEffect(() => {
-    const id = window.setTimeout(() => {
-      setDebouncedName(nameSearchInput.trim());
-    }, 400);
-    return () => window.clearTimeout(id);
-  }, [nameSearchInput]);
 
   const parentId = trail.length === 0 ? 0 : trail[trail.length - 1].id;
 
@@ -76,14 +67,14 @@ export default function Page() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [sortField, sortOrder, trail, debouncedName, isActiveFilter, isRestaurantFilter]);
+  }, [sortField, sortOrder, trail, search, isActiveFilter, isRestaurantFilter]);
 
   const { data: categoriesResponse, isLoading, isError, error } = useFetchCategories(
     currentPage,
     pageSize,
     {
       parent_id: parentId,
-      ...(debouncedName ? { name: debouncedName } : {}),
+      ...(search.trim() ? { search: search.trim() } : {}),
       ...(isActiveFilter === '' ? {} : { is_active: isActiveFilter === '1' }),
       ...(isRestaurantFilter === '' ? {} : { is_restaurant: isRestaurantFilter === '1' }),
       // Default to `order asc` so the saved drag-and-drop order is reflected
@@ -210,14 +201,11 @@ export default function Page() {
   const hasPermission = (action: string, resource: string) => can(`${resource}.${action}`);
 
   const activeFilterCount =
-    (debouncedName ? 1 : 0) +
     (isActiveFilter ? 1 : 0) +
     (isRestaurantFilter ? 1 : 0) +
     (sortField ? 1 : 0);
 
   const onFilterReset = () => {
-    setNameSearchInput('');
-    setDebouncedName('');
     setIsActiveFilter('');
     setIsRestaurantFilter('');
     setSortField('');
@@ -372,16 +360,7 @@ export default function Page() {
         createPath="/categories/create"
         hasDetails={false}
         onRowClick={tryDrillIntoCategory}
-        searchColumns={[]}
         hasFilter
-        toolbarFilter={
-          <Input
-            placeholder={t('search')}
-            value={nameSearchInput}
-            onChange={(e) => setNameSearchInput(e.target.value)}
-            className="h-10 max-w-xs min-w-[200px] flex-1"
-          />
-        }
         filterSidebar={filterSidebar}
         activeFilterCount={activeFilterCount}
         onFilterReset={onFilterReset}
@@ -407,6 +386,7 @@ export default function Page() {
         pageSize={pageSize}
         onPageChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}
+        onSearchChange={setSearch}
       />
 
       <SortItemsDialog

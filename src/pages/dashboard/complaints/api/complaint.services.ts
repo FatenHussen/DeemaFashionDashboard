@@ -12,6 +12,7 @@ export const _ComplaintApi = {
     per_page?: number;
     status?: string;
     user_id?: number;
+    search?: string;
   }): Promise<ComplaintListResponse> => {
     const response = await axiosInstance.get<ComplaintListResponse>(apiRoutes.complaint.list, {
       params,

@@ -54,6 +54,7 @@ export const _DriverApi = {
     per_page?: number;
     status?: string;
     is_active?: number | boolean;
+    search?: string;
   }): Promise<DriverListResponse> => {
     const response = await axiosInstance.get<DriverListResponse>(apiRoutes.driver.list, { params });
     return response.data;

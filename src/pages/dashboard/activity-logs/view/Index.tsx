@@ -1,7 +1,7 @@
 import type { ActivityLogItem } from '@/pages/dashboard/activity-logs/types/activity-log.types';
 
-import { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useState, useEffect, useCallback } from 'react';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { activityLogColumns } from '@/columns/one/activity-logs/one';
 import { useFetchActivityLogs } from '@/pages/dashboard/activity-logs/hooks/activity-log';
@@ -13,11 +13,18 @@ export default function Page() {
   const { t } = useTranslation('table');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [search, setSearch] = useState<string>('');
   const [changesLog, setChangesLog] = useState<ActivityLogItem | null>(null);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
 
   const openChanges = useCallback((item: ActivityLogItem) => setChangesLog(item), []);
 
-  const { data: response, isLoading } = useFetchActivityLogs(currentPage, pageSize);
+  const filters = search.trim() ? { search: search.trim() } : undefined;
+
+  const { data: response, isLoading } = useFetchActivityLogs(currentPage, pageSize, filters);
 
   const handlePageChange = (page: number) => setCurrentPage(page);
   const handlePageSizeChange = (size: number) => { setPageSize(size); setCurrentPage(1); };
@@ -61,6 +68,7 @@ export default function Page() {
         pageSize={pageSize}
         onPageChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}
+        onSearchChange={setSearch}
       />
 
       <ActivityLogChangesModal

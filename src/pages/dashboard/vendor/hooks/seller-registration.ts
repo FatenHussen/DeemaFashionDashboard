@@ -5,10 +5,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { _SellerRegistrationApi } from '../api/seller-registration.services';
 
-export const useFetchSellerRegistrations = (page: number = 1, perPage: number = 20) =>
+export const useFetchSellerRegistrations = (
+  page: number = 1,
+  perPage: number = 20,
+  params?: { search?: string }
+) =>
   useQuery({
-    queryKey: queryKeys.sellerRegistration.list({ page, per_page: perPage }),
-    queryFn: () => _SellerRegistrationApi.getList({ page, per_page: perPage }),
+    queryKey: queryKeys.sellerRegistration.list({ page, per_page: perPage, ...params }),
+    queryFn: () => _SellerRegistrationApi.getList({ page, per_page: perPage, ...params }),
   });
 
 export const useFetchSellerRegistrationById = (id: number | string) =>

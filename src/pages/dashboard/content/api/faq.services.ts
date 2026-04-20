@@ -11,6 +11,7 @@ export const _FaqApi = {
     page?: number;
     per_page?: number;
     type?: string;
+    search?: string;
   }): Promise<FaqListResponse> => {
     const response = await axiosInstance.get<FaqListResponse>(apiRoutes.faq.list, { params });
     return response.data;

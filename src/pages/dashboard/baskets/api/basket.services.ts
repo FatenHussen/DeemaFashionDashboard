@@ -8,7 +8,7 @@ import { apiRoutes, axiosInstance } from '@/api';
 
 export const _BasketApi = {
   getListBaskets: async (
-    params?: { page?: number; per_page?: number }
+    params?: { page?: number; per_page?: number; search?: string }
   ): Promise<BasketListResponse> => {
     const response = await axiosInstance.get<BasketListResponse>(apiRoutes.basket.list, {
       params,

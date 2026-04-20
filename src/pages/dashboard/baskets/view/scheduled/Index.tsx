@@ -7,7 +7,6 @@ import { usePermissions } from '@/auth/hooks/use-permissions';
 import { scheduledBasketColumns, type ScheduledBasketFormValues } from '@/columns/one/scheduled-baskets/one';
 import { useFetchScheduledBaskets, useDeleteScheduledBasket } from '@/pages/dashboard/baskets/hooks/scheduled-basket';
 
-import { Input } from 'src/shared/ui';
 import { CONFIG } from 'src/global-config';
 
 export default function Page() {
@@ -16,16 +15,14 @@ export default function Page() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [deletingId, setDeletingId] = useState<number | null>(null);
-  const [searchInput, setSearchInput] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [search, setSearch] = useState<string>('');
 
   useEffect(() => {
-    const id = window.setTimeout(() => setDebouncedSearch(searchInput.trim()), 400);
-    return () => window.clearTimeout(id);
-  }, [searchInput]);
+    setCurrentPage(1);
+  }, [search]);
 
   const { data: scheduledBasketsResponse, isLoading, error } = useFetchScheduledBaskets(currentPage, pageSize, {
-    ...(debouncedSearch ? { search: debouncedSearch } : {}),
+    ...(search.trim() ? { search: search.trim() } : {}),
   });
   const deleteScheduledBasketMutation = useDeleteScheduledBasket();
 
@@ -84,7 +81,6 @@ export default function Page() {
           handleEdit
         )}
         data={scheduledBasketData}
-        searchColumns={[]}
         createPath="/scheduled-baskets/create"
         hasDetails
         detailsLink="/scheduled-baskets/details"
@@ -94,17 +90,6 @@ export default function Page() {
           delete: hasPermission('delete', 'schedulebasket'),
         }}
         isLoading={isLoading}
-        toolbarFilter={
-          <Input
-            placeholder={t('search')}
-            value={searchInput}
-            onChange={(e) => {
-              setSearchInput(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="max-w-xs"
-          />
-        }
         columnTranslations={{
           id: t('columns.id'),
           image: t('columns.image'),
@@ -124,6 +109,7 @@ export default function Page() {
         pageSize={pageSize}
         onPageChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}
+        onSearchChange={setSearch}
       />
     </>
   );

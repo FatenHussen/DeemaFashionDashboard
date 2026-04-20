@@ -3,9 +3,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { _GovernorateApi, type GovernorateCreateUpdatePayload } from '../api/governorate.services';
 
-export const useFetchGovernorates = (page: number = 1, limit: number = 25) => useQuery({
-    queryKey: queryKeys.governorate.list({ page, limit }),
-    queryFn: () => _GovernorateApi.getListGovernorates({ page, per_page: limit }),
+export const useFetchGovernorates = (
+  page: number = 1,
+  limit: number = 25,
+  params?: { search?: string }
+) => useQuery({
+    queryKey: queryKeys.governorate.list({ page, limit, ...params }),
+    queryFn: () => _GovernorateApi.getListGovernorates({ page, per_page: limit, ...params }),
   });
 
 export const useFetchGovernorateById = (id: number | string) => useQuery({

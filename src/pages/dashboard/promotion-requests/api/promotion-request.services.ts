@@ -3,7 +3,7 @@ import type { PromotionRequestListResponse, PromotionRequestDetailsResponse } fr
 import { apiRoutes, axiosInstance } from '@/api';
 
 export const _PromotionRequestApi = {
-  getList: async (params?: { page?: number; per_page?: number; status?: string }): Promise<PromotionRequestListResponse> => {
+  getList: async (params?: { page?: number; per_page?: number; status?: string; search?: string }): Promise<PromotionRequestListResponse> => {
     const response = await axiosInstance.get<PromotionRequestListResponse>(apiRoutes.promotionRequest.list, { params });
     return response.data;
   },

@@ -8,7 +8,7 @@ import type {
 import { apiRoutes, axiosInstance } from '@/api';
 
 export const _PromotionApi = {
-  getListPromotions: async (params?: { page?: number; per_page?: number }): Promise<PromotionListResponse> => {
+  getListPromotions: async (params?: { page?: number; per_page?: number; search?: string }): Promise<PromotionListResponse> => {
     const response = await axiosInstance.get<PromotionListResponse>(apiRoutes.promotion.list, { params });
     return response.data;
   },

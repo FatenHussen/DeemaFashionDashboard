@@ -15,6 +15,7 @@ export type UserGiftListParams = {
   status?: string;
   sort_by?: string;
   sort_order?: 'asc' | 'desc';
+  search?: string;
 };
 
 export const _UserGiftApi = {

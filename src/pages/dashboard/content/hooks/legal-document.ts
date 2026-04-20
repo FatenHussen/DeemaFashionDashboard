@@ -5,10 +5,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { _LegalDocumentApi } from '../api/legal-document.services';
 
-export const useFetchLegalDocuments = (page: number = 1, perPage: number = 10) =>
+export const useFetchLegalDocuments = (
+  page: number = 1,
+  perPage: number = 10,
+  params?: { search?: string }
+) =>
   useQuery({
-    queryKey: queryKeys.legalDocument.list({ page, per_page: perPage }),
-    queryFn: () => _LegalDocumentApi.getList({ page, per_page: perPage }),
+    queryKey: queryKeys.legalDocument.list({ page, per_page: perPage, ...params }),
+    queryFn: () => _LegalDocumentApi.getList({ page, per_page: perPage, ...params }),
   });
 
 export const useFetchLegalDocumentById = (id: number | string) =>

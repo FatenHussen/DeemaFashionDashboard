@@ -218,7 +218,7 @@ export const orderColumns = (
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.driver')} />,
     cell: ({ row }) => (
       <span className="text-sm text-muted-foreground">
-        {row.original.driver?.phone || 'Not assigned'}
+        {row.original.driver?.phone || t('columns.notAssigned')}
       </span>
     ),
   },

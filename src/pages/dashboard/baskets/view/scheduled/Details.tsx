@@ -1,11 +1,11 @@
+import type { ScheduledBasketData } from '@/pages/dashboard/baskets/types/scheduled-basket.types';
+
 import { Button } from '@/shared/ui/button';
 import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
-import { useFetchScheduledBasketById } from '@/pages/dashboard/baskets/hooks/scheduled-basket';
-
 import { formatTranslated } from '@/utils/format-translated';
-import type { ScheduledBasketData } from '@/pages/dashboard/baskets/types/scheduled-basket.types';
+import { useFetchScheduledBasketById } from '@/pages/dashboard/baskets/hooks/scheduled-basket';
 
 import { CONFIG } from 'src/global-config';
 import { Box, Typography } from 'src/shared/ui';

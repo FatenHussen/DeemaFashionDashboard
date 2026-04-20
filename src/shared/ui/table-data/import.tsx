@@ -163,7 +163,7 @@ export function Import({ tableName, onImportSuccess }: ImportModalProps) {
           className="h-8 px-2 md:mr-2  lg:px-3 md:mt-0 text-foreground border-border"
         >
           <Upload className="w-4 h-4 mr-2" />
-          {t('import')}
+          {t('import.import')}
         </Button>
       </DialogTrigger>
 

@@ -5,10 +5,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { _GiftApi } from '../api/gift.services';
 
-export const useFetchGifts = (page: number = 1, perPage: number = 10) =>
+export const useFetchGifts = (
+  page: number = 1,
+  perPage: number = 10,
+  params?: { search?: string }
+) =>
   useQuery({
-    queryKey: queryKeys.gift.list({ page, per_page: perPage }),
-    queryFn: () => _GiftApi.getListGifts({ page, per_page: perPage }),
+    queryKey: queryKeys.gift.list({ page, per_page: perPage, ...params }),
+    queryFn: () => _GiftApi.getListGifts({ page, per_page: perPage, ...params }),
   });
 
 export const useFetchGiftById = (id: number | string) =>

@@ -1,6 +1,5 @@
 import { cn } from '@/utils/utils';
-
-import { hexForegroundOnBackground, normalizeHexColorForCss } from '@/utils/shop-variant-image';
+import { normalizeHexColorForCss, hexForegroundOnBackground } from '@/utils/shop-variant-image';
 
 // ----------------------------------------------------------------------
 

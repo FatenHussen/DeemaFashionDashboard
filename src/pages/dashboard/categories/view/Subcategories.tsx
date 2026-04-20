@@ -1,6 +1,6 @@
 import { toast } from 'react-toastify';
-import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useMemo, useState, useEffect } from 'react';
 import { formatTranslated } from '@/utils/format-translated';
 import { usePermissions } from '@/auth/hooks/use-permissions';
 import { DataTable } from '@/shared/ui/table-data/table-data';
@@ -28,6 +28,11 @@ export default function Page() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [search, setSearch] = useState<string>('');
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
 
   const validParentId = Number.isFinite(parentCategoryId) && parentCategoryId > 0;
 
@@ -41,7 +46,12 @@ export default function Page() {
   const { data: categoriesResponse, isLoading, error } = useFetchCategories(
     currentPage,
     pageSize,
-    validParentId ? { parent_id: parentCategoryId } : undefined,
+    validParentId
+      ? {
+          parent_id: parentCategoryId,
+          ...(search.trim() ? { search: search.trim() } : {}),
+        }
+      : undefined,
     { enabled: validParentId }
   );
   const deleteCategoryMutation = useDeleteCategory(currentPage, pageSize);
@@ -175,6 +185,7 @@ export default function Page() {
         pageSize={pageSize}
         onPageChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}
+        onSearchChange={setSearch}
       />
     </>
   );

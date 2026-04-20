@@ -1,5 +1,4 @@
 import { toast } from 'react-toastify';
-import { Input } from '@/shared/ui/input';
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
@@ -43,22 +42,14 @@ export default function Page() {
   const [pageSize, setPageSize] = useState(10);
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
-  const [nameInput, setNameInput] = useState('');
-  const [debouncedName, setDebouncedName] = useState('');
+  const [search, setSearch] = useState<string>('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [isActiveFilter, setIsActiveFilter] = useState<'' | '1' | '0'>('');
 
   useEffect(() => {
-    const id = window.setTimeout(() => {
-      setDebouncedName(nameInput.trim());
-    }, 400);
-    return () => window.clearTimeout(id);
-  }, [nameInput]);
-
-  useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedName, categoryFilter, typeFilter, isActiveFilter]);
+  }, [search, categoryFilter, typeFilter, isActiveFilter]);
 
   const { data: categoriesResp } = useQuery({
     queryKey: ['categories', 'category-attributes-filter'],
@@ -74,7 +65,7 @@ export default function Page() {
   } = useFetchCategoryAttributes({
     page: currentPage,
     per_page: pageSize,
-    ...(debouncedName ? { name: debouncedName } : {}),
+    ...(search.trim() ? { search: search.trim() } : {}),
     ...(categoryFilter ? { category_id: Number(categoryFilter) } : {}),
     ...(typeFilter ? { type: typeFilter } : {}),
     ...(isActiveFilter === '' ? {} : { is_active: isActiveFilter === '1' }),
@@ -136,14 +127,11 @@ export default function Page() {
   const hasPermission = (action: string, resource: string) => can(`${resource}.${action}`);
 
   const activeFilterCount =
-    (debouncedName ? 1 : 0) +
     (categoryFilter ? 1 : 0) +
     (typeFilter ? 1 : 0) +
     (isActiveFilter ? 1 : 0);
 
   const onFilterReset = () => {
-    setNameInput('');
-    setDebouncedName('');
     setCategoryFilter('');
     setTypeFilter('');
     setIsActiveFilter('');
@@ -185,16 +173,7 @@ export default function Page() {
           delete: hasPermission('delete', 'categoryattribute'),
         }}
         isLoading={isLoading}
-        searchColumns={[]}
         hasFilter
-        toolbarFilter={
-          <Input
-            placeholder={t('search')}
-            value={nameInput}
-            onChange={(e) => setNameInput(e.target.value)}
-            className="h-10 max-w-xs min-w-[200px] flex-1"
-          />
-        }
         filterSidebar={
           <div className="flex flex-col gap-5">
             <FilterGroup label={t('columns.category')}>
@@ -258,6 +237,7 @@ export default function Page() {
         pageSize={pageSize}
         onPageChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}
+        onSearchChange={setSearch}
       />
     </>
   );

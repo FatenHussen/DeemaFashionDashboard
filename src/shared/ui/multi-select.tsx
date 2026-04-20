@@ -1,10 +1,9 @@
-import type { GroupBase, MultiValue, MultiValueProps, OptionProps } from 'react-select';
-import { components as selectComponents } from 'react-select';
+import type { GroupBase, MultiValue, OptionProps, MultiValueProps } from 'react-select';
 
 import { cn } from '@/utils/utils';
 import { Iconify } from '@/shared/components/iconify';
+import ReactSelect, { components as selectComponents } from 'react-select';
 import { ShopVariantColorSwatch } from '@/shared/components/shop-variant-color-swatch';
-import ReactSelect from 'react-select';
 
 // ----------------------------------------------------------------------
 

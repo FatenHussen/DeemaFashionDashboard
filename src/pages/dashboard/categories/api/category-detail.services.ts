@@ -11,10 +11,15 @@ export type { CategoryDetailCreateUpdatePayload };
 export const _CategoryDetailApi = {
   getListCategoryDetails: async (
     page: number = 1,
-    limit: number = 25
+    perPage: number = 25,
+    params?: { search?: string }
   ): Promise<CategoryDetailListResponse> => {
+    const searchParams = new URLSearchParams();
+    searchParams.set('page', String(page));
+    searchParams.set('per_page', String(perPage));
+    if (params?.search?.trim()) searchParams.set('search', params.search.trim());
     const response = await axiosInstance.get<CategoryDetailListResponse>(
-      `${apiRoutes.categoryDetail.list}?page=${page}&limit=${limit}`
+      `${apiRoutes.categoryDetail.list}?${searchParams.toString()}`
     );
     return response.data;
   },

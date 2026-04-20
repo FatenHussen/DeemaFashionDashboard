@@ -1,5 +1,5 @@
-import { useState } from 'react';
 import { toast } from 'react-toastify';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { usePermissions } from '@/auth/hooks/use-permissions';
@@ -15,9 +15,18 @@ export default function Page() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [search, setSearch] = useState<string>('');
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
 
   // Fetch roles using the hook
-  const { data: rolesResponse, isLoading, error } = useFetchRoles(currentPage, pageSize);
+  const { data: rolesResponse, isLoading, error } = useFetchRoles(
+    currentPage,
+    pageSize,
+    search.trim() || undefined
+  );
   const deleteRoleMutation = useDeleteRole();
 
   // Log error for debugging
@@ -118,6 +127,7 @@ export default function Page() {
         pageSize={pageSize}
         onPageChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}
+        onSearchChange={setSearch}
       />
     </>
   );

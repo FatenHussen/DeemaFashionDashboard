@@ -1,5 +1,5 @@
-import { useState } from 'react';
 import { toast } from 'react-toastify';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { usePermissions } from '@/auth/hooks/use-permissions';
@@ -15,11 +15,19 @@ export default function Page() {
   const { t } = useTranslation('table');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [search, setSearch] = useState<string>('');
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
   const [passwordDialogTargetId, setPasswordDialogTargetId] = useState<number | null>(null);
 
-  const { data: adminsResponse, isLoading, error } = useFetchAdmins(currentPage, pageSize);
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
+
+  const params: Record<string, string> = {};
+  if (search.trim()) params.search = search.trim();
+
+  const { data: adminsResponse, isLoading, error } = useFetchAdmins(currentPage, pageSize, params);
   const deleteAdminMutation = useDeleteAdmin();
   const updateAdminMutation = useUpdateAdmin();
 
@@ -159,6 +167,7 @@ export default function Page() {
         pageSize={pageSize}
         onPageChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}
+        onSearchChange={setSearch}
       />
     </>
   );

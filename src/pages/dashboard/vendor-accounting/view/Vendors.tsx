@@ -2,8 +2,8 @@ import type { ReactNode } from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
 import type { VendorAccountingRow } from '../types';
 
-import { useState } from 'react';
 import { useNavigate } from 'react-router';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Iconify } from '@/shared/components/iconify';
 import { DataTable } from '@/shared/ui/table-data/table-data';
@@ -34,16 +34,19 @@ export default function VendorAccountingVendorsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
-  const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [isActiveFilter, setIsActiveFilter] = useState<string>('');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
+
   const params = {
     page: currentPage,
     per_page: pageSize,
-    search: search || undefined,
+    search: search.trim() || undefined,
     is_active: isActiveFilter !== '' ? isActiveFilter === 'true' : undefined,
     from_date: fromDate || undefined,
     to_date: toDate || undefined,
@@ -67,13 +70,7 @@ export default function VendorAccountingVendorsPage() {
       }
     : { current_page: 1, last_page: 1, per_page: 10, total: 0, from: 0, to: 0 };
 
-  const handleApplyFilters = () => {
-    setSearch(searchInput);
-    setCurrentPage(1);
-  };
-
   const handleResetFilters = () => {
-    setSearchInput('');
     setSearch('');
     setIsActiveFilter('');
     setFromDate('');
@@ -234,16 +231,6 @@ export default function VendorAccountingVendorsPage() {
 
   const sidebarContent = (
     <div className="flex flex-col gap-5">
-      <FilterGroup label={t('filterSearch')}>
-        <input
-          type="text"
-          value={searchInput}
-          onChange={(e) => setSearchInput(e.target.value)}
-          placeholder={t('filterSearch')}
-          className="h-9 w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/25"
-        />
-      </FilterGroup>
-
       <FilterGroup label={t('filterByActive')}>
         {[
           { key: '', label: t('all') },
@@ -282,15 +269,6 @@ export default function VendorAccountingVendorsPage() {
           className="h-9 w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/25"
         />
       </FilterGroup>
-
-      <button
-        type="button"
-        onClick={handleApplyFilters}
-        className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-lg bg-primary text-sm font-medium text-primary-foreground transition hover:bg-primary/90"
-      >
-        <Iconify icon="solar:filter-bold" width={16} height={16} />
-        {t('apply')}
-      </button>
     </div>
   );
 
@@ -302,7 +280,6 @@ export default function VendorAccountingVendorsPage() {
         tableName={t('tableNames.vendorAccounting')}
         columns={columns}
         data={items}
-        searchColumns={[]}
         filterSidebar={sidebarContent}
         activeFilterCount={activeFilterCount}
         onFilterReset={handleResetFilters}
@@ -324,6 +301,7 @@ export default function VendorAccountingVendorsPage() {
         pageSize={pageSize}
         onPageChange={setCurrentPage}
         onPageSizeChange={(size) => { setPageSize(size); setCurrentPage(1); }}
+        onSearchChange={setSearch}
       />
     </>
   );

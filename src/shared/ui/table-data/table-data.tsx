@@ -82,6 +82,13 @@ interface DataTableProps<TData, TValue> {
   onFilterApply?: () => void;
   /** Renders above the toolbar inside a card container (e.g. shared breadcrumb) */
   tableTop?: React.ReactNode;
+  /**
+   * Server-side search handler. When provided, the built-in search input becomes debounced
+   * (400ms) and forwards its value via this callback instead of filtering the table client-side.
+   */
+  onSearchChange?: (value: string) => void;
+  /** Optional placeholder for the search input. */
+  searchPlaceholder?: string;
 }
 
 export function DataTable<TData, TValue>({
@@ -116,6 +123,8 @@ export function DataTable<TData, TValue>({
   onFilterReset,
   onFilterApply,
   tableTop,
+  onSearchChange,
+  searchPlaceholder,
 }: DataTableProps<TData, TValue>) {
   const [expandedRows, setExpandedRows] = React.useState<Record<string, boolean>>({});
   const [sorting, setSorting] = React.useState<SortingState>([]);
@@ -198,6 +207,8 @@ export function DataTable<TData, TValue>({
         activeFilterCount={activeFilterCount}
         onFilterReset={onFilterReset}
         onFilterApply={onFilterApply}
+        onSearchChange={onSearchChange}
+        searchPlaceholder={searchPlaceholder}
       />
 
       {/* Table — responsive horizontal scroll + shell */}

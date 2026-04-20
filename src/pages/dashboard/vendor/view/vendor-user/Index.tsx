@@ -1,5 +1,5 @@
-import { useState } from 'react';
 import { toast } from 'react-toastify';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { usePermissions } from '@/auth/hooks/use-permissions';
@@ -21,8 +21,17 @@ export default function Page() {
   const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
   const [passwordDialogTargetId, setPasswordDialogTargetId] = useState<number | null>(null);
+  const [search, setSearch] = useState<string>('');
 
-  const { data: response, isLoading } = useFetchVendorUsers(currentPage, pageSize);
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
+
+  const { data: response, isLoading } = useFetchVendorUsers(
+    currentPage,
+    pageSize,
+    search.trim() ? { search: search.trim() } : undefined
+  );
   const { data: vendorUserDetailsResponse } = useFetchVendorUserById(passwordDialogTargetId ?? '');
   const deleteVendorUserMutation = useDeleteVendorUser();
   const updateVendorUserMutation = useUpdateVendorUser();
@@ -150,6 +159,7 @@ export default function Page() {
           setPageSize(size);
           setCurrentPage(1);
         }}
+        onSearchChange={setSearch}
       />
     </>
   );

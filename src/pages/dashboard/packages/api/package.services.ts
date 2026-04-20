@@ -8,7 +8,7 @@ import { apiRoutes, axiosInstance } from '@/api';
 
 export const _PackageApi = {
   getListPackages: async (
-    params?: { page?: number; per_page?: number }
+    params?: { page?: number; per_page?: number; search?: string }
   ): Promise<PackageListResponse> => {
     const response = await axiosInstance.get<PackageListResponse>(apiRoutes.package.list, {
       params,

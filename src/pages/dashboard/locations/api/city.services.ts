@@ -5,7 +5,7 @@ import { apiRoutes, axiosInstance } from '@/api';
 export type { CityCreateUpdatePayload };
 
 export const _CityApi = {
-  getListCities: async (params?: { page?: number; per_page?: number }): Promise<CityListResponse> => {
+  getListCities: async (params?: { page?: number; per_page?: number; search?: string }): Promise<CityListResponse> => {
     const response = await axiosInstance.get<CityListResponse>(apiRoutes.city.list, { params });
     return response.data;
   },

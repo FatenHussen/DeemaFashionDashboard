@@ -1,11 +1,10 @@
+import { z } from 'zod';
 import { toast } from 'react-toastify';
+import { paths } from '@/routes/paths';
 import { useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useTranslation } from 'react-i18next';
-import { z } from 'zod';
-
-import { paths } from '@/routes/paths';
 import { formatTranslated } from '@/utils/format-translated';
 import { _VendorApi } from '@/pages/dashboard/vendor/api/vendor.services';
 import { _VendorPackageApi } from '@/pages/dashboard/vendor/api/vendor-package.services';

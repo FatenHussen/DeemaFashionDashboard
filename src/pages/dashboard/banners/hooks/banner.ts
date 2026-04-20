@@ -5,10 +5,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { _BannerApi } from '../api/banner.services';
 
-export const useFetchBanners = (page: number = 1, perPage: number = 10) =>
+export const useFetchBanners = (
+  page: number = 1,
+  perPage: number = 10,
+  params?: { search?: string }
+) =>
   useQuery({
-    queryKey: queryKeys.banner.list({ page, per_page: perPage }),
-    queryFn: () => _BannerApi.getListBanners({ page, per_page: perPage }),
+    queryKey: queryKeys.banner.list({ page, per_page: perPage, ...params }),
+    queryFn: () => _BannerApi.getListBanners({ page, per_page: perPage, ...params }),
   });
 
 export const useFetchBannerById = (id: number | string) =>

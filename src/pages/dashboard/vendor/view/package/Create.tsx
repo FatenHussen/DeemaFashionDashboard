@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useNavigate, useLocation } from 'react-router';
+import { TinyMCEEditorField } from '@/shared/components/tinymce-editor/tinymce-editor';
 import {
   useCreateVendorPackage,
   useUpdateVendorPackage,
@@ -23,7 +24,6 @@ import { Iconify } from 'src/shared/components/iconify';
 import { LoadingScreen } from 'src/shared/components/loading-screen';
 import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
 import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
-import { TinyMCEEditorField } from '@/shared/components/tinymce-editor/tinymce-editor';
 
 // ----------------------------------------------------------------------
 

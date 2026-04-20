@@ -16,6 +16,7 @@ export const _AffiliateWithdrawApi = {
     to?: string;
     min_amount?: number;
     max_amount?: number;
+    search?: string;
   }): Promise<AffiliateWithdrawListResponse> => {
     const response = await axiosInstance.get<AffiliateWithdrawListResponse>(
       apiRoutes.affiliateWithdraw.list,

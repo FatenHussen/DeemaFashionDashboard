@@ -5,10 +5,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { _BadgeApi } from '../api/badge.services';
 
-export const useFetchBadges = (page: number = 1, perPage: number = 10) =>
+export const useFetchBadges = (
+  page: number = 1,
+  perPage: number = 10,
+  params?: { search?: string }
+) =>
   useQuery({
-    queryKey: queryKeys.badge.list({ page, per_page: perPage }),
-    queryFn: () => _BadgeApi.getListBadges({ page, per_page: perPage }),
+    queryKey: queryKeys.badge.list({ page, per_page: perPage, ...params }),
+    queryFn: () => _BadgeApi.getListBadges({ page, per_page: perPage, ...params }),
   });
 
 export const useFetchBadgeById = (id: number | string) =>

@@ -10,8 +10,12 @@ import { apiRoutes, axiosInstance } from '@/api';
 export type { AreaCreateUpdatePayload };
 
 export const _AreaApi = {
-  getListAreas: async (): Promise<AreaListResponse> => {
-    const response = await axiosInstance.get<AreaListResponse>(apiRoutes.area.list);
+  getListAreas: async (
+    params?: { page?: number; per_page?: number; search?: string }
+  ): Promise<AreaListResponse> => {
+    const response = await axiosInstance.get<AreaListResponse>(apiRoutes.area.list, {
+      params,
+    });
     return response.data;
   },
   createArea: async (data: AreaCreateUpdatePayload): Promise<any> => {

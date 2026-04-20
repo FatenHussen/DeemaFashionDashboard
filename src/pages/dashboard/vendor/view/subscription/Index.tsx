@@ -1,20 +1,20 @@
 import type { TFunction } from 'i18next';
 
 import { toast } from 'react-toastify';
+import { paths } from '@/routes/paths';
 import { useTranslation } from 'react-i18next';
 import { useState, type ReactNode } from 'react';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { usePermissions } from '@/auth/hooks/use-permissions';
-import { paths } from '@/routes/paths';
-import {
-  useFetchVendorSubscriptions,
-  useDeleteVendorSubscription,
-} from '@/pages/dashboard/vendor/hooks/vendor-subscription';
 import { VENDOR_SUBSCRIPTION_STATUSES } from '@/pages/dashboard/vendor/types/vendor-subscription.types';
 import {
   vendorSubscriptionColumns,
   type VendorSubscriptionFormValues,
 } from '@/columns/one/vendor-subscriptions/one';
+import {
+  useFetchVendorSubscriptions,
+  useDeleteVendorSubscription,
+} from '@/pages/dashboard/vendor/hooks/vendor-subscription';
 
 import { CONFIG } from 'src/global-config';
 
@@ -46,7 +46,7 @@ export default function Page() {
     pageSize,
     {
       status: statusFilter || undefined,
-      search: appliedSearch || undefined,
+      search: search.trim() || undefined,
     }
   );
 
@@ -90,26 +90,6 @@ export default function Page() {
       }
     : { current_page: 1, last_page: 1, per_page: 10, total: 0, from: 0, to: 0 };
 
-  const toolbarSearch = (
-    <div className="flex items-center gap-2 min-w-0 flex-1">
-      <input
-        type="text"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        onKeyDown={(e) => e.key === 'Enter' && handleApplySearch()}
-        placeholder={t('searchByShopName')}
-        className="h-10 min-w-[180px] flex-1 rounded-xl border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/50"
-      />
-      <button
-        type="button"
-        onClick={handleApplySearch}
-        className="h-10 rounded-xl border border-input bg-background px-4 text-sm font-medium hover:bg-muted shrink-0"
-      >
-        {t('apply')}
-      </button>
-    </div>
-  );
-
   const sidebarContent = (
     <FilterGroup label={t('columns.status')}>
       <select
@@ -150,7 +130,6 @@ export default function Page() {
         hasDetails
         detailsLink="/vendor-subscriptions"
         createPath={paths.dashboard.vendorSubscriptionsCreate}
-        toolbarFilter={toolbarSearch}
         filterSidebar={sidebarContent}
         activeFilterCount={statusFilter ? 1 : 0}
         onFilterReset={() => { setStatusFilter(''); setCurrentPage(1); }}
@@ -176,6 +155,7 @@ export default function Page() {
         pageSize={pageSize}
         onPageChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}
+        onSearchChange={setSearch}
       />
     </>
   );

@@ -1,6 +1,6 @@
-import { useState } from 'react';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 // import type { BannerItem } from '@/pages/dashboard/banners/types/banner.types';
 import { DataTable } from '@/shared/ui/table-data/table-data';
@@ -15,9 +15,16 @@ export default function Page() {
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [search, setSearch] = useState<string>('');
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
-  const { data: bannersResponse, isLoading, error } = useFetchBanners(currentPage, pageSize);
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
+
+  const params = search.trim() ? { search: search.trim() } : undefined;
+
+  const { data: bannersResponse, isLoading, error } = useFetchBanners(currentPage, pageSize, params);
   const deleteBannerMutation = useDeleteBanner();
 
   if (error) {
@@ -138,6 +145,7 @@ export default function Page() {
         pageSize={pageSize}
         onPageChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}
+        onSearchChange={setSearch}
       />
     </>
   );

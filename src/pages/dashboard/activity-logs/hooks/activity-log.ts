@@ -6,7 +6,7 @@ import { _ActivityLogApi } from '../api/activity-log.services';
 export const useFetchActivityLogs = (
   page: number = 1,
   perPage: number = 10,
-  filters?: { action?: string; model?: string }
+  filters?: { action?: string; model?: string; search?: string }
 ) =>
   useQuery({
     queryKey: queryKeys.activityLog.list({ page, per_page: perPage, ...filters }),

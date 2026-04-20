@@ -10,7 +10,7 @@ export type { GovernorateCreateUpdatePayload };
 
 export const _GovernorateApi = {
   getListGovernorates: async (
-    params?: { page?: number; per_page?: number }
+    params?: { page?: number; per_page?: number; search?: string }
   ): Promise<GovernorateListResponse> => {
     const response = await axiosInstance.get<GovernorateListResponse>(apiRoutes.governorate.list, {
       params,

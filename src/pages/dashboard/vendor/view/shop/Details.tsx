@@ -1,5 +1,5 @@
-import type { DaySchedule } from '@/pages/dashboard/vendor/types/shop.types';
 import type { ReactNode } from 'react';
+import type { DaySchedule } from '@/pages/dashboard/vendor/types/shop.types';
 
 import { Button } from '@/shared/ui/button';
 import { useTranslation } from 'react-i18next';
@@ -60,7 +60,7 @@ function InfoTile({
 
   return (
     <div
-      className={`relative overflow-hidden rounded-2xl border border-border/60 bg-card/90 p-4 shadow-sm backdrop-blur-sm transition-all duration-300 hover:border-primary/35 hover:shadow-md`}
+      className="relative overflow-hidden rounded-2xl border border-border/60 bg-card/90 p-4 shadow-sm backdrop-blur-sm transition-all duration-300 hover:border-primary/35 hover:shadow-md"
     >
       <div
         className={`pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full bg-gradient-to-br ${accentRing} blur-2xl`}

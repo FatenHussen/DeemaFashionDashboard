@@ -5,10 +5,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { _CouponApi } from '../api/coupon.services';
 
-export const useFetchCoupons = (page: number = 1, perPage: number = 10) =>
+export const useFetchCoupons = (
+  page: number = 1,
+  perPage: number = 10,
+  params?: { search?: string }
+) =>
   useQuery({
-    queryKey: queryKeys.coupon.list({ page, per_page: perPage }),
-    queryFn: () => _CouponApi.getListCoupons({ page, per_page: perPage }),
+    queryKey: queryKeys.coupon.list({ page, per_page: perPage, ...params }),
+    queryFn: () => _CouponApi.getListCoupons({ page, per_page: perPage, ...params }),
   });
 
 export const useFetchCouponById = (id: number | string) =>

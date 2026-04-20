@@ -8,9 +8,13 @@ import type {
 import { apiRoutes, axiosInstance } from '@/api';
 
 export const _SectionApi = {
-  getListSections: async (page: number = 1, limit: number = 25): Promise<SectionListResponse> => {
+  getListSections: async (
+    page: number = 1,
+    perPage: number = 25,
+    search?: string
+  ): Promise<SectionListResponse> => {
     const response = await axiosInstance.get<SectionListResponse>(apiRoutes.section.list, {
-      params: { page, limit },
+      params: { page, per_page: perPage, ...(search?.trim() ? { search: search.trim() } : {}) },
     });
     return response.data;
   },

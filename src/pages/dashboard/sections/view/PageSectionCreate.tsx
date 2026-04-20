@@ -24,7 +24,7 @@ import {
 } from '@/pages/dashboard/sections/hooks/usePageSections';
 
 import { CONFIG } from 'src/global-config';
-import { Box, SimpleSelect, Typography } from 'src/shared/ui';
+import { Box, Typography, SimpleSelect } from 'src/shared/ui';
 import { RHFSelect } from 'src/shared/components/hook-form/rhf-select';
 import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
 import { RHFColorPicker } from 'src/shared/components/hook-form/rhf-color-picker';

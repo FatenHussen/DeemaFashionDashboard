@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { usePermissions } from '@/auth/hooks/use-permissions';
@@ -11,10 +11,16 @@ export default function Page() {
   const { t } = useTranslation('table');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [search, setSearch] = useState<string>('');
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
 
   const { data: response, isLoading, error } = useFetchUserGifts(
     currentPage,
-    pageSize
+    pageSize,
+    search.trim() ? { search: search.trim() } : undefined
   );
 
   if (error) console.error('Error fetching user gifts:', error);
@@ -77,6 +83,7 @@ export default function Page() {
           setPageSize(size);
           setCurrentPage(1);
         }}
+        onSearchChange={setSearch}
       />
     </>
   );

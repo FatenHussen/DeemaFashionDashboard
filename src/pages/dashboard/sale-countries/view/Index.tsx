@@ -1,7 +1,7 @@
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
-import { useState, type ReactNode } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { usePermissions } from '@/auth/hooks/use-permissions';
 import { saleCountryColumns } from '@/columns/one/sale-countries/one';
@@ -19,11 +19,17 @@ export default function Page() {
   const [pageSize, setPageSize] = useState(10);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [activeFilter, setActiveFilter] = useState<string>('');
+  const [search, setSearch] = useState<string>('');
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
 
   const { data: response, isLoading } = useFetchSaleCountries(
     currentPage,
     pageSize,
-    activeFilter === '' ? undefined : activeFilter
+    activeFilter === '' ? undefined : activeFilter,
+    search.trim() || undefined
   );
   const deleteMutation = useDeleteSaleCountry();
 
@@ -119,6 +125,7 @@ export default function Page() {
         pageSize={pageSize}
         onPageChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}
+        onSearchChange={setSearch}
       />
     </>
   );

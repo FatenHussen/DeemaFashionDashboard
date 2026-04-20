@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { useState, type ReactNode } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { usePermissions } from '@/auth/hooks/use-permissions';
 import { useFetchUserPoints } from '@/pages/dashboard/user-points/hooks/user-points';
@@ -12,13 +12,16 @@ export default function Page() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
-  const [search, setSearch] = useState('');
-  const [appliedSearch, setAppliedSearch] = useState('');
+  const [search, setSearch] = useState<string>('');
   const [balanceMin, setBalanceMin] = useState('');
   const [balanceMax, setBalanceMax] = useState('');
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
+
   const apiParams = {
-    ...(appliedSearch.trim() ? { search: appliedSearch.trim() } : {}),
+    ...(search.trim() ? { search: search.trim() } : {}),
     ...(balanceMin !== '' ? { balance_min: Number(balanceMin) } : {}),
     ...(balanceMax !== '' ? { balance_max: Number(balanceMax) } : {}),
   };
@@ -32,11 +35,6 @@ export default function Page() {
   if (error) {
     console.error('Error fetching user points:', error);
   }
-
-  const handleApplySearch = () => {
-    setAppliedSearch(search);
-    setCurrentPage(1);
-  };
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -72,26 +70,6 @@ export default function Page() {
 
   const activeFilterCount = [balanceMin, balanceMax].filter((v) => v !== '').length;
 
-  const toolbarSearch = (
-    <div className="flex items-center gap-2 min-w-0 flex-1">
-      <input
-        type="text"
-        placeholder={t('form.searchByNameOrEmail')}
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        onKeyDown={(e) => e.key === 'Enter' && handleApplySearch()}
-        className="h-10 min-w-[200px] flex-1 rounded-xl border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-      />
-      <button
-        type="button"
-        onClick={handleApplySearch}
-        className="h-10 rounded-xl border border-input bg-background px-4 text-sm font-medium hover:bg-muted shrink-0"
-      >
-        {t('apply')}
-      </button>
-    </div>
-  );
-
   const sidebarContent = (
     <>
       <FilterGroup label={t('form.balanceMin')}>
@@ -126,7 +104,6 @@ export default function Page() {
         data={userPointsData}
         hasDetails
         detailsLink="/user-points/details"
-        toolbarFilter={toolbarSearch}
         filterSidebar={sidebarContent}
         activeFilterCount={activeFilterCount}
         onFilterReset={() => {
@@ -155,6 +132,7 @@ export default function Page() {
         pageSize={pageSize}
         onPageChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}
+        onSearchChange={setSearch}
       />
     </>
   );

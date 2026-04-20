@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { usePermissions } from '@/auth/hooks/use-permissions';
@@ -11,8 +11,16 @@ export default function Page() {
   const { t } = useTranslation('table');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [search, setSearch] = useState<string>('');
 
-  const { data: exchangesResponse, isLoading, error } = useFetchPointExchanges(currentPage, pageSize);
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
+
+  const exchangeParams: { search?: string } = {};
+  if (search.trim()) exchangeParams.search = search.trim();
+
+  const { data: exchangesResponse, isLoading, error } = useFetchPointExchanges(currentPage, pageSize, exchangeParams);
 
   if (error) {
     console.error('Error fetching point exchanges:', error);
@@ -85,6 +93,7 @@ export default function Page() {
         pageSize={pageSize}
         onPageChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}
+        onSearchChange={setSearch}
       />
     </>
   );

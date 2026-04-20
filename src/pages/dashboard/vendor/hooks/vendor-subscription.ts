@@ -1,4 +1,4 @@
-import type { VendorSubscriptionCreatePayload, VendorSubscriptionFilters } from '../types/vendor-subscription.types';
+import type { VendorSubscriptionFilters, VendorSubscriptionCreatePayload } from '../types/vendor-subscription.types';
 
 import { queryKeys } from '@/api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';

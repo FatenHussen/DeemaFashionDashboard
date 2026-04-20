@@ -1,5 +1,5 @@
-import { useState } from 'react';
 import { toast } from 'react-toastify';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { usePermissions } from '@/auth/hooks/use-permissions';
@@ -26,8 +26,17 @@ export default function Page() {
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
+  const [search, setSearch] = useState<string>('');
 
-  const { data: response, isLoading } = useFetchSellerRegistrations(currentPage, pageSize);
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
+
+  const { data: response, isLoading } = useFetchSellerRegistrations(
+    currentPage,
+    pageSize,
+    search.trim() ? { search: search.trim() } : undefined
+  );
   const approveMutation = useApproveSellerRegistration();
   const rejectMutation = useRejectSellerRegistration();
   const deleteMutation = useDeleteSellerRegistration();
@@ -135,6 +144,7 @@ export default function Page() {
           setPageSize(size);
           setCurrentPage(1);
         }}
+        onSearchChange={setSearch}
       />
     </>
   );

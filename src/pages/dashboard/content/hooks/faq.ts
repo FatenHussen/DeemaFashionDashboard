@@ -8,7 +8,7 @@ import { _FaqApi } from '../api/faq.services';
 export const useFetchFaqs = (
   page: number = 1,
   perPage: number = 10,
-  filters?: { type?: string }
+  filters?: { type?: string; search?: string }
 ) =>
   useQuery({
     queryKey: queryKeys.faq.list({ page, per_page: perPage, ...filters }),
