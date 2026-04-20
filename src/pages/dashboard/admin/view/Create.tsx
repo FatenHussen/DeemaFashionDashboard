@@ -5,7 +5,9 @@ import { useTranslation } from 'react-i18next';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
+import { formatTranslated } from '@/utils/format-translated';
 import { useFetchRoles } from '@/pages/dashboard/roles/hooks/role';
+import { useFetchCities } from '@/pages/dashboard/locations/hooks/city';
 import {
   AdminSchema,
   type AdminFormValues,
@@ -33,6 +35,7 @@ export default function CreatePage() {
   // Hooks for fetching and mutations
   const { data: adminData, isLoading: isLoadingAdmin } = useFetchAdminById(id || '');
   const { data: rolesResponse } = useFetchRoles(1, 200);
+  const { data: citiesResponse } = useFetchCities(1, 500);
   const createAdminMutation = useCreateAdmin();
   const updateAdminMutation = useUpdateAdmin();
 
@@ -45,10 +48,20 @@ export default function CreatePage() {
     [rolesResponse]
   );
 
+  const cityOptions = useMemo(
+    () =>
+      (citiesResponse?.data?.items ?? []).map((c) => ({
+        value: c.id,
+        label: formatTranslated(c.name),
+      })),
+    [citiesResponse]
+  );
+
   const defaultValues: AdminFormValues = {
     name: '',
     email: '',
     role_ids: [],
+    city_ids: [],
     ...(isEditMode ? {} : { password: '' }),
   };
 
@@ -65,10 +78,15 @@ export default function CreatePage() {
       const roleIds = (adminData.roles ?? []).map((r) =>
         typeof r === 'object' ? r.id : 0
       ).filter(Boolean);
+      const cityIds =
+        adminData.city_ids?.length ?
+          adminData.city_ids
+        : (adminData.cities ?? []).map((c) => c.id).filter(Boolean);
       reset({
         name: adminData.name,
         email: adminData.email,
         role_ids: roleIds,
+        city_ids: cityIds,
       });
     }
   }, [adminData, isEditMode, isLoadingAdmin, reset]);
@@ -84,6 +102,7 @@ export default function CreatePage() {
         email: data.email,
         ...(!isEditMode && data.password && { password: data.password }),
         roles: data.role_ids.map((rid) => ({ id: rid })),
+        city_ids: data.city_ids,
       };
 
       if (isEditMode && id) {
@@ -210,6 +229,23 @@ export default function CreatePage() {
             options={roleOptions}
             placeholder={t('form.searchRolesPlaceholder')}
             helperText={t('form.adminRolesHelper')}
+            fullWidth
+          />
+        </Box>
+
+        {/* Cities */}
+        <Box className="group">
+          <Box className="flex items-center gap-2 mb-2">
+            <Iconify icon="solar:city-bold" className="text-primary" width={24} height={24} />
+            <Typography variant="subtitle2" className="font-semibold text-foreground">
+              {t('columns.city')}
+            </Typography>
+          </Box>
+          <RHFMultiSelect
+            name="city_ids"
+            options={cityOptions}
+            placeholder={t('form.searchCitiesPlaceholder')}
+            helperText={t('form.adminCitiesHelper')}
             fullWidth
           />
         </Box>

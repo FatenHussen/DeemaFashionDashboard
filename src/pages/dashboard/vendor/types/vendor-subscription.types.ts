@@ -77,3 +77,14 @@ export interface VendorSubscriptionFilters {
   vendor_package_id?: string | number;
   expiring_soon?: boolean;
 }
+
+/** POST `/admin/vendor-subscriptions` — `vendor_package_id` must exist; `ends_at` ≥ `starts_at`. */
+export interface VendorSubscriptionCreatePayload {
+  vendor_id: number;
+  vendor_package_id: number;
+  starts_at: string;
+  ends_at: string;
+  auto_renew: boolean;
+  status: VendorSubscriptionStatus;
+  notes?: string | null;
+}

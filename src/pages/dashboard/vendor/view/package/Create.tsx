@@ -23,6 +23,7 @@ import { Iconify } from 'src/shared/components/iconify';
 import { LoadingScreen } from 'src/shared/components/loading-screen';
 import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
 import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
+import { TinyMCEEditorField } from '@/shared/components/tinymce-editor/tinymce-editor';
 
 // ----------------------------------------------------------------------
 
@@ -50,6 +51,9 @@ const defaultValues: VendorPackageFormValues = {
   has_vendor_delivery: false,
   activation_fee_waived: false,
 };
+
+const COMMISSION_RATE_OPTIONS = [0, 1, 2, 3, 5, 7.5, 10, 12.5, 15, 20, 25, 30] as const;
+const COMMISSION_PER_ORDER_OPTIONS = [0, 0.5, 1, 2, 3, 5, 7.5, 10, 15, 20, 25, 30, 50] as const;
 
 function mapDetailsToForm(source: VendorPackageDetails): VendorPackageFormValues {
   const name = typeof source.name === 'object' ? source.name : { en: String(source.name || ''), ar: String(source.name || '') };
@@ -212,7 +216,16 @@ export default function CreatePage() {
                 name="description.en"
                 control={control}
                 render={({ field }) => (
-                  <textarea {...field} rows={3} placeholder={t('form.descriptionEnPlaceholder2')} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
+                  <TinyMCEEditorField
+                    value={field.value ?? ''}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    placeholder={t('form.descriptionEnPlaceholder2')}
+                    dir="ltr"
+                    menubar
+                    toolsMenuWordCount
+                    height={300}
+                  />
                 )}
               />
             </Box>
@@ -222,7 +235,16 @@ export default function CreatePage() {
                 name="description.ar"
                 control={control}
                 render={({ field }) => (
-                  <textarea {...field} rows={3} dir="rtl" placeholder={t('form.packageDescriptionAr')} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
+                  <TinyMCEEditorField
+                    value={field.value ?? ''}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    placeholder={t('form.packageDescriptionAr')}
+                    dir="rtl"
+                    menubar
+                    toolsMenuWordCount
+                    height={300}
+                  />
                 )}
               />
             </Box>
@@ -254,11 +276,43 @@ export default function CreatePage() {
             </Box>
             <Box>
               <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.vendorPkgFieldCommissionRate')}</Typography>
-              <RHFTextField name="commission_rate" type="number" placeholder={t('form.placeholderFive')} fullWidth />
+              <Controller
+                name="commission_rate"
+                control={control}
+                render={({ field }) => (
+                  <select
+                    value={String(field.value ?? 0)}
+                    onChange={(e) => field.onChange(Number(e.target.value))}
+                    className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                  >
+                    {COMMISSION_RATE_OPTIONS.map((value) => (
+                      <option key={value} value={value}>
+                        {value}%
+                      </option>
+                    ))}
+                  </select>
+                )}
+              />
             </Box>
             <Box>
               <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.vendorPkgFieldCommissionPerOrder')}</Typography>
-              <RHFTextField name="commission_per_order" type="number" placeholder={t('form.placeholderZero')} fullWidth />
+              <Controller
+                name="commission_per_order"
+                control={control}
+                render={({ field }) => (
+                  <select
+                    value={String(field.value ?? 0)}
+                    onChange={(e) => field.onChange(Number(e.target.value))}
+                    className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                  >
+                    {COMMISSION_PER_ORDER_OPTIONS.map((value) => (
+                      <option key={value} value={value}>
+                        {value}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              />
             </Box>
           </Box>
         </Box>

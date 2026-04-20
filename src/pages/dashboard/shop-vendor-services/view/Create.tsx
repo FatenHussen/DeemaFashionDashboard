@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
 import { useForm, Controller } from 'react-hook-form';
@@ -30,11 +30,13 @@ import {
 // ----------------------------------------------------------------------
 
 type FormValues = ShopVendorServiceCreateFormValues | ShopVendorServiceUpdateFormValues;
+type SubmitAction = 'back' | 'stay';
 
 export default function CreatePage() {
   const { t } = useTranslation('table');
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
+  const submitActionRef = useRef<SubmitAction>('back');
   const isEditMode = !!id;
 
   const { data: detailResponse, isLoading: isLoadingDetail } = useFetchShopVendorServiceById(
@@ -124,7 +126,9 @@ export default function CreatePage() {
         };
         await updateMutation.mutateAsync({ id, data: payload });
         toast.success(t('form.shopVendorServiceUpdatedSuccess'));
-        navigate('/shop-vendor-services');
+        if (submitActionRef.current === 'back') {
+          navigate('/shop-vendor-services');
+        }
       } else {
         const payload = {
           shop_id: Number(data.shop_id),
@@ -136,7 +140,9 @@ export default function CreatePage() {
         };
         await createMutation.mutateAsync(payload);
         toast.success(t('form.shopVendorServiceCreatedSuccess'));
-        navigate('/shop-vendor-services');
+        if (submitActionRef.current === 'back') {
+          navigate('/shop-vendor-services');
+        }
       }
     } catch (error: any) {
       console.error('Error saving shop vendor service:', error);
@@ -174,11 +180,23 @@ export default function CreatePage() {
             ? t('form.updateShopVendorServiceSubmit')
             : t('form.createShopVendorServiceSubmit')
         }
+        secondarySubmitLabel={t('save')}
         submittingLabel={
           isEditMode
             ? t('form.updatingShopVendorServiceSubmit')
             : t('form.creatingShopVendorServiceSubmit')
         }
+        secondarySubmittingLabel={
+          isEditMode
+            ? t('form.updatingShopVendorServiceSubmit')
+            : t('form.creatingShopVendorServiceSubmit')
+        }
+        onSubmitButtonClick={() => {
+          submitActionRef.current = 'back';
+        }}
+        onSecondarySubmitButtonClick={() => {
+          submitActionRef.current = 'stay';
+        }}
       >
         {/* ── Section: Assignment (create only) ── */}
         {!isEditMode && (

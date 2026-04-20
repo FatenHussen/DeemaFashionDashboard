@@ -9,9 +9,18 @@ import { apiRoutes, axiosInstance } from '@/api';
 
 function buildScheduledBasketFormData(data: ScheduledBasketCreateUpdatePayload): FormData {
   const formData = new FormData();
-  formData.append('category_id', String(data.category_id));
+  data.category_ids.forEach((cid) => {
+    formData.append('category_ids[]', String(cid));
+  });
+  if (data.category_id != null) {
+    formData.append('category_id', String(data.category_id));
+  }
   formData.append('name[ar]', data.name.ar);
   formData.append('name[en]', data.name.en);
+  if (data.description) {
+    formData.append('description[en]', data.description.en || '');
+    formData.append('description[ar]', data.description.ar || '');
+  }
   formData.append('discount_type', data.discount_type);
   if (data.discount !== undefined) formData.append('discount', String(data.discount));
   if (data.delivery_price !== undefined) formData.append('delivery_price', String(data.delivery_price));

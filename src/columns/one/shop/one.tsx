@@ -59,6 +59,66 @@ export interface ShopFormValues {
   [key: string]: any;
 }
 
+/** Pill badges: vivid border, dark fill, white label — matches dashboard status style */
+type PillStatusVariant =
+  | 'available'
+  | 'inactive'
+  | 'busy'
+  | 'neutral'
+  | 'openNow'
+  | 'closedNow';
+
+function PillStatusBadge({ label, variant }: { label: string; variant: PillStatusVariant }) {
+  const cfg: Record<
+    PillStatusVariant,
+    { wrap: string; iconWrap: string; icon: string }
+  > = {
+    available: {
+      wrap: 'border-cyan-400 bg-slate-600 shadow-sm dark:bg-slate-700',
+      iconWrap: 'bg-cyan-400 text-white',
+      icon: 'solar:check-circle-bold',
+    },
+    openNow: {
+      wrap: 'border-emerald-400 bg-emerald-950/90 shadow-sm dark:bg-emerald-950',
+      iconWrap: 'bg-emerald-500 text-white',
+      icon: 'solar:shop-2-bold',
+    },
+    closedNow: {
+      wrap: 'border-red-400 bg-red-950/90 shadow-sm dark:bg-red-950',
+      iconWrap: 'bg-red-500 text-white',
+      icon: 'solar:close-circle-bold',
+    },
+    inactive: {
+      wrap: 'border-slate-500 bg-slate-900 shadow-sm dark:bg-slate-950',
+      iconWrap: 'bg-slate-800 text-white',
+      icon: 'solar:close-circle-bold',
+    },
+    busy: {
+      wrap: 'border-orange-400 bg-stone-600 shadow-sm dark:bg-stone-700',
+      iconWrap: 'bg-orange-400 text-white',
+      icon: 'solar:clock-circle-bold',
+    },
+    neutral: {
+      wrap: 'border-slate-400 bg-slate-700 shadow-sm dark:bg-slate-800',
+      iconWrap: 'bg-slate-500 text-white',
+      icon: 'solar:shop-bold',
+    },
+  };
+  const s = cfg[variant];
+  return (
+    <span
+      className={`inline-flex max-w-full items-center gap-1.5 rounded-full border-2 py-1 pl-1 pr-2.5 text-xs font-bold leading-none text-white ${s.wrap}`}
+    >
+      <span
+        className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${s.iconWrap}`}
+      >
+        <Iconify icon={s.icon} width={14} height={14} />
+      </span>
+      <span className="truncate">{label}</span>
+    </span>
+  );
+}
+
 export const shopColumns = (
   permissions: {
     update: boolean;
@@ -128,17 +188,9 @@ export const shopColumns = (
           : type === 'service_provider'
             ? 'shopTypeFilterServiceProvider'
             : 'shopTypeFilterStore';
-      const cls =
-        type === 'restaurant'
-          ? 'bg-orange-500/15 text-orange-800 dark:text-orange-200 border-orange-500/30'
-          : type === 'service_provider'
-            ? 'bg-violet-500/15 text-violet-800 dark:text-violet-200 border-violet-500/30'
-            : 'bg-slate-500/15 text-slate-800 dark:text-slate-200 border-slate-500/30';
-      return (
-        <span className={`inline-flex rounded-md border px-2 py-0.5 text-xs font-semibold ${cls}`}>
-          {t(labelKey)}
-        </span>
-      );
+      const variant: PillStatusVariant =
+        type === 'restaurant' ? 'busy' : type === 'service_provider' ? 'available' : 'neutral';
+      return <PillStatusBadge label={t(labelKey)} variant={variant} />;
     },
   },
   {
@@ -196,22 +248,10 @@ export const shopColumns = (
     cell: ({ row }) => {
       const isOpen = row.original.is_open_now;
       return (
-        <div className="flex items-center gap-2">
-          <div
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border w-fit transition-all ${
-              isOpen
-                ? 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/50 text-emerald-700 dark:text-emerald-300'
-                : 'bg-muted border-border text-muted-foreground'
-            }`}
-          >
-            <div
-              className={`w-1.5 h-1.5 rounded-full ${
-                isOpen ? 'bg-emerald-500 animate-pulse' : 'bg-muted-foreground'
-              }`}
-            />
-            <span className="text-xs font-medium">{isOpen ? 'Open' : 'Closed'}</span>
-          </div>
-        </div>
+        <PillStatusBadge
+          label={isOpen ? t('open') : t('closed')}
+          variant={isOpen ? 'openNow' : 'closedNow'}
+        />
       );
     },
   },
@@ -244,21 +284,10 @@ export const shopColumns = (
     cell: ({ row }) => {
       const isActive = row.original.is_active;
       return (
-        <div
-          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border w-fit ${
-            isActive
-              ? 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/50 text-emerald-700 dark:text-emerald-300'
-              : 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800/50 text-red-700 dark:text-red-300'
-          }`}
-        >
-          <Iconify
-            icon={isActive ? 'solar:check-circle-bold' : 'solar:close-circle-bold'}
-            width={14}
-            height={14}
-            className="flex-shrink-0"
-          />
-          <span className="text-xs font-medium">{isActive ? 'Active' : 'Inactive'}</span>
-        </div>
+        <PillStatusBadge
+          label={isActive ? t('active') : t('inactive')}
+          variant={isActive ? 'available' : 'inactive'}
+        />
       );
     },
   },

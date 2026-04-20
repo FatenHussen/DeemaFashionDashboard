@@ -8,6 +8,30 @@ import { CONFIG } from 'src/global-config';
 import { Box, Typography } from 'src/shared/ui';
 import { LoadingScreen } from 'src/shared/components/loading-screen';
 
+function PackageRichDescriptionHtml({
+  html,
+  dir,
+}: {
+  html: string | null | undefined;
+  dir?: 'ltr' | 'rtl';
+}) {
+  const trimmed = typeof html === 'string' ? html.trim() : '';
+  if (!trimmed) {
+    return (
+      <Typography variant="body1" className="font-medium">
+        —
+      </Typography>
+    );
+  }
+  return (
+    <Box
+      dir={dir}
+      className="product-rich-html text-foreground text-sm leading-relaxed max-w-none [&_p]:mb-3 [&_p:last-child]:mb-0 [&_ul]:my-2 [&_ul]:ps-5 [&_ol]:my-2 [&_ol]:ps-5 [&_li]:my-0.5 [&_a]:text-primary [&_a]:underline [&_strong]:font-semibold [&_em]:italic [&_h1]:text-xl [&_h1]:font-semibold [&_h2]:text-lg [&_h2]:font-semibold [&_blockquote]:border-s-2 [&_blockquote]:border-border [&_blockquote]:ps-3 [&_blockquote]:text-muted-foreground"
+      dangerouslySetInnerHTML={{ __html: trimmed }}
+    />
+  );
+}
+
 function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <Box>
@@ -142,9 +166,9 @@ export default function DetailsPage() {
                   <Typography variant="caption" className="text-muted-foreground">
                     {t('columns.description')}
                   </Typography>
-                  <Typography variant="body1" className="mt-1 font-medium">
-                    {descStr}
-                  </Typography>
+                  <Box className="mt-1">
+                    <PackageRichDescriptionHtml html={descStr} dir="ltr" />
+                  </Box>
                 </Box>
               )}
 

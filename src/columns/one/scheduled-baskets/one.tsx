@@ -3,6 +3,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 import type { ScheduledBasketData } from '@/pages/dashboard/baskets/types/scheduled-basket.types';
 
 import { z } from 'zod';
+import { formatTranslated } from '@/utils/format-translated';
 import { createToggleColumn } from '@/shared/ui/table-data/data-table-toggle-cell';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
@@ -56,9 +57,18 @@ export const scheduledBasketColumns = (
     id: 'category',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.category')} />,
     cell: ({ row }) => {
-      const cat = row.original.category;
+      const r = row.original;
+      if (r.categories?.length) {
+        const text = r.categories
+          .map((c) => formatTranslated(c.name as Parameters<typeof formatTranslated>[0]))
+          .filter(Boolean)
+          .join(' · ');
+        return <span className="text-sm">{text || '—'}</span>;
+      }
+      const cat = r.category;
       if (!cat) return <span className="text-muted-foreground">—</span>;
-      const catName = typeof cat.name === 'object' ? (cat.name as any)?.en || (cat.name as any)?.ar : cat.name;
+      if (typeof cat === 'string') return <span className="text-sm">{cat}</span>;
+      const catName = formatTranslated((cat as { name?: unknown }).name as Parameters<typeof formatTranslated>[0]);
       return <span className="text-sm">{catName || '—'}</span>;
     },
   },

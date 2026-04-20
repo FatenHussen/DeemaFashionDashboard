@@ -4,6 +4,9 @@ import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
 import { useFetchScheduledBasketById } from '@/pages/dashboard/baskets/hooks/scheduled-basket';
 
+import { formatTranslated } from '@/utils/format-translated';
+import type { ScheduledBasketData } from '@/pages/dashboard/baskets/types/scheduled-basket.types';
+
 import { CONFIG } from 'src/global-config';
 import { Box, Typography } from 'src/shared/ui';
 import { LoadingScreen } from 'src/shared/components/loading-screen';
@@ -14,6 +17,21 @@ function formatName(name: unknown): string {
     return o.en || o.ar || '—';
   }
   return String(name ?? '—');
+}
+
+function categorySubtitle(row: ScheduledBasketData): string {
+  if (row.categories?.length) {
+    return row.categories
+      .map((c) => formatTranslated(c.name as Parameters<typeof formatTranslated>[0]))
+      .filter(Boolean)
+      .join(' · ');
+  }
+  const cat = row.category;
+  if (typeof cat === 'string') return cat;
+  if (cat && typeof cat === 'object' && 'name' in cat) {
+    return formatTranslated((cat as { name: unknown }).name as Parameters<typeof formatTranslated>[0]);
+  }
+  return '—';
 }
 
 export default function DetailsPage() {
@@ -42,7 +60,7 @@ export default function DetailsPage() {
   }
 
   const nameStr = formatName(scheduledBasket.name);
-  const catName = scheduledBasket.category ? formatName(scheduledBasket.category.name) : '—';
+  const catName = categorySubtitle(scheduledBasket);
   const discountText =
     scheduledBasket.discount_type === 'percentage' ? `${scheduledBasket.discount}%` : `${scheduledBasket.discount}`;
 

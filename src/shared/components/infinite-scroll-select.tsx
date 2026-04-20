@@ -3,7 +3,10 @@ import { useTranslation } from 'react-i18next';
 import { useRef, useState, useEffect } from 'react';
 import { formatTranslated } from '@/utils/format-translated';
 
+import { shopVariantOptionColorHex } from '@/utils/shop-variant-image';
+
 import { Iconify } from './iconify';
+import { ShopVariantColorSwatch } from './shop-variant-color-swatch';
 import { useInfiniteSelect, type InfiniteSelectOption } from '../hooks/use-infinite-select';
 
 // ----------------------------------------------------------------------
@@ -20,6 +23,14 @@ interface InfiniteScrollSelectProps {
   disabled?: boolean;
   /** Fallback label shown when value is set but item hasn't loaded yet (e.g. edit mode) */
   initialLabel?: string;
+  /** Fallback image URL when value is set but the option row is not in loaded pages (e.g. edit mode) */
+  initialImage?: string | null;
+  /** Fallback color hex when value is set but the option row is not loaded (e.g. edit mode) */
+  initialColorHex?: string | null;
+  /** If set, thumbnails are shown in the list and on the trigger (resolved absolute URLs) */
+  getOptionImage?: (item: InfiniteSelectOption & Record<string, unknown>) => string | null | undefined;
+  /** If set, a color swatch with hex text is shown (e.g. shop product variant labels). */
+  getOptionColorHex?: (item: InfiniteSelectOption & Record<string, unknown>) => string | null | undefined;
   /** Items per page — defaults to 10 */
   pageSize?: number;
 }
@@ -37,6 +48,10 @@ export function InfiniteScrollSelect({
   className,
   disabled,
   initialLabel,
+  initialImage,
+  initialColorHex,
+  getOptionImage,
+  getOptionColorHex,
   pageSize = 10,
 }: InfiniteScrollSelectProps) {
   const { t } = useTranslation('table');
@@ -104,6 +119,26 @@ export function InfiniteScrollSelect({
       ? initialLabel
       : null;
 
+  const selectedImageSrc =
+    getOptionImage && value > 0
+      ? selectedOption
+        ? getOptionImage(selectedOption as InfiniteSelectOption & Record<string, unknown>)
+        : initialImage ?? null
+      : null;
+  const selectedImageResolved =
+    selectedImageSrc != null && String(selectedImageSrc).trim() !== '' ? String(selectedImageSrc).trim() : null;
+
+  const selectedColorHex =
+    getOptionColorHex && value > 0
+      ? selectedOption
+        ? getOptionColorHex(selectedOption as InfiniteSelectOption & Record<string, unknown>) ?? null
+        : initialColorHex ??
+          (initialLabel ? shopVariantOptionColorHex({ label: initialLabel }) : null)
+      : null;
+  const selectedColorHexOk = selectedColorHex != null && String(selectedColorHex).trim() !== '';
+
+  const showLeadMedia = Boolean(getOptionImage || getOptionColorHex);
+
   const filtered = search
     ? allItems.filter((item: InfiniteSelectOption) => {
         const label = formatTranslated((item as any).label, '');
@@ -126,9 +161,33 @@ export function InfiniteScrollSelect({
         disabled={disabled}
         className="w-full h-10 rounded-xl border border-border/70 bg-background/30 px-3.5 text-sm text-start shadow-sm flex items-center justify-between gap-2 outline-none transition-all duration-200 hover:border-primary/30 hover:bg-muted/20 focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/25 disabled:cursor-not-allowed disabled:opacity-60"
       >
-        <span className={`truncate ${displayLabel ? 'text-foreground' : 'text-muted-foreground'}`}>
-          {displayLabel ?? placeholder}
-        </span>
+        {showLeadMedia ? (
+          <span className="flex min-w-0 flex-1 items-center gap-2">
+            {selectedColorHexOk ? <ShopVariantColorSwatch hex={String(selectedColorHex).trim()} /> : null}
+            {getOptionImage ? (
+              selectedImageResolved ? (
+                <img
+                  src={selectedImageResolved}
+                  alt=""
+                  className="h-7 w-7 shrink-0 rounded-md border border-border/50 object-cover bg-muted"
+                />
+              ) : (
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-dashed border-border/60 bg-muted/30">
+                  <Iconify icon="solar:gallery-minimalistic-bold" width={14} className="text-muted-foreground/60" />
+                </span>
+              )
+            ) : null}
+            <span
+              className={`min-w-0 truncate ${displayLabel ? 'text-foreground' : 'text-muted-foreground'}`}
+            >
+              {displayLabel ?? placeholder}
+            </span>
+          </span>
+        ) : (
+          <span className={`truncate ${displayLabel ? 'text-foreground' : 'text-muted-foreground'}`}>
+            {displayLabel ?? placeholder}
+          </span>
+        )}
         <Iconify
           icon="solar:alt-arrow-down-bold"
           width={14}
@@ -175,21 +234,46 @@ export function InfiniteScrollSelect({
                   {t('noOptionsFound')}
                 </div>
               ) : (
-                filtered.map((item: InfiniteSelectOption) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => {
-                      onChange(item.id);
-                      handleClose();
-                    }}
-                    className={`w-full px-3 py-2 text-sm text-start hover:bg-muted transition-colors truncate ${
-                      Number(value) === Number(item.id) ? 'bg-primary/10 text-primary font-medium' : ''
-                    }`}
-                  >
-                    {formatTranslated((item as any).label)}
-                  </button>
-                ))
+                filtered.map((item: InfiniteSelectOption) => {
+                  const rowImg = getOptionImage?.(item as InfiniteSelectOption & Record<string, unknown>);
+                  const rowImgOk = rowImg != null && String(rowImg).trim() !== '';
+                  const rowHex = getOptionColorHex?.(item as InfiniteSelectOption & Record<string, unknown>);
+                  const rowHexOk = rowHex != null && String(rowHex).trim() !== '';
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => {
+                        onChange(item.id);
+                        handleClose();
+                      }}
+                      className={`flex w-full items-center gap-2 px-3 py-2 text-sm text-start hover:bg-muted transition-colors min-w-0 ${
+                        Number(value) === Number(item.id) ? 'bg-primary/10 text-primary font-medium' : ''
+                      }`}
+                    >
+                      {rowHexOk ? (
+                        <ShopVariantColorSwatch hex={String(rowHex).trim()} size="lg" />
+                      ) : null}
+                      {getOptionImage &&
+                        (rowImgOk ? (
+                          <img
+                            src={String(rowImg).trim()}
+                            alt=""
+                            className="h-8 w-8 shrink-0 rounded-md border border-border/50 object-cover bg-muted"
+                          />
+                        ) : (
+                          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-dashed border-border/60 bg-muted/30">
+                            <Iconify
+                              icon="solar:gallery-minimalistic-bold"
+                              width={16}
+                              className="text-muted-foreground/60"
+                            />
+                          </span>
+                        ))}
+                      <span className="min-w-0 flex-1 truncate">{formatTranslated((item as any).label)}</span>
+                    </button>
+                  );
+                })
               )}
 
               {isFetchingNextPage && (

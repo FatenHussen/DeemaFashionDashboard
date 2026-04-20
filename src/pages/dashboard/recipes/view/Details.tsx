@@ -11,6 +11,7 @@ import { useFetchRecipeById } from '@/pages/dashboard/recipes/hooks/recipe';
 
 import { CONFIG } from 'src/global-config';
 import { Box, Typography } from 'src/shared/ui';
+import { isActiveLanguageArabic } from 'src/lib/language-code';
 import { LoadingScreen } from 'src/shared/components/loading-screen';
 
 function resolveMediaUrl(path?: string | null): string | undefined {
@@ -129,6 +130,27 @@ function formatStepField(field: LocalizedField | undefined): string {
   return formatTranslated(field as Parameters<typeof formatTranslated>[0]);
 }
 
+/** Renders TinyMCE HTML stored in localized description. */
+function RecipeRichDescriptionHtml({
+  html,
+  dir,
+}: {
+  html: string | null | undefined;
+  dir?: 'ltr' | 'rtl';
+}) {
+  const trimmed = typeof html === 'string' ? html.trim() : '';
+  if (!trimmed) {
+    return null;
+  }
+  return (
+    <Box
+      dir={dir}
+      className="product-rich-html text-muted-foreground text-sm leading-relaxed max-w-none [&_p]:mb-3 [&_p:last-child]:mb-0 [&_ul]:my-2 [&_ul]:ps-5 [&_ol]:my-2 [&_ol]:ps-5 [&_li]:my-0.5 [&_a]:text-primary [&_a]:underline [&_strong]:font-semibold [&_em]:italic [&_h1]:text-xl [&_h1]:font-semibold [&_h2]:text-lg [&_h2]:font-semibold [&_blockquote]:border-s-2 [&_blockquote]:border-border [&_blockquote]:ps-3 [&_blockquote]:text-muted-foreground"
+      dangerouslySetInnerHTML={{ __html: trimmed }}
+    />
+  );
+}
+
 export default function DetailsPage() {
   const { t } = useTranslation('table');
   const { id } = useParams<{ id: string }>();
@@ -156,7 +178,10 @@ export default function DetailsPage() {
   }
 
   const nameStr = formatTranslated(item.name);
-  const descStr = item.description ? formatTranslated(item.description) : '';
+  const descHtml =
+    item.description != null
+      ? formatTranslated(item.description as Parameters<typeof formatTranslated>[0], '')
+      : '';
   const imageSrc = resolveMediaUrl(item.image);
   const videoUrl = resolveRecipeVideoUrl(item.video_url);
 
@@ -194,10 +219,11 @@ export default function DetailsPage() {
                   <Typography variant="h4" className="mb-1 font-bold text-foreground">
                     {nameStr}
                   </Typography>
-                  {descStr ? (
-                    <Typography variant="body2" className="text-muted-foreground">
-                      {descStr}
-                    </Typography>
+                  {descHtml ? (
+                    <RecipeRichDescriptionHtml
+                      html={descHtml}
+                      dir={isActiveLanguageArabic() ? 'rtl' : 'ltr'}
+                    />
                   ) : null}
                 </Box>
               </Box>

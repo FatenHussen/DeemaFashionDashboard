@@ -7,9 +7,11 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Iconify } from '@/shared/components/iconify';
 import { MultiSelect } from '@/shared/ui/multi-select';
 import { formatTranslated } from '@/utils/format-translated';
+import { resolveStorageImageUrl, shopVariantOptionColorHex, shopVariantOptionImage } from '@/utils/shop-variant-image';
 import { useParams, useNavigate, useLocation } from 'react-router';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { InfiniteScrollSelect } from '@/shared/components/infinite-scroll-select';
+import { TinyMCEEditorField } from '@/shared/components/tinymce-editor/tinymce-editor';
 import { _CategoryApi } from '@/pages/dashboard/categories/api/category.services';
 import { _ShopProductVariantApi } from '@/shared/api/shop-product-variant.services';
 import {
@@ -36,6 +38,21 @@ import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout
 import { RHFBadgeSelector } from 'src/shared/components/hook-form/rhf-badge-selector';
 
 // ----------------------------------------------------------------------
+
+function FieldErrorText({ message }: { message?: string }) {
+  if (!message) return null;
+  return (
+    <Typography variant="caption" className="text-destructive mt-1 block">
+      {message}
+    </Typography>
+  );
+}
+
+const getTranslation = (val: any, lang: 'ar' | 'en') => {
+  if (!val) return '';
+  if (typeof val === 'string') return lang === 'en' ? val : '';
+  return val[lang] || '';
+};
 
 function mapScheduledBasketLineItem(it: ScheduledBasketItem) {
   const fromAlts = (it.alternatives ?? []).map((a) => a.shop_product_variant_id).filter(Boolean);
@@ -137,8 +154,9 @@ export default function CreatePage() {
   const updateScheduledBasketMutation = useUpdateScheduledBasket();
 
   const defaultValues: ScheduledBasketFormValues = {
-    category_id: 0,
+    category_ids: [],
     name: { en: '', ar: '' },
+    description: { en: '', ar: '' },
     discount: 0,
     discount_type: 'percentage',
     delivery_price: 0,
@@ -172,15 +190,49 @@ export default function CreatePage() {
   } = useFieldArray({ control, name: 'schedules' });
   const schedulesWatch = watch('schedules');
   const imageValue = watch('image');
-  const categoryId = watch('category_id') ?? 0;
+  const categoryIds = watch('category_ids') ?? [];
+  const primaryCategoryId = categoryIds[0] ?? 0;
   const mainBasketDiscountType = watch('discount_type');
 
+  const { data: categoriesListResponse } = useQuery({
+    queryKey: ['categories', 'scheduled-basket-form-options'],
+    queryFn: () => _CategoryApi.getListCategoriesPaginated({ page: 1, per_page: 500 }),
+  });
+
+  const categorySelectOptions = useMemo(() => {
+    const items = categoriesListResponse?.data?.items ?? [];
+    const fromList = items.map((c: { id: number; name: unknown }) => ({
+      value: c.id,
+      label: formatTranslated(c.name as Parameters<typeof formatTranslated>[0]),
+    }));
+    const src = scheduledBasketResponse?.data ?? scheduledBasketFromState;
+    const fromApi = (src?.categories ?? []).map((c) => ({
+      value: c.id,
+      label: formatTranslated(c.name as Parameters<typeof formatTranslated>[0]),
+    }));
+    const seen = new Set<number>();
+    const merged: { value: number; label: string }[] = [];
+    for (const o of [...fromApi, ...fromList]) {
+      if (seen.has(Number(o.value))) continue;
+      seen.add(Number(o.value));
+      merged.push(o);
+    }
+    return merged;
+  }, [categoriesListResponse?.data?.items, scheduledBasketResponse?.data?.categories, scheduledBasketFromState?.categories]);
+
   const { data: shopVariantListResponse } = useQuery({
-    queryKey: ['shopProductVariant', 'scheduled-basket', 'multi-options', categoryId],
+    queryKey: ['shopProductVariant', 'scheduled-basket', 'multi-options', categoryIds.join(',')],
     queryFn: () =>
-      categoryId > 0
-        ? _ShopProductVariantApi.getList({ page: 1, per_page: 500, category_id: categoryId })
-        : Promise.resolve({
+      categoryIds.length === 1
+        ? _ShopProductVariantApi.getList({ page: 1, per_page: 500, category_id: categoryIds[0] })
+        : categoryIds.length > 1
+          ? _ShopProductVariantApi.getList({
+              page: 1,
+              per_page: 500,
+              category_ids: categoryIds,
+              category_id: primaryCategoryId,
+            })
+          : Promise.resolve({
             status: true,
             message: '',
             data: {
@@ -197,7 +249,12 @@ export default function CreatePage() {
 
   const shopVariantMultiOptions = useMemo(() => {
     const items = shopVariantListResponse?.data?.items ?? [];
-    return items.map((v) => ({ value: v.id, label: v.label }));
+    return items.map((v) => ({
+      value: v.id,
+      label: typeof v.label === 'string' ? v.label : formatTranslated(v.label as Parameters<typeof formatTranslated>[0]),
+      imageUrl: shopVariantOptionImage(v),
+      colorHex: shopVariantOptionColorHex(v),
+    }));
   }, [shopVariantListResponse?.data?.items]);
 
   const handleRemoveScheduleRow = (index: number) => {
@@ -234,9 +291,22 @@ export default function CreatePage() {
     if (source) {
       const name = typeof source.name === 'object' ? source.name : { en: String(source.name || ''), ar: String(source.name || '') };
       const combinedLines = [...(source.items ?? []), ...(source.extras ?? [])];
+      const idsFromPivot =
+        source.category_ids?.length ? source.category_ids : source.categories?.map((c) => c.id) ?? [];
+      const legacyId =
+        typeof source.category === 'object' && source.category && 'id' in source.category
+          ? source.category.id
+          : undefined;
+      const category_ids =
+        idsFromPivot.length > 0 ? idsFromPivot : legacyId != null ? [legacyId] : [];
+
       reset({
-        category_id: source.category?.id || 0,
+        category_ids,
         name: { en: (name as any)?.en || '', ar: (name as any)?.ar || '' },
+        description: {
+          en: getTranslation(source.description, 'en'),
+          ar: getTranslation(source.description, 'ar'),
+        },
         discount: Number(source.discount) || 0,
         discount_type: source.discount_type || 'percentage',
         delivery_price: source.delivery_price || 0,
@@ -257,8 +327,10 @@ export default function CreatePage() {
   const onSubmit = async (data: ScheduledBasketFormValues) => {
     try {
       const payload: ScheduledBasketCreateUpdatePayload = {
-        category_id: data.category_id,
+        category_ids: data.category_ids,
+        category_id: data.category_ids[0],
         name: data.name,
+        description: data.description,
         discount: data.discount,
         discount_type: data.discount_type,
         delivery_price: data.delivery_price,
@@ -327,7 +399,7 @@ export default function CreatePage() {
               <Iconify icon="solar:widget-5-bold" className="text-violet-500" width={15} />
             </Box>
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              {t('form.categoryLabel')} & {t('columns.name')}
+              {t('form.categoryLabel')} · {t('columns.name')} · {t('columns.description')}
             </Typography>
           </Box>
           <Box className="p-6 flex flex-col gap-5">
@@ -337,38 +409,38 @@ export default function CreatePage() {
                 {t('form.categoryLabel')}
               </Typography>
               <Controller
-                name="category_id"
+                name="category_ids"
                 control={control}
-                render={({ field }) => (
-                  <InfiniteScrollSelect
-                    value={field.value ?? 0}
-                    onChange={(val) => {
-                      field.onChange(val);
-                      setValue('items', [{ shop_product_variant_id: 0, quantity: 1, shop_product_variant_ids: [], is_required: false, is_extra: false, min_quantity: 0, max_quantity: 0 }]);
-                    }}
-                    queryKey={['category', 'scheduled-basket']}
-                    fetcher={(page) =>
-                      _CategoryApi.getListCategoriesPaginated({ page, per_page: 15 }).then((res) => ({
-                        data: {
-                          items:
-                            page === 1
-                              ? [
-                                  { id: 0, label: t('form.selectCategoryPlaceholder') },
-                                  ...res.data.items.map((c: any) => ({ id: c.id, label: typeof c.name === 'object' ? c.name : c.name || '' })),
-                                ]
-                              : res.data.items.map((c: any) => ({ id: c.id, label: typeof c.name === 'object' ? c.name : c.name || '' })),
-                          pagination: res.data.pagination,
-                        },
-                      }))
-                    }
-                    placeholder={t('form.selectCategoryPlaceholder')}
-                    initialLabel={(() => {
-                      const src = scheduledBasketResponse?.data ?? scheduledBasketFromState;
-                      const cat = src?.category;
-                      return cat?.name ? (typeof cat.name === 'object' ? (cat.name as any)?.en || (cat.name as any)?.ar : cat.name) : undefined;
-                    })()}
-                  />
-                )}
+                render={({ field, fieldState: { error } }) => {
+                  const ids = Array.isArray(field.value) ? field.value.map(Number).filter((n) => n > 0) : [];
+                  return (
+                    <div>
+                      <MultiSelect
+                        options={categorySelectOptions}
+                        value={ids}
+                        onChange={(vals) => {
+                          field.onChange((vals as (string | number)[]).map((x) => Number(x)));
+                          setValue('items', [
+                            {
+                              shop_product_variant_id: 0,
+                              quantity: 1,
+                              shop_product_variant_ids: [],
+                              is_required: false,
+                              is_extra: false,
+                              min_quantity: 0,
+                              max_quantity: 0,
+                            },
+                          ]);
+                        }}
+                        placeholder={t('form.selectCategory')}
+                        noOptionsMessage={t('noOptionsFound')}
+                        fullWidth
+                        error={!!error}
+                        helperText={error?.message}
+                      />
+                    </div>
+                  );
+                }}
               />
             </Box>
             <Box className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -385,6 +457,64 @@ export default function CreatePage() {
                   {t('form.nameAr')}
                 </Typography>
                 <RHFTextField name="name.ar" placeholder={t('form.basketNameAr')} dir="rtl" fullWidth />
+              </Box>
+            </Box>
+
+            <Box className="border-t border-border pt-5 mt-2 space-y-5">
+              <Box className="group">
+                <Box className="flex items-center gap-2 mb-2">
+                  <Iconify icon="solar:document-bold" className="text-primary" width={20} />
+                  <Typography variant="subtitle2" className="font-semibold text-foreground">
+                    {t('form.productFullDescAr')}
+                  </Typography>
+                </Box>
+                <Controller
+                  name="description.ar"
+                  control={control}
+                  render={({ field, fieldState: { error } }) => (
+                    <div>
+                      <TinyMCEEditorField
+                        value={field.value ?? ''}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        placeholder={t('form.fullDescArPlaceholder')}
+                        dir="rtl"
+                        menubar
+                        toolsMenuWordCount
+                        height={320}
+                      />
+                      <FieldErrorText message={error?.message} />
+                    </div>
+                  )}
+                />
+              </Box>
+
+              <Box className="group">
+                <Box className="flex items-center gap-2 mb-2">
+                  <Iconify icon="solar:document-bold" className="text-primary" width={20} />
+                  <Typography variant="subtitle2" className="font-semibold text-foreground">
+                    {t('form.productFullDescEn')}
+                  </Typography>
+                </Box>
+                <Controller
+                  name="description.en"
+                  control={control}
+                  render={({ field, fieldState: { error } }) => (
+                    <div>
+                      <TinyMCEEditorField
+                        value={field.value ?? ''}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        placeholder={t('form.fullDescPlaceholder')}
+                        dir="ltr"
+                        menubar
+                        toolsMenuWordCount
+                        height={320}
+                      />
+                      <FieldErrorText message={error?.message} />
+                    </div>
+                  )}
+                />
               </Box>
             </Box>
           </Box>
@@ -655,17 +785,30 @@ export default function CreatePage() {
                           <InfiniteScrollSelect
                             value={Number(f.value) || 0}
                             onChange={(variantId) => f.onChange(Number(variantId) || 0)}
-                            queryKey={['shopProductVariant', 'scheduled-basket', 'line', index, categoryId]}
+                            queryKey={['shopProductVariant', 'scheduled-basket', 'line', index, categoryIds.join(',')]}
                             fetcher={(page, limit) => {
                               const perPage = limit ?? 10;
-                              if (!categoryId || categoryId <= 0) {
+                              if (!categoryIds.length) {
                                 return Promise.resolve({ data: { items: page === 1 ? [{ id: 0, label: t('form.selectCategoryBeforeVariants') }] : [], pagination: { current_page: page, last_page: page, per_page: perPage, total: 0 } } });
                               }
-                              return _ShopProductVariantApi.getList({ page, per_page: perPage, category_id: categoryId });
+                              if (categoryIds.length === 1) {
+                                return _ShopProductVariantApi.getList({ page, per_page: perPage, category_id: categoryIds[0] });
+                              }
+                              return _ShopProductVariantApi.getList({
+                                page,
+                                per_page: perPage,
+                                category_ids: categoryIds,
+                                category_id: primaryCategoryId,
+                              });
                             }}
                             placeholder={t('form.variantId')}
                             initialLabel={scheduledBasketLineVariantInitialLabel(lineFromApi)}
-                            disabled={categoryId <= 0}
+                            initialImage={resolveStorageImageUrl(
+                              lineFromApi?.variant_image ?? lineFromApi?.product?.image
+                            )}
+                            getOptionImage={(item) => shopVariantOptionImage(item)}
+                            getOptionColorHex={(item) => shopVariantOptionColorHex(item)}
+                            disabled={categoryIds.length === 0}
                           />
                         );
                       }}
@@ -698,8 +841,9 @@ export default function CreatePage() {
                           <MultiSelect
                             options={options} value={ids}
                             onChange={(vals) => f.onChange((vals as (string | number)[]).map((x) => Number(x)))}
-                            placeholder={categoryId <= 0 ? t('form.selectCategoryBeforeVariants') : t('form.alternativeScheduledBasketsPlaceholder')}
-                            noOptionsMessage={t('noOptionsFound')} fullWidth isDisabled={categoryId <= 0}
+                            placeholder={categoryIds.length === 0 ? t('form.selectCategoryBeforeVariants') : t('form.alternativeScheduledBasketsPlaceholder')}
+                            noOptionsMessage={t('noOptionsFound')} fullWidth isDisabled={categoryIds.length === 0}
+                            showOptionImages
                           />
                         );
                       }}

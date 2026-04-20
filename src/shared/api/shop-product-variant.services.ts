@@ -5,6 +5,18 @@ import { apiRoutes, axiosInstance } from '@/api';
 export interface ShopProductVariantItem {
   id: number;
   label: string;
+  /** From API — display as-is (backend may compute discount / price_after_discount). */
+  price?: number;
+  discount?: number | null;
+  price_after_discount?: number | null;
+  cost_price?: number | null;
+  /** Present on list/detail payloads from API */
+  variant_image?: string | null;
+  product?: { image?: string | null };
+  sku?: string | null;
+  model?: string | null;
+  barcode?: string | null;
+  [key: string]: unknown;
 }
 
 export interface ShopProductVariantListResponse {
@@ -38,6 +50,7 @@ const emptyResponse = (page: number, perPage: number): ShopProductVariantListRes
 export interface ShopProductVariantUpdatePayload {
   price?: number;
   cost_price?: number;
+  discount?: number;
   quantity?: number;
   shop_id?: number;
   product_variant_id?: number;
@@ -62,11 +75,18 @@ export const _ShopProductVariantApi = {
     per_page?: number;
     shop_id?: number;
     category_id?: number;
+    /** When set, backend may filter variants in any of these categories */
+    category_ids?: number[];
   }): Promise<ShopProductVariantListResponse> => {
     const page = params?.page ?? 1;
     const perPage = params?.per_page ?? 10;
     try {
-      const response = await axiosInstance.get(apiRoutes.shopProductVariant.list, { params });
+      const { category_ids, ...rest } = params ?? {};
+      const query: Record<string, unknown> = { ...rest };
+      if (category_ids?.length) {
+        query.category_ids = category_ids;
+      }
+      const response = await axiosInstance.get(apiRoutes.shopProductVariant.list, { params: query });
       const data = response?.data;
       if (!data?.data?.items || !Array.isArray(data.data.items)) {
         return emptyResponse(page, perPage);

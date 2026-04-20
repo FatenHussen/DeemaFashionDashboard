@@ -1,9 +1,10 @@
 import type { AdminProductVariantListItem } from '@/pages/dashboard/products/types/product.types';
+import type { CurrencyData } from '@/pages/dashboard/currencies/types/currency.types';
 
 import { queryKeys } from '@/api';
 import { toast } from 'react-toastify';
 import { Input } from '@/shared/ui/input';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/shared/ui/button';
 import { Dialog } from '@/shared/ui/dialog';
 import { useTranslation } from 'react-i18next';
@@ -12,12 +13,29 @@ import { Iconify } from '@/shared/components/iconify';
 import { formatTranslated } from '@/utils/format-translated';
 import { _ProductApi } from '@/pages/dashboard/products/api/product.services';
 import { useUpdateShopProductVariant } from '@/pages/dashboard/products/hooks/product-variant';
+import { useFetchCurrencies } from '@/pages/dashboard/currencies/hooks/currency';
 
 import { CONFIG } from 'src/global-config';
 
 // ----------------------------------------------------------------------
 
 const PER_PAGE = 10;
+
+function parseCurrencyRate(c: CurrencyData): number {
+  const r = Number((c as { exchange_rate?: string | number }).exchange_rate);
+  return r > 0 ? r : 1;
+}
+
+/** `exchange_rate` = units of local currency per 1 USD → USD = local / rate. */
+function localAmountToUsd(local: number, exchangeRate: number): number {
+  const r = exchangeRate > 0 ? exchangeRate : 1;
+  return local / r;
+}
+
+function usdToLocalAmount(usd: number, exchangeRate: number): number {
+  const r = exchangeRate > 0 ? exchangeRate : 1;
+  return usd * r;
+}
 
 function resolveVariantImageUrl(url: string | null | undefined): string | null {
   if (url == null || String(url).trim() === '') return null;
@@ -42,11 +60,22 @@ function ShopVariantRowEditor({
   canEdit,
   onSuccess,
   labels,
+  dualPriceReady,
+  sypRate,
 }: {
   shopVariant: AdminProductVariantListItem['shop_variants'][number];
   canEdit: boolean;
   onSuccess: () => void;
-  labels: { save: string; price: string; cost: string; stock: string };
+  labels: {
+    save: string;
+    price: string;
+    cost: string;
+    discount: string;
+    priceAfterDiscount: string;
+    stock: string;
+  };
+  dualPriceReady: boolean;
+  sypRate: number;
 }) {
   const { t } = useTranslation('table');
   const { mutate, isPending } = useUpdateShopProductVariant();
@@ -54,24 +83,32 @@ function ShopVariantRowEditor({
   const [costPrice, setCostPrice] = useState(
     shopVariant.cost_price != null ? String(shopVariant.cost_price) : ''
   );
+  const [discount, setDiscount] = useState(
+    shopVariant.discount != null ? String(shopVariant.discount) : ''
+  );
   const [quantity, setQuantity] = useState(String(shopVariant.quantity));
 
   useEffect(() => {
     setPrice(String(shopVariant.price));
     setCostPrice(shopVariant.cost_price != null ? String(shopVariant.cost_price) : '');
+    setDiscount(shopVariant.discount != null ? String(shopVariant.discount) : '');
     setQuantity(String(shopVariant.quantity));
   }, [shopVariant]);
+
+  const discountStr = shopVariant.discount != null ? String(shopVariant.discount) : '';
 
   const dirty =
     price !== String(shopVariant.price) ||
     costPrice !==
       (shopVariant.cost_price != null ? String(shopVariant.cost_price) : '') ||
+    discount !== discountStr ||
     quantity !== String(shopVariant.quantity);
 
   const handleSave = () => {
     const p = parseFloat(price);
     const q = parseInt(quantity, 10);
     const c = costPrice.trim() === '' ? undefined : parseFloat(costPrice);
+    const d = discount.trim() === '' ? undefined : parseFloat(discount);
     if (Number.isNaN(p) || p < 0) {
       toast.error(t('productVariantsModalInvalidPrice'));
       return;
@@ -84,6 +121,10 @@ function ShopVariantRowEditor({
       toast.error(t('productVariantsModalInvalidCost'));
       return;
     }
+    if (d !== undefined && (Number.isNaN(d) || d < 0)) {
+      toast.error(t('productVariantsModalInvalidDiscount'));
+      return;
+    }
 
     mutate(
       {
@@ -92,6 +133,7 @@ function ShopVariantRowEditor({
           price: p,
           quantity: q,
           ...(c !== undefined ? { cost_price: c } : {}),
+          ...(d !== undefined ? { discount: d } : {}),
         },
       },
       {
@@ -112,12 +154,28 @@ function ShopVariantRowEditor({
       : formatTranslated(shopVariant.shop?.name as Parameters<typeof formatTranslated>[0]);
 
   if (!canEdit) {
+    const usdP = Number(shopVariant.price) || 0;
+    const sypP = dualPriceReady ? usdToLocalAmount(usdP, sypRate) : null;
     return (
-      <div className="grid grid-cols-1 gap-2 rounded-md border border-border/60 bg-muted/20 px-3 py-2 text-sm sm:grid-cols-4">
-        <div className="font-medium text-foreground sm:col-span-1">{shopName}</div>
+      <div className="grid grid-cols-1 gap-2 rounded-md border border-border/60 bg-muted/20 px-3 py-2 text-sm sm:grid-cols-2 lg:grid-cols-6">
+        <div className="font-medium text-foreground lg:col-span-1">{shopName}</div>
         <div>
-          <span className="text-muted-foreground">{labels.price}: </span>
+          <span className="text-muted-foreground">{t('form.productPriceUsdLabel')}: </span>
           {shopVariant.price}
+          {sypP != null ? (
+            <>
+              <span className="text-muted-foreground"> · {t('form.productPriceSypLabel')}: </span>
+              {sypP}
+            </>
+          ) : null}
+        </div>
+        <div>
+          <span className="text-muted-foreground">{labels.discount}: </span>
+          {shopVariant.discount ?? '—'}
+        </div>
+        <div>
+          <span className="text-muted-foreground">{labels.priceAfterDiscount}: </span>
+          {shopVariant.price_after_discount ?? '—'}
         </div>
         <div>
           <span className="text-muted-foreground">{labels.cost}: </span>
@@ -131,20 +189,54 @@ function ShopVariantRowEditor({
     );
   }
 
+  const usdNum = parseFloat(price) || 0;
+  const sypNum = dualPriceReady ? usdToLocalAmount(usdNum, sypRate) : 0;
+
   return (
-    <div className="flex flex-col gap-2 rounded-md border border-border/60 bg-muted/10 px-3 py-2 sm:flex-row sm:items-end sm:flex-wrap">
+    <div className="flex flex-col gap-2 rounded-md border border-border/60 bg-muted/10 px-3 py-2 lg:flex-row lg:items-end lg:flex-wrap">
       <div className="min-w-[120px] flex-1 text-sm font-medium text-foreground">{shopName}</div>
-      <div className="flex flex-1 flex-col gap-1">
-        <span className="text-xs text-muted-foreground">{labels.price}</span>
-        <Input
-          type="number"
-          step="0.01"
-          min={0}
-          value={price}
-          onChange={(e) => setPrice(e.target.value)}
-          className="h-9"
-        />
-      </div>
+      {dualPriceReady ? (
+        <div className="flex w-full min-w-0 flex-[2] flex-col gap-2 sm:flex-row">
+          <div className="flex min-w-0 flex-1 flex-col gap-1">
+            <span className="text-xs text-muted-foreground">{t('form.productPriceUsdLabel')}</span>
+            <Input
+              type="number"
+              step="any"
+              min={0}
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              className="h-9"
+            />
+          </div>
+          <div className="flex min-w-0 flex-1 flex-col gap-1">
+            <span className="text-xs text-muted-foreground">{t('form.productPriceSypLabel')}</span>
+            <Input
+              type="number"
+              step="any"
+              min={0}
+              value={usdNum === 0 && sypNum === 0 ? '' : sypNum}
+              onChange={(e) => {
+                const raw = e.target.value;
+                const v = raw === '' ? 0 : parseFloat(raw);
+                setPrice(String(localAmountToUsd(Number.isFinite(v) ? v : 0, sypRate)));
+              }}
+              className="h-9"
+            />
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-1 flex-col gap-1">
+          <span className="text-xs text-muted-foreground">{labels.price}</span>
+          <Input
+            type="number"
+            step="0.01"
+            min={0}
+            value={price}
+            onChange={(e) => setPrice(e.target.value)}
+            className="h-9"
+          />
+        </div>
+      )}
       <div className="flex flex-1 flex-col gap-1">
         <span className="text-xs text-muted-foreground">{labels.cost}</span>
         <Input
@@ -155,6 +247,23 @@ function ShopVariantRowEditor({
           onChange={(e) => setCostPrice(e.target.value)}
           className="h-9"
         />
+      </div>
+      <div className="flex min-w-[88px] flex-1 flex-col gap-1">
+        <span className="text-xs text-muted-foreground">{labels.discount}</span>
+        <Input
+          type="number"
+          step="0.01"
+          min={0}
+          value={discount}
+          onChange={(e) => setDiscount(e.target.value)}
+          className="h-9"
+        />
+      </div>
+      <div className="flex min-w-[100px] flex-1 flex-col gap-1">
+        <span className="text-xs text-muted-foreground">{labels.priceAfterDiscount}</span>
+        <span className="flex h-9 items-center text-sm tabular-nums text-foreground">
+          {shopVariant.price_after_discount ?? '—'}
+        </span>
       </div>
       <div className="flex flex-1 flex-col gap-1">
         <span className="text-xs text-muted-foreground">{labels.stock}</span>
@@ -193,6 +302,31 @@ export function ProductVariantsPriceModal({
   const [basePrice, setBasePrice] = useState('');
   const [savingBase, setSavingBase] = useState(false);
 
+  const { data: currenciesResponse } = useFetchCurrencies(1, 100);
+  const activeCurrencies = useMemo(() => {
+    const raw = currenciesResponse?.data?.items ?? [];
+    return raw.filter((c) => {
+      const active = c.is_active as boolean | number | undefined;
+      return active === true || active === 1;
+    });
+  }, [currenciesResponse]);
+
+  const usdCurrency = useMemo(
+    () =>
+      activeCurrencies.find((c) => String(c.code).toUpperCase() === 'USD') ??
+      activeCurrencies.find((c) => c.is_default) ??
+      activeCurrencies[0],
+    [activeCurrencies]
+  );
+
+  const sypCurrency = useMemo(
+    () => activeCurrencies.find((c) => String(c.code).toUpperCase() === 'SYP'),
+    [activeCurrencies]
+  );
+
+  const productDualPriceReady = Boolean(usdCurrency && sypCurrency);
+  const sypRate = sypCurrency ? parseCurrencyRate(sypCurrency) : 1;
+
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: queryKeys.product.variants(productId ?? 0, { page, per_page: PER_PAGE }),
     queryFn: () =>
@@ -217,6 +351,9 @@ export function ProductVariantsPriceModal({
   const items = data?.items ?? [];
 
   const referenceBasePrice = items[0]?.product?.price ?? fallbackListPrice;
+  const baseUsdNum = parseFloat(basePrice) || 0;
+  const baseSypNum = usdToLocalAmount(baseUsdNum, sypRate);
+
   const baseDirty =
     onBasePriceUpdate &&
     productId != null &&
@@ -248,6 +385,8 @@ export function ProductVariantsPriceModal({
     price: t('columns.price'),
     cost: t('productVariantsModalCost'),
     stock: t('columns.stock'),
+    discount: t('columns.discount'),
+    priceAfterDiscount: t('columns.priceAfterDiscount'),
   };
 
   const title =
@@ -279,17 +418,55 @@ export function ProductVariantsPriceModal({
                 {t('productVariantsModalBasePrice')}
               </p>
               <div className="flex flex-wrap items-end gap-2">
-                <div className="flex min-w-[140px] flex-1 flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">{t('columns.price')}</span>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    min={0}
-                    value={basePrice}
-                    onChange={(e) => setBasePrice(e.target.value)}
-                    className="h-9"
-                  />
-                </div>
+                {productDualPriceReady ? (
+                  <>
+                    <div className="flex min-w-[140px] flex-1 flex-col gap-1">
+                      <span className="text-xs text-muted-foreground">
+                        {t('form.productPriceUsdLabel')}
+                      </span>
+                      <Input
+                        type="number"
+                        step="any"
+                        min={0}
+                        value={basePrice}
+                        onChange={(e) => setBasePrice(e.target.value)}
+                        className="h-9"
+                      />
+                    </div>
+                    <div className="flex min-w-[140px] flex-1 flex-col gap-1">
+                      <span className="text-xs text-muted-foreground">
+                        {t('form.productPriceSypLabel')}
+                      </span>
+                      <Input
+                        type="number"
+                        step="any"
+                        min={0}
+                        value={baseUsdNum === 0 && baseSypNum === 0 ? '' : baseSypNum}
+                        onChange={(e) => {
+                          const raw = e.target.value;
+                          const v = raw === '' ? 0 : parseFloat(raw);
+                          setBasePrice(
+                            String(localAmountToUsd(Number.isFinite(v) ? v : 0, sypRate))
+                          );
+                        }}
+                        className="h-9"
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex min-w-[140px] flex-1 flex-col gap-1">
+                    <span className="text-xs text-muted-foreground">{t('columns.price')}</span>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min={0}
+                      value={basePrice}
+                      onChange={(e) => setBasePrice(e.target.value)}
+                      className="h-9"
+                    />
+                    <span className="text-xs text-destructive">{t('form.productPriceSypMissing')}</span>
+                  </div>
+                )}
                 <Button
                   type="button"
                   size="small"
@@ -332,6 +509,7 @@ export function ProductVariantsPriceModal({
               });
               const attrLabel = attrParts.filter(Boolean).join(' · ') || '—';
               const variantImg = resolveVariantImageUrl(variant.variant_image);
+              const na = t('form.productDetailsNotAvailable');
 
               return (
                 <div
@@ -356,15 +534,31 @@ export function ProductVariantsPriceModal({
                         />
                       </div>
                     )}
-                    <div className="min-w-0 flex-1 flex flex-wrap items-center justify-between gap-2">
-                      <span className="text-sm font-semibold text-foreground leading-snug">
-                        {attrLabel}
-                      </span>
-                      {variant.is_active === false && (
-                        <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-                          {t('inactive')}
+                    <div className="min-w-0 flex-1 flex flex-col gap-1">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="text-sm font-semibold text-foreground leading-snug">
+                          {attrLabel}
                         </span>
-                      )}
+                        {variant.is_active === false && (
+                          <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                            {t('inactive')}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
+                        <span>
+                          {t('form.productSku')}:{' '}
+                          <span className="font-mono text-foreground">{variant.sku ?? na}</span>
+                        </span>
+                        <span>
+                          {t('form.productModel')}:{' '}
+                          <span className="font-mono text-foreground">{variant.model ?? na}</span>
+                        </span>
+                        <span>
+                          {t('form.productBarcode')}:{' '}
+                          <span className="font-mono text-foreground">{variant.barcode ?? na}</span>
+                        </span>
+                      </div>
                     </div>
                   </div>
                   <div className="space-y-2">
@@ -378,6 +572,8 @@ export function ProductVariantsPriceModal({
                           canEdit={canEditShopPrices}
                           onSuccess={() => refetch()}
                           labels={labels}
+                          dualPriceReady={productDualPriceReady}
+                          sypRate={sypRate}
                         />
                       ))
                     )}

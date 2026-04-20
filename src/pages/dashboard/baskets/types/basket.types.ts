@@ -14,6 +14,8 @@ export interface BasketItem {
     image?: string;
     price?: number;
   };
+  /** Variant-specific image from API (e.g. shop product variant list / basket details) */
+  variant_image?: string | null;
   variant?: (string | number)[];
   shop_variant?: {
     id: number;
@@ -29,7 +31,13 @@ export interface BasketItem {
 export interface BasketData {
   id: number;
   name: { ar?: string; en?: string } | string;
-  category?: { id: number; name: string | { ar?: string; en?: string } };
+  description?: { ar?: string; en?: string } | string;
+  /** Many-to-many category IDs (admin / detail APIs) */
+  category_ids?: number[];
+  /** Resolved category rows for admin UI */
+  categories?: Array<{ id: number; name: string | { ar?: string; en?: string } }>;
+  /** Legacy single category; user APIs may return a single concatenated string in `category` instead */
+  category?: { id: number; name: string | { ar?: string; en?: string } } | string;
   discount?: number | string;
   discount_value?: string | number;
   discount_type?: 'fixed' | 'percentage';
@@ -74,8 +82,12 @@ export interface BasketDetailsResponse {
 }
 
 export interface BasketCreateUpdatePayload {
-  category_id: number;
+  /** Primary input for multi-category baskets */
+  category_ids: number[];
+  /** Optional legacy compatibility; backend may derive from category_ids */
+  category_id?: number;
   name: { ar: string; en: string };
+  description?: { ar: string; en: string };
   offer_ends_at?: string;
   discount?: number;
   discount_type: 'fixed' | 'percentage';

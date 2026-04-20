@@ -12,7 +12,7 @@ import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
 import { formatTranslated } from '@/utils/format-translated';
 import { useFetchShops } from '@/pages/dashboard/vendor/hooks/shop';
-import { useForm, Controller, useFieldArray } from 'react-hook-form';
+import { useForm, Controller, useFieldArray, useWatch } from 'react-hook-form';
 import { compressImage, compressImages } from '@/utils/compress-image';
 import { _VendorApi } from '@/pages/dashboard/vendor/api/vendor.services';
 import { _BrandApi } from '@/pages/dashboard/products/api/brand.services';
@@ -27,6 +27,8 @@ import {
   useFetchCategories,
   useFetchCategoryById,
 } from '@/pages/dashboard/categories/hooks/category';
+import { useFetchCurrencies } from '@/pages/dashboard/currencies/hooks/currency';
+import type { CurrencyData } from '@/pages/dashboard/currencies/types/currency.types';
 import {
   ProductSchema,
   type ProductFormValues,
@@ -100,6 +102,35 @@ const saleCountryFetcher = (page: number, limit: number) =>
     },
   }));
 
+type CategoryDetailValueOption = { en: string; ar: string };
+
+function normalizeCategoryDetailValueOptions(raw: unknown): CategoryDetailValueOption[] {
+  if (!Array.isArray(raw)) return [];
+  const out: CategoryDetailValueOption[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== 'object') continue;
+    const o = item as Record<string, unknown>;
+    const en = o.en != null ? String(o.en) : '';
+    const ar = o.ar != null ? String(o.ar) : '';
+    if (en.trim() === '' && ar.trim() === '') continue;
+    out.push({ en, ar });
+  }
+  return out;
+}
+
+function categoryDetailOptionKey(opt: CategoryDetailValueOption): string {
+  return JSON.stringify({ en: opt.en, ar: opt.ar });
+}
+
+function findCategoryDetailOptionKey(
+  detailValue: { en: string; ar: string } | undefined,
+  opts: CategoryDetailValueOption[]
+): string {
+  if (!detailValue || opts.length === 0) return '';
+  const found = opts.find((o) => o.en === detailValue.en && o.ar === detailValue.ar);
+  return found ? categoryDetailOptionKey(found) : '';
+}
+
 /** Paginate static attribute value lists for InfiniteScrollSelect (e.g. many colors). */
 function createAttributeValuesFetcher(values: any[] | undefined) {
   const vals = (values ?? []).filter((v) => v != null);
@@ -145,6 +176,22 @@ function FieldErrorText({ message }: { message?: string }) {
       {message}
     </Typography>
   );
+}
+
+function parseCurrencyRate(c: CurrencyData): number {
+  const r = Number((c as { exchange_rate?: string | number }).exchange_rate);
+  return r > 0 ? r : 1;
+}
+
+/** `exchange_rate` is units of this currency per 1 USD → USD = local / rate. */
+function localAmountToUsd(local: number, exchangeRate: number): number {
+  const r = exchangeRate > 0 ? exchangeRate : 1;
+  return local / r;
+}
+
+function usdToLocalAmount(usd: number, exchangeRate: number): number {
+  const r = exchangeRate > 0 ? exchangeRate : 1;
+  return usd * r;
 }
 
 /** Platform vendor id sent when "For me" is selected. */
@@ -479,6 +526,30 @@ export default function CreatePage() {
     editCategoryMetaId > 0 ? editCategoryMetaId : ''
   );
 
+  const { data: currenciesResponse, isSuccess: currenciesReady } = useFetchCurrencies(1, 100);
+  const activeCurrencies = useMemo(() => {
+    const raw = currenciesResponse?.data?.items ?? [];
+    return raw.filter((c) => {
+      const active = c.is_active as boolean | number | undefined;
+      return active === true || active === 1;
+    });
+  }, [currenciesResponse]);
+
+  const usdCurrency = useMemo(
+    () =>
+      activeCurrencies.find((c) => String(c.code).toUpperCase() === 'USD') ??
+      activeCurrencies.find((c) => c.is_default) ??
+      activeCurrencies[0],
+    [activeCurrencies]
+  );
+
+  const sypCurrency = useMemo(
+    () => activeCurrencies.find((c) => String(c.code).toUpperCase() === 'SYP'),
+    [activeCurrencies]
+  );
+
+  const productDualPriceReady = Boolean(usdCurrency && sypCurrency);
+
   const { data: iconsListResponse } = useQuery({
     queryKey: ['icons', 'product-form'],
     queryFn: () =>
@@ -507,6 +578,8 @@ export default function CreatePage() {
     full_description: { en: '', ar: '' },
     country_id: 0,
     sale_country_id: 0,
+    price_currency_id: 0,
+    price_local: 0,
     price: 0,
     discount: 0,
     discount_type: 'none',
@@ -544,6 +617,18 @@ export default function CreatePage() {
   });
 
   const { handleSubmit, reset, control, watch, setValue, getValues, formState: { errors } } = methods;
+
+  const priceWatch = watch('price');
+
+  /** Keep UI-only `price_currency_id` / `price_local` aligned with canonical USD `price`. */
+  useEffect(() => {
+    if (!currenciesReady || !usdCurrency) return;
+    setValue('price_currency_id', usdCurrency.id, { shouldDirty: false });
+    const usd = Number(priceWatch) || 0;
+    setValue('price_local', usdToLocalAmount(usd, parseCurrencyRate(usdCurrency)), {
+      shouldDirty: false,
+    });
+  }, [currenciesReady, usdCurrency, priceWatch, setValue]);
 
   useEffect(() => {
     setMainCategoryId(0);
@@ -737,6 +822,7 @@ export default function CreatePage() {
     useFieldArray({ control, name: 'extra_details' });
   const { fields: categoryDetailsFields, append: appendCategoryDetail, remove: removeCategoryDetail } =
     useFieldArray({ control, name: 'category_details' });
+  const watchedCategoryDetailRows = useWatch({ control, name: 'category_details' }) ?? [];
   const { fields: shopVariantsFields, append: appendShopVariant, remove: removeShopVariant } =
     useFieldArray({ control, name: 'shop_variants' });
 
@@ -786,6 +872,8 @@ export default function CreatePage() {
             : p.sale_country?.id != null
               ? Number(p.sale_country.id)
               : 0,
+        price_currency_id: 0,
+        price_local: Number(p.price) || 0,
         price: Number(p.price) || 0,
         discount: p.discount != null ? Number(p.discount) : 0,
         discount_type: (p.discount_type as 'none' | 'percentage' | 'fixed') || 'none',
@@ -823,6 +911,8 @@ export default function CreatePage() {
             existing_images_ids:
               (v.images ?? []).map((img: any) => Number(img.id)).filter((mediaId) => !Number.isNaN(mediaId)) ?? [],
             sku: (v as any).sku ?? '',
+            model: (v as any).model ?? '',
+            barcode: (v as any).barcode ?? '',
             name: { en: (v as any).name?.en ?? '', ar: (v as any).name?.ar ?? '' },
             stock: (v as any).stock != null ? Number((v as any).stock) : undefined,
             max_purchase_quantity: (v as any).max_purchase_quantity != null ? Number((v as any).max_purchase_quantity) : undefined,
@@ -852,6 +942,8 @@ export default function CreatePage() {
               shop_id: Number(s.shop_id),
               variant_index: vIndex,
               price: Number(s.price) || 0,
+              cost_price: s.cost_price != null ? Number(s.cost_price) : undefined,
+              discount: s.discount != null ? Number(s.discount) : undefined,
               quantity: Number(s.quantity) || 0,
             }))
           ) ?? [],
@@ -930,6 +1022,8 @@ export default function CreatePage() {
             ? prev.existing_images_ids
             : (v.images ?? []).map((img: any) => Number(img.id)).filter((mediaId) => !Number.isNaN(mediaId)) ?? [],
         sku: (prev as any)?.sku ?? (v as any).sku ?? '',
+        model: (prev as any)?.model ?? (v as any).model ?? '',
+        barcode: (prev as any)?.barcode ?? (v as any).barcode ?? '',
         name: (prev as any)?.name ?? { en: (v as any).name?.en ?? '', ar: (v as any).name?.ar ?? '' },
         stock: (prev as any)?.stock ?? ((v as any).stock != null ? Number((v as any).stock) : undefined),
         max_purchase_quantity: (prev as any)?.max_purchase_quantity ?? ((v as any).max_purchase_quantity != null ? Number((v as any).max_purchase_quantity) : undefined),
@@ -1166,7 +1260,12 @@ export default function CreatePage() {
         thumbnail: thumb,
         seo_image: seoImg,
       };
-      const { vendor_scope: _omitVendorScope, ...apiPayload } = uploadPayload;
+      const {
+        vendor_scope: _omitVendorScope,
+        price_currency_id: _omitPriceCurrencyId,
+        price_local: _omitPriceLocal,
+        ...apiPayload
+      } = uploadPayload;
 
       if (isEditMode && id) {
         // In edit mode, variants and shop_variants are managed independently via their own save/delete buttons.
@@ -1800,29 +1899,137 @@ export default function CreatePage() {
 
         {/* ─── Price, discount, cost ───────────────────────────── */}
         <Box className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <Box className="group">
+          <Box className="group md:col-span-2 lg:col-span-3">
             <Box className="flex items-center gap-2 mb-2">
               <Iconify icon="solar:dollar-bold" className="text-primary" width={20} />
               <Typography variant="subtitle2" className="font-semibold text-foreground">
                 {t('form.productPriceRequired')}
               </Typography>
             </Box>
-            <Controller
-              name="price"
-              control={control}
-              render={({ field, fieldState: { error } }) => (
-                <div>
-                  <input
-                    {...field}
-                    type="number"
-                    placeholder="0.00"
-                    onChange={(e) => field.onChange(Number(e.target.value))}
-                    className={fieldInputClass(!!error)}
+            {currenciesReady && activeCurrencies.length > 0 ? (
+              productDualPriceReady ? (
+                <Box className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
+                  <Controller
+                    name="price"
+                    control={control}
+                    render={({ field, fieldState: { error } }) => (
+                      <div>
+                        <Typography variant="caption" className="text-muted-foreground mb-1 block">
+                          {t('form.productPriceUsdLabel')}
+                          {usdCurrency?.symbol ? (
+                            <span className="ms-1 opacity-80">({usdCurrency.symbol})</span>
+                          ) : null}
+                        </Typography>
+                        <input
+                          {...field}
+                          type="number"
+                          placeholder="0.00"
+                          value={field.value ?? ''}
+                          onChange={(e) => {
+                            const raw = e.target.value;
+                            const v = raw === '' ? 0 : Number(raw);
+                            field.onChange(Number.isFinite(v) ? v : 0);
+                          }}
+                          className={fieldInputClass(!!error)}
+                          step="any"
+                          min={0}
+                        />
+                        <FieldErrorText message={error?.message} />
+                      </div>
+                    )}
                   />
-                  <FieldErrorText message={error?.message} />
-                </div>
-              )}
-            />
+                  <div>
+                    <Typography variant="caption" className="text-muted-foreground mb-1 block">
+                      {t('form.productPriceSypLabel')}
+                      {sypCurrency?.symbol ? (
+                        <span className="ms-1 opacity-80">({sypCurrency.symbol})</span>
+                      ) : null}
+                    </Typography>
+                    <input
+                      type="number"
+                      placeholder="0.00"
+                      value={(() => {
+                        const usdNum = Number(priceWatch) || 0;
+                        const syp = usdToLocalAmount(usdNum, parseCurrencyRate(sypCurrency!));
+                        return usdNum === 0 && syp === 0 ? '' : syp;
+                      })()}
+                      onChange={(e) => {
+                        const raw = e.target.value;
+                        const v = raw === '' ? 0 : Number(raw);
+                        const rate = parseCurrencyRate(sypCurrency!);
+                        setValue('price', localAmountToUsd(Number.isFinite(v) ? v : 0, rate), {
+                          shouldValidate: true,
+                          shouldDirty: true,
+                        });
+                      }}
+                      className={fieldInputClass(!!errors.price)}
+                      step="any"
+                      min={0}
+                    />
+                  </div>
+                </Box>
+              ) : (
+                <Box className="space-y-2">
+                  <Typography variant="caption" className="text-destructive block">
+                    {t('form.productPriceSypMissing')}
+                  </Typography>
+                  <Controller
+                    name="price"
+                    control={control}
+                    render={({ field, fieldState: { error } }) => (
+                      <div>
+                        <Typography variant="caption" className="text-muted-foreground mb-1 block">
+                          {t('form.productPriceUsdLabel')}
+                        </Typography>
+                        <input
+                          {...field}
+                          type="number"
+                          placeholder="0.00"
+                          value={field.value ?? ''}
+                          onChange={(e) => {
+                            const raw = e.target.value;
+                            const v = raw === '' ? 0 : Number(raw);
+                            field.onChange(Number.isFinite(v) ? v : 0);
+                          }}
+                          className={fieldInputClass(!!error)}
+                          step="any"
+                          min={0}
+                        />
+                        <FieldErrorText message={error?.message} />
+                      </div>
+                    )}
+                  />
+                </Box>
+              )
+            ) : (
+              <Typography variant="caption" className="text-muted-foreground mb-2 block">
+                {!currenciesReady ? t('form.productPriceCurrenciesLoading') : null}
+              </Typography>
+            )}
+            {(!currenciesReady || activeCurrencies.length === 0) && (
+              <Controller
+                name="price"
+                control={control}
+                render={({ field, fieldState: { error } }) => (
+                  <div>
+                    <input
+                      {...field}
+                      type="number"
+                      placeholder="0.00"
+                      onChange={(e) => field.onChange(Number(e.target.value))}
+                      className={fieldInputClass(!!error)}
+                    />
+                    <FieldErrorText message={error?.message} />
+                  </div>
+                )}
+              />
+            )}
+            <Typography variant="caption" className="text-muted-foreground mt-2 block">
+              {t('form.productPriceUsdHint')}
+            </Typography>
+            {errors.price?.message ? (
+              <FieldErrorText message={errors.price.message} />
+            ) : null}
           </Box>
           <Box className="group">
             <Box className="flex items-center gap-2 mb-2">
@@ -2276,73 +2483,121 @@ export default function CreatePage() {
             </Typography>
           ) : (
             <Box className="space-y-4">
-              {categoryDetailsFields.map((field, index) => (
-                <Box key={field.id} className="p-4 border border-border rounded-lg space-y-3">
-                  <Box className="flex items-center gap-3">
-                    <Controller
-                      name={`category_details.${index}.category_detail_id`}
-                      control={control}
-                      render={({ field: f, fieldState: { error } }) => (
-                        <div className="flex-1 min-w-0">
-                          <select
-                            {...f}
-                            value={f.value}
-                            onChange={(e) => f.onChange(Number(e.target.value))}
-                            className={fieldInputClass(!!error)}
-                          >
-                            {availableCategoryDetails.map((cd: any) => (
-                              <option key={cd.id} value={cd.id}>
-                                {typeof cd.name === 'object' ? cd.name?.en ?? cd.name?.ar : cd.name}
-                              </option>
-                            ))}
-                          </select>
-                          <FieldErrorText message={error?.message} />
-                        </div>
-                      )}
-                    />
-                    <Button
-                      type="button"
-                      variant="text"
-                      size="small"
-                      onClick={() => removeCategoryDetail(index)}
-                      className="text-destructive shrink-0"
-                    >
-                      <Iconify icon="solar:trash-bin-bold" width={16} />
-                    </Button>
+              {categoryDetailsFields.map((field, index) => {
+                const row = watchedCategoryDetailRows[index] as
+                  | { category_detail_id?: number; detail_value?: { en: string; ar: string } }
+                  | undefined;
+                const detailId = row?.category_detail_id;
+                const selectedDef = availableCategoryDetails.find(
+                  (cd: any) => Number(cd.id) === Number(detailId)
+                );
+                const valueOpts = normalizeCategoryDetailValueOptions(selectedDef?.value_options);
+                const dv = row?.detail_value ?? { en: '', ar: '' };
+                const matchedKey = findCategoryDetailOptionKey(dv, valueOpts);
+                const hasPresets = valueOpts.length > 0;
+                const hasOrphanSaved =
+                  hasPresets &&
+                  !matchedKey &&
+                  ((dv.en ?? '').trim() !== '' || (dv.ar ?? '').trim() !== '');
+
+                return (
+                  <Box key={field.id} className="p-4 border border-border rounded-lg space-y-3">
+                    <Box className="flex items-center gap-3">
+                      <Controller
+                        name={`category_details.${index}.category_detail_id`}
+                        control={control}
+                        render={({ field: f, fieldState: { error } }) => (
+                          <div className="flex-1 min-w-0">
+                            <select
+                              {...f}
+                              value={f.value}
+                              onChange={(e) => {
+                                f.onChange(Number(e.target.value));
+                                setValue(
+                                  `category_details.${index}.detail_value`,
+                                  { en: '', ar: '' },
+                                  { shouldDirty: true, shouldValidate: true }
+                                );
+                              }}
+                              className={fieldInputClass(!!error)}
+                            >
+                              {availableCategoryDetails.map((cd: any) => (
+                                <option key={cd.id} value={cd.id}>
+                                  {typeof cd.name === 'object'
+                                    ? cd.name?.en ?? cd.name?.ar
+                                    : cd.name}
+                                </option>
+                              ))}
+                            </select>
+                            <FieldErrorText message={error?.message} />
+                          </div>
+                        )}
+                      />
+                      <Button
+                        type="button"
+                        variant="text"
+                        size="small"
+                        onClick={() => removeCategoryDetail(index)}
+                        className="text-destructive shrink-0"
+                      >
+                        <Iconify icon="solar:trash-bin-bold" width={16} />
+                      </Button>
+                    </Box>
+
+                    {hasPresets ? (
+                      <Box className="space-y-2">
+                        <Typography variant="caption" className="text-muted-foreground font-medium block">
+                          {t('form.categoryDetailPredefinedValueLabel')}
+                        </Typography>
+                        <select
+                          className={fieldInputClass(false)}
+                          value={matchedKey}
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            if (!v) {
+                              setValue(
+                                `category_details.${index}.detail_value`,
+                                { en: '', ar: '' },
+                                { shouldDirty: true, shouldValidate: true }
+                              );
+                              return;
+                            }
+                            try {
+                              const parsed = JSON.parse(v) as { en?: string; ar?: string };
+                              setValue(
+                                `category_details.${index}.detail_value`,
+                                { en: parsed.en ?? '', ar: parsed.ar ?? '' },
+                                { shouldDirty: true, shouldValidate: true }
+                              );
+                            } catch {
+                              /* ignore malformed */
+                            }
+                          }}
+                        >
+                          <option value="">{t('form.selectCategoryDetailValue')}</option>
+                          {valueOpts.map((opt, optIdx) => (
+                            <option key={optIdx} value={categoryDetailOptionKey(opt)}>
+                              {`${opt.en} / ${opt.ar}`}
+                            </option>
+                          ))}
+                        </select>
+                        {hasOrphanSaved ? (
+                          <Typography variant="caption" className="text-amber-600 dark:text-amber-500 block">
+                            {t('form.categoryDetailValueNotInList', {
+                              en: dv.en ?? '',
+                              ar: dv.ar ?? '',
+                            })}
+                          </Typography>
+                        ) : null}
+                      </Box>
+                    ) : (
+                      <Typography variant="caption" className="text-muted-foreground block">
+                        {t('form.noPredefinedDetailValues')}
+                      </Typography>
+                    )}
                   </Box>
-                  <Box className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <Controller
-                      name={`category_details.${index}.detail_value.en`}
-                      control={control}
-                      render={({ field: f, fieldState: { error } }) => (
-                        <div>
-                          <input
-                            {...f}
-                            placeholder={t('form.productValueEn')}
-                            className={fieldInputClass(!!error)}
-                          />
-                          <FieldErrorText message={error?.message} />
-                        </div>
-                      )}
-                    />
-                    <Controller
-                      name={`category_details.${index}.detail_value.ar`}
-                      control={control}
-                      render={({ field: f, fieldState: { error } }) => (
-                        <div>
-                          <input
-                            {...f}
-                            dir="rtl"
-                            placeholder={t('form.categoryDetailValueArPlaceholder')}
-                            className={fieldInputClass(!!error)}
-                          />
-                          <FieldErrorText message={error?.message} />
-                        </div>
-                      )}
-                    />
-                  </Box>
-                </Box>
-              ))}
+                );
+              })}
             </Box>
           )}
         </Box>
@@ -2542,7 +2797,18 @@ export default function CreatePage() {
               size="small"
           disabled={!categoryId || categoryId === 0 || categoryAttributes.length === 0}
           onClick={() =>
-            appendVariant({ attributes_values_ids: [], images: [], existing_images_ids: [], sku: '', name: { en: '', ar: '' }, stock: undefined, max_purchase_quantity: undefined, delivery_time: '' })
+            appendVariant({
+              attributes_values_ids: [],
+              images: [],
+              existing_images_ids: [],
+              sku: '',
+              model: '',
+              barcode: '',
+              name: { en: '', ar: '' },
+              stock: undefined,
+              max_purchase_quantity: undefined,
+              delivery_time: '',
+            })
               }
             >
               <Iconify icon="solar:add-circle-bold" width={16} className="mr-1" />
@@ -2822,7 +3088,7 @@ export default function CreatePage() {
                     })()}
                   </Box>
 
-                  {/* ─── Variant Extra Fields (SKU, Name, Stock, Purchase Qty, Delivery) ─── */}
+                  {/* ─── Variant Extra Fields (SKU, Model, Barcode, Name, Stock, Purchase Qty, Delivery) ─── */}
                   <Box className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 border-t border-border pt-4">
                     <Box>
                       <Typography variant="caption" className="text-muted-foreground mb-1 block">
@@ -2838,6 +3104,48 @@ export default function CreatePage() {
                               value={field.value ?? ''}
                               type="text"
                               placeholder={t('form.variantSkuPlaceholder')}
+                              className={fieldInputClass(!!error)}
+                            />
+                            <FieldErrorText message={error?.message} />
+                          </div>
+                        )}
+                      />
+                    </Box>
+                    <Box>
+                      <Typography variant="caption" className="text-muted-foreground mb-1 block">
+                        {t('form.variantModel')}
+                      </Typography>
+                      <Controller
+                        name={`variants.${variantIndex}.model`}
+                        control={control}
+                        render={({ field, fieldState: { error } }) => (
+                          <div>
+                            <input
+                              {...field}
+                              value={field.value ?? ''}
+                              type="text"
+                              placeholder={t('form.variantModelPlaceholder')}
+                              className={fieldInputClass(!!error)}
+                            />
+                            <FieldErrorText message={error?.message} />
+                          </div>
+                        )}
+                      />
+                    </Box>
+                    <Box>
+                      <Typography variant="caption" className="text-muted-foreground mb-1 block">
+                        {t('form.variantBarcode')}
+                      </Typography>
+                      <Controller
+                        name={`variants.${variantIndex}.barcode`}
+                        control={control}
+                        render={({ field, fieldState: { error } }) => (
+                          <div>
+                            <input
+                              {...field}
+                              value={field.value ?? ''}
+                              type="text"
+                              placeholder={t('form.variantBarcodePlaceholder')}
                               className={fieldInputClass(!!error)}
                             />
                             <FieldErrorText message={error?.message} />
@@ -3020,6 +3328,8 @@ export default function CreatePage() {
                                 existing_images_ids: watch(`variants.${variantIndex}.existing_images_ids`) || [],
                                 images: Array.isArray(newImgs) && newImgs.length > 0 ? newImgs : undefined,
                                 sku: watch(`variants.${variantIndex}.sku`) ?? '',
+                                model: watch(`variants.${variantIndex}.model`) ?? '',
+                                barcode: watch(`variants.${variantIndex}.barcode`) ?? '',
                                 name: {
                                   en: watch(`variants.${variantIndex}.name.en`) ?? '',
                                   ar: watch(`variants.${variantIndex}.name.ar`) ?? '',
@@ -3090,7 +3400,7 @@ export default function CreatePage() {
                           return (
                             <Box
                               key={svField.id}
-                              className="grid grid-cols-1 md:grid-cols-3 gap-3 p-3 border border-border rounded-lg items-end"
+                              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3 p-3 border border-border rounded-lg items-end"
                             >
                               <Box>
                                 <Typography variant="caption" className="text-muted-foreground mb-1 block">
@@ -3132,6 +3442,54 @@ export default function CreatePage() {
                                         type="number"
                                         placeholder={t('form.shopVariantPricePlaceholder')}
                                         onChange={(e) => f.onChange(Number(e.target.value))}
+                                        className={fieldInputClass(!!error)}
+                                      />
+                                      <FieldErrorText message={error?.message} />
+                                    </div>
+                                  )}
+                                />
+                              </Box>
+                              <Box>
+                                <Typography variant="caption" className="text-muted-foreground mb-1 block">
+                                  {t('form.productCostPriceOptional')}
+                                </Typography>
+                                <Controller
+                                  name={`shop_variants.${svIdx}.cost_price`}
+                                  control={control}
+                                  render={({ field: f, fieldState: { error } }) => (
+                                    <div>
+                                      <input
+                                        {...f}
+                                        type="number"
+                                        value={f.value ?? ''}
+                                        placeholder={t('form.shopVariantPricePlaceholder')}
+                                        onChange={(e) =>
+                                          f.onChange(e.target.value === '' ? undefined : Number(e.target.value))
+                                        }
+                                        className={fieldInputClass(!!error)}
+                                      />
+                                      <FieldErrorText message={error?.message} />
+                                    </div>
+                                  )}
+                                />
+                              </Box>
+                              <Box>
+                                <Typography variant="caption" className="text-muted-foreground mb-1 block">
+                                  {t('columns.discount')}
+                                </Typography>
+                                <Controller
+                                  name={`shop_variants.${svIdx}.discount`}
+                                  control={control}
+                                  render={({ field: f, fieldState: { error } }) => (
+                                    <div>
+                                      <input
+                                        {...f}
+                                        type="number"
+                                        value={f.value ?? ''}
+                                        placeholder={t('form.shopVariantDiscountPlaceholder')}
+                                        onChange={(e) =>
+                                          f.onChange(e.target.value === '' ? undefined : Number(e.target.value))
+                                        }
                                         className={fieldInputClass(!!error)}
                                       />
                                       <FieldErrorText message={error?.message} />
@@ -3195,6 +3553,8 @@ export default function CreatePage() {
                                               id: svId,
                                               data: {
                                                 price: watch(`shop_variants.${svIdx}.price`),
+                                                cost_price: watch(`shop_variants.${svIdx}.cost_price`),
+                                                discount: watch(`shop_variants.${svIdx}.discount`),
                                                 quantity: watch(`shop_variants.${svIdx}.quantity`),
                                                 shop_id: watch(`shop_variants.${svIdx}.shop_id`),
                                                 product_variant_id: linkedVariantId ?? undefined,
@@ -3258,6 +3618,8 @@ export default function CreatePage() {
                               shop_id: shops[0]?.id ?? 0,
                               variant_index: variantIndex,
                               price: 0,
+                              cost_price: undefined,
+                              discount: undefined,
                               quantity: 0,
                             })
                           }

@@ -38,7 +38,10 @@ export interface PageSectionDetailsResponse {
 
 export interface FilterConfig {
   type: 'select' | 'number';
+  /** When set, options are loaded from this API path (relative to API base). */
   url?: string;
+  /** Static enum options for `select` filters (no URL). */
+  items?: string[];
 }
 
 export interface SectionFilters {

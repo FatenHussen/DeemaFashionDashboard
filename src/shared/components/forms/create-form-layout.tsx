@@ -39,9 +39,15 @@ export interface CreateFormLayoutProps<T extends Record<string, any>> {
   submitLabel?: string;
   cancelLabel?: string;
   submittingLabel?: string;
+  secondarySubmitLabel?: string;
+  secondarySubmittingLabel?: string;
+  onSubmitButtonClick?: () => void;
+  onSecondarySubmitButtonClick?: () => void;
 
   // Optional unsaved changes guard
   showUnsavedGuard?: boolean;
+  /** When true, primary/secondary submit buttons are disabled (e.g. view-only detail). */
+  submitDisabled?: boolean;
 }
 
 // ----------------------------------------------------------------------
@@ -64,7 +70,12 @@ export function CreateFormLayout<T extends Record<string, any>>({
   submitLabel,
   cancelLabel,
   submittingLabel,
+  secondarySubmitLabel,
+  secondarySubmittingLabel,
+  onSubmitButtonClick,
+  onSecondarySubmitButtonClick,
   showUnsavedGuard = true,
+  submitDisabled = false,
 }: CreateFormLayoutProps<T>) {
   const { t } = useTranslation('table');
 
@@ -72,6 +83,7 @@ export function CreateFormLayout<T extends Record<string, any>>({
 
   const resolvedSubmitLabel = submitLabel ?? (isEditMode ? t('edit') : t('create'));
   const resolvedSubmittingLabel = submittingLabel ?? defaultSubmittingLabel;
+  const resolvedSecondarySubmittingLabel = secondarySubmittingLabel ?? resolvedSubmittingLabel;
   const resolvedCancelLabel = cancelLabel ?? t('cancel');
   const resolvedLoadingText = loadingText ?? t('loading');
 
@@ -107,7 +119,7 @@ export function CreateFormLayout<T extends Record<string, any>>({
     if (!showUnsavedGuard) return () => {};
 
     const handler = (e: BeforeUnloadEvent) => {
-      if (methods.formState.isDirty && !isSubmitting) {
+      if (methods.formState.isDirty && !isSubmitting && !submitDisabled) {
         e.preventDefault();
         e.returnValue = '';
       }
@@ -115,10 +127,10 @@ export function CreateFormLayout<T extends Record<string, any>>({
 
     window.addEventListener('beforeunload', handler);
     return () => window.removeEventListener('beforeunload', handler);
-  }, [methods.formState.isDirty, isSubmitting, showUnsavedGuard]);
+  }, [methods.formState.isDirty, isSubmitting, showUnsavedGuard, submitDisabled]);
 
   const handleCancel = () => {
-    if (showUnsavedGuard && methods.formState.isDirty && !isSubmitting) {
+    if (showUnsavedGuard && methods.formState.isDirty && !isSubmitting && !submitDisabled) {
       const ok = window.confirm(t('unsavedChanges'));
       if (!ok) return;
     }
@@ -273,9 +285,26 @@ export function CreateFormLayout<T extends Record<string, any>>({
                     {resolvedCancelLabel}
                   </Button>
 
-                  <Button type="submit" disabled={isSubmitting} className="min-w-[120px]">
+                  <Button
+                    type="submit"
+                    disabled={isSubmitting || submitDisabled}
+                    onClick={onSubmitButtonClick}
+                    className="min-w-[120px]"
+                  >
                     {isSubmitting ? resolvedSubmittingLabel : resolvedSubmitLabel}
                   </Button>
+
+                  {secondarySubmitLabel && (
+                    <Button
+                      type="submit"
+                      variant="outlined"
+                      disabled={isSubmitting || submitDisabled}
+                      onClick={onSecondarySubmitButtonClick}
+                      className="min-w-[120px]"
+                    >
+                      {isSubmitting ? resolvedSecondarySubmittingLabel : secondarySubmitLabel}
+                    </Button>
+                  )}
                 </Box>
               </Box>
             </Box>

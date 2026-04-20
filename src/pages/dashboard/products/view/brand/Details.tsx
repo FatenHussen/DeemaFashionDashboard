@@ -12,14 +12,6 @@ import { LoadingScreen } from 'src/shared/components/loading-screen';
 
 // ----------------------------------------------------------------------
 
-function displayName(
-  name: string | { en: string; ar: string } | undefined | null
-): string {
-  if (name == null) return '';
-  if (typeof name === 'string') return name;
-  return formatTranslated(name);
-}
-
 export default function DetailsPage() {
   const { t } = useTranslation('table');
   const { id } = useParams<{ id: string }>();
@@ -59,9 +51,6 @@ export default function DetailsPage() {
       : `${CONFIG.serverUrl}/${img}`
     : null;
   const brandName = formatTranslated(brand.name as Parameters<typeof formatTranslated>[0]);
-  const categoryLabel = brand.category?.name != null ? displayName(brand.category.name) : '';
-  const governorateLabel = brand.governorate?.name?.trim() ?? '';
-  const cityLabel = brand.city?.name != null ? displayName(brand.city.name) : '';
 
   return (
     <>
@@ -155,42 +144,6 @@ export default function DetailsPage() {
                       <Iconify icon="solar:flag-bold" className="text-primary" width={18} />
                       <Typography variant="body1" className="text-foreground">
                         {brandName}
-                      </Typography>
-                    </Box>
-                  </Box>
-
-                  <Box className="space-y-2">
-                    <Typography variant="body2" className="text-muted-foreground font-medium">
-                      {t('form.categoryLabel')}
-                    </Typography>
-                    <Box className="flex items-center gap-2">
-                      <Iconify icon="solar:widget-5-bold" className="text-primary" width={18} />
-                      <Typography variant="body1" className="text-foreground">
-                        {categoryLabel || '—'}
-                      </Typography>
-                    </Box>
-                  </Box>
-
-                  <Box className="space-y-2">
-                    <Typography variant="body2" className="text-muted-foreground font-medium">
-                      {t('columns.governorate')}
-                    </Typography>
-                    <Box className="flex items-center gap-2">
-                      <Iconify icon="solar:map-point-bold" className="text-primary" width={18} />
-                      <Typography variant="body1" className="text-foreground">
-                        {governorateLabel || '—'}
-                      </Typography>
-                    </Box>
-                  </Box>
-
-                  <Box className="space-y-2">
-                    <Typography variant="body2" className="text-muted-foreground font-medium">
-                      {t('columns.city')}
-                    </Typography>
-                    <Box className="flex items-center gap-2">
-                      <Iconify icon="solar:city-bold" className="text-primary" width={18} />
-                      <Typography variant="body1" className="text-foreground">
-                        {cityLabel || '—'}
                       </Typography>
                     </Box>
                   </Box>

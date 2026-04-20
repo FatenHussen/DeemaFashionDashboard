@@ -98,11 +98,38 @@ function DetailRow({ label, value, emptyLabel }: { label: string; value: ReactNo
       <Typography variant="body2" className="text-muted-foreground font-medium">
         {label}
       </Typography>
-      <Typography variant="body1" className="text-foreground">
+      <Typography variant="body1" component="div" className="text-foreground">
         {value ?? emptyLabel}
       </Typography>
     </Box>
   );
+}
+
+/** Renders `*_currencies` maps, then `*_formatted`, then legacy amount + label. */
+function productMoneyDisplay(args: {
+  currencies?: Record<string, { formatted?: string }> | null | undefined;
+  singleFormatted?: string | null | undefined;
+  amount?: number | null | undefined;
+  legacyAmountPrefix: string;
+}): ReactNode {
+  const { currencies, singleFormatted, amount, legacyAmountPrefix } = args;
+  const entries = currencies ? Object.entries(currencies).filter(([, v]) => v && typeof v === 'object') : [];
+  if (entries.length > 0) {
+    entries.sort(([a], [b]) => a.localeCompare(b));
+    return (
+      <Box className="flex flex-col gap-0.5">
+        {entries.map(([code, row]) => (
+          <Typography key={code} variant="body1" className="tabular-nums">
+            <span className="me-2 text-xs font-medium text-muted-foreground">{code}</span>
+            {row?.formatted ?? '—'}
+          </Typography>
+        ))}
+      </Box>
+    );
+  }
+  if (singleFormatted) return singleFormatted;
+  if (amount != null && !Number.isNaN(Number(amount))) return `${legacyAmountPrefix} ${amount}`;
+  return '—';
 }
 
 // ----------------------------------------------------------------------
@@ -121,6 +148,9 @@ function EditVariantModal({ open, variant, onClose, onSuccess }: EditVariantModa
 
   const [isTrend, setIsTrend] = useState<number>(variant?.is_trend ?? 0);
   const [isActive, setIsActive] = useState<number>(variant?.is_active ?? 1);
+  const [sku, setSku] = useState<string>(variant?.sku ?? '');
+  const [model, setModel] = useState<string>(variant?.model ?? '');
+  const [barcode, setBarcode] = useState<string>(variant?.barcode ?? '');
   const [newImages, setNewImages] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -128,6 +158,9 @@ function EditVariantModal({ open, variant, onClose, onSuccess }: EditVariantModa
     if (open && variant) {
       setIsTrend(variant.is_trend ?? 0);
       setIsActive(variant.is_active ?? 1);
+      setSku(variant.sku != null ? String(variant.sku) : '');
+      setModel(variant.model != null ? String(variant.model) : '');
+      setBarcode(variant.barcode != null ? String(variant.barcode) : '');
       setNewImages([]);
     }
   }, [open, variant]);
@@ -153,6 +186,9 @@ function EditVariantModal({ open, variant, onClose, onSuccess }: EditVariantModa
           attributes_values_ids: attrIds,
           existing_images_ids: keptImageIds,
           images: newImages.length > 0 ? newImages : undefined,
+          sku,
+          model,
+          barcode,
         },
       },
       {
@@ -220,6 +256,40 @@ function EditVariantModal({ open, variant, onClose, onSuccess }: EditVariantModa
                 {t('no')}
               </button>
             </Box>
+          </Box>
+
+          <Box>
+            <Typography variant="body2" className="text-muted-foreground mb-1 font-medium">
+              {t('form.productSku')}
+            </Typography>
+            <input
+              type="text"
+              value={sku}
+              onChange={(e) => setSku(e.target.value)}
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+            />
+          </Box>
+          <Box>
+            <Typography variant="body2" className="text-muted-foreground mb-1 font-medium">
+              {t('form.productModel')}
+            </Typography>
+            <input
+              type="text"
+              value={model}
+              onChange={(e) => setModel(e.target.value)}
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+            />
+          </Box>
+          <Box>
+            <Typography variant="body2" className="text-muted-foreground mb-1 font-medium">
+              {t('form.productBarcode')}
+            </Typography>
+            <input
+              type="text"
+              value={barcode}
+              onChange={(e) => setBarcode(e.target.value)}
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+            />
           </Box>
 
           {/* existing images */}
@@ -308,6 +378,8 @@ function EditShopVariantModal({ open, shopVariant, onClose, onSuccess }: EditSho
   const { mutate: updateShopVariant, isPending } = useUpdateShopProductVariant();
 
   const [price, setPrice] = useState<string>('');
+  const [costPrice, setCostPrice] = useState<string>('');
+  const [discount, setDiscount] = useState<string>('');
   const [quantity, setQuantity] = useState<string>('');
   const [shopId, setShopId] = useState<string>('');
   const [productVariantId, setProductVariantId] = useState<string>('');
@@ -315,6 +387,8 @@ function EditShopVariantModal({ open, shopVariant, onClose, onSuccess }: EditSho
   useEffect(() => {
     if (open && shopVariant) {
       setPrice(shopVariant.price != null ? String(shopVariant.price) : '');
+      setCostPrice(shopVariant.cost_price != null ? String(shopVariant.cost_price) : '');
+      setDiscount(shopVariant.discount != null ? String(shopVariant.discount) : '');
       setQuantity(shopVariant.quantity != null ? String(shopVariant.quantity) : '');
       setShopId(shopVariant.shop_id != null ? String(shopVariant.shop_id) : '');
       setProductVariantId(shopVariant.product_variant_id != null ? String(shopVariant.product_variant_id) : '');
@@ -328,6 +402,8 @@ function EditShopVariantModal({ open, shopVariant, onClose, onSuccess }: EditSho
         id: shopVariant.id,
         data: {
           price: price !== '' ? Number(price) : undefined,
+          cost_price: costPrice !== '' ? Number(costPrice) : undefined,
+          discount: discount !== '' ? Number(discount) : undefined,
           quantity: quantity !== '' ? Number(quantity) : undefined,
           shop_id: shopId !== '' ? Number(shopId) : undefined,
           product_variant_id: productVariantId !== '' ? Number(productVariantId) : undefined,
@@ -356,6 +432,8 @@ function EditShopVariantModal({ open, shopVariant, onClose, onSuccess }: EditSho
         <Box className="space-y-3">
           {[
             { label: t('form.priceLabel'), value: price, setter: setPrice },
+            { label: t('form.productCostPriceOptional'), value: costPrice, setter: setCostPrice },
+            { label: t('columns.discount'), value: discount, setter: setDiscount },
             { label: t('form.quantity'), value: quantity, setter: setQuantity },
             { label: t('form.productDetailsShopFieldShopId'), value: shopId, setter: setShopId },
             {
@@ -376,6 +454,14 @@ function EditShopVariantModal({ open, shopVariant, onClose, onSuccess }: EditSho
               />
             </Box>
           ))}
+          <Box>
+            <Typography variant="body2" className="text-muted-foreground mb-1 font-medium">
+              {t('columns.priceAfterDiscount')}
+            </Typography>
+            <Typography variant="body2" className="rounded-md border border-border/60 bg-muted/30 px-3 py-2 tabular-nums">
+              {shopVariant?.price_after_discount != null ? String(shopVariant.price_after_discount) : '—'}
+            </Typography>
+          </Box>
         </Box>
       }
       actions={
@@ -407,6 +493,11 @@ export default function DetailsPage() {
   const [deleteVariantId, setDeleteVariantId] = useState<number | null>(null);
   const [editShopVariant, setEditShopVariant] = useState<any>(null);
   const [deleteShopVariantId, setDeleteShopVariantId] = useState<number | null>(null);
+  const [heroImageIndex, setHeroImageIndex] = useState(0);
+
+  useEffect(() => {
+    setHeroImageIndex(0);
+  }, [id]);
 
   const handleDeleteVariant = () => {
     if (!deleteVariantId) return;
@@ -469,68 +560,155 @@ export default function DetailsPage() {
   const yes = t('form.productDetailsYes');
   const no = t('form.productDetailsNo');
 
+  const gallery: Array<{ id?: number; url: string }> = Array.isArray(product.images) ? product.images : [];
+  const heroSrc =
+    gallery[heroImageIndex]?.url ?? (typeof product.thumbnail === 'string' ? product.thumbnail : undefined);
+  const variantCount = Array.isArray(product.variants) ? product.variants.length : 0;
+
+  const sectionShell =
+    'rounded-2xl border border-border/40 bg-card/60 shadow-lg shadow-black/[0.04] ring-1 ring-border/30 backdrop-blur-sm';
+
   return (
-    <Box className="relative min-h-screen overflow-hidden bg-background p-6">
-        <Box className="pointer-events-none fixed inset-0 bg-gradient-to-br from-background via-background to-muted/30" />
-        <Box className="pointer-events-none fixed inset-0 opacity-[0.03] dark:opacity-[0.05]">
-          <Box className="absolute inset-0 bg-[linear-gradient(to_right,rgba(0,0,0,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(0,0,0,0.03)_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:32px_32px]" />
-        </Box>
+    <Box className="relative min-h-screen w-full overflow-x-hidden bg-background">
+      <Box className="pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_90%_60%_at_50%_-30%,hsl(var(--primary)/0.14),transparent_55%)]" />
+      <Box className="pointer-events-none fixed inset-0 bg-gradient-to-br from-background via-background to-muted/30" />
+      <Box className="pointer-events-none fixed inset-0 opacity-[0.035] dark:opacity-[0.06]">
+        <Box className="absolute inset-0 bg-[linear-gradient(to_right,rgba(0,0,0,0.035)_1px,transparent_1px),linear-gradient(to_bottom,rgba(0,0,0,0.035)_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.06)_1px,transparent_1px)] bg-[size:40px_40px]" />
+      </Box>
+      <Box className="pointer-events-none fixed -right-24 -top-28 h-[28rem] w-[28rem] rounded-full bg-primary/20 blur-[120px]" />
+      <Box className="pointer-events-none fixed -bottom-32 -left-20 h-96 w-96 rounded-full bg-violet-500/15 blur-[100px] dark:bg-violet-400/10" />
 
-        <Box className="relative max-w-5xl mx-auto">
-          {/* Header */}
-          <Box className="mb-6">
-            <Button
-              variant="text"
-              onClick={() => navigate(paths.dashboard.products)}
-              className="mb-4 -ml-2 text-muted-foreground hover:text-foreground"
-            >
-              <Iconify icon="solar:arrow-left-bold" width={20} className="mr-2 rtl:rotate-180" />
-              {t('form.productDetailsBack')}
-            </Button>
+      <Box className="relative w-full px-4 pb-14 pt-4 sm:px-6 lg:px-8 xl:px-12">
+        {/* Hero */}
+        <Box
+          className={`relative mb-8 overflow-hidden p-6 shadow-2xl shadow-black/[0.07] md:p-8 lg:p-10 ${sectionShell}`}
+        >
+          <Box className="pointer-events-none absolute -right-16 top-1/2 h-72 w-72 -translate-y-1/2 rounded-full bg-gradient-to-br from-primary/20 to-transparent blur-3xl" />
+          <Button
+            variant="text"
+            onClick={() => navigate(paths.dashboard.products)}
+            className="-ml-2 mb-2 text-muted-foreground hover:text-foreground"
+          >
+            <Iconify icon="solar:arrow-left-bold" width={20} className="mr-2 rtl:rotate-180" />
+            {t('form.productDetailsBack')}
+          </Button>
 
-            <Box className="flex items-start gap-4 mb-2">
-              {/* Images gallery */}
-              {product.images?.length > 0 ? (
-                <Box className="flex gap-2 flex-wrap">
-                  {product.images.map((img: any, i: number) => (
-                    <img
+          <Box className="relative flex flex-col gap-8 lg:flex-row lg:items-stretch lg:gap-12">
+            <Box className="flex w-full shrink-0 flex-col gap-4 lg:max-w-[min(100%,440px)]">
+              <Box className="relative aspect-square w-full overflow-hidden rounded-2xl bg-gradient-to-br from-muted/80 to-muted/40 shadow-inner ring-2 ring-primary/20">
+                {heroSrc ? (
+                  <img
+                    src={heroSrc}
+                    alt=""
+                    className="h-full w-full object-cover transition-transform duration-500 hover:scale-[1.02]"
+                  />
+                ) : (
+                  <Box className="flex h-full w-full items-center justify-center">
+                    <Iconify icon="solar:gallery-bold" className="text-muted-foreground/40" width={80} height={80} />
+                  </Box>
+                )}
+                <Box className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-background/90 via-background/20 to-transparent px-4 py-6 pt-16">
+                  <Typography variant="caption" className="font-mono text-muted-foreground">
+                    ID · {product.id}
+                  </Typography>
+                </Box>
+              </Box>
+              {gallery.length > 1 ? (
+                <Box className="flex max-w-full gap-2 overflow-x-auto pb-1 [scrollbar-width:thin]">
+                  {gallery.map((img: any, i: number) => (
+                    <button
                       key={img.id ?? i}
-                      src={img.url}
-                      alt={`${formatTranslated(product.name)} ${i + 1}`}
-                      className="w-16 h-16 rounded-xl object-cover border border-border/60"
-                    />
+                      type="button"
+                      onClick={() => setHeroImageIndex(i)}
+                      className={`h-16 w-16 shrink-0 overflow-hidden rounded-xl border-2 transition-all ${
+                        i === heroImageIndex
+                          ? 'border-primary ring-2 ring-primary/30'
+                          : 'border-border/60 opacity-80 hover:border-primary/50 hover:opacity-100'
+                      }`}
+                    >
+                      <img src={img.url} alt="" className="h-full w-full object-cover" />
+                    </button>
                   ))}
                 </Box>
-              ) : (
-                <Box className="w-16 h-16 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
-                  <Iconify icon="solar:box-bold" className="text-primary" width={32} height={32} />
-                </Box>
-              )}
+              ) : null}
+            </Box>
 
-              <Box className="flex-1">
-                <Typography variant="h4" className="font-bold text-foreground mb-1">
+            <Box className="flex min-w-0 flex-1 flex-col justify-between gap-6">
+              <Box>
+                <Box className="mb-3 flex flex-wrap items-center gap-2">
+                  <Box className="rounded-full border border-border/60 bg-muted/40 px-3 py-1 text-xs font-medium text-muted-foreground">
+                    {formatTranslated(product.category?.name) ?? product.category_id}
+                  </Box>
+                  {(product.approval_status_label ?? product.approval_status) ? (
+                    <Box className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-400">
+                      {product.approval_status_label ?? product.approval_status}
+                    </Box>
+                  ) : null}
+                </Box>
+                <Typography variant="h3" className="mb-2 text-3xl font-bold tracking-tight text-foreground md:text-4xl">
                   {formatTranslated(product.name)}
                 </Typography>
-                <Typography variant="body2" className="text-muted-foreground">
-                  {t('form.productDetailsIdLabel')}: {product.id}
+                <Typography variant="body2" className="max-w-2xl text-muted-foreground">
+                  {t('form.productDetailsIdLabel')} · {product.id}
+                  {product.vendor ? (
+                    <>
+                      {' · '}
+                      {formatTranslated(product.vendor.name as any)}
+                    </>
+                  ) : null}
                 </Typography>
               </Box>
-              <Button
-                variant="contained"
-                onClick={() => id && navigate(paths.dashboard.product.update(id))}
-                className="gap-2"
-              >
-                <Iconify icon="solar:pen-bold" width={18} />
-                {t('form.productDetailsEdit')}
-              </Button>
+
+              <Box className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                <Box className="rounded-xl border border-border/50 bg-background/50 p-3 text-center sm:text-start">
+                  <Typography variant="caption" className="text-muted-foreground">
+                    {t('form.quantity')}
+                  </Typography>
+                  <Typography variant="h6" className="font-semibold tabular-nums">
+                    {product.quantity ?? '—'}
+                  </Typography>
+                </Box>
+                <Box className="rounded-xl border border-border/50 bg-background/50 p-3 text-center sm:text-start">
+                  <Typography variant="caption" className="text-muted-foreground">
+                    {t('form.productDetailsVariants')}
+                  </Typography>
+                  <Typography variant="h6" className="font-semibold tabular-nums">
+                    {variantCount}
+                  </Typography>
+                </Box>
+                <Box className="col-span-2 rounded-xl border border-border/50 bg-background/50 p-3 sm:col-span-1">
+                  <Typography variant="caption" className="text-muted-foreground">
+                    {t('form.instantDelivery')}
+                  </Typography>
+                  <Typography variant="h6" className="font-semibold">
+                    {product.is_instant_delivery ? yes : no}
+                  </Typography>
+                </Box>
+              </Box>
+
+              <Box className="flex flex-wrap gap-3">
+                <Button
+                  variant="contained"
+                  size="large"
+                  onClick={() => id && navigate(paths.dashboard.product.update(id))}
+                  className="gap-2 shadow-lg shadow-primary/25"
+                >
+                  <Iconify icon="solar:pen-bold" width={18} />
+                  {t('form.productDetailsEdit')}
+                </Button>
+              </Box>
             </Box>
           </Box>
+        </Box>
 
-          <Box className="space-y-4">
+        <Box className="flex flex-col gap-6 xl:grid xl:grid-cols-12 xl:items-start xl:gap-8">
+          <Box className="order-2 space-y-6 xl:order-1 xl:col-span-8">
             {/* Basic Information */}
-            <Box className="rounded-xl border border-border/50 shadow-sm bg-background/95 p-6">
-              <Typography variant="h6" className="font-semibold mb-4 flex items-center gap-2">
-                <Iconify icon="solar:info-circle-bold" width={20} />
+            <Box className={`p-6 md:p-8 ${sectionShell}`}>
+              <Typography variant="h6" className="mb-4 flex items-center gap-2 font-semibold">
+                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  <Iconify icon="solar:info-circle-bold" width={22} />
+                </span>
                 {t('form.productDetailsSectionBasic')}
               </Typography>
               <Box className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -590,54 +768,8 @@ export default function DetailsPage() {
               </Box>
             </Box>
 
-            {/* Pricing & Stock */}
-            <Box className="rounded-xl border border-border/50 shadow-sm bg-background/95 p-6">
-              <Typography variant="h6" className="font-semibold mb-4 flex items-center gap-2">
-                <Iconify icon="solar:tag-price-bold" width={20} />
-                {t('form.productDetailsSectionPricing')}
-              </Typography>
-              <Box className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <DetailRow label={t('columns.price')} value={`${t('currencySyrianPound')} ${product.price}`} emptyLabel={na} />
-                <DetailRow
-                  label={t('columns.priceAfterDiscount')}
-                  value={
-                    product.price_after_discount != null
-                      ? `${t('currencySyrianPound')} ${product.price_after_discount}`
-                      : '—'
-                  }
-                  emptyLabel={na}
-                />
-                <DetailRow label={t('form.quantity')} value={product.quantity} emptyLabel={na} />
-                <DetailRow
-                  label={t('form.productDetailsDiscount')}
-                  value={product.discount != null ? String(product.discount) : '—'}
-                  emptyLabel={na}
-                />
-                <DetailRow
-                  label={t('form.productDetailsDiscountType')}
-                  value={String(product.discount_type ?? '—')}
-                  emptyLabel={na}
-                />
-                <DetailRow
-                  label={t('form.productDetailsCostPrice')}
-                  value={product.cost_price != null ? `${t('currencySyrianPound')} ${product.cost_price}` : '—'}
-                  emptyLabel={na}
-                />
-                <DetailRow
-                  label={t('form.productDetailsUnit')}
-                  value={product.unit ?? '—'}
-                  emptyLabel={na}
-                />
-                <DetailRow
-                  label={t('form.productDetailsWarrantyMonths')}
-                  value={product.warranty_period ?? '—'}
-                  emptyLabel={na}
-                />
-              </Box>
-            </Box>
-
             {/* Description */}
-            <Box className="rounded-xl border border-border/50 shadow-sm bg-background/95 p-6">
+            <Box className={`p-6 md:p-8 ${sectionShell}`}>
               <Typography variant="h6" className="font-semibold mb-4 flex items-center gap-2">
                 <Iconify icon="solar:document-text-bold" width={20} />
                 {t('form.productDetailsSectionDescription')}
@@ -672,7 +804,7 @@ export default function DetailsPage() {
 
             {/* SEO */}
             {(product.seo_title || product.seo_description || product.seo_keywords || product.seo_image) && (
-              <Box className="rounded-xl border border-border/50 shadow-sm bg-background/95 p-6">
+              <Box className={`p-6 md:p-8 ${sectionShell}`}>
                 <Typography variant="h6" className="font-semibold mb-4 flex items-center gap-2">
                   <Iconify icon="solar:globe-bold" width={20} />
                   {t('form.seoTitle')}
@@ -712,7 +844,7 @@ export default function DetailsPage() {
 
             {/* Icons */}
             {product.icons?.length > 0 && (
-              <Box className="rounded-xl border border-border/50 shadow-sm bg-background/95 p-6">
+              <Box className={`p-6 md:p-8 ${sectionShell}`}>
                 <Typography variant="h6" className="font-semibold mb-4 flex items-center gap-2">
                   <Iconify icon="solar:star-bold" width={20} />
                   {t('form.productDetailsIcons')}
@@ -732,7 +864,7 @@ export default function DetailsPage() {
 
             {/* Variants */}
             {product.variants?.length > 0 && (
-              <Box className="rounded-xl border border-border/50 shadow-sm bg-background/95 p-6">
+              <Box className={`p-6 md:p-8 ${sectionShell}`}>
                 <Typography variant="h6" className="font-semibold mb-4 flex items-center gap-2">
                   <Iconify icon="solar:widget-bold" width={20} />
                   {t('form.productDetailsVariants')} ({product.variants.length})
@@ -766,6 +898,21 @@ export default function DetailsPage() {
                             <Iconify icon="solar:trash-bin-minimalistic-bold" width={16} />
                           </Button>
                         </Box>
+                      </Box>
+
+                      <Box className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                        <span>
+                          {t('form.productSku')}:{' '}
+                          <span className="font-mono text-foreground">{variant.sku ?? na}</span>
+                        </span>
+                        <span>
+                          {t('form.productModel')}:{' '}
+                          <span className="font-mono text-foreground">{variant.model ?? na}</span>
+                        </span>
+                        <span>
+                          {t('form.productBarcode')}:{' '}
+                          <span className="font-mono text-foreground">{variant.barcode ?? na}</span>
+                        </span>
                       </Box>
 
                       {/* Attributes */}
@@ -810,11 +957,26 @@ export default function DetailsPage() {
                           </Typography>
                           <Box className="grid grid-cols-1 md:grid-cols-2 gap-2">
                             {variant.shops.map((shop: any, si: number) => (
-                              <Box key={si} className="flex items-center justify-between rounded-md border border-border/40 bg-muted/20 px-3 py-2 text-sm">
+                              <Box key={si} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border/40 bg-muted/20 px-3 py-2 text-sm">
                                 <span className="font-medium">{shop.shop_name}</span>
-                                <Box className="flex items-center gap-3 text-muted-foreground">
-                                  <span>{t('currencySyrianPound')} {shop.price}</span>
-                                  <span>×{shop.quantity}</span>
+                                <Box className="flex flex-wrap items-center gap-x-3 gap-y-1 text-muted-foreground">
+                                  <span>
+                                    {t('form.priceLabel')}:{' '}
+                                    <span className="tabular-nums text-foreground">{shop.price ?? na}</span>
+                                  </span>
+                                  <span>
+                                    {t('columns.discount')}:{' '}
+                                    <span className="tabular-nums text-foreground">{shop.discount ?? na}</span>
+                                  </span>
+                                  <span>
+                                    {t('columns.priceAfterDiscount')}:{' '}
+                                    <span className="tabular-nums text-foreground">
+                                      {shop.price_after_discount ?? na}
+                                    </span>
+                                  </span>
+                                  <span>
+                                    ×{shop.quantity}
+                                  </span>
                                   <Button
                                     size="small"
                                     variant="text"
@@ -911,7 +1073,7 @@ export default function DetailsPage() {
 
             {/* Category Details */}
             {product.category_details?.length > 0 && (
-              <Box className="rounded-xl border border-border/50 shadow-sm bg-background/95 p-6">
+              <Box className={`p-6 md:p-8 ${sectionShell}`}>
                 <Typography variant="h6" className="font-semibold mb-4 flex items-center gap-2">
                   <Iconify icon="solar:list-bold" width={20} />
                   {t('form.productDetailsCategoryDetailsSection')}
@@ -940,7 +1102,7 @@ export default function DetailsPage() {
 
             {/* Extra Details */}
             {product.extra_details?.length > 0 && (
-              <Box className="rounded-xl border border-border/50 shadow-sm bg-background/95 p-6">
+              <Box className={`p-6 md:p-8 ${sectionShell}`}>
                 <Typography variant="h6" className="font-semibold mb-4 flex items-center gap-2">
                   <Iconify icon="solar:notes-bold" width={20} />
                   {t('form.productDetailsExtraDetailsSection')}
@@ -990,7 +1152,7 @@ export default function DetailsPage() {
 
             {/* Bought With */}
             {product.bought_with?.length > 0 && (
-              <Box className="rounded-xl border border-border/50 shadow-sm bg-background/95 p-6">
+              <Box className={`p-6 md:p-8 ${sectionShell}`}>
                 <Typography variant="h6" className="font-semibold mb-4 flex items-center gap-2">
                   <Iconify icon="solar:cart-bold" width={20} />
                   {t('form.productDetailsBoughtWithSection')}
@@ -1012,7 +1174,76 @@ export default function DetailsPage() {
               </Box>
             )}
           </Box>
+
+          {/* Pricing & stock — prominent column on large screens */}
+          <Box className="order-1 xl:order-2 xl:col-span-4 xl:sticky xl:top-6 xl:self-start">
+            <Box
+              className={`border-primary/25 bg-gradient-to-br from-primary/[0.07] via-card/90 to-muted/20 p-6 shadow-xl shadow-primary/5 md:p-8 ${sectionShell}`}
+            >
+              <Typography variant="h6" className="mb-6 flex items-center gap-3 font-semibold">
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/15 text-primary shadow-inner">
+                  <Iconify icon="solar:tag-price-bold" width={24} />
+                </span>
+                {t('form.productDetailsSectionPricing')}
+              </Typography>
+              <Box className="space-y-5">
+                <DetailRow
+                  label={t('columns.price')}
+                  value={productMoneyDisplay({
+                    currencies: product.price_currencies,
+                    singleFormatted: product.price_formatted,
+                    amount: product.price,
+                    legacyAmountPrefix: t('currencySyrianPound'),
+                  })}
+                  emptyLabel={na}
+                />
+                <DetailRow
+                  label={t('columns.priceAfterDiscount')}
+                  value={productMoneyDisplay({
+                    currencies: product.price_after_discount_currencies,
+                    singleFormatted: product.price_after_discount_formatted,
+                    amount: product.price_after_discount,
+                    legacyAmountPrefix: t('currencySyrianPound'),
+                  })}
+                  emptyLabel={na}
+                />
+                <DetailRow
+                  label={t('form.productDetailsCostPrice')}
+                  value={productMoneyDisplay({
+                    currencies: product.cost_price_currencies,
+                    singleFormatted: product.cost_price_formatted,
+                    amount: product.cost_price,
+                    legacyAmountPrefix: t('currencySyrianPound'),
+                  })}
+                  emptyLabel={na}
+                />
+                <Box className="h-px bg-border/60" />
+                <DetailRow label={t('form.quantity')} value={product.quantity} emptyLabel={na} />
+                <DetailRow
+                  label={t('form.productDetailsDiscount')}
+                  value={product.discount != null ? String(product.discount) : '—'}
+                  emptyLabel={na}
+                />
+                <DetailRow
+                  label={t('form.productDetailsDiscountType')}
+                  value={String(product.discount_type ?? '—')}
+                  emptyLabel={na}
+                />
+                <DetailRow
+                  label={t('form.productDetailsUnit')}
+                  value={product.unit ?? '—'}
+                  emptyLabel={na}
+                />
+                <DetailRow
+                  label={t('form.productDetailsWarrantyMonths')}
+                  value={product.warranty_period ?? '—'}
+                  emptyLabel={na}
+                />
+              </Box>
+            </Box>
+          </Box>
         </Box>
       </Box>
+    </Box>
   );
 }

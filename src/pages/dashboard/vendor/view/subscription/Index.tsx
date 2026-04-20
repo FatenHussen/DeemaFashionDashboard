@@ -1,9 +1,15 @@
 import type { TFunction } from 'i18next';
 
+import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
 import { useState, type ReactNode } from 'react';
 import { DataTable } from '@/shared/ui/table-data/table-data';
-import { useFetchVendorSubscriptions } from '@/pages/dashboard/vendor/hooks/vendor-subscription';
+import { usePermissions } from '@/auth/hooks/use-permissions';
+import { paths } from '@/routes/paths';
+import {
+  useFetchVendorSubscriptions,
+  useDeleteVendorSubscription,
+} from '@/pages/dashboard/vendor/hooks/vendor-subscription';
 import { VENDOR_SUBSCRIPTION_STATUSES } from '@/pages/dashboard/vendor/types/vendor-subscription.types';
 import {
   vendorSubscriptionColumns,
@@ -23,12 +29,17 @@ function vendorSubscriptionStatusOptionLabel(status: string, t: TFunction<'table
 
 export default function Page() {
   const { t } = useTranslation('table');
+  const { can } = usePermissions();
+  const hasPermission = (action: string, resource: string) => can(`${resource}.${action}`);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [statusFilter, setStatusFilter] = useState('');
   const [search, setSearch] = useState('');
   const [appliedSearch, setAppliedSearch] = useState('');
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+
+  const deleteMutation = useDeleteVendorSubscription();
 
   const { data: response, isLoading, error } = useFetchVendorSubscriptions(
     currentPage,
@@ -51,6 +62,20 @@ export default function Page() {
     setAppliedSearch(search);
     setCurrentPage(1);
   };
+
+  const handleDeleteRequest = (id: number) => setDeletingId(id);
+  const handleDeleteConfirm = async () => {
+    if (deletingId != null) {
+      try {
+        await deleteMutation.mutateAsync(deletingId);
+        toast.success(t('deleteSuccess'));
+        setDeletingId(null);
+      } catch {
+        return;
+      }
+    }
+  };
+  const handleDeleteCancel = () => setDeletingId(null);
 
   const items: VendorSubscriptionFormValues[] = response?.data?.items || [];
   const apiPagination = response?.data?.pagination;
@@ -108,18 +133,31 @@ export default function Page() {
 
       <DataTable
         tableName={t('tableNames.vendorSubscription')}
-        columns={vendorSubscriptionColumns(t)}
+        columns={vendorSubscriptionColumns(
+          {
+            update: false,
+            delete: hasPermission('remove', 'vendorsubscription'),
+          },
+          t,
+          handleDeleteRequest,
+          deleteMutation.isPending,
+          deletingId !== null,
+          handleDeleteConfirm,
+          handleDeleteCancel,
+          deletingId
+        )}
         data={items}
         hasDetails
         detailsLink="/vendor-subscriptions"
+        createPath={paths.dashboard.vendorSubscriptionsCreate}
         toolbarFilter={toolbarSearch}
         filterSidebar={sidebarContent}
         activeFilterCount={statusFilter ? 1 : 0}
         onFilterReset={() => { setStatusFilter(''); setCurrentPage(1); }}
         permissions={{
-          create: false,
+          create: hasPermission('create', 'vendorsubscription'),
           update: false,
-          delete: false,
+          delete: hasPermission('remove', 'vendorsubscription'),
         }}
         isLoading={isLoading}
         columnTranslations={{

@@ -1,9 +1,16 @@
 // ----------------------------------------------------------------------
 
+/** Bilingual preset for a category detail value (product form + admin). */
+export interface CategoryDetailValueOption {
+  ar: string;
+  en: string;
+}
+
 export interface CategoryDetailData {
   id: number;
   name: string;
   category: string;
+  value_options?: CategoryDetailValueOption[];
 }
 
 export interface CategoryDetailListResponse {
@@ -33,6 +40,7 @@ export interface CategoryDetailDetailData {
       en: string;
     };
   };
+  value_options?: CategoryDetailValueOption[];
   created_at: string;
 }
 
@@ -48,4 +56,6 @@ export interface CategoryDetailCreateUpdatePayload {
     en: string;
     ar: string;
   };
+  /** Preset values (bilingual). Sent as array of `{ ar, en }` objects. */
+  value_options?: CategoryDetailValueOption[];
 }

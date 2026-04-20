@@ -27,7 +27,25 @@ const buildFormData = (data: RecipeCreateUpdatePayload): FormData => {
 
   if (data.image instanceof File) fd.append('image', data.image);
 
+  if (data.images && data.images.length > 0) {
+    data.images.forEach((file) => {
+      if (file instanceof File) fd.append('images[]', file);
+    });
+  }
+
+  (data.existing_images_ids ?? []).forEach((mediaId) => {
+    fd.append('existing_images_ids[]', String(mediaId));
+  });
+
   if (data.video_url) fd.append('video_url', data.video_url);
+  if (data.video_title) {
+    fd.append('video_title[en]', data.video_title.en || '');
+    fd.append('video_title[ar]', data.video_title.ar || '');
+  }
+  if (data.video_desc) {
+    fd.append('video_desc[en]', data.video_desc.en || '');
+    fd.append('video_desc[ar]', data.video_desc.ar || '');
+  }
   if (data.discount !== undefined) fd.append('discount', String(data.discount));
   if (data.delivery_price !== undefined) fd.append('delivery_price', String(data.delivery_price));
   if (data.serves !== undefined && data.serves !== '') fd.append('serves', String(data.serves));

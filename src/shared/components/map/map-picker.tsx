@@ -1,10 +1,14 @@
 import 'leaflet/dist/leaflet.css';
 
 import L from 'leaflet';
-import { useRef, useEffect, useCallback } from 'react';
+import { useRef, useEffect, useCallback, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+
+import { Button, Input } from 'src/shared/ui';
 
 export const MAP_DEFAULT_CENTER: [number, number] = [33.5138, 36.2765]; // Damascus
 const DEFAULT_ZOOM = 12;
+const SEARCH_ZOOM = 16;
 
 interface MapPickerProps {
   lat: string;
@@ -13,6 +17,8 @@ interface MapPickerProps {
   height?: string;
   className?: string;
 }
+
+type NominatimHit = { lat: string; lon: string };
 
 // Fix default marker icon for Leaflet
 const defaultIcon = L.icon({
@@ -24,11 +30,16 @@ const defaultIcon = L.icon({
 });
 
 export function MapPicker({ lat, lng, onChange, height = '300px', className = '' }: MapPickerProps) {
+  const { t, i18n } = useTranslation('table');
   const mapRef = useRef<L.Map | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
 
   const initMap = useCallback(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -80,11 +91,97 @@ export function MapPicker({ lat, lng, onChange, height = '300px', className = ''
     }
   }, [lat, lng]);
 
+  const applyFoundLocation = useCallback((numLat: number, numLng: number) => {
+    if (!mapRef.current || !markerRef.current) return;
+    markerRef.current.setLatLng([numLat, numLng]);
+    mapRef.current.setView([numLat, numLng], SEARCH_ZOOM);
+    onChangeRef.current(numLat.toFixed(8), numLng.toFixed(8));
+  }, []);
+
+  const runSearch = useCallback(async () => {
+    const q = searchQuery.trim();
+    if (!q || isSearching) return;
+
+    setSearchError(null);
+    setIsSearching(true);
+    try {
+      const params = new URLSearchParams({
+        format: 'json',
+        q,
+        limit: '1',
+      });
+      const lang = String(i18n.language || 'en').split(/[-_]/)[0] || 'en';
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, {
+        headers: {
+          Accept: 'application/json',
+          'Accept-Language': lang,
+        },
+      });
+      if (!res.ok) {
+        setSearchError(t('form.mapSearchFailed'));
+        return;
+      }
+      const data = (await res.json()) as NominatimHit[];
+      const hit = data[0];
+      if (!hit) {
+        setSearchError(t('form.mapSearchNoResults'));
+        return;
+      }
+      const numLat = parseFloat(hit.lat);
+      const numLng = parseFloat(hit.lon);
+      if (Number.isNaN(numLat) || Number.isNaN(numLng)) {
+        setSearchError(t('form.mapSearchNoResults'));
+        return;
+      }
+      applyFoundLocation(numLat, numLng);
+    } catch {
+      setSearchError(t('form.mapSearchFailed'));
+    } finally {
+      setIsSearching(false);
+    }
+  }, [applyFoundLocation, i18n.language, isSearching, searchQuery, t]);
+
   return (
-    <div
-      ref={containerRef}
-      className={`rounded-lg border border-border/60 overflow-hidden ${className}`}
-      style={{ height }}
-    />
+    <div className={`flex flex-col gap-2 ${className}`}>
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:gap-2">
+        <Input
+          floatingLabel={false}
+          size="sm"
+          fullWidth
+          className="min-w-0 flex-1"
+          placeholder={t('form.mapSearchPlaceholder')}
+          value={searchQuery}
+          disabled={isSearching}
+          onChange={(e) => {
+            setSearchQuery(e.target.value);
+            setSearchError(null);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              void runSearch();
+            }
+          }}
+        />
+        <Button
+          type="button"
+          variant="outlined"
+          color="inherit"
+          size="small"
+          loading={isSearching}
+          className="shrink-0 sm:mt-0"
+          disabled={!searchQuery.trim()}
+          onClick={() => void runSearch()}
+        >
+          {t('form.mapSearchButton')}
+        </Button>
+      </div>
+      {searchError ? <p className="text-xs text-destructive">{searchError}</p> : null}
+      <div
+        ref={containerRef}
+        className="rounded-lg border border-border/60 overflow-hidden"
+        style={{ height }}
+      />
+    </div>
   );
 }
