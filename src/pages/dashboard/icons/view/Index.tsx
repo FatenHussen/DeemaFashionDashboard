@@ -1,8 +1,8 @@
 import type { IconItem } from '@/pages/dashboard/icons/types/icon.types';
 
-import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { iconColumns } from '@/columns/one/icons/one';
 import { DataTable } from '@/shared/ui/table-data/table-data';

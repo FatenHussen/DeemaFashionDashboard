@@ -1,7 +1,7 @@
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
-import { useState, useEffect, type ReactNode } from 'react';
 import { Iconify } from '@/shared/components/iconify';
+import { useState, useEffect, type ReactNode } from 'react';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { usePermissions } from '@/auth/hooks/use-permissions';
 import { shopColumns, type ShopFormValues } from '@/columns/one/shop/one';

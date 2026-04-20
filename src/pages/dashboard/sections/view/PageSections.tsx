@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { formatTranslated } from '@/utils/format-translated';
 import { DataTable } from '@/shared/ui/table-data/table-data';

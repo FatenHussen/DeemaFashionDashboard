@@ -1,7 +1,7 @@
 import type { ActivityLogItem } from '@/pages/dashboard/activity-logs/types/activity-log.types';
 
-import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useState, useEffect, useCallback } from 'react';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { activityLogColumns } from '@/columns/one/activity-logs/one';
 import { useFetchActivityLogs } from '@/pages/dashboard/activity-logs/hooks/activity-log';

@@ -1,5 +1,5 @@
-import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { useFetchLegalDocuments } from '@/pages/dashboard/content/hooks/legal-document';
 import {

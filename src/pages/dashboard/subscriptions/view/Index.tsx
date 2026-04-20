@@ -1,8 +1,8 @@
 import type { SubscriptionListParams } from '@/pages/dashboard/subscriptions/types/subscription.types';
 
 import { useTranslation } from 'react-i18next';
-import { useMemo, useState, useEffect, type ReactNode } from 'react';
 import { DataTable } from '@/shared/ui/table-data/table-data';
+import { useMemo, useState, useEffect, type ReactNode } from 'react';
 import { useFetchSubscriptions } from '@/pages/dashboard/subscriptions/hooks/subscription';
 import { subscriptionColumns, type SubscriptionRow } from '@/columns/one/subscriptions/one';
 

@@ -1,21 +1,20 @@
-import type { BasketItem } from '@/pages/dashboard/baskets/types/basket.types';
+import type { BasketItem , BasketCreateUpdatePayload } from '@/pages/dashboard/baskets/types/basket.types';
 
-import { useEffect, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { toast } from 'react-toastify';
+import { useMemo, useEffect } from 'react';
 import { Button } from '@/shared/ui/button';
-import { MultiSelect } from '@/shared/ui/multi-select';
 import { useTranslation } from 'react-i18next';
+import { useQuery } from '@tanstack/react-query';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Iconify } from '@/shared/components/iconify';
 import { useParams, useNavigate } from 'react-router';
+import { MultiSelect } from '@/shared/ui/multi-select';
 import { formatTranslated } from '@/utils/format-translated';
-import { resolveStorageImageUrl, shopVariantOptionColorHex, shopVariantOptionImage } from '@/utils/shop-variant-image';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { InfiniteScrollSelect } from '@/shared/components/infinite-scroll-select';
-import { TinyMCEEditorField } from '@/shared/components/tinymce-editor/tinymce-editor';
 import { _CategoryApi } from '@/pages/dashboard/categories/api/category.services';
 import { _ShopProductVariantApi } from '@/shared/api/shop-product-variant.services';
+import { TinyMCEEditorField } from '@/shared/components/tinymce-editor/tinymce-editor';
 import {
   BasketSchema,
   type BasketFormValues,
@@ -25,14 +24,14 @@ import {
   useUpdateBasket,
   useFetchBasketById,
 } from '@/pages/dashboard/baskets/hooks/basket';
-import type { BasketCreateUpdatePayload } from '@/pages/dashboard/baskets/types/basket.types';
+import { resolveStorageImageUrl, shopVariantOptionImage, shopVariantOptionColorHex } from '@/utils/shop-variant-image';
 
+import { CONFIG } from 'src/global-config';
 import { Box, Typography } from 'src/shared/ui';
 import { LoadingScreen } from 'src/shared/components/loading-screen';
 import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
 import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
 import { RHFBadgeSelector } from 'src/shared/components/hook-form/rhf-badge-selector';
-import { CONFIG } from 'src/global-config';
 
 // ----------------------------------------------------------------------
 

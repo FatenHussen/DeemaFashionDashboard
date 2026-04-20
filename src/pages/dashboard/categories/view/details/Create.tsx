@@ -1,10 +1,10 @@
 import { useEffect } from 'react';
 import { toast } from 'react-toastify';
-import { useForm, useFieldArray } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { formatTranslated } from '@/utils/format-translated';
 import { _CategoryApi } from '@/pages/dashboard/categories/api/category.services';
 import {

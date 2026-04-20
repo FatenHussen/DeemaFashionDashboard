@@ -2,7 +2,6 @@ import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { useRef, useState, useEffect } from 'react';
 import { formatTranslated } from '@/utils/format-translated';
-
 import { shopVariantOptionColorHex } from '@/utils/shop-variant-image';
 
 import { Iconify } from './iconify';

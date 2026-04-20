@@ -13,9 +13,9 @@ import { InfiniteScrollSelect } from '@/shared/components/infinite-scroll-select
 import { _CategoryApi } from '@/pages/dashboard/categories/api/category.services';
 import { _ShopProductVariantApi } from '@/shared/api/shop-product-variant.services';
 import { TinyMCEEditorField } from '@/shared/components/tinymce-editor/tinymce-editor';
-import { resolveStorageImageUrl, shopVariantOptionColorHex, shopVariantOptionImage } from '@/utils/shop-variant-image';
 import { RecipeSchema, type RecipeFormValues } from '@/pages/dashboard/recipes/validation/recipe.validation';
 import { useCreateRecipe, useUpdateRecipe, useFetchRecipeById } from '@/pages/dashboard/recipes/hooks/recipe';
+import { resolveStorageImageUrl, shopVariantOptionImage, shopVariantOptionColorHex } from '@/utils/shop-variant-image';
 
 import { CONFIG } from 'src/global-config';
 import { Box, Switch, Typography } from 'src/shared/ui';
@@ -428,7 +428,7 @@ export default function CreatePage() {
                                   const currentIds = (watch('existing_images_ids') ?? []) as number[];
                                   setValue(
                                     'existing_images_ids',
-                                    currentIds.filter((id) => id !== img.id),
+                                    currentIds.filter((imgId) => imgId !== img.id),
                                     { shouldDirty: true }
                                   );
                                 }}

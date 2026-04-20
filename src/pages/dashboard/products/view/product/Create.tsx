@@ -1,3 +1,4 @@
+import type { CurrencyData } from '@/pages/dashboard/currencies/types/currency.types';
 import type {
   ProductDetailData,
   ProductCreateUpdatePayload,
@@ -12,12 +13,13 @@ import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
 import { formatTranslated } from '@/utils/format-translated';
 import { useFetchShops } from '@/pages/dashboard/vendor/hooks/shop';
-import { useForm, Controller, useFieldArray, useWatch } from 'react-hook-form';
 import { compressImage, compressImages } from '@/utils/compress-image';
 import { _VendorApi } from '@/pages/dashboard/vendor/api/vendor.services';
 import { _BrandApi } from '@/pages/dashboard/products/api/brand.services';
+import { useForm, useWatch, Controller, useFieldArray } from 'react-hook-form';
 import { _CountryApi } from '@/pages/dashboard/countries/api/country.services';
 import { useId, useRef, useMemo, useState, useEffect, useCallback } from 'react';
+import { useFetchCurrencies } from '@/pages/dashboard/currencies/hooks/currency';
 import { InfiniteScrollSelect } from '@/shared/components/infinite-scroll-select';
 import { _CategoryApi } from '@/pages/dashboard/categories/api/category.services';
 import { TinyMCEEditorField } from '@/shared/components/tinymce-editor/tinymce-editor';
@@ -27,8 +29,6 @@ import {
   useFetchCategories,
   useFetchCategoryById,
 } from '@/pages/dashboard/categories/hooks/category';
-import { useFetchCurrencies } from '@/pages/dashboard/currencies/hooks/currency';
-import type { CurrencyData } from '@/pages/dashboard/currencies/types/currency.types';
 import {
   ProductSchema,
   type ProductFormValues,

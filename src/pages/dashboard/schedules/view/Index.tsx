@@ -3,9 +3,9 @@ import type { ScheduleListParams } from '@/pages/dashboard/schedules/types/sched
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
-import { useMemo, useState, useEffect, type ReactNode } from 'react';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { usePermissions } from '@/auth/hooks/use-permissions';
+import { useMemo, useState, useEffect, type ReactNode } from 'react';
 import { scheduleColumns, type ScheduleTableItem } from '@/columns/one/schedules/one';
 import { useFetchSchedules, useDeleteSchedule } from '@/pages/dashboard/schedules/hooks/schedule';
 

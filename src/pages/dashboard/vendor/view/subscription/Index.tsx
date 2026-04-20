@@ -1,20 +1,20 @@
 import type { TFunction } from 'i18next';
 
 import { toast } from 'react-toastify';
+import { paths } from '@/routes/paths';
 import { useTranslation } from 'react-i18next';
-import { useState, useEffect, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { usePermissions } from '@/auth/hooks/use-permissions';
-import { paths } from '@/routes/paths';
-import {
-  useFetchVendorSubscriptions,
-  useDeleteVendorSubscription,
-} from '@/pages/dashboard/vendor/hooks/vendor-subscription';
 import { VENDOR_SUBSCRIPTION_STATUSES } from '@/pages/dashboard/vendor/types/vendor-subscription.types';
 import {
   vendorSubscriptionColumns,
   type VendorSubscriptionFormValues,
 } from '@/columns/one/vendor-subscriptions/one';
+import {
+  useFetchVendorSubscriptions,
+  useDeleteVendorSubscription,
+} from '@/pages/dashboard/vendor/hooks/vendor-subscription';
 
 import { CONFIG } from 'src/global-config';
 
@@ -130,7 +130,6 @@ export default function Page() {
         hasDetails
         detailsLink="/vendor-subscriptions"
         createPath={paths.dashboard.vendorSubscriptionsCreate}
-        toolbarFilter={toolbarSearch}
         filterSidebar={sidebarContent}
         activeFilterCount={statusFilter ? 1 : 0}
         onFilterReset={() => { setStatusFilter(''); setCurrentPage(1); }}

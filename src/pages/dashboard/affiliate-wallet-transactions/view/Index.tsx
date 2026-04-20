@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
-import { useMemo, useState, useEffect, type ReactNode } from 'react';
 import { DataTable } from '@/shared/ui/table-data/table-data';
+import { useMemo, useState, useEffect, type ReactNode } from 'react';
 import { affiliateWalletTransactionColumns } from '@/columns/one/affiliate-wallet-transactions/one';
 import { useFetchAffiliateWalletTransactions } from '@/pages/dashboard/affiliate-wallet-transactions/hooks/affiliate-wallet-transaction';
 

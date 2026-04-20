@@ -1,7 +1,7 @@
 import type { NotificationType } from '@/pages/dashboard/admin-notifications/types/notification.types';
 
-import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useState, useEffect, useCallback } from 'react';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { usePermissions } from '@/auth/hooks/use-permissions';
 import { useFetchAdminNotifications } from '@/pages/dashboard/admin-notifications/hooks/notification';

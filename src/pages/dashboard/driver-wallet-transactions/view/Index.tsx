@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
-import { useMemo, useState, useEffect, type ReactNode } from 'react';
 import { DataTable } from '@/shared/ui/table-data/table-data';
+import { useMemo, useState, useEffect, type ReactNode } from 'react';
 import { driverWalletTransactionColumns } from '@/columns/one/driver-wallet-transactions/one';
 import { useFetchDriverWalletTransactions } from '@/pages/dashboard/driver-wallet-transactions/hooks/driver-wallet-transaction';
 

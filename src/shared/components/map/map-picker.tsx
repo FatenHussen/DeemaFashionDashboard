@@ -1,10 +1,10 @@
 import 'leaflet/dist/leaflet.css';
 
 import L from 'leaflet';
-import { useRef, useEffect, useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useRef, useState, useEffect, useCallback } from 'react';
 
-import { Button, Input } from 'src/shared/ui';
+import { Input, Button } from 'src/shared/ui';
 
 export const MAP_DEFAULT_CENTER: [number, number] = [33.5138, 36.2765]; // Damascus
 const DEFAULT_ZOOM = 12;
