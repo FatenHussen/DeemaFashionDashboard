@@ -7,6 +7,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Iconify } from '@/shared/components/iconify';
 import { useParams, useNavigate, useLocation } from 'react-router';
+import { stripBilingualDescriptionForForm } from '@/utils/optional-bilingual-api-placeholder';
 import {
   useCreateBanner,
   useUpdateBanner,
@@ -82,8 +83,8 @@ export default function CreatePage() {
           ar: titleObj?.ar ?? titleStr,
         },
         description: {
-          en: descObj?.en ?? '',
-          ar: descObj?.ar ?? '',
+          en: stripBilingualDescriptionForForm(descObj?.en ?? ''),
+          ar: stripBilingualDescriptionForForm(descObj?.ar ?? ''),
         },
         image: null,
         link: source.link ?? '',

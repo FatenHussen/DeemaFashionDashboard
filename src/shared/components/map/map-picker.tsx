@@ -124,7 +124,7 @@ export function MapPicker({ lat, lng, onChange, height = '300px', className = ''
     if (q.length < MIN_QUERY_LEN) {
       setSuggestions([]);
       setIsSuggesting(false);
-      return;
+      return () => {};
     }
 
     const ac = new AbortController();

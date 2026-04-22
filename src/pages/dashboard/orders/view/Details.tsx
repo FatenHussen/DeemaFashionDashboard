@@ -169,6 +169,10 @@ export default function DetailsPage() {
     );
   }
 
+  const normalizedOrderStatus = normalizeOrderStatus(order.status);
+  const canAssignDriver =
+    normalizedOrderStatus !== 'delivered' && normalizedOrderStatus !== 'out_delivery';
+
   const handleChangeStatus = async (status: OrderStatus) => {
     try {
       await changeStatusMutation.mutateAsync({
@@ -181,6 +185,7 @@ export default function DetailsPage() {
   };
 
   const handleAssignDriver = async (data: { driver_id: number }) => {
+    if (!canAssignDriver) return;
     const driverId = data.driver_id;
     if (!driverId || driverId === 0) return;
     try {
@@ -292,6 +297,11 @@ export default function DetailsPage() {
                   <span className="text-muted-foreground">({order.driver.phone})</span>
                 </Typography>
               )}
+              {!canAssignDriver ? (
+                <Typography variant="caption" className="mb-3 block text-muted-foreground">
+                  {t('orders.assignDriverDisabledDeliveredOrOut')}
+                </Typography>
+              ) : null}
               <FormProvider {...assignDriverForm}>
                 <form
                   onSubmit={assignDriverForm.handleSubmit(handleAssignDriver)}
@@ -305,6 +315,7 @@ export default function DetailsPage() {
                       placeholder={t('form.selectDriver')}
                       initialLabel={order.driver?.name}
                       pageSize={10}
+                      disabled={!canAssignDriver}
                     />
                   </Box>
                   <Button
@@ -312,7 +323,10 @@ export default function DetailsPage() {
                     variant="contained"
                     className="w-full shrink-0 sm:w-auto"
                     disabled={
-                      !selectedDriverId || selectedDriverId === 0 || assignDriverMutation.isPending
+                      !canAssignDriver ||
+                      !selectedDriverId ||
+                      selectedDriverId === 0 ||
+                      assignDriverMutation.isPending
                     }
                   >
                     {t('orders.assign')}

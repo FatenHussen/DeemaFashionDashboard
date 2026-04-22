@@ -1,4 +1,5 @@
 import type { SortableEntity } from '@/shared/ui/table-data/sort-items-dialog';
+import type { CategoryData } from '@/pages/dashboard/categories/types/category.types';
 
 import { toast } from 'react-toastify';
 import { Button } from '@/shared/ui/button';
@@ -21,6 +22,10 @@ import {
   useFetchBrands,
   useDeleteBrand,
 } from '@/pages/dashboard/products/hooks/brand';
+import {
+  buildCategorySelectRows,
+  nativeSelectCategoryLabel,
+} from '@/pages/dashboard/categories/utils/build-parent-picker-options';
 
 import { CONFIG } from 'src/global-config';
 
@@ -76,7 +81,10 @@ export default function Page() {
     queryKey: ['categories', 'brand-index-filter'],
     queryFn: () => _CategoryApi.getListCategoriesPaginated({ page: 1, per_page: 500 }),
   });
-  const filterCategories = categoriesResp?.data?.items ?? [];
+  const filterCategoryOptions = useMemo(
+    () => buildCategorySelectRows((categoriesResp?.data?.items ?? []) as CategoryData[]),
+    [categoriesResp?.data?.items]
+  );
 
   const { data: countriesResp } = useFetchCountries(1, 400);
   const filterCountries = countriesResp?.data?.items ?? [];
@@ -255,7 +263,6 @@ export default function Page() {
           delete: hasPermission('delete', 'brand'),
         }}
         isLoading={isLoading}
-        hasFilter
         onSearchChange={setSearch}
         searchPlaceholder={t('search')}
         filterSidebar={
@@ -285,9 +292,9 @@ export default function Page() {
                 }}
               >
                 <option value="">{t('all')}</option>
-                {filterCategories.map((c) => (
+                {filterCategoryOptions.map((c) => (
                   <option key={c.id} value={String(c.id)}>
-                    {typeof c.name === 'object' ? formatTranslated(c.name as { en?: string; ar?: string }) : c.name}
+                    {nativeSelectCategoryLabel(c.label, c.depth, c.hasChildren)}
                   </option>
                 ))}
               </select>

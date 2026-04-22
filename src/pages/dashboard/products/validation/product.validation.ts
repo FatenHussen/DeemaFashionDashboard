@@ -58,7 +58,7 @@ export const ProductSchema = zod
     /** Product-level; used when vendor is external */
     delivery_time: zod.string().optional(),
     expiry_date: zod.preprocess(
-      (v) => (v === '' || v === null || v === undefined ? '' : v),
+      (v) => (v === '' || v === null || v === undefined ? '' : String(v).trim()),
       zod.string().optional()
     ),
     is_instant_delivery: zod.coerce.number().min(0).max(1),

@@ -15,6 +15,12 @@ export type RHFInfiniteSelectProps = {
   className?: string;
   disabled?: boolean;
   initialLabel?: string;
+  /** When the selected row is not in loaded pages (optional) */
+  initialImage?: string | null;
+  initialColorHex?: string | null;
+  /** Thumbnail in list and on trigger (option rows should carry image fields). */
+  getOptionImage?: (item: Record<string, unknown>) => string | null | undefined;
+  getOptionColorHex?: (item: Record<string, unknown>) => string | null | undefined;
   /** Items per page — defaults to 10 */
   pageSize?: number;
   /** Called after the field value changes — useful for side-effects like resetting dependent fields */
@@ -30,6 +36,10 @@ export function RHFInfiniteSelect({
   className,
   disabled,
   initialLabel,
+  initialImage,
+  initialColorHex,
+  getOptionImage,
+  getOptionColorHex,
   pageSize,
   onValueChange,
 }: RHFInfiniteSelectProps) {
@@ -51,6 +61,10 @@ export function RHFInfiniteSelect({
             fetcher={fetcher}
             placeholder={placeholder}
             initialLabel={initialLabel}
+            initialImage={initialImage}
+            initialColorHex={initialColorHex}
+            getOptionImage={getOptionImage}
+            getOptionColorHex={getOptionColorHex}
             disabled={disabled}
             pageSize={pageSize}
           />

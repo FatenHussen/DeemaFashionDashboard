@@ -5,8 +5,8 @@ import { z } from 'zod';
 import { Input } from '@/shared/ui/input';
 import { Button } from '@/shared/ui/button';
 import { Dialog } from '@/shared/ui/dialog';
-import { useState, useEffect, type MouseEvent } from 'react';
 import { Iconify } from '@/shared/components/iconify';
+import { useState, useEffect, type MouseEvent } from 'react';
 import { formatTranslated } from '@/utils/format-translated';
 import { createToggleColumn } from '@/shared/ui/table-data/data-table-toggle-cell';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
@@ -136,13 +136,23 @@ export const brandColumns = (
       <DataTableColumnHeader column={column} title={t('form.categoryLabel')} />
     ),
     cell: ({ row }) => {
-      const cat = (row.original as { category?: { name?: unknown } | null }).category;
-      const label =
-        cat?.name != null
-          ? formatTranslated(cat.name as Parameters<typeof formatTranslated>[0])
-          : '';
+      const r = row.original as {
+        categories?: { name?: unknown }[];
+        category?: { name?: unknown } | null;
+      };
+      const labels =
+        r.categories?.length
+          ? r.categories.map((c) =>
+              c?.name != null
+                ? formatTranslated(c.name as Parameters<typeof formatTranslated>[0])
+                : ''
+            )
+          : r.category?.name != null
+            ? [formatTranslated(r.category.name as Parameters<typeof formatTranslated>[0])]
+            : [];
+      const label = labels.filter(Boolean).join(', ');
       return (
-        <span className="text-sm text-muted-foreground truncate max-w-[140px] inline-block">
+        <span className="block max-w-[140px] truncate text-start text-sm text-muted-foreground">
           {label || '—'}
         </span>
       );
@@ -157,7 +167,7 @@ export const brandColumns = (
       const g = (row.original as { governorate?: { name?: string } | null }).governorate;
       const label = g?.name?.trim() ?? '';
       return (
-        <span className="text-sm text-muted-foreground truncate max-w-[120px] inline-block">
+        <span className="block max-w-[120px] truncate text-start text-sm text-muted-foreground">
           {label || '—'}
         </span>
       );
@@ -173,7 +183,7 @@ export const brandColumns = (
           ? formatTranslated(city.name as Parameters<typeof formatTranslated>[0])
           : '';
       return (
-        <span className="text-sm text-muted-foreground truncate max-w-[120px] inline-block">
+        <span className="block max-w-[120px] truncate text-start text-sm text-muted-foreground">
           {label || '—'}
         </span>
       );
@@ -184,10 +194,10 @@ export const brandColumns = (
     accessorKey: 'created_at',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.createdAt')} />,
     cell: ({ row }) => (
-      <div className="flex items-center gap-2">
+      <div className="flex items-center justify-start gap-2 text-start">
         <Iconify
           icon="solar:calendar-date-bold"
-          className="text-muted-foreground flex-shrink-0"
+          className="shrink-0 text-muted-foreground"
           width={16}
           height={16}
         />
@@ -202,10 +212,10 @@ export const brandColumns = (
     accessorKey: 'updated_at',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.updatedAt')} />,
     cell: ({ row }) => (
-      <div className="flex items-center gap-2">
+      <div className="flex items-center justify-start gap-2 text-start">
         <Iconify
           icon="solar:calendar-date-bold"
-          className="text-muted-foreground flex-shrink-0"
+          className="shrink-0 text-muted-foreground"
           width={16}
           height={16}
         />

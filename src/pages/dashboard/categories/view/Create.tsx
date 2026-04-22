@@ -1,15 +1,15 @@
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
+import { useQuery } from '@tanstack/react-query';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useParams, useNavigate, useSearchParams } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
-import { useQuery } from '@tanstack/react-query';
-import { useState, useEffect, useCallback, useMemo } from 'react';
 import { formatTranslated } from '@/utils/format-translated';
+import { useMemo, useState, useEffect, useCallback } from 'react';
+import { useParams, useNavigate, useSearchParams } from 'react-router';
 import { _CategoryApi } from '@/pages/dashboard/categories/api/category.services';
-import { buildParentPickerOptions } from '@/pages/dashboard/categories/utils/build-parent-picker-options';
 import { RHFInfiniteSelect } from '@/shared/components/hook-form/rhf-infinite-select';
+import { buildParentPickerOptions } from '@/pages/dashboard/categories/utils/build-parent-picker-options';
 import {
   CategorySchema,
   type CategoryFormValues,
@@ -57,8 +57,13 @@ export default function CreatePage() {
 
   const parentCategoryFetcher = useCallback(
     (page: number, limit: number) => {
-      const none = { id: 0, label: t('form.noParent') };
-      const rows = parentPickerRows.map((r) => ({ id: r.id, label: r.label }));
+      const none = { id: 0, label: t('form.noParent'), depth: 0, hasChildren: false };
+      const rows = parentPickerRows.map((r) => ({
+        id: r.id,
+        label: r.label,
+        depth: r.depth,
+        hasChildren: r.hasChildren,
+      }));
       const allRows = [none, ...rows];
       const total = allRows.length;
       const lastPage = Math.max(1, Math.ceil(total / limit));

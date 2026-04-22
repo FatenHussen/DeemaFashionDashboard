@@ -9,6 +9,17 @@ const TYPE_KEYS: Record<NotificationType, string> = {
 };
 
 export function notificationTypeLabel(type: string, t: TFunction<'table'>): string {
-  if (type in TYPE_KEYS) return t(TYPE_KEYS[type as NotificationType] as 'form.notificationAudienceAll');
-  return type;
+  if (!type) return '—';
+  const parts = type
+    .split(',')
+    .map((p) => p.trim())
+    .filter(Boolean);
+  if (parts.length === 0) return '—';
+  return parts
+    .map((part) =>
+      part in TYPE_KEYS
+        ? t(TYPE_KEYS[part as NotificationType] as 'form.notificationAudienceAll')
+        : part
+    )
+    .join(', ');
 }

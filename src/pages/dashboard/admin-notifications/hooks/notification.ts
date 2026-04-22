@@ -9,11 +9,28 @@ export const useFetchAdminNotifications = (
   page: number = 1,
   perPage: number = 10,
   search?: string,
-  type?: NotificationType | 'all'
+  type?: NotificationType | 'all',
+  sortField?: string,
+  sortOrder?: 'asc' | 'desc'
 ) =>
   useQuery({
-    queryKey: queryKeys.adminNotification.list({ page, per_page: perPage, search, type }),
-    queryFn: () => _AdminNotificationApi.getList({ page, per_page: perPage, search, type }),
+    queryKey: queryKeys.adminNotification.list({
+      page,
+      per_page: perPage,
+      search,
+      type,
+      sort_field: sortField,
+      sort_order: sortOrder,
+    }),
+    queryFn: () =>
+      _AdminNotificationApi.getList({
+        page,
+        per_page: perPage,
+        search,
+        type,
+        sort_field: sortField,
+        sort_order: sortOrder,
+      }),
   });
 
 export const useCreateAdminNotification = () => {

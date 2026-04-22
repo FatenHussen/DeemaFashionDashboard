@@ -1,15 +1,20 @@
+import type { CategoryData } from '@/pages/dashboard/categories/types/category.types';
+
 import { toast } from 'react-toastify';
-import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useQuery } from '@tanstack/react-query';
+import { useMemo, useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
+import { MultiSelect } from '@/shared/ui/multi-select';
 import { formatTranslated } from '@/utils/format-translated';
 import { _CityApi } from '@/pages/dashboard/locations/api/city.services';
 import { _CategoryApi } from '@/pages/dashboard/categories/api/category.services';
 import { RHFInfiniteSelect } from '@/shared/components/hook-form/rhf-infinite-select';
 import { _GovernorateApi } from '@/pages/dashboard/locations/api/governorate.services';
+import { buildParentPickerOptions } from '@/pages/dashboard/categories/utils/build-parent-picker-options';
 import {
   BrandSchema,
   type BrandFormValues,
@@ -64,10 +69,35 @@ export default function CreatePage() {
       ar: '',
     },
     image: null,
-    category_id: 0,
+    category_ids: [],
     governorate_id: 0,
     city_id: 0,
   };
+
+  const { data: categoriesListResponse } = useQuery({
+    queryKey: ['categories', 'brand-form-options'],
+    queryFn: () => _CategoryApi.getListCategoriesPaginated({ page: 1, per_page: 500 }),
+  });
+
+  const categorySelectOptions = useMemo(() => {
+    const items = (categoriesListResponse?.data?.items ?? []) as CategoryData[];
+    const hierarchical = buildParentPickerOptions(items).map((r) => ({
+      value: r.id,
+      label: r.label,
+      depth: r.depth,
+      hasChildren: r.hasChildren,
+    }));
+    const src = brandResponse?.data;
+    const fromApi = (src?.categories ?? []).map((c) => ({
+      value: c.id,
+      label: formatTranslated(c.name as Parameters<typeof formatTranslated>[0]),
+      depth: 0,
+      hasChildren: false,
+    }));
+    const inTree = new Set(hierarchical.map((o) => Number(o.value)));
+    const extra = fromApi.filter((o) => !inTree.has(Number(o.value)));
+    return [...extra, ...hierarchical];
+  }, [categoriesListResponse?.data?.items, brandResponse?.data?.categories]);
 
   const methods = useForm<BrandFormValues>({
     resolver: zodResolver(BrandSchema),
@@ -92,10 +122,18 @@ export default function CreatePage() {
         typeof brand.name === 'object' && brand.name !== null && 'en' in brand.name
           ? { en: (brand.name as { en?: string }).en ?? '', ar: (brand.name as { ar?: string }).ar ?? '' }
           : { en: typeof brand.name === 'string' ? brand.name : '', ar: typeof brand.name === 'string' ? brand.name : '' };
+      const idsFromPivot =
+        brand.category_ids?.length
+          ? brand.category_ids
+          : brand.categories?.map((c) => c.id) ?? [];
+      const legacyId = Number(brand.category?.id ?? brand.category_id ?? 0) || 0;
+      const category_ids =
+        idsFromPivot.length > 0 ? idsFromPivot : legacyId > 0 ? [legacyId] : [];
+
       reset({
         name: nameValue,
         image: null, // Don't pre-fill file input
-        category_id: Number(brand.category?.id ?? brand.category_id ?? 0) || 0,
+        category_ids,
         governorate_id: Number(brand.governorate?.id ?? brand.governorate_id ?? 0) || 0,
         city_id: Number(brand.city?.id ?? brand.city_id ?? 0) || 0,
       });
@@ -121,13 +159,15 @@ export default function CreatePage() {
 
   const onSubmit = async (data: BrandFormValues) => {
     try {
+      const catIds = (data.category_ids ?? []).filter((n) => n > 0);
       const payload = {
         name: {
           en: data.name.en,
           ar: data.name.ar,
         },
         image: data.image instanceof File ? data.image : undefined,
-        category_id: data.category_id,
+        category_ids: catIds,
+        category_id: catIds[0] ?? 0,
         governorate_id: data.governorate_id,
         city_id: data.city_id,
       };
@@ -191,35 +231,29 @@ export default function CreatePage() {
                   {t('form.categoryLabel')}
                 </Typography>
               </Box>
-              <RHFInfiniteSelect
-                name="category_id"
-                queryKey={['category', 'infinite', 'brand-form']}
-                fetcher={(page, limit) =>
-                  _CategoryApi.getListCategoriesPaginated({ page, per_page: limit }).then((r) => {
-                    const mapped = r.data.items.map((c) => ({
-                      id: c.id,
-                      label: formatTranslated(c.name as Parameters<typeof formatTranslated>[0]),
-                    }));
-                    return {
-                      data: {
-                        items:
-                          page === 1
-                            ? [{ id: 0, label: t('form.selectCategoryPlaceholder') }, ...mapped]
-                            : mapped,
-                        pagination: r.data.pagination,
-                      },
-                    };
-                  })
-                }
-                placeholder={t('form.selectCategory')}
-                helperText={t('form.brandCategoryHelper')}
-                initialLabel={
-                  brandResponse?.data?.category?.name
-                    ? formatTranslated(
-                        brandResponse.data.category.name as Parameters<typeof formatTranslated>[0]
-                      )
-                    : undefined
-                }
+              <Controller
+                name="category_ids"
+                control={control}
+                render={({ field, fieldState: { error } }) => {
+                  const ids = Array.isArray(field.value) ? field.value.map(Number).filter((n) => n > 0) : [];
+                  return (
+                    <div>
+                      <MultiSelect
+                        options={categorySelectOptions}
+                        value={ids}
+                        onChange={(vals) => {
+                          field.onChange((vals as (string | number)[]).map((x) => Number(x)));
+                        }}
+                        placeholder={t('form.selectCategory')}
+                        noOptionsMessage={t('noOptionsFound')}
+                        fullWidth
+                        isSearchable
+                        error={!!error}
+                        helperText={error?.message ?? t('form.brandCategoryHelper')}
+                      />
+                    </div>
+                  );
+                }}
               />
             </Box>
           </Box>

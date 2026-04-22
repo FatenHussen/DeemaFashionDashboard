@@ -503,6 +503,13 @@ function resolveVariantAttributeValueIds(
   return ids;
 }
 
+function toDateInputLocalYMD(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 export default function CreatePage() {
   const { t, i18n } = useTranslation('table');
   const { id } = useParams<{ id?: string }>();
@@ -567,6 +574,8 @@ export default function CreatePage() {
   const deleteVariantMutation = useDeleteProductVariant();
   const updateShopVariantMutation = useUpdateShopProductVariant();
   const deleteShopVariantMutation = useDeleteShopProductVariant();
+
+  const todayDateInputMin = useMemo(() => toDateInputLocalYMD(new Date()), []);
 
   const defaultValues: ProductFormValues = {
     category_id: 0,
@@ -2218,6 +2227,11 @@ export default function CreatePage() {
                   {...field}
                   type="date"
                   value={field.value ?? ''}
+                  min={
+                    field.value && field.value < todayDateInputMin
+                      ? field.value
+                      : todayDateInputMin
+                  }
                   className={fieldInputClass(!!error)}
                 />
                 <FieldErrorText message={error?.message} />

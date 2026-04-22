@@ -1,7 +1,7 @@
 import type {
-  DeliveryDistanceRangeDetailsResponse,
-  DeliveryDistanceRangeListResponse,
   DeliveryDistanceRangePayload,
+  DeliveryDistanceRangeListResponse,
+  DeliveryDistanceRangeDetailsResponse,
 } from '../types/delivery-distance-range.types';
 
 import { apiRoutes, axiosInstance } from '@/api';

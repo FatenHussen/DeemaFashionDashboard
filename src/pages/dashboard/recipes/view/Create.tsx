@@ -1,21 +1,25 @@
 import type { RecipeData } from '@/pages/dashboard/recipes/types/recipe.types';
+import type { CategoryData } from '@/pages/dashboard/categories/types/category.types';
 
 import { toast } from 'react-toastify';
 import { Button } from '@/shared/ui/button';
 import { useTranslation } from 'react-i18next';
-import { useRef, useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Iconify } from '@/shared/components/iconify';
 import { useParams, useNavigate, useLocation } from 'react-router';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { _ShopApi } from '@/pages/dashboard/vendor/api/shop.services';
+import { useRef, useMemo, useState, useEffect, useCallback } from 'react';
 import { InfiniteScrollSelect } from '@/shared/components/infinite-scroll-select';
 import { _CategoryApi } from '@/pages/dashboard/categories/api/category.services';
 import { _ShopProductVariantApi } from '@/shared/api/shop-product-variant.services';
 import { TinyMCEEditorField } from '@/shared/components/tinymce-editor/tinymce-editor';
+import { stripBilingualDescriptionForForm } from '@/utils/optional-bilingual-api-placeholder';
 import { RecipeSchema, type RecipeFormValues } from '@/pages/dashboard/recipes/validation/recipe.validation';
 import { useCreateRecipe, useUpdateRecipe, useFetchRecipeById } from '@/pages/dashboard/recipes/hooks/recipe';
 import { resolveStorageImageUrl, shopVariantOptionImage, shopVariantOptionColorHex } from '@/utils/shop-variant-image';
+import { buildCategorySelectRows, paginateSelectRowsLocal } from '@/pages/dashboard/categories/utils/build-parent-picker-options';
 
 import { CONFIG } from 'src/global-config';
 import { Box, Switch, Typography } from 'src/shared/ui';
@@ -93,6 +97,39 @@ export default function CreatePage() {
 
   const { handleSubmit, reset, control, watch, setValue } = methods;
 
+  const { data: recipeCategoriesTreeResp } = useQuery({
+    queryKey: ['categories', 'recipe-form-tree'],
+    queryFn: () => _CategoryApi.getListCategoriesPaginated({ page: 1, per_page: 500 }),
+  });
+
+  const recipeFilterCategoryRows = useMemo(
+    () =>
+      buildCategorySelectRows((recipeCategoriesTreeResp?.data?.items ?? []) as CategoryData[], {
+        leading: { id: 0, label: t('form.allCategories') },
+      }),
+    [recipeCategoriesTreeResp?.data?.items, t]
+  );
+
+  const recipeSwitchableCategoryRows = useMemo(
+    () =>
+      buildCategorySelectRows((recipeCategoriesTreeResp?.data?.items ?? []) as CategoryData[], {
+        leading: { id: 0, label: t('form.noSwitchableCategory') },
+      }),
+    [recipeCategoriesTreeResp?.data?.items, t]
+  );
+
+  const recipeFilterCategoryFetcher = useCallback(
+    (page: number, limit: number) =>
+      Promise.resolve(paginateSelectRowsLocal(recipeFilterCategoryRows, page, limit)),
+    [recipeFilterCategoryRows]
+  );
+
+  const recipeSwitchableCategoryFetcher = useCallback(
+    (page: number, limit: number) =>
+      Promise.resolve(paginateSelectRowsLocal(recipeSwitchableCategoryRows, page, limit)),
+    [recipeSwitchableCategoryRows]
+  );
+
   const { fields: itemFields, append: appendItem, remove: removeItem } = useFieldArray({ control, name: 'items' });
   const { fields: stepFields, append: appendStep, remove: removeStep } = useFieldArray({ control, name: 'steps' });
 
@@ -104,7 +141,10 @@ export default function CreatePage() {
         : [];
       reset({
         name: { en: getTranslation(source.name, 'en'), ar: getTranslation(source.name, 'ar') },
-        description: { en: getTranslation(source.description, 'en'), ar: getTranslation(source.description, 'ar') },
+        description: {
+          en: stripBilingualDescriptionForForm(getTranslation(source.description, 'en')),
+          ar: stripBilingualDescriptionForForm(getTranslation(source.description, 'ar')),
+        },
         image: null,
         images: [],
         existing_images_ids: sourceExistingImageIds,
@@ -605,27 +645,9 @@ export default function CreatePage() {
                     <InfiniteScrollSelect
                       value={sel.categoryId}
                       onChange={(val) => updateItemSelect(index, 'categoryId', val)}
-                      queryKey={['category', 'recipe-filter', index]}
-                      fetcher={(page) =>
-                        _CategoryApi.getListCategoriesPaginated({ page, per_page: 15 }).then((res) => ({
-                          data: {
-                            items:
-                              page === 1
-                                ? [
-                                    { id: 0, label: t('form.allCategories') },
-                                    ...res.data.items.map((c: any) => ({
-                                      id: c.id,
-                                      label: typeof c.name === 'object' ? c.name : c.name || '',
-                                    })),
-                                  ]
-                                : res.data.items.map((c: any) => ({
-                                    id: c.id,
-                                    label: typeof c.name === 'object' ? c.name : c.name || '',
-                                  })),
-                            pagination: res.data.pagination,
-                          },
-                        }))
-                      }
+                      queryKey={['category', 'recipe-filter-hier', index]}
+                      fetcher={recipeFilterCategoryFetcher}
+                      pageSize={15}
                       placeholder={t('form.allCategories')}
                     />
                   </Box>
@@ -722,27 +744,9 @@ export default function CreatePage() {
                             return next;
                           });
                         }}
-                        queryKey={['category', 'recipe-switchable', index]}
-                        fetcher={(page) =>
-                          _CategoryApi.getListCategoriesPaginated({ page, per_page: 15 }).then((res) => ({
-                            data: {
-                              items:
-                                page === 1
-                                  ? [
-                                      { id: 0, label: t('form.noSwitchableCategory') },
-                                      ...res.data.items.map((c: any) => ({
-                                        id: c.id,
-                                        label: typeof c.name === 'object' ? c.name : c.name || '',
-                                      })),
-                                    ]
-                                  : res.data.items.map((c: any) => ({
-                                      id: c.id,
-                                      label: typeof c.name === 'object' ? c.name : c.name || '',
-                                    })),
-                              pagination: res.data.pagination,
-                            },
-                          }))
-                        }
+                        queryKey={['category', 'recipe-switchable-hier', index]}
+                        fetcher={recipeSwitchableCategoryFetcher}
+                        pageSize={15}
                         placeholder={t('form.noSwitchableCategory')}
                         initialLabel={itemSwitchableLabels[index]}
                       />

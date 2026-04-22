@@ -1,16 +1,19 @@
 import type { ReactNode } from 'react';
 import type { UserAddress, UserAffiliate } from '@/pages/dashboard/users/types/user.types';
 
+import { useState } from 'react';
+import { cn } from '@/utils/utils';
+import { toast } from 'react-toastify';
 import { Button } from '@/shared/ui/button';
 import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
 import { formatTranslated } from '@/utils/format-translated';
-import { cn } from '@/utils/utils';
-import { useFetchUserById } from '@/pages/dashboard/users/hooks/user';
+import { usePermissions } from '@/auth/hooks/use-permissions';
+import { useFetchUserById, useDemoteAffiliate } from '@/pages/dashboard/users/hooks/user';
 
 import { CONFIG } from 'src/global-config';
-import { Box, Typography } from 'src/shared/ui';
+import { Box, Dialog, Typography } from 'src/shared/ui';
 import { LoadingScreen } from 'src/shared/components/loading-screen';
 
 // ----------------------------------------------------------------------
@@ -238,7 +241,22 @@ export default function DetailsPage() {
   const { t } = useTranslation('table');
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { can } = usePermissions();
+  const canUpdateUser = can('user.update');
+  const [affiliateDemoteModalOpen, setAffiliateDemoteModalOpen] = useState(false);
+  const demoteAffiliateMutation = useDemoteAffiliate();
   const { data: userResponse, isLoading, error } = useFetchUserById(id || '');
+
+  const handleDemoteConfirm = async () => {
+    if (!id) return;
+    try {
+      await demoteAffiliateMutation.mutateAsync(id);
+      setAffiliateDemoteModalOpen(false);
+      toast.success(t('form.affiliateDemoteSuccess'));
+    } catch {
+      return;
+    }
+  };
 
   if (isLoading) {
     return <LoadingScreen />;
@@ -323,6 +341,34 @@ export default function DetailsPage() {
               <span className="rounded-full border border-border/80 bg-muted/40 px-3 py-1 font-mono text-xs text-muted-foreground">
                 {t('form.userIdChip', { id: user.id })}
               </span>
+              {canUpdateUser && aff?.is_affiliate && !aff.affiliate_approved && (
+                <Button
+                  variant="contained"
+                  onClick={() =>
+                    navigate(`/users/update/${id}`, {
+                      state: { openAffiliatePromote: true, user },
+                    })
+                  }
+                  className="gap-2"
+                >
+                  <Iconify icon="solar:rocket-bold" width={18} />
+                  {t('form.userDetailsPromoteAffiliate')}
+                </Button>
+              )}
+              {canUpdateUser && aff?.is_affiliate && aff.affiliate_approved && (
+                <Button
+                  type="button"
+                  variant="outlined"
+                  color="error"
+                  size="small"
+                  disabled={demoteAffiliateMutation.isPending}
+                  onClick={() => setAffiliateDemoteModalOpen(true)}
+                  className="gap-2"
+                >
+                  <Iconify icon="solar:user-minus-bold" width={18} />
+                  {t('form.affiliateDemote')}
+                </Button>
+              )}
               <Button variant="contained" onClick={() => navigate(`/users/update/${id}`)} className="gap-2">
                 <Iconify icon="solar:pen-bold" width={18} />
                 {t('form.editUserButton')}
@@ -621,6 +667,38 @@ export default function DetailsPage() {
           </Box>
         </Box>
       </Box>
+
+      <Dialog
+        open={affiliateDemoteModalOpen}
+        onClose={() =>
+          !demoteAffiliateMutation.isPending && setAffiliateDemoteModalOpen(false)
+        }
+        maxWidth="sm"
+        disableBackdropClick={demoteAffiliateMutation.isPending}
+        title={t('form.affiliateDemote')}
+        content={t('form.affiliateDemoteConfirm')}
+        actions={
+          <>
+            <Button
+              type="button"
+              variant="outlined"
+              disabled={demoteAffiliateMutation.isPending}
+              onClick={() => setAffiliateDemoteModalOpen(false)}
+            >
+              {t('cancel')}
+            </Button>
+            <Button
+              type="button"
+              color="error"
+              variant="contained"
+              disabled={demoteAffiliateMutation.isPending}
+              onClick={handleDemoteConfirm}
+            >
+              {demoteAffiliateMutation.isPending ? t('updating') : t('yes')}
+            </Button>
+          </>
+        }
+      />
     </>
   );
 }

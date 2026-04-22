@@ -1,14 +1,16 @@
 import type { Control } from 'react-hook-form';
+import type { CategoryData } from '@/pages/dashboard/categories/types/category.types';
 import type { GiftData, GiftTranslation, GiftCreateUpdatePayload } from '@/pages/dashboard/gifts/types/gift.types';
 
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
+import { useQuery } from '@tanstack/react-query';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { formatTranslated } from '@/utils/format-translated';
-import { useRef, useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router';
 import { useInfiniteSelect } from '@/shared/hooks/use-infinite-select';
+import { useRef, useMemo, useState, useEffect, useCallback } from 'react';
 import { InfiniteScrollSelect } from '@/shared/components/infinite-scroll-select';
 import { _CategoryApi } from '@/pages/dashboard/categories/api/category.services';
 import { _ShopProductVariantApi } from '@/shared/api/shop-product-variant.services';
@@ -20,6 +22,7 @@ import {
   type GiftFormMode,
   type GiftFormValues,
 } from '@/pages/dashboard/gifts/validation/gift.validation';
+import { buildCategorySelectRows, paginateSelectRowsLocal } from '@/pages/dashboard/categories/utils/build-parent-picker-options';
 
 import { CONFIG } from 'src/global-config';
 import { Iconify } from 'src/shared/components/iconify';
@@ -52,9 +55,10 @@ type VariantMultiPickerProps = {
   onChange: (ids: number[]) => void;
   t: (key: string, options?: Record<string, unknown>) => string;
   error?: string;
+  categoryFetcher: (page: number, limit: number) => Promise<unknown>;
 };
 
-function VariantMultiPicker({ selectedIds, onChange, t, error }: VariantMultiPickerProps) {
+function VariantMultiPicker({ selectedIds, onChange, t, error, categoryFetcher }: VariantMultiPickerProps) {
   const [categoryId, setCategoryId] = useState<number | undefined>(undefined);
   const [search, setSearch] = useState('');
   const [labelMap, setLabelMap] = useState<Map<number, string>>(new Map());
@@ -162,41 +166,9 @@ function VariantMultiPicker({ selectedIds, onChange, t, error }: VariantMultiPic
             setCategoryId(val === 0 ? undefined : val);
             setSearch('');
           }}
-          queryKey={['category', 'gift-bulk']}
-          fetcher={(page) =>
-            _CategoryApi.getListCategoriesPaginated({ page, per_page: 15 }).then((res) => ({
-              data: {
-                items:
-                  page === 1
-                    ? [
-                        { id: 0, label: t('form.allCategories') },
-                        ...res.data.items.map((c: { id: number; name: unknown }) => ({
-                          id: c.id,
-                          label:
-                            typeof c.name === 'object' && c.name !== null
-                              ? String(
-                                  (c.name as { en?: string; ar?: string }).en ||
-                                    (c.name as { ar?: string }).ar ||
-                                    ''
-                                )
-                              : String(c.name || ''),
-                        })),
-                      ]
-                    : res.data.items.map((c: { id: number; name: unknown }) => ({
-                        id: c.id,
-                        label:
-                          typeof c.name === 'object' && c.name !== null
-                            ? String(
-                                (c.name as { en?: string; ar?: string }).en ||
-                                  (c.name as { ar?: string }).ar ||
-                                  ''
-                              )
-                            : String(c.name || ''),
-                      })),
-                pagination: res.data.pagination,
-              },
-            }))
-          }
+          queryKey={['category', 'gift-bulk-hier']}
+          fetcher={categoryFetcher}
+          pageSize={15}
           placeholder={t('form.allCategories')}
         />
       </div>
@@ -347,9 +319,10 @@ type SharedFieldsProps = {
   detailsResponse?: { data?: GiftData };
   fromState?: GiftData;
   hideCategoryField?: boolean;
+  categoryFetcher: (page: number, limit: number) => Promise<unknown>;
 };
 
-function GiftSharedFields({ t, control, detailsResponse, fromState, hideCategoryField }: SharedFieldsProps) {
+function GiftSharedFields({ t, control, detailsResponse, fromState, hideCategoryField, categoryFetcher }: SharedFieldsProps) {
   const src = detailsResponse?.data ?? fromState;
 
   return (
@@ -381,33 +354,9 @@ function GiftSharedFields({ t, control, detailsResponse, fromState, hideCategory
               <InfiniteScrollSelect
                 value={field.value ?? 0}
                 onChange={(val) => field.onChange(val === 0 ? undefined : val)}
-                queryKey={['category', 'gift']}
-                fetcher={(page) =>
-                  _CategoryApi.getListCategoriesPaginated({ page, per_page: 15 }).then((res) => ({
-                    data: {
-                      items:
-                        page === 1
-                          ? [
-                              { id: 0, label: t('form.noCategory') },
-                              ...res.data.items.map((c: { id: number; name: unknown }) => ({
-                                id: c.id,
-                                label:
-                                  typeof c.name === 'object' && c.name !== null
-                                    ? String((c.name as { en?: string; ar?: string }).en || (c.name as { ar?: string }).ar || '')
-                                    : String(c.name || ''),
-                              })),
-                            ]
-                          : res.data.items.map((c: { id: number; name: unknown }) => ({
-                              id: c.id,
-                              label:
-                                typeof c.name === 'object' && c.name !== null
-                                  ? String((c.name as { en?: string; ar?: string }).en || (c.name as { ar?: string }).ar || '')
-                                  : String(c.name || ''),
-                            })),
-                      pagination: res.data.pagination,
-                    },
-                  }))
-                }
+                queryKey={['category', 'gift-hier']}
+                fetcher={categoryFetcher}
+                pageSize={15}
                 placeholder={t('form.noCategory')}
                 initialLabel={categoryInitialLabel(src)}
               />
@@ -463,6 +412,40 @@ export default function CreatePage() {
   });
 
   const { handleSubmit, reset, control, watch, setValue } = methods;
+
+  const { data: giftCategoriesTreeResp } = useQuery({
+    queryKey: ['categories', 'gift-form-tree'],
+    queryFn: () => _CategoryApi.getListCategoriesPaginated({ page: 1, per_page: 500 }),
+  });
+
+  const giftBulkCategoryRows = useMemo(
+    () =>
+      buildCategorySelectRows((giftCategoriesTreeResp?.data?.items ?? []) as CategoryData[], {
+        leading: { id: 0, label: t('form.allCategories') },
+      }),
+    [giftCategoriesTreeResp?.data?.items, t]
+  );
+
+  const giftFormCategoryRows = useMemo(
+    () =>
+      buildCategorySelectRows((giftCategoriesTreeResp?.data?.items ?? []) as CategoryData[], {
+        leading: { id: 0, label: t('form.noCategory') },
+      }),
+    [giftCategoriesTreeResp?.data?.items, t]
+  );
+
+  const giftBulkCategoryFetcher = useCallback(
+    (page: number, limit: number) =>
+      Promise.resolve(paginateSelectRowsLocal(giftBulkCategoryRows, page, limit)),
+    [giftBulkCategoryRows]
+  );
+
+  const giftFormCategoryFetcher = useCallback(
+    (page: number, limit: number) =>
+      Promise.resolve(paginateSelectRowsLocal(giftFormCategoryRows, page, limit)),
+    [giftFormCategoryRows]
+  );
+
   const giftMode = watch('giftMode');
   const imageField = watch('image');
   const giftSourceForImage = detailsResponse?.data ?? fromState;
@@ -684,12 +667,25 @@ export default function CreatePage() {
                       name="shop_product_variant_ids"
                       control={control}
                       render={({ field, fieldState }) => (
-                        <VariantMultiPicker selectedIds={field.value ?? []} onChange={field.onChange} t={t} error={(fieldState.error as any)?.message || (fieldState.error as any)?.root?.message} />
+                        <VariantMultiPicker
+                          selectedIds={field.value ?? []}
+                          onChange={field.onChange}
+                          t={t}
+                          error={(fieldState.error as any)?.message || (fieldState.error as any)?.root?.message}
+                          categoryFetcher={giftBulkCategoryFetcher}
+                        />
                       )}
                     />
                   )}
                 </Box>
-                <GiftSharedFields t={t} control={control} detailsResponse={detailsResponse} fromState={fromState} hideCategoryField={!isEditMode} />
+                <GiftSharedFields
+                  t={t}
+                  control={control}
+                  detailsResponse={detailsResponse}
+                  fromState={fromState}
+                  hideCategoryField={!isEditMode}
+                  categoryFetcher={giftFormCategoryFetcher}
+                />
               </Box>
             )}
 
@@ -763,7 +759,13 @@ export default function CreatePage() {
                   />
                 </Box>
 
-                <GiftSharedFields t={t} control={control} detailsResponse={detailsResponse} fromState={fromState} />
+                <GiftSharedFields
+                  t={t}
+                  control={control}
+                  detailsResponse={detailsResponse}
+                  fromState={fromState}
+                  categoryFetcher={giftFormCategoryFetcher}
+                />
               </Box>
             )}
           </Box>

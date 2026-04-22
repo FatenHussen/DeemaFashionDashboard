@@ -1,11 +1,11 @@
 import type { ReactNode } from 'react';
 
+import { cn } from '@/utils/utils';
 import { Button } from '@/shared/ui/button';
 import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
 import { formatTranslated } from '@/utils/format-translated';
-import { cn } from '@/utils/utils';
 import { useFetchBrandById } from '@/pages/dashboard/products/hooks/brand';
 
 import { CONFIG } from 'src/global-config';
@@ -128,9 +128,14 @@ export default function DetailsPage() {
 
   const palette = HERO_PALETTES[Math.abs(Number(brand.id)) % HERO_PALETTES.length];
 
-  const categoryLabel = brand.category
-    ? formatTranslated(brand.category.name as Parameters<typeof formatTranslated>[0])
-    : null;
+  const categoryLabels =
+    brand.categories?.length
+      ? brand.categories.map((c) =>
+          formatTranslated(c.name as Parameters<typeof formatTranslated>[0])
+        )
+      : brand.category
+        ? [formatTranslated(brand.category.name as Parameters<typeof formatTranslated>[0])]
+        : [];
   const governorateLabel = brand.governorate?.name ?? null;
   const cityLabel = brand.city
     ? formatTranslated(brand.city.name as Parameters<typeof formatTranslated>[0])
@@ -328,18 +333,18 @@ export default function DetailsPage() {
                 )}
               </SectionCard>
 
-              {(categoryLabel || governorateLabel || cityLabel) && (
+              {(categoryLabels.length > 0 || governorateLabel || cityLabel) && (
                 <SectionCard
                   title={t('columns.location')}
                   icon="solar:map-point-bold"
                   className="mt-6"
                 >
                   <Box className="space-y-3">
-                    {categoryLabel ? (
+                    {categoryLabels.length > 0 ? (
                       <InfoRow
                         icon="solar:widget-4-bold"
                         label={t('columns.category')}
-                        value={categoryLabel}
+                        value={categoryLabels.join(', ')}
                       />
                     ) : null}
                     {governorateLabel ? (

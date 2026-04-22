@@ -44,28 +44,31 @@ function ToggleCell({ id, isActive, entityType }: ToggleCellProps) {
   };
 
   return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={isActive}
-      disabled={isPending}
-      onClick={(e) => {
-        e.stopPropagation();
-        handleToggle();
-      }}
-      className={[
-        'relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background',
-        isActive ? 'bg-primary' : 'bg-muted-foreground/30',
-        isPending ? 'opacity-50 cursor-wait' : '',
-      ].join(' ')}
-    >
-      <span
+    <div className="flex items-center justify-center">
+      <button
+        type="button"
+        role="switch"
+        aria-checked={isActive}
+        disabled={isPending}
+        onClick={(e) => {
+          e.stopPropagation();
+          handleToggle();
+        }}
         className={[
-          'pointer-events-none block h-5 w-5 rounded-full bg-background shadow-sm transition-transform',
-          isActive ? 'translate-x-5' : 'translate-x-0.5',
+          'relative h-7 w-12 shrink-0 cursor-pointer rounded-full border border-border/40 transition-colors',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+          isActive ? 'bg-primary' : 'bg-muted-foreground/35',
+          isPending ? 'cursor-wait opacity-50' : '',
         ].join(' ')}
-      />
-    </button>
+      >
+        <span
+          className={[
+            'pointer-events-none absolute top-1/2 h-5 w-5 -translate-y-1/2 rounded-full bg-white shadow-md ring-1 ring-black/10 transition-all duration-200',
+            isActive ? 'end-0.5' : 'start-0.5',
+          ].join(' ')}
+        />
+      </button>
+    </div>
   );
 }
 

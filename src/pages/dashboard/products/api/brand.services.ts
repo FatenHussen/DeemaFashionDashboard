@@ -54,6 +54,11 @@ export const _BrandApi = {
     if (data.image instanceof File) {
       formData.append('image', data.image);
     }
+    if (data.category_ids?.length) {
+      data.category_ids.forEach((cid) => {
+        formData.append('category_ids[]', String(cid));
+      });
+    }
     if (data.category_id != null && data.category_id > 0) {
       formData.append('category_id', String(data.category_id));
     }
@@ -77,6 +82,11 @@ export const _BrandApi = {
     formData.append('name[ar]', data.name.ar);
     if (data.image instanceof File) {
       formData.append('image', data.image);
+    }
+    if (data.category_ids?.length) {
+      data.category_ids.forEach((cid) => {
+        formData.append('category_ids[]', String(cid));
+      });
     }
     if (data.category_id != null && data.category_id > 0) {
       formData.append('category_id', String(data.category_id));

@@ -1,4 +1,5 @@
 import type { ProductData } from '@/pages/dashboard/products/types/product.types';
+import type { CategoryData } from '@/pages/dashboard/categories/types/category.types';
 
 import { toast } from 'react-toastify';
 import { Button } from '@/shared/ui/button';
@@ -19,6 +20,10 @@ import { _CategoryApi } from '@/pages/dashboard/categories/api/category.services
 import { productColumns, type ProductFormValues } from '@/columns/one/products/one';
 import { _CategoryAttributeApi } from '@/pages/dashboard/categories/api/category-attribute.services';
 import { ProductVariantsPriceModal } from '@/pages/dashboard/products/components/ProductVariantsPriceModal';
+import {
+  buildCategorySelectRows,
+  nativeSelectCategoryLabel,
+} from '@/pages/dashboard/categories/utils/build-parent-picker-options';
 import {
   useFetchProducts,
   useDeleteProduct,
@@ -87,7 +92,10 @@ export default function Page() {
     queryKey: ['categories', 'product-index-filter'],
     queryFn: () => _CategoryApi.getListCategoriesPaginated({ page: 1, per_page: 500 }),
   });
-  const filterCategories = categoriesResp?.data?.items ?? [];
+  const filterCategoryOptions = useMemo(
+    () => buildCategorySelectRows((categoriesResp?.data?.items ?? []) as CategoryData[]),
+    [categoriesResp?.data?.items]
+  );
 
   const { data: categoryAttributesResp } = useQuery({
     queryKey: ['category-attributes', 'product-index-filter', categoryFilter || 'all'],
@@ -375,9 +383,9 @@ export default function Page() {
                 onChange={(e) => { setCategoryFilter(e.target.value); setPageOne(); }}
               >
                 <option value="">{t('all')}</option>
-                {filterCategories.map((c) => (
+                {filterCategoryOptions.map((c) => (
                   <option key={c.id} value={String(c.id)}>
-                    {typeof c.name === 'object' ? formatTranslated(c.name as any) : c.name}
+                    {nativeSelectCategoryLabel(c.label, c.depth, c.hasChildren)}
                   </option>
                 ))}
               </select>

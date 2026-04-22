@@ -265,8 +265,14 @@ export const queryKeys = {
   },
   // Admin Notification query keys
   adminNotification: {
-    list: (params?: { page?: number; per_page?: number; search?: string; type?: string }) =>
-      ['adminNotification', 'list', params] as const,
+    list: (params?: {
+      page?: number;
+      per_page?: number;
+      search?: string;
+      type?: string;
+      sort_field?: string;
+      sort_order?: string;
+    }) => ['adminNotification', 'list', params] as const,
     details: (id: number | string) => ['adminNotification', 'details', id] as const,
   },
   // Vendor Package query keys

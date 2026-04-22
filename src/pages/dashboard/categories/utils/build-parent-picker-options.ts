@@ -45,7 +45,27 @@ function collectDescendantIds(rootId: number, childrenByParent: Map<number | nul
   return blocked;
 }
 
-export type ParentPickerOption = { id: number; label: string; depth: number };
+export type ParentPickerOption = { id: number; label: string; depth: number; hasChildren: boolean };
+
+export type CategorySelectRow = { id: number; label: string; depth: number; hasChildren: boolean };
+
+/** Native `<option>` cannot style indent; use NBSP steps + optional folder emoji for parents. */
+export function nativeSelectCategoryLabel(
+  label: string,
+  depth: number,
+  hasChildren?: boolean
+): string {
+  const step = '\u00A0\u00A0\u00A0\u00A0';
+  const indent = depth > 0 ? step.repeat(depth) : '';
+  const parentMark = hasChildren ? '\u{1F4C1}\u00A0' : '';
+  return `${indent}${parentMark}${label}`;
+}
+
+/** Padding in px for custom dropdown rows (InfiniteScrollSelect, MultiSelect). */
+export function categoryTreeIndentPx(depth: number): number | undefined {
+  if (depth <= 0) return undefined;
+  return 12 + (depth - 1) * 14;
+}
 
 /**
  * Tree order (pre-order) with depth for indented labels. Optionally excludes a category
@@ -69,12 +89,50 @@ export function buildParentPickerOptions(
   const walk = (parentId: number | null, depth: number) => {
     for (const c of childrenByParent.get(parentId) ?? []) {
       if (excluded.has(c.id)) continue;
-      const prefix = depth > 0 ? `${'— '.repeat(depth)}` : '';
-      out.push({ id: c.id, label: `${prefix}${categoryLabel(c)}`, depth });
+      const hasChildren = (childrenByParent.get(c.id) ?? []).length > 0;
+      out.push({ id: c.id, label: categoryLabel(c), depth, hasChildren });
       walk(c.id, depth + 1);
     }
   };
 
   walk(null, 0);
   return out;
+}
+
+/**
+ * Ordered rows for flat selects / InfiniteScrollSelect: plain labels + depth for UI indent,
+ * optional leading row (e.g. “All categories”, “No category”).
+ */
+export function buildCategorySelectRows(
+  items: CategoryData[],
+  opts?: { leading?: Pick<CategorySelectRow, 'id' | 'label'> }
+): CategorySelectRow[] {
+  const hierarchical = buildParentPickerOptions(items).map((r) => ({
+    id: r.id,
+    label: r.label,
+    depth: r.depth,
+    hasChildren: r.hasChildren,
+  }));
+  if (opts?.leading)
+    return [{ ...opts.leading, depth: 0, hasChildren: false }, ...hierarchical];
+  return hierarchical;
+}
+
+/** Client-side pagination when the full category list is loaded once (InfiniteScrollSelect). */
+export function paginateSelectRowsLocal<T>(allRows: T[], page: number, limit: number) {
+  const total = allRows.length;
+  const lastPage = Math.max(1, Math.ceil(total / limit));
+  const start = (page - 1) * limit;
+  const items = allRows.slice(start, start + limit);
+  return {
+    data: {
+      items,
+      pagination: {
+        current_page: page,
+        last_page: lastPage,
+        per_page: limit,
+        total,
+      },
+    },
+  };
 }

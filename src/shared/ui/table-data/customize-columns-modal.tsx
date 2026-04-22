@@ -3,7 +3,7 @@ import type { UniqueIdentifier } from '@dnd-kit/core';
 
 import { Settings2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { useMemo, useState, useEffect } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useLocalizationStore } from '@/store/useLocalizationStore';
 import {
   useSensor,
@@ -45,6 +45,7 @@ export function CustomizeColumnsModal<T>({
   columnTranslations = {},
 }: CustomizeColumnsModalProps<T>) {
   const { t } = useTranslation('table');
+  const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [columns, setColumns] = useState<ColumnItem[]>(defaultColumns);
   const { language } = useLocalizationStore();
@@ -65,24 +66,62 @@ export function CustomizeColumnsModal<T>({
     table.setColumnOrder(orderIds);
   };
 
+  /** Draft list for the modal: current table visibility + order, same shape as `defaultColumns`. */
+  const buildDraftFromTable = useCallback((): ColumnItem[] => {
+    const visibilityFor = (columnName: string, fallback: boolean) => {
+      const col = table.getColumn(columnName);
+      return col ? col.getIsVisible() : fallback;
+    };
+
+    const order = table.getState().columnOrder;
+    if (order?.length) {
+      const byName = new Map(defaultColumns.map((c) => [c.column_name, c]));
+      const result: ColumnItem[] = [];
+      const seen = new Set<string>();
+      for (const id of order) {
+        const base = byName.get(id);
+        if (base) {
+          result.push({
+            ...base,
+            checked: visibilityFor(base.column_name, base.checked),
+          });
+          seen.add(base.column_name);
+        }
+      }
+      for (const c of defaultColumns) {
+        if (!seen.has(c.column_name)) {
+          result.push({
+            ...c,
+            checked: visibilityFor(c.column_name, c.checked),
+          });
+        }
+      }
+      return result;
+    }
+
+    return defaultColumns.map((c) => ({
+      ...c,
+      checked: visibilityFor(c.column_name, c.checked),
+    }));
+  }, [defaultColumns, table]);
+
   const filteredColumns = useMemo(
     () => columns.filter((col) => col.column_name.toLowerCase().includes(search.toLowerCase())),
     [columns, search]
   );
 
-  useEffect(() => {
-    setColumns(defaultColumns);
-    applyColumnConfig(defaultColumns);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   const handleSaveColumns = () => {
     applyColumnConfig(columns);
+    setOpen(false);
+  };
+
+  const handleOpenChange = (isOpen: boolean) => {
+    setOpen(isOpen);
+    if (isOpen) setColumns(buildDraftFromTable());
   };
 
   const resetToDefaults = () => {
-    setColumns(defaultColumns);
-    applyColumnConfig(defaultColumns);
+    setColumns(defaultColumns.map((c) => ({ ...c })));
   };
 
   const handleDragEnd = (event: any) => {
@@ -92,26 +131,16 @@ export function CustomizeColumnsModal<T>({
       const oldIndex = prev.findIndex((c) => c.id === active.id);
       const newIndex = prev.findIndex((c) => c.id === over.id);
       if (oldIndex === -1 || newIndex === -1) return prev;
-      const next = arrayMove(prev, oldIndex, newIndex);
-      applyColumnConfig(next);
-      return next;
+      return arrayMove(prev, oldIndex, newIndex);
     });
   };
 
   const handleToggleVisibility = (columnId: UniqueIdentifier, checked: boolean) => {
-    setColumns((prev) => {
-      const next = prev.map((c) => (c.id === columnId ? { ...c, checked } : c));
-      const changed = next.find((c) => c.id === columnId);
-      if (changed) {
-        const tableCol = table.getColumn(changed.column_name);
-        if (tableCol) tableCol.toggleVisibility(checked);
-      }
-      return next;
-    });
+    setColumns((prev) => prev.map((c) => (c.id === columnId ? { ...c, checked } : c)));
   };
 
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button size="small" variant="text" color="primary" className="h-9 w-9 p-0">
           <Settings2 className="h-4 w-4" />

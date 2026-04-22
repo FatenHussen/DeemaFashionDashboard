@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import type { SortableEntity } from '@/shared/ui/table-data/sort-items-dialog';
+import type { CategoryData } from '@/pages/dashboard/categories/types/category.types';
 
 import { toast } from 'react-toastify';
 import { Button } from '@/shared/ui/button';
@@ -20,6 +21,10 @@ import {
   useDeleteCategory,
   useFetchCategories,
 } from '@/pages/dashboard/categories/hooks/category';
+import {
+  buildCategorySelectRows,
+  nativeSelectCategoryLabel,
+} from '@/pages/dashboard/categories/utils/build-parent-picker-options';
 
 import { CONFIG } from 'src/global-config';
 
@@ -64,6 +69,11 @@ export default function Page() {
     queryFn: () => _CategoryApi.getListCategoriesPaginated({ page: 1, per_page: 500 }),
   });
   const flatCategories = flatCategoriesResp?.data?.items ?? [];
+
+  const parentSelectOptions = useMemo(
+    () => buildCategorySelectRows((flatCategoriesResp?.data?.items ?? []) as CategoryData[]),
+    [flatCategoriesResp?.data?.items]
+  );
 
   useEffect(() => {
     setCurrentPage(1);
@@ -291,9 +301,9 @@ export default function Page() {
           }}
         >
           <option value={0}>{t('categoryBreadcrumbRoot')}</option>
-          {flatCategories.map((c) => (
-            <option key={c.id} value={c.id}>
-              {typeof c.name === 'object' ? formatTranslated(c.name as { en?: string; ar?: string }) : c.name}
+          {parentSelectOptions.map((o) => (
+            <option key={o.id} value={o.id}>
+              {nativeSelectCategoryLabel(o.label, o.depth, o.hasChildren)}
             </option>
           ))}
         </select>
@@ -360,7 +370,6 @@ export default function Page() {
         createPath="/categories/create"
         hasDetails={false}
         onRowClick={tryDrillIntoCategory}
-        hasFilter
         filterSidebar={filterSidebar}
         activeFilterCount={activeFilterCount}
         onFilterReset={onFilterReset}

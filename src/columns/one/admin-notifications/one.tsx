@@ -65,19 +65,43 @@ export const adminNotificationColumns = (
     enableColumnFilter: true,
     filterFn: (row, columnId, filterValue) => {
       if (filterValue == null || filterValue === '' || filterValue === 'all') return true;
-      return row.getValue(columnId) === filterValue;
+      const raw = String(row.getValue(columnId) ?? '');
+      const parts = raw.split(',').map((p) => p.trim());
+      return parts.includes(String(filterValue));
     },
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.type')} />,
     cell: ({ row }) => {
-      const type = row.original.type;
+      const type = String(row.original.type ?? '');
+      const parts = type
+        .split(',')
+        .map((p) => p.trim())
+        .filter(Boolean);
+      if (parts.length === 0) return <span className="text-muted-foreground">—</span>;
+      if (parts.length === 1) {
+        const key = parts[0]!;
+        return (
+          <span
+            className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${
+              TYPE_COLORS[key] ?? 'bg-muted text-muted-foreground border-border'
+            }`}
+          >
+            {notificationTypeLabel(key, t)}
+          </span>
+        );
+      }
       return (
-        <span
-          className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${
-            TYPE_COLORS[type] ?? 'bg-muted text-muted-foreground border-border'
-          }`}
-        >
-          {notificationTypeLabel(type, t)}
-        </span>
+        <div className="flex flex-wrap gap-1 max-w-md">
+          {parts.map((key) => (
+            <span
+              key={key}
+              className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${
+                TYPE_COLORS[key] ?? 'bg-muted text-muted-foreground border-border'
+              }`}
+            >
+              {notificationTypeLabel(key, t)}
+            </span>
+          ))}
+        </div>
       );
     },
   },

@@ -1,9 +1,12 @@
 // ----------------------------------------------------------------------
 
+export type PageSectionVariant = 'vertical' | 'horizontal' | 'square';
+
 export interface PageSectionListItem {
   id: number;
   name: string | Record<string, string> | unknown[];
   type?: 'api' | 'manual';
+  variant?: PageSectionVariant;
   position?: 'before' | 'after';
   order?: number;
   display_type_id?: number;
@@ -102,6 +105,7 @@ export interface PageSectionCreateUpdatePayload {
   page_id: string | number;
   display_type_id: number;
   position: 'before' | 'after';
+  variant: PageSectionVariant;
   order: number;
   background_color?: string;
   background_card_color?: string;

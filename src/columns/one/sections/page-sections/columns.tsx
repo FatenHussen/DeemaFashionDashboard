@@ -10,6 +10,7 @@ const PageSectionSchema = z.object({
   id: z.number(),
   name: z.union([z.string(), z.array(z.any()), z.record(z.any())]).optional(),
   type: z.enum(['api', 'manual']).optional(),
+  variant: z.enum(['vertical', 'horizontal', 'square']).optional(),
   position: z.enum(['before', 'after']).optional(),
   order: z.number().optional(),
   display_type_id: z.number().optional(),
@@ -27,6 +28,7 @@ export interface PageSectionFormValues {
   id: number;
   name: string;
   type: 'api' | 'manual';
+  variant?: 'vertical' | 'horizontal' | 'square';
   position?: 'before' | 'after';
   order?: number;
   display_type_id?: number;
@@ -82,6 +84,24 @@ export const pageSectionColumns = (
         >
           {type}
         </div>
+      );
+    },
+  },
+  {
+    id: 'variant',
+    accessorKey: 'variant',
+    meta: {
+      headerClassName: 'whitespace-nowrap',
+      cellClassName: 'whitespace-nowrap',
+    },
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.variant')} />,
+    cell: ({ row }) => {
+      const v = row.original.variant;
+      if (!v) return <span className="text-muted-foreground">—</span>;
+      return (
+        <span className="text-xs capitalize text-muted-foreground">
+          {t(`form.pageSectionVariant_${v}` as const)}
+        </span>
       );
     },
   },

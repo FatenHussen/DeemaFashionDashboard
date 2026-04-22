@@ -1,4 +1,5 @@
 import type { MultiSelectOption } from '@/shared/ui/multi-select';
+import type { ProductData } from '@/pages/dashboard/products/types/product.types';
 
 import { toast } from 'react-toastify';
 import { useMemo, useEffect } from 'react';
@@ -10,7 +11,6 @@ import { useParams, useNavigate } from 'react-router';
 import { formatTranslated } from '@/utils/format-translated';
 import { _VendorApi } from '@/pages/dashboard/vendor/api/vendor.services';
 import { useFetchProducts } from '@/pages/dashboard/products/hooks/product';
-import type { ProductData } from '@/pages/dashboard/products/types/product.types';
 import { _CategoryApi } from '@/pages/dashboard/categories/api/category.services';
 import { RHFInfiniteSelect } from '@/shared/components/hook-form/rhf-infinite-select';
 

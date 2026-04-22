@@ -36,6 +36,9 @@ export const PageSectionSchema = z.object({
   position: z.enum(['before', 'after'], {
     required_error: t('pageSection.positionRequired'),
   }),
+  variant: z.enum(['vertical', 'horizontal', 'square'], {
+    required_error: t('pageSection.variantRequired'),
+  }),
   order: z.union([z.string(), z.number()]),
   background_color: z.string().optional(),
   background_card_color: z.string().optional(),

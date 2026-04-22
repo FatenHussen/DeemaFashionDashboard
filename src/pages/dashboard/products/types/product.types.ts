@@ -282,6 +282,7 @@ export interface AdminProductVariantListItem {
     shop: { id: number; name: string };
     price: number;
     discount?: number | null;
+    discount_type?: string | null;
     price_after_discount?: number | null;
     cost_price?: number;
     quantity: number;

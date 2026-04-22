@@ -9,6 +9,7 @@ import { Iconify } from '@/shared/components/iconify';
 import { useForm, FormProvider } from 'react-hook-form';
 import { useAssignDriver } from '@/pages/dashboard/orders/hooks/order';
 import { _DriverApi } from '@/pages/dashboard/driver/api/driver.services';
+import { normalizeOrderStatus } from '@/pages/dashboard/orders/types/order.types';
 import { RHFInfiniteSelect } from '@/shared/components/hook-form/rhf-infinite-select';
 
 const driverFetcher = (page: number, limit: number) =>
@@ -48,9 +49,11 @@ export function AssignDriverModal({ open, onClose, order, t }: Props) {
   const orderRef =
     order?.order_code ?? order?.order_number ?? (order ? String(order.id) : '');
   const isBusy = assignDriverMutation.isPending;
+  const st = order ? normalizeOrderStatus(order.status) : 'pending';
+  const canAssignDriver = st !== 'delivered' && st !== 'out_delivery';
 
   const onSubmit = handleSubmit(async (data) => {
-    if (!order || !data.driver_id || data.driver_id === 0) return;
+    if (!order || !canAssignDriver || !data.driver_id || data.driver_id === 0) return;
     try {
       await assignDriverMutation.mutateAsync({
         id: order.id,
@@ -128,6 +131,12 @@ export function AssignDriverModal({ open, onClose, order, t }: Props) {
             </div>
           ) : null}
 
+          {!canAssignDriver && order ? (
+            <p className="mt-4 text-sm text-muted-foreground">
+              {t('orders.assignDriverDisabledDeliveredOrOut')}
+            </p>
+          ) : null}
+
           <FormProvider {...form}>
             <form onSubmit={onSubmit} className="mt-6 space-y-4">
               <RHFInfiniteSelect
@@ -137,7 +146,7 @@ export function AssignDriverModal({ open, onClose, order, t }: Props) {
                 placeholder={t('form.selectDriver')}
                 initialLabel={order?.driver?.name ?? order?.driver?.phone}
                 pageSize={10}
-                disabled={isBusy}
+                disabled={isBusy || !canAssignDriver}
               />
               <div className="flex flex-wrap justify-end gap-2 border-t border-border/60 pt-5">
                 <Button type="button" variant="outlined" onClick={onClose} disabled={isBusy}>
@@ -146,7 +155,10 @@ export function AssignDriverModal({ open, onClose, order, t }: Props) {
                 <Button
                   type="submit"
                   disabled={
-                    isBusy || !selectedDriverId || selectedDriverId === 0
+                    isBusy ||
+                    !canAssignDriver ||
+                    !selectedDriverId ||
+                    selectedDriverId === 0
                   }
                 >
                   {isBusy ? t('updating') : t('orders.assign')}

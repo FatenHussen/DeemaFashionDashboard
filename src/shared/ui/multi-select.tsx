@@ -4,6 +4,7 @@ import { cn } from '@/utils/utils';
 import { Iconify } from '@/shared/components/iconify';
 import ReactSelect, { components as selectComponents } from 'react-select';
 import { ShopVariantColorSwatch } from '@/shared/components/shop-variant-color-swatch';
+import { categoryTreeIndentPx } from '@/pages/dashboard/categories/utils/build-parent-picker-options';
 
 // ----------------------------------------------------------------------
 
@@ -11,6 +12,10 @@ export interface MultiSelectOption {
   value: string | number;
   label: string;
   disabled?: boolean;
+  /** Category tree depth for menu row indent (optional). */
+  depth?: number;
+  /** Category has subcategories (folder icon). */
+  hasChildren?: boolean;
   /** Resolved absolute URL; used when `showOptionImages` is true */
   imageUrl?: string | null;
   /** e.g. `#F0E68C` from shop variant label; shown as swatch when `showOptionImages` is true */
@@ -41,9 +46,22 @@ function MultiSelectOptionWithImage(
   const ok = img != null && String(img).trim() !== '';
   const hex = props.data.colorHex;
   const hexOk = hex != null && String(hex).trim() !== '';
+  const indentPx = categoryTreeIndentPx(props.data.depth ?? 0);
+  const showFolder = props.data.hasChildren === true;
   return (
     <selectComponents.Option {...props}>
-      <div className="flex items-center gap-2 min-w-0 py-0.5">
+      <div
+        className="flex items-center gap-2 min-w-0 py-0.5"
+        style={indentPx != null ? { paddingInlineStart: indentPx } : undefined}
+      >
+        {showFolder ? (
+          <Iconify
+            icon="solar:folder-2-bold"
+            width={16}
+            className="shrink-0 text-amber-600/85 dark:text-amber-400/90"
+            aria-hidden
+          />
+        ) : null}
         {hexOk ? <ShopVariantColorSwatch hex={String(hex).trim()} /> : null}
         {ok ? (
           <img
@@ -57,6 +75,32 @@ function MultiSelectOptionWithImage(
           </span>
         )}
         <span className="min-w-0 flex-1 truncate text-sm">{props.data.label}</span>
+      </div>
+    </selectComponents.Option>
+  );
+}
+
+function MultiSelectOptionDefault(
+  props: OptionProps<MultiSelectOption, true, GroupBase<MultiSelectOption>>
+) {
+  const indentPx = categoryTreeIndentPx(props.data.depth ?? 0);
+  const showFolder = props.data.hasChildren === true;
+  return (
+    <selectComponents.Option {...props}>
+      <div
+        className="flex min-w-0 items-center gap-2 text-sm text-foreground"
+        style={indentPx != null ? { paddingInlineStart: indentPx } : undefined}
+      >
+        <span className="flex w-[18px] shrink-0 justify-center" aria-hidden>
+          {showFolder ? (
+            <Iconify
+              icon="solar:folder-2-bold"
+              width={16}
+              className="text-amber-600/85 dark:text-amber-400/90"
+            />
+          ) : null}
+        </span>
+        <span className="min-w-0 flex-1 truncate">{props.data.label}</span>
       </div>
     </selectComponents.Option>
   );
@@ -209,7 +253,7 @@ export function MultiSelect({
         Option: MultiSelectOptionWithImage,
         MultiValue: MultiSelectValueWithImage,
       }
-    : undefined;
+    : { Option: MultiSelectOptionDefault };
 
   return (
     <div className={cn(fullWidth && 'w-full', className)}>

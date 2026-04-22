@@ -55,7 +55,7 @@ export const NavItem = forwardRef<HTMLButtonElement, NavItemProps>(function NavI
     'pt-[var(--nav-item-pt)] pr-[var(--nav-item-pr)] pb-[var(--nav-item-pb)] pl-[var(--nav-item-pl)]',
     'rounded-[var(--nav-item-radius)]',
     'text-[var(--nav-item-color)]',
-    'relative group flex items-center',
+    'relative group flex items-center gap-[var(--nav-icon-text-gap)]',
     'transition-all duration-200 ease-out',
     'hover:bg-[var(--nav-item-hover-bg)] hover:text-foreground',
     open
@@ -78,7 +78,7 @@ export const NavItem = forwardRef<HTMLButtonElement, NavItemProps>(function NavI
     'pt-[var(--nav-item-pt)] pr-[var(--nav-item-pr)] pb-[var(--nav-item-pb)] pl-[var(--nav-item-pl)]',
     'rounded-[var(--nav-item-radius)]',
     'text-[var(--nav-item-color)]',
-    'relative group transition-all duration-200 ease-out flex items-center justify-center',
+    'relative group transition-all duration-200 ease-out flex items-center justify-center gap-[var(--nav-icon-text-gap)]',
     'hover:bg-[var(--nav-item-hover-bg)] hover:translate-x-1 hover:shadow-sm',
     'before:content-[""] before:absolute before:left-0',
     'before:w-[var(--nav-bullet-size)] before:h-[var(--nav-bullet-size)]',

@@ -28,6 +28,8 @@ export interface CreateFormLayoutProps<T extends Record<string, any>> {
   loadingText?: string;
   /** Max width for the page content. Omit for full width (previous behavior). */
   maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl' | '6xl' | '7xl';
+  /** Soft gradient orbs behind content (full-width immersive pages). */
+  ambientBackground?: boolean;
   /** Overrides default `flex flex-col gap-6` for the form fields area (padding is always applied). */
   formInnerClassName?: string;
 
@@ -65,6 +67,7 @@ export function CreateFormLayout<T extends Record<string, any>>({
   isLoading = false,
   loadingText,
   maxWidth,
+  ambientBackground = false,
   formInnerClassName,
   children,
   submitLabel,
@@ -139,17 +142,29 @@ export function CreateFormLayout<T extends Record<string, any>>({
 
   const modePillClasses = useMemo(() => {
     const base =
-      'inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold backdrop-blur';
+      'inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs font-bold tracking-wide shadow-sm';
     return isEditMode
-      ? `${base} border-amber-300/70 bg-amber-50/70 text-amber-700 dark:border-amber-700/50 dark:bg-amber-950/25 dark:text-amber-300`
-      : `${base} border-emerald-300/70 bg-emerald-50/70 text-emerald-700 dark:border-emerald-700/50 dark:bg-emerald-950/25 dark:text-emerald-300`;
+      ? `${base} border-amber-400/75 bg-amber-50/95 text-amber-900 dark:border-amber-600/55 dark:bg-amber-950/35 dark:text-amber-200`
+      : `${base} border-primary bg-primary text-primary-foreground shadow-[0_1px_2px_rgb(0_0_0_/_0.08)] dark:border-primary dark:bg-primary dark:text-primary-foreground`;
   }, [isEditMode]);
 
   return (
-    <Box className="min-h-screen bg-background w-full">
+    <Box
+      className={mergeClasses([
+        'min-h-screen w-full',
+        ambientBackground ? 'relative overflow-hidden' : 'bg-background',
+      ])}
+    >
+      {ambientBackground && (
+        <>
+          <Box className="pointer-events-none fixed inset-0 bg-gradient-to-br from-background via-background to-muted/25" />
+          <Box className="pointer-events-none fixed top-0 right-0 h-[min(60vh,520px)] w-[min(90vw,640px)] -translate-y-1/4 translate-x-1/4 rounded-full bg-primary/[0.07] blur-[100px]" />
+          <Box className="pointer-events-none fixed bottom-0 left-0 h-[min(50vh,420px)] w-[min(80vw,520px)] translate-y-1/4 -translate-x-1/4 rounded-full bg-violet-500/[0.06] blur-[90px]" />
+        </>
+      )}
       <Box
         className={mergeClasses([
-          'relative w-full px-4 sm:px-6 lg:px-8 py-6 md:py-8',
+          'relative z-[1] w-full px-4 sm:px-6 lg:px-8 py-6 md:py-8',
           maxWidthClass,
           maxWidthClass ? 'mx-auto' : '',
         ])}

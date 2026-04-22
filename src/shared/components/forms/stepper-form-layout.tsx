@@ -130,7 +130,7 @@ export function StepperFormLayout<T extends Record<string, any>>({
       className={`relative min-h-screen overflow-hidden bg-background ${
         isFullWidth
           ? 'px-4 py-6 sm:px-6 sm:py-8 lg:px-10 lg:py-10 xl:px-14'
-          : 'p-6'
+          : 'p-4 sm:p-6'
       }`}
     >
       {/* Subtle background gradient */}
@@ -155,14 +155,14 @@ export function StepperFormLayout<T extends Record<string, any>>({
         )}
 
         {/* Header */}
-        <Box className="mb-8">
+        <Box className="mb-6 sm:mb-8">
           <Box
             className={`rounded-2xl border border-border/60 bg-card/80 backdrop-blur-sm shadow-sm ${
               isFullWidth ? 'overflow-hidden ring-1 ring-primary/[0.06]' : ''
             }`}
           >
             <Box
-              className={`flex items-start justify-between gap-6 flex-wrap p-6 ${
+              className={`flex items-start justify-between gap-4 sm:gap-6 flex-wrap p-4 sm:p-6 ${
                 isFullWidth ? 'md:p-8 bg-gradient-to-br from-card via-card to-primary/[0.03]' : ''
               }`}
             >
@@ -219,7 +219,7 @@ export function StepperFormLayout<T extends Record<string, any>>({
                 variant="outlined"
                 onClick={onCancel}
                 disabled={isSubmitting || isLoading}
-                className="border-border hover:bg-muted/50 min-w-[100px] flex-shrink-0"
+                className="border-border hover:bg-muted/50 w-full min-[420px]:w-auto min-w-0 min-[420px]:min-w-[100px] flex-shrink-0"
               >
                 {resolvedCancelLabel}
               </Button>
@@ -263,14 +263,14 @@ export function StepperFormLayout<T extends Record<string, any>>({
         )}
 
         {/* Stepper */}
-        <Box className="mb-8">
+        <Box className="mb-6 sm:mb-8">
           <Box
-            className={`rounded-2xl border border-border/60 bg-card/80 backdrop-blur-sm shadow-sm p-6 ${
+            className={`rounded-2xl border border-border/60 bg-card/80 backdrop-blur-sm shadow-sm p-4 sm:p-6 ${
               isFullWidth ? 'ring-1 ring-border/40' : ''
             }`}
           >
-            {/* Desktop Stepper */}
-            <Box className="hidden md:flex items-center justify-between">
+            {/* Desktop stepper — from `lg` so tablets avoid a cramped 5-step rail */}
+            <Box className="hidden lg:flex items-center justify-between gap-2 min-w-0">
               {steps.map((step, index) => {
                 const isActive = index === activeStep;
                 const isCompleted = index < activeStep;
@@ -339,7 +339,7 @@ export function StepperFormLayout<T extends Record<string, any>>({
                     {/* Connector Line */}
                     {index < steps.length - 1 && (
                       <Box
-                        className={`flex-1 h-0.5 mx-4 transition-all duration-300 ${
+                        className={`flex-1 min-w-2 max-w-14 h-0.5 mx-1.5 lg:mx-3 transition-all duration-300 shrink ${
                           isCompleted ? 'bg-primary' : 'bg-border'
                         }`}
                       />
@@ -349,8 +349,8 @@ export function StepperFormLayout<T extends Record<string, any>>({
               })}
             </Box>
 
-            {/* Mobile Stepper */}
-            <Box className="md:hidden">
+            {/* Compact stepper for small / medium viewports */}
+            <Box className="lg:hidden">
               <Box className="flex items-center justify-between mb-4">
                 <Typography variant="subtitle2" className="font-semibold text-foreground">
                   {t('stepOf', { current: activeStep + 1, total: steps.length })}
@@ -387,7 +387,7 @@ export function StepperFormLayout<T extends Record<string, any>>({
           <Form methods={methods} onSubmit={onSubmit}>
             {/* Content */}
             <Box
-              className={`min-h-[400px] p-6 md:p-8 ${isFullWidth ? 'lg:p-10 xl:p-12' : ''}`}
+              className={`min-h-[400px] p-4 sm:p-6 md:p-8 ${isFullWidth ? 'lg:p-10 xl:p-12' : ''}`}
             >
               {reviewHint && (
                 <Box className="mb-6 flex items-start gap-3 rounded-xl border border-primary/15 bg-primary/5 px-4 py-3">
@@ -410,15 +410,15 @@ export function StepperFormLayout<T extends Record<string, any>>({
 
             {/* Sticky Actions */}
             <Box className="sticky bottom-0 z-10 border-t border-border/60 bg-card/95 backdrop-blur-md rounded-b-2xl shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] dark:shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.3)]">
-              <Box className="px-6 md:px-8 py-4 flex items-center justify-between gap-4 flex-wrap">
-                <Box className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Box className="h-1.5 w-1.5 rounded-full bg-primary/60" />
+              <Box className="px-4 sm:px-6 md:px-8 py-3 sm:py-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+                <Box className="flex items-center gap-2 text-xs text-muted-foreground sm:min-w-0">
+                  <Box className="h-1.5 w-1.5 rounded-full bg-primary/60 shrink-0" />
                   <span>
                     {t('stepOf', { current: activeStep + 1, total: steps.length })}
                   </span>
                 </Box>
 
-                <Box className="flex items-center gap-3">
+                <Box className="flex flex-wrap items-center justify-end gap-2 sm:gap-3 w-full sm:w-auto">
                   <Button
                     type="button"
                     variant="outlined"

@@ -7,6 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
 import { formatTranslated } from '@/utils/format-translated';
+import { TinyMCEEditorField } from '@/shared/components/tinymce-editor/tinymce-editor';
 import {
   useUpdateLegalDocument,
   useFetchLegalDocumentById,
@@ -23,6 +24,15 @@ import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
 import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
 
 // ----------------------------------------------------------------------
+
+function FieldErrorText({ message }: { message?: string }) {
+  if (!message) return null;
+  return (
+    <Typography variant="caption" className="mt-1 block text-destructive">
+      {message}
+    </Typography>
+  );
+}
 
 export default function EditPage() {
   const { t } = useTranslation('table');
@@ -159,30 +169,58 @@ export default function EditPage() {
                 {t('form.legalDocumentSectionContent')}
               </Typography>
             </Box>
-            <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
-              <Box>
-                <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.labelEnglishShort')}</Typography>
+            <Box className="grid grid-cols-1 gap-8 p-6 md:grid-cols-2 md:gap-6">
+              <Box className="group min-w-0">
+                <Box className="mb-2 flex items-center gap-2">
+                  <Iconify icon="solar:document-bold" className="text-primary" width={20} />
+                  <Typography variant="subtitle2" className="font-semibold text-foreground">
+                    {t('form.productFullDescEn')}
+                  </Typography>
+                </Box>
                 <Controller
                   name="content.en"
                   control={control}
                   render={({ field, fieldState: { error: fieldError } }) => (
-                    <Box>
-                      <textarea {...field} rows={10} placeholder={t('form.legalContentPlaceholder')} className={`w-full resize-y rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary ${fieldError ? 'border-destructive' : 'border-input'}`} />
-                      {fieldError && <p className="mt-1 text-xs text-destructive">{fieldError.message}</p>}
-                    </Box>
+                    <div>
+                      <TinyMCEEditorField
+                        value={field.value ?? ''}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        placeholder={t('form.fullDescPlaceholder')}
+                        dir="ltr"
+                        menubar
+                        toolsMenuWordCount
+                        height={320}
+                      />
+                      <FieldErrorText message={fieldError?.message} />
+                    </div>
                   )}
                 />
               </Box>
-              <Box>
-                <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.labelArabicShort')}</Typography>
+              <Box className="group min-w-0">
+                <Box className="mb-2 flex items-center gap-2">
+                  <Iconify icon="solar:document-bold" className="text-primary" width={20} />
+                  <Typography variant="subtitle2" className="font-semibold text-foreground">
+                    {t('form.productFullDescAr')}
+                  </Typography>
+                </Box>
                 <Controller
                   name="content.ar"
                   control={control}
                   render={({ field, fieldState: { error: fieldError } }) => (
-                    <Box>
-                      <textarea {...field} rows={10} dir="rtl" placeholder={t('form.legalContentArPlaceholder')} className={`w-full resize-y rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary ${fieldError ? 'border-destructive' : 'border-input'}`} />
-                      {fieldError && <p className="mt-1 text-xs text-destructive">{fieldError.message}</p>}
-                    </Box>
+                    <div>
+                      <TinyMCEEditorField
+                        value={field.value ?? ''}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        placeholder={t('form.fullDescArPlaceholder')}
+                        dir="rtl"
+                        menubar
+                        toolsMenuWordCount
+                        height={320}
+                      />
+                      <FieldErrorText message={fieldError?.message} />
+                    </div>
                   )}
                 />
               </Box>

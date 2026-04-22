@@ -9,6 +9,7 @@ import { Iconify } from '@/shared/components/iconify';
 import { paths } from 'src/routes/paths';
 
 import { CONFIG } from 'src/global-config';
+import { useLocalizationStore } from 'src/store/useLocalizationStore';
 
 import { _ReportApi } from '../api/report.services';
 import { ReportExportButtons } from '../components/report-export-buttons';
@@ -21,6 +22,7 @@ const tableContainerClass =
 export default function ReportsIndexPage() {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation('table');
+  const { direction } = useLocalizationStore();
 
   useEffect(() => {
     document.title = `${t('reports.browserIndex')} | ${CONFIG.appName}`;
@@ -80,13 +82,15 @@ export default function ReportsIndexPage() {
   );
 
   return (
-    <div className="flex w-full flex-col">
-      <div className="mx-6 mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-border/40 bg-card/60 px-4 py-3 shadow-sm rtl:flex-row-reverse">
-        <Box className="flex items-center gap-3">
-          <Box className="w-10 h-10 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
+    <div className="flex w-full flex-col" dir={direction}>
+      <div
+        className="mx-6 mt-4 mb-4 flex w-full min-w-0 flex-wrap items-center justify-start gap-3 rounded-xl border border-border/40 bg-card/60 px-4 py-3 text-start shadow-sm"
+      >
+        <Box className="flex min-w-0 max-w-full items-center gap-3">
+          <Box className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-primary/20 bg-primary/10">
             <Iconify icon="solar:document-bold" className="text-primary" width={22} height={22} />
           </Box>
-          <Box>
+          <Box className="min-w-0">
             <Typography variant="h6" className="font-semibold">
               {t('reports.pageTitle')}
             </Typography>

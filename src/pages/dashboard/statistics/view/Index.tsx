@@ -296,7 +296,7 @@ function OrdersByDayGaugeCard({
         </div>
       </div>
 
-      <div className="mt-auto flex shrink-0 items-end justify-between gap-4 border-t border-border pt-4">
+      <div className="mt-6 flex shrink-0 items-end justify-between gap-4 border-t border-border pt-4">
         <div>
           <Typography variant="h6" className="font-bold tabular-nums text-foreground">
             {(minRow?.count ?? 0).toLocaleString()}
@@ -838,11 +838,19 @@ export default function StatisticsPage() {
                             />
                           </PieChart>
                         </ResponsiveContainer>
-                        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center pt-4">
-                          <Typography variant="caption" className="text-muted-foreground">
+                        <div className="pointer-events-none absolute left-1/2 top-[46%] z-10 -translate-x-1/2 -translate-y-1/2 text-center">
+                          <Typography
+                            component="p"
+                            variant="caption"
+                            className="text-muted-foreground"
+                          >
                             {t('statistics.donutCenterLabel')}
                           </Typography>
-                          <Typography variant="h5" className="font-bold text-foreground">
+                          <Typography
+                            component="p"
+                            variant="h5"
+                            className="font-bold text-foreground tabular-nums"
+                          >
                             {ordersPieTotal.toLocaleString()}
                           </Typography>
                         </div>

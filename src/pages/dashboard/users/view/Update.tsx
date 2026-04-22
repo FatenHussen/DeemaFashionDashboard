@@ -189,6 +189,20 @@ export default function UpdatePage() {
     });
   }, [sourceUser, resetReactivate]);
 
+  /** Open affiliate promotion form when navigating from user details ("ترقية"). */
+  useEffect(() => {
+    const st = location.state as { openAffiliatePromote?: boolean; user?: UserItem } | undefined;
+    if (!st?.openAffiliatePromote || !sourceUser) return;
+    const a = sourceUser.affiliate;
+    if (a?.is_affiliate && !a.affiliate_approved) {
+      setShowReactivatePanel(true);
+      navigate(location.pathname, {
+        replace: true,
+        state: st.user !== undefined ? { user: st.user } : {},
+      });
+    }
+  }, [sourceUser, location.state, location.pathname, navigate]);
+
   const isSubmitting =
     updateUserMutation.isPending ||
     reactivateAffiliateMutation.isPending ||

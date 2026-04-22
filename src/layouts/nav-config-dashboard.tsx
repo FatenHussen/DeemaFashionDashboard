@@ -48,7 +48,7 @@ export function getNavData(t: TFunction<'nav'>): NavSectionProps['data'] {
      */
     {
       subheader: (
-        <span className="flex items-center gap-2">
+        <span className="flex items-center gap-3">
           <Iconify icon="solar:user-circle-bold" width={16} height={16} />
           <span>{t('accountGroup')}</span>
         </span>
@@ -66,7 +66,7 @@ export function getNavData(t: TFunction<'nav'>): NavSectionProps['data'] {
      */
     {
       subheader: (
-        <span className="flex items-center gap-2">
+        <span className="flex items-center gap-3">
           <Iconify icon="solar:chart-2-bold" width={16} height={16} />
           <span>{t('statisticsReportsGroup')}</span>
         </span>
@@ -81,7 +81,7 @@ export function getNavData(t: TFunction<'nav'>): NavSectionProps['data'] {
      */
     {
       subheader: (
-        <span className="flex items-center gap-2">
+        <span className="flex items-center gap-3">
           <Iconify icon="solar:box-minimalistic-bold" width={16} height={16} />
           <span>{t('contentManagementGroup')}</span>
         </span>
@@ -101,7 +101,7 @@ export function getNavData(t: TFunction<'nav'>): NavSectionProps['data'] {
      */
     {
       subheader: (
-        <span className="flex items-center gap-2">
+        <span className="flex items-center gap-3">
           <Iconify icon="solar:widget-add-bold" width={16} height={16} />
           <span>{t('sectionsPagesGroup')}</span>
         </span>
@@ -126,7 +126,7 @@ export function getNavData(t: TFunction<'nav'>): NavSectionProps['data'] {
      */
     {
       subheader: (
-        <span className="flex items-center gap-2">
+        <span className="flex items-center gap-3">
           <Iconify icon="solar:cart-large-2-bold" width={16} height={16} />
           <span>{t('basketsSchedulesGroup')}</span>
         </span>
@@ -143,7 +143,7 @@ export function getNavData(t: TFunction<'nav'>): NavSectionProps['data'] {
      */
     {
       subheader: (
-        <span className="flex items-center gap-2">
+        <span className="flex items-center gap-3">
           <Iconify icon="solar:map-point-bold" width={16} height={16} />
           <span>{t('locationsGroup')}</span>
         </span>
@@ -166,7 +166,7 @@ export function getNavData(t: TFunction<'nav'>): NavSectionProps['data'] {
      */
     {
       subheader: (
-        <span className="flex items-center gap-2">
+        <span className="flex items-center gap-3">
           <Iconify icon="solar:users-group-rounded-bold" width={16} height={16} />
           <span>{t('usersVendorsGroup')}</span>
         </span>
@@ -195,7 +195,7 @@ export function getNavData(t: TFunction<'nav'>): NavSectionProps['data'] {
      */
     {
       subheader: (
-        <span className="flex items-center gap-2">
+        <span className="flex items-center gap-3">
           <Iconify icon="solar:cart-2-bold" width={16} height={16} />
           <span>{t('ordersGroup')}</span>
         </span>
@@ -210,7 +210,7 @@ export function getNavData(t: TFunction<'nav'>): NavSectionProps['data'] {
      */
     {
       subheader: (
-        <span className="flex items-center gap-2">
+        <span className="flex items-center gap-3">
           <Iconify icon="solar:wallet-money-bold" width={16} height={16} />
           <span>{t('financeGroup')}</span>
         </span>
@@ -225,7 +225,7 @@ export function getNavData(t: TFunction<'nav'>): NavSectionProps['data'] {
      */
     {
       subheader: (
-        <span className="flex items-center gap-2">
+        <span className="flex items-center gap-3">
           <Iconify icon="solar:box-bold" width={16} height={16} />
           <span>{t('packagesSubscriptionsGroup')}</span>
         </span>
@@ -242,7 +242,7 @@ export function getNavData(t: TFunction<'nav'>): NavSectionProps['data'] {
      */
     {
       subheader: (
-        <span className="flex items-center gap-2">
+        <span className="flex items-center gap-3">
           <Iconify icon="solar:gift-bold" width={16} height={16} />
           <span>{t('rewardsGroup')}</span>
         </span>
@@ -260,7 +260,7 @@ export function getNavData(t: TFunction<'nav'>): NavSectionProps['data'] {
      */
     {
       subheader: (
-        <span className="flex items-center gap-2">
+        <span className="flex items-center gap-3">
           <Iconify icon="solar:tag-bold" width={16} height={16} />
           <span>{t('marketingPromotionsGroup')}</span>
         </span>
@@ -277,7 +277,7 @@ export function getNavData(t: TFunction<'nav'>): NavSectionProps['data'] {
      */
     {
       subheader: (
-        <span className="flex items-center gap-2">
+        <span className="flex items-center gap-3">
           <Iconify icon="solar:settings-minimalistic-bold" width={16} height={16} />
           <span>{t('settingsGroup')}</span>
         </span>
@@ -315,7 +315,7 @@ export function getNavData(t: TFunction<'nav'>): NavSectionProps['data'] {
      */
     {
       subheader: (
-        <span className="flex items-center gap-2">
+        <span className="flex items-center gap-3">
           <Iconify icon="solar:shield-user-bold" width={16} height={16} />
           <span>{t('administrationGroup')}</span>
         </span>

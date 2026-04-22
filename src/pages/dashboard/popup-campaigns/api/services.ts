@@ -5,9 +5,33 @@
  * headline/subheadline/description; file field `media` plus `media_path` placeholder `__pending_upload__` on create
  * when uploading a new file (backend stores path after upload).
  */
-import type { PopupCampaignListResponse, PopupCampaignDetailResponse } from '../types';
+import type { PopupCampaignDetail, PopupCampaignListResponse, PopupCampaignDetailResponse } from '../types';
 
 import { apiRoutes, axiosInstance } from '@/api';
+
+/**
+ * Resolves the campaign object whether the HTTP body is `{ data: { id, ... } }`, double-wrapped
+ * `data.data`, or a bare resource (no envelope).
+ */
+function normalizeDetailPayload(body: unknown): PopupCampaignDetail | null {
+  const root = body as Record<string, unknown> | null | undefined;
+  if (!root || typeof root !== 'object') return null;
+
+  const first = root.data;
+  if (first != null && typeof first === 'object' && !Array.isArray(first)) {
+    if ('id' in first) {
+      return first as PopupCampaignDetail;
+    }
+    const second = (first as Record<string, unknown>).data;
+    if (second != null && typeof second === 'object' && !Array.isArray(second) && 'id' in second) {
+      return second as unknown as PopupCampaignDetail;
+    }
+  }
+  if ('id' in root && (typeof root.id === 'number' || typeof root.id === 'string')) {
+    return root as unknown as PopupCampaignDetail;
+  }
+  return null;
+}
 
 function normalizeListPayload(body: any): PopupCampaignListResponse['data'] {
   const inner = body?.data;
@@ -56,7 +80,13 @@ export const _PopupCampaignApi = {
     const response = await axiosInstance.get<PopupCampaignDetailResponse>(
       apiRoutes.popupCampaign.details(id)
     );
-    return response.data;
+    const body = response.data as PopupCampaignDetailResponse & Record<string, unknown>;
+    const campaign = normalizeDetailPayload(body);
+    return {
+      status: body.status,
+      message: typeof body.message === 'string' ? body.message : '',
+      data: (campaign ?? body.data) as PopupCampaignDetail,
+    };
   },
 
   create: async (formData: FormData): Promise<PopupCampaignDetailResponse> => {

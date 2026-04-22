@@ -5,6 +5,10 @@ import { useInfiniteQuery } from '@tanstack/react-query';
 export interface InfiniteSelectOption {
   id: number;
   label: string;
+  /** Category tree depth for indented list rows (optional). */
+  depth?: number;
+  /** True when the category has subcategories (folder icon in list). */
+  hasChildren?: boolean;
 }
 
 interface PaginatedSelectResponse {

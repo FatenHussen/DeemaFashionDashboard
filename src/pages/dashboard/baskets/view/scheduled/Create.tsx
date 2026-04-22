@@ -1,3 +1,5 @@
+import type { CategoryData } from '@/pages/dashboard/categories/types/category.types';
+
 import { toast } from 'react-toastify';
 import { Button } from '@/shared/ui/button';
 import { useTranslation } from 'react-i18next';
@@ -11,10 +13,9 @@ import { useParams, useNavigate, useLocation } from 'react-router';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { InfiniteScrollSelect } from '@/shared/components/infinite-scroll-select';
 import { _CategoryApi } from '@/pages/dashboard/categories/api/category.services';
-import type { CategoryData } from '@/pages/dashboard/categories/types/category.types';
-import { buildParentPickerOptions } from '@/pages/dashboard/categories/utils/build-parent-picker-options';
 import { _ShopProductVariantApi } from '@/shared/api/shop-product-variant.services';
 import { TinyMCEEditorField } from '@/shared/components/tinymce-editor/tinymce-editor';
+import { buildParentPickerOptions } from '@/pages/dashboard/categories/utils/build-parent-picker-options';
 import { resolveStorageImageUrl, shopVariantOptionImage, shopVariantOptionColorHex } from '@/utils/shop-variant-image';
 import {
   ScheduledBasketSchema,
@@ -206,11 +207,15 @@ export default function CreatePage() {
     const hierarchical = buildParentPickerOptions(items).map((r) => ({
       value: r.id,
       label: r.label,
+      depth: r.depth,
+      hasChildren: r.hasChildren,
     }));
     const src = scheduledBasketResponse?.data ?? scheduledBasketFromState;
     const fromApi = (src?.categories ?? []).map((c) => ({
       value: c.id,
       label: formatTranslated(c.name as Parameters<typeof formatTranslated>[0]),
+      depth: 0,
+      hasChildren: false,
     }));
     const inTree = new Set(hierarchical.map((o) => Number(o.value)));
     const extra = fromApi.filter((o) => !inTree.has(Number(o.value)));

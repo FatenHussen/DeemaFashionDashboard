@@ -1,10 +1,10 @@
 import { toast } from 'react-toastify';
-import { useMemo, useEffect, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
 import { MultiSelect } from '@/shared/ui/multi-select';
+import { useMemo, useEffect, type ReactNode } from 'react';
 import { formatTranslated } from '@/utils/format-translated';
 import { MapPicker } from '@/shared/components/map/map-picker';
 import { useForm, Controller, type Resolver } from 'react-hook-form';
@@ -73,7 +73,7 @@ function ShopStepCanvas({ children }: { children: ReactNode }) {
     <Box className="relative overflow-hidden rounded-2xl border border-border/50 bg-gradient-to-br from-card/95 via-card/90 to-primary/[0.045] shadow-[0_22px_64px_-28px_rgba(0,0,0,0.2)] ring-1 ring-primary/[0.07] dark:shadow-[0_26px_72px_-32px_rgba(0,0,0,0.5)]">
       <Box className="pointer-events-none absolute -right-16 -top-28 h-64 w-64 rounded-full bg-primary/[0.11] blur-3xl" />
       <Box className="pointer-events-none absolute -bottom-28 -left-12 h-52 w-52 rounded-full bg-primary/[0.05] blur-3xl" />
-      <Box className="relative p-6 md:p-8 lg:p-9">{children}</Box>
+      <Box className="relative p-4 sm:p-6 md:p-8 lg:p-9">{children}</Box>
     </Box>
   );
 }
@@ -305,10 +305,15 @@ export default function CreatePage() {
   const methods = useForm<ShopFormValues>({
     resolver: zodResolver(ShopSchema) as Resolver<ShopFormValues>,
     defaultValues,
-    ...(editFormValues !== undefined ? { values: editFormValues } : {}),
   });
 
-  const { handleSubmit, control, watch } = methods;
+  const { handleSubmit, control, watch, reset } = methods;
+
+  /** RHF `values` is unreliable when omitted on first mount then set after fetch — explicit `reset` applies API data to inputs. */
+  useEffect(() => {
+    if (editFormValues === undefined) return;
+    reset(editFormValues);
+  }, [editFormValues, reset]);
   const logoFile = watch('logo');
 
   const logoPreviewUrl = useMemo(() => {
@@ -391,10 +396,10 @@ export default function CreatePage() {
     const isClosed = daySchedule?.closed || false;
 
     return (
-      <Box className="group relative p-5 border border-border/60 rounded-xl bg-card/50 hover:bg-card/80 hover:border-primary/30 transition-all duration-300 hover:shadow-md">
-        <Box className="flex items-center justify-between mb-4">
-          <Box className="flex items-center gap-2.5">
-            <Box className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
+      <Box className="group relative p-4 sm:p-5 border border-border/60 rounded-xl bg-card/50 hover:bg-card/80 hover:border-primary/30 transition-all duration-300 hover:shadow-md min-w-0">
+        <Box className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-2 mb-4">
+          <Box className="flex min-w-0 items-center gap-2.5">
+            <Box className="w-8 h-8 shrink-0 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
               <Iconify
                 icon="solar:clock-circle-bold"
                 className="text-primary"
@@ -402,7 +407,7 @@ export default function CreatePage() {
                 height={16}
               />
             </Box>
-            <Typography variant="subtitle2" className="font-semibold text-foreground">
+            <Typography variant="subtitle2" className="font-semibold text-foreground truncate">
               {t(`form.weekday_${day}`)}
             </Typography>
           </Box>
@@ -410,9 +415,9 @@ export default function CreatePage() {
             name={`working_hours.${day}.closed`}
             control={control}
             render={({ field }) => (
-              <Box className="flex items-center gap-2">
+              <Box className="flex items-center gap-2 sm:ml-auto sm:shrink-0">
                 <Box
-                  className={`px-3 py-1.5 rounded-lg border transition-all ${
+                  className={`px-3 py-1.5 rounded-lg border transition-all max-w-full ${
                     field.value
                       ? 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800/50'
                       : 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/50'
@@ -444,7 +449,7 @@ export default function CreatePage() {
           />
         </Box>
         {!isClosed && (
-          <Box className="grid grid-cols-2 gap-3">
+          <Box className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <RHFTextField
               name={`working_hours.${day}.open`}
               type="time"
@@ -760,7 +765,7 @@ export default function CreatePage() {
                   className="w-full"
                 />
               </Box>
-              <Box className="grid grid-cols-2 gap-4 rounded-xl border border-border/50 bg-card/60 px-4 py-3">
+              <Box className="grid grid-cols-1 min-[380px]:grid-cols-2 gap-4 rounded-xl border border-border/50 bg-card/60 px-4 py-3">
                 <Box>
                   <Typography variant="caption" className="text-muted-foreground">
                     {t('form.latitudeLabel')}
@@ -869,7 +874,7 @@ export default function CreatePage() {
       content: (
         <ShopStepCanvas>
           <Box className="space-y-6">
-          <Box className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-4">
+          <Box className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             {SHOP_DAY_KEYS.map((dayKey) => (
               <WorkingHoursField key={dayKey} day={dayKey} />
             ))}

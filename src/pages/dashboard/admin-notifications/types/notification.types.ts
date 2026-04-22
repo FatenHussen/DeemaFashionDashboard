@@ -19,7 +19,8 @@ export interface NotificationItem {
   id: number;
   title: string;
   body: string;
-  type: NotificationType;
+  /** May be a single value or comma-separated, e.g. `driver` or `driver,user,vendor`. */
+  type: string;
   target_page?: string | null;
   channels: NotificationChannel[];
   emoji?: string | null;
@@ -49,12 +50,16 @@ export interface NotificationDetailsResponse {
 
 // ── Create payload  POST /admin/notifications ──────────────────────────
 
-export interface NotificationCreatePayload {
+export type NotificationCreatePayload = {
   title: string;
   body: string;
-  type: NotificationType;
   channels: NotificationChannel[];
+  /** When length is 1, API may receive `type`; when multiple, `types`. */
+  types: NotificationType[];
   target_page?: string;
   emoji?: string;
   media?: File | null;
-}
+  driver_ids?: number[];
+  user_ids?: number[];
+  vendor_ids?: number[];
+};

@@ -74,7 +74,7 @@ export default function CreatePage() {
         }
         return 0;
       })
-      .filter((id): id is number => id > 0);
+      .filter((roleId): roleId is number => roleId > 0);
   }, [adminData, rolesResponse]);
 
   const resolvedCityIdsFromAdmin = useMemo(() => {

@@ -140,6 +140,16 @@ export function DataTable<TData, TValue>({
     checked: !col.defaultHidden && !defaultHiddenColumns.includes(col.id || ''),
   }));
 
+  const initialColumnVisibility = React.useMemo(() => {
+    const vis: Record<string, boolean> = {};
+    for (const col of columns) {
+      const id = col.id;
+      if (id === undefined || id === '') continue;
+      vis[id] = !col.defaultHidden && !defaultHiddenColumns.includes(id);
+    }
+    return vis;
+  }, [columns, defaultHiddenColumns]);
+
   const table = useReactTable({
     data,
     columns,
@@ -147,6 +157,9 @@ export function DataTable<TData, TValue>({
       sorting,
       rowSelection,
       columnFilters,
+    },
+    initialState: {
+      columnVisibility: initialColumnVisibility,
     },
     enableRowSelection: true,
     onRowSelectionChange: setRowSelection,

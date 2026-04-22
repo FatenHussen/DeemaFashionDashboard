@@ -61,6 +61,8 @@ export interface ShopProductVariantUpdatePayload {
   price?: number;
   cost_price?: number;
   discount?: number;
+  /** Backend-aligned with product discounts: `fixed` (amount off) or `percentage`. */
+  discount_type?: 'fixed' | 'percentage' | string;
   quantity?: number;
   shop_id?: number;
   product_variant_id?: number;

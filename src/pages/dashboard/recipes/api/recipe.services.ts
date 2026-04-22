@@ -6,6 +6,7 @@ import type {
 } from '../types/recipe.types';
 
 import { apiRoutes, axiosInstance } from '@/api';
+import { toApiBilingualDescription } from '@/utils/optional-bilingual-api-placeholder';
 
 function localizedEnAr(field: LocalizedField): { en: string; ar: string } {
   if (typeof field === 'string') {
@@ -21,8 +22,12 @@ const buildFormData = (data: RecipeCreateUpdatePayload): FormData => {
   fd.append('name[ar]', data.name.ar);
 
   if (data.description) {
-    fd.append('description[en]', data.description.en || '');
-    fd.append('description[ar]', data.description.ar || '');
+    const { en: oen, ar: oar } = toApiBilingualDescription(
+      data.description.en ?? '',
+      data.description.ar ?? ''
+    );
+    fd.append('description[en]', oen);
+    fd.append('description[ar]', oar);
   }
 
   if (data.image instanceof File) fd.append('image', data.image);

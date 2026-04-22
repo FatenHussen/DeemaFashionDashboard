@@ -43,7 +43,11 @@ const RESOURCE_PALETTE = [
 
 function paletteFor(resource: string) {
   let h = 0;
-  for (let i = 0; i < resource.length; i += 1) h = (h * 31 + resource.charCodeAt(i)) >>> 0;
+  for (let i = 0; i < resource.length; i += 1) {
+    const next = h * 31 + resource.charCodeAt(i);
+    h = next % 0x1_0000_0000;
+    if (h < 0) h += 0x1_0000_0000;
+  }
   return RESOURCE_PALETTE[h % RESOURCE_PALETTE.length];
 }
 

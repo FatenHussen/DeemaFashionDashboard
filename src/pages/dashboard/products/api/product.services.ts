@@ -65,7 +65,12 @@ const buildProductFormData = (data: ProductCreateUpdatePayload): FormData => {
   formData.append('barcode', data.barcode ?? '');
   formData.append('time_prepare', data.time_prepare ?? '');
   formData.append('delivery_time', data.delivery_time ?? '');
-  formData.append('expiry_date', data.expiry_date ?? '');
+  const expiryTrimmed = data.expiry_date?.trim() ?? '';
+  if (data.id != null) {
+    formData.append('expiry_date', expiryTrimmed);
+  } else if (expiryTrimmed) {
+    formData.append('expiry_date', expiryTrimmed);
+  }
 
   formData.append('seo_title[en]', data.seo_title?.en ?? '');
   formData.append('seo_title[ar]', data.seo_title?.ar ?? '');

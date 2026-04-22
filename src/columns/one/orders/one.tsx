@@ -238,7 +238,10 @@ export const orderColumns = (
       const order = row.original;
       const st = normalizeOrderStatus(order.status);
       const canOpenAssignDriver =
-        permissions.update && st !== 'delivered' && st !== 'cancelled';
+        permissions.update &&
+        st !== 'delivered' &&
+        st !== 'out_delivery' &&
+        st !== 'cancelled';
       const canRejectOrder =
         permissions.update && st !== 'delivered' && st !== 'cancelled';
 

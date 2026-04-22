@@ -1,24 +1,30 @@
 import type { ProductData } from '@/pages/dashboard/products/types/product.types';
+import type { CategoryData } from '@/pages/dashboard/categories/types/category.types';
 
 import { toast } from 'react-toastify';
 import { useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
+import { Iconify } from '@/shared/components/iconify';
 import { formatTranslated } from '@/utils/format-translated';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { usePermissions } from '@/auth/hooks/use-permissions';
-import React, { useState, useEffect, useCallback } from 'react';
 import { useFetchShops } from '@/pages/dashboard/vendor/hooks/shop';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { _BrandApi } from '@/pages/dashboard/products/api/brand.services';
 import { _VendorApi } from '@/pages/dashboard/vendor/api/vendor.services';
 import { _CategoryApi } from '@/pages/dashboard/categories/api/category.services';
 import { type ProductFormValues, inventoryProductColumns } from '@/columns/one/products/one';
 import { ProductVariantsPriceModal } from '@/pages/dashboard/products/components/ProductVariantsPriceModal';
 import {
+  buildCategorySelectRows,
+  nativeSelectCategoryLabel,
+} from '@/pages/dashboard/categories/utils/build-parent-picker-options';
+import {
   useFetchProducts,
   useDeleteProduct,
-  useUpdateProductQuantity,
   useUpdateProductPrice,
+  useUpdateProductQuantity,
 } from '@/pages/dashboard/products/hooks/product';
 
 import { CONFIG } from 'src/global-config';
@@ -109,7 +115,10 @@ export default function InventoryPage() {
     queryKey: ['categories', 'inventory-filter'],
     queryFn: () => _CategoryApi.getListCategoriesPaginated({ page: 1, per_page: 500 }),
   });
-  const filterCategories = categoriesResp?.data?.items ?? [];
+  const filterCategoryOptions = useMemo(
+    () => buildCategorySelectRows((categoriesResp?.data?.items ?? []) as CategoryData[]),
+    [categoriesResp?.data?.items]
+  );
 
   const { data: brandsResp } = useQuery({
     queryKey: ['brands', 'inventory-filter'],
@@ -258,32 +267,64 @@ export default function InventoryPage() {
     <>
       <title>{t('form.inventoryIndexDocumentTitle', { appName: CONFIG.appName })}</title>
 
-      {/* Tabs */}
-      <div className="mb-4 flex gap-1 rounded-xl border border-border bg-muted/40 p-1 w-fit">
-        <button
-          type="button"
-          onClick={() => handleTabChange('tikmool')}
-          className={`flex items-center gap-2 rounded-lg px-5 py-2 text-sm font-medium transition-all ${
-            activeTab === 'tikmool'
-              ? 'bg-background text-foreground shadow-sm'
-              : 'text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          <span className="text-base">🏪</span>
-          {t('inventoryTikmoolTab')}
-        </button>
-        <button
-          type="button"
-          onClick={() => handleTabChange('vendors')}
-          className={`flex items-center gap-2 rounded-lg px-5 py-2 text-sm font-medium transition-all ${
-            activeTab === 'vendors'
-              ? 'bg-background text-foreground shadow-sm'
-              : 'text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          <span className="text-base">🏭</span>
-          {t('inventoryVendorsTab')}
-        </button>
+      {/* Tabs — centered pill switcher */}
+      <div className="mx-auto mb-8 mt-2 flex w-full max-w-[1600px] justify-center px-3 py-2 sm:mt-4 sm:px-6 sm:py-3 md:px-8">
+        <div className="relative w-full max-w-lg px-1 sm:px-2">
+          <div
+            className="pointer-events-none absolute -inset-0.5 rounded-[1.1rem] bg-gradient-to-r from-primary/25 via-amber-500/20 to-primary/25 opacity-80 blur-sm"
+            aria-hidden
+          />
+          <div
+            role="tablist"
+            aria-label={t('form.inventoryIndexDocumentTitle', { appName: CONFIG.appName })}
+            className="relative flex w-full items-stretch gap-1 rounded-2xl border border-primary/25 bg-gradient-to-b from-card via-card/95 to-muted/20 p-1.5 shadow-[0_8px_30px_-12px_rgba(0,0,0,0.15),inset_0_1px_0_0_rgba(255,255,255,0.08)] ring-1 ring-border/40 backdrop-blur-sm sm:p-2"
+          >
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'tikmool'}
+              onClick={() => handleTabChange('tikmool')}
+              className={[
+                'group relative flex min-h-[2.85rem] flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200 sm:min-h-[3rem] sm:px-5 sm:py-3.5',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-card',
+                activeTab === 'tikmool'
+                  ? 'bg-gradient-to-br from-primary/95 to-primary/80 text-primary-foreground shadow-md shadow-primary/30'
+                  : 'text-muted-foreground hover:bg-primary/[0.06] hover:text-foreground',
+              ].join(' ')}
+            >
+              <Iconify
+                icon="solar:shop-2-bold"
+                className={[
+                  'h-[18px] w-[18px] shrink-0 transition-transform',
+                  activeTab === 'tikmool' ? 'text-primary-foreground' : 'text-primary/80 group-hover:scale-110',
+                ].join(' ')}
+              />
+              <span className="truncate text-center sm:text-base">{t('inventoryTikmoolTab')}</span>
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'vendors'}
+              onClick={() => handleTabChange('vendors')}
+              className={[
+                'group relative flex min-h-[2.85rem] flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200 sm:min-h-[3rem] sm:px-5 sm:py-3.5',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-card',
+                activeTab === 'vendors'
+                  ? 'bg-gradient-to-br from-primary/95 to-primary/80 text-primary-foreground shadow-md shadow-primary/30'
+                  : 'text-muted-foreground hover:bg-primary/[0.06] hover:text-foreground',
+              ].join(' ')}
+            >
+              <Iconify
+                icon="solar:buildings-2-bold"
+                className={[
+                  'h-[18px] w-[18px] shrink-0 transition-transform',
+                  activeTab === 'vendors' ? 'text-primary-foreground' : 'text-primary/80 group-hover:scale-110',
+                ].join(' ')}
+              />
+              <span className="truncate text-center sm:text-base">{t('inventoryVendorsTab')}</span>
+            </button>
+          </div>
+        </div>
       </div>
 
       <DataTable
@@ -353,9 +394,9 @@ export default function InventoryPage() {
                 onChange={(e) => { setCategoryFilter(e.target.value); setPageOne(); }}
               >
                 <option value="">{t('all')}</option>
-                {filterCategories.map((c) => (
+                {filterCategoryOptions.map((c) => (
                   <option key={c.id} value={String(c.id)}>
-                    {typeof c.name === 'object' ? formatTranslated(c.name as any) : c.name}
+                    {nativeSelectCategoryLabel(c.label, c.depth, c.hasChildren)}
                   </option>
                 ))}
               </select>

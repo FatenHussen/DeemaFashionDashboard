@@ -1,4 +1,4 @@
-import type { SectionItem, FilterConfig } from '../types/page-section.types';
+import type { SectionItem, FilterConfig, PageSectionVariant } from '../types/page-section.types';
 
 import { axiosInstance } from '@/api';
 import { toast } from 'react-toastify';
@@ -32,6 +32,13 @@ import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout
 import { InfiniteScrollSelect } from 'src/shared/components/infinite-scroll-select';
 
 // ----------------------------------------------------------------------
+
+const PAGE_SECTION_VARIANTS: PageSectionVariant[] = ['vertical', 'horizontal', 'square'];
+
+function parsePageSectionVariant(value: unknown): PageSectionVariant {
+  if (value === 'vertical' || value === 'horizontal' || value === 'square') return value;
+  return 'vertical';
+}
 
 const sectionFetcher = (page: number, limit: number) =>
   _PageSectionApi.getSections(page, limit).then((r) => ({
@@ -79,6 +86,7 @@ export default function CreatePage() {
     page_id: '',
     display_type_id: '',
     position: 'after' as const,
+    variant: 'vertical' as PageSectionVariant,
     order: 1,
     background_color: '',
     background_card_color: '',
@@ -93,6 +101,7 @@ export default function CreatePage() {
   const { handleSubmit, reset, watch, setValue } = methods;
 
   const watchedSectionId = watch('section_id');
+  const watchedPageId = watch('page_id');
   const sectionIdForDetails =
     typeof watchedSectionId === 'string' ? parseInt(watchedSectionId, 10) : Number(watchedSectionId);
   const { data: sectionDetailsData } = useFetchSectionDetails(sectionIdForDetails || '');
@@ -136,6 +145,7 @@ export default function CreatePage() {
         page_id: ps.page_id ?? ps.page?.id ?? '',
         display_type_id: pageSection.display_type_id ?? '',
         position: pageSection.position ?? 'after',
+        variant: parsePageSectionVariant(ps.variant),
         order: pageSection.order ?? 1,
         background_color: pageSection.background_color || '',
         background_card_color: pageSection.background_card_color || '',
@@ -168,6 +178,7 @@ export default function CreatePage() {
             ? parseInt(data.display_type_id)
             : data.display_type_id,
         position: data.position,
+        variant: data.variant,
         order: typeof data.order === 'string' ? parseInt(data.order) : data.order,
         background_color: data.background_color || undefined,
         background_card_color: data.background_card_color || undefined,
@@ -204,6 +215,15 @@ export default function CreatePage() {
       { value: 'before', label: t('form.positionBefore') },
       { value: 'after', label: t('form.positionAfter') },
     ],
+    [t]
+  );
+
+  const variantOptions = useMemo(
+    () =>
+      PAGE_SECTION_VARIANTS.map((v) => ({
+        value: v,
+        label: t(`form.pageSectionVariant_${v}`),
+      })),
     [t]
   );
 
@@ -367,6 +387,7 @@ export default function CreatePage() {
           <Box className="p-6">
             <DisplayTypeImageSelect
               name="display_type_id"
+              pageId={watchedPageId}
               manualModel={
                 selectedSection?.manual?.manual_model ??
                 (sectionDetailsData?.data as any)?.manual?.manual_model ??
@@ -387,10 +408,11 @@ export default function CreatePage() {
               <Iconify icon="solar:align-vertical-spacing-bold" className="text-emerald-500" width={15} />
             </Box>
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              {t('form.pageSectionFormPositionLabel')} & {t('form.pageSectionFormOrderLabel')}
+              {t('form.pageSectionFormPositionLabel')} · {t('form.pageSectionFormOrderLabel')} ·{' '}
+              {t('form.pageSectionFormVariantLabel')}
             </Typography>
           </Box>
-          <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+          <Box className="p-6 grid grid-cols-1 md:grid-cols-3 gap-5">
             <Box className="group">
               <Box className="flex items-center gap-2 mb-2">
                 <Iconify icon="solar:align-vertical-spacing-bold" className="text-emerald-500" width={20} height={20} />
@@ -419,6 +441,22 @@ export default function CreatePage() {
                 type="number"
                 placeholder={t('form.displayOrderPlaceholder')}
                 helperText={t('form.displayOrderHelper')}
+                className="transition-all duration-200"
+              />
+            </Box>
+
+            <Box className="group">
+              <Box className="flex items-center gap-2 mb-2">
+                <Iconify icon="solar:box-minimalistic-bold" className="text-emerald-500" width={20} height={20} />
+                <Typography variant="subtitle2" className="font-semibold text-foreground">
+                  {t('form.pageSectionFormVariantLabel')}
+                </Typography>
+              </Box>
+              <RHFSelect
+                name="variant"
+                options={variantOptions}
+                placeholder={t('form.selectVariant')}
+                helperText={t('form.pageSectionVariantHelper')}
                 className="transition-all duration-200"
               />
             </Box>
@@ -487,8 +525,15 @@ export default function CreatePage() {
   );
 }
 
+function parsePositiveId(value: unknown): number {
+  if (value === null || value === undefined || value === '') return 0;
+  const n = typeof value === 'string' ? parseInt(value, 10) : Number(value);
+  return !Number.isNaN(n) && n > 0 ? n : 0;
+}
+
 function DisplayTypeImageSelect({
   name,
+  pageId,
   manualModel,
   selectedSection,
   sectionId,
@@ -496,6 +541,7 @@ function DisplayTypeImageSelect({
   currentDisplayTypeId,
 }: {
   name: string;
+  pageId?: string | number;
   manualModel?: string | null;
   selectedSection: SectionItem | null;
   sectionId?: number | null;
@@ -504,11 +550,19 @@ function DisplayTypeImageSelect({
 }) {
   const { t } = useTranslation('table');
   const { control } = useFormContext();
+  const hasSection = !!(selectedSection || sectionId);
+  const hasPage = parsePositiveId(pageId) > 0;
+  const canLoadDisplayTypes = hasSection && hasPage;
   const displayTypesQuery = useQuery({
-    queryKey: ['pageSection', 'displayTypes', manualModel || ''],
-    queryFn: () => _PageSectionApi.getDisplayTypes(manualModel || undefined),
-    // Enable as long as a section is selected (either found in list or by id)
-    enabled: !!(selectedSection || sectionId),
+    queryKey: [
+      'pageSection',
+      'displayTypes',
+      manualModel || '',
+      String(pageId ?? ''),
+    ],
+    queryFn: () =>
+      _PageSectionApi.getDisplayTypes(manualModel || undefined, pageId),
+    enabled: canLoadDisplayTypes,
   });
 
   const displayTypes = displayTypesQuery.data?.data ?? [];
@@ -526,7 +580,7 @@ function DisplayTypeImageSelect({
         control={control}
         render={({ field, fieldState: { error } }) => (
           <Box>
-            {!(selectedSection || sectionId) ? (
+            {!hasSection ? (
               <Box className="p-6 border border-dashed rounded-lg text-center">
                 <Iconify
                   icon="solar:widget-bold"
@@ -534,6 +588,16 @@ function DisplayTypeImageSelect({
                 />
                 <Typography variant="body2" className="text-muted-foreground">
                   {t('form.pageSectionSelectSectionForDisplayTypes')}
+                </Typography>
+              </Box>
+            ) : !hasPage ? (
+              <Box className="p-6 border border-dashed rounded-lg text-center">
+                <Iconify
+                  icon="solar:document-bold"
+                  className="w-12 h-12 text-muted-foreground/50 mx-auto mb-2"
+                />
+                <Typography variant="body2" className="text-muted-foreground">
+                  {t('form.pageSectionSelectPageForDisplayTypes')}
                 </Typography>
               </Box>
             ) : displayTypesQuery.isLoading ? (

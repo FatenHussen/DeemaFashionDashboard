@@ -62,9 +62,10 @@ function verticalVars(): React.CSSProperties {
     '--nav-item-root-height': '44px',
     // sub
     '--nav-item-sub-height': '40px',
-    // icon
+    // icon — gap between icon and label (logical; works in RTL)
     '--nav-icon-size': '20px',
-    '--nav-icon-margin': '0 10px 0 0',
+    '--nav-icon-text-gap': '12px',
+    '--nav-icon-margin': '0',
     // bullet
     '--nav-bullet-size': '8px',
     '--nav-bullet-light-color': bulletColor.light,

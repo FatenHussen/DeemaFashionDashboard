@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Iconify } from '@/shared/components/iconify';
 import { formatTranslated } from '@/utils/format-translated';
 import { _VendorApi } from '@/pages/dashboard/vendor/api/vendor.services';
 import { _VendorPackageApi } from '@/pages/dashboard/vendor/api/vendor-package.services';
@@ -132,8 +133,10 @@ export default function VendorSubscriptionCreatePage() {
         description={t('form.createVendorSubscriptionDesc')}
         submitLabel={t('form.createVendorSubscriptionSubmit')}
         submittingLabel={t('form.creatingVendorSubscription')}
+        ambientBackground
+        icon={<Iconify icon="solar:card-bold" className="text-primary" width={24} height={24} />}
       >
-        <Box className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Box className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <Box className="md:col-span-2">
             <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
               {t('columns.vendor')}
@@ -158,8 +161,10 @@ export default function VendorSubscriptionCreatePage() {
           </Box>
           <RHFTextField name="starts_at" type="date" label={t('vendorSubscriptionStartsAt')} fullWidth />
           <RHFTextField name="ends_at" type="date" label={t('vendorSubscriptionEndsAt')} fullWidth />
-          <Box className="md:col-span-2 flex items-center justify-between rounded-lg border p-3">
-            <Typography variant="body2">{t('columns.autoRenew')}</Typography>
+          <Box className="flex items-center justify-between rounded-2xl border border-border/50 bg-muted/20 p-4 md:col-span-2">
+            <Typography variant="body2" className="font-medium">
+              {t('columns.autoRenew')}
+            </Typography>
             <Controller
               name="auto_renew"
               control={control}
@@ -181,7 +186,7 @@ export default function VendorSubscriptionCreatePage() {
               render={({ field }) => (
                 <select
                   {...field}
-                  className="w-full h-10 rounded-xl border border-input bg-background px-3 text-sm"
+                  className="h-11 w-full rounded-2xl border border-input bg-background px-3 text-sm shadow-sm"
                 >
                   {VENDOR_SUBSCRIPTION_STATUSES.map((s) => (
                     <option key={s} value={s}>

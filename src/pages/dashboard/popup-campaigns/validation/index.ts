@@ -55,7 +55,14 @@ const optionalUrl = zod
   .optional()
   .default('')
   .refine(
-    (v) => !v || zod.string().url().safeParse(v).success,
+    (v) => {
+      if (!v || !String(v).trim()) return true;
+      const s = String(v).trim();
+      if (zod.string().url().safeParse(s).success) return true;
+      // Relative paths (e.g. /checkout?promotion_id=5) are valid for same-site CTA links
+      if (s.startsWith('/')) return true;
+      return false;
+    },
     { message: t('popupCampaign.buttonUrlInvalid') }
   );
 

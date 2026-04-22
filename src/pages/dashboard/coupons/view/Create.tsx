@@ -1,4 +1,5 @@
 import type { MultiSelectOption } from '@/shared/ui/multi-select';
+import type { ProductData } from '@/pages/dashboard/products/types/product.types';
 import type { CouponDetailsData } from '@/pages/dashboard/coupons/types/coupon.types';
 
 import { toast } from 'react-toastify';
@@ -57,6 +58,12 @@ const cityFetcher = (page: number, limit: number) =>
     },
   }));
 
+function resolveProductListImageUrl(img: string | null | undefined): string | null {
+  if (img == null || String(img).trim() === '') return null;
+  const s = String(img).trim();
+  return s.startsWith('http') ? s : `${CONFIG.serverUrl}/${s.replace(/^\//, '')}`;
+}
+
 // ----------------------------------------------------------------------
 
 function toISODateTimeLocal(d: string): string {
@@ -109,27 +116,56 @@ export default function CreatePage() {
   const createCouponMutation = useCreateCoupon();
   const updateCouponMutation = useUpdateCoupon();
 
-  const products =
-    (productsResponse?.data as { items?: { id: number; name: unknown }[] } | undefined)?.items ??
-    (productsResponse?.data as { data?: { id: number; name: unknown }[] } | undefined)?.data ??
-    [];
+  const loadedCoupon = isEditMode ? couponResponse?.data ?? couponFromState : undefined;
+
+  const productOptions: MultiSelectOption[] = useMemo(() => {
+    const raw = productsResponse?.data as
+      | { items?: ProductData[]; data?: ProductData[] }
+      | undefined;
+    const list = raw?.items ?? raw?.data ?? [];
+    const byId = new Map<number, MultiSelectOption>();
+
+    for (const p of list) {
+      const img = p.thumbnail ?? p.image ?? (p.images?.[0] != null ? String(p.images[0]) : null);
+      byId.set(p.id, {
+        value: p.id,
+        label:
+          formatTranslated(p.name as Parameters<typeof formatTranslated>[0]) ||
+          t('form.productFallbackLabel', { id: p.id }),
+        imageUrl: resolveProductListImageUrl(img),
+      });
+    }
+
+    const embedded = loadedCoupon?.products;
+    if (embedded?.length) {
+      for (const p of embedded) {
+        const row = p as {
+          id: number;
+          name: unknown;
+          image?: string | null;
+          thumbnail?: string | null;
+        };
+        if (byId.has(row.id)) continue;
+        const img = row.thumbnail ?? row.image ?? null;
+        byId.set(row.id, {
+          value: row.id,
+          label:
+            formatTranslated(row.name as Parameters<typeof formatTranslated>[0]) ||
+            t('form.productFallbackLabel', { id: row.id }),
+          imageUrl: resolveProductListImageUrl(img),
+        });
+      }
+    }
+
+    return Array.from(byId.values());
+  }, [productsResponse?.data, t, loadedCoupon]);
+
   const vendors =
     (vendorsResponse?.data as { items?: { id: number; name: unknown }[] } | undefined)?.items ??
     (vendorsResponse?.data as { data?: { id: number; name: unknown }[] } | undefined)?.data ??
     [];
   const shops =
     (shopsResponse?.data as { items?: { id: number; name: unknown }[] } | undefined)?.items ?? [];
-
-  const productOptions: MultiSelectOption[] = useMemo(
-    () =>
-      products.map((p: { id: number; name: unknown }) => ({
-        value: p.id,
-        label:
-          formatTranslated(p.name as Parameters<typeof formatTranslated>[0]) ||
-          t('form.productFallbackLabel', { id: p.id }),
-      })),
-    [products, t]
-  );
 
   const vendorOptions: MultiSelectOption[] = useMemo(
     () =>
@@ -431,7 +467,15 @@ export default function CreatePage() {
             {couponType === 'product' && (
               <Box>
                 <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5"><Iconify icon="solar:cart-large-2-bold" className="text-sky-500" width={16} />{t('form.couponTypeProducts')}</Typography>
-                <RHFMultiSelect name="product_ids" options={productOptions} label={t('form.selectProducts')} placeholder={hasAffiliateId ? t('form.couponManagedByAffiliate') : t('form.couponSearchSelectProducts')} fullWidth isDisabled={hasAffiliateId} />
+                <RHFMultiSelect
+                  name="product_ids"
+                  options={productOptions}
+                  label={t('form.selectProducts')}
+                  placeholder={hasAffiliateId ? t('form.couponManagedByAffiliate') : t('form.couponSearchSelectProducts')}
+                  fullWidth
+                  isDisabled={hasAffiliateId}
+                  showOptionImages
+                />
               </Box>
             )}
             {couponType === 'vendor' && (

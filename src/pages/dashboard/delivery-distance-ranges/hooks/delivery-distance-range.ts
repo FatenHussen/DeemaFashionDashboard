@@ -1,7 +1,7 @@
 import type { DeliveryDistanceRangePayload } from '../types/delivery-distance-range.types';
 
 import { queryKeys } from '@/api';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { _DeliveryDistanceRangeApi } from '../api/delivery-distance-range.services';
 

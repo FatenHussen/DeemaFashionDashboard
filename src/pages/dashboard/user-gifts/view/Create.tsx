@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { resolveStorageImageUrl } from '@/utils/shop-variant-image';
 import { _UserApi } from '@/pages/dashboard/users/api/user.services';
 import { _GiftApi } from '@/pages/dashboard/gifts/api/gift.services';
 import { useCreateUserGift } from '@/pages/dashboard/user-gifts/hooks/user-gift';
@@ -75,11 +76,18 @@ export default function CreatePage() {
           items: items.map((g: any) => ({
             id: g.id,
             label: toStr(g.name) || t('form.userGiftFallbackLabel', { id: g.id }),
+            variant_image: g.variant_image ?? null,
+            image: g.image ?? null,
           })),
           pagination,
         },
       };
     });
+
+  const giftOptionImage = (item: Record<string, unknown>) =>
+    resolveStorageImageUrl(
+      (item.variant_image as string | null | undefined) ?? (item.image as string | null | undefined)
+    );
 
   const onSubmit = async (data: UserGiftCreateFormValues) => {
     try {
@@ -132,7 +140,13 @@ export default function CreatePage() {
             </Box>
             <Box>
               <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.userGiftFieldGiftRequired')}</Typography>
-              <RHFInfiniteSelect name="gift_id" queryKey={['gifts', 'infinite', 'user-gift-form']} fetcher={giftFetcher} placeholder={t('form.selectGift')} />
+              <RHFInfiniteSelect
+                name="gift_id"
+                queryKey={['gifts', 'infinite', 'user-gift-form']}
+                fetcher={giftFetcher}
+                placeholder={t('form.selectGift')}
+                getOptionImage={giftOptionImage}
+              />
             </Box>
           </Box>
         </Box>

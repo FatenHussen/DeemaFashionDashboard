@@ -1,8 +1,9 @@
+import type { CategoryData } from '@/pages/dashboard/categories/types/category.types';
+
 import { toast } from 'react-toastify';
-import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
-import { formatTranslated } from '@/utils/format-translated';
+import { useMemo, useState, useEffect } from 'react';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { usePermissions } from '@/auth/hooks/use-permissions';
 import { getApiErrorMessage } from '@/lib/get-api-error-message';
@@ -15,6 +16,10 @@ import {
   useFetchCategoryAttributes,
   useDeleteCategoryAttribute,
 } from '@/pages/dashboard/categories/hooks/category-attribute';
+import {
+  buildCategorySelectRows,
+  nativeSelectCategoryLabel,
+} from '@/pages/dashboard/categories/utils/build-parent-picker-options';
 
 import { CONFIG } from 'src/global-config';
 
@@ -46,16 +51,21 @@ export default function Page() {
   const [categoryFilter, setCategoryFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [isActiveFilter, setIsActiveFilter] = useState<'' | '1' | '0'>('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [search, categoryFilter, typeFilter, isActiveFilter]);
+  }, [search, categoryFilter, typeFilter, isActiveFilter, dateFrom, dateTo]);
 
   const { data: categoriesResp } = useQuery({
     queryKey: ['categories', 'category-attributes-filter'],
     queryFn: () => _CategoryApi.getListCategoriesPaginated({ page: 1, per_page: 500 }),
   });
-  const filterCategories = categoriesResp?.data?.items ?? [];
+  const filterCategoryOptions = useMemo(
+    () => buildCategorySelectRows((categoriesResp?.data?.items ?? []) as CategoryData[]),
+    [categoriesResp?.data?.items]
+  );
 
   const {
     data: categoryAttributesResponse,
@@ -69,6 +79,8 @@ export default function Page() {
     ...(categoryFilter ? { category_id: Number(categoryFilter) } : {}),
     ...(typeFilter ? { type: typeFilter } : {}),
     ...(isActiveFilter === '' ? {} : { is_active: isActiveFilter === '1' }),
+    ...(dateFrom ? { date_from: dateFrom } : {}),
+    ...(dateTo ? { date_to: dateTo } : {}),
   });
   const deleteCategoryAttributeMutation = useDeleteCategoryAttribute();
 
@@ -129,12 +141,16 @@ export default function Page() {
   const activeFilterCount =
     (categoryFilter ? 1 : 0) +
     (typeFilter ? 1 : 0) +
-    (isActiveFilter ? 1 : 0);
+    (isActiveFilter ? 1 : 0) +
+    (dateFrom ? 1 : 0) +
+    (dateTo ? 1 : 0);
 
   const onFilterReset = () => {
     setCategoryFilter('');
     setTypeFilter('');
     setIsActiveFilter('');
+    setDateFrom('');
+    setDateTo('');
     setCurrentPage(1);
   };
 
@@ -173,7 +189,6 @@ export default function Page() {
           delete: hasPermission('delete', 'categoryattribute'),
         }}
         isLoading={isLoading}
-        hasFilter
         filterSidebar={
           <div className="flex flex-col gap-5">
             <FilterGroup label={t('columns.category')}>
@@ -183,9 +198,9 @@ export default function Page() {
                 onChange={(e) => setCategoryFilter(e.target.value)}
               >
                 <option value="">{t('all')}</option>
-                {filterCategories.map((c) => (
+                {filterCategoryOptions.map((c) => (
                   <option key={c.id} value={String(c.id)}>
-                    {typeof c.name === 'object' ? formatTranslated(c.name as { en?: string; ar?: string }) : c.name}
+                    {nativeSelectCategoryLabel(c.label, c.depth, c.hasChildren)}
                   </option>
                 ))}
               </select>
@@ -220,6 +235,24 @@ export default function Page() {
                 <option value="1">{t('active')}</option>
                 <option value="0">{t('inactive')}</option>
               </select>
+            </FilterGroup>
+
+            <FilterGroup label={t('fromDate')}>
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                className={filterSelectClass}
+              />
+            </FilterGroup>
+
+            <FilterGroup label={t('toDate')}>
+              <input
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                className={filterSelectClass}
+              />
             </FilterGroup>
           </div>
         }

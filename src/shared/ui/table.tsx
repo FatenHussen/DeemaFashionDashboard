@@ -103,8 +103,8 @@ const TableHead = forwardRef<HTMLTableCellElement, React.ThHTMLAttributes<HTMLTa
       ref={ref}
       className={mergeClasses([
         'h-11 sm:h-12 px-3 sm:px-4 lg:px-5',
-        'text-left align-middle',
-        'font-semibold text-muted-foreground text-[11px] uppercase tracking-wider',
+        'text-start align-middle',
+        'text-sm font-semibold text-primary',
         'bg-muted/50',
         'transition-colors duration-150',
         '[&:has([role=checkbox])]:pr-0 *:[[role=checkbox]]:translate-y-0.5',

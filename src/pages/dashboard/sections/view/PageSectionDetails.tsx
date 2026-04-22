@@ -67,6 +67,18 @@ export default function PageSectionDetailsPage() {
       ? (pageSection.name as { ar?: string; en?: string })
       : null;
 
+  const rawVariant = (pageSection as { variant?: string }).variant;
+  const variantDisplay =
+    rawVariant === 'vertical'
+      ? t('form.pageSectionVariant_vertical')
+      : rawVariant === 'horizontal'
+        ? t('form.pageSectionVariant_horizontal')
+        : rawVariant === 'square'
+          ? t('form.pageSectionVariant_square')
+          : rawVariant != null && rawVariant !== ''
+            ? rawVariant
+            : undefined;
+
   return (
     <>
       <title>{t('form.pageSectionDetailsDocumentTitle', { appName: CONFIG.appName })}</title>
@@ -148,6 +160,7 @@ export default function PageSectionDetailsPage() {
                   }
                 />
                 <DetailRow label={t('columns.order')} value={(pageSection as any).order} />
+                <DetailRow label={t('form.pageSectionFormVariantLabel')} value={variantDisplay} />
                 <DetailRow label={t('form.displayTypeId')} value={(pageSection as any).display_type_id} />
                 <DetailRow label={t('form.backgroundColor')} value={(pageSection as any).background_color} />
                 <DetailRow

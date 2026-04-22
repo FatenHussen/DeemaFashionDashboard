@@ -366,8 +366,8 @@ export function DataTableToolbar<TData>({
 
         {/* ── Right: Actions ── */}
         <div className="flex flex-wrap items-center gap-2 shrink-0">
-          {/* Filter Buttons */}
-          {hasFilter && <DataTableFilterButtons />}
+          {/* Legacy toolbar date range — only when no filter sidebar (sidebar replaces this) */}
+          {hasFilter && !filterSidebar && <DataTableFilterButtons />}
 
           {/* Recycle Bin Filter */}
           {hasRecycleFilter && (

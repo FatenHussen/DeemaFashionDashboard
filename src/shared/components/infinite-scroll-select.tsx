@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useRef, useState, useEffect } from 'react';
 import { formatTranslated } from '@/utils/format-translated';
 import { shopVariantOptionColorHex } from '@/utils/shop-variant-image';
+import { categoryTreeIndentPx } from '@/pages/dashboard/categories/utils/build-parent-picker-options';
 
 import { Iconify } from './iconify';
 import { ShopVariantColorSwatch } from './shop-variant-color-swatch';
@@ -238,10 +239,14 @@ export function InfiniteScrollSelect({
                 </div>
               ) : (
                 filtered.map((item: InfiniteSelectOption) => {
+                  const rowDepth = Number(item.depth ?? 0);
+                  const rowIndentPx = categoryTreeIndentPx(rowDepth);
                   const rowImg = getOptionImage?.(item as InfiniteSelectOption & Record<string, unknown>);
                   const rowImgOk = rowImg != null && String(rowImg).trim() !== '';
                   const rowHex = getOptionColorHex?.(item as InfiniteSelectOption & Record<string, unknown>);
                   const rowHexOk = rowHex != null && String(rowHex).trim() !== '';
+                  const isVariantRowUi = Boolean(getOptionImage || getOptionColorHex);
+                  const showParentFolderIcon = item.hasChildren === true && !isVariantRowUi;
                   return (
                     <button
                       key={item.id}
@@ -250,10 +255,23 @@ export function InfiniteScrollSelect({
                         onChange(item.id);
                         handleClose();
                       }}
+                      style={
+                        rowIndentPx != null
+                          ? { paddingInlineStart: rowIndentPx }
+                          : undefined
+                      }
                       className={`flex w-full items-center gap-2 px-3 py-2 text-sm text-start hover:bg-muted transition-colors min-w-0 ${
                         Number(value) === Number(item.id) ? 'bg-primary/10 text-primary font-medium' : ''
                       }`}
                     >
+                      {showParentFolderIcon ? (
+                        <Iconify
+                          icon="solar:folder-2-bold"
+                          width={18}
+                          className="shrink-0 text-amber-600/85 dark:text-amber-400/90"
+                          aria-hidden
+                        />
+                      ) : null}
                       {rowHexOk ? (
                         <ShopVariantColorSwatch hex={String(rowHex).trim()} size="lg" />
                       ) : null}
