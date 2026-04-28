@@ -302,7 +302,7 @@ export default function CreatePage() {
               <Box className="flex items-center gap-2 mb-2">
                 <Iconify icon="solar:sort-bold" className="text-violet-500" width={20} height={20} />
                 <Typography variant="subtitle2" className="font-semibold text-foreground">
-                  {t('form.order')}
+                  {t('form.categoryDisplayOrder')}
                 </Typography>
               </Box>
               <RHFTextField

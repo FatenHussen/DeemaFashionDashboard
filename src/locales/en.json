@@ -714,6 +714,7 @@
       "parentCategoryPlaceholder": "Select a parent category (optional)",
       "parentCategorySection": "Parent category",
       "noParent": "None (top-level)",
+      "categoryDisplayOrder": "Display order",
       "order": "Order",
       "orderHelper": "Lower numbers appear first in lists.",
       "placeholderZero": "0",

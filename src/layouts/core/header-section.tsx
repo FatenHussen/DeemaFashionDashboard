@@ -44,7 +44,7 @@ export function HeaderSection({
         layoutClasses.header,
         'dashboard-header-shell sticky py-0 top-0 z-[var(--layout-header-zIndex)]',
         disableElevation ? 'dashboard-header-shell--quiet' : '',
-        'relative overflow-hidden bg-white',
+        'overflow-hidden bg-white',
         'border-b border-b-[var(--chrome-edge)]',
         'transition-shadow duration-300 ease-out',
         className,

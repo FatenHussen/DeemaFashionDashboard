@@ -171,6 +171,13 @@ function fieldInputClass(error?: boolean) {
     : inputCls;
 }
 
+function toTwoDecimalNumber(raw: string): number | undefined {
+  if (raw === '') return undefined;
+  const value = Number(raw);
+  if (!Number.isFinite(value)) return undefined;
+  return Math.round(value * 100) / 100;
+}
+
 function FieldErrorText({ message }: { message?: string }) {
   if (!message) return null;
   return (
@@ -2043,16 +2050,10 @@ export default function CreatePage() {
                           placeholder="0.00"
                           value={field.value === undefined || field.value === null ? '' : field.value}
                           onChange={(e) => {
-                            const raw = e.target.value;
-                            if (raw === '') {
-                              field.onChange(undefined);
-                              return;
-                            }
-                            const v = Number(raw);
-                            field.onChange(Number.isFinite(v) ? v : undefined);
+                            field.onChange(toTwoDecimalNumber(e.target.value));
                           }}
                           className={fieldInputClass(!!error)}
-                          step="any"
+                          step="0.01"
                           min={0}
                         />
                         <FieldErrorText message={error?.message} />
@@ -2086,10 +2087,10 @@ export default function CreatePage() {
                           });
                           return;
                         }
-                        const v = Number(raw);
+                        const v = toTwoDecimalNumber(raw);
                         setValue(
                           'price',
-                          localAmountToUsd(Number.isFinite(v) ? v : 0, rate),
+                          localAmountToUsd(v ?? 0, rate),
                           {
                             shouldValidate: true,
                             shouldDirty: true,
@@ -2097,7 +2098,7 @@ export default function CreatePage() {
                         );
                       }}
                       className={fieldInputClass(!!errors.price)}
-                      step="any"
+                      step="0.01"
                       min={0}
                     />
                   </div>
@@ -2121,16 +2122,10 @@ export default function CreatePage() {
                           placeholder="0.00"
                           value={field.value === undefined || field.value === null ? '' : field.value}
                           onChange={(e) => {
-                            const raw = e.target.value;
-                            if (raw === '') {
-                              field.onChange(undefined);
-                              return;
-                            }
-                            const v = Number(raw);
-                            field.onChange(Number.isFinite(v) ? v : undefined);
+                            field.onChange(toTwoDecimalNumber(e.target.value));
                           }}
                           className={fieldInputClass(!!error)}
-                          step="any"
+                          step="0.01"
                           min={0}
                         />
                         <FieldErrorText message={error?.message} />
@@ -2156,15 +2151,10 @@ export default function CreatePage() {
                       placeholder="0.00"
                       value={field.value === undefined || field.value === null ? '' : field.value}
                       onChange={(e) => {
-                        const raw = e.target.value;
-                        if (raw === '') {
-                          field.onChange(undefined);
-                          return;
-                        }
-                        const v = Number(raw);
-                        field.onChange(Number.isFinite(v) ? v : undefined);
+                        field.onChange(toTwoDecimalNumber(e.target.value));
                       }}
                       className={fieldInputClass(!!error)}
+                      step="0.01"
                     />
                     <FieldErrorText message={error?.message} />
                   </div>
@@ -2216,8 +2206,9 @@ export default function CreatePage() {
                     value={field.value ?? 0}
                     min={0}
                     max={discountTypeWatch === 'percentage' ? 100 : undefined}
-                    onChange={(e) => field.onChange(Number(e.target.value))}
+                    onChange={(e) => field.onChange(toTwoDecimalNumber(e.target.value) ?? 0)}
                     className={fieldInputClass(!!error)}
+                    step="0.01"
                   />
                   <FieldErrorText message={error?.message} />
                 </div>
@@ -2239,9 +2230,10 @@ export default function CreatePage() {
                     placeholder="0.00"
                     value={field.value ?? ''}
                     onChange={(e) =>
-                      field.onChange(e.target.value === '' ? undefined : Number(e.target.value))
+                      field.onChange(toTwoDecimalNumber(e.target.value))
                     }
                     className={fieldInputClass(!!error)}
+                    step="0.01"
                   />
                   <FieldErrorText message={error?.message} />
                 </div>
@@ -2881,9 +2873,10 @@ export default function CreatePage() {
                           placeholder={t('form.extraPriceOptional')}
                           value={f.value ?? ''}
                           onChange={(e) =>
-                            f.onChange(e.target.value === '' ? undefined : Number(e.target.value))
+                            f.onChange(toTwoDecimalNumber(e.target.value))
                           }
                           className={fieldInputClass(!!error)}
+                          step="0.01"
                         />
                         <FieldErrorText message={error?.message} />
                       </div>
@@ -3630,8 +3623,11 @@ export default function CreatePage() {
                                         {...f}
                                         type="number"
                                         placeholder={t('form.shopVariantPricePlaceholder')}
-                                        onChange={(e) => f.onChange(Number(e.target.value))}
+                                        onChange={(e) =>
+                                          f.onChange(toTwoDecimalNumber(e.target.value) ?? 0)
+                                        }
                                         className={fieldInputClass(!!error)}
+                                        step="0.01"
                                       />
                                       <FieldErrorText message={error?.message} />
                                     </div>
@@ -3653,9 +3649,10 @@ export default function CreatePage() {
                                         value={f.value ?? ''}
                                         placeholder={t('form.shopVariantPricePlaceholder')}
                                         onChange={(e) =>
-                                          f.onChange(e.target.value === '' ? undefined : Number(e.target.value))
+                                          f.onChange(toTwoDecimalNumber(e.target.value))
                                         }
                                         className={fieldInputClass(!!error)}
+                                        step="0.01"
                                       />
                                       <FieldErrorText message={error?.message} />
                                     </div>
@@ -3677,9 +3674,10 @@ export default function CreatePage() {
                                         value={f.value ?? ''}
                                         placeholder={t('form.shopVariantDiscountPlaceholder')}
                                         onChange={(e) =>
-                                          f.onChange(e.target.value === '' ? undefined : Number(e.target.value))
+                                          f.onChange(toTwoDecimalNumber(e.target.value))
                                         }
                                         className={fieldInputClass(!!error)}
+                                        step="0.01"
                                       />
                                       <FieldErrorText message={error?.message} />
                                     </div>
