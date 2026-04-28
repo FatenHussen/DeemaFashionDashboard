@@ -1,27 +1,36 @@
-import { useState } from 'react';
 import { toast } from 'react-toastify';
+import { useNavigate } from 'react-router';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { usePermissions } from '@/auth/hooks/use-permissions';
 import { serviceColumns, type ServiceFormValues } from '@/columns/one/services/service';
-import { useFetchServices, useDeleteService } from '../../hooks/service';
 
 import { CONFIG } from 'src/global-config';
 
-// ----------------------------------------------------------------------
+import { useFetchServices, useDeleteService } from '../../hooks/service';
 
-const metadata = { title: `Services | Dashboard - ${CONFIG.appName}` };
+// ----------------------------------------------------------------------
 
 export default function Page() {
   const { t } = useTranslation('table');
+  const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [search, setSearch] = useState<string>('');
 
-  // Fetch services using the hook
-  const { data: servicesResponse, isLoading, error } = useFetchServices(currentPage, pageSize);
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
+
+  const { data: servicesResponse, isLoading, error } = useFetchServices(
+    currentPage,
+    pageSize,
+    search.trim() ? { search: search.trim() } : undefined
+  );
   const deleteServiceMutation = useDeleteService();
 
-  // Log error for debugging
   if (error) {
     console.error('Error fetching services:', error);
   }
@@ -35,18 +44,24 @@ export default function Page() {
     setCurrentPage(1);
   };
 
-  const onDelete = async (id: number) => {
-    if (window.confirm('Are you sure you want to delete this service?')) {
+  const onDelete = (id: number) => setDeletingId(id);
+  const onDeleteConfirm = async () => {
+    if (deletingId) {
       try {
-        await deleteServiceMutation.mutateAsync(id);
-        toast.success('Service deleted successfully');
-      } catch (err: any) {
-        toast.error(err?.message || 'Failed to delete service');
+        await deleteServiceMutation.mutateAsync(deletingId);
+        toast.success(t('deleteSuccess'));
+        setDeletingId(null);
+      } catch {
+        return;
       }
     }
   };
+  const onDeleteCancel = () => setDeletingId(null);
 
-  // Extract data from API response
+  const handleEdit = (row: { original: ServiceFormValues }) => {
+    navigate(`/services/update/${row.original.id}`, { state: { service: row.original } });
+  };
+
   const serviceData: ServiceFormValues[] = servicesResponse?.data?.items || [];
   const apiPagination = servicesResponse?.data?.pagination;
   const pagination = apiPagination
@@ -73,10 +88,10 @@ export default function Page() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.servicesIndexDocumentTitle', { appName: CONFIG.appName })}</title>
 
       <DataTable
-        tableName="Services"
+        tableName={t('tableNames.service')}
         columns={serviceColumns(
           {
             update: hasPermission('update', 'service'),
@@ -84,11 +99,17 @@ export default function Page() {
           },
           t,
           onDelete,
-          deleteServiceMutation.isPending
+          deleteServiceMutation.isPending,
+          deletingId !== null,
+          onDeleteConfirm,
+          onDeleteCancel,
+          deletingId,
+          handleEdit
         )}
         data={serviceData}
         createPath="/services/create"
-        hasDetails={false}
+        hasDetails
+        detailsLink="/services/update"
         permissions={{
           create: hasPermission('create', 'service'),
           update: hasPermission('update', 'service'),
@@ -96,16 +117,17 @@ export default function Page() {
         }}
         isLoading={isLoading}
         columnTranslations={{
-          id: 'ID',
-          name: 'Name',
-          created_at: 'Created At',
-          actions: 'Actions',
+          id: t('columns.id'),
+          name: t('columns.name'),
+          created_at: t('columns.createdAt'),
+          actions: t('columns.action'),
         }}
         pagination={pagination}
         currentPage={currentPage}
         pageSize={pageSize}
         onPageChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}
+        onSearchChange={setSearch}
       />
     </>
   );

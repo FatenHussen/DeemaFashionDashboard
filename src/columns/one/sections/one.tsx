@@ -2,7 +2,10 @@ import type { TFunction } from 'i18next';
 import type { ColumnDef } from '@tanstack/react-table';
 
 import { z } from 'zod';
+import { formatTranslated } from '@/utils/format-translated';
+import { TableTonedStatusPill } from '@/shared/components/table-status-badges';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
+import { sectionTypeLabel } from '@/pages/dashboard/sections/utils/section-type-label';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 
 const SectionSchema = z.object({
@@ -18,6 +21,17 @@ export interface SectionFormValues {
   [key: string]: any;
 }
 
+const sectionTypePill: Record<SectionFormValues['type'], { icon: string; className: string }> = {
+  api: {
+    icon: 'solar:code-bold',
+    className: 'border-blue-800 bg-blue-600 dark:border-blue-300',
+  },
+  manual: {
+    icon: 'solar:book-bookmark-bold',
+    className: 'border-violet-800 bg-violet-600 dark:border-violet-300',
+  },
+};
+
 export const sectionColumns = (
   permissions: {
     update: boolean;
@@ -32,52 +46,47 @@ export const sectionColumns = (
   deletingId?: number | null
 ): ColumnDef<SectionFormValues>[] => [
   {
-    id: 'id',
-    accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="ID" />,
-    cell: ({ row }) => <div className="font-medium">{row.original.id}</div>,
-  },
-  {
     id: 'name',
     accessorKey: 'name',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
-    cell: ({ row }) => <div className="font-medium">{row.original.name}</div>,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.name')} />,
+    cell: ({ row }) => <div className="font-medium">{formatTranslated(row.original.name)}</div>,
   },
   {
     id: 'type',
     accessorKey: 'type',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Type" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.type')} />,
     cell: ({ row }) => {
       const type = row.original.type;
+      const pill = sectionTypePill[type];
       return (
-        <div
-          className={`text-xs px-2 py-1 rounded-full w-fit uppercase ${
-            type === 'api'
-              ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
-              : 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400'
-          }`}
-        >
-          {type}
-        </div>
+        <TableTonedStatusPill icon={pill.icon} className={pill.className}>
+          {sectionTypeLabel(t, type)}
+        </TableTonedStatusPill>
       );
     },
   },
   {
     id: 'actions',
-    cell: ({ row }: any) => (
-      <DataTableRowActions
-        schema={SectionSchema}
-        row={row}
-        viewDetails={`/sections/details/${row.original.id}`}
-        editItem={`/sections/update/${row.original.id}`}
-        onDelete={onDelete}
-        isDeleting={isDeleting}
-        isDeleteDialogOpen={isDeleteDialogOpen}
-        onDeleteConfirm={onDeleteConfirm}
-        onDeleteCancel={onDeleteCancel}
-        deletingId={deletingId}
-        permissions={permissions}
-      />
-    ),
+    cell: ({ row }: any) => {
+      const isApiType = row.original.type === 'api';
+      const rowPermissions = isApiType
+        ? { update: false, delete: false }
+        : permissions;
+      return (
+        <DataTableRowActions
+          schema={SectionSchema}
+          row={row}
+          viewDetails={`/sections/details/${row.original.id}`}
+          editItem={isApiType ? undefined : `/sections/update/${row.original.id}`}
+          onDelete={isApiType ? undefined : onDelete}
+          isDeleting={isDeleting}
+          isDeleteDialogOpen={isDeleteDialogOpen}
+          onDeleteConfirm={onDeleteConfirm}
+          onDeleteCancel={onDeleteCancel}
+          deletingId={deletingId}
+          permissions={rowPermissions}
+        />
+      );
+    },
   },
 ];

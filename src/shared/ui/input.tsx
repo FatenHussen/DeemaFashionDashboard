@@ -1,13 +1,19 @@
-import { forwardRef } from 'react';
 import { mergeClasses } from 'minimal-shared/utils';
+import React, { useId, useMemo, forwardRef } from 'react';
 
-export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+export interface InputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'> {
   error?: boolean;
+  success?: boolean;
   helperText?: string;
   label?: string;
   fullWidth?: boolean;
   startAdornment?: React.ReactNode;
   endAdornment?: React.ReactNode;
+
+  /** UI size - distinct from HTML input size attribute */
+  size?: 'sm' | 'md' | 'lg';
+  variant?: 'default' | 'filled';
+  floatingLabel?: boolean;
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
@@ -15,65 +21,229 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     {
       className,
       error,
+      success,
       helperText,
       label,
       fullWidth,
       startAdornment,
       endAdornment,
       id,
+      size = 'md',
+      variant = 'default',
+      floatingLabel = true,
+      placeholder,
+      disabled,
+      value,
+      defaultValue,
       ...props
     },
     ref
   ) => {
-    const inputId = id || `input-${Math.random().toString(36).substr(2, 9)}`;
+    const autoId = useId();
+    const inputId = id || autoId;
+
+    /** File inputs must stay uncontrolled — setting `value` breaks selection and uploads in React. */
+    const isFileInput = props.type === 'file';
+
+    const hasValue =
+      isFileInput
+        ? false
+        : value !== undefined
+          ? String(value).length > 0
+          : defaultValue !== undefined
+            ? String(defaultValue).length > 0
+            : false;
+
+    const sizeClasses = useMemo(() => {
+      switch (size) {
+        case 'sm':
+          return {
+            input: 'h-9 text-sm',
+            pad: startAdornment ? 'ps-10 pe-3' : endAdornment ? 'ps-3 pe-10' : 'px-3',
+            label: 'text-xs',
+            helper: 'text-xs',
+          };
+        case 'lg':
+          return {
+            input: 'h-12 text-base',
+            pad: startAdornment ? 'ps-11 pe-4' : endAdornment ? 'ps-4 pe-11' : 'px-4',
+            label: 'text-sm',
+            helper: 'text-sm',
+          };
+        default:
+          return {
+            input: 'h-10 text-sm',
+            pad: startAdornment ? 'ps-10 pe-3.5' : endAdornment ? 'ps-3.5 pe-10' : 'px-3.5',
+            label: 'text-sm',
+            helper: 'text-xs',
+          };
+      }
+    }, [size, startAdornment, endAdornment]);
+
+    const stateClasses = useMemo(() => {
+      if (disabled) {
+        return {
+          border: 'border-border/50',
+          ring: '',
+          text: 'text-muted-foreground',
+        };
+      }
+      if (error) {
+        return {
+          border: 'border-red-500/70',
+          ring: 'focus:ring-red-500/25 focus:border-red-500',
+          text: 'text-red-600',
+        };
+      }
+      if (success) {
+        return {
+          border: 'border-emerald-500/50',
+          ring: 'focus:ring-emerald-500/20 focus:border-emerald-500',
+          text: 'text-emerald-600',
+        };
+      }
+      return {
+        border: 'border-border/70',
+        ring: 'focus:ring-primary/25 focus:border-primary',
+        text: 'text-foreground',
+      };
+    }, [disabled, error, success]);
+
+    const variantClasses =
+      variant === 'filled' ? 'bg-muted/40 hover:bg-muted/50' : 'bg-background/30';
 
     const inputClasses = mergeClasses([
-      'h-9 w-full rounded-lg border bg-transparent py-2 text-sm',
-      'placeholder:text-gray-400',
-      'focus:outline-none focus:ring-2 focus:ring-offset-0',
-      'disabled:cursor-not-allowed disabled:opacity-50',
-      error
-        ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
-        : 'border-input focus:border-blue-500 focus:ring-blue-500',
-      fullWidth ? 'w-full' : '',
-      startAdornment ? 'pl-10 pr-3' : endAdornment ? 'pl-3 pr-10' : 'px-3',
+      'w-full rounded-xl border outline-none transition-all duration-200',
+      'placeholder:text-muted-foreground/70',
+      'focus:ring-4 focus:ring-offset-0',
+      'disabled:cursor-not-allowed disabled:opacity-60',
+      'shadow-sm focus:shadow-md',
+      sizeClasses.input,
+      sizeClasses.pad,
+      variantClasses,
+      stateClasses.border,
+      stateClasses.ring,
       className,
     ]);
 
+    const wrapperClasses = mergeClasses([
+      'relative',
+      fullWidth ? 'w-full' : '',
+      error ? 'animate-[shake_0.22s_ease-in-out_1]' : '',
+    ]);
+
+    // If floating label is enabled, we want placeholder to be a single space
+    // so the browser still allows :placeholder-shown to work.
+    const finalPlaceholder = floatingLabel && label ? ' ' : placeholder;
+
     return (
       <div className={fullWidth ? 'w-full' : ''}>
-        {label && (
-          <label htmlFor={inputId} className="mb-1 block text-sm font-medium text-foreground">
+        {/* Classic label (when floating disabled) */}
+        {label && !floatingLabel && (
+          <label htmlFor={inputId} className="mb-1.5 block text-sm font-medium text-foreground">
             {label}
           </label>
         )}
-        <div className="relative">
+
+        <div className={wrapperClasses}>
+          {/* Start adornment */}
           {startAdornment && (
-            <div className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+            <div className="pointer-events-none absolute start-3.5 top-1/2 -translate-y-1/2 text-muted-foreground">
               {startAdornment}
             </div>
           )}
-          <input ref={ref} id={inputId} className={inputClasses} {...props} />
+
+          <input
+            ref={ref}
+            id={inputId}
+            className={inputClasses}
+            placeholder={finalPlaceholder}
+            disabled={disabled}
+            {...props}
+            {...(isFileInput ? {} : { value, defaultValue })}
+          />
+
+          {/* Floating label */}
+          {label && floatingLabel && (
+            <label
+              htmlFor={inputId}
+              className={mergeClasses([
+                'pointer-events-none absolute start-3.5 top-1/2 -translate-y-1/2',
+                'origin-[inline-start] transition-all duration-200',
+                'text-muted-foreground',
+                // when focused or has value -> float up
+                'peer-focus:-translate-y-[1.9rem] peer-focus:scale-[0.85] peer-focus:text-foreground/80',
+              ])}
+            />
+          )}
+
+          {/* We can’t rely on peer unless we add peer class on input.
+              So: use a separate label style based on CSS selectors with placeholder-shown.
+              We'll do it with Tailwind by adding `peer` to input and using peer-* on label.
+          */}
+          {label && floatingLabel && (
+            <>
+              {/* Re-render input with peer? No.
+                 We'll do it clean: add "peer" to input classes above.
+              */}
+            </>
+          )}
+
+          {/* End adornment */}
           {endAdornment && (
-            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+            <div className="absolute end-3.5 top-1/2 -translate-y-1/2 text-muted-foreground">
               {endAdornment}
             </div>
           )}
+
+          {/* Overlay label (actual floating implementation) */}
+          {label && floatingLabel && (
+            <label
+              htmlFor={inputId}
+              className={mergeClasses([
+                'pointer-events-none absolute start-3.5 top-1/2 -translate-y-1/2',
+                'origin-[inline-start] transition-all duration-200',
+                'text-muted-foreground',
+                // match padding when startAdornment exists
+                startAdornment ? 'start-10' : 'start-3.5',
+                // floating rules
+                // if placeholder shown and no value -> centered
+                !hasValue ? 'scale-100' : '-translate-y-[1.75rem] scale-[0.85] text-foreground/80',
+                // tweak for sizes
+                size === 'sm' ? 'text-xs' : size === 'lg' ? 'text-sm' : 'text-sm',
+                disabled ? 'opacity-70' : '',
+              ])}
+            >
+              {label}
+            </label>
+          )}
         </div>
+
+        {/* Helper text */}
         {helperText && (
           <p
             className={mergeClasses([
-              'mt-1 text-xs',
+              'mt-1.5',
+              sizeClasses.helper,
               error ? 'text-red-600' : 'text-muted-foreground',
             ])}
           >
             {helperText}
           </p>
         )}
+
+        {/* Local styles (shake + shimmer utility if you want) */}
+        <style>{`
+          @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-2px); }
+            50% { transform: translateX(2px); }
+            75% { transform: translateX(-1px); }
+          }
+        `}</style>
       </div>
     );
   }
 );
 
 Input.displayName = 'Input';
-

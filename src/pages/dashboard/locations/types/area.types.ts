@@ -15,9 +15,21 @@ export interface CityInfo {
 
 export interface AreaData {
   id: number;
-  name: string;
+  name: {
+    ar: string;
+    en: string;
+  };
   city: CityInfo;
+  lat?: string;
+  lng?: string;
+  base_fee?: number | string;
   created_at: string;
+}
+
+export interface AreaDetailsResponse {
+  status: boolean;
+  message: string;
+  data: AreaData;
 }
 
 export interface AreaListResponse {
@@ -40,5 +52,8 @@ export interface AreaCreateUpdatePayload {
     ar: string;
   };
   city_id: number;
+  lat: number | string;
+  lng: number | string;
+  base_fee: string;
 }
 

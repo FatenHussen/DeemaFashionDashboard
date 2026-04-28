@@ -1,5 +1,5 @@
-
 import { m } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 
 import { useSettingsContext } from 'src/shared/components/settings';
 import { varTap, varHover, transitionTap } from 'src/shared/components/animate';
@@ -10,6 +10,7 @@ export type SettingsButtonProps = React.ComponentPropsWithoutRef<'button'>;
 
 export function SettingsButton({ className, ...other }: SettingsButtonProps) {
   const settings = useSettingsContext();
+  const { t } = useTranslation('common');
   const { onAnimationStart, onAnimationEnd, onAnimationIteration, ...buttonProps } = other;
 
   return (
@@ -18,14 +19,14 @@ export function SettingsButton({ className, ...other }: SettingsButtonProps) {
       whileTap={varTap(0.96)}
       whileHover={varHover(1.04)}
       transition={transitionTap()}
-      aria-label="Settings button"
+      aria-label={t('settingsButtonAria')}
       onClick={settings.onToggleDrawer}
       className={`p-0 w-10 h-10 inline-flex items-center justify-center rounded-lg hover:bg-muted transition-colors ${className || ''}`}
       {...(buttonProps as any)}
     >
       <div className="relative">
         {settings.canReset && (
-          <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full" />
+          <span className="absolute top-0 end-0 w-2 h-2 bg-red-500 rounded-full" />
         )}
         <svg
           width={24}

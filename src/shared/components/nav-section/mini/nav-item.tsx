@@ -43,7 +43,7 @@ export const NavItem = forwardRef<HTMLButtonElement, NavItemProps>(function NavI
   const isSubItem = navItem.subItem;
 
   const rootItemClasses = mergeClasses([
-    'w-full text-center flex-col min-h-[var(--nav-item-root-height)]',
+    'relative flex w-full min-h-[var(--nav-item-root-height)] flex-col items-center justify-center text-center',
     'p-[var(--nav-item-root-padding)]',
     'rounded-[var(--nav-item-radius)]',
     'text-[var(--nav-item-color)]',
@@ -56,7 +56,7 @@ export const NavItem = forwardRef<HTMLButtonElement, NavItemProps>(function NavI
   ]);
 
   const subItemClasses = mergeClasses([
-    'w-full min-h-[var(--nav-item-sub-height)]',
+    'flex w-full min-h-[var(--nav-item-sub-height)] items-center justify-center',
     'p-[var(--nav-item-sub-padding)]',
     'rounded-[var(--nav-item-radius)]',
     'text-gray-600',

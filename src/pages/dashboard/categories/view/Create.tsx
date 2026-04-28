@@ -1,9 +1,16 @@
 import { toast } from 'react-toastify';
-import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useQuery } from '@tanstack/react-query';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
+import { compressImage } from '@/utils/compress-image';
+import { formatTranslated } from '@/utils/format-translated';
+import { useMemo, useState, useEffect, useCallback } from 'react';
+import { useParams, useNavigate, useSearchParams } from 'react-router';
+import { _CategoryApi } from '@/pages/dashboard/categories/api/category.services';
+import { RHFInfiniteSelect } from '@/shared/components/hook-form/rhf-infinite-select';
+import { buildParentPickerOptions } from '@/pages/dashboard/categories/utils/build-parent-picker-options';
 import {
   CategorySchema,
   type CategoryFormValues,
@@ -11,51 +18,107 @@ import {
 import {
   useCreateCategory,
   useUpdateCategory,
-  useFetchCategories,
   useFetchCategoryById,
 } from '@/pages/dashboard/categories/hooks/category';
 
 import { CONFIG } from 'src/global-config';
-import { Box, Input, Typography, SimpleSelect } from 'src/shared/ui';
+import { Box, Input, Switch, Typography } from 'src/shared/ui';
 import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
 import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
 
 // ----------------------------------------------------------------------
 
-const metadata = { title: `Category ${CONFIG.appName}` };
-
 export default function CreatePage() {
+  const { t } = useTranslation('table');
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const isEditMode = !!id;
   const [previewImage, setPreviewImage] = useState<string | null>(null);
 
+  const queryParentId = useMemo(() => {
+    const raw = searchParams.get('parent_id');
+    if (raw == null || raw === '') return null;
+    const n = Number(raw);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  }, [searchParams]);
+
+  const { data: flatForParent, dataUpdatedAt: flatParentDataUpdatedAt } = useQuery({
+    queryKey: ['categories', 'flat-parent-picker'],
+    queryFn: () => _CategoryApi.getListCategoriesPaginated({ page: 1, per_page: 500 }),
+  });
+
+  const parentPickerRows = useMemo(
+    () =>
+      buildParentPickerOptions(flatForParent?.data?.items ?? [], {
+        excludeCategoryId: isEditMode && id ? Number(id) : undefined,
+      }),
+    [flatForParent?.data?.items, id, isEditMode]
+  );
+
+  const parentCategoryFetcher = useCallback(
+    (page: number, limit: number) => {
+      const none = { id: 0, label: t('form.noParent'), depth: 0, hasChildren: false };
+      const rows = parentPickerRows.map((r) => ({
+        id: r.id,
+        label: r.label,
+        depth: r.depth,
+        hasChildren: r.hasChildren,
+      }));
+      const allRows = [none, ...rows];
+      const total = allRows.length;
+      const lastPage = Math.max(1, Math.ceil(total / limit));
+      const start = (page - 1) * limit;
+      const items = allRows.slice(start, start + limit);
+      return Promise.resolve({
+        data: {
+          items,
+          pagination: {
+            current_page: page,
+            last_page: lastPage,
+            per_page: limit,
+            total,
+          },
+        },
+      });
+    },
+    [parentPickerRows, t]
+  );
+
   // Hooks for fetching and mutations
   const { data: categoryData, isLoading: isLoadingCategory } = useFetchCategoryById(id || '');
-  const { data: categoriesResponse } = useFetchCategories(1, 100); // Fetch all for parent dropdown
   const createCategoryMutation = useCreateCategory();
   const updateCategoryMutation = useUpdateCategory();
 
-  const defaultValues: CategoryFormValues = {
-    name: {
-      en: '',
-      ar: '',
-    },
-    description: {
-      en: '',
-      ar: '',
-    },
-    icon: null,
-    parent_id: null,
-  };
+  const defaultValues: CategoryFormValues = useMemo(
+    () => ({
+      name: {
+        en: '',
+        ar: '',
+      },
+      icon: null,
+      parent_id: !isEditMode ? queryParentId : null,
+      order: 0,
+      is_active: true,
+      is_restaurant: false,
+    }),
+    [isEditMode, queryParentId]
+  );
 
   const methods = useForm<CategoryFormValues>({
     resolver: zodResolver(CategorySchema),
     defaultValues,
   });
 
-  const { handleSubmit, reset, control, watch } = methods;
+  const { handleSubmit, reset, control, watch, setValue } = methods;
   const iconValue = watch('icon');
+
+  useEffect(() => {
+    if (isEditMode) return;
+    if (queryParentId != null && queryParentId > 0) {
+      setValue('parent_id', queryParentId);
+    }
+  }, [isEditMode, queryParentId, setValue]);
 
   // Fetch category data if in edit mode
   useEffect(() => {
@@ -63,9 +126,11 @@ export default function CreatePage() {
       const category = categoryData.data;
       reset({
         name: category.name,
-        description: category.description,
         icon: null, // Don't pre-fill file input
         parent_id: category.parent_id,
+        order: (category as any).order ?? 0,
+        is_active: Boolean((category as any).is_active),
+        is_restaurant: Boolean((category as any).is_restaurant),
       });
 
       // Set preview image if icon exists
@@ -94,26 +159,27 @@ export default function CreatePage() {
 
   const onSubmit = async (data: CategoryFormValues) => {
     try {
+      const icon =
+        data.icon instanceof File ? await compressImage(data.icon) : data.icon || null;
       const payload = {
         name: {
           en: data.name.en,
           ar: data.name.ar,
         },
-        description: {
-          en: data.description.en,
-          ar: data.description.ar,
-        },
-        icon: data.icon || null,
+        icon,
         parent_id: data.parent_id || null,
+        order: data.order ?? 0,
+        is_active: data.is_active,
+        is_restaurant: data.is_restaurant,
       };
 
       if (isEditMode && id) {
         await updateCategoryMutation.mutateAsync({ id, data: payload });
-        toast.success('Category updated successfully');
+        toast.success(t('form.categoryUpdatedSuccess'));
         navigate('/categories');
       } else {
         await createCategoryMutation.mutateAsync(payload);
-        toast.success('Category created successfully');
+        toast.success(t('form.categoryCreatedSuccess'));
         navigate('/categories');
       }
     } catch (error: any) {
@@ -125,23 +191,18 @@ export default function CreatePage() {
     navigate('/categories');
   };
 
-  const infoText = isEditMode
-    ? 'You can update any field. Make sure both Arabic and English names and descriptions are provided.'
-    : 'Fill in both Arabic and English names and descriptions to create a new category. You can optionally select a parent category and upload an icon.';
+  const infoText = isEditMode ? t('form.categoryFormInfoEdit') : t('form.categoryFormInfoCreate');
 
-  // Prepare parent category options (only categories without parents)
-  const parentOptions =
-    categoriesResponse?.data?.items
-      .filter((cat) => cat.parent_id === null)
-      .map((cat) => ({
-        value: cat.id,
-        label: cat.name,
-      })) || [];
+  const parentCategoryLabel =
+    categoryData?.data?.parent &&
+    (typeof categoryData.data.parent.name === 'object'
+      ? formatTranslated(categoryData.data.parent.name)
+      : categoryData.data.parent.name);
 
   return (
     <>
       <title>
-        {isEditMode ? `Edit Category | ${metadata.title}` : `Create Category | ${metadata.title}`}
+        {`${isEditMode ? t('form.editCategory') : t('form.createCategory')} | ${t('form.categoryBrandedTitle', { app: CONFIG.appName })}`}
       </title>
 
       <CreateFormLayout
@@ -150,183 +211,221 @@ export default function CreatePage() {
         onCancel={handleCancel}
         isSubmitting={isSubmitting}
         errorMessage={errorMessage}
-        title={isEditMode ? 'Edit Category' : 'Create New Category'}
-        description={
-          isEditMode ? 'Update category information' : 'Add a new category to your system'
-        }
+        title={isEditMode ? t('form.editCategory') : t('form.createCategory')}
+        description={isEditMode ? t('form.editCategoryDesc') : t('form.createCategoryDesc')}
         isEditMode={isEditMode}
         isLoading={isLoadingCategory}
-        loadingText="Loading category data..."
-        maxWidth="4xl"
+        loadingText={t('form.loadingCategory')}
         infoText={infoText}
-        submitLabel={isEditMode ? 'Update Category' : 'Create Category'}
-        submittingLabel={isEditMode ? 'Updating...' : 'Creating...'}
+        submitLabel={isEditMode ? t('form.updateCategorySubmit') : t('form.createCategorySubmit')}
+        submittingLabel={isEditMode ? t('form.updatingCategory') : t('form.creatingCategory')}
       >
-        {/* Name Field - Arabic */}
-        <Box className="group">
-          <Box className="flex items-center gap-2 mb-2">
-            <Iconify icon="solar:tag-bold" className="text-primary" width={24} height={24} />
+        {/* ── Section: Names ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-primary/[0.06] via-primary/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:tag-bold" className="text-primary" width={15} />
+            </Box>
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Name (Arabic)
+              {t('form.nameAr')} / {t('form.nameEn')}
             </Typography>
           </Box>
-          <RHFTextField
-            name="name.ar"
-            placeholder="e.g., إلكترونيات"
-            helperText="Enter the category name in Arabic"
-            className="transition-all duration-200"
-            dir="rtl"
-          />
-        </Box>
+          <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+            <Box className="group">
+              <Box className="flex items-center gap-2 mb-2">
+                <Iconify icon="solar:tag-bold" className="text-primary" width={20} height={20} />
+                <Typography variant="subtitle2" className="font-semibold text-foreground">
+                  {t('form.nameAr')}
+                </Typography>
+              </Box>
+              <RHFTextField
+                name="name.ar"
+                placeholder={t('form.namePlaceholder')}
+                helperText={t('form.categoryNameArHelper')}
+                className="transition-all duration-200"
+                dir="rtl"
+              />
+            </Box>
 
-        {/* Name Field - English */}
-        <Box className="group">
-          <Box className="flex items-center gap-2 mb-2">
-            <Iconify icon="solar:tag-bold" className="text-primary" width={24} height={24} />
-            <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Name (English)
-            </Typography>
-          </Box>
-          <RHFTextField
-            name="name.en"
-            placeholder="e.g., Electronics"
-            helperText="Enter the category name in English"
-            className="transition-all duration-200"
-          />
-        </Box>
-
-        {/* Description Field - Arabic */}
-        <Box className="group">
-          <Box className="flex items-center gap-2 mb-2">
-            <Iconify icon="solar:document-bold" className="text-primary" width={24} height={24} />
-            <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Description (Arabic)
-            </Typography>
-          </Box>
-          <Controller
-            name="description.ar"
-            control={control}
-            render={({ field, fieldState: { error } }) => (
-              <div className="w-full">
-                <textarea
-                  {...field}
-                  placeholder="e.g., أجهزة وإكسسوارات"
-                  dir="rtl"
-                  rows={3}
-                  className={`w-full rounded-lg border bg-transparent px-3 py-2 text-sm transition-all duration-200 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-0 ${
-                    error
-                      ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
-                      : 'border-input focus:border-blue-500 focus:ring-blue-500'
-                  }`}
-                />
-                <p className={`mt-1 text-xs ${error ? 'text-red-600' : 'text-muted-foreground'}`}>
-                  {error?.message ?? 'Enter the category description in Arabic'}
-                </p>
-              </div>
-            )}
-          />
-        </Box>
-
-        {/* Description Field - English */}
-        <Box className="group">
-          <Box className="flex items-center gap-2 mb-2">
-            <Iconify icon="solar:document-bold" className="text-primary" width={24} height={24} />
-            <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Description (English)
-            </Typography>
-          </Box>
-          <Controller
-            name="description.en"
-            control={control}
-            render={({ field, fieldState: { error } }) => (
-              <div className="w-full">
-                <textarea
-                  {...field}
-                  placeholder="e.g., Devices and gadgets"
-                  rows={3}
-                  className={`w-full rounded-lg border bg-transparent px-3 py-2 text-sm transition-all duration-200 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-0 ${
-                    error
-                      ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
-                      : 'border-input focus:border-blue-500 focus:ring-blue-500'
-                  }`}
-                />
-                <p className={`mt-1 text-xs ${error ? 'text-red-600' : 'text-muted-foreground'}`}>
-                  {error?.message ?? 'Enter the category description in English'}
-                </p>
-              </div>
-            )}
-          />
-        </Box>
-
-        {/* Parent Category Selection */}
-        <Box className="group">
-          <Box className="flex items-center gap-2 mb-2">
-            <Iconify icon="solar:diagram-bold" className="text-primary" width={24} height={24} />
-            <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Parent Category (Optional)
-            </Typography>
-          </Box>
-          <Controller
-            name="parent_id"
-            control={control}
-            render={({ field: { onChange, value }, fieldState: { error } }) => (
-              <SimpleSelect
-                value={value || ''}
-                onChange={(val) => onChange(val ? Number(val) : null)}
-                options={parentOptions}
-                placeholder="Select a parent category (optional)"
-                error={!!error}
-                helperText={error?.message || 'Select a parent category if this is a subcategory'}
-                fullWidth
+            <Box className="group">
+              <Box className="flex items-center gap-2 mb-2">
+                <Iconify icon="solar:tag-bold" className="text-primary" width={20} height={20} />
+                <Typography variant="subtitle2" className="font-semibold text-foreground">
+                  {t('form.nameEn')}
+                </Typography>
+              </Box>
+              <RHFTextField
+                name="name.en"
+                placeholder={t('form.categoryNameEnPlaceholder')}
+                helperText={t('form.categoryNameEnHelper')}
                 className="transition-all duration-200"
               />
-            )}
-          />
+            </Box>
+          </Box>
         </Box>
 
-        {/* Icon Upload Field */}
-        <Box className="group">
-          <Box className="flex items-center gap-2 mb-2">
-            <Iconify
-              icon="solar:gallery-add-bold"
-              className="text-primary"
-              width={24}
-              height={24}
-            />
+        {/* ── Section: Organization ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-violet-500/[0.06] via-violet-500/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:diagram-bold" className="text-violet-500" width={15} />
+            </Box>
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Category Icon (Optional)
+              {t('form.parentCategorySection')}
             </Typography>
           </Box>
-          <Controller
-            name="icon"
-            control={control}
-            render={({ field: { onChange, value, ...field }, fieldState: { error } }) => (
-              <div className="w-full">
-                <Input
-                  {...field}
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    onChange(file || null);
-                  }}
-                  error={!!error}
-                  helperText={error?.message || 'Upload a category icon image'}
-                  fullWidth
-                  className="transition-all duration-200"
-                />
-                {previewImage && (
-                  <Box className="mt-4">
-                    <img
-                      src={previewImage}
-                      alt="Category icon preview"
-                      className="w-32 h-32 object-cover rounded-lg border border-border/60"
-                    />
+          <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+            <Box className="group">
+              <Box className="flex items-center gap-2 mb-2">
+                <Iconify icon="solar:diagram-bold" className="text-violet-500" width={20} height={20} />
+                <Typography variant="subtitle2" className="font-semibold text-foreground">
+                  {t('form.parentCategorySection')}
+                </Typography>
+              </Box>
+              <RHFInfiniteSelect
+                name="parent_id"
+                queryKey={[
+                  'categories',
+                  'infinite',
+                  'parent-form',
+                  flatParentDataUpdatedAt ?? 0,
+                  isEditMode ? id : '',
+                ]}
+                fetcher={parentCategoryFetcher}
+                placeholder={t('form.parentCategoryPlaceholder')}
+                helperText={t('form.selectParentCategoryHelper')}
+                initialLabel={parentCategoryLabel ?? undefined}
+              />
+            </Box>
+
+            <Box className="group">
+              <Box className="flex items-center gap-2 mb-2">
+                <Iconify icon="solar:sort-bold" className="text-violet-500" width={20} height={20} />
+                <Typography variant="subtitle2" className="font-semibold text-foreground">
+                  {t('form.categoryDisplayOrder')}
+                </Typography>
+              </Box>
+              <RHFTextField
+                name="order"
+                type="number"
+                placeholder={t('form.placeholderZero')}
+                helperText={t('form.orderHelper')}
+              />
+            </Box>
+          </Box>
+        </Box>
+
+        {/* ── Section: Status Settings ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-emerald-500/[0.06] via-emerald-500/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:shield-check-bold" className="text-emerald-500" width={15} />
+            </Box>
+            <Typography variant="subtitle2" className="font-semibold text-foreground">
+              {t('statusLabel')}
+            </Typography>
+          </Box>
+          <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+            <Controller
+              name="is_active"
+              control={control}
+              render={({ field }) => (
+                <div className="flex items-center gap-3 p-4 rounded-xl border border-border/60 bg-background/60 hover:border-emerald-500/40 hover:bg-emerald-500/[0.02] transition-colors">
+                  <Switch
+                    checked={field.value}
+                    onChange={(e) => field.onChange((e.target as HTMLInputElement).checked)}
+                  />
+                  <Box>
+                    <Typography variant="subtitle2" className="font-semibold text-foreground">
+                      {t('active')}
+                    </Typography>
+                    <Typography variant="caption" className="text-muted-foreground">
+                      {t('form.isActiveHelper')}
+                    </Typography>
                   </Box>
-                )}
-              </div>
-            )}
-          />
+                </div>
+              )}
+            />
+
+            <Controller
+              name="is_restaurant"
+              control={control}
+              render={({ field }) => (
+                <div className="flex items-center gap-3 p-4 rounded-xl border border-border/60 bg-background/60 hover:border-orange-500/40 hover:bg-orange-500/[0.02] transition-colors">
+                  <Switch
+                    checked={field.value}
+                    onChange={(e) => field.onChange((e.target as HTMLInputElement).checked)}
+                  />
+                  <Box>
+                    <Box className="flex items-center gap-2">
+                      <Iconify icon="solar:shop-bold" className="text-orange-500" width={16} height={16} />
+                      <Typography variant="subtitle2" className="font-semibold text-foreground">
+                        {t('form.isRestaurant')}
+                      </Typography>
+                    </Box>
+                    <Typography variant="caption" className="text-muted-foreground">
+                      {t('form.isRestaurantHelper')}
+                    </Typography>
+                  </Box>
+                </div>
+              )}
+            />
+          </Box>
+        </Box>
+
+        {/* ── Section: Media ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-amber-500/[0.06] via-amber-500/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:gallery-add-bold" className="text-amber-500" width={15} />
+            </Box>
+            <Typography variant="subtitle2" className="font-semibold text-foreground">
+              {t('form.categoryIconSection')}
+            </Typography>
+          </Box>
+          <Box className="p-6">
+            <Controller
+              name="icon"
+              control={control}
+              render={({ field: { onChange, value, ...field }, fieldState: { error } }) => (
+                <div className="w-full">
+                  <Input
+                    {...field}
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      onChange(file || null);
+                    }}
+                    error={!!error}
+                    helperText={error?.message || t('form.categoryIconUploadHelper')}
+                    fullWidth
+                    className="transition-all duration-200"
+                  />
+                  {previewImage && (
+                    <Box className="mt-5 flex items-center gap-4">
+                      <Box className="relative">
+                        <Box className="absolute -inset-1 rounded-2xl bg-amber-500/20 blur-sm" />
+                        <img
+                          src={previewImage}
+                          alt={t('form.categoryIconPreviewAlt')}
+                          className="relative w-24 h-24 object-cover rounded-xl border border-border/60 shadow-sm"
+                        />
+                      </Box>
+                      <Box>
+                        <Typography variant="body2" className="font-medium text-foreground">
+                          {t('form.categoryIconPreviewAlt')}
+                        </Typography>
+                        <Typography variant="caption" className="text-muted-foreground">
+                          {t('form.categoryIconUploadHelper')}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  )}
+                </div>
+              )}
+            />
+          </Box>
         </Box>
       </CreateFormLayout>
     </>

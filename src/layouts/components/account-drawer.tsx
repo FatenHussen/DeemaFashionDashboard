@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useBoolean } from 'minimal-shared/hooks';
 
 import { paths } from 'src/routes/paths';
@@ -39,6 +40,7 @@ export type AccountDrawerProps = React.ButtonHTMLAttributes<HTMLButtonElement> &
 
 export function AccountDrawer({ data = [], className, ...other }: AccountDrawerProps) {
   const pathname = usePathname();
+  const { t } = useTranslation('common');
 
   const { user } = useMockedUser();
 
@@ -60,14 +62,15 @@ export function AccountDrawer({ data = [], className, ...other }: AccountDrawerP
   const renderList = () => (
     <MenuList className="py-3 px-2.5 border-t border-dashed border-border border-b border-dashed [&_li]:p-0">
       {data.map((option) => {
-        const rootLabel = pathname.includes('/dashboard') ? 'Home' : 'Dashboard';
+        const isHome = option.label === 'accountNavHome';
+        const rootLabel = pathname.includes('/dashboard') ? t('menuHome') : t('menuDashboard');
         const rootHref = pathname.includes('/dashboard') ? '/' : paths.dashboard.root;
 
         return (
           <MenuItem key={option.label}>
             <Link
               component={RouterLink}
-              href={option.label === 'Home' ? rootHref : option.href}
+              href={isHome ? rootHref : option.href}
               color="inherit"
               underline="none"
               onClick={onClose}
@@ -75,12 +78,12 @@ export function AccountDrawer({ data = [], className, ...other }: AccountDrawerP
             >
               {option.icon}
 
-              <Box component="span" className="ml-2">
-                {option.label === 'Home' ? rootLabel : option.label}
+              <Box component="span" className="ms-2">
+                {isHome ? rootLabel : t(option.label)}
               </Box>
 
               {option.info && (
-                <Label color="error" className="ml-1">
+                <Label color="error" className="ms-1">
                   {option.info}
                 </Label>
               )}
@@ -131,7 +134,7 @@ export function AccountDrawer({ data = [], className, ...other }: AccountDrawerP
             {Array.from({ length: 3 }, (_, index) => (
               <Tooltip
                 key={_mock.fullName(index + 1)}
-                title={`Switch to: ${_mock.fullName(index + 1)}`}
+                title={t('switchToAccount', { name: _mock.fullName(index + 1) })}
               >
                 <Avatar
                   alt={_mock.fullName(index + 1)}
@@ -141,7 +144,7 @@ export function AccountDrawer({ data = [], className, ...other }: AccountDrawerP
               </Tooltip>
             ))}
 
-            <Tooltip title="Add account">
+            <Tooltip title={t('addAccount')}>
               <IconButton className="bg-muted border border-dashed border-border">
                 <Iconify icon="mingcute:add-line" />
               </IconButton>

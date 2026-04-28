@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { mergeClasses } from 'minimal-shared/utils';
 
 import { Box } from 'src/shared/ui';
@@ -9,6 +10,8 @@ type SignUpTermsProps = React.HTMLAttributes<HTMLSpanElement> & {
 };
 
 export function SignUpTerms({ className, ...other }: SignUpTermsProps) {
+  const { t } = useTranslation('common');
+
   return (
     <Box
       component="span"
@@ -18,21 +21,15 @@ export function SignUpTerms({ className, ...other }: SignUpTermsProps) {
       ])}
       {...other}
     >
-      {'By signing up, I agree to '}
-      <a
-        href="#"
-        className="underline text-foreground hover:text-foreground/80"
-      >
-        Terms of service
+      {t('signUpAgreePrefix')}
+      <a href="#" className="underline text-foreground hover:text-foreground/80">
+        {t('termsOfService')}
       </a>
-      {' and '}
-      <a
-        href="#"
-        className="underline text-foreground hover:text-foreground/80"
-      >
-        Privacy policy
+      {t('signUpAgreeConnector')}
+      <a href="#" className="underline text-foreground hover:text-foreground/80">
+        {t('privacyPolicy')}
       </a>
-      .
+      {t('signUpAgreeEnd')}
     </Box>
   );
 }

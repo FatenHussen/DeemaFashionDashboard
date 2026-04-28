@@ -1,18 +1,21 @@
 import type {
+  PagesResponse,
+  SectionsListResponse,
   PageSectionListResponse,
   PageSectionDetailsResponse,
   PageSectionCreateUpdatePayload,
-  SectionsListResponse,
-  PagesResponse,
-  DisplayTypesResponse,
 } from '../types/page-section.types';
 
 import { apiRoutes, axiosInstance } from '@/api';
 
 export const _PageSectionApi = {
-  getListPageSections: async (page: number = 1, limit: number = 25): Promise<PageSectionListResponse> => {
+  getListPageSections: async (
+    page: number = 1,
+    perPage: number = 25,
+    search?: string
+  ): Promise<PageSectionListResponse> => {
     const response = await axiosInstance.get<PageSectionListResponse>(apiRoutes.pageSection.list, {
-      params: { page, limit },
+      params: { page, per_page: perPage, ...(search?.trim() ? { search: search.trim() } : {}) },
     });
     return response.data;
   },
@@ -47,14 +50,9 @@ export const _PageSectionApi = {
     return response.data;
   },
 
-  getDisplayTypes: async (): Promise<DisplayTypesResponse> => {
-    const response = await axiosInstance.get<DisplayTypesResponse>(apiRoutes.pageSection.displayTypes);
-    return response.data;
-  },
-
-  getSections: async (page: number = 1, limit: number = 100): Promise<SectionsListResponse> => {
+  getSections: async (page: number = 1, perPage: number = 100): Promise<SectionsListResponse> => {
     const response = await axiosInstance.get<SectionsListResponse>(apiRoutes.section.list, {
-      params: { page, limit },
+      params: { page, per_page: perPage },
     });
     return response.data;
   },

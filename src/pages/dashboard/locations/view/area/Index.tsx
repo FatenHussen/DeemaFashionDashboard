@@ -1,5 +1,5 @@
-import { useState } from 'react';
 import { toast } from 'react-toastify';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { usePermissions } from '@/auth/hooks/use-permissions';
@@ -10,16 +10,22 @@ import { CONFIG } from 'src/global-config';
 
 // ----------------------------------------------------------------------
 
-const metadata = { title: `Area | Dashboard - ${CONFIG.appName}` };
-
 export default function Page() {
-  const { t } = useTranslation('table');
+  const { t } = useTranslation(['table', 'nav']);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [search, setSearch] = useState<string>('');
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
+
+  const areaParams: { search?: string } = {};
+  if (search.trim()) areaParams.search = search.trim();
 
   // Fetch areas using the hook
-  const { data: areasResponse, isLoading, error } = useFetchAreas(currentPage, pageSize);
+  const { data: areasResponse, isLoading, error } = useFetchAreas(currentPage, pageSize, areaParams);
   const deleteAreaMutation = useDeleteArea(currentPage, pageSize);
 
   // Log error for debugging
@@ -44,11 +50,9 @@ export default function Page() {
     if (deletingId) {
       try {
         await deleteAreaMutation.mutateAsync(deletingId);
-        toast.success(t('deleteSuccess') || 'Area deleted successfully');
+        toast.success(t('deleteSuccess'));
         setDeletingId(null);
-      } catch (err: any) {
-        toast.error(err?.message || t('deleteError') || 'Failed to delete area');
-      }
+      } catch { return; }
     }
   };
 
@@ -86,10 +90,10 @@ export default function Page() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.areasIndexDocumentTitle', { appName: CONFIG.appName })}</title>
 
       <DataTable
-        tableName="Area"
+        tableName={t('nav:area')}
         columns={areaColumns(
           {
             update: hasPermission('update', 'area'),
@@ -105,7 +109,8 @@ export default function Page() {
         )}
         data={areaData}
         createPath="/locations/area/create"
-        hasDetails={false}
+        hasDetails
+        detailsLink="/locations/area/details"
         permissions={{
           create: hasPermission('create', 'area'),
           update: hasPermission('update', 'area'),
@@ -113,18 +118,19 @@ export default function Page() {
         }}
         isLoading={isLoading}
         columnTranslations={{
-          id: 'ID',
-          name: 'Name',
-          city: 'City',
-          governorate: 'Governorate',
-          created_at: 'Created At',
-          actions: 'Actions',
+          id: t('columns.id'),
+          name: t('columns.name'),
+          city: t('columns.city'),
+          governorate: t('columns.governorate'),
+          created_at: t('columns.createdAt'),
+          actions: t('columns.action'),
         }}
         pagination={pagination}
         currentPage={currentPage}
         pageSize={pageSize}
         onPageChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}
+        onSearchChange={setSearch}
       />
     </>
   );

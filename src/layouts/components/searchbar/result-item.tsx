@@ -25,7 +25,7 @@ export function ResultItem({ title, path, labels, href, className, ...other }: P
   return (
     <LinkComponent
       {...linkProps}
-      className={`block w-full px-3 py-2 border border-dashed border-transparent border-b-border hover:rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors ${className || ''}`}
+      className={`block w-full px-3 py-2 border border-dashed border-transparent border-b-border hover:rounded-lg hover:border-primary/50 hover:bg-primary/5 transition-colors ${className || ''}`}
       {...other}
     >
       <div className="flex items-center justify-between gap-2">

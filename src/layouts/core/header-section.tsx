@@ -36,49 +36,44 @@ export function HeaderSection({
 }: HeaderSectionProps) {
   const { offsetTop: isOffset } = useScrollOffsetTop();
 
+  const { className: containerClassName, ...containerRest } = slotProps?.container ?? {};
+
   return (
     <header
       className={mergeClasses([
         layoutClasses.header,
-        'sticky py-4 top-0 z-[var(--layout-header-zIndex)]',
-        'relative overflow-hidden',
-        // Creative glassmorphism backdrop with enhanced gradients
-        !disableOffset && isOffset
-          ? 'before:absolute before:inset-0 before:bg-gradient-to-br before:from-background/95 before:via-background/92 before:to-background/95 before:backdrop-blur-xl before:transition-all before:duration-300'
-          : 'before:absolute before:inset-0 before:bg-gradient-to-br before:from-background/70 before:via-background/65 before:to-background/70 before:backdrop-blur-lg before:transition-all before:duration-300',
-        // Animated radial gradient overlay for depth and visual interest
-        'after:absolute after:inset-0 after:pointer-events-none after:opacity-20 after:transition-opacity after:duration-500',
-        !disableOffset && isOffset
-          ? 'after:bg-[radial-gradient(ellipse_at_top,rgba(99,102,241,0.12),transparent_60%)]'
-          : 'after:bg-[radial-gradient(ellipse_at_top,rgba(99,102,241,0.06),transparent_60%)]',
-        // Creative bottom border with animated gradient
-        !disableElevation && isOffset ? 'shadow-[0_4px_24px_-4px_rgba(0,0,0,0.1)]' : 'shadow-sm',
-        // Subtle border with gradient effect
-        'border-b',
-        !disableOffset && isOffset ? 'border-b-border/60' : 'border-b-border/40',
-        // Smooth transitions for all state changes
-        'transition-all duration-300 ease-out',
+        'dashboard-header-shell sticky py-0 top-0 z-[var(--layout-header-zIndex)]',
+        disableElevation ? 'dashboard-header-shell--quiet' : '',
+        'overflow-hidden bg-white',
+        'border-b border-b-[var(--chrome-edge)]',
+        'transition-shadow duration-300 ease-out',
         className,
       ])}
       {...other}
     >
-      {/* Creative animated bottom border gradient */}
-      {!disableElevation && isOffset && (
-        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-indigo-400/40 to-transparent transition-opacity duration-300 pointer-events-none z-20" />
-      )}
+      {/* Top accent — continuous with sidebar chrome-top-accent */}
+      <div className="chrome-top-accent pointer-events-none absolute inset-x-0 top-0 z-[21]" />
+      {/* Ambient brand blobs — mirror sidebar so the L-corner feels like one surface */}
+      <div
+        className="pointer-events-none absolute -top-10 start-0 size-[min(200px,40vw)]  blur-3xl opacity-50 z-0"
+        style={{ background: 'radial-gradient(circle, rgb(var(--primary) / 0.1) 0%, transparent 70%)' }}
+      />
+      <div
+        className="pointer-events-none absolute bottom-0 end-0 size-[min(160px,30vw)]  blur-3xl opacity-35 z-0"
+        style={{ background: 'radial-gradient(circle, rgb(var(--accent-amber) / 0.28) 0%, transparent 70%)' }}
+      />
       {slots?.topArea}
 
       <div
         className={mergeClasses([
-          'flex  justify-between w-full items-center',
+          'flex w-full min-w-0 items-center justify-between gap-2',
           'text-[var(--color)]',
           'h-[var(--layout-header-mobile-height)]',
           `md:h-[var(--layout-header-desktop-height)]`,
-          'relative',
-          // Creative visual enhancements
-          'min-h-[64px]',
+          'relative z-[2]',
+          containerClassName,
         ])}
-        {...slotProps?.container}
+        {...containerRest}
       >
         {slots?.leftArea && (
           <Box className="flex items-center flex-shrink-0 relative z-10">{slots.leftArea}</Box>

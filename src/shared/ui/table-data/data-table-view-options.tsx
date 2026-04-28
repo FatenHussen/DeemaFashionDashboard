@@ -2,9 +2,9 @@ import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import * as Papa from 'papaparse';
 import autoTable from 'jspdf-autotable';
+import { FileText } from 'lucide-react';
 import { Button } from '@/shared/ui/button';
 import { useTranslation } from 'react-i18next';
-import { Printer, FileText } from 'lucide-react';
 import { type Table } from '@tanstack/react-table';
 import { DropdownMenuTrigger } from '@radix-ui/react-dropdown-menu';
 import {
@@ -214,9 +214,9 @@ export function DataTableViewOptions<TData>({
     }
   };
   return (
-    <div className="flex items-center space-x-2 md:space-x-3 mr-2 py-3 gap-2 transition-opacity duration-300">
+    <div className="flex items-center me-2 py-3 gap-2 transition-opacity duration-300">
       {/* Print Button with Creative Design */}
-      <Button
+      {/* <Button
         variant="outlined"
         size="small"
         className="
@@ -236,7 +236,7 @@ export function DataTableViewOptions<TData>({
         <span className="relative z-10 font-medium text-sm text-foreground group-hover:text-primary transition-colors duration-300">
           {t('print')}
         </span>
-      </Button>
+      </Button> */}
 
       {/* Export Dropdown with Enhanced Design */}
       <DropdownMenu>
@@ -256,7 +256,7 @@ export function DataTableViewOptions<TData>({
             "
           >
             <span className="absolute inset-0 bg-gradient-to-r from-primary/10 to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-            <FileText className="relative z-10 mr-2 h-4 w-4 text-foreground group-hover:text-primary transition-colors duration-300" />
+            <FileText className="relative z-10 me-2 h-4 w-4 text-foreground group-hover:text-primary transition-colors duration-300" />
             <span className="relative z-10 font-medium text-sm text-foreground group-hover:text-primary transition-colors duration-300">
               {t('export')}
             </span>

@@ -1,9 +1,10 @@
 import type { NavSectionProps } from 'src/shared/components/nav-section';
 
-import { varAlpha, mergeClasses } from 'minimal-shared/utils';
+import { mergeClasses } from 'minimal-shared/utils';
+
+import { RouterLink } from 'src/routes/components';
 
 import { Box } from 'src/shared/ui';
-import { Logo } from 'src/shared/components/logo';
 import { Scrollbar } from 'src/shared/components/scrollbar';
 import { NavSectionMini, NavSectionVertical } from 'src/shared/components/nav-section';
 
@@ -42,32 +43,39 @@ export function NavVertical({
   const renderNavVertical = () => (
     <>
       {slots?.topArea ?? (
-        <Box className="pl-3 pt-4 pb-3 relative z-10 border-b border-border/30">
-          <Box className="transition-all duration-300 hover:scale-[1.02]">
-            <Logo href="/" />
+        <Box className="flex flex-col pt-5 pb-3 relative z-10 shrink-0">
+          {/* Logo — framed like a small “card” to anchor the rail */}
+          <Box className="flex justify-center items-center px-4">
+            <RouterLink href="/" className="block w-full max-w-[200px]">
+              <img src="/logo/logo.jpg" alt="Logo" className="h-16 w-full object-contain" />
+            </RouterLink>
           </Box>
+          <Box className="mt-4 mx-4 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
         </Box>
       )}
 
-      <Scrollbar fillContent className="relative z-10 py-1">
+      <Scrollbar fillContent className="relative z-10 py-1 flex-1 min-h-0">
         <NavSectionVertical
           data={data}
           cssVars={cssVars}
           checkPermissions={checkPermissions}
           checkPermission={checkPermission}
-          className="px-2 flex-auto"
+          className="px-2.5 pb-4 flex-auto"
         />
       </Scrollbar>
+
+      {/* Bottom fade */}
+      <Box className="pointer-events-none absolute bottom-0 inset-x-0 h-8 bg-gradient-to-t from-card/45 to-transparent z-20" />
     </>
   );
 
   const renderNavMini = () => (
     <>
       {slots?.topArea ?? (
-        <Box className="flex justify-center py-6 relative z-10 border-b border-border/30">
-          <Box className="transition-all duration-300 hover:scale-110">
-            <Logo href="/" />
-          </Box>
+        <Box className="flex justify-center px-2 py-4 relative z-10 shrink-0 border-b border-[var(--chrome-edge)]">
+          <RouterLink href="/" className="block h-9 w-9">
+            <img src="/logo/logo.jpg" alt="Logo" className="h-full w-full object-contain" />
+          </RouterLink>
         </Box>
       )}
 
@@ -76,7 +84,8 @@ export function NavVertical({
         cssVars={cssVars}
         checkPermissions={checkPermissions}
         checkPermission={checkPermission}
-        className="pb-4 px-1 flex-auto overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden relative z-10"
+        enabledRootRedirect
+        className="flex w-full min-w-0 flex-col items-stretch pb-6 pt-2 px-2 flex-auto overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden relative z-10"
       />
 
       {slots?.bottomArea}
@@ -88,34 +97,43 @@ export function NavVertical({
       className={mergeClasses([
         layoutClasses.nav.root,
         layoutClasses.nav.vertical,
-        ' top-0 left-0 h-full hidden fixed flex-col z-[var(--layout-nav-zIndex)]',
-        'bg-gradient-to-b from-background via-background to-muted/20',
-        'backdrop-blur-xl backdrop-saturate-150',
-        'overflow-hidden',
+        'top-0 start-0 h-full hidden fixed flex-col z-[var(--layout-nav-zIndex)]',
+        'sidebar-gradient border-e border-[var(--chrome-edge)] shadow-[var(--chrome-shadow-sidebar)]',
+        /* L-junction with main header: matching radius + RTL */
+        'rounded-tr-none',
         isNavMini ? 'w-[var(--layout-nav-mini-width)]' : 'w-[var(--layout-nav-vertical-width)]',
-        'border-r border-border/40',
-        'shadow-[0_0_0_1px_rgba(0,0,0,0.02),0_4px_24px_rgba(0,0,0,0.04)]',
-        'dark:shadow-[0_0_0_1px_rgba(255,255,255,0.05),0_4px_24px_rgba(0,0,0,0.3)]',
-        // Ensure content is visible
-        'text-foreground',
-        'transition-[width] duration-[var(--layout-transition-duration)] ease-[var(--layout-transition-easing)]',
-        'before:absolute before:inset-0 before:bg-gradient-to-b before:from-primary/5 before:via-transparent before:to-transparent before:pointer-events-none',
-        'after:absolute after:top-0 after:right-0 after:w-px after:h-full after:bg-gradient-to-b after:from-transparent after:via-border/60 after:to-transparent after:pointer-events-none',
         `${layoutQuery}:flex`,
         className,
       ])}
-      style={{
-        borderColor: `var(--layout-nav-border-color, ${varAlpha('145 158 171', 0.12)})`,
-        ...style,
-      }}
+      style={{ ...style }}
       {...other}
     >
+      {/* Ambient depth — soft brand wash */}
+      <div
+        className="pointer-events-none absolute -top-16 -end-12 size-[min(220px,50vw)]  blur-3xl opacity-50 z-0"
+        style={{
+          background: 'radial-gradient(circle, rgb(var(--primary) / 0.1) 0%, transparent 70%)',
+        }}
+      />
+      <div
+        className="pointer-events-none absolute bottom-0 -start-8 size-[min(180px,42vw)]  blur-3xl opacity-35 z-0"
+        style={{
+          background: 'radial-gradient(circle, rgb(var(--accent-amber) / 0.28) 0%, transparent 70%)',
+        }}
+      />
+
+      {/* Top accent — matches header chrome-top-accent */}
+      <div className="chrome-top-accent pointer-events-none absolute inset-x-0 top-0 z-30 shrink-0" />
+
+      <div className="relative z-10 flex min-h-0 flex-1 flex-col overflow-hidden">
+        {isNavMini ? renderNavMini() : renderNavVertical()}
+      </div>
+
       <NavToggleButton
         isNavMini={isNavMini}
         onClick={onToggleNav}
         className="hidden lg:inline-flex"
       />
-      {isNavMini ? renderNavMini() : renderNavVertical()}
     </div>
   );
 }

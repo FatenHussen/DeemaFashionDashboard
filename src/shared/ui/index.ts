@@ -20,6 +20,7 @@ export * from './menu-list';
 export * from './menu-item';
 export * from './typography';
 export * from './icon-button';
+export * from './multi-select';
 export * from './list-item-text';
 export * from './list-item-avatar';
 export * from './list-item-button';

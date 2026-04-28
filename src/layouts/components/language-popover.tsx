@@ -1,10 +1,11 @@
-
 import { m } from 'framer-motion';
-import { useState, useCallback } from 'react';
+import { useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { usePopover } from 'minimal-shared/hooks';
 
 import { FlagIcon } from 'src/shared/components/flag-icon';
 import { CustomPopover } from 'src/shared/components/custom-popover';
+import { useLocalizationStore } from 'src/store/useLocalizationStore';
 import { varTap, varHover, transitionTap } from 'src/shared/components/animate';
 
 // ----------------------------------------------------------------------
@@ -20,27 +21,36 @@ export type LanguagePopoverProps = React.ComponentPropsWithoutRef<'button'> & {
 export function LanguagePopover({ data = [], className, ...other }: LanguagePopoverProps) {
   const { open, anchorEl, onClose, onOpen } = usePopover();
 
-  const [locale, setLocale] = useState<string>(data[0]?.value || '');
+  const { language, setLanguage, direction } = useLocalizationStore();
+  const { t } = useTranslation('common');
+  const isRtl = direction === 'rtl';
 
-  const currentLang = data.find((lang) => lang.value === locale);
+  const currentLang = data.find((lang) => lang.value === language) ?? data[0];
 
   const handleChangeLang = useCallback(
     (newLang: string) => {
-      setLocale(newLang);
+      setLanguage(newLang);
       onClose();
     },
-    [onClose]
+    [onClose, setLanguage]
   );
 
   const renderMenuList = () => (
-    <CustomPopover open={open} anchorEl={anchorEl} onClose={onClose}>
+    <CustomPopover
+      open={open}
+      anchorEl={anchorEl}
+      onClose={onClose}
+      anchorOrigin={{ vertical: 'top', horizontal: isRtl ? 'left' : 'right' }}
+      transformOrigin={{ vertical: 'bottom', horizontal: isRtl ? 'left' : 'right' }}
+      slotProps={{ arrow: { offset: 2, placement: isRtl ? 'bottom-right' : 'bottom-left' } }}
+    >
       <ul className="w-40 min-h-[72px] p-0 m-0 list-none">
         {data?.map((option) => (
           <li key={option.value}>
             <button
               type="button"
               onClick={() => handleChangeLang(option.value)}
-              className={`w-full px-3 py-2 text-left flex items-center gap-2 hover:bg-muted transition-colors ${
+              className={`w-full px-3 py-2 text-start flex items-center gap-2 hover:bg-muted transition-colors ${
                 option.value === currentLang?.value ? 'bg-muted' : ''
               }`}
             >
@@ -62,8 +72,8 @@ export function LanguagePopover({ data = [], className, ...other }: LanguagePopo
         whileTap={varTap(0.96)}
         whileHover={varHover(1.04)}
         transition={transitionTap()}
-        aria-label="Languages button"
-        onClick={onOpen}
+        aria-label={t('languageSwitcherAria')}
+        onClick={(e) => onOpen(e as any)}
         className={`p-0 w-10 h-10 inline-flex items-center justify-center rounded-lg hover:bg-muted transition-colors ${
           open ? 'bg-muted' : ''
         } ${className || ''}`}

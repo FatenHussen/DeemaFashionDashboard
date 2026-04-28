@@ -1,12 +1,17 @@
-import type { DaySchedule } from '@/pages/dashboard/vendor/types/shop.types';
-
-import { useEffect } from 'react';
 import { toast } from 'react-toastify';
-import { useForm, Controller } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
-import { useFetchVendors } from '@/pages/dashboard/vendor/hooks/vendor';
+import { MultiSelect } from '@/shared/ui/multi-select';
+import { compressImage } from '@/utils/compress-image';
+import { useMemo, useEffect, type ReactNode } from 'react';
+import { formatTranslated } from '@/utils/format-translated';
+import { MapPicker } from '@/shared/components/map/map-picker';
+import { useForm, Controller, type Resolver } from 'react-hook-form';
+import { _AreaApi } from '@/pages/dashboard/locations/api/area.services';
+import { useFetchServices } from '@/pages/dashboard/vendor/hooks/service';
+import { _VendorApi } from '@/pages/dashboard/vendor/api/vendor.services';
 import {
   ShopSchema,
   type ShopFormValues,
@@ -16,46 +21,255 @@ import {
   useUpdateShop,
   useFetchShopById,
 } from '@/pages/dashboard/vendor/hooks/shop';
+import {
+  type ShopData,
+  type DaySchedule,
+  type WorkingHours,
+  paymentMethodsFromShop,
+  normalizeShopTypeFromApi,
+  normalizeShopPriceLevelFromApi,
+} from '@/pages/dashboard/vendor/types/shop.types';
 
 import { CONFIG } from 'src/global-config';
+import { Box, Input, Checkbox, Typography } from 'src/shared/ui';
+import { RHFSelect } from 'src/shared/components/hook-form/rhf-select';
 import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
-import { Box, Input, Checkbox, Typography, SimpleSelect } from 'src/shared/ui';
 import { StepperFormLayout } from 'src/shared/components/forms/stepper-form-layout';
+import { RHFBadgeSelector } from 'src/shared/components/hook-form/rhf-badge-selector';
+import { RHFInfiniteSelect } from 'src/shared/components/hook-form/rhf-infinite-select';
 
 // ----------------------------------------------------------------------
 
-const metadata = { title: `Shop ${CONFIG.appName}` };
+const vendorFetcher = (page: number, limit: number) =>
+  _VendorApi.getListVendor({ page, limit }).then((r) => ({
+    data: {
+      items: r.data.items.map((vendor) => ({ id: vendor.id, label: vendor.name })),
+      pagination: r.data.pagination,
+    },
+  }));
 
-const DAYS_OF_WEEK = [
-  { key: 'monday', label: 'Monday' },
-  { key: 'tuesday', label: 'Tuesday' },
-  { key: 'wednesday', label: 'Wednesday' },
-  { key: 'thursday', label: 'Thursday' },
-  { key: 'friday', label: 'Friday' },
-  { key: 'saturday', label: 'Saturday' },
-  { key: 'sunday', label: 'Sunday' },
+// Areas API loads all at once — fake single-page pagination
+const areaFetcherForShop = (_page: number, _limit: number) =>
+  _AreaApi.getListAreas().then((r) => ({
+    data: {
+      items: r.data.items.map((area) => ({ id: area.id, label: area.name })),
+      pagination: r.data.pagination,
+    },
+  }));
+
+const SHOP_DAY_KEYS = [
+  'monday',
+  'tuesday',
+  'wednesday',
+  'thursday',
+  'friday',
+  'saturday',
+  'sunday',
 ] as const;
 
+type ShopDayKey = (typeof SHOP_DAY_KEYS)[number];
+
+function ShopStepCanvas({ children }: { children: ReactNode }) {
+  return (
+    <Box className="relative overflow-hidden rounded-2xl border border-border/50 bg-gradient-to-br from-card/95 via-card/90 to-primary/[0.045] shadow-[0_22px_64px_-28px_rgba(0,0,0,0.2)] ring-1 ring-primary/[0.07] dark:shadow-[0_26px_72px_-32px_rgba(0,0,0,0.5)]">
+      <Box className="pointer-events-none absolute -right-16 -top-28 h-64 w-64 rounded-full bg-primary/[0.11] blur-3xl" />
+      <Box className="pointer-events-none absolute -bottom-28 -left-12 h-52 w-52 rounded-full bg-primary/[0.05] blur-3xl" />
+      <Box className="relative p-4 sm:p-6 md:p-8 lg:p-9">{children}</Box>
+    </Box>
+  );
+}
+
+const DEFAULT_WORKING_HOURS_TEMPLATE: ShopFormValues['working_hours'] = {
+  monday: { open: '09:00', close: '18:00' },
+  tuesday: { open: '09:00', close: '18:00' },
+  wednesday: { open: '09:00', close: '18:00' },
+  thursday: { open: '09:00', close: '18:00' },
+  friday: { closed: true },
+  saturday: { open: '10:00', close: '16:00' },
+  sunday: { open: '10:00', close: '16:00' },
+};
+
+function parseOpenCloseRange(value: string): { open: string; close: string } | null {
+  const s = String(value).trim();
+  const m = s.match(/^(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})$/);
+  if (!m) return null;
+  return { open: m[1], close: m[2] };
+}
+
+/** e.g. API `{ "sat-sun": "08:00-20:00" }` → saturday/sunday schedules */
+const COMPACT_WORKING_HOUR_KEYS: Record<string, ShopDayKey[]> = {
+  'sat-sun': ['saturday', 'sunday'],
+  sat_sun: ['saturday', 'sunday'],
+  'mon-fri': ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
+  mon_fri: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
+};
+
+/** Maps API `working_hours` (per-day objects and/or compact string keys) into our per-day shape. */
+function normalizeApiWorkingHoursForForm(raw: unknown): WorkingHours | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const r = raw as Record<string, unknown>;
+  const out: Partial<Record<ShopDayKey, DaySchedule>> = {};
+
+  for (const day of SHOP_DAY_KEYS) {
+    const s = r[day];
+    if (s != null && typeof s === 'object') {
+      out[day] = s as DaySchedule;
+    }
+  }
+
+  for (const [key, val] of Object.entries(r)) {
+    if (SHOP_DAY_KEYS.includes(key as ShopDayKey)) continue;
+    if (typeof val !== 'string') continue;
+    const range = parseOpenCloseRange(val);
+    if (!range) continue;
+    const days = COMPACT_WORKING_HOUR_KEYS[key.toLowerCase()];
+    if (!days) continue;
+    for (const d of days) {
+      if (out[d]) continue;
+      out[d] = { open: range.open, close: range.close, closed: false };
+    }
+  }
+
+  return Object.keys(out).length > 0 ? (out as WorkingHours) : undefined;
+}
+
+/** Merge API partial week with defaults so every day has a defined schedule (avoids broken edit UI). */
+function mergeWorkingHours(
+  api: WorkingHours | undefined,
+  defaults: ShopFormValues['working_hours']
+): ShopFormValues['working_hours'] {
+  return SHOP_DAY_KEYS.reduce((acc, day) => {
+    const s = api?.[day];
+    const def = defaults[day];
+    if (s && typeof s === 'object') {
+      const c = s.closed;
+      const closed =
+        c === true ||
+        c === 1 ||
+        c === '1' ||
+        String(c).toLowerCase() === 'true';
+      acc[day] = closed
+        ? { closed: true, open: undefined, close: undefined }
+        : {
+            closed: false,
+            open: s.open ?? def?.open ?? '09:00',
+            close: s.close ?? def?.close ?? '18:00',
+          };
+    } else {
+      acc[day] = def ?? { open: '09:00', close: '18:00' };
+    }
+    return acc;
+  }, {} as ShopFormValues['working_hours']);
+}
+
+/** Maps GET admin/shops/:id into full form state (used with RHF `values` so contact fields stay in sync when the step mounts). */
+function buildShopFormValuesFromApi(shop: ShopData): ShopFormValues {
+  const toBilingual = (val: unknown): { ar: string; en: string } => {
+    if (val == null) return { ar: '', en: '' };
+    if (typeof val === 'string') return { ar: val, en: val };
+    if (Array.isArray(val)) {
+      if (val.length === 0) return { ar: '', en: '' };
+      return { ar: String(val[0] ?? ''), en: String(val[1] ?? '') };
+    }
+    if (val && typeof val === 'object' && ('ar' in val || 'en' in val)) {
+      const o = val as { ar?: unknown; en?: unknown };
+      return { ar: String(o.ar ?? ''), en: String(o.en ?? '') };
+    }
+    return { ar: '', en: '' };
+  };
+
+  const nameValue = toBilingual(shop.name);
+  const descriptionValue = toBilingual(shop.description);
+  const addressValue = toBilingual(shop.address);
+
+  const rawServices = shop.services ?? shop.service_ids ?? [];
+  const serviceIds = rawServices
+    .map((s: { id?: number } | number) =>
+      typeof s === 'object' && s?.id != null ? { id: Number(s.id) } : { id: Number(s) }
+    )
+    .filter((s) => Number.isFinite(s.id) && s.id > 0);
+
+  const badgeRows = (shop.badges ?? []).filter(
+    (b: { id?: number }) => b != null && typeof b.id === 'number' && Number.isFinite(b.id)
+  );
+
+  return {
+    vendor_id: Number(shop.vendor_id ?? shop.vendor?.id ?? 0),
+    logo: null,
+    name: nameValue,
+    description: descriptionValue,
+    address: addressValue,
+    lat: Number(shop.lat ?? shop.area?.lat ?? 0),
+    lng: Number(shop.lng ?? shop.area?.lng ?? 0),
+    phone: shop.phone != null && String(shop.phone).trim() !== '' ? String(shop.phone) : '',
+    mobile: shop.mobile != null ? String(shop.mobile) : '',
+    email: shop.email != null ? String(shop.email) : '',
+    working_hours: mergeWorkingHours(
+      normalizeApiWorkingHoursForForm(shop.working_hours),
+      DEFAULT_WORKING_HOURS_TEMPLATE
+    ),
+    is_active: shop.is_active,
+    area_id: Number(shop.area?.id ?? shop.area_id ?? 0),
+    service_ids: serviceIds,
+    badges: badgeRows.length
+      ? badgeRows.map((b: any) => (typeof b === 'number' ? b : b.id))
+      : [],
+    shop_type: normalizeShopTypeFromApi(shop),
+    payment_methods: paymentMethodsFromShop(shop),
+    pricing_tier: normalizeShopPriceLevelFromApi(shop),
+    is_recommended: Boolean(shop.is_recommended ?? shop.recommended),
+  };
+}
+
+/** Field groups validated before advancing each step (aligned with `steps` order). */
+const SHOP_STEP_VALIDATION_FIELDS: string[][] = [
+  ['vendor_id', 'name', 'description', 'logo', 'badges'],
+  ['address', 'lat', 'lng'],
+  ['phone', 'mobile', 'email'],
+  ['working_hours'],
+  [
+    'area_id',
+    'service_ids',
+    'is_active',
+    'shop_type',
+    'payment_methods',
+    'pricing_tier',
+    'is_recommended',
+  ],
+];
+
 export default function CreatePage() {
+  const { t } = useTranslation('table');
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
   const isEditMode = !!id;
 
   // Hooks for fetching and mutations
   const { data: shopData, isLoading: isLoadingShop } = useFetchShopById(id || '');
-  const { data: vendorsResponse } = useFetchVendors();
+  const { data: servicesResponse } = useFetchServices(1, 200);
   const createShopMutation = useCreateShop();
   const updateShopMutation = useUpdateShop();
 
-  // Prepare vendor options
-  const vendorOptions =
-    vendorsResponse?.data?.items.map((vendor) => ({
-      value: vendor.id,
-      label: vendor.name,
-    })) || [];
+  const services = (servicesResponse as any)?.data?.items ?? [];
+  const serviceOptions = services.map((s: any) => ({
+    value: s.id,
+    label: formatTranslated(s.name),
+  }));
+
+  const paymentMethodOptions = (['cash', 'online'] as const).map((key) => ({
+    value: key,
+    label: t(`form.shopPaymentMethod_${key}`),
+  }));
+
+  const shopRecord = shopData?.data;
+  const vendorSelectLabel =
+    isEditMode && shopRecord?.vendor ? formatTranslated(shopRecord.vendor.name) : undefined;
+  const areaSelectLabel =
+    isEditMode && shopRecord?.area ? formatTranslated(shopRecord.area.name) : undefined;
 
   const defaultValues: ShopFormValues = {
     vendor_id: 0,
+    logo: null,
     name: {
       ar: '',
       en: '',
@@ -73,63 +287,54 @@ export default function CreatePage() {
     phone: '',
     mobile: '',
     email: '',
-    working_hours: {
-      monday: { open: '09:00', close: '18:00' },
-      tuesday: { open: '09:00', close: '18:00' },
-      wednesday: { open: '09:00', close: '18:00' },
-      thursday: { open: '09:00', close: '18:00' },
-      friday: { closed: true },
-      saturday: { open: '10:00', close: '16:00' },
-      sunday: { open: '10:00', close: '16:00' },
-    },
+    working_hours: structuredClone(DEFAULT_WORKING_HOURS_TEMPLATE),
     is_active: true,
     area_id: 0,
     service_ids: [],
+    badges: [],
+    shop_type: 'store',
+    payment_methods: [],
+    pricing_tier: 'medium',
+    is_recommended: false,
   };
 
+  const editFormValues = useMemo(() => {
+    if (!isEditMode || isLoadingShop || !shopRecord) return undefined;
+    return buildShopFormValuesFromApi(shopRecord);
+  }, [isEditMode, isLoadingShop, shopRecord]);
+
   const methods = useForm<ShopFormValues>({
-    resolver: zodResolver(ShopSchema),
+    resolver: zodResolver(ShopSchema) as Resolver<ShopFormValues>,
     defaultValues,
   });
 
-  const { handleSubmit, reset, control, watch } = methods;
+  const { handleSubmit, control, watch, reset } = methods;
 
-  // Fetch shop data if in edit mode
+  /** RHF `values` is unreliable when omitted on first mount then set after fetch — explicit `reset` applies API data to inputs. */
   useEffect(() => {
-    if (isEditMode && shopData && !isLoadingShop) {
-      // Note: API might return name as string, but form expects {ar, en}
-      const nameValue =
-        typeof shopData.name === 'string'
-          ? { ar: shopData.name, en: shopData.name }
-          : shopData.name || { ar: '', en: '' };
+    if (editFormValues === undefined) return;
+    reset(editFormValues);
+  }, [editFormValues, reset]);
+  const logoFile = watch('logo');
 
-      const descriptionValue =
-        typeof shopData.description === 'string'
-          ? { ar: shopData.description, en: shopData.description }
-          : shopData.description || { ar: '', en: '' };
-
-      const addressValue =
-        typeof shopData.address === 'string'
-          ? { ar: shopData.address, en: shopData.address }
-          : shopData.address || { ar: '', en: '' };
-
-      reset({
-        vendor_id: shopData.vendor_id,
-        name: nameValue,
-        description: descriptionValue,
-        address: addressValue,
-        lat: shopData.lat || 0,
-        lng: shopData.lng || 0,
-        phone: shopData.phone || '',
-        mobile: shopData.mobile || '',
-        email: shopData.email || '',
-        working_hours: shopData.working_hours || defaultValues.working_hours,
-        is_active: shopData.is_active,
-        area_id: shopData.area_id || 0,
-        service_ids: shopData.service_ids || [],
-      });
+  const logoPreviewUrl = useMemo(() => {
+    if (logoFile instanceof File) return URL.createObjectURL(logoFile);
+    const raw = shopData?.data?.logo_url;
+    if (isEditMode && raw && !logoFile) {
+      const s = String(raw).trim();
+      if (s.startsWith('http://') || s.startsWith('https://')) return s;
+      const base = CONFIG.serverUrl?.replace(/\/$/, '') ?? '';
+      return base ? `${base}/${s.replace(/^\//, '')}` : s;
     }
-  }, [shopData, isEditMode, isLoadingShop, reset]);
+    return null;
+  }, [logoFile, isEditMode, shopData?.data?.logo_url]);
+
+  useEffect(() => {
+    if (logoFile instanceof File && logoPreviewUrl?.startsWith('blob:')) {
+      return () => URL.revokeObjectURL(logoPreviewUrl);
+    }
+    return undefined;
+  }, [logoFile, logoPreviewUrl]);
 
   const isSubmitting = createShopMutation.isPending || updateShopMutation.isPending;
   const errorMessage =
@@ -139,6 +344,8 @@ export default function CreatePage() {
     try {
       const payload = {
         vendor_id: data.vendor_id,
+        logo:
+          data.logo instanceof File ? await compressImage(data.logo) : undefined,
         name: {
           ar: data.name.ar,
           en: data.name.en,
@@ -160,15 +367,20 @@ export default function CreatePage() {
         is_active: data.is_active,
         area_id: data.area_id,
         service_ids: data.service_ids,
+        badges: data.badges,
+        is_restaurant: data.shop_type === 'restaurant',
+        payment_methods: data.payment_methods ?? [],
+        pricing_tier: data.pricing_tier,
+        is_recommended: data.is_recommended,
       };
 
       if (isEditMode && id) {
-        await updateShopMutation.mutateAsync({ id, data: payload });
-        toast.success('Shop updated successfully');
+        await updateShopMutation.mutateAsync({ id, data: payload as any });
+        toast.success(t('form.shopUpdatedSuccess'));
         navigate('/shop');
       } else {
         await createShopMutation.mutateAsync(payload);
-        toast.success('Shop created successfully');
+        toast.success(t('form.shopCreatedSuccess'));
         navigate('/shop');
       }
     } catch (error: any) {
@@ -180,20 +392,16 @@ export default function CreatePage() {
     navigate('/shop');
   };
 
-  const infoText = isEditMode
-    ? 'You can update any field. Make sure all required fields are filled.'
-    : 'Fill in all required fields to create a new shop. Working hours and location details are important for customers.';
-
   // Working Hours Component
-  const WorkingHoursField = ({ day }: { day: (typeof DAYS_OF_WEEK)[number]['key'] }) => {
+  const WorkingHoursField = ({ day }: { day: ShopDayKey }) => {
     const daySchedule = watch(`working_hours.${day}`) as DaySchedule | undefined;
     const isClosed = daySchedule?.closed || false;
 
     return (
-      <Box className="group relative p-5 border border-border/60 rounded-xl bg-card/50 hover:bg-card/80 hover:border-primary/30 transition-all duration-300 hover:shadow-md">
-        <Box className="flex items-center justify-between mb-4">
-          <Box className="flex items-center gap-2.5">
-            <Box className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
+      <Box className="group relative p-4 sm:p-5 border border-border/60 rounded-xl bg-card/50 hover:bg-card/80 hover:border-primary/30 transition-all duration-300 hover:shadow-md min-w-0">
+        <Box className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-2 mb-4">
+          <Box className="flex min-w-0 items-center gap-2.5">
+            <Box className="w-8 h-8 shrink-0 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
               <Iconify
                 icon="solar:clock-circle-bold"
                 className="text-primary"
@@ -201,17 +409,17 @@ export default function CreatePage() {
                 height={16}
               />
             </Box>
-            <Typography variant="subtitle2" className="font-semibold text-foreground">
-              {DAYS_OF_WEEK.find((d) => d.key === day)?.label}
+            <Typography variant="subtitle2" className="font-semibold text-foreground truncate">
+              {t(`form.weekday_${day}`)}
             </Typography>
           </Box>
           <Controller
             name={`working_hours.${day}.closed`}
             control={control}
             render={({ field }) => (
-              <Box className="flex items-center gap-2">
+              <Box className="flex items-center gap-2 sm:ml-auto sm:shrink-0">
                 <Box
-                  className={`px-3 py-1.5 rounded-lg border transition-all ${
+                  className={`px-3 py-1.5 rounded-lg border transition-all max-w-full ${
                     field.value
                       ? 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800/50'
                       : 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/50'
@@ -233,7 +441,7 @@ export default function CreatePage() {
                       <span
                         className={`text-xs font-medium ${field.value ? 'text-red-700 dark:text-red-300' : 'text-emerald-700 dark:text-emerald-300'}`}
                       >
-                        {field.value ? 'Closed' : 'Open'}
+                        {field.value ? t('form.shopDayClosed') : t('form.shopDayOpen')}
                       </span>
                     }
                   />
@@ -243,17 +451,17 @@ export default function CreatePage() {
           />
         </Box>
         {!isClosed && (
-          <Box className="grid grid-cols-2 gap-3">
+          <Box className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <RHFTextField
               name={`working_hours.${day}.open`}
               type="time"
-              label="Open Time"
+              label={t('form.openTime')}
               className="transition-all duration-200"
             />
             <RHFTextField
               name={`working_hours.${day}.close`}
               type="time"
-              label="Close Time"
+              label={t('form.closeTime')}
               className="transition-all duration-200"
             />
           </Box>
@@ -261,7 +469,7 @@ export default function CreatePage() {
         {isClosed && (
           <Box className="py-2 text-center">
             <Typography variant="caption" className="text-muted-foreground italic">
-              Shop is closed on this day
+              {t('form.shopClosedOnDayHint')}
             </Typography>
           </Box>
         )}
@@ -272,11 +480,12 @@ export default function CreatePage() {
   // Define steps for the stepper
   const steps = [
     {
-      label: 'Basic Information',
-      description: 'Shop name and details',
+      label: t('form.shopStepBasicLabel'),
+      description: t('form.shopStepBasicDesc'),
       icon: 'solar:case-minimalistic-bold',
       content: (
-        <Box className="space-y-6">
+        <ShopStepCanvas>
+          <Box className="space-y-6">
           {/* Vendor Selection */}
           <Box className="group">
             <Box className="flex items-center gap-2.5 mb-3">
@@ -289,23 +498,16 @@ export default function CreatePage() {
                 />
               </Box>
               <Typography variant="subtitle2" className="font-semibold text-foreground">
-                Vendor
+                {t('form.shopVendorFieldLabel')}
               </Typography>
             </Box>
-            <Controller
+            <RHFInfiniteSelect
               name="vendor_id"
-              control={control}
-              render={({ field, fieldState: { error } }) => (
-                <SimpleSelect
-                  value={field.value}
-                  onChange={(value) => field.onChange(Number(value))}
-                  options={vendorOptions}
-                  placeholder="Select a vendor"
-                  error={!!error}
-                  helperText={error?.message || 'Select the vendor that owns this shop'}
-                  fullWidth
-                />
-              )}
+              queryKey={['vendors', 'infinite', 'shop-form']}
+              fetcher={vendorFetcher}
+              placeholder={t('form.selectVendor')}
+              helperText={t('form.selectVendorHelper')}
+              initialLabel={vendorSelectLabel}
             />
           </Box>
 
@@ -321,14 +523,14 @@ export default function CreatePage() {
                     height={16}
                   />
                 </Box>
-                <Typography variant="subtitle2" className="font-semibold text-foreground">
-                  Shop Name (Arabic)
+<Typography variant="subtitle2" className="font-semibold text-foreground">
+                {t('form.storeNameAr')}
                 </Typography>
               </Box>
               <RHFTextField
                 name="name.ar"
-                placeholder="e.g., متجر تجريبي"
-                helperText="Enter the shop name in Arabic"
+                placeholder={t('form.storeNameAr')}
+                helperText={t('form.shopNameArHelper')}
                 className="transition-all duration-200"
               />
             </Box>
@@ -343,14 +545,14 @@ export default function CreatePage() {
                     height={16}
                   />
                 </Box>
-                <Typography variant="subtitle2" className="font-semibold text-foreground">
-                  Shop Name (English)
+<Typography variant="subtitle2" className="font-semibold text-foreground">
+                {t('form.storeNameEn')}
                 </Typography>
               </Box>
               <RHFTextField
                 name="name.en"
-                placeholder="e.g., Test Store"
-                helperText="Enter the shop name in English"
+                placeholder={t('form.storeNameEn')}
+                helperText={t('form.shopNameEnHelper')}
                 className="transition-all duration-200"
               />
             </Box>
@@ -368,14 +570,14 @@ export default function CreatePage() {
                     height={16}
                   />
                 </Box>
-                <Typography variant="subtitle2" className="font-semibold text-foreground">
-                  Description (Arabic)
+<Typography variant="subtitle2" className="font-semibold text-foreground">
+                {t('form.descriptionAr')}
                 </Typography>
               </Box>
               <RHFTextField
                 name="description.ar"
-                placeholder="e.g., متجر تجريبي لبيع المواد الغذائية"
-                helperText="Enter the shop description in Arabic"
+                placeholder={t('form.storeDescAr')}
+                helperText={t('form.shopDescArHelper')}
                 className="transition-all duration-200"
               />
             </Box>
@@ -390,130 +592,211 @@ export default function CreatePage() {
                     height={16}
                   />
                 </Box>
-                <Typography variant="subtitle2" className="font-semibold text-foreground">
-                  Description (English)
+<Typography variant="subtitle2" className="font-semibold text-foreground">
+                {t('form.descriptionEn')}
                 </Typography>
               </Box>
               <RHFTextField
                 name="description.en"
-                placeholder="e.g., Test store for groceries"
-                helperText="Enter the shop description in English"
+                placeholder={t('form.storeDescEn')}
+                helperText={t('form.shopDescEnHelper')}
                 className="transition-all duration-200"
               />
             </Box>
           </Box>
-        </Box>
+
+          {/* Shop Logo Upload */}
+          <Box className="group">
+            <Box className="flex items-center gap-2.5 mb-3">
+              <Box className="w-7 h-7 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
+                <Iconify
+                  icon="solar:gallery-add-bold"
+                  className="text-primary"
+                  width={16}
+                  height={16}
+                />
+              </Box>
+              <Typography variant="subtitle2" className="font-semibold text-foreground">
+                {t('form.shopLogoField')}
+              </Typography>
+            </Box>
+            <Controller
+              name="logo"
+              control={control}
+              render={({ field: { onChange, value, ...field }, fieldState: { error } }) => (
+                <div className="w-full">
+                  <Input
+                    {...field}
+                    type="file"
+                    accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      onChange(file || null);
+                    }}
+                    error={!!error}
+                    helperText={
+                      error?.message ||
+                      (isEditMode ? t('form.shopLogoHelperEdit') : t('form.shopLogoHelperCreate'))
+                    }
+                    fullWidth
+                    className="transition-all duration-200"
+                  />
+                  {logoPreviewUrl && (
+                    <Box className="mt-4">
+                      <img
+                        src={logoPreviewUrl}
+                        alt={t('form.shopLogoPreviewAlt')}
+                        className="w-24 h-24 rounded-xl object-cover border border-border/60"
+                      />
+                    </Box>
+                  )}
+                </div>
+              )}
+            />
+          </Box>
+
+          {/* Badges */}
+          <Box className="group">
+            <Box className="flex items-center gap-2.5 mb-3">
+              <Box className="w-7 h-7 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
+                <Iconify
+                  icon="solar:star-bold"
+                  className="text-primary"
+                  width={16}
+                  height={16}
+                />
+              </Box>
+              <Typography variant="subtitle2" className="font-semibold text-foreground">
+                {t('form.shopBadgesSection')}
+              </Typography>
+            </Box>
+            <RHFBadgeSelector
+              name="badges"
+              helperText={t('form.badgesHelperShop')}
+            />
+          </Box>
+          </Box>
+        </ShopStepCanvas>
       ),
     },
     {
-      label: 'Location',
-      description: 'Address and coordinates',
+      label: t('form.shopStepLocationLabel'),
+      description: t('form.shopStepLocationDesc'),
       icon: 'solar:case-minimalistic-bold',
       content: (
-        <Box className="space-y-6">
-          {/* Address - Bilingual */}
-          <Box className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Box className="group">
-              <Box className="flex items-center gap-2.5 mb-3">
-                <Box className="w-7 h-7 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
-                  <Iconify
-                    icon="solar:case-minimalistic-bold"
-                    className="text-primary"
-                    width={16}
-                    height={16}
+        <ShopStepCanvas>
+          <Box className="grid grid-cols-1 gap-8 xl:grid-cols-2 xl:items-start">
+            <Box className="space-y-6">
+              <Typography variant="overline" className="text-primary/90 font-semibold tracking-wider">
+                {t('form.shopStepLocationLabel')}
+              </Typography>
+              {/* Address - Bilingual */}
+              <Box className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Box className="group">
+                  <Box className="flex items-center gap-2.5 mb-3">
+                    <Box className="w-7 h-7 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
+                      <Iconify
+                        icon="solar:case-minimalistic-bold"
+                        className="text-primary"
+                        width={16}
+                        height={16}
+                      />
+                    </Box>
+                    <Typography variant="subtitle2" className="font-semibold text-foreground">
+                      {t('form.addressAr')}
+                    </Typography>
+                  </Box>
+                  <RHFTextField
+                    name="address.ar"
+                    placeholder={t('form.addressPlaceholderAr')}
+                    helperText={t('form.shopAddressArHelper')}
+                    className="transition-all duration-200"
                   />
                 </Box>
-                <Typography variant="subtitle2" className="font-semibold text-foreground">
-                  Address (Arabic)
-                </Typography>
+
+                <Box className="group">
+                  <Box className="flex items-center gap-2.5 mb-3">
+                    <Box className="w-7 h-7 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
+                      <Iconify
+                        icon="solar:case-minimalistic-bold"
+                        className="text-primary"
+                        width={16}
+                        height={16}
+                      />
+                    </Box>
+                    <Typography variant="subtitle2" className="font-semibold text-foreground">
+                      {t('form.addressEn')}
+                    </Typography>
+                  </Box>
+                  <RHFTextField
+                    name="address.en"
+                    placeholder={t('form.addressPlaceholderEn')}
+                    helperText={t('form.shopAddressEnHelper')}
+                    className="transition-all duration-200"
+                  />
+                </Box>
               </Box>
-              <RHFTextField
-                name="address.ar"
-                placeholder="e.g., دمشق - المزة"
-                helperText="Enter the shop address in Arabic"
-                className="transition-all duration-200"
-              />
             </Box>
 
-            <Box className="group">
-              <Box className="flex items-center gap-2.5 mb-3">
-                <Box className="w-7 h-7 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
-                  <Iconify
-                    icon="solar:case-minimalistic-bold"
-                    className="text-primary"
-                    width={16}
-                    height={16}
-                  />
+            {/* Map — full column on wide screens */}
+            <Box className="space-y-4 xl:sticky xl:top-6">
+              <Box className="flex items-center gap-2.5">
+                <Box className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary/25 to-primary/5 ring-1 ring-primary/20">
+                  <Iconify icon="solar:map-point-bold" className="text-primary" width={22} height={22} />
                 </Box>
-                <Typography variant="subtitle2" className="font-semibold text-foreground">
-                  Address (English)
-                </Typography>
+                <Box>
+                  <Typography variant="subtitle2" className="font-semibold text-foreground">
+                    {t('form.shopLocationOnMap')}
+                  </Typography>
+                  <Typography variant="caption" className="text-muted-foreground">
+                    {t('form.shopMapClickHelper')}
+                  </Typography>
+                </Box>
               </Box>
-              <RHFTextField
-                name="address.en"
-                placeholder="e.g., Damascus - Mazzeh"
-                helperText="Enter the shop address in English"
-                className="transition-all duration-200"
-              />
+              <Box className="rounded-2xl border border-border/60 bg-muted/20 p-3 shadow-inner dark:bg-muted/10">
+                <MapPicker
+                  lat={String(watch('lat') ?? '')}
+                  lng={String(watch('lng') ?? '')}
+                  onChange={(latStr, lngStr) => {
+                    const latNum = parseFloat(latStr);
+                    const lngNum = parseFloat(lngStr);
+                    if (!Number.isNaN(latNum)) methods.setValue('lat', latNum);
+                    if (!Number.isNaN(lngNum)) methods.setValue('lng', lngNum);
+                  }}
+                  height="min(52vh, 520px)"
+                  className="w-full"
+                />
+              </Box>
+              <Box className="grid grid-cols-1 min-[380px]:grid-cols-2 gap-4 rounded-xl border border-border/50 bg-card/60 px-4 py-3">
+                <Box>
+                  <Typography variant="caption" className="text-muted-foreground">
+                    {t('form.latitudeLabel')}
+                  </Typography>
+                  <Typography variant="body2" className="font-mono font-medium">
+                    {watch('lat') ?? '-'}
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography variant="caption" className="text-muted-foreground">
+                    {t('form.longitudeLabel')}
+                  </Typography>
+                  <Typography variant="body2" className="font-mono font-medium">
+                    {watch('lng') ?? '-'}
+                  </Typography>
+                </Box>
+              </Box>
             </Box>
           </Box>
-
-          {/* Coordinates */}
-          <Box className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Box className="group">
-              <Box className="flex items-center gap-2.5 mb-3">
-                <Box className="w-7 h-7 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
-                  <Iconify
-                    icon="solar:settings-bold"
-                    className="text-primary"
-                    width={16}
-                    height={16}
-                  />
-                </Box>
-                <Typography variant="subtitle2" className="font-semibold text-foreground">
-                  Latitude
-                </Typography>
-              </Box>
-              <RHFTextField
-                name="lat"
-                type="number"
-                placeholder="e.g., 33.5138"
-                helperText="Enter the latitude coordinate"
-                className="transition-all duration-200"
-              />
-            </Box>
-            <Box className="group">
-              <Box className="flex items-center gap-2.5 mb-3">
-                <Box className="w-7 h-7 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
-                  <Iconify
-                    icon="solar:settings-bold"
-                    className="text-primary"
-                    width={16}
-                    height={16}
-                  />
-                </Box>
-                <Typography variant="subtitle2" className="font-semibold text-foreground">
-                  Longitude
-                </Typography>
-              </Box>
-              <RHFTextField
-                name="lng"
-                type="number"
-                placeholder="e.g., 36.2765"
-                helperText="Enter the longitude coordinate"
-                className="transition-all duration-200"
-              />
-            </Box>
-          </Box>
-        </Box>
+        </ShopStepCanvas>
       ),
     },
     {
-      label: 'Contact',
-      description: 'Phone and email',
+      label: t('form.shopStepContactLabel'),
+      description: t('form.shopStepContactDesc'),
       icon: 'solar:phone-bold',
       content: (
-        <Box className="space-y-6">
+        <ShopStepCanvas>
+          <Box className="space-y-6">
           <Box className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Box className="group">
               <Box className="flex items-center gap-2.5 mb-3">
@@ -525,14 +808,15 @@ export default function CreatePage() {
                     height={16}
                   />
                 </Box>
-                <Typography variant="subtitle2" className="font-semibold text-foreground">
-                  Phone
+<Typography variant="subtitle2" className="font-semibold text-foreground">
+                {t('columns.phone')}
                 </Typography>
               </Box>
               <RHFTextField
                 name="phone"
-                placeholder="e.g., 0111234567"
-                helperText="Enter the shop phone number"
+                autoComplete="tel"
+                placeholder={t('form.phonePlaceholder')}
+                helperText={t('form.shopPhoneHelper')}
                 className="transition-all duration-200"
               />
             </Box>
@@ -546,14 +830,15 @@ export default function CreatePage() {
                     height={16}
                   />
                 </Box>
-                <Typography variant="subtitle2" className="font-semibold text-foreground">
-                  Mobile
+<Typography variant="subtitle2" className="font-semibold text-foreground">
+                {t('form.mobileLabel')}
                 </Typography>
               </Box>
               <RHFTextField
                 name="mobile"
-                placeholder="e.g., +963944000222"
-                helperText="Enter the shop mobile number"
+                autoComplete="tel"
+                placeholder={t('form.mobilePlaceholder')}
+                helperText={t('form.shopMobileHelper')}
                 className="transition-all duration-200"
               />
             </Box>
@@ -567,42 +852,153 @@ export default function CreatePage() {
                     height={16}
                   />
                 </Box>
-                <Typography variant="subtitle2" className="font-semibold text-foreground">
-                  Email
+<Typography variant="subtitle2" className="font-semibold text-foreground">
+                {t('columns.email')}
                 </Typography>
               </Box>
               <RHFTextField
                 name="email"
                 type="email"
-                placeholder="e.g., teststore@example.com"
-                helperText="Enter the shop email address"
+                placeholder={t('form.emailPlaceholder')}
+                helperText={t('form.shopEmailHelper')}
                 className="transition-all duration-200"
               />
             </Box>
           </Box>
-        </Box>
+          </Box>
+        </ShopStepCanvas>
       ),
     },
     {
-      label: 'Working Hours',
-      description: 'Schedule and availability',
+      label: t('form.shopStepHoursLabel'),
+      description: t('form.shopStepHoursDesc'),
       icon: 'solar:clock-circle-bold',
       content: (
-        <Box className="space-y-6">
-          <Box className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {DAYS_OF_WEEK.map((day) => (
-              <WorkingHoursField key={day.key} day={day.key} />
+        <ShopStepCanvas>
+          <Box className="space-y-6">
+          <Box className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            {SHOP_DAY_KEYS.map((dayKey) => (
+              <WorkingHoursField key={dayKey} day={dayKey} />
             ))}
           </Box>
-        </Box>
+          </Box>
+        </ShopStepCanvas>
       ),
     },
     {
-      label: 'Settings',
-      description: 'Additional configuration',
+      label: t('form.shopStepSettingsLabel'),
+      description: t('form.shopStepSettingsDesc'),
       icon: 'solar:settings-bold',
       content: (
-        <Box className="space-y-6">
+        <ShopStepCanvas>
+          <Box className="space-y-6">
+          {/* Classification, pricing, payments, coupons */}
+          <Box className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Box className="group md:col-span-2">
+              <Box className="flex items-center gap-2.5 mb-3">
+                <Box className="w-7 h-7 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
+                  <Iconify
+                    icon="solar:shop-bold"
+                    className="text-primary"
+                    width={16}
+                    height={16}
+                  />
+                </Box>
+                <Typography variant="subtitle2" className="font-semibold text-foreground">
+                  {t('form.shopClassificationSection')}
+                </Typography>
+              </Box>
+              <RHFSelect
+                name="shop_type"
+                options={[
+                  { value: 'restaurant', label: t('form.shopTypeRestaurant') },
+                  { value: 'service_provider', label: t('form.shopTypeServiceProvider') },
+                  { value: 'store', label: t('form.shopTypeStore') },
+                ]}
+                placeholder={t('form.shopTypePlaceholder')}
+                helperText={t('form.shopTypeHelper')}
+              />
+            </Box>
+
+            <Box className="group">
+              <Box className="flex items-center gap-2.5 mb-3">
+                <Box className="w-7 h-7 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
+                  <Iconify icon="solar:tag-price-bold" className="text-primary" width={16} height={16} />
+                </Box>
+                <Typography variant="subtitle2" className="font-semibold text-foreground">
+                  {t('form.shopPriceLevelLabel')}
+                </Typography>
+              </Box>
+              <RHFSelect
+                name="pricing_tier"
+                options={[
+                  { value: 'cheap', label: t('form.shopPriceLevelCheap') },
+                  { value: 'medium', label: t('form.shopPriceLevelMedium') },
+                  { value: 'expensive', label: t('form.shopPriceLevelExpensive') },
+                ]}
+                placeholder={t('form.shopPriceLevelPlaceholder')}
+              />
+            </Box>
+
+            <Box className="group">
+              <Box className="flex items-center gap-2.5 mb-3">
+                <Box className="w-7 h-7 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
+                  <Iconify icon="solar:wallet-bold" className="text-primary" width={16} height={16} />
+                </Box>
+                <Typography variant="subtitle2" className="font-semibold text-foreground">
+                  {t('form.shopPaymentMethodsLabel')}
+                </Typography>
+              </Box>
+              <Controller
+                name="payment_methods"
+                control={control}
+                render={({ field, fieldState: { error } }) => (
+                  <div className="w-full">
+                    <MultiSelect
+                      options={paymentMethodOptions}
+                      value={field.value ?? []}
+                      onChange={(ids) => field.onChange(ids as string[])}
+                      placeholder={t('form.shopPaymentMethodsPlaceholder')}
+                    />
+                    {error?.message && (
+                      <Typography variant="caption" className="text-destructive mt-1 block">
+                        {error.message}
+                      </Typography>
+                    )}
+                  </div>
+                )}
+              />
+            </Box>
+
+            <Box className="group md:col-span-2">
+              <Box className="flex items-center gap-2.5 mb-3">
+                <Box className="w-7 h-7 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
+                  <Iconify icon="solar:star-bold" className="text-primary" width={16} height={16} />
+                </Box>
+                <Typography variant="subtitle2" className="font-semibold text-foreground">
+                  {t('form.shopRecommendedSection')}
+                </Typography>
+              </Box>
+              <Controller
+                name="is_recommended"
+                control={control}
+                render={({ field }) => (
+                  <Box className="p-4 rounded-lg border border-border/60 bg-card/30 hover:bg-card/50 transition-colors">
+                    <Checkbox
+                      checked={field.value}
+                      onChange={(e) => field.onChange(e.target.checked)}
+                      label={
+                        <span className="text-sm font-medium text-foreground">
+                          {t('form.shopRecommendedLabel')}
+                        </span>
+                      }
+                    />
+                  </Box>
+                )}
+              />
+            </Box>
+          </Box>
+
           {/* Area ID & Service IDs */}
           <Box className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Box className="group">
@@ -615,16 +1011,17 @@ export default function CreatePage() {
                     height={16}
                   />
                 </Box>
-                <Typography variant="subtitle2" className="font-semibold text-foreground">
-                  Area ID
+<Typography variant="subtitle2" className="font-semibold text-foreground">
+                {t('areaLabel')}
                 </Typography>
               </Box>
-              <RHFTextField
+              <RHFInfiniteSelect
                 name="area_id"
-                type="number"
-                placeholder="e.g., 1"
-                helperText="Enter the area ID"
-                className="transition-all duration-200"
+                queryKey={['areas', 'infinite', 'shop-form']}
+                fetcher={areaFetcherForShop}
+                placeholder={t('form.selectArea')}
+                helperText={t('form.selectAreaHelper')}
+                initialLabel={areaSelectLabel}
               />
             </Box>
 
@@ -639,7 +1036,7 @@ export default function CreatePage() {
                   />
                 </Box>
                 <Typography variant="subtitle2" className="font-semibold text-foreground">
-                  Service IDs
+                  {t('form.shopServicesSection')}
                 </Typography>
               </Box>
               <Controller
@@ -647,29 +1044,22 @@ export default function CreatePage() {
                 control={control}
                 render={({ field, fieldState: { error } }) => (
                   <div className="w-full">
-                    <Input
-                      placeholder="e.g., 1,2"
-                      value={field.value?.map((s) => s.id).join(',') || ''}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        if (value) {
-                          const ids = value
-                            .split(',')
-                            .map((areaId) => areaId.trim())
-                            .filter((areaId) => areaId)
-                            .map((areaId) => ({ id: Number(areaId) }));
-                          field.onChange(ids);
-                        } else {
-                          field.onChange([]);
-                        }
-                      }}
-                      error={!!error}
-                      helperText={
-                        error?.message || 'Enter service IDs separated by commas (e.g., 1,2)'
+                    <MultiSelect
+                      options={serviceOptions}
+                      value={field.value?.map((s) => s.id) ?? []}
+                      onChange={(ids) =>
+                        field.onChange(
+                          (ids as (string | number)[]).map((sid) => ({ id: Number(sid) }))
+                        )
                       }
-                      fullWidth
-                      className="transition-all duration-200"
+                      placeholder={t('form.selectServices')}
+                      isDisabled={serviceOptions.length === 0}
                     />
+                    {error?.message && (
+                      <Typography variant="caption" className="text-destructive mt-1 block">
+                        {error.message}
+                      </Typography>
+                    )}
                   </div>
                 )}
               />
@@ -688,7 +1078,7 @@ export default function CreatePage() {
                 />
               </Box>
               <Typography variant="subtitle2" className="font-semibold text-foreground">
-                Active Status
+                {t('form.shopActiveStatusSection')}
               </Typography>
             </Box>
             <Controller
@@ -701,7 +1091,7 @@ export default function CreatePage() {
                     onChange={(e) => field.onChange(e.target.checked)}
                     label={
                       <span className="text-sm font-medium text-foreground">
-                        Mark shop as active
+                        {t('form.markShopActiveLabel')}
                       </span>
                     }
                   />
@@ -709,7 +1099,8 @@ export default function CreatePage() {
               )}
             />
           </Box>
-        </Box>
+          </Box>
+        </ShopStepCanvas>
       ),
     },
   ];
@@ -717,27 +1108,57 @@ export default function CreatePage() {
   return (
     <>
       <title>
-        {isEditMode ? `Edit Shop | ${metadata.title}` : `Create Shop | ${metadata.title}`}
+        {isEditMode
+          ? t('form.shopEditDocumentTitle', { appName: CONFIG.appName })
+          : t('form.shopCreateDocumentTitle', { appName: CONFIG.appName })}
       </title>
 
       <StepperFormLayout
         methods={methods}
-        onSubmit={handleSubmit(onSubmit)}
+        onSubmit={handleSubmit(
+          (data) => {
+            onSubmit(data);
+          },
+          (errors) => {
+            const getFirstMessage = (obj: unknown): string | null => {
+              if (!obj || typeof obj !== 'object') return null;
+              const o = obj as Record<string, unknown>;
+              if (typeof o.message === 'string') return o.message;
+              for (const v of Object.values(o)) {
+                const m = getFirstMessage(v);
+                if (m) return m;
+              }
+              return null;
+            };
+            const msg = getFirstMessage(errors);
+            if (msg) toast.error(msg);
+          }
+        )}
         onCancel={handleCancel}
         isSubmitting={isSubmitting}
         errorMessage={errorMessage}
-        title={isEditMode ? 'Edit Shop' : 'Create New Shop'}
-        description={
-          isEditMode ? 'Update shop information and working hours' : 'Add a new shop to your system'
+        title={isEditMode ? t('form.editShop') : t('form.createShop')}
+        description={isEditMode ? t('form.editShopDesc') : t('form.createShopDesc')}
+        icon={
+          <Box className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/35 via-primary/15 to-transparent shadow-lg shadow-primary/15 ring-2 ring-primary/25">
+            <Iconify
+              icon={isEditMode ? 'solar:shop-2-bold' : 'solar:shop-bold'}
+              className="text-primary"
+              width={30}
+              height={30}
+            />
+          </Box>
         }
         isEditMode={isEditMode}
         isLoading={isLoadingShop}
-        loadingText="Loading shop data..."
-        maxWidth="4xl"
+        loadingText={t('form.loadingShop')}
+        maxWidth="full"
         steps={steps}
-        submitLabel={isEditMode ? 'Update Shop' : 'Create Shop'}
-        submittingLabel={isEditMode ? 'Updating...' : 'Creating...'}
-       />
+        stepValidationFields={SHOP_STEP_VALIDATION_FIELDS}
+        reviewHint={t('reviewBeforeSubmit')}
+        submitLabel={isEditMode ? t('form.updateShopSubmit') : t('form.createShopSubmit')}
+        submittingLabel={isEditMode ? t('form.updatingShop') : t('form.creatingShop')}
+      />
     </>
   );
 }

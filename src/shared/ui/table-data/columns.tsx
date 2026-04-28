@@ -2,12 +2,18 @@
 // @ts-ignore - @tanstack/react-table types
 import type { ColumnDef } from '@tanstack/react-table';
 
+import i18n from 'src/lib/i18n';
 import { Label } from 'src/shared/components/label';
 import { Iconify } from 'src/shared/components/iconify';
 
 import { Checkbox } from '../checkbox';
 import { DataTableColumnHeader } from './data-table-column-header';
 import { label_options, status_options, priority_options } from './filters';
+
+// ----------------------------------------------------------------------
+
+const tt = (key: string) => i18n.t(key, { ns: 'table' });
+const tc = (key: string) => i18n.t(key, { ns: 'common' });
 
 // ----------------------------------------------------------------------
 
@@ -20,7 +26,7 @@ export const columns: ColumnDef<any>[] = [
       <Checkbox
         checked={table.getIsAllPageRowsSelected()}
         onChange={(e) => table.toggleAllPageRowsSelected(e.target.checked)}
-        aria-label="Select all"
+        aria-label={tc('ariaSelectAll')}
         className="translate-y-[2px]"
       />
     ),
@@ -29,7 +35,7 @@ export const columns: ColumnDef<any>[] = [
       <Checkbox
         checked={row.getIsSelected()}
         onChange={(e) => row.toggleSelected(e.target.checked)}
-        aria-label="Select row"
+        aria-label={tc('ariaSelectRow')}
         className="translate-y-[2px]"
       />
     ),
@@ -39,7 +45,7 @@ export const columns: ColumnDef<any>[] = [
   {
     accessorKey: 'id',
      
-    header: ({ column }: any) => <DataTableColumnHeader column={column} title="Task" />,
+    header: ({ column }: any) => <DataTableColumnHeader column={column} title={tt('columns.task')} />,
      
     cell: ({ row }: any) => <div className="w-[80px] text-foreground">{row.getValue('id')}</div>,
     enableSorting: false,
@@ -48,7 +54,7 @@ export const columns: ColumnDef<any>[] = [
   {
     accessorKey: 'title',
      
-    header: ({ column }: any) => <DataTableColumnHeader column={column} title="Title" />,
+    header: ({ column }: any) => <DataTableColumnHeader column={column} title={tt('columns.titleColumn')} />,
      
     cell: ({ row }: any) => {
        
@@ -58,7 +64,7 @@ export const columns: ColumnDef<any>[] = [
       );
 
       return (
-        <div className="flex space-x-2">
+        <div className="flex gap-2">
           {label && <Label variant="outlined">{label.label}</Label>}
           <span className="max-w-[500px] truncate font-medium text-foreground">
             {row.getValue('title')}
@@ -70,7 +76,7 @@ export const columns: ColumnDef<any>[] = [
   {
     accessorKey: 'status',
      
-    header: ({ column }: any) => <DataTableColumnHeader column={column} title="Status" />,
+    header: ({ column }: any) => <DataTableColumnHeader column={column} title={tt('columns.status')} />,
      
     cell: ({ row }: any) => {
        
@@ -86,7 +92,7 @@ export const columns: ColumnDef<any>[] = [
       return (
         <div className="flex w-[100px] items-center">
           {status.icon && (
-            <Iconify icon={status.icon as any} width={16} className="mr-2 text-muted-foreground" />
+            <Iconify icon={status.icon as any} width={16} className="me-2 text-muted-foreground" />
           )}
           <span className="text-foreground">{status.label}</span>
         </div>
@@ -98,7 +104,7 @@ export const columns: ColumnDef<any>[] = [
   {
     accessorKey: 'priority',
      
-    header: ({ column }: any) => <DataTableColumnHeader column={column} title="Priority" />,
+    header: ({ column }: any) => <DataTableColumnHeader column={column} title={tt('columns.priority')} />,
      
     cell: ({ row }: any) => {
        
@@ -117,7 +123,7 @@ export const columns: ColumnDef<any>[] = [
             <Iconify
               icon={priority.icon as any}
               width={16}
-              className="mr-2 text-muted-foreground"
+              className="me-2 text-muted-foreground"
             />
           )}
           <span className="text-foreground">{priority.label}</span>
@@ -130,7 +136,7 @@ export const columns: ColumnDef<any>[] = [
   {
     accessorKey: 'due_date',
      
-    header: ({ column }: any) => <DataTableColumnHeader column={column} title="Due Date" />,
+    header: ({ column }: any) => <DataTableColumnHeader column={column} title={tt('columns.dueDate')} />,
      
     cell: ({ row }: any) => {
       const field = row.getValue('due_date') as Date;

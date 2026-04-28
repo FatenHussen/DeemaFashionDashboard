@@ -1,6 +1,7 @@
 import { mergeClasses } from 'minimal-shared/utils';
 
 import { Box } from 'src/shared/ui';
+import { BackButton } from 'src/shared/components/back-button';
 import { useSettingsContext } from 'src/shared/components/settings';
 
 import { layoutClasses } from '../core';
@@ -13,6 +14,8 @@ export type DashboardContentProps = React.ComponentProps<'div'> & {
   maxWidth?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | false;
   className?: string;
   style?: React.CSSProperties;
+  /** Hide the automatic back button rendered at the top of the content area. */
+  hideBackButton?: boolean;
 };
 
 export function DashboardContent({
@@ -22,6 +25,7 @@ export function DashboardContent({
   maxWidth = 'lg',
   layoutQuery = 'lg',
   style,
+  hideBackButton = false,
   ...other
 }: DashboardContentProps) {
   const settings = useSettingsContext();
@@ -55,6 +59,11 @@ export function DashboardContent({
       style={style}
       {...other}
     >
+      {!hideBackButton && (
+        <Box className={mergeClasses(['mb-4 flex', disablePadding ? 'px-4 md:px-6 lg:px-8' : ''])}>
+          <BackButton />
+        </Box>
+      )}
       {children}
     </Box>
   );

@@ -3,6 +3,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 
 import { z } from 'zod';
 import { Iconify } from '@/shared/components/iconify';
+import { TableActiveBadge } from '@/shared/components/table-status-badges';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 
@@ -11,7 +12,7 @@ const AdminSchema = z.object({
   id: z.number(),
   name: z.string(),
   email: z.string().email(),
-  is_active: z.number(),
+  is_active: z.union([z.number(), z.boolean()]),
   roles: z.array(z.string()),
   created_at: z.string(),
 });
@@ -21,7 +22,7 @@ export interface AdminFormValues {
   id: number;
   name: string;
   email: string;
-  is_active: number;
+  is_active: number | boolean;
   roles: string[];
   created_at: string;
   [key: string]: any;
@@ -38,24 +39,13 @@ export const adminColumns = (
   isDeleteDialogOpen?: boolean,
   onDeleteConfirm?: () => void,
   onDeleteCancel?: () => void,
-  deletingId?: number | null
+  deletingId?: number | null,
+  onUpdatePassword?: (row: { original: AdminFormValues }) => void
 ): ColumnDef<AdminFormValues>[] => [
-  {
-    id: 'id',
-    accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="ID" />,
-    cell: ({ row }) => (
-      <div className="flex items-center gap-2">
-        <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
-          <span className="text-xs font-semibold text-primary">{row.original.id}</span>
-        </div>
-      </div>
-    ),
-  },
   {
     id: 'name',
     accessorKey: 'name',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.name')} />,
     cell: ({ row }) => (
       <div className="flex items-center gap-2.5 min-w-0">
         <div className="w-9 h-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center flex-shrink-0">
@@ -70,7 +60,7 @@ export const adminColumns = (
   {
     id: 'email',
     accessorKey: 'email',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Email" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.email')} />,
     cell: ({ row }) => (
       <div className="flex items-center gap-2 min-w-0">
         <Iconify icon="solar:letter-bold" className="text-muted-foreground flex-shrink-0" width={16} height={16} />
@@ -81,7 +71,7 @@ export const adminColumns = (
   {
     id: 'roles',
     accessorKey: 'roles',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Roles" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.roles')} />,
     cell: ({ row }) => (
       <div className="flex flex-wrap gap-1.5">
         {row.original.roles?.map((role, index) => (
@@ -101,32 +91,22 @@ export const adminColumns = (
   {
     id: 'status',
     accessorKey: 'is_active',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.status')} />,
     cell: ({ row }) => {
-      const isActive = row.original.is_active === 1;
+      const isActive = Boolean(row.original.is_active);
       return (
-        <div
-          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border w-fit ${
-            isActive
-              ? 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/50 text-emerald-700 dark:text-emerald-300'
-              : 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800/50 text-red-700 dark:text-red-300'
-          }`}
-        >
-          <Iconify
-            icon={isActive ? 'solar:check-circle-bold' : 'solar:close-circle-bold'}
-            width={14}
-            height={14}
-            className="flex-shrink-0"
-          />
-          <span className="text-xs font-medium">{isActive ? 'Active' : 'Inactive'}</span>
-        </div>
+        <TableActiveBadge
+          isActive={isActive}
+          activeLabel={t('active')}
+          inactiveLabel={t('inactive')}
+        />
       );
     },
   },
   {
     id: 'created_at',
     accessorKey: 'created_at',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Created At" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.createdAt')} />,
     cell: ({ row }) => (
       <div className="flex items-center gap-2">
         <Iconify icon="solar:calendar-date-bold" className="text-muted-foreground flex-shrink-0" width={16} height={16} />
@@ -140,8 +120,10 @@ export const adminColumns = (
       <DataTableRowActions
         schema={AdminSchema}
         row={row}
+        viewDetails={`/admin/details/${row.original.id}`}
         editItem={`/admin/update/${row.original.id}`}
         onDelete={onDelete}
+        onUpdatePassword={onUpdatePassword}
         isDeleting={isDeleting}
         isDeleteDialogOpen={isDeleteDialogOpen}
         onDeleteConfirm={onDeleteConfirm}

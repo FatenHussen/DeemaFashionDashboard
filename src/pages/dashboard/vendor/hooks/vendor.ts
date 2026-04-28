@@ -5,9 +5,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { _VendorApi } from '../api/vendor.services';
 
-export const useFetchVendors = (page: number = 1, limit: number = 25) => useQuery({
-    queryKey: queryKeys.vendor.list({ page, limit }),
-    queryFn: () => _VendorApi.getListVendor(),
+export const useFetchVendors = (
+  page: number = 1,
+  limit: number = 25,
+  params?: { search?: string }
+) =>
+  useQuery({
+    queryKey: queryKeys.vendor.list({ page, limit, ...params }),
+    queryFn: () => _VendorApi.getListVendor({ page, limit, ...params }),
   });
 
 export const useFetchVendorById = (id: number | string) => useQuery({
@@ -22,7 +27,7 @@ export const useCreateVendor = () => {
   return useMutation({
     mutationFn: (data: VendorCreateUpdatePayload) => _VendorApi.createVendor(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.vendor.list() });
+      queryClient.invalidateQueries({ queryKey: ['vendor', 'list'] });
     },
   });
 };
@@ -33,8 +38,9 @@ export const useUpdateVendor = () => {
   return useMutation({
     mutationFn: ({ id, data }: { id: number | string; data: VendorCreateUpdatePayload }) =>
       _VendorApi.updateVendor(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.vendor.list() });
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['vendor', 'list'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.vendor.details(variables.id) });
     },
   });
 };
@@ -45,7 +51,7 @@ export const useDeleteVendor = () => {
   return useMutation({
     mutationFn: (id: number | string) => _VendorApi.deleteVendor(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.vendor.list() });
+      queryClient.invalidateQueries({ queryKey: ['vendor', 'list'] });
     },
   });
 };

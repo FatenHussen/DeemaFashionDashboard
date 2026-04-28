@@ -2,6 +2,8 @@ import type { TFunction } from 'i18next';
 import type { ColumnDef } from '@tanstack/react-table';
 
 import { z } from 'zod';
+import { TableActiveBadge } from '@/shared/components/table-status-badges';
+import { createToggleColumn } from '@/shared/ui/table-data/data-table-toggle-cell';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 
@@ -46,33 +48,27 @@ export const languageColumns = (
   deletingId?: number | null
 ): ColumnDef<LanguageFormValues>[] => [
   {
-    id: 'id',
-    accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="ID" />,
-    cell: ({ row }) => <div className="font-medium">{row.original.id}</div>,
-  },
-  {
     id: 'flag_icon',
     accessorKey: 'flag_icon',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Flag" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.flag')} />,
     cell: ({ row }) => <div className="text-2xl">{row.original.flag_icon}</div>,
   },
   {
     id: 'code',
     accessorKey: 'code',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Code" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.code')} />,
     cell: ({ row }) => <div className="font-medium uppercase">{row.original.code}</div>,
   },
   {
     id: 'native_name',
     accessorKey: 'native_name',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Native Name" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.nativeName')} />,
     cell: ({ row }) => <div className="font-medium">{row.original.native_name}</div>,
   },
   {
     id: 'direction',
     accessorKey: 'direction',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Direction" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.direction')} />,
     cell: ({ row }) => (
       <div className="text-sm uppercase font-medium">{row.original.direction}</div>
     ),
@@ -80,13 +76,13 @@ export const languageColumns = (
   {
     id: 'order',
     accessorKey: 'order',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Order" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.orderRef')} />,
     cell: ({ row }) => <div className="text-sm">{row.original.order}</div>,
   },
   {
     id: 'is_default',
     accessorKey: 'is_default',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Default" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.default')} />,
     cell: ({ row }) => {
       const isDefault = row.original.is_default;
       return isDefault ? (
@@ -99,28 +95,28 @@ export const languageColumns = (
   {
     id: 'status',
     accessorKey: 'is_active',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.status')} />,
     cell: ({ row }) => {
       const isActive = row.original.is_active;
       return (
-        <div
-          className={`text-xs px-2 py-1 rounded-full w-fit ${
-            isActive
-              ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-              : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
-          }`}
-        >
-          {isActive ? 'Active' : 'Inactive'}
-        </div>
+        <TableActiveBadge
+          isActive={isActive}
+          activeLabel={t('active')}
+          inactiveLabel={t('inactive')}
+        />
       );
     },
   },
+  ...(permissions.update
+    ? [createToggleColumn<LanguageFormValues>({ entityType: 'language' })]
+    : []),
   {
     id: 'actions',
     cell: ({ row }: any) => (
       <DataTableRowActions
         schema={LanguageSchema}
         row={row}
+        viewDetails={`/languages/update/${row.original.id}`}
         editItem={`/languages/update/${row.original.id}`}
         onDelete={onDelete}
         isDeleting={isDeleting}

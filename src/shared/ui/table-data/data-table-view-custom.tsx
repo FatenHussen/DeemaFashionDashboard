@@ -66,7 +66,7 @@ export function DataTableViewOptionsCustom<TData>({
     //   }
 
     if (!selectedColumns || selectedColumns.length === 0) {
-      toast.error('Please select at least one column to export');
+      toast.error(t('form.exportSelectColumnsError'));
       return;
     }
 
@@ -104,10 +104,7 @@ export function DataTableViewOptionsCustom<TData>({
           document.body.removeChild(link);
         }
       }
-    } catch (err) {
-      toast.error('Export failed. Please try again later');
-      console.error('Export error:', err);
-    }
+    } catch { return; }
   };
 
   const handleCustomExportExcel = (selectedColumns: string[]) => {

@@ -1,9 +1,13 @@
 import { z } from 'zod';
 
+import i18n from 'src/lib/i18n';
+
+const t = (key: string) => i18n.t(key, { ns: 'validation' });
+
 export const PageSectionSchema = z.object({
   name: z.object({
-    en: z.string().min(1, 'English name is required'),
-    ar: z.string().min(1, 'Arabic name is required'),
+    en: z.string().min(1, t('pageSection.nameEnRequired')),
+    ar: z.string().min(1, t('pageSection.nameArRequired')),
   }),
   section_id: z.union([z.string(), z.number()]).refine(
     (val) => {
@@ -11,7 +15,7 @@ export const PageSectionSchema = z.object({
       if (typeof val === 'number') return val > 0;
       return false;
     },
-    { message: 'Section is required' }
+    { message: t('pageSection.sectionRequired') }
   ),
   page_id: z.union([z.string(), z.number()]).refine(
     (val) => {
@@ -19,18 +23,13 @@ export const PageSectionSchema = z.object({
       if (typeof val === 'number') return val > 0;
       return false;
     },
-    { message: 'Page is required' }
-  ),
-  display_type_id: z.union([z.string(), z.number()]).refine(
-    (val) => {
-      if (typeof val === 'string') return val !== '';
-      if (typeof val === 'number') return val > 0;
-      return false;
-    },
-    { message: 'Display type is required' }
+    { message: t('pageSection.pageRequired') }
   ),
   position: z.enum(['before', 'after'], {
-    required_error: 'Position is required',
+    required_error: t('pageSection.positionRequired'),
+  }),
+  variant: z.enum(['vertical', 'horizontal', 'square'], {
+    required_error: t('pageSection.variantRequired'),
   }),
   order: z.union([z.string(), z.number()]),
   background_color: z.string().optional(),

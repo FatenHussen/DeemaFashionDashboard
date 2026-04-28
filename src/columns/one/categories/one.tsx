@@ -3,6 +3,8 @@ import type { ColumnDef } from '@tanstack/react-table';
 
 import { z } from 'zod';
 import { Iconify } from '@/shared/components/iconify';
+import { formatTranslated } from '@/utils/format-translated';
+import { createToggleColumn } from '@/shared/ui/table-data/data-table-toggle-cell';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 
@@ -36,6 +38,9 @@ export interface CategoryFormValues {
   children_count: number;
   created_at: string;
   updated_at: string;
+  /** From list API — drives row Show/Hide in actions menu. */
+  is_active?: boolean | number;
+  is_restaurant?: boolean;
   [key: string]: any;
 }
 
@@ -50,30 +55,55 @@ export const categoryColumns = (
   isDeleteDialogOpen?: boolean,
   onDeleteConfirm?: () => void,
   onDeleteCancel?: () => void,
-  deletingId?: number | null
-): ColumnDef<CategoryFormValues>[] => [
-  {
-    id: 'id',
-    accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="ID" />,
+  deletingId?: number | null,
+  options?: {
+    subcategoriesPath?: (id: number) => string;
+    /** Same as row drill-down; when set, overrides navigation via `subcategoriesPath`. */
+    onSubcategoriesClick?: (row: CategoryFormValues) => void;
+    /** Hide parent column when listing root categories only. */
+    hideParentColumn?: boolean;
+  }
+): ColumnDef<CategoryFormValues>[] => {
+  const subcategoriesPath = options?.subcategoriesPath;
+  const onSubcategoriesClick = options?.onSubcategoriesClick;
+  const hideParentColumn = options?.hideParentColumn;
+
+  const parentColumn: ColumnDef<CategoryFormValues> = {
+    id: 'parent',
+    accessorKey: 'parent.name',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.parent')} />,
     cell: ({ row }) => (
-      <div className="flex items-center gap-2">
-        <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
-          <span className="text-xs font-semibold text-primary">{row.original.id}</span>
-        </div>
+      <div className="flex items-center gap-2 min-w-0">
+        {row.original.parent ? (
+          <>
+            <Iconify
+              icon="solar:diagram-bold"
+              className="text-muted-foreground shrink-0"
+              width={16}
+              height={16}
+            />
+            <span className="text-sm text-muted-foreground truncate">
+              {formatTranslated(row.original.parent.name)}
+            </span>
+          </>
+        ) : (
+          <span className="text-sm text-muted-foreground">-</span>
+        )}
       </div>
     ),
-  },
+  };
+
+  return [
   {
     id: 'icon',
     accessorKey: 'icon',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Icon" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.icon')} />,
     cell: ({ row }) => (
       <div className="flex items-center gap-2">
         {row.original.icon ? (
           <img
             src={row.original.icon}
-            alt={row.original.name}
+            alt={formatTranslated(row.original.name)}
             className="w-10 h-10 rounded-lg object-cover border border-border/60"
           />
         ) : (
@@ -92,7 +122,7 @@ export const categoryColumns = (
   {
     id: 'name',
     accessorKey: 'name',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.name')} />,
     cell: ({ row }) => (
       <div className="flex items-center gap-2.5 min-w-0">
         <div className="w-9 h-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
@@ -104,51 +134,28 @@ export const categoryColumns = (
           />
         </div>
         <div className="min-w-0">
-          <div className="font-semibold text-foreground truncate">{row.original.name}</div>
+          <div className="font-semibold text-foreground truncate">{formatTranslated(row.original.name)}</div>
         </div>
       </div>
     ),
   },
-  {
-    id: 'description',
-    accessorKey: 'description',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Description" />,
-    cell: ({ row }) => (
-      <div className="flex items-center gap-2 min-w-0">
-        <span className="text-sm text-muted-foreground truncate">
-          {row.original.description || '-'}
-        </span>
-      </div>
-    ),
-  },
-  {
-    id: 'parent',
-    accessorKey: 'parent.name',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Parent" />,
-    cell: ({ row }) => (
-      <div className="flex items-center gap-2 min-w-0">
-        {row.original.parent ? (
-          <>
-            <Iconify
-              icon="solar:diagram-bold"
-              className="text-muted-foreground shrink-0"
-              width={16}
-              height={16}
-            />
-            <span className="text-sm text-muted-foreground truncate">
-              {row.original.parent.name}
-            </span>
-          </>
-        ) : (
-          <span className="text-sm text-muted-foreground">-</span>
-        )}
-      </div>
-    ),
-  },
+  // {
+  //   id: 'description',
+  //   accessorKey: 'description',
+  //   header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.description')} />,
+  //   cell: ({ row }) => (
+  //     <div className="flex items-center gap-2 min-w-0">
+  //       <span className="text-sm text-muted-foreground truncate">
+  //         {formatTranslated(row.original.description) || '-'}
+  //       </span>
+  //     </div>
+  //   ),
+  // },
+  ...(hideParentColumn ? [] : [parentColumn]),
   {
     id: 'children_count',
     accessorKey: 'children_count',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Children" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.children')} />,
     cell: ({ row }) => (
       <div className="flex items-center gap-2">
         <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-primary/10 border border-primary/20 w-fit">
@@ -166,9 +173,32 @@ export const categoryColumns = (
     ),
   },
   {
+    id: 'is_restaurant',
+    accessorKey: 'is_restaurant',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.type')} />,
+    cell: ({ row }) => {
+      const isRestaurant = row.original.is_restaurant;
+      return (
+        <div className="flex items-center gap-2">
+          {isRestaurant ? (
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-orange-500/10 border border-orange-500/20 w-fit">
+              <Iconify icon="solar:shop-bold" className="text-orange-500 shrink-0" width={13} height={13} />
+              <span className="text-xs font-semibold text-orange-500">{t('columns.restaurant')}</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-muted border border-border w-fit">
+              <Iconify icon="solar:shop-2-bold" className="text-muted-foreground shrink-0" width={13} height={13} />
+              <span className="text-xs font-semibold text-muted-foreground">{t('columns.normal')}</span>
+            </div>
+          )}
+        </div>
+      );
+    },
+  },
+  {
     id: 'created_at',
     accessorKey: 'created_at',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Created At" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.createdAt')} />,
     cell: ({ row }) => (
       <div className="flex items-center gap-2">
         <Iconify
@@ -183,12 +213,22 @@ export const categoryColumns = (
       </div>
     ),
   },
+  ...(permissions.update
+    ? [createToggleColumn<CategoryFormValues>({ entityType: 'category' })]
+    : []),
   {
     id: 'actions',
     cell: ({ row }: any) => (
       <DataTableRowActions
         schema={CategorySchema}
         row={row}
+        subcategoriesPath={subcategoriesPath}
+        onSubcategoriesClick={
+          onSubcategoriesClick
+            ? (r) => onSubcategoriesClick(r.original as CategoryFormValues)
+            : undefined
+        }
+        viewDetails={`/categories/update/${row.original.id}`}
         editItem={`/categories/update/${row.original.id}`}
         onDelete={onDelete}
         isDeleting={isDeleting}
@@ -201,4 +241,5 @@ export const categoryColumns = (
     ),
   },
 ];
+};
 

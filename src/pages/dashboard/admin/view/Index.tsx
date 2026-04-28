@@ -1,26 +1,35 @@
-import { useState } from 'react';
 import { toast } from 'react-toastify';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { usePermissions } from '@/auth/hooks/use-permissions';
 import { adminColumns, type AdminFormValues } from '@/columns/one/admin/one';
-import { useFetchAdmins, useDeleteAdmin } from '@/pages/dashboard/admin/hooks/admin';
+import { UpdatePasswordDialog } from '@/shared/components/update-password-dialog';
+import { useFetchAdmins, useDeleteAdmin, useUpdateAdmin } from '@/pages/dashboard/admin/hooks/admin';
 
 import { CONFIG } from 'src/global-config';
 
 // ----------------------------------------------------------------------
 
-const metadata = { title: `Admins | Dashboard - ${CONFIG.appName}` };
-
 export default function Page() {
   const { t } = useTranslation('table');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [search, setSearch] = useState<string>('');
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+  const [passwordDialogTargetId, setPasswordDialogTargetId] = useState<number | null>(null);
 
-  // Fetch admins using the hook
-  const { data: adminsResponse, isLoading, error } = useFetchAdmins(currentPage, pageSize);
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
+
+  const params: Record<string, string> = {};
+  if (search.trim()) params.search = search.trim();
+
+  const { data: adminsResponse, isLoading, error } = useFetchAdmins(currentPage, pageSize, params);
   const deleteAdminMutation = useDeleteAdmin();
+  const updateAdminMutation = useUpdateAdmin();
 
   // Log error for debugging
   if (error) {
@@ -44,11 +53,9 @@ export default function Page() {
     if (deletingId) {
       try {
         await deleteAdminMutation.mutateAsync(deletingId);
-        toast.success(t('deleteSuccess') || 'Admin deleted successfully');
+        toast.success(t('deleteSuccess'));
         setDeletingId(null);
-      } catch (err: any) {
-        toast.error(err?.message || t('deleteError') || 'Failed to delete admin');
-      }
+      } catch { return; }
     }
   };
 
@@ -56,8 +63,34 @@ export default function Page() {
     setDeletingId(null);
   };
 
-  // Extract data from API response
-  const adminData: AdminFormValues[] = adminsResponse?.data?.items || [];
+  const onUpdatePassword = (row: { original: AdminFormValues }) => {
+    setPasswordDialogTargetId(row.original.id);
+    setPasswordDialogOpen(true);
+  };
+
+  const handlePasswordSubmit = async (data: { password: string; password_confirmation: string }) => {
+    if (!passwordDialogTargetId) return;
+    const admin = adminData.find((a) => a.id === passwordDialogTargetId);
+    await updateAdminMutation.mutateAsync({
+      id: passwordDialogTargetId,
+      data: {
+        name: admin?.name ?? '',
+        email: admin?.email ?? '',
+        phone: admin?.phone ?? '',
+        password: data.password,
+        password_confirmation: data.password_confirmation,
+      },
+    });
+    toast.success(t('form.passwordUpdatedSuccess'));
+    setPasswordDialogTargetId(null);
+    setPasswordDialogOpen(false);
+  };
+
+  // Extract data from API response (map roles from API shape to form shape)
+  const adminData: AdminFormValues[] = (adminsResponse?.data?.items || []).map((admin) => ({
+    ...admin,
+    roles: admin.roles?.map((r) => (typeof r === 'object' ? r.name : r)) ?? [],
+  }));
   const apiPagination = adminsResponse?.data?.pagination;
   const pagination = apiPagination
     ? {
@@ -83,10 +116,19 @@ export default function Page() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.adminsIndexDocumentTitle', { appName: CONFIG.appName })}</title>
+
+      <UpdatePasswordDialog
+        open={passwordDialogOpen}
+        onOpenChange={setPasswordDialogOpen}
+        onSubmit={handlePasswordSubmit}
+        isSubmitting={updateAdminMutation.isPending}
+        entityName={t('tableNames.admin')}
+        minLength={6}
+      />
 
       <DataTable
-        tableName="Admin"
+        tableName={t("tableNames.admin")}
         columns={adminColumns(
           {
             update: hasPermission('update', 'admin'),
@@ -98,11 +140,13 @@ export default function Page() {
           deletingId !== null,
           onDeleteConfirm,
           onDeleteCancel,
-          deletingId
+          deletingId,
+          onUpdatePassword
         )}
         data={adminData}
         createPath="/admin/create"
-        hasDetails={false}
+        hasDetails
+        detailsLink="/admin/details"
         permissions={{
           create: hasPermission('create', 'admin'),
           update: hasPermission('update', 'admin'),
@@ -110,19 +154,20 @@ export default function Page() {
         }}
         isLoading={isLoading}
         columnTranslations={{
-          id: 'ID',
-          name: 'Name',
-          email: 'Email',
-          roles: 'Roles',
-          status: 'Status',
-          created_at: 'Created At',
-          actions: 'Actions',
+          id: t('columns.id'),
+          name: t('columns.name'),
+          email: t('columns.email'),
+          roles: t('columns.roles'),
+          status: t('columns.status'),
+          created_at: t('columns.createdAt'),
+          actions: t('columns.action'),
         }}
         pagination={pagination}
         currentPage={currentPage}
         pageSize={pageSize}
         onPageChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}
+        onSearchChange={setSearch}
       />
     </>
   );

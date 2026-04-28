@@ -57,4 +57,5 @@ export interface LanguageListParams {
   code?: string;
   is_active?: number;
   direction?: 'ltr' | 'rtl';
+  search?: string;
 }

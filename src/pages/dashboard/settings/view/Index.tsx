@@ -1,0 +1,210 @@
+import type { TFunction } from 'i18next';
+
+import { useState } from 'react';
+import { toast } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
+import { Iconify } from '@/shared/components/iconify';
+import { usePermissions } from '@/auth/hooks/use-permissions';
+import { useAdminToggleStatus } from '@/hooks/use-admin-toggle-status';
+import { useFetchSettings } from '@/pages/dashboard/settings/hooks/setting';
+import { SettingEditModal } from '@/pages/dashboard/settings/components/setting-edit-modal';
+import { type SettingItem, settingsItemsFromListData } from '@/pages/dashboard/settings/types/setting.types';
+
+import { CONFIG } from 'src/global-config';
+import { Button } from 'src/shared/ui/button';
+import { Box, Typography } from 'src/shared/ui';
+import { LoadingScreen } from 'src/shared/components/loading-screen';
+
+function formatTypeLabel(type: SettingItem['type'], t: TFunction<'table'>): string {
+  const dash = t('form.emptyEmDash');
+  if (typeof type === 'string') return type;
+  if (type !== null && typeof type === 'object') {
+    try {
+      return JSON.stringify(type);
+    } catch {
+      return dash;
+    }
+  }
+  return String(type ?? dash);
+}
+
+function settingRowIsActive(item: SettingItem): boolean | undefined {
+  const v = item.is_active;
+  if (v === undefined || v === null) return undefined;
+  if (typeof v === 'boolean') return v;
+  if (typeof v === 'number') {
+    if (v === 1) return true;
+    if (v === 0) return false;
+  }
+  return Boolean(v);
+}
+
+function SettingRow({
+  item,
+  onEdit,
+}: {
+  item: SettingItem;
+  onEdit: (item: SettingItem) => void;
+}) {
+  const { t } = useTranslation('table');
+  const { can } = usePermissions();
+  const toggleMutation = useAdminToggleStatus();
+  const active = settingRowIsActive(item);
+  const canToggle =
+    active !== undefined && can('setting.update');
+
+  return (
+    <tr className="border-b border-border/40 transition-colors hover:bg-muted/30">
+      <td className="px-4 py-3 font-mono text-sm text-muted-foreground">
+        {typeof item.key === 'string' ? item.key : JSON.stringify(item.key)}
+      </td>
+      <td className="px-4 py-3">
+        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">
+          {formatTypeLabel(item.type, t)}
+        </span>
+      </td>
+      <td className="max-w-md px-4 py-3 text-sm">
+        {item.type === 'file' && typeof item.value === 'string' && item.value ? (
+          <a
+            href={item.value}
+            target="_blank"
+            rel="noreferrer"
+            className="text-xs text-primary underline"
+          >
+            {t('form.viewFile')}
+          </a>
+        ) : item.type === 'file' ? (
+          t('form.emptyEmDash')
+        ) : item.value !== null && typeof item.value === 'object' ? (
+          <span className="inline-block max-w-md whitespace-pre-wrap break-all align-top font-mono text-xs text-foreground">
+            {JSON.stringify(item.value)}
+          </span>
+        ) : (
+          <span className="text-foreground">{String(item.value ?? t('form.emptyEmDash'))}</span>
+        )}
+      </td>
+      <td className="px-4 py-3 text-sm text-muted-foreground">{item.updated_at}</td>
+      <td className="px-4 py-3">
+        <div className="flex flex-wrap items-center gap-1">
+          {canToggle && (
+            <Button
+              type="button"
+              variant="text"
+              size="small"
+              disabled={toggleMutation.isPending}
+              onClick={async () => {
+                try {
+                  await toggleMutation.mutateAsync({
+                    type: 'system_setting',
+                    id: item.id,
+                    is_active: !active,
+                  });
+                  toast.success(t('toggleVisibilitySuccess'));
+                } catch {
+                  /* toast from axios */
+                }
+              }}
+              className="gap-1.5 text-muted-foreground hover:bg-muted/60 -ms-2"
+            >
+              <Iconify icon={active ? 'solar:eye-closed-bold' : 'solar:eye-bold'} width={16} />
+              {active ? t('toggleHide') : t('toggleShow')}
+            </Button>
+          )}
+          <Button
+            type="button"
+            variant="text"
+            size="small"
+            onClick={() => onEdit(item)}
+            className="gap-1.5 text-primary hover:bg-primary/5 -ms-2"
+          >
+            <Iconify icon="solar:pen-bold" width={16} />
+            {t('editDetails')}
+          </Button>
+        </div>
+      </td>
+    </tr>
+  );
+}
+
+export default function Page() {
+  const { t } = useTranslation('table');
+  const { data, isLoading, error } = useFetchSettings();
+  const [editingItem, setEditingItem] = useState<SettingItem | null>(null);
+
+  if (isLoading) return <LoadingScreen />;
+  if (error)
+    return (
+      <Box className="flex min-h-[400px] items-center justify-center">
+        <Typography variant="body1" className="text-destructive">
+          {t('form.settingsFailedToLoad')}
+        </Typography>
+      </Box>
+    );
+
+  const items = settingsItemsFromListData(data?.data);
+
+  return (
+    <>
+      <title>{t('form.settingsIndexDocumentTitle', { appName: CONFIG.appName })}</title>
+      <Box className="p-6">
+        <Box className="mb-6 flex items-center gap-3">
+          <Iconify icon="solar:settings-minimalistic-bold" width={28} className="text-primary" />
+          <Box>
+            <Typography variant="h5" className="font-bold">
+              {t('form.settingsTitle')}
+            </Typography>
+            <Typography variant="body2" className="text-muted-foreground">
+              {t('form.settingsDesc')}
+            </Typography>
+          </Box>
+        </Box>
+        <Box className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[640px]">
+              <thead>
+                <tr className="border-b border-border bg-muted/40">
+                  <th className="px-4 py-3 text-start text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    {t('form.columnKey')}
+                  </th>
+                  <th className="px-4 py-3 text-start text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    {t('columns.type')}
+                  </th>
+                  <th className="px-4 py-3 text-start text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    {t('form.columnValue')}
+                  </th>
+                  <th className="px-4 py-3 text-start text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    {t('columns.updatedAt')}
+                  </th>
+                  <th className="px-4 py-3 text-start text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    {t('form.columnActions')}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="py-12 text-center text-muted-foreground">
+                      {t('form.settingsNotFound')}
+                    </td>
+                  </tr>
+                ) : (
+                  items.map((item) => (
+                    <SettingRow key={item.id} item={item} onEdit={setEditingItem} />
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </Box>
+      </Box>
+
+      {editingItem && (
+        <SettingEditModal
+          open={!!editingItem}
+          onClose={() => setEditingItem(null)}
+          item={editingItem}
+        />
+      )}
+    </>
+  );
+}

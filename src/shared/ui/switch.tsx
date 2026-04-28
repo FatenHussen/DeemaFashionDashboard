@@ -29,17 +29,17 @@ export const Switch = forwardRef<HTMLInputElement, SwitchProps>(
           />
           <div
             className={mergeClasses([
-              'relative h-6 w-11 rounded-full bg-gray-300 transition-colors',
-              'peer-checked:bg-blue-600',
-              'peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500 peer-focus:ring-offset-2',
+              'relative h-6 w-11 rounded-full bg-muted-foreground/30 transition-colors',
+              'peer-checked:bg-primary',
+              'peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary peer-focus:ring-offset-2 peer-focus:ring-offset-background',
               'peer-disabled:cursor-not-allowed peer-disabled:opacity-50',
-              error ? 'bg-red-300 peer-checked:bg-red-600' : '',
+              error ? 'bg-red-400/40 peer-checked:bg-red-500' : '',
               className,
             ])}
           >
             <div
               className={mergeClasses([
-                'absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform',
+                'absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-background shadow transition-transform',
                 'peer-checked:translate-x-5',
               ])}
             />

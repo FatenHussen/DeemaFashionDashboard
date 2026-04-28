@@ -3,17 +3,23 @@ import type { AuthSplitContentProps } from './content';
 import type { MainSectionProps, LayoutSectionProps, HeaderSectionProps } from '../core';
 
 import { merge } from 'es-toolkit';
+import { useTranslation } from 'react-i18next';
+import { mergeClasses } from 'minimal-shared/utils';
 
 import { paths } from 'src/routes/paths';
-import { RouterLink } from 'src/routes/components';
 
 import { CONFIG } from 'src/global-config';
-import { Logo } from 'src/shared/components/logo';
 
 import { AuthSplitSection } from './section';
 import { AuthSplitContent } from './content';
-import { SettingsButton } from '../components/settings-button';
 import { MainSection, LayoutSection, HeaderSection } from '../core';
+
+// ----------------------------------------------------------------------
+
+function AuthSplitHeaderInfoSlot() {
+  const { t } = useTranslation('common');
+  return <div className="hidden rounded-none">{t('authLayoutInfoAlert')}</div>;
+}
 
 // ----------------------------------------------------------------------
 
@@ -21,6 +27,10 @@ type LayoutBaseProps = Pick<LayoutSectionProps, 'className' | 'children' | 'cssV
 
 export type AuthSplitLayoutProps = LayoutBaseProps & {
   layoutQuery?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+  /**
+   * Wraps the form + marketing columns in one rounded card on a grey canvas (split login “box” layout).
+   */
+  unifiedCard?: boolean;
   slotProps?: {
     header?: HeaderSectionProps;
     main?: MainSectionProps;
@@ -39,28 +49,33 @@ export function AuthSplitLayout({
   children,
   slotProps,
   layoutQuery = 'md',
+  unifiedCard = false,
 }: AuthSplitLayoutProps) {
   const renderHeader = () => {
     const headerSlotProps: HeaderSectionProps['slotProps'] = {};
 
     const headerSlots: HeaderSectionProps['slots'] = {
-      topArea: <div className="hidden rounded-none">This is an info Alert.</div>,
+      topArea: <AuthSplitHeaderInfoSlot />,
       leftArea: (
-        <>
-          {/** @slot Logo */}
-          <Logo href="/" />
-        </>
+        // <>
+        //   {/** @slot Logo */}
+        //   <RouterLink href="/" className="block">
+        //     <img src="/logo/logo.jpg" alt="Logo" className="h-10 w-auto object-contain" />
+        //   </RouterLink>
+        // </>
+        null
       ),
       rightArea: (
-        <div className="flex items-center gap-2 sm:gap-3">
-          {/** @slot Help link */}
-          <RouterLink href={paths.faqs} className="text-inherit text-sm font-medium">
-            Need help?
-          </RouterLink>
+        // <div className="flex items-center gap-2 sm:gap-3">
+        //   {/** @slot Help link */}
+        //   <RouterLink href={paths.faqs} className="text-inherit text-sm font-medium">
+        //     Need help?
+        //   </RouterLink>
 
-          {/** @slot Settings button */}
-          <SettingsButton />
-        </div>
+        //   {/** @slot Settings button */}
+        //   <SettingsButton />
+        // </div>
+        null
       ),
     };
 
@@ -117,9 +132,12 @@ export function AuthSplitLayout({
       contentLayoutQuery = 'xl';
     }
 
-    // Extract layoutQuery from slotProps to avoid type conflicts
-    const { layoutQuery: sectionLayoutQueryOverride, ...restSectionProps } =
-      slotProps?.section || {};
+    // Extract layoutQuery and methods from slotProps to avoid type conflicts
+    const {
+      layoutQuery: sectionLayoutQueryOverride,
+      methods: sectionMethodsOverride,
+      ...restSectionProps
+    } = slotProps?.section || {};
     const { layoutQuery: contentLayoutQueryOverride, ...restContentProps } =
       slotProps?.content || {};
 
@@ -134,46 +152,97 @@ export function AuthSplitLayout({
         : (contentLayoutQueryOverride as 'sm' | 'md' | 'lg' | 'xl')
       : contentLayoutQuery;
 
+    const sectionNode = (
+      <AuthSplitSection
+        layoutQuery={finalSectionLayoutQuery}
+        method={CONFIG.auth.method}
+        unifiedCard={unifiedCard}
+        {...restSectionProps}
+        className={mergeClasses([
+          unifiedCard ? 'min-h-0 min-w-0 flex-1 md:max-w-none md:basis-1/2 md:flex-[1_1_50%]' : undefined,
+          restSectionProps.className,
+        ])}
+        methods={
+          sectionMethodsOverride !== undefined
+            ? sectionMethodsOverride
+            : [
+                {
+                  label: 'Jwt',
+                  path: paths.auth.jwt.signIn,
+                  icon: `${CONFIG.assetsDir}/assets/icons/platforms/ic-jwt.svg`,
+                },
+                {
+                  label: 'Firebase',
+                  path: paths.auth.firebase.signIn,
+                  icon: `${CONFIG.assetsDir}/assets/icons/platforms/ic-firebase.svg`,
+                },
+                {
+                  label: 'Amplify',
+                  path: paths.auth.amplify.signIn,
+                  icon: `${CONFIG.assetsDir}/assets/icons/platforms/ic-amplify.svg`,
+                },
+                {
+                  label: 'Auth0',
+                  path: paths.auth.auth0.signIn,
+                  icon: `${CONFIG.assetsDir}/assets/icons/platforms/ic-auth0.svg`,
+                },
+                {
+                  label: 'Supabase',
+                  path: paths.auth.supabase.signIn,
+                  icon: `${CONFIG.assetsDir}/assets/icons/platforms/ic-supabase.svg`,
+                },
+              ]
+        }
+      />
+    );
+
+    const contentNode = (
+      <AuthSplitContent
+        layoutQuery={finalContentLayoutQuery}
+        {...restContentProps}
+        className={mergeClasses([
+          unifiedCard ? 'w-full bg-white md:max-w-none md:basis-1/2 md:flex-[1_1_50%]' : undefined,
+          restContentProps.className,
+        ])}
+      >
+        {children}
+      </AuthSplitContent>
+    );
+
     return (
       <MainSection
         {...slotProps?.main}
-        className={`${flexDirectionClass} ${slotProps?.main?.className || ''}`}
+        innerClassName={mergeClasses([
+          unifiedCard
+            ? mergeClasses([
+                'flex min-h-0 w-full flex-1 flex-col items-stretch justify-stretch p-0',
+                slotProps?.main?.innerClassName,
+              ])
+            : mergeClasses([flexDirectionClass, slotProps?.main?.innerClassName]),
+        ])}
+        className={mergeClasses([
+          unifiedCard ? '' : flexDirectionClass,
+          slotProps?.main?.className,
+          unifiedCard ? '!bg-[#e8eaee] !before:!hidden !after:!hidden dark:!bg-[rgb(22,27,38)]' : undefined,
+        ])}
       >
-        <AuthSplitSection
-          layoutQuery={finalSectionLayoutQuery}
-          method={CONFIG.auth.method}
-          {...restSectionProps}
-          methods={[
-            {
-              label: 'Jwt',
-              path: paths.auth.jwt.signIn,
-              icon: `${CONFIG.assetsDir}/assets/icons/platforms/ic-jwt.svg`,
-            },
-            {
-              label: 'Firebase',
-              path: paths.auth.firebase.signIn,
-              icon: `${CONFIG.assetsDir}/assets/icons/platforms/ic-firebase.svg`,
-            },
-            {
-              label: 'Amplify',
-              path: paths.auth.amplify.signIn,
-              icon: `${CONFIG.assetsDir}/assets/icons/platforms/ic-amplify.svg`,
-            },
-            {
-              label: 'Auth0',
-              path: paths.auth.auth0.signIn,
-              icon: `${CONFIG.assetsDir}/assets/icons/platforms/ic-auth0.svg`,
-            },
-            {
-              label: 'Supabase',
-              path: paths.auth.supabase.signIn,
-              icon: `${CONFIG.assetsDir}/assets/icons/platforms/ic-supabase.svg`,
-            },
-          ]}
-        />
-        <AuthSplitContent layoutQuery={finalContentLayoutQuery} {...restContentProps}>
-          {children}
-        </AuthSplitContent>
+        {unifiedCard ? (
+          <div
+            className={mergeClasses([
+              'flex min-h-0 w-full max-w-none flex-1 flex-col overflow-hidden rounded-none border-x-0 border-y border-slate-200/70 bg-white',
+              'shadow-none md:min-h-[min(720px,calc(100dvh-4rem))] md:flex-row md:flex-row-reverse',
+            ])}
+            data-auth-unified-card=""
+          >
+            {sectionNode}
+            {contentNode}
+          </div>
+        ) : (
+          <>
+            {sectionNode}
+            {contentNode}
+          </>
+        )}
       </MainSection>
     );
   };

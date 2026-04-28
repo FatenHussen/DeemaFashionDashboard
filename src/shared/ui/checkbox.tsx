@@ -25,7 +25,7 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
             type="checkbox"
             id={checkboxId}
             className={mergeClasses([
-              'h-4 w-4 rounded border-gray-300 text-primary focus:ring-2 focus:ring-blue-500',
+              'h-4 w-4 rounded border-border text-primary focus:ring-2 focus:ring-primary/40',
               error ? 'border-red-500' : '',
               className,
             ])}

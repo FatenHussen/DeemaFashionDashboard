@@ -1,0 +1,382 @@
+import type { ReactNode } from 'react';
+
+import { useState } from 'react';
+import { cn } from '@/utils/utils';
+import { toast } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
+import { useParams, useNavigate } from 'react-router';
+import { Iconify } from '@/shared/components/iconify';
+import { AffiliateCreativeAvatar } from '@/pages/dashboard/affiliate-wallet-transactions/components/affiliate-creative-avatar';
+import {
+  normalizeAffiliateId,
+  pickAffiliateImageRaw,
+} from '@/pages/dashboard/affiliate-wallet-transactions/utils/affiliate-display';
+import {
+  useUpdateAffiliateWithdraw,
+  useFetchAffiliateWithdrawById,
+} from '@/pages/dashboard/affiliate-withdraw-requests/hooks/affiliate-withdraw';
+
+import { paths } from 'src/routes/paths';
+
+import { CONFIG } from 'src/global-config';
+import { Box, Button, Typography } from 'src/shared/ui';
+import { LoadingScreen } from 'src/shared/components/loading-screen';
+
+// ----------------------------------------------------------------------
+
+const statusHero: Record<
+  string,
+  { gradient: string; ring: string; glow: string; badge: string }
+> = {
+  pending: {
+    gradient:
+      'from-amber-500/[0.2] via-orange-500/[0.1] to-background dark:from-amber-500/25 dark:via-orange-950/40 dark:to-background',
+    ring: 'ring-amber-500/30',
+    glow: 'bg-amber-400/30',
+    badge: 'bg-amber-500/15 text-amber-900 dark:text-amber-200',
+  },
+  approved: {
+    gradient:
+      'from-emerald-500/[0.18] via-teal-500/[0.1] to-background dark:from-emerald-500/22 dark:via-teal-950/35 dark:to-background',
+    ring: 'ring-emerald-500/30',
+    glow: 'bg-emerald-400/25',
+    badge: 'bg-emerald-500/15 text-emerald-900 dark:text-emerald-300',
+  },
+  rejected: {
+    gradient:
+      'from-rose-500/[0.18] via-red-500/[0.08] to-background dark:from-rose-500/22 dark:via-red-950/35 dark:to-background',
+    ring: 'ring-rose-500/30',
+    glow: 'bg-rose-400/25',
+    badge: 'bg-rose-500/15 text-rose-900 dark:text-rose-200',
+  },
+};
+
+type SectionCardProps = {
+  title: string;
+  icon: string;
+  children: ReactNode;
+  className?: string;
+};
+
+function SectionCard({ title, icon, children, className }: SectionCardProps) {
+  return (
+    <Box
+      className={cn(
+        'overflow-hidden rounded-2xl border border-border/60 bg-card/90 shadow-lg shadow-black/[0.04] backdrop-blur-sm dark:shadow-black/20',
+        'transition-shadow duration-300 hover:shadow-xl hover:shadow-black/[0.06]',
+        className
+      )}
+    >
+      <Box className="flex items-center gap-3 border-b border-border/50 bg-muted/20 px-5 py-4">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-primary/15 bg-primary/10 text-primary">
+          <Iconify icon={icon} width={22} />
+        </span>
+        <Typography variant="subtitle1" className="font-semibold tracking-tight">
+          {title}
+        </Typography>
+      </Box>
+      <Box className="p-5 sm:p-6">{children}</Box>
+    </Box>
+  );
+}
+
+type InfoRowProps = { icon: string; label: string; value: ReactNode };
+function InfoRow({ icon, label, value }: InfoRowProps) {
+  return (
+    <div className="flex gap-4 rounded-xl border border-border/40 bg-muted/10 px-4 py-3.5 transition-colors hover:bg-muted/20">
+      <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-background/80 text-muted-foreground shadow-sm">
+        <Iconify icon={icon} width={18} />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
+        <div className="mt-0.5 text-sm font-medium text-foreground">{value}</div>
+      </div>
+    </div>
+  );
+}
+
+// ----------------------------------------------------------------------
+
+export default function DetailsPage() {
+  const { t } = useTranslation('table');
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const [note, setNote] = useState('');
+
+  const { data: response, isLoading } = useFetchAffiliateWithdrawById(id || '');
+  const updateMutation = useUpdateAffiliateWithdraw();
+
+  const item = response?.data;
+
+  const handleUpdateStatus = async (status: 'approved' | 'rejected') => {
+    if (!id) return;
+    if (status === 'rejected' && !note.trim()) {
+      toast.error(t('form.noteRequiredForRejection'));
+      return;
+    }
+    try {
+      await updateMutation.mutateAsync({ id, data: { status, note: note || undefined } });
+      toast.success(
+        status === 'approved' ? t('form.requestApprovedSuccess') : t('form.requestRejectedSuccess')
+      );
+      navigate(paths.dashboard.affiliateWithdrawRequests);
+    } catch (err: any) {
+      console.error(err);
+    }
+  };
+
+  const hero = statusHero[item?.status ?? ''] ?? statusHero.pending;
+
+  if (isLoading) return <LoadingScreen />;
+  if (!item) {
+    return (
+      <Box className="flex min-h-[50vh] w-full flex-col items-center justify-center gap-4 px-6">
+        <span className="flex h-20 w-20 items-center justify-center rounded-full border border-dashed border-muted-foreground/30 bg-muted/30">
+          <Iconify icon="solar:document-text-bold" width={40} className="text-muted-foreground" />
+        </span>
+        <Typography variant="h6" className="text-destructive">
+          {t('form.requestNotFound')}
+        </Typography>
+        <Button variant="outlined" onClick={() => navigate(paths.dashboard.affiliateWithdrawRequests)}>
+          {t('form.backToAffiliateWithdrawRequests')}
+        </Button>
+      </Box>
+    );
+  }
+
+  const affiliateImage = pickAffiliateImageRaw(item.affiliate as unknown as Record<string, unknown>);
+
+  return (
+    <>
+      <title>{t('form.affiliateWithdrawDetailsDocumentTitle', { appName: CONFIG.appName })}</title>
+
+      <Box className="w-full max-w-[100vw] px-4 pb-12 pt-2 sm:px-6 lg:px-8 xl:px-10">
+        <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+          <Button
+            variant="text"
+            onClick={() => navigate(paths.dashboard.affiliateWithdrawRequests)}
+            className="-ms-2 gap-2 text-muted-foreground hover:text-foreground"
+          >
+            <Iconify icon="solar:arrow-left-bold" width={20} />
+            {t('form.backToAffiliateWithdrawRequests')}
+          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded-full border border-border/80 bg-muted/40 px-3 py-1 font-mono text-xs text-muted-foreground">
+              ID · {item.id}
+            </span>
+          </div>
+        </div>
+
+        {/* Hero */}
+        <div
+          className={cn(
+            'relative mb-8 overflow-hidden rounded-3xl border border-border/50 bg-gradient-to-br p-8 sm:p-10 lg:p-12',
+            'shadow-[0_24px_80px_-24px_rgb(0_0_0/0.25)] dark:shadow-[0_24px_80px_-24px_rgb(0_0_0/0.5)]',
+            hero.gradient
+          )}
+        >
+          <div
+            className="pointer-events-none absolute inset-0 opacity-[0.35] dark:opacity-[0.2]"
+            style={{
+              backgroundImage: `radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)`,
+              backgroundSize: '24px 24px',
+              color: 'rgb(var(--muted-foreground) / 0.25)',
+            }}
+          />
+          <div
+            className={cn(
+              'pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full blur-3xl',
+              hero.glow
+            )}
+          />
+          <div className="pointer-events-none absolute -bottom-20 -left-10 h-56 w-56 rounded-full bg-violet-500/15 blur-3xl dark:bg-violet-500/10" />
+
+          <div className="relative grid gap-10 lg:grid-cols-12 lg:items-end lg:gap-8">
+            <div className="lg:col-span-7">
+              <div className="mb-6 flex flex-col gap-6 sm:flex-row sm:items-start">
+                <div className="relative shrink-0">
+                  <div
+                    className={cn(
+                      'absolute -inset-1 rounded-[2rem] opacity-60 blur-md',
+                      item.status === 'pending' && 'bg-amber-400/40',
+                      item.status === 'approved' && 'bg-emerald-400/40',
+                      item.status === 'rejected' && 'bg-rose-400/40'
+                    )}
+                  />
+                  <div className="relative rounded-[1.75rem] border border-white/25 bg-background/30 p-1 shadow-2xl backdrop-blur-md dark:border-white/10 dark:bg-black/30">
+                    <AffiliateCreativeAvatar
+                      name={item.affiliate?.name}
+                      imageUrl={affiliateImage}
+                      size="hero"
+                      rounded="2xl"
+                    />
+                  </div>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-background/40 px-3 py-1 text-xs font-medium backdrop-blur-md dark:border-white/10 dark:bg-black/20">
+                    <span
+                      className={cn(
+                        'inline-flex h-6 w-6 items-center justify-center rounded-full ring-2 ring-offset-2 ring-offset-transparent',
+                        hero.ring
+                      )}
+                    >
+                      <Iconify icon="solar:card-transfer-bold" width={14} className="text-foreground" />
+                    </span>
+                    <span className="text-muted-foreground">{t('tableNames.affiliateWithdraw')}</span>
+                  </div>
+                  <Typography
+                    variant="h3"
+                    className="mb-3 text-balance text-2xl font-bold tracking-tight sm:text-3xl lg:text-4xl"
+                  >
+                    {t('form.affiliateWithdrawRequestTitle', { id: item.id })}
+                  </Typography>
+                  <p className="mb-3 text-sm font-medium text-foreground/90 sm:text-base">
+                    {item.affiliate?.name}
+                  </p>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <span
+                      className={cn(
+                        'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold',
+                        hero.badge
+                      )}
+                    >
+                      {t(`form.affiliateWithdrawStatus_${item.status}`, { defaultValue: item.status })}
+                    </span>
+                    <span className="font-mono text-sm text-muted-foreground">
+                      {normalizeAffiliateId(item.affiliate_id)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="relative lg:col-span-5">
+              <div className="rounded-2xl border border-white/20 bg-background/50 p-6 backdrop-blur-md dark:border-white/10 dark:bg-black/25">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                  {t('columns.total')}
+                </p>
+                <p className="mt-2 bg-gradient-to-br from-foreground to-foreground/70 bg-clip-text text-4xl font-bold tabular-nums tracking-tight text-transparent sm:text-5xl">
+                  {item.amount?.toLocaleString()}
+                </p>
+                <p className="mt-3 text-xs text-muted-foreground">{t('form.affiliateWithdrawAmountHint')}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid gap-6 xl:grid-cols-12">
+          <div className="space-y-6 xl:col-span-8">
+            <SectionCard title={t('columns.affiliate')} icon="solar:users-group-rounded-bold">
+              <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
+                <AffiliateCreativeAvatar
+                  name={item.affiliate?.name}
+                  imageUrl={affiliateImage}
+                  size="lg"
+                  rounded="2xl"
+                />
+                <div className="min-w-0 flex-1 space-y-3">
+                  <div>
+                    <p className="text-lg font-semibold leading-tight">{item.affiliate?.name}</p>
+                    <p className="mt-1 font-mono text-sm text-muted-foreground">
+                      {normalizeAffiliateId(item.affiliate_id)}
+                    </p>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-1">
+                    <InfoRow
+                      icon="solar:letter-bold"
+                      label={t('form.email')}
+                      value={item.affiliate?.email ?? t('form.emptyEmDash')}
+                    />
+                    <InfoRow
+                      icon="solar:phone-bold"
+                      label={t('form.phone')}
+                      value={item.affiliate?.phone ?? t('form.emptyEmDash')}
+                    />
+                  </div>
+                </div>
+              </div>
+            </SectionCard>
+
+            {item.note && (
+              <SectionCard title={t('columns.message')} icon="solar:chat-round-dots-bold">
+                <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">{item.note}</p>
+              </SectionCard>
+            )}
+          </div>
+
+          <div className="space-y-6 xl:col-span-4">
+            <SectionCard title={t('form.affiliateWalletTxTimeline')} icon="solar:calendar-bold">
+              <div className="relative space-y-0 pl-2">
+                <div className="absolute start-3 top-2 bottom-2 w-px bg-gradient-to-b from-border via-border to-transparent" />
+                <div className="relative flex gap-4 pb-6">
+                  <span className="relative z-[1] mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-background bg-primary text-[10px] font-bold text-primary-foreground shadow">
+                    <Iconify icon="solar:add-circle-bold" width={14} />
+                  </span>
+                  <div>
+                    <p className="text-xs font-semibold uppercase text-muted-foreground">
+                      {t('columns.createdAt')}
+                    </p>
+                    <p className="mt-0.5 text-sm font-medium">{item.created_at}</p>
+                  </div>
+                </div>
+                {item.updated_at && (
+                  <div className="relative flex gap-4">
+                    <span className="relative z-[1] mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-background bg-muted text-[10px] font-bold text-foreground shadow">
+                      <Iconify icon="solar:refresh-bold" width={14} />
+                    </span>
+                    <div>
+                      <p className="text-xs font-semibold uppercase text-muted-foreground">
+                        {t('form.affiliateWalletTxUpdatedAt')}
+                      </p>
+                      <p className="mt-0.5 text-sm font-medium">{item.updated_at}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </SectionCard>
+
+            {item.status === 'pending' && (
+              <SectionCard title={t('form.updateStatus')} icon="solar:pen-new-round-bold">
+                <Box className="mb-4">
+                  <Typography variant="body2" className="text-muted-foreground text-sm mb-2">
+                    {t('form.noteLabel')}
+                  </Typography>
+                  <textarea
+                    className="w-full min-h-[100px] rounded-xl border border-border bg-background p-3 text-sm text-foreground shadow-sm transition-[box-shadow,border-color] placeholder:text-muted-foreground focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/25 resize-none"
+                    placeholder={t('form.notePlaceholder')}
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                  />
+                </Box>
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <Button
+                    type="button"
+                    variant="contained"
+                    color="success"
+                    onClick={() => handleUpdateStatus('approved')}
+                    disabled={updateMutation.isPending}
+                    className="flex-1 gap-2"
+                  >
+                    <Iconify icon="solar:check-circle-bold" width={18} />
+                    {t('form.approveRequest')}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="contained"
+                    color="error"
+                    onClick={() => handleUpdateStatus('rejected')}
+                    disabled={updateMutation.isPending}
+                    className="flex-1 gap-2"
+                  >
+                    <Iconify icon="solar:close-circle-bold" width={18} />
+                    {t('form.rejectRequest')}
+                  </Button>
+                </div>
+              </SectionCard>
+            )}
+          </div>
+        </div>
+      </Box>
+    </>
+  );
+}

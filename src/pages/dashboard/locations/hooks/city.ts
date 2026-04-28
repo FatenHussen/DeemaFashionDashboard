@@ -3,9 +3,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { _CityApi, type CityCreateUpdatePayload } from '../api/city.services';
 
-export const useFetchCities = (page: number = 1, limit: number = 25) => useQuery({
-    queryKey: queryKeys.city.list({ page, limit }),
-    queryFn: () => _CityApi.getListCities(),
+export const useFetchCities = (
+  page: number = 1,
+  limit: number = 25,
+  params?: { search?: string }
+) =>
+  useQuery({
+    queryKey: queryKeys.city.list({ page, limit, ...params }),
+    queryFn: () => _CityApi.getListCities({ page, per_page: limit, ...params }),
   });
 
 export const useFetchCityById = (id: number | string) => useQuery({
@@ -22,12 +27,12 @@ export const useCreateCity = (page?: number, limit?: number) => {
     onSuccess: () => {
       // Invalidate and refetch all list queries
       queryClient.invalidateQueries({
-        queryKey: queryKeys.city.list(),
+        queryKey: ['city', 'list'],
         refetchType: 'active',
       });
       // Also explicitly refetch all matching queries
       queryClient.refetchQueries({
-        queryKey: queryKeys.city.list(),
+        queryKey: ['city', 'list'],
       });
     },
   });
@@ -42,12 +47,12 @@ export const useUpdateCity = (page?: number, limit?: number) => {
     onSuccess: (_, variables) => {
       // Invalidate and refetch all list queries
       queryClient.invalidateQueries({
-        queryKey: queryKeys.city.list(),
+        queryKey: ['city', 'list'],
         refetchType: 'active',
       });
       // Also explicitly refetch all matching queries
       queryClient.refetchQueries({
-        queryKey: queryKeys.city.list(),
+        queryKey: ['city', 'list'],
       });
       // Invalidate the specific city details query
       queryClient.invalidateQueries({
@@ -65,12 +70,12 @@ export const useDeleteCity = (page?: number, limit?: number) => {
     onSuccess: (_, id) => {
       // Invalidate and refetch all list queries
       queryClient.invalidateQueries({
-        queryKey: queryKeys.city.list(),
+        queryKey: ['city', 'list'],
         refetchType: 'active',
       });
       // Also explicitly refetch all matching queries
       queryClient.refetchQueries({
-        queryKey: queryKeys.city.list(),
+        queryKey: ['city', 'list'],
       });
       // Invalidate the specific city details query
       queryClient.invalidateQueries({

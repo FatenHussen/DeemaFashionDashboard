@@ -1,5 +1,5 @@
-import { useState } from 'react';
 import { toast } from 'react-toastify';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { usePermissions } from '@/auth/hooks/use-permissions';
@@ -13,20 +13,26 @@ import { CONFIG } from 'src/global-config';
 
 // ----------------------------------------------------------------------
 
-const metadata = { title: `Government | Dashboard - ${CONFIG.appName}` };
-
 export default function Page() {
   const { t } = useTranslation('table');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [search, setSearch] = useState<string>('');
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
+
+  const governorateParams: { search?: string } = {};
+  if (search.trim()) governorateParams.search = search.trim();
 
   // Fetch governorates using the hook
   const {
     data: governoratesResponse,
     isLoading,
     error,
-  } = useFetchGovernorates(currentPage, pageSize);
+  } = useFetchGovernorates(currentPage, pageSize, governorateParams);
   const deleteGovernorateMutation = useDeleteGovernorate(currentPage, pageSize);
 
   // Log error for debugging
@@ -51,11 +57,9 @@ export default function Page() {
     if (deletingId) {
       try {
         await deleteGovernorateMutation.mutateAsync(deletingId);
-        toast.success(t('deleteSuccess') || 'Governorate deleted successfully');
+        toast.success(t('deleteSuccess'));
         setDeletingId(null);
-      } catch (err: any) {
-        toast.error(err?.message || t('deleteError') || 'Failed to delete governorate');
-      }
+      } catch { return; }
     }
   };
 
@@ -90,10 +94,10 @@ export default function Page() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.governoratesIndexDocumentTitle', { appName: CONFIG.appName })}</title>
 
       <DataTable
-        tableName="Government"
+        tableName={t("tableNames.government")}
         columns={governorateColumns(
           {
             update: hasPermission('update', 'governorate'),
@@ -109,7 +113,8 @@ export default function Page() {
         )}
         data={governorateData}
         createPath="/locations/create"
-        hasDetails={false}
+        hasDetails
+        detailsLink="/locations/update"
         permissions={{
           create: hasPermission('create', 'governorate'),
           update: hasPermission('update', 'governorate'),
@@ -117,16 +122,17 @@ export default function Page() {
         }}
         isLoading={isLoading}
         columnTranslations={{
-          id: 'ID',
-          name: 'Name',
-          created_at: 'Created At',
-          actions: 'Actions',
+          id: t('columns.id'),
+          name: t('columns.name'),
+          created_at: t('columns.createdAt'),
+          actions: t('columns.action'),
         }}
         pagination={pagination}
         currentPage={currentPage}
         pageSize={pageSize}
         onPageChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}
+        onSearchChange={setSearch}
       />
     </>
   );

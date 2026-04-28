@@ -1,5 +1,6 @@
 import type { NavSectionProps } from 'src/shared/components/nav-section';
 
+import { useTranslation } from 'react-i18next';
 import parse from 'autosuggest-highlight/parse';
 import match from 'autosuggest-highlight/match';
 import { useBoolean } from 'minimal-shared/hooks';
@@ -24,6 +25,8 @@ export type SearchbarProps = React.HTMLAttributes<HTMLDivElement> & {
 const breakpoint = 'sm';
 
 export function Searchbar({ data: navItems = [], className, ...other }: SearchbarProps) {
+  const { t: tTable } = useTranslation('table');
+  const { t: tCommon } = useTranslation('common');
   const [isSmUp, setIsSmUp] = useState(false);
 
   useEffect(() => {
@@ -84,17 +87,24 @@ export function Searchbar({ data: navItems = [], className, ...other }: Searchba
       onClick={onOpen}
       className={`flex items-center ${
         isSmUp
-          ? 'pr-1 rounded-xl cursor-pointer bg-muted hover:bg-muted/80 transition-colors'
+          ? 'gap-2 pe-2 ps-2 rounded-full cursor-pointer border border-transparent bg-transparent hover:border-primary/25 hover:bg-primary/6 transition-all duration-200'
           : ''
       } ${className || ''}`}
       {...other}
     >
-      <Box component={isSmUp ? 'span' : 'button'} className={isSmUp ? 'p-1 inline-flex text-gray-600' : ''}>
+      <Box
+        component={isSmUp ? 'span' : 'button'}
+        className={
+          isSmUp
+            ? 'p-1 inline-flex text-muted-foreground hover:text-primary transition-colors'
+            : ''
+        }
+      >
         <Iconify icon="eva:search-fill" />
       </Box>
 
       <Label
-        className={`text-gray-800 cursor-inherit bg-white text-xs shadow-sm ${
+        className={`text-muted-foreground cursor-inherit rounded-md border border-border/60 bg-card/90 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide shadow-sm ${
           isSmUp ? 'inline-flex' : 'hidden'
         }`}
       >
@@ -143,13 +153,15 @@ export function Searchbar({ data: navItems = [], className, ...other }: Searchba
             <Input
               fullWidth
               autoFocus={open}
-              placeholder="Search..."
+              placeholder={tTable('searchPlaceholder')}
               value={searchQuery}
               onChange={handleSearch}
               startAdornment={
-                <Iconify icon="eva:search-fill" width={24} className="text-gray-400" />
+                <Iconify icon="eva:search-fill" width={24} className="text-muted-foreground" />
               }
-              endAdornment={<Label className="tracking-wider text-gray-500">esc</Label>}
+              endAdornment={
+                <Label className="tracking-wider text-muted-foreground">{tCommon('searchEsc')}</Label>
+              }
               id="search-input"
               className="text-lg"
             />

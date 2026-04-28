@@ -1,14 +1,19 @@
 import path from 'path';
 import checker from 'vite-plugin-checker';
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react-swc';
 import tailwindcss from '@tailwindcss/vite';
 
 // ----------------------------------------------------------------------
 
-const PORT = 8081;
+const PORT = 8082;
 
-export default defineConfig({
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '');
+  // Must match the host in your production `VITE_SERVER_URL` when using the dev proxy below.
+  const devProxyTarget = env.VITE_DEV_PROXY_TARGET || 'https://tickdash.tickmartsy.com';
+
+  return {
   plugins: [
     react(),
     tailwindcss(),
@@ -37,6 +42,17 @@ export default defineConfig({
       },
     ],
   },
-  server: { port: PORT, host: true },
+  // server: {
+  //   port: PORT,
+  //   host: true,
+  //   proxy: {
+  //     '/api': {
+  //       target: devProxyTarget,
+  //       changeOrigin: true,
+  //       secure: true,
+  //     },
+  //   },
+  // },
   preview: { port: PORT, host: true },
+  };
 });

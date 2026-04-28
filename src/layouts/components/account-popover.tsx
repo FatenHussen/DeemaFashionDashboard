@@ -1,5 +1,6 @@
 import type { HTMLAttributes } from 'react';
 
+import { useTranslation } from 'react-i18next';
 import { usePopover } from 'minimal-shared/hooks';
 
 import { paths } from 'src/routes/paths';
@@ -26,6 +27,7 @@ export type AccountPopoverProps = HTMLAttributes<HTMLButtonElement> & {
 
 export function AccountPopover({ data = [], className, ...other }: AccountPopoverProps) {
   const pathname = usePathname();
+  const { t } = useTranslation('common');
 
   const { open, anchorEl, onClose, onOpen } = usePopover();
 
@@ -48,19 +50,20 @@ export function AccountPopover({ data = [], className, ...other }: AccountPopove
 
       <ul className="p-2 my-2 list-none">
         {data.map((option) => {
-          const rootLabel = pathname.includes('/dashboard') ? 'Home' : 'Dashboard';
+          const isHome = option.label === 'accountNavHome';
+          const rootLabel = pathname.includes('/dashboard') ? t('menuHome') : t('menuDashboard');
           const rootHref = pathname.includes('/dashboard') ? '/' : paths.dashboard.root;
 
           return (
             <li key={option.label} className="p-0">
               <RouterLink
-                href={option.label === 'Home' ? rootHref : option.href}
+                href={isHome ? rootHref : option.href}
                 onClick={onClose}
                 className="px-2 py-1.5 w-full flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors [&_svg]:w-6 [&_svg]:h-6"
               >
                 {option.icon}
 
-                <span className="ml-2">{option.label === 'Home' ? rootLabel : option.label}</span>
+                <span className="ml-2">{isHome ? rootLabel : t(option.label)}</span>
 
                 {option.info && (
                   <Label color="error" className="ml-1">

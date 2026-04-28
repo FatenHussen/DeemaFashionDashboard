@@ -46,62 +46,52 @@ export function CustomPopover({
 
       const anchorRect = anchorEl.getBoundingClientRect();
       const popoverRect = popoverRef.current.getBoundingClientRect();
-      const scrollX = window.scrollX || window.pageXOffset;
-      const scrollY = window.scrollY || window.pageYOffset;
 
+      // Use viewport coordinates - popover is inside a fixed container
       let top = 0;
       let left = 0;
 
       // Calculate vertical position based on anchor origin
       if (finalAnchorOrigin.vertical === 'top') {
-        top = anchorRect.bottom + scrollY + 8; // Add small gap
+        top = anchorRect.bottom + 8; // Add small gap
       } else if (finalAnchorOrigin.vertical === 'bottom') {
-        top = anchorRect.top + scrollY - popoverRect.height - 8; // Add small gap
+        top = anchorRect.top - popoverRect.height - 8; // Add small gap
       } else {
         // center
-        top = anchorRect.top + scrollY + anchorRect.height / 2 - popoverRect.height / 2;
+        top = anchorRect.top + anchorRect.height / 2 - popoverRect.height / 2;
       }
 
       // Calculate horizontal position based on anchor origin
       if (finalAnchorOrigin.horizontal === 'left') {
-        left = anchorRect.left + scrollX;
+        left = anchorRect.left;
       } else if (finalAnchorOrigin.horizontal === 'right') {
-        left = anchorRect.right + scrollX - popoverRect.width;
+        left = anchorRect.right - popoverRect.width;
       } else {
         // center
-        left = anchorRect.left + scrollX + anchorRect.width / 2 - popoverRect.width / 2;
-      }
-
-      // Adjust for transform origin
-      if (finalTransformOrigin.horizontal === 'right') {
-        left -= popoverRect.width;
-      } else if (finalTransformOrigin.horizontal === 'center') {
-        left -= popoverRect.width / 2;
-      }
-
-      if (finalTransformOrigin.vertical === 'bottom') {
-        top -= popoverRect.height;
-      } else if (finalTransformOrigin.vertical === 'center') {
-        top -= popoverRect.height / 2;
+        left = anchorRect.left + anchorRect.width / 2 - popoverRect.width / 2;
       }
 
       setPosition({ top, left });
     };
 
-    // Use requestAnimationFrame to ensure DOM is ready
+    // Use double rAF to ensure DOM is laid out and popover has dimensions
     const rafId = requestAnimationFrame(() => {
-      updatePosition();
+      requestAnimationFrame(updatePosition);
     });
+
+    // Re-run after a tick in case initial dimensions were 0
+    const timeoutId = setTimeout(updatePosition, 16);
 
     window.addEventListener('resize', updatePosition);
     window.addEventListener('scroll', updatePosition, true);
 
     return () => {
       cancelAnimationFrame(rafId);
+      clearTimeout(timeoutId);
       window.removeEventListener('resize', updatePosition);
       window.removeEventListener('scroll', updatePosition, true);
     };
-  }, [open, anchorEl, finalAnchorOrigin, finalTransformOrigin]);
+  }, [open, anchorEl, finalAnchorOrigin]);
 
   useEffect(() => {
     if (!open || disableEscapeKeyDown) {
@@ -126,7 +116,7 @@ export function CustomPopover({
 
   const content = (
     <div
-      className="fixed inset-0 z-50"
+      className="fixed inset-0 z-[var(--layout-modal-zIndex)]"
       onClick={!disableBackdropClick && onClose ? onClose : undefined}
     >
       <div

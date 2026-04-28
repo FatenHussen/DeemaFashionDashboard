@@ -7,7 +7,7 @@ export function dashboardLayoutVars() {
     '--layout-transition-easing': 'linear',
     '--layout-transition-duration': '120ms',
     '--layout-nav-mini-width': '88px',
-    '--layout-nav-vertical-width': '180px',
+    '--layout-nav-vertical-width': '240px',
     '--layout-nav-horizontal-height': '64px',
     '--layout-dashboard-content-pt': '8px',
     '--layout-dashboard-content-pb': '32px',
@@ -37,8 +37,8 @@ export function dashboardNavColorVars(
     case 'apparent':
       return {
         layout: {
-          '--layout-nav-bg': '#111827',
-          '--layout-nav-horizontal-bg': 'rgba(17, 24, 39, 0.96)',
+          '--layout-nav-bg': '#1F2937',
+          '--layout-nav-horizontal-bg': 'rgba(31, 41, 55, 0.96)',
           '--layout-nav-border-color': 'transparent',
           '--layout-nav-text-primary-color': '#ffffff',
           '--layout-nav-text-secondary-color': '#9ca3af',
@@ -49,11 +49,13 @@ export function dashboardNavColorVars(
           '--nav-subheader-color': '#6b7280',
           '--nav-subheader-hover-color': '#ffffff',
           '--nav-item-color': '#9ca3af',
-          '--nav-item-root-active-color': '#60a5fa',
+          '--nav-item-hover-bg': 'rgba(255, 160, 0, 0.12)',
+          '--nav-item-root-active-color': '#FFC247',
+          '--nav-item-root-active-bg': 'rgba(255, 160, 0, 0.18)',
           '--nav-item-root-open-color': '#ffffff',
-          '--nav-bullet-light-color': '#ffffff',
+          '--nav-bullet-light-color': '#9ca3af',
           ...(navLayout === 'vertical' && {
-            '--nav-item-sub-active-color': '#ffffff',
+            '--nav-item-sub-active-color': '#FFC247',
             '--nav-item-sub-open-color': '#ffffff',
           }),
         },

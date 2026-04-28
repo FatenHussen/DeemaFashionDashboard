@@ -27,7 +27,7 @@ const DataTableFilterButtons = () => {
       <Input
         type="date"
         id="start_date"
-        placeholder={t('startDate')}
+        placeholder={t('columns.startDate')}
         className="min-w-[120px] max-w-[150px]"
         value={filterParams.start_date}
         onChange={handleDateChange('start_date')}
@@ -36,7 +36,7 @@ const DataTableFilterButtons = () => {
       <Input
         type="date"
         id="end_date"
-        placeholder={t('endDate')}
+        placeholder={t('columns.endDate')}
         className="min-w-[120px] max-w-[150px]"
         value={filterParams.end_date}
         onChange={handleDateChange('end_date')}

@@ -6,7 +6,8 @@ import { Iconify, iconifyClasses } from '../../iconify';
 
 // ----------------------------------------------------------------------
 
-export type NavSubheaderProps = React.ComponentProps<'div'> & {
+export type NavSubheaderProps = Omit<React.ComponentProps<'div'>, 'children'> & {
+  children?: React.ReactNode;
   open?: boolean;
   'data-title'?: string;
 };
@@ -22,32 +23,30 @@ export function NavSubheader({ open, children, className, ...other }: NavSubhead
     <div
       className={mergeClasses([
         navSectionClasses.subheader,
-        'text-[11px] uppercase tracking-wider cursor-pointer items-center relative gap-2 inline-flex self-start',
-        'text-[var(--nav-subheader-color)] px-3 py-2 pl-2.5 mt-4 mb-2',
-        'font-semibold',
-        'transition-all duration-200 ease-out',
-        'hover:pl-3 hover:text-[var(--nav-subheader-hover-color)]',
-        'hover:bg-muted/30 rounded-lg',
+        'cursor-pointer items-center relative gap-2 inline-flex self-start w-full',
+        'text-[var(--nav-subheader-color)] px-3 py-1.5 mt-5 mb-1',
+        'text-[15px] font-semibold tracking-normal',
+        'transition-colors duration-200 ease-out',
+        'hover:text-[var(--nav-subheader-hover-color)]',
+        'rounded-md select-none',
         'group',
+        'before:absolute before:start-1 before:top-1/2 before:-translate-y-1/2 before:h-3.5 before:w-[3px] before:rounded-full',
+        'before:bg-gradient-to-b before:from-primary before:to-primary/30 before:opacity-70 group-hover:before:opacity-100',
         className,
       ])}
-      style={{
-        '--icon-left': '-4px',
-        '--icon-opacity': open ? '1' : '0',
-      } as React.CSSProperties}
       {...other}
     >
+      <span className="flex-1 truncate ps-1">{children}</span>
       <Iconify
         width={14}
-        icon={open ? 'eva:arrow-ios-downward-fill' : 'eva:arrow-ios-forward-fill'}
+        height={14}
+        icon="solar:alt-arrow-down-outline"
         className={mergeClasses([
           iconifyClasses.root,
-          'absolute left-[-2px] opacity-0 transition-all duration-200',
-          'group-hover:opacity-100 group-hover:translate-x-0.5',
-          isRtl ? 'scale-x-[-1]' : '',
+          'shrink-0 transition-transform duration-200 ease-out opacity-60 group-hover:opacity-100',
+          open ? 'rotate-0' : '-rotate-90',
         ])}
       />
-      {children}
     </div>
   );
 }

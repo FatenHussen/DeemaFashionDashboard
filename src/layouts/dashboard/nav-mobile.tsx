@@ -8,6 +8,7 @@ import { usePathname } from 'src/routes/hooks';
 import { Box, Drawer } from 'src/shared/ui';
 import { Logo } from 'src/shared/components/logo';
 import { Scrollbar } from 'src/shared/components/scrollbar';
+import { useLocalizationStore } from 'src/store/useLocalizationStore';
 import { NavSectionVertical } from 'src/shared/components/nav-section';
 
 import { layoutClasses } from '../core';
@@ -38,6 +39,7 @@ export function NavMobile({
   ...other
 }: NavMobileProps) {
   const pathname = usePathname();
+  const { direction } = useLocalizationStore();
 
   useEffect(() => {
     if (open) {
@@ -50,26 +52,27 @@ export function NavMobile({
     <Drawer
       open={open}
       onClose={onClose}
-      anchor="left"
+      anchor={direction === 'rtl' ? 'right' : 'left'}
       width="var(--layout-nav-mobile-width)"
       className={mergeClasses([
         layoutClasses.nav.root,
         layoutClasses.nav.vertical,
-        'overflow-visible bg-[var(--layout-nav-bg)]',
+        'flex flex-col h-full min-h-0 overflow-hidden bg-[var(--layout-nav-bg)]',
         className,
       ])}
     >
       {slots?.topArea ?? (
-        <Box className="pl-7 pt-5 pb-2">
+        <Box className="shrink-0 ps-7 pt-5 pb-2">
           <Logo href="/" />
         </Box>
       )}
 
-      <Scrollbar fillContent>
+      <Scrollbar fillContent className="flex-1 min-h-0 min-w-0">
         <NavSectionVertical
           data={data}
           checkPermissions={checkPermissions}
           checkPermission={checkPermission}
+          enabledRootRedirect
           className="px-4 flex-auto"
           {...other}
         />

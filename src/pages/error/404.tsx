@@ -1,17 +1,18 @@
+import { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+
 import { CONFIG } from 'src/global-config';
 
 import { NotFoundView } from 'src/sections/error';
 
 // ----------------------------------------------------------------------
 
-const metadata = { title: `404 page not found! | Error - ${CONFIG.appName}` };
-
 export default function Page() {
-  return (
-    <>
-      <title>{metadata.title}</title>
+  const { t, i18n } = useTranslation('common');
 
-      <NotFoundView />
-    </>
-  );
+  useEffect(() => {
+    document.title = `${t('page404DocumentTitle')} | ${CONFIG.appName}`;
+  }, [t, i18n.language]);
+
+  return <NotFoundView />;
 }

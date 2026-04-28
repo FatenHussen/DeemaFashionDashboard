@@ -1,6 +1,7 @@
 import type { HTMLAttributes } from 'react';
 
 import { useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { useRouter } from 'src/routes/hooks';
 
@@ -18,6 +19,7 @@ type Props = HTMLAttributes<HTMLButtonElement> & {
 
 export function LogoutButton({ variant = 'icon', showLabel = false, className, ...other }: Props) {
   const router = useRouter();
+  const { t } = useTranslation('common');
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const { checkUserSession } = useAuthContext();
@@ -51,7 +53,7 @@ export function LogoutButton({ variant = 'icon', showLabel = false, className, .
       >
         <span className="flex items-center gap-2">
           <Iconify icon="solar:logout-2-bold" />
-          {showLabel ? 'Logout' : ''}
+          {showLabel ? t('logout') : ''}
         </span>
       </Button>
     );
@@ -61,7 +63,7 @@ export function LogoutButton({ variant = 'icon', showLabel = false, className, .
     color?: string;
   };
   return (
-    <Tooltip title="Logout">
+    <Tooltip title={t('logout')}>
       <IconButton
         type="button"
         onClick={handleLogout}

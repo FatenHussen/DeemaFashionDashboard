@@ -5,17 +5,22 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { _SectionApi } from '../api/section.services';
 
-export const useFetchSections = (page: number = 1, limit: number = 25) =>
+export const useFetchSections = (
+  page: number = 1,
+  limit: number = 25,
+  search?: string,
+  categoryId?: number
+) =>
   useQuery({
-    queryKey: queryKeys.section.list({ page, limit }),
-    queryFn: () => _SectionApi.getListSections(page, limit),
+    queryKey: queryKeys.section.list({ page, limit, search, category_id: categoryId }),
+    queryFn: () => _SectionApi.getListSections(page, limit, search, categoryId),
   });
 
 export const useFetchSectionDetails = (id: number | string) =>
   useQuery({
     queryKey: queryKeys.section.details(id),
     queryFn: () => _SectionApi.getSectionDetails(id),
-    enabled: !!id,
+    enabled: !!id && /^\d+$/.test(String(id).trim()),
   });
 
 export const useCreateSection = () => {
@@ -24,7 +29,7 @@ export const useCreateSection = () => {
   return useMutation({
     mutationFn: (data: SectionCreateUpdatePayload) => _SectionApi.createSection(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.section.list() });
+      queryClient.invalidateQueries({ queryKey: ['section', 'list'] });
     },
   });
 };
@@ -35,8 +40,9 @@ export const useUpdateSection = () => {
   return useMutation({
     mutationFn: ({ id, data }: { id: number | string; data: SectionCreateUpdatePayload }) =>
       _SectionApi.updateSection(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.section.list() });
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['section', 'list'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.section.details(variables.id) });
     },
   });
 };
@@ -47,7 +53,7 @@ export const useDeleteSection = () => {
   return useMutation({
     mutationFn: (id: number | string) => _SectionApi.deleteSection(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.section.list() });
+      queryClient.invalidateQueries({ queryKey: ['section', 'list'] });
     },
   });
 };

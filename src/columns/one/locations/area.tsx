@@ -3,13 +3,15 @@ import type { ColumnDef } from '@tanstack/react-table';
 
 import { z } from 'zod';
 import { Iconify } from '@/shared/components/iconify';
+import { formatTranslated } from '@/utils/format-translated';
+import { createToggleColumn } from '@/shared/ui/table-data/data-table-toggle-cell';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 
 // Schema for area validation
 const AreaSchema = z.object({
   id: z.number(),
-  name: z.string(),
+  name: z.object({ ar: z.string(), en: z.string() }),
   city: z.object({
     id: z.number(),
     name: z.string(),
@@ -26,7 +28,7 @@ const AreaSchema = z.object({
 // Type for area data
 export interface AreaFormValues {
   id: number;
-  name: string;
+  name: { ar: string; en: string };
   city: {
     id: number;
     name: string;
@@ -55,21 +57,9 @@ export const areaColumns = (
   deletingId?: number | null
 ): ColumnDef<AreaFormValues>[] => [
   {
-    id: 'id',
-    accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="ID" />,
-    cell: ({ row }) => (
-      <div className="flex items-center gap-2">
-        <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
-          <span className="text-xs font-semibold text-primary">{row.original.id}</span>
-        </div>
-      </div>
-    ),
-  },
-  {
     id: 'name',
-    accessorKey: 'name',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
+    accessorFn: (row) => formatTranslated(row.name),
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.name')} />,
     cell: ({ row }) => (
       <div className="flex items-center gap-2.5 min-w-0">
         <div className="w-9 h-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
@@ -81,7 +71,7 @@ export const areaColumns = (
           />
         </div>
         <div className="min-w-0">
-          <div className="font-semibold text-foreground truncate">{row.original.name}</div>
+          <div className="font-semibold text-foreground truncate">{formatTranslated(row.original.name)}</div>
         </div>
       </div>
     ),
@@ -89,7 +79,7 @@ export const areaColumns = (
   {
     id: 'city',
     accessorKey: 'city.name',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="City" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.city')} />,
     cell: ({ row }) => (
       <div className="flex items-center gap-2 min-w-0">
         <Iconify
@@ -99,7 +89,7 @@ export const areaColumns = (
           height={16}
         />
         <span className="text-sm text-muted-foreground truncate">
-          {row.original.city?.name || '-'}
+          {formatTranslated(row.original.city?.name) || '-'}
         </span>
       </div>
     ),
@@ -107,7 +97,7 @@ export const areaColumns = (
   {
     id: 'governorate',
     accessorKey: 'city.governorate.name',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Governorate" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.governorate')} />,
     cell: ({ row }) => (
       <div className="flex items-center gap-2 min-w-0">
         <Iconify
@@ -117,7 +107,7 @@ export const areaColumns = (
           height={16}
         />
         <span className="text-sm text-muted-foreground truncate">
-          {row.original.city?.governorate?.name || '-'}
+          {formatTranslated(row.original.city?.governorate?.name) || '-'}
         </span>
       </div>
     ),
@@ -125,7 +115,7 @@ export const areaColumns = (
   {
     id: 'created_at',
     accessorKey: 'created_at',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Created At" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.createdAt')} />,
     cell: ({ row }) => (
       <div className="flex items-center gap-2">
         <Iconify
@@ -138,12 +128,16 @@ export const areaColumns = (
       </div>
     ),
   },
+  ...(permissions.update
+    ? [createToggleColumn<AreaFormValues>({ entityType: 'area' })]
+    : []),
   {
     id: 'actions',
     cell: ({ row }: any) => (
       <DataTableRowActions
         schema={AreaSchema}
         row={row}
+        viewDetails={`/locations/area/details/${row.original.id}`}
         editItem={`/locations/area/update/${row.original.id}`}
         onDelete={onDelete}
         isDeleting={isDeleting}

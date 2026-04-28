@@ -1,7 +1,12 @@
+import type { TFunction } from 'i18next';
+
 import { Button } from '@/shared/ui/button';
+import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
+import { formatTranslated } from '@/utils/format-translated';
 import { useFetchSectionDetails } from '@/pages/dashboard/sections/hooks/useSections';
+import { sectionTypeLabel } from '@/pages/dashboard/sections/utils/section-type-label';
 
 import { CONFIG } from 'src/global-config';
 import { Box, Typography } from 'src/shared/ui';
@@ -10,12 +15,73 @@ import { LoadingScreen } from 'src/shared/components/loading-screen';
 
 // ----------------------------------------------------------------------
 
-const metadata = { title: `Section Details | Dashboard - ${CONFIG.appName}` };
+function resolveItemImageUrl(src: unknown): string | null {
+  if (src == null || typeof src !== 'string') return null;
+  const s = src.trim();
+  if (!s) return null;
+  if (s.startsWith('http://') || s.startsWith('https://')) return s;
+  const base = CONFIG.serverUrl?.replace(/\/$/, '') ?? '';
+  const path = s.replace(/^\//, '');
+  return base ? `${base}/${path}` : s;
+}
+
+const ITEM_DYNAMIC_EXCLUDED_KEYS = new Set([
+  'id',
+  'desc',
+  'price',
+  'is_favorite',
+  'top_badges',
+  'bottom_badges',
+  'is_on_offer',
+  'next_delivery_date',
+  'image',
+  'image_url',
+  'thumbnail',
+]);
+
+function formatSectionItemFieldValue(key: string, value: unknown, t: TFunction<'table'>): string {
+  if (value == null || value === '') return '—';
+  if (typeof value === 'object' && !Array.isArray(value)) {
+    const o = value as Record<string, unknown>;
+    if (o.en != null || o.ar != null) {
+      return formatTranslated(value as Parameters<typeof formatTranslated>[0]);
+    }
+    return JSON.stringify(value);
+  }
+  if (typeof value === 'boolean') {
+    return value ? t('yes') : t('no');
+  }
+  if (key === 'discount_type' && typeof value === 'string') {
+    const v = value.toLowerCase().replace(/-/g, '_');
+    if (v === 'percentage' || v === 'percent') return t('form.percentageDiscount');
+    if (v === 'fixed' || v === 'fixed_amount') return t('form.fixedDiscount');
+    if (v === 'none' || v === 'no_discount') return t('form.noDiscount');
+  }
+  return String(value);
+}
 
 export default function DetailsPage() {
+  const { t } = useTranslation('table');
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { data: sectionResponse, isLoading, error } = useFetchSectionDetails(id || '');
+  const numericId = id && /^\d+$/.test(String(id).trim()) ? String(id).trim() : '';
+
+  const { data: sectionResponse, isLoading, error } = useFetchSectionDetails(numericId);
+
+  if (!numericId) {
+    return (
+      <Box className="flex items-center justify-center min-h-[400px] p-6">
+        <Box className="w-full max-w-md rounded-xl border border-border/50 bg-background p-6 shadow-lg">
+          <Typography variant="h6" className="mb-2 text-destructive">
+            {t('form.sectionDetailsInvalidId')}
+          </Typography>
+          <Button variant="outlined" onClick={() => navigate('/sections')}>
+            {t('form.backToSliders')}
+          </Button>
+        </Box>
+      </Box>
+    );
+  }
 
   if (isLoading) {
     return <LoadingScreen />;
@@ -28,14 +94,14 @@ export default function DetailsPage() {
           <Box className="flex items-center gap-2 mb-2">
             <Iconify icon="solar:danger-bold" className="w-5 h-5 text-destructive" />
             <Typography variant="h6" className="text-destructive">
-              Error Loading Section
+              {t('form.errorLoadingSlider')}
             </Typography>
           </Box>
           <Typography variant="body2" className="text-muted-foreground mb-4">
-            {error instanceof Error ? error.message : 'Failed to load section information'}
+            {error instanceof Error ? error.message : t('form.failedToLoadSliderInfo')}
           </Typography>
           <Button variant="outlined" onClick={() => navigate('/sections')}>
-            Back to Sections
+            {t('form.backToSliders')}
           </Button>
         </Box>
       </Box>
@@ -46,7 +112,7 @@ export default function DetailsPage() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.sliderDetailsDocumentTitle', { appName: CONFIG.appName })}</title>
       <Box className="relative min-h-screen overflow-hidden bg-background p-6">
         {/* Subtle background gradient */}
         <Box className="pointer-events-none fixed inset-0 bg-gradient-to-br from-background via-background to-muted/30" />
@@ -56,7 +122,7 @@ export default function DetailsPage() {
           <Box className="absolute inset-0 bg-[linear-gradient(to_right,rgba(0,0,0,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(0,0,0,0.03)_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:32px_32px]" />
         </Box>
 
-        <Box className="relative max-w-4xl mx-auto">
+        <Box className="relative w-full">
           {/* Header */}
           <Box className="mb-6">
             <Button
@@ -65,7 +131,7 @@ export default function DetailsPage() {
               className="mb-4 -ml-2 text-muted-foreground hover:text-foreground"
             >
               <Iconify icon="solar:arrow-left-bold" width={20} className="mr-2" />
-              Back to Sections
+              {t('form.backToSliders')}
             </Button>
 
             <Box className="flex items-center gap-4 mb-2">
@@ -74,20 +140,22 @@ export default function DetailsPage() {
               </Box>
               <Box className="flex-1">
                 <Typography variant="h4" className="font-bold text-foreground mb-1">
-                  {section.name}
+                  {formatTranslated(section.name)}
                 </Typography>
                 <Typography variant="body2" className="text-muted-foreground">
-                  Section Details
+                  {t('form.sliderDetailsHeading')}
                 </Typography>
               </Box>
-              <Button
-                variant="contained"
-                onClick={() => navigate(`/sections/update/${id}`)}
-                className="gap-2"
-              >
-                <Iconify icon="solar:pen-bold" width={18} />
-                Edit Section
-              </Button>
+              {section.type !== 'api' && (
+                <Button
+                  variant="contained"
+                  onClick={() => navigate(`/sections/update/${id}`)}
+                  className="gap-2"
+                >
+                  <Iconify icon="solar:pen-bold" width={18} />
+                  {t('form.editSection')}
+                </Button>
+              )}
             </Box>
           </Box>
 
@@ -101,34 +169,61 @@ export default function DetailsPage() {
                   className="font-semibold text-foreground mb-4 flex items-center gap-2"
                 >
                   <Iconify icon="solar:info-circle-bold" width={20} />
-                  Basic Information
+                  {t('form.sectionDetailsBasicInfo')}
                 </Typography>
                 <Box className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Box className="space-y-2">
-                    <Typography variant="body2" className="text-muted-foreground font-medium">
-                      Section Name
-                    </Typography>
-                    <Box className="flex items-center gap-2">
-                      <Iconify icon="solar:list-bold" className="text-primary" width={18} />
-                      <Typography variant="body1" className="font-semibold text-foreground">
-                        {section.name}
+                  {section.name && typeof section.name === 'object' && !Array.isArray(section.name) ? (
+                    <>
+                      <Box className="space-y-2">
+                        <Typography variant="body2" className="text-muted-foreground font-medium">
+                          {t('form.sliderNameLabel')} ({t('form.labelEnglishShort')})
+                        </Typography>
+                        <Box className="flex items-center gap-2">
+                          <Iconify icon="solar:list-bold" className="text-primary" width={18} />
+                          <Typography variant="body1" className="font-semibold text-foreground">
+                            {(section.name as any).en || '-'}
+                          </Typography>
+                        </Box>
+                      </Box>
+                      <Box className="space-y-2">
+                        <Typography variant="body2" className="text-muted-foreground font-medium">
+                          {t('form.sliderNameLabel')} ({t('form.labelArabicShort')})
+                        </Typography>
+                        <Box className="flex items-center gap-2">
+                          <Iconify icon="solar:list-bold" className="text-primary" width={18} />
+                          <Typography variant="body1" className="font-semibold text-foreground">
+                            {(section.name as any).ar || '-'}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </>
+                  ) : (
+                    <Box className="space-y-2">
+                      <Typography variant="body2" className="text-muted-foreground font-medium">
+                        {t('form.sliderNameLabel')}
                       </Typography>
+                      <Box className="flex items-center gap-2">
+                        <Iconify icon="solar:list-bold" className="text-primary" width={18} />
+                        <Typography variant="body1" className="font-semibold text-foreground">
+                          {formatTranslated(section.name)}
+                        </Typography>
+                      </Box>
                     </Box>
-                  </Box>
+                  )}
 
                   <Box className="space-y-2">
                     <Typography variant="body2" className="text-muted-foreground font-medium">
-                      Type
+                      {t('typeLabel')}
                     </Typography>
                     <Box className="flex items-center gap-2">
                       <div
-                        className={`text-xs px-2 py-1 rounded-full w-fit uppercase ${
+                        className={`text-xs px-2 py-1 rounded-full w-fit ${
                           section.type === 'api'
                             ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
                             : 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400'
                         }`}
                       >
-                        {section.type}
+                        {sectionTypeLabel(t, section.type)}
                       </div>
                     </Box>
                   </Box>
@@ -136,7 +231,7 @@ export default function DetailsPage() {
                   {section.id && (
                     <Box className="space-y-2">
                       <Typography variant="body2" className="text-muted-foreground font-medium">
-                        Section ID
+                        {t('form.sliderIdLabel')}
                       </Typography>
                       <Box className="flex items-center gap-2">
                         <Box className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
@@ -149,7 +244,7 @@ export default function DetailsPage() {
                   {section.manual?.manual_model && (
                     <Box className="space-y-2">
                       <Typography variant="body2" className="text-muted-foreground font-medium">
-                        Manual Model
+                        {t('form.manualModelLabel')}
                       </Typography>
                       <Box className="flex items-center gap-2">
                         <Iconify icon="solar:settings-bold" className="text-primary" width={18} />
@@ -162,36 +257,6 @@ export default function DetailsPage() {
                 </Box>
               </Box>
 
-              {section.api && Object.keys(section.api).length > 0 && (
-                <>
-                  <Separator />
-                  {/* API Configuration */}
-                  <Box>
-                    <Typography
-                      variant="h6"
-                      className="font-semibold text-foreground mb-4 flex items-center gap-2"
-                    >
-                      <Iconify icon="solar:code-square-bold" width={20} />
-                      API Configuration
-                    </Typography>
-                    <Box className="space-y-2">
-                      {Object.entries(section.api).map(([key, value]) => (
-                        <Box key={key} className="flex items-start gap-2">
-                          <Typography
-                            variant="body2"
-                            className="text-muted-foreground font-medium min-w-[120px]"
-                          >
-                            {key}:
-                          </Typography>
-                          <Typography variant="body2" className="text-foreground break-all">
-                            {typeof value === 'object' ? JSON.stringify(value) : String(value)}
-                          </Typography>
-                        </Box>
-                      ))}
-                    </Box>
-                  </Box>
-                </>
-              )}
 
               <Separator />
 
@@ -202,17 +267,28 @@ export default function DetailsPage() {
                   className="font-semibold text-foreground mb-4 flex items-center gap-2"
                 >
                   <Iconify icon="solar:checklist-bold" width={20} />
-                  Items
+                  {t('form.sectionItemsHeading')}
                   {section.items && Array.isArray(section.items) && (
                     <Typography variant="body2" className="text-muted-foreground font-normal ml-2">
-                      ({section.items.length} item{section.items.length !== 1 ? 's' : ''})
+                      {t('form.sectionItemsCount', { count: section.items.length })}
                     </Typography>
                   )}
                 </Typography>
 
                 {section.items && Array.isArray(section.items) && section.items.length > 0 ? (
                   <Box className="space-y-3">
-                    {section.items.map((item, index) => (
+                    {section.items.map((item, index) => {
+                      const imageSrc = resolveItemImageUrl(
+                        item.image ?? item.image_url ?? item.thumbnail
+                      );
+                      const imageAlt =
+                        typeof item.title === 'string'
+                          ? item.title
+                          : typeof item.name === 'string'
+                            ? item.name
+                            : t('form.sectionItemAltFallback', { id: item.id });
+
+                      return (
                       <Box
                         key={item.id || index}
                         className="p-4 rounded-lg bg-muted/30 border border-border/50"
@@ -220,16 +296,28 @@ export default function DetailsPage() {
                         <Box className="grid grid-cols-1 md:grid-cols-2 gap-3">
                           <Box className="space-y-1">
                             <Typography variant="body2" className="text-muted-foreground text-xs">
-                              Item ID
+                              {t('form.sectionItemIdLabel')}
                             </Typography>
                             <Typography variant="body1" className="font-semibold text-foreground">
                               {item.id}
                             </Typography>
                           </Box>
+                          {imageSrc && (
+                            <Box className="space-y-1 md:col-span-2">
+                              <Typography variant="body2" className="text-muted-foreground text-xs">
+                                {t('form.sectionItemImageLabel')}
+                              </Typography>
+                              <img
+                                src={imageSrc}
+                                alt={imageAlt}
+                                className="max-h-48 max-w-full rounded-lg border border-border/50 object-contain bg-muted/20"
+                              />
+                            </Box>
+                          )}
                           {item.desc && (
                             <Box className="space-y-1">
                               <Typography variant="body2" className="text-muted-foreground text-xs">
-                                Description
+                                {t('form.sectionItemDescriptionLabel')}
                               </Typography>
                               <Typography variant="body1" className="text-foreground">
                                 {item.desc}
@@ -239,7 +327,7 @@ export default function DetailsPage() {
                           {item.price !== undefined && (
                             <Box className="space-y-1">
                               <Typography variant="body2" className="text-muted-foreground text-xs">
-                                Price
+                                {t('form.sectionItemPriceLabel')}
                               </Typography>
                               <Typography variant="body1" className="text-foreground">
                                 {item.price}
@@ -248,28 +336,27 @@ export default function DetailsPage() {
                           )}
                           {/* Display any other properties */}
                           {Object.entries(item).map(([key, value]) => {
-                            if (key !== 'id' && key !== 'desc' && key !== 'price') {
-                              return (
-                                <Box key={key} className="space-y-1">
-                                  <Typography
-                                    variant="body2"
-                                    className="text-muted-foreground text-xs capitalize"
-                                  >
-                                    {key.replace(/_/g, ' ')}
-                                  </Typography>
-                                  <Typography variant="body1" className="text-foreground break-all">
-                                    {typeof value === 'object'
-                                      ? JSON.stringify(value)
-                                      : String(value)}
-                                  </Typography>
-                                </Box>
-                              );
+                            if (ITEM_DYNAMIC_EXCLUDED_KEYS.has(key)) {
+                              return null;
                             }
-                            return null;
+                            const fieldKey = `form.itemField_${key}`;
+                            const translated = t(fieldKey);
+                            const label = translated !== fieldKey ? translated : key.replace(/_/g, ' ');
+                            return (
+                              <Box key={key} className="space-y-1">
+                                <Typography variant="body2" className="text-muted-foreground text-xs">
+                                  {label}
+                                </Typography>
+                                <Typography variant="body1" className="text-foreground break-all">
+                                  {formatSectionItemFieldValue(key, value, t)}
+                                </Typography>
+                              </Box>
+                            );
                           })}
                         </Box>
                       </Box>
-                    ))}
+                    );
+                    })}
                   </Box>
                 ) : (
                   <Box className="text-center py-8">
@@ -278,7 +365,7 @@ export default function DetailsPage() {
                       className="w-12 h-12 text-muted-foreground/50 mx-auto mb-2"
                     />
                     <Typography variant="body2" className="text-muted-foreground">
-                      No items in this section
+                      {t('common.noItems')}
                     </Typography>
                   </Box>
                 )}

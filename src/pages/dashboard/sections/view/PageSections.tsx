@@ -1,6 +1,7 @@
-import { useState } from 'react';
 import { toast } from 'react-toastify';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { formatTranslated } from '@/utils/format-translated';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { usePermissions } from '@/auth/hooks/use-permissions';
 import {
@@ -14,19 +15,22 @@ import {
 
 import { CONFIG } from 'src/global-config';
 
-const metadata = { title: `Page Sections | Dashboard - ${CONFIG.appName}` };
-
 export default function Page() {
   const { t } = useTranslation('table');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [search, setSearch] = useState<string>('');
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
 
   const {
     data: pageSectionsResponse,
     isLoading,
     error,
-  } = useFetchPageSections(currentPage, pageSize);
+  } = useFetchPageSections(currentPage, pageSize, search.trim() || undefined);
   const deletePageSectionMutation = useDeletePageSection();
 
   if (error) {
@@ -50,11 +54,9 @@ export default function Page() {
     if (deletingId) {
       try {
         await deletePageSectionMutation.mutateAsync(deletingId);
-        toast.success(t('deleteSuccess') || 'Page Section deleted successfully');
+        toast.success(t('deleteSuccess'));
         setDeletingId(null);
-      } catch (err: any) {
-        toast.error(err?.message || t('deleteError') || 'Failed to delete page section');
-      }
+      } catch { return; }
     }
   };
 
@@ -62,7 +64,13 @@ export default function Page() {
     setDeletingId(null);
   };
 
-  const pageSectionData: PageSectionFormValues[] = pageSectionsResponse?.data?.items || [];
+  const pageSectionData: PageSectionFormValues[] = (
+    pageSectionsResponse?.data?.items || []
+  ).map((item) => ({
+    ...item,
+    name: formatTranslated(item.name as Parameters<typeof formatTranslated>[0]) ?? '-',
+    type: (item.type ?? 'manual') as 'api' | 'manual',
+  }));
   const apiPagination = pageSectionsResponse?.data?.pagination;
   const pagination = apiPagination
     ? {
@@ -88,14 +96,14 @@ export default function Page() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.pageSectionsIndexDocumentTitle', { appName: CONFIG.appName })}</title>
 
       <DataTable
-        tableName="Page Section"
+        tableName={t('tableNames.pageSection')}
         columns={pageSectionColumns(
           {
-            update: hasPermission('update', 'pageSection'),
-            delete: hasPermission('delete', 'pageSection'),
+            update: hasPermission('update', 'pagesection'),
+            delete: hasPermission('delete', 'pagesection'),
           },
           t,
           onDelete,
@@ -107,7 +115,7 @@ export default function Page() {
         )}
         data={pageSectionData}
         createPath="/sections/page-sections/create"
-        hasDetails={false}
+        hasDetails
         permissions={{
           create: hasPermission('create', 'pagesection'),
           update: hasPermission('update', 'pagesection'),
@@ -115,19 +123,19 @@ export default function Page() {
         }}
         isLoading={isLoading}
         columnTranslations={{
-          id: 'ID',
-          name: 'Name',
-          type: 'Type',
-          position: 'Position',
-          order: 'Order',
-          display_type_id: 'Display Type',
-          actions: 'Actions',
+          id: t('columns.id'),
+          name: t('columns.name'),
+          type: t('columns.type'),
+          manual_model: t('columns.manualModel'),
+          filters: t('columns.filters'),
+          actions: t('columns.action'),
         }}
         pagination={pagination}
         currentPage={currentPage}
         pageSize={pageSize}
         onPageChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}
+        onSearchChange={setSearch}
       />
     </>
   );

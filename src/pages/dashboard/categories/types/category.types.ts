@@ -12,6 +12,9 @@ export interface CategoryData {
   icon: string | null;
   parent_id: number | null;
   parent: ParentCategory | null;
+  order: number | null;
+  is_active: boolean;
+  is_restaurant: boolean;
   children_count: number;
   created_at: string;
   updated_at: string;
@@ -44,6 +47,9 @@ export interface CategoryDetailData {
   icon: string | null;
   parent_id: number | null;
   parent: ParentCategory | null;
+  order: number | null;
+  is_active: boolean;
+  is_restaurant: boolean;
   children: CategoryData[];
   created_at: string;
   updated_at: string;
@@ -60,11 +66,10 @@ export interface CategoryCreateUpdatePayload {
     en: string;
     ar: string;
   };
-  description: {
-    en: string;
-    ar: string;
-  };
   icon?: File | null;
   parent_id?: number | null;
+  order?: number | null;
+  is_active?: boolean;
+  is_restaurant?: boolean;
 }
 

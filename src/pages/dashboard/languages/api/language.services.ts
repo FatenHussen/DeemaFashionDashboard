@@ -1,9 +1,9 @@
 import type {
   LanguageData,
+  LanguageListParams,
   LanguageListResponse,
   LanguageDetailsResponse,
   LanguageCreateUpdatePayload,
-  LanguageListParams,
 } from '../types/language.types';
 
 import { apiRoutes, axiosInstance } from '@/api';

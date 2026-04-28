@@ -8,7 +8,10 @@ export interface GovernorateInfo {
 
 export interface CityData {
   id: number;
-  name: string;
+  name: {
+    ar: string;
+    en: string;
+  };
   governorate: GovernorateInfo;
   created_at: string;
 }

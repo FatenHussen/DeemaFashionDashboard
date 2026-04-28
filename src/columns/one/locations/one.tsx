@@ -3,6 +3,8 @@ import type { ColumnDef } from '@tanstack/react-table';
 
 import { z } from 'zod';
 import { Iconify } from '@/shared/components/iconify';
+import { formatTranslated } from '@/utils/format-translated';
+import { createToggleColumn } from '@/shared/ui/table-data/data-table-toggle-cell';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 
@@ -35,28 +37,16 @@ export const governorateColumns = (
   deletingId?: number | null
 ): ColumnDef<GovernorateFormValues>[] => [
   {
-    id: 'id',
-    accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="ID" />,
-    cell: ({ row }) => (
-      <div className="flex items-center gap-2">
-        <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
-          <span className="text-xs font-semibold text-primary">{row.original.id}</span>
-        </div>
-      </div>
-    ),
-  },
-  {
     id: 'name',
     accessorKey: 'name',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.name')} />,
     cell: ({ row }) => (
       <div className="flex items-center gap-2.5 min-w-0">
         <div className="w-9 h-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center flex-shrink-0">
           <Iconify icon="solar:flag-bold" className="text-primary" width={18} height={18} />
         </div>
         <div className="min-w-0">
-          <div className="font-semibold text-foreground truncate">{row.original.name}</div>
+          <div className="font-semibold text-foreground truncate">{formatTranslated(row.original.name)}</div>
         </div>
       </div>
     ),
@@ -64,7 +54,7 @@ export const governorateColumns = (
   {
     id: 'created_at',
     accessorKey: 'created_at',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Created At" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.createdAt')} />,
     cell: ({ row }) => (
       <div className="flex items-center gap-2">
         <Iconify
@@ -77,12 +67,16 @@ export const governorateColumns = (
       </div>
     ),
   },
+  ...(permissions.update
+    ? [createToggleColumn<GovernorateFormValues>({ entityType: 'governorate' })]
+    : []),
   {
     id: 'actions',
     cell: ({ row }: any) => (
       <DataTableRowActions
         schema={GovernorateSchema}
         row={row}
+        viewDetails={`/locations/update/${row.original.id}`}
         editItem={`/locations/update/${row.original.id}`}
         onDelete={onDelete}
         isDeleting={isDeleting}

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { mergeClasses } from 'minimal-shared/utils';
 
 import { Box } from 'src/shared/ui';
@@ -18,9 +19,11 @@ export function FormResendCode({
   className,
   ...other
 }: FormResendCodeProps) {
+  const { t } = useTranslation('table');
+
   return (
     <Box className={mergeClasses(['mt-6 text-sm self-center', className])} {...other}>
-      {`Don't have a code? `}
+      {`${t('auth.dontHaveCode')} `}
       <button
         type="button"
         onClick={onResendCode}
@@ -30,7 +33,7 @@ export function FormResendCode({
           disabled ? 'text-gray-400 cursor-not-allowed pointer-events-none' : '',
         ])}
       >
-        Resend {disabled && value && value > 0 && `(${value}s)`}
+        {t('auth.resend')} {disabled && value && value > 0 && `(${value}s)`}
       </button>
     </Box>
   );

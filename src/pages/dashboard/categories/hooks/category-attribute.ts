@@ -3,15 +3,31 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import {
   _CategoryAttributeApi,
+  type CategoryAttributeListParams,
   type CategoryAttributeCreateUpdatePayload,
 } from '../api/category-attribute.services';
 
-export const useFetchCategoryAttributes = (page: number = 1, limit: number = 25) => useQuery({
-    queryKey: queryKeys.categoryAttribute.list({ page, limit }),
-    queryFn: () => _CategoryAttributeApi.getListCategoryAttributes(page, limit),
+export type UseFetchCategoryAttributesOptions = {
+  enabled?: boolean;
+  /** When true, the query runs only after `filters.category_id` is set. */
+  requireCategoryId?: boolean;
+};
+
+export const useFetchCategoryAttributes = (
+  filters: CategoryAttributeListParams = {},
+  options?: UseFetchCategoryAttributesOptions
+) =>
+  useQuery({
+    queryKey: queryKeys.categoryAttribute.list(filters as Record<string, unknown>),
+    queryFn: () => _CategoryAttributeApi.getListCategoryAttributes(filters),
+    enabled:
+      options?.enabled !== false &&
+      (!options?.requireCategoryId ||
+        (filters.category_id != null && `${filters.category_id}` !== '')),
   });
 
-export const useFetchCategoryAttributeById = (id: number | string) => useQuery({
+export const useFetchCategoryAttributeById = (id: number | string) =>
+  useQuery({
     queryKey: queryKeys.categoryAttribute.details(id),
     queryFn: () => _CategoryAttributeApi.getCategoryAttributeById(id),
     enabled: !!id,
@@ -24,14 +40,12 @@ export const useCreateCategoryAttribute = () => {
     mutationFn: (data: CategoryAttributeCreateUpdatePayload) =>
       _CategoryAttributeApi.createCategoryAttribute(data),
     onSuccess: () => {
-      // Invalidate all category attribute list queries (matches all queries starting with ['category-attribute', 'list'])
       queryClient.invalidateQueries({
-        queryKey: ['category-attribute', 'list'],
+        queryKey: ['categoryattribute', 'list'],
         refetchType: 'active',
       });
-      // Explicitly refetch all active category attribute list queries
       queryClient.refetchQueries({
-        queryKey: ['category-attribute', 'list'],
+        queryKey: ['categoryattribute', 'list'],
         type: 'active',
       });
     },
@@ -50,19 +64,14 @@ export const useUpdateCategoryAttribute = () => {
       data: CategoryAttributeCreateUpdatePayload;
     }) => _CategoryAttributeApi.updateCategoryAttribute(id, data),
     onSuccess: (_, variables) => {
-      // Invalidate all category attribute list queries (matches all queries starting with ['category-attribute', 'list'])
       queryClient.invalidateQueries({
-        queryKey: ['category-attribute', 'list'],
+        queryKey: ['categoryattribute', 'list'],
         refetchType: 'active',
       });
-
-      // Explicitly refetch all active category attribute list queries
       queryClient.refetchQueries({
-        queryKey: ['category-attribute', 'list'],
+        queryKey: ['categoryattribute', 'list'],
         type: 'active',
       });
-
-      // Invalidate the specific category attribute details query
       queryClient.invalidateQueries({
         queryKey: queryKeys.categoryAttribute.details(variables.id),
       });
@@ -76,19 +85,14 @@ export const useDeleteCategoryAttribute = () => {
   return useMutation({
     mutationFn: (id: number | string) => _CategoryAttributeApi.deleteCategoryAttribute(id),
     onSuccess: (_, id) => {
-      // Invalidate all category attribute list queries (matches all queries starting with ['category-attribute', 'list'])
       queryClient.invalidateQueries({
-        queryKey: ['category-attribute', 'list'],
+        queryKey: ['categoryattribute', 'list'],
         refetchType: 'active',
       });
-
-      // Explicitly refetch all active category attribute list queries
       queryClient.refetchQueries({
-        queryKey: ['category-attribute', 'list'],
+        queryKey: ['categoryattribute', 'list'],
         type: 'active',
       });
-
-      // Invalidate the specific category attribute details query
       queryClient.invalidateQueries({
         queryKey: queryKeys.categoryAttribute.details(id),
       });

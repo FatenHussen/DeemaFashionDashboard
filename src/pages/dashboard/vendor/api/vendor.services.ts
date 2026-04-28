@@ -7,9 +7,14 @@ import type {
 import { apiRoutes, axiosInstance } from '@/api';
 
 export const _VendorApi = {
-  getListVendor: async (): Promise<VendorListResponse> => {
-    const response = await axiosInstance.get<VendorListResponse>(apiRoutes.vendor.list);
-    console.log(response);
+  getListVendor: async (params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+  }): Promise<VendorListResponse> => {
+    const response = await axiosInstance.get<VendorListResponse>(apiRoutes.vendor.list, {
+      params,
+    });
     return response.data;
   },
   createVendor: async (data: VendorCreateUpdatePayload): Promise<any> => {
@@ -25,12 +30,8 @@ export const _VendorApi = {
     return response.data;
   },
   getVendorById: async (id: number | string): Promise<VendorData> => {
-    const response = await axiosInstance.get<VendorListResponse>(apiRoutes.vendor.list);
-    // Find the vendor by ID from the list (or you might have a separate endpoint)
-    const vendor = response.data.data.items.find((item) => item.id === Number(id));
-    if (!vendor) {
-      throw new Error('Vendor not found');
-    }
-    return vendor;
+    const response = await axiosInstance.get(apiRoutes.vendor.details(id));
+    const data = response.data?.data ?? response.data;
+    return data;
   },
 };

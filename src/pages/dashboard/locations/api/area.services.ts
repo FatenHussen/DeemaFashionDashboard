@@ -1,12 +1,21 @@
-import type { AreaData, AreaListResponse, AreaCreateUpdatePayload } from '../types/area.types';
+import type {
+  AreaData,
+  AreaListResponse,
+  AreaDetailsResponse,
+  AreaCreateUpdatePayload,
+} from '../types/area.types';
 
 import { apiRoutes, axiosInstance } from '@/api';
 
 export type { AreaCreateUpdatePayload };
 
 export const _AreaApi = {
-  getListAreas: async (): Promise<AreaListResponse> => {
-    const response = await axiosInstance.get<AreaListResponse>(apiRoutes.area.list);
+  getListAreas: async (
+    params?: { page?: number; per_page?: number; search?: string }
+  ): Promise<AreaListResponse> => {
+    const response = await axiosInstance.get<AreaListResponse>(apiRoutes.area.list, {
+      params,
+    });
     return response.data;
   },
   createArea: async (data: AreaCreateUpdatePayload): Promise<any> => {
@@ -22,13 +31,8 @@ export const _AreaApi = {
     return response.data;
   },
   getAreaById: async (id: number | string): Promise<AreaData> => {
-    const response = await axiosInstance.get<AreaListResponse>(apiRoutes.area.list);
-    // Find the area by ID from the list
-    const area = response.data.data.items.find((item) => item.id === Number(id));
-    if (!area) {
-      throw new Error('Area not found');
-    }
-    return area;
+    const response = await axiosInstance.get<AreaDetailsResponse>(apiRoutes.area.details(id));
+    return response.data.data;
   },
 };
 

@@ -1,6 +1,7 @@
 import { Controller, useFormContext } from 'react-hook-form';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from 'src/shared/ui/select';
+
 import { Typography } from 'src/shared/ui';
+import { Select, SelectItem, SelectValue, SelectContent, SelectTrigger } from 'src/shared/ui/select';
 
 // ----------------------------------------------------------------------
 
@@ -10,6 +11,7 @@ export type RHFSelectProps = {
   placeholder?: string;
   helperText?: string;
   className?: string;
+  disabled?: boolean;
 };
 
 export function RHFSelect({
@@ -18,6 +20,7 @@ export function RHFSelect({
   placeholder = 'Select an option',
   helperText,
   className,
+  disabled,
 }: RHFSelectProps) {
   const { control } = useFormContext();
 
@@ -25,9 +28,19 @@ export function RHFSelect({
     <Controller
       name={name}
       control={control}
-      render={({ field, fieldState: { error } }) => (
+      render={({ field, fieldState: { error } }) => {
+        const selectValue =
+          field.value === '' || field.value == null ? undefined : String(field.value);
+        return (
         <div className={className}>
-          <Select value={field.value} onValueChange={field.onChange}>
+          <Select
+            // Radix Select can stay visually empty when the controlled value is set in the same
+            // tick as `reset()`. Remounting when the value changes forces the trigger to show it.
+            key={`rhf-sel-${name}-${selectValue ?? 'empty'}`}
+            value={selectValue}
+            onValueChange={field.onChange}
+            disabled={disabled}
+          >
             <SelectTrigger className="w-full">
               <SelectValue placeholder={placeholder} />
             </SelectTrigger>
@@ -48,7 +61,8 @@ export function RHFSelect({
             </Typography>
           )}
         </div>
-      )}
+        );
+      }}
     />
   );
 }

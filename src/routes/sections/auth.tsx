@@ -1,37 +1,20 @@
 import type { RouteObject } from 'react-router';
 
+import { Suspense } from 'react';
 import { Outlet } from 'react-router';
-import { lazy, Suspense } from 'react';
 
-import { GuestGuard } from 'src/pages/auth/guard';
-import { AuthSplitLayout } from 'src/layouts/auth-split';
 import { SplashScreen } from 'src/shared/components/loading-screen';
 
-// ----------------------------------------------------------------------
+import { JwtSignInRoute } from './auth-jwt-sign-in-route';
 
-/** **************************************
- * Jwt
- *************************************** */
-const Jwt = {
-  SignInPage: lazy(() => import('src/pages/auth/jwt/sign-in')),
-};
+// ----------------------------------------------------------------------
 
 const authJwt = {
   path: 'jwt',
   children: [
     {
       path: 'sign-in',
-      element: (
-        <GuestGuard>
-          <AuthSplitLayout
-            slotProps={{
-              section: { title: 'Hi, Welcome back' },
-            }}
-          >
-            <Jwt.SignInPage />
-          </AuthSplitLayout>
-        </GuestGuard>
-      ),
+      element: <JwtSignInRoute />,
     },
   ],
 };

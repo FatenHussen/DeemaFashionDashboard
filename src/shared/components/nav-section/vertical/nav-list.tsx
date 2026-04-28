@@ -19,6 +19,7 @@ export function NavList({
   slotProps,
   checkPermissions,
   checkPermission,
+  checkPermissionAny,
   enabledRootRedirect,
 }: NavListProps) {
   const pathname = usePathname();
@@ -26,14 +27,18 @@ export function NavList({
 
   const isActive = isActiveLink(pathname, data.path, data.deepMatch ?? !!data.children);
 
-  const { value: open, onFalse: onClose, onToggle } = useBoolean(isActive);
+  const { value: open, onFalse: onClose, onTrue: onOpen, onToggle } = useBoolean(false);
 
   useEffect(() => {
-    if (!isActive) {
+    if (!data.children) {
+      return;
+    }
+    if (isActive) {
+      onOpen();
+    } else {
       onClose();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname]);
+  }, [pathname, isActive, data.children, onOpen, onClose]);
 
   const handleToggleMenu = useCallback(() => {
     if (data.children) {
@@ -77,6 +82,7 @@ export function NavList({
           slotProps={slotProps}
           checkPermissions={checkPermissions}
           checkPermission={checkPermission}
+          checkPermissionAny={checkPermissionAny}
           enabledRootRedirect={enabledRootRedirect}
         />
       </NavCollapse>
@@ -87,8 +93,10 @@ export function NavList({
     return null;
   }
 
-  // Hidden item by permission
-  if (data.requiredPermission && checkPermission && !checkPermission(data.requiredPermission)) {
+  // Hidden item by permission (mirror horizontal nav-list)
+  if (data.requiredPermissionAny && checkPermissionAny) {
+    if (!checkPermissionAny(data.requiredPermissionAny)) return null;
+  } else if (data.requiredPermission && checkPermission && !checkPermission(data.requiredPermission)) {
     return null;
   }
 
@@ -112,6 +120,7 @@ function NavSubList({
   slotProps,
   checkPermissions,
   checkPermission,
+  checkPermissionAny,
   enabledRootRedirect,
 }: NavSubListProps) {
   return (
@@ -125,6 +134,7 @@ function NavSubList({
           slotProps={slotProps}
           checkPermissions={checkPermissions}
           checkPermission={checkPermission}
+          checkPermissionAny={checkPermissionAny}
           enabledRootRedirect={enabledRootRedirect}
         />
       ))}

@@ -4,6 +4,7 @@ import * as React from 'react';
 import { cn } from '@/utils/utils';
 import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
+import { useTranslation } from 'react-i18next';
 import { Separator } from '@/shared/ui/separator';
 import { CheckIcon, PlusCircle } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/shared/ui/popover';
@@ -34,6 +35,7 @@ export function DataTableFacetedFilter<TData, TValue>({
   title,
   options,
 }: DataTableFacetedFilter<TData, TValue>) {
+  const { t } = useTranslation('table');
   const facets = column?.getFacetedUniqueValues();
   const selectedValues = new Set(column?.getFilterValue() as string[]);
 
@@ -80,7 +82,7 @@ export function DataTableFacetedFilter<TData, TValue>({
           <CommandInput placeholder={title} className="h-4 text-sm" />
 
           <CommandList>
-            <CommandEmpty>No results found.</CommandEmpty>
+            <CommandEmpty>{t('common.noOptionsFound')}</CommandEmpty>
             <CommandGroup>
               {options.map((option) => {
                 const isSelected = selectedValues.has(option.value);

@@ -1,5 +1,5 @@
-import { useState } from 'react';
 import { toast } from 'react-toastify';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { usePermissions } from '@/auth/hooks/use-permissions';
@@ -10,16 +10,23 @@ import { CONFIG } from 'src/global-config';
 
 // ----------------------------------------------------------------------
 
-const metadata = { title: `Roles | Dashboard - ${CONFIG.appName}` };
-
 export default function Page() {
   const { t } = useTranslation('table');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [search, setSearch] = useState<string>('');
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
 
   // Fetch roles using the hook
-  const { data: rolesResponse, isLoading, error } = useFetchRoles(currentPage, pageSize);
+  const { data: rolesResponse, isLoading, error } = useFetchRoles(
+    currentPage,
+    pageSize,
+    search.trim() || undefined
+  );
   const deleteRoleMutation = useDeleteRole();
 
   // Log error for debugging
@@ -44,11 +51,9 @@ export default function Page() {
     if (deletingId) {
       try {
         await deleteRoleMutation.mutateAsync(deletingId);
-        toast.success(t('deleteSuccess') || 'Role deleted successfully');
+        toast.success(t('deleteSuccess'));
         setDeletingId(null);
-      } catch (err: any) {
-        toast.error(err?.message || t('deleteError') || 'Failed to delete role');
-      }
+      } catch { return; }
     }
   };
 
@@ -83,10 +88,10 @@ export default function Page() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.rolesIndexDocumentTitle', { appName: CONFIG.appName })}</title>
 
       <DataTable
-        tableName="Role"
+        tableName={t("tableNames.role")}
         columns={roleColumns(
           {
             update: hasPermission('update', 'role'),
@@ -102,7 +107,8 @@ export default function Page() {
         )}
         data={roleData}
         createPath="/role/create"
-        hasDetails={false}
+        hasDetails
+        detailsLink="/role/details"
         permissions={{
           create: hasPermission('create', 'role'),
           update: hasPermission('update', 'role'),
@@ -110,17 +116,18 @@ export default function Page() {
         }}
         isLoading={isLoading}
         columnTranslations={{
-          id: 'ID',
-          name: 'Role Name',
-          guard_name: 'Guard',
-          created_at: 'Created At',
-          actions: 'Actions',
+          id: t('columns.id'),
+          name: t('columns.roleName'),
+          guard_name: t('columns.guard'),
+          created_at: t('columns.createdAt'),
+          actions: t('columns.action'),
         }}
         pagination={pagination}
         currentPage={currentPage}
         pageSize={pageSize}
         onPageChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}
+        onSearchChange={setSearch}
       />
     </>
   );

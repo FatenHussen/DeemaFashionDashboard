@@ -1,6 +1,11 @@
 import type { ICategory } from '@/types/items/categories';
 import type { RecycleBinType } from '@/types/recycleBin/recycleBin';
-import type { ColumnDef, SortingState, ColumnFiltersState } from '@tanstack/react-table';
+import type {
+  ColumnDef,
+  SortingState,
+  ColumnFiltersState,
+  Table as TanStackTable,
+} from '@tanstack/react-table';
 
 import * as React from 'react';
 import { useNavigate } from 'react-router';
@@ -21,7 +26,6 @@ import { Iconify } from 'src/shared/components/iconify';
 import { TableSkeleton } from './data-table-skeleton';
 import { DataTableToolbar } from './data-table-toolbar';
 import { DataTablePagination } from './data-table-pagination';
-import { CustomizeColumnsModal } from './customize-columns-modal';
 // table-data.tsx
 import { Table, TableRow, TableBody, TableCell, TableHead, TableHeader } from '../table';
 
@@ -31,6 +35,10 @@ interface DataTableProps<TData, TValue> {
   tableName: string;
   createPath?: string;
   hasDetails?: boolean;
+  /** When false, row click does not navigate to details; only the actions menu does */
+  rowClickToDetails?: boolean;
+  /** When set, row cells call this instead of navigating to `detailsLink` (actions column unchanged). */
+  onRowClick?: (row: TData) => void;
   isPagePaginateHiddent?: boolean;
   detailsLink?: string;
   permissions?: {
@@ -46,7 +54,7 @@ interface DataTableProps<TData, TValue> {
   expandedRowRender?: (row: TData) => React.ReactNode;
   columnTranslations?: Record<string, string>;
   onImportSuccess?: () => void;
-  // إضافة خصائص Pagination الجديدة
+
   pagination?: {
     current_page: number;
     last_page: number;
@@ -59,7 +67,28 @@ interface DataTableProps<TData, TValue> {
   pageSize?: number;
   onPageChange?: (page: number) => void;
   onPageSizeChange?: (size: number) => void;
+  /** When set, replaces default pagination row-count options (e.g. cap at API `per_page` max). */
+  pageSizeOptions?: number[];
   defaultHiddenColumns?: string[];
+  /** Custom filter content rendered in the toolbar (top of table), or render fn with table instance */
+  toolbarFilter?: React.ReactNode | ((ctx: { table: TanStackTable<TData> }) => React.ReactNode);
+  /** Content rendered inside the slide-in filter sidebar drawer */
+  filterSidebar?: React.ReactNode;
+  /** Number of active sidebar filters — shows a badge on the filter button */
+  activeFilterCount?: number;
+  /** Called when the sidebar "Reset" button is clicked */
+  onFilterReset?: () => void;
+  /** Called when the user confirms filters in the sidebar footer (before the drawer closes). */
+  onFilterApply?: () => void;
+  /** Renders above the toolbar inside a card container (e.g. shared breadcrumb) */
+  tableTop?: React.ReactNode;
+  /**
+   * Server-side search handler. When provided, the built-in search input becomes debounced
+   * (400ms) and forwards its value via this callback instead of filtering the table client-side.
+   */
+  onSearchChange?: (value: string) => void;
+  /** Optional placeholder for the search input. */
+  searchPlaceholder?: string;
 }
 
 export function DataTable<TData, TValue>({
@@ -67,6 +96,8 @@ export function DataTable<TData, TValue>({
   data,
   createPath,
   hasDetails,
+  rowClickToDetails = true,
+  onRowClick,
   hasRecycleFilter = false,
   onRecycleFilterChange,
   isPagePaginateHiddent,
@@ -84,7 +115,16 @@ export function DataTable<TData, TValue>({
   pageSize = 10,
   onPageChange,
   onPageSizeChange,
+  pageSizeOptions,
   defaultHiddenColumns = [],
+  toolbarFilter,
+  filterSidebar,
+  activeFilterCount,
+  onFilterReset,
+  onFilterApply,
+  tableTop,
+  onSearchChange,
+  searchPlaceholder,
 }: DataTableProps<TData, TValue>) {
   const [expandedRows, setExpandedRows] = React.useState<Record<string, boolean>>({});
   const [sorting, setSorting] = React.useState<SortingState>([]);
@@ -100,6 +140,16 @@ export function DataTable<TData, TValue>({
     checked: !col.defaultHidden && !defaultHiddenColumns.includes(col.id || ''),
   }));
 
+  const initialColumnVisibility = React.useMemo(() => {
+    const vis: Record<string, boolean> = {};
+    for (const col of columns) {
+      const id = col.id;
+      if (id === undefined || id === '') continue;
+      vis[id] = !col.defaultHidden && !defaultHiddenColumns.includes(id);
+    }
+    return vis;
+  }, [columns, defaultHiddenColumns]);
+
   const table = useReactTable({
     data,
     columns,
@@ -107,6 +157,9 @@ export function DataTable<TData, TValue>({
       sorting,
       rowSelection,
       columnFilters,
+    },
+    initialState: {
+      columnVisibility: initialColumnVisibility,
     },
     enableRowSelection: true,
     onRowSelectionChange: setRowSelection,
@@ -135,9 +188,21 @@ export function DataTable<TData, TValue>({
   const visibleColumns = table.getVisibleLeafColumns().filter((col) => col.id !== 'actions');
   const visibleColumnsCount = visibleColumns.length;
   const isTwoColumns = visibleColumnsCount === 2;
+  /** Reserve width for the sticky actions column — two 50% data cols alone = 100%, which squeezes actions and forces horizontal overflow */
+  const twoDataPlusActionsWidths = (isActions: boolean) => {
+    if (!isTwoColumns) return undefined;
+    if (isActions) return '4.5rem';
+    return 'calc((100% - 4.5rem) / 2)';
+  };
 
   return (
-    <div className="w-full space-y-4 transition-opacity duration-500 p-6">
+    <div className="w-full min-w-0 space-y-4 px-3 py-4 sm:px-4 md:px-6 md:py-5">
+      {tableTop ? (
+        <div className="rounded-xl border border-border/50 bg-card/80 px-4 py-3 shadow-sm sm:px-5 sm:py-3.5">
+          {tableTop}
+        </div>
+      ) : null}
+
       <DataTableToolbar
         table={table}
         createPath={createPath}
@@ -148,48 +213,60 @@ export function DataTable<TData, TValue>({
         hasRecycleFilter={hasRecycleFilter}
         onRecycleFilterChange={onRecycleFilterChange}
         onImportSuccess={onImportSuccess}
+        defaultColumns={defaultColumnsConfig}
+        columnTranslations={columnTranslations}
+        toolbarFilter={toolbarFilter}
+        filterSidebar={filterSidebar}
+        activeFilterCount={activeFilterCount}
+        onFilterReset={onFilterReset}
+        onFilterApply={onFilterApply}
+        onSearchChange={onSearchChange}
+        searchPlaceholder={searchPlaceholder}
       />
 
-      {/* Table View - Full Width */}
-      <div className="w-full border border-border/50 bg-background overflow-hidden">
+      {/* Table — responsive horizontal scroll + shell */}
+      <div
+        className={`
+          group/table-shell relative w-full min-w-0 rounded-xl
+          border border-border/50 bg-card
+          shadow-sm transition-all duration-300
+          hover:border-border/70 hover:shadow-md
+          overflow-x-auto
+        `}
+      >
+        <div
+          className="pointer-events-none sticky inset-x-0 top-0 z-[12] h-[2px] bg-gradient-to-r from-transparent via-primary/30 to-transparent"
+          aria-hidden
+        />
         <Table
           id="table-container"
-          className="w-full"
-          style={{ tableLayout: isTwoColumns ? 'fixed' : 'auto', width: '100%' }}
+          className="relative z-[1] min-w-full"
+          style={{ tableLayout: isTwoColumns ? 'fixed' : 'auto' }}
         >
-          <TableHeader className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border/50">
+          <TableHeader className="sticky top-0 z-10 border-b border-border/40 bg-muted/40">
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow
                 key={headerGroup.id}
-                className="hover:bg-transparent border-b border-border/30"
+                className="hover:bg-transparent border-b-0"
               >
                 {expandedRowRender && (
-                  <TableHead className="w-12 sticky left-0 z-20 bg-background/95 backdrop-blur">
+                  <TableHead className="w-12 sticky start-0 z-20 bg-background/95 backdrop-blur">
                     {/* Empty header for expand/collapse column */}
                   </TableHead>
                 )}
-                <TableHead
-                  colSpan={1}
-                  className=" px-0 sticky left-0 z-30 bg-background/95 backdrop-blur"
-                >
-                  <div className="absolute -top-1 left-0">
-                    <CustomizeColumnsModal
-                      table={table}
-                      tableName={tableName}
-                      defaultColumns={defaultColumnsConfig}
-                      columnTranslations={columnTranslations}
-                    />
-                  </div>
-                </TableHead>
                 {headerGroup.headers.map((header) => {
                   const isActionsColumn = header.id === 'actions';
-                  // For 2 columns, distribute 50% each (excluding actions column)
-                  const columnWidth =
-                    isTwoColumns && !isActionsColumn ? '50%' : isActionsColumn ? 'auto' : undefined;
+                  const columnWidth = twoDataPlusActionsWidths(isActionsColumn) ?? (isActionsColumn ? 'auto' : undefined);
+                  const meta = header.column.columnDef.meta;
                   return (
                     <TableHead
                       key={header.id}
-                      className="transition-all duration-200 hover:bg-muted/30 first:pl-6 last:pr-6"
+                      className={[
+                        'transition-all duration-200 hover:bg-muted/30 first:ps-3 sm:first:ps-6 last:pe-3 sm:last:pe-6 whitespace-nowrap',
+                        meta?.headerClassName ?? '',
+                      ]
+                        .filter(Boolean)
+                        .join(' ')}
                       style={columnWidth ? { width: columnWidth } : undefined}
                     >
                       {header.isPlaceholder
@@ -201,21 +278,29 @@ export function DataTable<TData, TValue>({
               </TableRow>
             ))}
           </TableHeader>
-          <TableBody className="divide-y divide-border/30">
+          <TableBody className="divide-y divide-border/20 relative">
             {isLoading ? (
               <TableSkeleton
                 columns={table.getAllColumns().length + (expandedRowRender ? 1 : 0)}
                 rows={pagination?.per_page || table.getState().pagination.pageSize || 5}
               />
             ) : !isLoading && table.getRowModel().rows.length === 0 ? (
-              <TableRow>
+              <TableRow className="hover:bg-transparent">
                 <TableCell
-                  colSpan={columns?.length + (expandedRowRender ? 1 : 0) + 1}
-                  className="h-32 text-center"
+                  colSpan={columns?.length + (expandedRowRender ? 1 : 0)}
+                  className="h-48 text-center"
                 >
-                  <div className="flex flex-col items-center justify-center py-8">
-                    <div className="text-4xl mb-4 opacity-50">📭</div>
-                    <p className="text-muted-foreground text-lg font-medium">{t('noResults')}</p>
+                  <div className="flex flex-col items-center justify-center py-12 animate-[tableRowSlideUp_0.5s_ease-out]">
+                    <div className="relative mb-6">
+                      <div className="text-6xl animate-[float_3s_ease-in-out_infinite]">📭</div>
+                      <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-12 h-2 bg-muted/50 rounded-full blur-sm animate-pulse" />
+                    </div>
+                    <p className="text-muted-foreground text-lg font-medium mb-2">
+                      {t('noResults')}
+                    </p>
+                    <p className="text-muted-foreground/60 text-sm">
+                      {t('noResultsHelper')}
+                    </p>
                   </div>
                 </TableCell>
               </TableRow>
@@ -227,65 +312,73 @@ export function DataTable<TData, TValue>({
                   <React.Fragment key={row.id}>
                     <TableRow
                       data-state={isSelected && 'selected'}
+                      style={{ '--row-index': rowIndex } as React.CSSProperties}
                       className={`
-                          group cursor-pointer transition-all duration-200
-                          hover:bg-gradient-to-r hover:from-primary/5 hover:via-primary/3 hover:to-transparent
-                          hover:shadow-sm hover:border-l-4 hover:border-l-primary
-                          active:scale-[0.99] active:bg-muted/70
-                          ${isSelected ? 'bg-primary/10 border-l-4 border-l-primary' : ''}
-                          ${rowIndex % 2 === 0 ? 'bg-background' : 'bg-muted/20'}
-                          transition-all duration-300 ease-in-out
+                          group min-h-12 sm:min-h-14 ${rowClickToDetails || onRowClick ? 'cursor-pointer' : 'cursor-default'}
+                          table-modern-row
+                          transition-colors duration-150
+                          hover:bg-primary/5
+                          hover:shadow-[inset_3px_0_0_0_rgb(var(--primary))] rtl:hover:shadow-[inset_-3px_0_0_0_rgb(var(--primary))]
+                          active:bg-muted/50
+                          ${isSelected ? 'bg-primary/8 shadow-[inset_3px_0_0_0_rgb(var(--primary))] rtl:shadow-[inset_-3px_0_0_0_rgb(var(--primary))]' : ''}
+                          ${rowIndex % 2 === 0 ? 'bg-card' : 'bg-muted/20'}
                         `}
                     >
                       {expandedRowRender && (
-                        <TableCell className="w-12 sticky left-0 z-10 bg-background/95 backdrop-blur">
+                        <TableCell className="w-12 sticky start-0 z-10 bg-background/95 backdrop-blur">
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               toggleRowExpansion(row.id);
                             }}
-                            className="p-2 rounded-lg transition-all duration-200 hover:bg-primary/20 hover:scale-110 active:scale-95 group-hover:text-primary"
+                            className="p-2.5 rounded-xl transition-all duration-300 hover:bg-primary/20 hover:scale-110 hover:rotate-90 active:scale-90 group-hover:text-primary bg-muted/30 hover:shadow-lg hover:shadow-primary/20"
                           >
                             <Iconify
                               icon={
                                 isExpanded ? 'eva:arrow-downward-fill' : 'eva:arrow-forward-fill'
                               }
                               width={18}
-                              className="transition-transform duration-300"
+                              className={`transition-transform duration-300 ${isExpanded ? 'rotate-0' : ''}`}
                             />
                           </button>
                         </TableCell>
                       )}
-                      <TableHead
-                        colSpan={1}
-                        className="w-fit px-0 sticky left-0 z-10 bg-background/95 backdrop-blur"
-                      />
                       {row.getVisibleCells().map((cell) => {
                         const isActionsColumn = cell.column.id === 'actions';
-                        // For 2 columns, distribute 50% each (excluding actions column)
                         const columnWidth =
-                          isTwoColumns && !isActionsColumn
-                            ? '50%'
-                            : isActionsColumn
-                              ? 'auto'
-                              : undefined;
+                          twoDataPlusActionsWidths(isActionsColumn) ?? (isActionsColumn ? 'auto' : undefined);
+                        const meta = cell.column.columnDef.meta;
                         return (
                           <TableCell
                             key={cell.id}
                             onClick={(e) => {
-                              if (!isActionsColumn) {
+                              if (isActionsColumn) return;
+                              if (onRowClick) {
+                                onRowClick(row.original as TData);
+                                return;
+                              }
+                              if (rowClickToDetails) {
                                 const id = (row.original as ICategory)?.id;
-                                if (hasDetails && id) {
+                                if (hasDetails && id && detailsLink) {
                                   navigate(`${detailsLink}/${id}`);
                                 }
                               }
                             }}
-                            className={`
-                                transition-all duration-200 first:pl-6 last:pr-6
-                                ${isActionsColumn ? 'sticky right-0 z-10 bg-background/95 backdrop-blur' : ''}
-                                group-hover:text-foreground
-                              `}
-                            style={columnWidth ? { width: columnWidth } : undefined}
+                            style={
+                              {
+                                '--cell-index': cell.column.getIndex(),
+                                ...(columnWidth ? { width: columnWidth } : {}),
+                              } as React.CSSProperties
+                            }
+                            className={[
+                              'transition-all duration-200 first:ps-3 sm:first:ps-6 last:pe-3 sm:last:pe-6 table-cell-animated group-hover:text-foreground',
+                              isActionsColumn
+                                ? 'sticky end-0 z-10 bg-background/95 shadow-[-12px_0_24px_-8px_rgb(var(--background))] backdrop-blur-sm'
+                                : '',
+                              meta?.cellClassName ?? '',
+                            ]
+                              .filter(Boolean)
+                              .join(' ')}
                           >
                             {isActionsColumn ? (
                               <div
@@ -304,9 +397,9 @@ export function DataTable<TData, TValue>({
                       })}
                     </TableRow>
                     {expandedRowRender && isExpanded && (
-                      <TableRow className="bg-gradient-to-r from-muted/50 via-muted/30 to-transparent transition-all duration-300 ease-in-out">
+                      <TableRow className="bg-linear-to-r from-primary/5 via-muted/30 to-transparent table-expanded-content">
                         <TableCell colSpan={table.getAllColumns().length + 1} className="p-6">
-                          <div className="border-l-4 border-l-primary pl-4">
+                          <div className="border-s-4 border-s-primary ps-6 py-2 bg-linear-to-r from-muted/30 to-transparent rounded-r-lg animate-[tableRowFadeIn_0.4s_ease-out]">
                             {expandedRowRender(row.original)}
                           </div>
                         </TableCell>
@@ -330,6 +423,7 @@ export function DataTable<TData, TValue>({
           pageSize={pageSize}
           onPageChange={onPageChange}
           onPageSizeChange={onPageSizeChange}
+          pageSizeOptions={pageSizeOptions}
         />
       </div>
     </div>

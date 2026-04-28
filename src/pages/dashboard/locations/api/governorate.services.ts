@@ -9,8 +9,12 @@ import { apiRoutes, axiosInstance } from '@/api';
 export type { GovernorateCreateUpdatePayload };
 
 export const _GovernorateApi = {
-  getListGovernorates: async (): Promise<GovernorateListResponse> => {
-    const response = await axiosInstance.get<GovernorateListResponse>(apiRoutes.governorate.list);
+  getListGovernorates: async (
+    params?: { page?: number; per_page?: number; search?: string }
+  ): Promise<GovernorateListResponse> => {
+    const response = await axiosInstance.get<GovernorateListResponse>(apiRoutes.governorate.list, {
+      params,
+    });
     return response.data;
   },
   createGovernorate: async (data: GovernorateCreateUpdatePayload): Promise<any> => {
@@ -29,12 +33,7 @@ export const _GovernorateApi = {
     return response.data;
   },
   getGovernorateById: async (id: number | string): Promise<GovernorateData> => {
-    const response = await axiosInstance.get<GovernorateListResponse>(apiRoutes.governorate.list);
-    // Find the governorate by ID from the list
-    const governorate = response.data.data.items.find((item) => item.id === Number(id));
-    if (!governorate) {
-      throw new Error('Governorate not found');
-    }
-    return governorate;
+    const response = await axiosInstance.get(apiRoutes.governorate.details(id));
+    return response.data?.data ?? response.data;
   },
 };

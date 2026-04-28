@@ -2,6 +2,7 @@ import type { UseFormReturn } from 'react-hook-form';
 import type { ReactNode, BaseSyntheticEvent } from 'react';
 
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Iconify } from '@/shared/components/iconify';
 
 import { Box, Button, Typography } from 'src/shared/ui';
@@ -31,11 +32,15 @@ export interface StepperFormLayoutProps<T extends Record<string, any>> {
   isEditMode?: boolean;
   isLoading?: boolean;
   loadingText?: string;
-  maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl';
+  maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | 'full';
 
   // Stepper configuration
   steps: StepperStep[];
   defaultStep?: number;
+  /** When moving to the next step, validate these react-hook-form paths first (same order as `steps`). */
+  stepValidationFields?: string[][];
+  /** Short hint under the step indicator (e.g. review before submit). */
+  reviewHint?: string;
 
   // Button labels
   submitLabel?: string;
@@ -58,16 +63,19 @@ export function StepperFormLayout<T extends Record<string, any>>({
   icon,
   isEditMode = false,
   isLoading = false,
-  loadingText = 'Loading data...',
+  loadingText,
   maxWidth = '4xl',
   steps,
   defaultStep = 0,
+  stepValidationFields,
+  reviewHint,
   submitLabel,
-  cancelLabel = 'Cancel',
+  cancelLabel,
   submittingLabel,
-  nextLabel = 'Next',
-  backLabel = 'Back',
+  nextLabel,
+  backLabel,
 }: StepperFormLayoutProps<T>) {
+  const { t } = useTranslation('table');
   const [activeStep, setActiveStep] = useState(defaultStep);
 
   const maxWidthClasses = {
@@ -78,20 +86,31 @@ export function StepperFormLayout<T extends Record<string, any>>({
     '2xl': 'max-w-2xl',
     '3xl': 'max-w-3xl',
     '4xl': 'max-w-4xl',
+    full: 'w-full max-w-none',
   };
 
-  const defaultSubmitLabel = isEditMode ? 'Update' : 'Create';
-  const defaultSubmittingLabel = isEditMode ? 'Updating...' : 'Creating...';
+  const isFullWidth = maxWidth === 'full';
+
+  const resolvedLoadingText = loadingText ?? t('loading');
+  const resolvedCancelLabel = cancelLabel ?? t('cancel');
+  const resolvedNextLabel = nextLabel ?? t('next');
+  const resolvedBackLabel = backLabel ?? t('form.backLabel');
+  const defaultSubmitLabel = isEditMode ? t('edit') : t('create');
+  const defaultSubmittingLabel = isEditMode ? t('updating') : t('form.creating');
 
   const isLastStep = activeStep === steps.length - 1;
   const isFirstStep = activeStep === 0;
 
   const handleNext = async () => {
-    // Allow navigation to next step
-    // Final validation will happen on submit
-    if (activeStep < steps.length - 1) {
-      setActiveStep((prev) => prev + 1);
+    if (activeStep >= steps.length - 1) return;
+
+    const fields = stepValidationFields?.[activeStep];
+    if (fields?.length) {
+      const ok = await methods.trigger(fields as any);
+      if (!ok) return;
     }
+
+    setActiveStep((prev) => prev + 1);
   };
 
   const handleBack = () => {
@@ -107,7 +126,13 @@ export function StepperFormLayout<T extends Record<string, any>>({
   };
 
   return (
-    <Box className="relative min-h-screen overflow-hidden bg-background p-6">
+    <Box
+      className={`relative min-h-screen overflow-hidden bg-background ${
+        isFullWidth
+          ? 'px-4 py-6 sm:px-6 sm:py-8 lg:px-10 lg:py-10 xl:px-14'
+          : 'p-4 sm:p-6'
+      }`}
+    >
       {/* Subtle background gradient */}
       <Box className="pointer-events-none fixed inset-0 bg-gradient-to-br from-background via-background to-muted/30" />
 
@@ -123,30 +148,38 @@ export function StepperFormLayout<T extends Record<string, any>>({
             <Box className="p-5 flex items-center gap-3">
               <Box className="w-5 h-5 border-2 border-primary/20 border-t-primary rounded-full animate-spin flex-shrink-0" />
               <Typography variant="body2" className="text-foreground flex-1">
-                {loadingText}
+                {resolvedLoadingText}
               </Typography>
             </Box>
           </Box>
         )}
 
         {/* Header */}
-        <Box className="mb-8">
-          <Box className="rounded-2xl border border-border/60 bg-card/80 backdrop-blur-sm shadow-sm">
-            {/* <Box className="p-6"> */}
-            <Box className="flex items-start justify-between gap-6 flex-wrap">
+        <Box className="mb-6 sm:mb-8">
+          <Box
+            className={`relative rounded-2xl border-2 border-primary/30 bg-gradient-to-br from-primary/[0.08] via-card to-card shadow-md overflow-hidden ${
+              isFullWidth ? 'ring-1 ring-primary/10' : ''
+            }`}
+          >
+            <Box className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary/70 via-primary to-primary/70" />
+            <Box
+              className={`relative flex items-start justify-between gap-4 sm:gap-6 flex-wrap p-4 sm:p-6 ${
+                isFullWidth ? 'md:p-8' : ''
+              }`}
+            >
               <Box className="flex items-start gap-4 flex-1 min-w-0">
                 {/* Icon badge */}
                 <Box className="relative flex-shrink-0">
-                  <Box className="w-14 h-14 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shadow-sm">
-                    {icon ?? (
+                  {icon ?? (
+                    <Box className="flex h-14 w-14 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 shadow-sm">
                       <Iconify
                         icon={isEditMode ? 'solar:pen-bold' : 'solar:add-circle-bold'}
                         className="text-primary"
                         width={28}
                         height={28}
                       />
-                    )}
-                  </Box>
+                    </Box>
+                  )}
                 </Box>
 
                 <Box className="flex-1 min-w-0">
@@ -171,7 +204,7 @@ export function StepperFormLayout<T extends Record<string, any>>({
                             : 'text-emerald-700 dark:text-emerald-300'
                         }`}
                       >
-                        {isEditMode ? 'Edit' : 'Create'}
+                        {isEditMode ? t('edit') : t('create')}
                       </Typography>
                     </Box>
                   </Box>
@@ -183,15 +216,15 @@ export function StepperFormLayout<T extends Record<string, any>>({
               </Box>
 
               <Button
+                type="button"
                 variant="outlined"
                 onClick={onCancel}
-                disabled={isSubmitting}
-                className="border-border hover:bg-muted/50 min-w-[100px] flex-shrink-0"
+                disabled={isSubmitting || isLoading}
+                className="border-border hover:bg-muted/50 w-full min-[420px]:w-auto min-w-0 min-[420px]:min-w-[100px] flex-shrink-0"
               >
-                {cancelLabel}
+                {resolvedCancelLabel}
               </Button>
             </Box>
-            {/* </Box> */}
           </Box>
         </Box>
 
@@ -217,7 +250,7 @@ export function StepperFormLayout<T extends Record<string, any>>({
                   variant="caption"
                   className="text-red-700 dark:text-red-300 font-semibold block mb-1"
                 >
-                  Error
+                  {t('error')}
                 </Typography>
                 <Typography
                   variant="body2"
@@ -231,10 +264,14 @@ export function StepperFormLayout<T extends Record<string, any>>({
         )}
 
         {/* Stepper */}
-        <Box className="mb-8">
-          <Box className="rounded-2xl border border-border/60 bg-card/80 backdrop-blur-sm shadow-sm p-6">
-            {/* Desktop Stepper */}
-            <Box className="hidden md:flex items-center justify-between">
+        <Box className="mb-6 sm:mb-8">
+          <Box
+            className={`rounded-2xl border border-border/60 bg-card/80 backdrop-blur-sm shadow-sm p-4 sm:p-6 ${
+              isFullWidth ? 'ring-1 ring-border/40' : ''
+            }`}
+          >
+            {/* Desktop stepper — from `lg` so tablets avoid a cramped 5-step rail */}
+            <Box className="hidden lg:flex items-center justify-between gap-2 min-w-0">
               {steps.map((step, index) => {
                 const isActive = index === activeStep;
                 const isCompleted = index < activeStep;
@@ -303,7 +340,7 @@ export function StepperFormLayout<T extends Record<string, any>>({
                     {/* Connector Line */}
                     {index < steps.length - 1 && (
                       <Box
-                        className={`flex-1 h-0.5 mx-4 transition-all duration-300 ${
+                        className={`flex-1 min-w-2 max-w-14 h-0.5 mx-1.5 lg:mx-3 transition-all duration-300 shrink ${
                           isCompleted ? 'bg-primary' : 'bg-border'
                         }`}
                       />
@@ -313,11 +350,11 @@ export function StepperFormLayout<T extends Record<string, any>>({
               })}
             </Box>
 
-            {/* Mobile Stepper */}
-            <Box className="md:hidden">
+            {/* Compact stepper for small / medium viewports */}
+            <Box className="lg:hidden">
               <Box className="flex items-center justify-between mb-4">
                 <Typography variant="subtitle2" className="font-semibold text-foreground">
-                  Step {activeStep + 1} of {steps.length}
+                  {t('stepOf', { current: activeStep + 1, total: steps.length })}
                 </Typography>
                 <Typography variant="caption" className="text-muted-foreground">
                   {steps[activeStep].label}
@@ -343,61 +380,81 @@ export function StepperFormLayout<T extends Record<string, any>>({
         </Box>
 
         {/* Form Card */}
-        <Box className="rounded-2xl border border-border/60 bg-card/80 backdrop-blur-sm shadow-sm overflow-hidden">
+        <Box
+          className={`rounded-2xl border border-border/60 bg-card/80 backdrop-blur-sm shadow-sm ${
+            isFullWidth ? 'shadow-xl shadow-primary/[0.04] ring-1 ring-primary/[0.05]' : ''
+          }`}
+        >
           <Form methods={methods} onSubmit={onSubmit}>
             {/* Content */}
-            <Box className="p-6 md:p-8 min-h-[400px]">
+            <Box
+              className={`min-h-[400px] p-4 sm:p-6 md:p-8 ${isFullWidth ? 'lg:p-10 xl:p-12' : ''}`}
+            >
+              {reviewHint && (
+                <Box className="mb-6 flex items-start gap-3 rounded-xl border border-primary/15 bg-primary/5 px-4 py-3">
+                  <Box className="mt-0.5 h-2 w-2 shrink-0 rounded-full bg-primary/70" />
+                  <Typography variant="body2" className="text-muted-foreground leading-relaxed">
+                    {reviewHint}
+                  </Typography>
+                </Box>
+              )}
               <Box className="flex flex-col gap-6">
                 {/* Step Content */}
-                <Box className="animate-in fade-in slide-in-from-right-4 duration-300">
+                <Box
+                  key={activeStep}
+                  className="flex flex-col gap-6 animate-in fade-in slide-in-from-right-4 duration-300"
+                >
                   {steps[activeStep].content}
                 </Box>
               </Box>
             </Box>
 
             {/* Sticky Actions */}
-            <Box className="sticky bottom-0 z-10 border-t border-border/60 bg-card/95 backdrop-blur-md shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] dark:shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.3)]">
-              <Box className="px-6 md:px-8 py-4 flex items-center justify-between gap-4 flex-wrap">
-                <Box className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Box className="h-1.5 w-1.5 rounded-full bg-primary/60" />
+            <Box className="sticky bottom-0 z-10 border-t border-border/60 bg-card/95 backdrop-blur-md rounded-b-2xl shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] dark:shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.3)]">
+              <Box className="px-4 sm:px-6 md:px-8 py-3 sm:py-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+                <Box className="flex items-center gap-2 text-xs text-muted-foreground sm:min-w-0">
+                  <Box className="h-1.5 w-1.5 rounded-full bg-primary/60 shrink-0" />
                   <span>
-                    Step {activeStep + 1} of {steps.length}
+                    {t('stepOf', { current: activeStep + 1, total: steps.length })}
                   </span>
                 </Box>
 
-                <Box className="flex items-center gap-3">
+                <Box className="flex flex-wrap items-center justify-end gap-2 sm:gap-3 w-full sm:w-auto">
                   <Button
+                    type="button"
                     variant="outlined"
                     onClick={onCancel}
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || isLoading}
                     className="min-w-[100px] border-border hover:bg-muted/50 transition-colors"
                   >
-                    {cancelLabel}
+                    {resolvedCancelLabel}
                   </Button>
 
                   {!isFirstStep && (
                     <Button
+                      type="button"
                       variant="outlined"
                       onClick={handleBack}
-                      disabled={isSubmitting}
+                      disabled={isSubmitting || isLoading}
                       className="min-w-[100px] border-border hover:bg-muted/50 transition-colors"
                     >
-                      {backLabel}
+                      {resolvedBackLabel}
                     </Button>
                   )}
 
                   {!isLastStep ? (
                     <Button
-                      onClick={handleNext}
-                      disabled={isSubmitting}
+                      type="button"
+                      onClick={() => void handleNext()}
+                      disabled={isSubmitting || isLoading}
                       className="min-w-[100px] bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm hover:shadow-md transition-all duration-200"
                     >
-                      {nextLabel}
+                      {resolvedNextLabel}
                     </Button>
                   ) : (
                     <Button
                       type="submit"
-                      disabled={isSubmitting}
+                      disabled={isSubmitting || isLoading}
                       className="min-w-[140px] bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm hover:shadow-md transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {isSubmitting ? (

@@ -1,5 +1,5 @@
-import { useState } from 'react';
 import { toast } from 'react-toastify';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { usePermissions } from '@/auth/hooks/use-permissions';
@@ -10,16 +10,22 @@ import { CONFIG } from 'src/global-config';
 
 // ----------------------------------------------------------------------
 
-const metadata = { title: `City | Dashboard - ${CONFIG.appName}` };
-
 export default function Page() {
-  const { t } = useTranslation('table');
+  const { t } = useTranslation(['table', 'nav']);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [search, setSearch] = useState<string>('');
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
+
+  const cityParams: { search?: string } = {};
+  if (search.trim()) cityParams.search = search.trim();
 
   // Fetch cities using the hook
-  const { data: citiesResponse, isLoading, error } = useFetchCities(currentPage, pageSize);
+  const { data: citiesResponse, isLoading, error } = useFetchCities(currentPage, pageSize, cityParams);
   const deleteCityMutation = useDeleteCity(currentPage, pageSize);
 
   // Log error for debugging
@@ -44,11 +50,9 @@ export default function Page() {
     if (deletingId) {
       try {
         await deleteCityMutation.mutateAsync(deletingId);
-        toast.success(t('deleteSuccess') || 'City deleted successfully');
+        toast.success(t('deleteSuccess'));
         setDeletingId(null);
-      } catch (err: any) {
-        toast.error(err?.message || t('deleteError') || 'Failed to delete city');
-      }
+      } catch { return; }
     }
   };
 
@@ -86,10 +90,10 @@ export default function Page() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.citiesIndexDocumentTitle', { appName: CONFIG.appName })}</title>
 
       <DataTable
-        tableName="City"
+        tableName={t('nav:city')}
         columns={cityColumns(
           {
             update: hasPermission('update', 'city'),
@@ -105,7 +109,8 @@ export default function Page() {
         )}
         data={cityData}
         createPath="/locations/city/create"
-        hasDetails={false}
+        hasDetails
+        detailsLink="/locations/city/update"
         permissions={{
           create: hasPermission('create', 'city'),
           update: hasPermission('update', 'city'),
@@ -113,17 +118,18 @@ export default function Page() {
         }}
         isLoading={isLoading}
         columnTranslations={{
-          id: 'ID',
-          name: 'Name',
-          governorate: 'Governorate',
-          created_at: 'Created At',
-          actions: 'Actions',
+          id: t('columns.id'),
+          name: t('columns.name'),
+          governorate: t('columns.governorate'),
+          created_at: t('columns.createdAt'),
+          actions: t('columns.action'),
         }}
         pagination={pagination}
         currentPage={currentPage}
         pageSize={pageSize}
         onPageChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}
+        onSearchChange={setSearch}
       />
     </>
   );

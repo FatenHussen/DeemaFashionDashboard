@@ -2,7 +2,7 @@ import { Button } from '@/shared/ui/button';
 import { useTranslation } from 'react-i18next';
 // data-table-pagination.tsx
 import { type Table } from '@tanstack/react-table';
-import { useLocalizationStore } from '@/store/useLocalizationStore';
+import { useMemo, useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { Select, SelectItem, SelectValue, SelectContent, SelectTrigger } from '@/shared/ui/select';
 
@@ -26,7 +26,7 @@ interface DataTablePaginationProps<TData> {
 
 export function DataTablePagination<TData>({
   table,
-  pageSizeOptions = [25, 50, 75, 100, 500, 1000],
+  pageSizeOptions = [10, 25, 50, 75, 100, 500, 1000],
   isPagePaginateHiddent = false,
   pagination,
   currentPage = 1,
@@ -35,7 +35,6 @@ export function DataTablePagination<TData>({
   onPageSizeChange,
 }: DataTablePaginationProps<TData>) {
   const { t } = useTranslation('table');
-  const { language } = useLocalizationStore();
 
   // Safe access with fallbacks
   const selectedCount = table?.getFilteredSelectedRowModel()?.rows?.length || 0;
@@ -121,6 +120,13 @@ export function DataTablePagination<TData>({
 
   const visiblePages = getVisiblePages();
 
+  /** Ensure Select always has a matching option (e.g. API `per_page` 10 vs default list). */
+  const resolvedPageSizeOptions = useMemo(() => {
+    const next = new Set(pageSizeOptions);
+    next.add(currentPageSize);
+    return [...next].sort((a, b) => a - b);
+  }, [pageSizeOptions, currentPageSize]);
+
   const handlePageChange = (page: number) => {
     if (onPageChange) {
       onPageChange(page + 1); // Convert to 1-based for backend
@@ -153,228 +159,194 @@ export function DataTablePagination<TData>({
     handlePageChange(totalPages - 1);
   };
 
+  const [jumpValue, setJumpValue] = useState<string>('');
+
+  useEffect(() => {
+    setJumpValue('');
+  }, [currentPageIndex]);
+
+  const handleJumpSubmit = () => {
+    const parsed = Number.parseInt(jumpValue, 10);
+    if (!Number.isFinite(parsed)) return;
+    const clamped = Math.min(Math.max(parsed, 1), totalPages);
+    handlePageChange(clamped - 1);
+    setJumpValue('');
+  };
+
+  const jumpToPageInput = totalPages > 1 && (
+    <div className="flex shrink-0 items-center gap-1.5">
+      <span className="whitespace-nowrap text-xs font-medium text-foreground sm:text-sm">
+        {t('goToPage')}
+      </span>
+      <input
+        type="number"
+        min={1}
+        max={totalPages}
+        value={jumpValue}
+        onChange={(e) => setJumpValue(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            handleJumpSubmit();
+          }
+        }}
+        onBlur={() => {
+          if (jumpValue) handleJumpSubmit();
+        }}
+        placeholder={`${currentPageIndex}`}
+        aria-label={t('goToPage')}
+        className="h-8 w-14 rounded-md border border-border bg-background px-2 text-center text-xs font-medium text-foreground outline-none transition-colors focus:border-primary sm:text-sm"
+      />
+    </div>
+  );
+
   // Early return if table is not available
   if (!table && !pagination) {
     return (
       <div className="relative flex flex-col space-y-2 md:space-y-0 md:flex-row items-center justify-between px-2">
         <div className="flex-1 text-sm text-muted-foreground">
-          {language === 'en' ? 'No data available' : 'لا توجد بيانات متاحة'}
+          {t('noData')}
         </div>
       </div>
     );
   }
 
-  return (
-    <div className=" w-full px-2 py-4">
-      {/* Mobile Layout */}
-      <div className="flex flex-col space-y-4 md:hidden">
-        {/* Row Selection Info */}
-        <div className="text-xs text-center text-muted-foreground">
-          {language === 'en' ? (
-            `${selectedCount} of ${totalCount} row(s) selected`
+  const pageButtons = (
+    <>
+      <Button
+        variant="outlined"
+        className="hidden h-8 w-8 shrink-0 p-0 sm:flex"
+        onClick={handleFirstPage}
+        disabled={currentPageIndex <= 1}
+      >
+        <span className="sr-only">{t('goToFirstPage')}</span>
+        <ChevronsLeft className="h-4 w-4" />
+      </Button>
+      <Button
+        variant="outlined"
+        className="h-8 w-8 shrink-0 p-0"
+        onClick={handlePreviousPage}
+        disabled={currentPageIndex <= 1}
+      >
+        <span className="sr-only">{t('goToPreviousPage')}</span>
+        <ChevronLeft className="h-4 w-4" />
+      </Button>
+
+      <div className="flex max-w-[min(100%,280px)] items-center gap-0.5 overflow-x-auto sm:max-w-none">
+        {visiblePages.map((page, index) =>
+          page === '...' ? (
+            <span
+              key={`dots-${index}`}
+              className="flex h-8 w-8 shrink-0 items-center justify-center text-xs font-medium sm:text-sm"
+            >
+              ...
+            </span>
           ) : (
-            <span>
-              تم تحديد {selectedCount} من {totalCount} صفا
+            <button
+              key={page as number}
+              type="button"
+              onClick={() => handlePageChange(page as number)}
+              className={`flex h-8 min-w-8 shrink-0 items-center justify-center rounded-lg px-2 text-xs font-medium sm:min-w-8 sm:text-sm transition-colors duration-150 ${
+                (page as number) === currentPageIndex - 1
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'hover:bg-muted text-foreground/70 hover:text-foreground'
+              }`}
+              disabled={(page as number) === currentPageIndex - 1}
+            >
+              {(page as number) + 1}
+            </button>
+          )
+        )}
+      </div>
+
+      <Button
+        variant="outlined"
+        className="h-8 w-8 shrink-0 p-0"
+        onClick={handleNextPage}
+        disabled={currentPageIndex >= totalPages}
+      >
+        <span className="sr-only">{t('goToNextPage')}</span>
+        <ChevronRight className="h-4 w-4" />
+      </Button>
+      <Button
+        variant="outlined"
+        className="hidden h-8 w-8 shrink-0 p-0 sm:flex"
+        onClick={handleLastPage}
+        disabled={currentPageIndex >= totalPages}
+      >
+        <span className="sr-only">{t('goToLastPage')}</span>
+        <ChevronsRight className="h-4 w-4" />
+      </Button>
+    </>
+  );
+
+  const rowsPerPageSelect = (
+    <Select
+      value={`${currentPageSize}`}
+      onValueChange={(value) => {
+        handlePageSizeChange(Number(value));
+      }}
+    >
+      <SelectTrigger className="h-8 w-[4.25rem] min-w-[4.25rem] shrink-0 border-border text-xs sm:w-[4.5rem] sm:text-sm">
+        <SelectValue placeholder={`${currentPageSize}`} />
+      </SelectTrigger>
+      <SelectContent
+        side="top"
+        className="bg-popover text-popover-foreground shadow-md border border-border"
+      >
+        {resolvedPageSizeOptions.map((pageSizeOption) => (
+          <SelectItem key={pageSizeOption} value={`${pageSizeOption}`}>
+            {pageSizeOption}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+
+  return (
+    <div className="w-full min-w-0 px-3 py-3 border-t border-border/40 bg-muted/20 sm:py-3.5">
+      {/* Narrow: two compact rows */}
+      <div className="flex min-[640px]:hidden flex-col gap-2.5">
+        <div className="flex min-w-0 flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs text-muted-foreground">
+          <span className="min-w-0 truncate">
+            {t('rowsSelected', { selected: selectedCount, total: totalCount })}
+          </span>
+          {!isPagePaginateHiddent && (
+            <span className="shrink-0 font-medium text-foreground/90">
+              {t('pageOf', { current: currentPageIndex, total: totalPages })}
             </span>
           )}
         </div>
-
-        {/* Pagination Controls */}
-        <div className="flex items-center justify-center space-x-1">
-          <Button
-            variant="outlined"
-            className="h-8 w-8 p-0 min-w-[32px]"
-            onClick={handlePreviousPage}
-            disabled={currentPageIndex <= 1}
-          >
-            <span className="sr-only ">{t('goToPreviousPage')}</span>
-            <ChevronLeft className="h-4 w-4 " />
-          </Button>
-
-          <div className="flex space-x-1 overflow-x-auto max-w-[200px]">
-            {visiblePages.map((page, index) =>
-              page === '...' ? (
-                <span
-                  key={`dots-${index}`}
-                  className="h-8 w-8 flex items-center justify-center text-xs font-medium shrink-0"
-                >
-                  ...
-                </span>
-              ) : (
-                <button
-                  key={page as number}
-                  onClick={() => handlePageChange(page as number)}
-                  className={`h-8 min-w-[32px] px-2 flex items-center justify-center rounded-md text-xs font-medium shrink-0
-                    ${
-                      (page as number) === currentPageIndex - 1
-                        ? 'bg-primary text-primary-foreground'
-                        : 'hover:bg-muted'
-                    }`}
-                  disabled={(page as number) === currentPageIndex - 1}
-                >
-                  {(page as number) + 1}
-                </button>
-              )
-            )}
+        <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
+          <div className="flex min-w-0 flex-1 items-center justify-center gap-1 sm:justify-start">
+            {pageButtons}
           </div>
-
-          <Button
-            variant="outlined"
-            className="h-8 w-8 p-0 min-w-[32px]"
-            onClick={handleNextPage}
-            disabled={currentPageIndex >= totalPages}
-          >
-            <span className="sr-only ">{t('goToNextPage')}</span>
-            <ChevronRight className="h-4 w-4 " />
-          </Button>
-        </div>
-
-        {/* Page Info & Rows Per Page */}
-        <div className="flex flex-col items-center space-y-2">
-          {!isPagePaginateHiddent && (
-            <div className="text-xs font-medium ">
-              {language === 'en'
-                ? `Page ${currentPageIndex} of ${totalPages}`
-                : `الصفحة ${currentPageIndex} من ${totalPages}`}
-            </div>
-          )}
-          <div className="flex items-center space-x-2 ">
-            <p className="text-xs font-medium ">{t('rowsperpage')}</p>
-            <Select
-              value={`${currentPageSize}`}
-              onValueChange={(value) => {
-                handlePageSizeChange(Number(value));
-              }}
-            >
-              <SelectTrigger className="h-8 w-[70px] text-xs border-border">
-                <SelectValue placeholder={currentPageSize} />
-              </SelectTrigger>
-              <SelectContent
-                side="top"
-                className="bg-popover text-popover-foreground shadow-md border border-border"
-              >
-                {pageSizeOptions.map((pageSizeOption) => (
-                  <SelectItem key={pageSizeOption} value={`${pageSizeOption}`}>
-                    {pageSizeOption}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="flex shrink-0 items-center gap-2">
+            <span className="whitespace-nowrap text-xs font-medium text-foreground">
+              {t('rowsperpage')}
+            </span>
+            {rowsPerPageSelect}
           </div>
         </div>
       </div>
 
-      {/* Desktop Layout */}
-      <div className="hidden md:flex flex-col space-y-3 lg:space-y-0 lg:flex-row justify-between items-center ">
-        <div className=" text-sm text-muted-foreground ">
-          {language === 'en' ? (
-            `${selectedCount} of ${totalCount} row(s) selected`
-          ) : (
-            <span>
-              تم تحديد {selectedCount} من {totalCount} صفا
+      {/* Wide: single bar */}
+      <div className="hidden min-[640px]:flex min-w-0 flex-wrap items-center justify-between gap-3">
+        <p className="min-w-0 max-w-[min(100%,220px)] truncate text-sm text-muted-foreground lg:max-w-none">
+          {t('rowsSelected', { selected: selectedCount, total: totalCount })}
+        </p>
+        <div className="flex min-w-0 flex-1 items-center justify-center gap-1">{pageButtons}</div>
+        <div className="flex min-w-0 shrink-0 flex-wrap items-center justify-end gap-x-3 gap-y-1">
+          {!isPagePaginateHiddent && (
+            <span className="whitespace-nowrap text-sm font-medium text-foreground">
+              {t('pageOf', { current: currentPageIndex, total: totalPages })}
             </span>
           )}
-        </div>
-
-        <div className="flex items-center justify-center space-x-2">
-          <Button
-            variant="outlined"
-            className="hidden h-8 w-8 p-0 lg:flex"
-            onClick={handleFirstPage}
-            disabled={currentPageIndex <= 1}
-          >
-            <span className="sr-only ">{t('goToFirstPage')}</span>
-            <ChevronsLeft className="h-4 w-4 " />
-          </Button>
-          <Button
-            variant="outlined"
-            className="h-8 w-8 p-0"
-            onClick={handlePreviousPage}
-            disabled={currentPageIndex <= 1}
-          >
-            <span className="sr-only ">{t('goToPreviousPage')}</span>
-            <ChevronLeft className="h-4 w-4 " />
-          </Button>
-
-          <div className="flex space-x-1 ">
-            {visiblePages.map((page, index) =>
-              page === '...' ? (
-                <span
-                  key={`dots-${index}`}
-                  className="h-8 w-8 flex items-center justify-center text-sm font-medium"
-                >
-                  ...
-                </span>
-              ) : (
-                <button
-                  key={page as number}
-                  onClick={() => handlePageChange(page as number)}
-                  className={`h-8 w-8 flex items-center justify-center  rounded-md text-sm font-medium 
-                    ${
-                      (page as number) === currentPageIndex - 1
-                        ? 'bg-primary text-white '
-                        : 'hover:bg-muted'
-                    }`}
-                  disabled={(page as number) === currentPageIndex - 1}
-                >
-                  {(page as number) + 1}
-                </button>
-              )
-            )}
+          {!isPagePaginateHiddent && jumpToPageInput}
+          <div className="flex items-center gap-2">
+            <span className="whitespace-nowrap text-sm font-medium">{t('rowsperpage')}</span>
+            {rowsPerPageSelect}
           </div>
-
-          <Button
-            variant="outlined"
-            className="h-8 w-8 p-0"
-            onClick={handleNextPage}
-            disabled={currentPageIndex >= totalPages}
-          >
-            <span className="sr-only ">{t('goToNextPage')}</span>
-            <ChevronRight className="h-4 w-4 " />
-          </Button>
-          <Button
-            variant="outlined"
-            className="hidden h-8 w-8 p-0 lg:flex"
-            onClick={handleLastPage}
-            disabled={currentPageIndex >= totalPages}
-          >
-            <span className="sr-only ">{t('goToLastPage')}</span>
-            <ChevronsRight className="h-4 w-4 " />
-          </Button>
-        </div>
-
-        <div className="flex flex-row items-center space-x-4 lg:space-x-6">
-          <div className="flex items-center space-x-2 ">
-            <p className="text-sm font-medium ">{t('rowsperpage')}</p>
-            <Select
-              value={`${currentPageSize}`}
-              onValueChange={(value) => {
-                handlePageSizeChange(Number(value));
-              }}
-            >
-              <SelectTrigger className="h-8 w-[70px] border-border">
-                <SelectValue placeholder={currentPageSize} />
-              </SelectTrigger>
-              <SelectContent
-                side="top"
-                className="bg-popover text-popover-foreground shadow-md border border-border"
-              >
-                {pageSizeOptions.map((pageSizeOption) => (
-                  <SelectItem key={pageSizeOption} value={`${pageSizeOption}`}>
-                    {pageSizeOption}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {!isPagePaginateHiddent && (
-            <div className="hidden sm:flex w-[100px] items-center justify-center text-sm font-medium ">
-              {language === 'en'
-                ? `Page ${currentPageIndex} of ${totalPages}`
-                : `الصفحة ${currentPageIndex} من ${totalPages}`}
-            </div>
-          )}
         </div>
       </div>
     </div>

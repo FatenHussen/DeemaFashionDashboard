@@ -20,6 +20,7 @@ export function NavList({
   slotProps,
   checkPermissions,
   checkPermission,
+  checkPermissionAny,
   enabledRootRedirect,
 }: NavListProps) {
   const [isRtl, setIsRtl] = useState(false);
@@ -56,6 +57,16 @@ export function NavList({
     }
   }, [data.children, onOpen]);
 
+  const handleToggleMenu = useCallback(() => {
+    if (data.children) {
+      if (open) {
+        onClose();
+      } else {
+        onOpen();
+      }
+    }
+  }, [data.children, open, onOpen, onClose]);
+
   const renderNavItem = () => (
     <NavItem
       ref={navItemRef}
@@ -79,6 +90,7 @@ export function NavList({
       // styles
       slotProps={depth === 1 ? slotProps?.rootItem : slotProps?.subItem}
       // actions
+      onClick={handleToggleMenu}
       onMouseEnter={handleOpenMenu}
       onMouseLeave={onClose}
     />
@@ -115,6 +127,7 @@ export function NavList({
             slotProps={slotProps}
             checkPermissions={checkPermissions}
             checkPermission={checkPermission}
+            checkPermissionAny={checkPermissionAny}
             enabledRootRedirect={enabledRootRedirect}
           />
         </NavDropdownPaper>
@@ -127,12 +140,14 @@ export function NavList({
   }
 
   // Hidden item by permission
-  if (data.requiredPermission && checkPermission && !checkPermission(data.requiredPermission)) {
+  if (data.requiredPermissionAny && checkPermissionAny) {
+    if (!checkPermissionAny(data.requiredPermissionAny)) return null;
+  } else if (data.requiredPermission && checkPermission && !checkPermission(data.requiredPermission)) {
     return null;
   }
 
   return (
-    <NavLi disabled={data.disabled}>
+    <NavLi disabled={data.disabled} className="w-full max-w-full">
       {renderNavItem()}
       {renderDropdown()}
     </NavLi>
@@ -149,6 +164,7 @@ function NavSubList({
   slotProps,
   checkPermissions,
   checkPermission,
+  checkPermissionAny,
   enabledRootRedirect,
 }: NavSubListProps) {
   return (
@@ -163,6 +179,7 @@ function NavSubList({
           slotProps={slotProps}
           checkPermissions={checkPermissions}
           checkPermission={checkPermission}
+          checkPermissionAny={checkPermissionAny}
           enabledRootRedirect={enabledRootRedirect}
         />
       ))}

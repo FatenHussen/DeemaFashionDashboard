@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { useForm } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
@@ -21,9 +22,8 @@ import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout
 
 // ----------------------------------------------------------------------
 
-const metadata = { title: `Government ${CONFIG.appName}` };
-
 export default function CreatePage() {
+  const { t } = useTranslation('table');
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
   const isEditMode = !!id;
@@ -77,11 +77,11 @@ export default function CreatePage() {
 
       if (isEditMode && id) {
         await updateGovernorateMutation.mutateAsync({ id, data: payload });
-        toast.success('Governorate updated successfully');
+        toast.success(t('form.governorateUpdatedSuccess'));
         navigate('/locations');
       } else {
         await createGovernorateMutation.mutateAsync(payload);
-        toast.success('Governorate created successfully');
+        toast.success(t('form.governorateCreatedSuccess'));
         navigate('/locations');
       }
     } catch (error: any) {
@@ -94,15 +94,15 @@ export default function CreatePage() {
   };
 
   const infoText = isEditMode
-    ? 'You can update any field. Make sure both Arabic and English names are provided.'
-    : 'Fill in both Arabic and English names to create a new governorate.';
+    ? t('form.governorateEditInfo')
+    : t('form.governorateCreateInfo');
 
   return (
     <>
       <title>
         {isEditMode
-          ? `Edit Government | ${metadata.title}`
-          : `Create Government | ${metadata.title}`}
+          ? t('form.governorateEditDocumentTitle', { appName: CONFIG.appName })
+          : t('form.governorateCreateDocumentTitle', { appName: CONFIG.appName })}
       </title>
 
       <CreateFormLayout
@@ -111,49 +111,43 @@ export default function CreatePage() {
         onCancel={handleCancel}
         isSubmitting={isSubmitting}
         errorMessage={errorMessage}
-        title={isEditMode ? 'Edit Governorate' : 'Create New Governorate'}
+        title={isEditMode ? t('form.editGovernorate') : t('form.createGovernorate')}
         description={
-          isEditMode ? 'Update governorate information' : 'Add a new governorate to your system'
+          isEditMode ? t('form.editGovernorateDesc') : t('form.createGovernorateDesc')
         }
         isEditMode={isEditMode}
         isLoading={isLoadingGovernorate}
-        loadingText="Loading governorate data..."
-        maxWidth="3xl"
+        loadingText={t('form.loadingGovernorate')}
         infoText={infoText}
-        submitLabel={isEditMode ? 'Update Governorate' : 'Create Governorate'}
-        submittingLabel={isEditMode ? 'Updating...' : 'Creating...'}
+        submitLabel={isEditMode ? t('form.updateGovernorate') : t('form.createGovernorateSubmit')}
+        submittingLabel={isEditMode ? t('form.updatingGovernorate') : t('form.creatingGovernorate')}
       >
-        {/* Name Field - Arabic */}
-        <Box className="group">
-          <Box className="flex items-center gap-2 mb-2">
-            <Iconify icon="solar:flag-bold" className="text-primary" width={24} height={24} />
+        {/* ── Section: Names ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-primary/[0.06] via-primary/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:flag-bold" className="text-primary" width={15} />
+            </Box>
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Name (Arabic)
+              {t('form.nameEn')} / {t('form.nameAr')}
             </Typography>
           </Box>
-          <RHFTextField
-            name="name.ar"
-            placeholder="e.g., دمشق"
-            helperText="Enter the governorate name in Arabic"
-            className="transition-all duration-200"
-            dir="rtl"
-          />
-        </Box>
-
-        {/* Name Field - English */}
-        <Box className="group">
-          <Box className="flex items-center gap-2 mb-2">
-            <Iconify icon="solar:flag-bold" className="text-primary" width={24} height={24} />
-            <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Name (English)
-            </Typography>
+          <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+            <Box className="group">
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5">
+                <Iconify icon="solar:flag-bold" className="text-primary" width={16} />
+                {t('form.nameEn')}
+              </Typography>
+              <RHFTextField name="name.en" placeholder={t('form.govPlaceholderEn')} helperText={t('form.govNameEnHelper')} />
+            </Box>
+            <Box className="group">
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5">
+                <Iconify icon="solar:flag-bold" className="text-primary" width={16} />
+                {t('form.nameAr')}
+              </Typography>
+              <RHFTextField name="name.ar" placeholder={t('form.govPlaceholderAr')} helperText={t('form.govNameArHelper')} dir="rtl" />
+            </Box>
           </Box>
-          <RHFTextField
-            name="name.en"
-            placeholder="e.g., Damascus"
-            helperText="Enter the governorate name in English"
-            className="transition-all duration-200"
-          />
         </Box>
       </CreateFormLayout>
     </>

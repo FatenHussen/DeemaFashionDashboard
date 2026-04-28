@@ -26,7 +26,8 @@ type BorderStyleProps = {
   className?: string;
 };
 
-type AnimateBorderProps = React.HTMLAttributes<HTMLDivElement> & {
+type AnimateBorderProps = Omit<React.HTMLAttributes<HTMLDivElement>, 'children'> & {
+  children?: React.ReactNode;
   duration?: number;
   className?: string;
   slotProps?: {

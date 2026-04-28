@@ -1,4 +1,5 @@
 import { m } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { mergeClasses } from 'minimal-shared/utils';
 
 import { Typography } from 'src/shared/ui';
@@ -28,6 +29,8 @@ export function RoleBasedGuard({
   currentRole,
   allowedRoles,
 }: RoleBasedGuardProp) {
+  const { t } = useTranslation('common');
+
   if (currentRole && allowedRoles && !allowedRoles.includes(currentRole)) {
     return hasContent ? (
       <MotionContainer
@@ -35,13 +38,13 @@ export function RoleBasedGuard({
       >
         <m.div variants={varBounce('in')}>
           <Typography variant="h3" className="mb-4">
-            Permission denied
+            {t('permissionDenied')}
           </Typography>
         </m.div>
 
         <m.div variants={varBounce('in')}>
           <Typography color="secondary">
-            You do not have permission to access this page.
+            {t('noPageAccess')}
           </Typography>
         </m.div>
 

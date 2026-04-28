@@ -1,3 +1,5 @@
+import type { CSSProperties } from 'react';
+
 import { mergeClasses } from 'minimal-shared/utils';
 
 export interface BadgeProps {
@@ -9,16 +11,18 @@ export interface BadgeProps {
   invisible?: boolean;
   className?: string;
   badgeClassName?: string;
+  /** Applied to the outer wrapper (e.g. custom label colors). */
+  style?: CSSProperties;
 }
 
 const colorClasses = {
-  default: 'bg-gray-500 text-white',
-  primary: 'bg-blue-600 text-white',
-  secondary: 'bg-gray-600 text-white',
-  error: 'bg-red-600 text-white',
-  warning: 'bg-yellow-600 text-white',
-  info: 'bg-blue-500 text-white',
-  success: 'bg-green-600 text-white',
+  default: 'bg-foreground/70 text-white',
+  primary: 'bg-primary text-primary-foreground',
+  secondary: 'bg-[#8E33FF] text-white',
+  error: 'bg-red-500 text-white',
+  warning: 'bg-amber-500 text-white',
+  info: 'bg-sky-500 text-white',
+  success: 'bg-emerald-500 text-white',
 };
 
 export function Badge({
@@ -30,6 +34,7 @@ export function Badge({
   invisible = false,
   className,
   badgeClassName,
+  style,
 }: BadgeProps) {
   const displayContent =
     variant === 'dot'
@@ -41,7 +46,7 @@ export function Badge({
   if (invisible && !badgeContent) return <>{children}</>;
 
   return (
-    <span className={mergeClasses(['relative inline-flex', className])}>
+    <span className={mergeClasses(['relative inline-flex', className])} style={style}>
       {children}
       <span
         className={mergeClasses([

@@ -3,10 +3,16 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { _AdminApi, type AdminCreateUpdatePayload } from '../api/admin.services';
 
-export const useFetchAdmins = (page: number = 1, limit: number = 25) =>
+export const useFetchAdmins = (
+  page: number = 1,
+  limit: number = 25,
+  params?: {
+    search?: string;
+  }
+) =>
   useQuery({
-    queryKey: queryKeys.admin.list({ page, limit }),
-    queryFn: () => _AdminApi.getListAdmin(),
+    queryKey: queryKeys.admin.list({ page, limit, ...params }),
+    queryFn: () => _AdminApi.getListAdmin({ page, per_page: limit, ...params }),
   });
 
 export const useFetchAdminById = (id: number | string) =>
@@ -22,7 +28,7 @@ export const useCreateAdmin = () => {
   return useMutation({
     mutationFn: (data: AdminCreateUpdatePayload) => _AdminApi.createAdmin(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.admin.list() });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'list'] });
     },
   });
 };
@@ -33,8 +39,9 @@ export const useUpdateAdmin = () => {
   return useMutation({
     mutationFn: ({ id, data }: { id: number | string; data: AdminCreateUpdatePayload }) =>
       _AdminApi.updateAdmin(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.admin.list() });
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'list'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.details(variables.id) });
     },
   });
 };
@@ -45,7 +52,7 @@ export const useDeleteAdmin = () => {
   return useMutation({
     mutationFn: (id: number | string) => _AdminApi.deleteAdmin(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.admin.list() });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'list'] });
     },
   });
 };

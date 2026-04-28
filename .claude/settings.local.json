@@ -1,0 +1,30 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc:*)",
+      "Bash(npm install:*)",
+      "Bash(xargs grep -l \"useTranslation\\\\|i18n\")",
+      "Bash(grep -l \"SimpleSelect\\\\|RHFSelect\\\\|<select\" /Users/mhmd/Desktop/tikmool/tikmool-admin-dashboard/src/pages/dashboard/**/view/**/Create.tsx)",
+      "Bash(find /Users/mhmd/Desktop/tikmool/tikmool-admin-dashboard/src -name \"*.tsx\" -exec grep -l \"title.*isEditMode\" {})",
+      "Bash(grep -E \"\\\\.\\(ts|tsx|json\\)$\")",
+      "Bash(find /Users/mhmd/Desktop/tikmool/tikmool-admin-dashboard -name i18n* -type f)",
+      "Bash(wc -l /Users/mhmd/Desktop/tikmool/tikmool-admin-dashboard/src/locales/*/table.json)",
+      "Bash(wc -l /Users/mhmd/Desktop/tikmool/tikmool-admin-dashboard/src/locales/*/nav.json)",
+      "Bash(npm run:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(python3 -c \":*)",
+      "Bash(python3:*)",
+      "Bash(grep -l tableName=\"\" /Users/mhmd/Desktop/tikmool/tikmool-admin-dashboard/src/pages/dashboard/*/view/Index.tsx)",
+      "Bash(grep -h tableName=\"\" /Users/mhmd/Desktop/tikmool/tikmool-admin-dashboard/src/pages/dashboard/*/view/Index.tsx)",
+      "Bash(grep -r badges: /Users/mhmd/Desktop/tikmool/tikmool-admin-dashboard/src/pages/dashboard/*/validation/*.validation.ts)",
+      "Bash(xargs ls:*)",
+      "Bash(find /Users/mhmd/Desktop/tikmool/tikmool-admin-dashboard/src/pages/dashboard/schedules -type f -name *.tsx -o -name *.ts)",
+      "Bash(grep -A 10 \"path: ''orders''\" /Users/mhmd/Desktop/tikmool/tikmool-admin-dashboard/src/routes/sections/dashboard.tsx)",
+      "Bash(grep -v \":0$\")",
+      "Bash(ls -la /Users/mhmd/Desktop/tikmool/tikmool-admin-dashboard/public/favicon* /Users/mhmd/Desktop/tikmool/tikmool-admin-dashboard/public/logo/)",
+      "Bash(node -e 'const en=require\\(\"./src/locales/en.json\"\\); const form=en.table.form||{}; const keys=Object.keys\\(form\\).filter\\(k=>k.startsWith\\(\"productDetails\"\\)\\); console.log\\(\"count:\",keys.length\\); console.log\\(keys.slice\\(0,20\\)\\);')",
+      "Bash(node -e ' *)"
+    ]
+  }
+}

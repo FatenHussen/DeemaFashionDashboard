@@ -14,7 +14,7 @@ export function NavToggleButton({ isNavMini, className, ...other }: NavToggleBut
   return (
     <button
       type="button"
-      className={`p-0.5 absolute text-foreground bg-background transform -translate-x-1/2 -translate-y-1/2 z-[var(--layout-nav-zIndex)] border border-border rounded-lg hover:text-foreground hover:bg-muted transition-all ${className || ''}`}
+      className={`p-1.5 absolute text-muted-foreground bg-card transform -translate-x-1/2 -translate-y-1/2 z-[calc(var(--layout-nav-zIndex)+1)] pointer-events-auto border border-border/50 rounded-xl hover:text-primary hover:border-primary/45 hover:bg-primary/10 hover:shadow-[0_0_0_4px_rgb(var(--primary)_/_0.12)] shadow-md transition-all duration-200 active:scale-90 ${className || ''}`}
       style={{
         top: 'calc(var(--layout-header-desktop-height) / 2)',
         left: leftPosition,

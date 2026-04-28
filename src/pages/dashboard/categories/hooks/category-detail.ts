@@ -6,9 +6,13 @@ import {
   type CategoryDetailCreateUpdatePayload,
 } from '../api/category-detail.services';
 
-export const useFetchCategoryDetails = (page: number = 1, limit: number = 25) => useQuery({
-    queryKey: queryKeys.categoryDetail.list({ page, limit }),
-    queryFn: () => _CategoryDetailApi.getListCategoryDetails(page, limit),
+export const useFetchCategoryDetails = (
+  page: number = 1,
+  limit: number = 25,
+  params?: { search?: string }
+) => useQuery({
+    queryKey: queryKeys.categoryDetail.list({ page, limit, ...params }),
+    queryFn: () => _CategoryDetailApi.getListCategoryDetails(page, limit, params),
   });
 
 export const useFetchCategoryDetailById = (id: number | string) => useQuery({

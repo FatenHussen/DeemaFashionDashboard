@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
+import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
+import { compressImage } from '@/utils/compress-image';
 import {
   LanguageSchema,
   type LanguageSchemaType,
@@ -14,17 +16,16 @@ import {
   useFetchLanguageById,
 } from '@/pages/dashboard/languages/hooks/language';
 
+import { Box, Input, Checkbox, Typography } from 'src/shared/ui';
 import { CONFIG, CONFIG as GLOBAL_CONFIG } from 'src/global-config';
-import { Box, Checkbox, Typography, Input } from 'src/shared/ui';
+import { RHFSelect } from 'src/shared/components/hook-form/rhf-select';
 import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
 import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
-import { RHFSelect } from 'src/shared/components/hook-form/rhf-select';
 
 // ----------------------------------------------------------------------
 
-const metadata = { title: `Language ${CONFIG.appName}` };
-
 export default function CreatePage() {
+  const { t } = useTranslation('table');
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
   const isEditMode = !!id;
@@ -90,16 +91,17 @@ export default function CreatePage() {
         direction: data.direction,
         is_active: data.is_active,
         is_default: data.is_default,
-        flag_icon: data.flag_icon instanceof File ? data.flag_icon : undefined,
+        flag_icon:
+          data.flag_icon instanceof File ? await compressImage(data.flag_icon) : undefined,
       };
 
       if (isEditMode && id) {
         await updateLanguageMutation.mutateAsync({ id, data: payload });
-        toast.success('Language updated successfully');
+        toast.success(t('form.languageUpdatedSuccess'));
         navigate('/languages');
       } else {
         await createLanguageMutation.mutateAsync(payload);
-        toast.success('Language created successfully');
+        toast.success(t('form.languageCreatedSuccess'));
         navigate('/languages');
       }
     } catch (error: any) {
@@ -112,13 +114,15 @@ export default function CreatePage() {
   };
 
   const infoText = isEditMode
-    ? 'You can update any field. Leave flag icon unchanged or upload a new one.'
-    : 'Fill in all required fields to create a new language. The language code should follow ISO 639-1 standard (e.g., en, ar, fr).';
+    ? t('form.languageFormInfoEdit')
+    : t('form.languageFormInfoCreate');
 
   return (
     <>
       <title>
-        {isEditMode ? `Edit Language | ${metadata.title}` : `Create Language | ${metadata.title}`}
+        {isEditMode
+          ? t('form.languageEditDocumentTitle', { appName: CONFIG.appName })
+          : t('form.languageCreateDocumentTitle', { appName: CONFIG.appName })}
       </title>
 
       <CreateFormLayout
@@ -127,19 +131,19 @@ export default function CreatePage() {
         onCancel={handleCancel}
         isSubmitting={isSubmitting}
         errorMessage={errorMessage}
-        title={isEditMode ? 'Edit Language' : 'Create New Language'}
+        title={isEditMode ? t('form.languageFormTitleEdit') : t('form.languageFormTitleCreate')}
         description={
           isEditMode
-            ? 'Update language information and settings'
-            : 'Add a new language to your system'
+            ? t('form.languageFormDescEdit')
+            : t('form.languageFormDescCreate')
         }
         isEditMode={isEditMode}
         isLoading={isLoadingLanguage}
-        loadingText="Loading language data..."
+        loadingText={t('form.loadingLanguage')}
         maxWidth="4xl"
         infoText={infoText}
-        submitLabel={isEditMode ? 'Update Language' : 'Create Language'}
-        submittingLabel={isEditMode ? 'Updating...' : 'Creating...'}
+        submitLabel={isEditMode ? t('form.languageSubmitUpdate') : t('form.languageSubmitCreate')}
+        submittingLabel={isEditMode ? t('form.languageSubmittingUpdate') : t('form.languageSubmittingCreate')}
       >
         {/* Language Code */}
         <Box className="group">
@@ -151,13 +155,13 @@ export default function CreatePage() {
               height={24}
             />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Language Code
+              {t('columns.code')}
             </Typography>
           </Box>
           <RHFTextField
             name="code"
-            placeholder="e.g., en, ar, fr"
-            helperText="Enter the language code (ISO 639-1 standard)"
+            placeholder={t('form.codePlaceholder')}
+            helperText={t('form.languageCodeHelper')}
             className="transition-all duration-200"
           />
         </Box>
@@ -172,13 +176,13 @@ export default function CreatePage() {
               height={24}
             />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Native Name
+              {t('columns.nativeName')}
             </Typography>
           </Box>
           <RHFTextField
             name="native_name"
-            placeholder="e.g., English, العربية, Français"
-            helperText="Enter the language name in its native script"
+            placeholder={t('form.nativeNamePlaceholder')}
+            helperText={t('form.languageNativeNameHelper')}
             className="transition-all duration-200"
           />
         </Box>
@@ -193,16 +197,16 @@ export default function CreatePage() {
               height={24}
             />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Text Direction
+              {t('form.directionLabel')}
             </Typography>
           </Box>
           <RHFSelect
             name="direction"
             options={[
-              { value: 'ltr', label: 'Left to Right (LTR)' },
-              { value: 'rtl', label: 'Right to Left (RTL)' },
+              { value: 'ltr', label: t('form.ltr') },
+              { value: 'rtl', label: t('form.rtl') },
             ]}
-            helperText="Select the text direction for this language"
+            helperText={t('form.languageDirectionHelper')}
             className="transition-all duration-200"
           />
         </Box>
@@ -217,7 +221,7 @@ export default function CreatePage() {
               height={24}
             />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Flag Icon
+              {t('columns.flag')}
             </Typography>
           </Box>
           <Controller
@@ -234,7 +238,7 @@ export default function CreatePage() {
                     onChange(file || null);
                   }}
                   error={!!error}
-                  helperText={error?.message || 'Upload a flag icon image (PNG, JPG, SVG)'}
+                  helperText={error?.message || t('flagUploadHelper')}
                   fullWidth
                   className="transition-all duration-200"
                 />
@@ -242,7 +246,7 @@ export default function CreatePage() {
                   <Box className="mt-4">
                     <img
                       src={previewImage}
-                      alt="Flag preview"
+                      alt={t('form.languageFlagPreviewAlt')}
                       className="w-24 h-24 object-cover rounded-lg border border-border/60"
                     />
                   </Box>
@@ -262,7 +266,7 @@ export default function CreatePage() {
               height={24}
             />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Active Status
+              {t('form.languageSectionActiveStatus')}
             </Typography>
           </Box>
           <Controller
@@ -272,7 +276,7 @@ export default function CreatePage() {
               <Checkbox
                 checked={field.value}
                 onChange={(e) => field.onChange(e.target.checked)}
-                label="Mark language as active"
+                label={t('form.markLanguageActive')}
               />
             )}
           />
@@ -288,7 +292,7 @@ export default function CreatePage() {
               height={24}
             />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              Default Language
+              {t('form.languageSectionDefaultLanguage')}
             </Typography>
           </Box>
           <Controller
@@ -298,7 +302,7 @@ export default function CreatePage() {
               <Checkbox
                 checked={field.value}
                 onChange={(e) => field.onChange(e.target.checked)}
-                label="Set as default language"
+                label={t('form.setAsDefaultLanguage')}
               />
             )}
           />

@@ -1,5 +1,5 @@
-import { useState } from 'react';
 import { toast } from 'react-toastify';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { usePermissions } from '@/auth/hooks/use-permissions';
@@ -10,15 +10,21 @@ import { CONFIG } from 'src/global-config';
 
 // ----------------------------------------------------------------------
 
-const metadata = { title: `Languages | Dashboard - ${CONFIG.appName}` };
-
 export default function Page() {
   const { t } = useTranslation('table');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [search, setSearch] = useState<string>('');
 
-  const { data: languagesResponse, isLoading, error } = useFetchLanguages({ page: currentPage, limit: pageSize });
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
+
+  const languageParams: Parameters<typeof useFetchLanguages>[0] = { page: currentPage, limit: pageSize };
+  if (search.trim()) languageParams.search = search.trim();
+
+  const { data: languagesResponse, isLoading, error } = useFetchLanguages(languageParams);
   const deleteLanguageMutation = useDeleteLanguage();
 
   if (error) {
@@ -42,11 +48,9 @@ export default function Page() {
     if (deletingId) {
       try {
         await deleteLanguageMutation.mutateAsync(deletingId);
-        toast.success(t('deleteSuccess') || 'Language deleted successfully');
+        toast.success(t('deleteSuccess'));
         setDeletingId(null);
-      } catch (err: any) {
-        toast.error(err?.message || t('deleteError') || 'Failed to delete language');
-      }
+      } catch { return; }
     }
   };
 
@@ -80,10 +84,10 @@ export default function Page() {
 
   return (
     <>
-      <title>{metadata.title}</title>
+      <title>{t('form.languagesIndexDocumentTitle', { appName: CONFIG.appName })}</title>
 
       <DataTable
-        tableName="Language"
+        tableName={t("tableNames.language")}
         columns={languageColumns(
           {
             update: hasPermission('update', 'language'),
@@ -99,7 +103,8 @@ export default function Page() {
         )}
         data={languageData}
         createPath="/languages/create"
-        hasDetails={false}
+        hasDetails
+        detailsLink="/languages/update"
         permissions={{
           create: hasPermission('create', 'language'),
           update: hasPermission('update', 'language'),
@@ -107,21 +112,22 @@ export default function Page() {
         }}
         isLoading={isLoading}
         columnTranslations={{
-          id: 'ID',
-          flag_icon: 'Flag',
-          code: 'Code',
-          native_name: 'Native Name',
-          direction: 'Direction',
-          order: 'Order',
-          is_default: 'Default',
-          status: 'Status',
-          actions: 'Actions',
+          id: t('columns.id'),
+          flag_icon: t('columns.flag'),
+          code: t('columns.code'),
+          native_name: t('columns.nativeName'),
+          direction: t('columns.direction'),
+          order: t('columns.orderRef'),
+          is_default: t('columns.default'),
+          status: t('columns.status'),
+          actions: t('columns.action'),
         }}
         pagination={pagination}
         currentPage={currentPage}
         pageSize={pageSize}
         onPageChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}
+        onSearchChange={setSearch}
       />
     </>
   );

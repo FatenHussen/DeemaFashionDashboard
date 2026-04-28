@@ -30,34 +30,59 @@
 *************************************** */
 :root {
   /* Light theme colors - using RGB values for opacity support */
-  --background: 255 255 255;
-  --foreground: 17 24 39;
+  --background: 250 251 252;
+  --foreground: 15 23 42;
   --card: 255 255 255;
-  --card-foreground: 17 24 39;
-  --border: 229 231 235;
-  --input: 229 231 235;
-  --muted: 249 250 251;
-  --muted-foreground: 107 114 128;
-  --primary: 0 167 111;
+  --card-foreground: 15 23 42;
+  --border: 203 213 225;
+  --input: 203 213 225;
+  --muted: 245 247 250;
+  --muted-foreground: 51 65 85;
+  --primary: 194 120 0;
   --primary-foreground: 255 255 255;
   --popover: 255 255 255;
-  --popover-foreground: 17 24 39;
+  --popover-foreground: 15 23 42;
+
+  /* Elevation shadows */
+  --shadow-xs: 0 1px 2px rgba(0,0,0,0.05);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -1px rgba(0,0,0,0.05);
+  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.07), 0 4px 6px -2px rgba(0,0,0,0.04);
+  --shadow-xl: 0 20px 25px -5px rgba(0,0,0,0.07), 0 10px 10px -5px rgba(0,0,0,0.03);
+  --shadow-primary-sm: 0 2px 8px rgba(194,120,0,0.18);
+  --shadow-primary-md: 0 4px 14px rgba(194,120,0,0.22);
+
+  /* Radius */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --radius-2xl: 24px;
 }
 
 .dark {
   /* Dark theme colors - using RGB values for opacity support */
-  --background: 17 24 39;
-  --foreground: 249 250 251;
-  --card: 31 41 55;
-  --card-foreground: 249 250 251;
-  --border: 55 65 81;
-  --input: 55 65 81;
-  --muted: 31 41 55;
-  --muted-foreground: 156 163 175;
-  --primary: 0 167 111;
+  --background: 15 20 30;
+  --foreground: 241 245 249;
+  --card: 22 30 44;
+  --card-foreground: 241 245 249;
+  --border: 71 85 105;
+  --input: 71 85 105;
+  --muted: 22 30 44;
+  --muted-foreground: 203 213 225;
+  --primary: 229 150 30;
   --primary-foreground: 255 255 255;
-  --popover: 31 41 55;
-  --popover-foreground: 249 250 251;
+  --popover: 22 30 44;
+  --popover-foreground: 241 245 249;
+
+  /* Elevation shadows (dark mode) */
+  --shadow-xs: 0 1px 2px rgba(0,0,0,0.25);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.30), 0 1px 2px rgba(0,0,0,0.20);
+  --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.28), 0 2px 4px -1px rgba(0,0,0,0.18);
+  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.30), 0 4px 6px -2px rgba(0,0,0,0.20);
+  --shadow-xl: 0 20px 25px -5px rgba(0,0,0,0.35), 0 10px 10px -5px rgba(0,0,0,0.25);
+  --shadow-primary-sm: 0 2px 8px rgba(194,120,0,0.28);
+  --shadow-primary-md: 0 4px 14px rgba(194,120,0,0.32);
 }
 
 /** **************************************
@@ -113,4 +138,379 @@ input[type='number']::-webkit-outer-spin-button {
 input[type='number']::-webkit-inner-spin-button {
   margin: 0;
   -webkit-appearance: none;
+}
+
+/** **************************************
+* Custom Animations
+*************************************** */
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0px) translateX(0px);
+  }
+  50% {
+    transform: translateY(-20px) translateX(10px);
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes grid {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: 40px 40px;
+  }
+}
+
+@keyframes spin-reverse {
+  from {
+    transform: rotate(360deg);
+  }
+  to {
+    transform: rotate(0deg);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(400%);
+  }
+}
+
+/** **************************************
+* Modern Table Animations
+*************************************** */
+@keyframes tableRowFadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes tableRowSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes tableCellReveal {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes pulseGlow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(var(--primary), 0);
+  }
+  50% {
+    box-shadow: 0 0 20px 2px rgba(var(--primary), 0.15);
+  }
+}
+
+@keyframes borderGlow {
+  0%,
+  100% {
+    border-color: rgba(var(--border), 0.5);
+  }
+  50% {
+    border-color: rgba(var(--primary), 0.5);
+  }
+}
+
+@keyframes gradientShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes rowExpand {
+  from {
+    opacity: 0;
+    max-height: 0;
+    transform: scaleY(0);
+  }
+  to {
+    opacity: 1;
+    max-height: 500px;
+    transform: scaleY(1);
+  }
+}
+
+@keyframes hoverLift {
+  from {
+    transform: translateY(0) scale(0.9);
+    box-shadow: 0 0 0 transparent;
+  }
+  to {
+    transform: translateY(-2px) scale(1);
+    box-shadow: 0 8px 25px -5px rgba(var(--primary), 0.15);
+  }
+}
+
+@keyframes skeletonWave {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes checkboxPop {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/** **************************************
+* Modern Table Styles
+*************************************** */
+
+/* Horizontal scroll region: touch-friendly, thin scrollbars */
+.table-scroll-shell {
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: rgb(var(--border) / 0.7) transparent;
+}
+
+.table-scroll-shell::-webkit-scrollbar {
+  height: 8px;
+}
+
+.table-scroll-shell::-webkit-scrollbar-track {
+  background: rgb(var(--muted) / 0.45);
+  border-radius: 9999px;
+}
+
+.table-scroll-shell::-webkit-scrollbar-thumb {
+  background: linear-gradient(
+    180deg,
+    rgb(var(--primary) / 0.45),
+    rgb(var(--border) / 0.85)
+  );
+  border-radius: 9999px;
+}
+
+.table-scroll-shell::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(
+    180deg,
+    rgb(var(--primary) / 0.65),
+    rgb(var(--border) / 0.9)
+  );
+}
+
+.table-modern {
+  --table-row-animation-delay: 50ms;
+}
+
+.table-modern-row {
+  animation: tableRowSlideUp 0.4s ease-out both;
+  animation-delay: calc(var(--row-index, 0) * var(--table-row-animation-delay, 50ms));
+}
+
+/* .table-modern-row:hover {
+  animation: hoverLift 0.3s ease-out forwards;
+} */
+
+.table-cell-animated {
+  animation: tableCellReveal 0.3s ease-out both;
+  animation-delay: calc(var(--cell-index, 0) * 30ms);
+}
+
+.table-skeleton-animated {
+  background: linear-gradient(
+    90deg,
+    rgba(var(--muted), 0.4) 0%,
+    rgba(var(--muted), 0.8) 50%,
+    rgba(var(--muted), 0.4) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeletonWave 1.5s ease-in-out infinite;
+}
+
+.table-header-glass {
+  backdrop-filter: blur(12px) saturate(180%);
+  background: linear-gradient(
+    135deg,
+    rgba(var(--background), 0.95) 0%,
+    rgba(var(--background), 0.85) 100%
+  );
+}
+
+.table-row-gradient-hover {
+  position: relative;
+  overflow: hidden;
+}
+
+.table-row-gradient-hover::before {
+  content: '';
+  position: absolute;
+  /* inset: 0; */
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(var(--primary), 0.08) 50%,
+    transparent 100%
+  );
+  transform: translateX(-100%);
+  transition: transform 0.5s ease;
+  pointer-events: none;
+}
+
+.table-row-gradient-hover:hover::before {
+  transform: translateX(100%);
+}
+
+.table-border-glow {
+  animation: borderGlow 3s ease-in-out infinite;
+}
+
+.table-expanded-content {
+  animation: rowExpand 0.4s ease-out forwards;
+  transform-origin: top;
+}
+
+.checkbox-animated:checked {
+  animation: checkboxPop 0.3s ease-out;
+}
+
+/** **************************************
+* Professional UI Utility Classes
+*************************************** */
+
+/* Card elevation levels */
+.card-flat {
+  background: rgb(var(--card));
+  border: 1px solid rgb(var(--border) / 0.7);
+  border-radius: var(--radius-lg);
+}
+
+.card-raised {
+  background: rgb(var(--card));
+  border: 1px solid rgb(var(--border) / 0.5);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.card-lifted {
+  background: rgb(var(--card));
+  border: 1px solid rgb(var(--border) / 0.4);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+}
+
+/* Sidebar gradient background */
+.sidebar-gradient {
+  background: linear-gradient(
+    180deg,
+    rgb(var(--card)) 0%,
+    rgb(var(--background) / 0.98) 35%,
+    rgb(var(--background)) 70%,
+    rgb(var(--muted) / 0.25) 100%
+  );
+}
+
+/* Stat card gradient accents */
+.stat-card-primary {
+  background: linear-gradient(135deg, rgb(var(--card)) 0%, rgba(194, 120, 0, 0.05) 100%);
+  border-color: rgba(194, 120, 0, 0.20);
+}
+.stat-card-blue {
+  background: linear-gradient(135deg, rgb(var(--card)) 0%, rgba(59, 130, 246, 0.04) 100%);
+  border-color: rgba(59, 130, 246, 0.15);
+}
+.stat-card-emerald {
+  background: linear-gradient(135deg, rgb(var(--card)) 0%, rgba(16, 185, 129, 0.04) 100%);
+  border-color: rgba(16, 185, 129, 0.15);
+}
+.stat-card-amber {
+  background: linear-gradient(135deg, rgb(var(--card)) 0%, rgba(245, 158, 11, 0.04) 100%);
+  border-color: rgba(245, 158, 11, 0.15);
+}
+.stat-card-violet {
+  background: linear-gradient(135deg, rgb(var(--card)) 0%, rgba(139, 92, 246, 0.04) 100%);
+  border-color: rgba(139, 92, 246, 0.15);
+}
+
+/* Gradient top accent bars */
+.accent-bar-primary::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent 0%, rgb(var(--primary)) 50%, transparent 100%);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+/* Sidebar item active glow */
+.nav-item-active-glow {
+  box-shadow: inset 3px 0 0 rgb(var(--primary)), 4px 0 12px -4px rgba(var(--primary), 0.15);
+}
+
+/* Smooth page transitions */
+.page-enter {
+  animation: pageEnter 0.3s ease-out;
+}
+
+@keyframes pageEnter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Settings: Compact layout (xl and up)
+*************************************** */
+@media (min-width: 1600px) {
+  [data-compact='true'] .table-modern-row {
+    --table-row-padding-y: 0.5rem;
+  }
 }

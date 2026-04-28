@@ -15,7 +15,7 @@ export type SignInParams = {
 export const signInWithPassword = async ({
   email,
   password,
-}: SignInParams): Promise<{ user: any; token: string }> => {
+}: SignInParams): Promise<{ user: any; token: string; responseData: any }> => {
   try {
     const params = { email, password };
 
@@ -44,7 +44,7 @@ export const signInWithPassword = async ({
     // Store user data in sessionStorage for quick access
     sessionStorage.setItem('user_data', JSON.stringify(user));
 
-    return { user, token };
+    return { user, token, responseData };
   } catch (error) {
     console.error('Error during login:', error);
     throw error;

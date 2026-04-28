@@ -32,7 +32,7 @@ export type ConfigValue = {
 // ----------------------------------------------------------------------
 
 export const CONFIG: ConfigValue = {
-  appName: 'Minimal UI',
+  appName: 'tick mart',
   appVersion: packageJson.version,
   serverUrl: import.meta.env.VITE_SERVER_URL ?? '',
   assetsDir: import.meta.env.VITE_ASSETS_DIR ?? '',
@@ -43,7 +43,7 @@ export const CONFIG: ConfigValue = {
   auth: {
     method: 'jwt',
     skip: false,
-    redirectPath: paths.dashboard.root, // This is '/admin'
+    redirectPath: paths.dashboard.profile, // Default app entry: profile overview (`/profile`)
   },
   /**
    * Mapbox

@@ -1,0 +1,149 @@
+import type { TFunction } from 'i18next';
+import type { ColumnDef } from '@tanstack/react-table';
+import type { CouponItem } from '@/pages/dashboard/coupons/types/coupon.types';
+
+import { z } from 'zod';
+import { formatTranslated } from '@/utils/format-translated';
+import { createToggleColumn } from '@/shared/ui/table-data/data-table-toggle-cell';
+import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
+import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
+import { TableActiveBadge, TableTonedStatusPill } from '@/shared/components/table-status-badges';
+
+const CouponSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  code: z.string(),
+  discount: z.object({ type: z.string(), value: z.string() }),
+  start_at: z.string(),
+  end_at: z.string(),
+  max_uses: z.number(),
+  used_count: z.number(),
+  is_active: z.boolean(),
+  is_expired: z.boolean(),
+  is_valid: z.boolean(),
+  created_at: z.string(),
+});
+
+export interface CouponFormValues extends CouponItem {
+  [key: string]: any;
+}
+
+export const couponColumns = (
+  permissions: { update: boolean; delete: boolean },
+  t: TFunction<'table'>,
+  onDelete?: (id: number) => void,
+  isDeleting?: boolean,
+  isDeleteDialogOpen?: boolean,
+  onDeleteConfirm?: () => void,
+  onDeleteCancel?: () => void,
+  deletingId?: number | null,
+  onEdit?: (row: any) => void
+): ColumnDef<CouponFormValues>[] => [
+  {
+    id: 'name',
+    accessorKey: 'name',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.name')} />,
+    cell: ({ row }) => (
+      <div className="font-semibold text-foreground truncate">{formatTranslated(row.original.name)}</div>
+    ),
+  },
+  {
+    id: 'code',
+    accessorKey: 'code',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.code')} />,
+    cell: ({ row }) => (
+      <code className="px-2 py-1 rounded bg-muted text-sm font-mono">{row.original.code}</code>
+    ),
+  },
+  {
+    id: 'discount',
+    accessorKey: 'discount',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.discount')} />,
+    cell: ({ row }) => {
+      const d = row.original.discount;
+      const text =
+        d?.type === 'percentage'
+          ? `${d?.value ?? 0}%`
+          : `Fixed: ${d?.value ?? 0}`;
+      return <span className="text-sm">{text}</span>;
+    },
+  },
+  {
+    id: 'start_at',
+    accessorKey: 'start_at',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.start')} />,
+    cell: ({ row }) => (
+      <span className="text-sm text-muted-foreground">
+        {new Date(row.original.start_at).toLocaleDateString()}
+      </span>
+    ),
+  },
+  {
+    id: 'end_at',
+    accessorKey: 'end_at',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.end')} />,
+    cell: ({ row }) => (
+      <span className="text-sm text-muted-foreground">
+        {new Date(row.original.end_at).toLocaleDateString()}
+      </span>
+    ),
+  },
+  {
+    id: 'used_count',
+    accessorKey: 'used_count',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.used')} />,
+    cell: ({ row }) => (
+      <span className="text-sm">
+        {row.original.used_count} / {row.original.max_uses}
+      </span>
+    ),
+  },
+  {
+    id: 'is_active',
+    accessorKey: 'is_active',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.status')} />,
+    cell: ({ row }) => {
+      const isActive = row.original.is_active;
+      const isExpired = row.original.is_expired;
+      if (isExpired) {
+        return (
+          <TableTonedStatusPill
+            icon="solar:calendar-minimalistic-bold"
+            className="border-slate-600 bg-slate-500"
+          >
+            {t('columns.expired')}
+          </TableTonedStatusPill>
+        );
+      }
+      return (
+        <TableActiveBadge
+          isActive={isActive}
+          activeLabel={t('active')}
+          inactiveLabel={t('inactive')}
+        />
+      );
+    },
+  },
+  ...(permissions.update
+    ? [createToggleColumn<CouponFormValues>({ entityType: 'coupon' })]
+    : []),
+  {
+    id: 'actions',
+    cell: ({ row }: any) => (
+      <DataTableRowActions
+        schema={CouponSchema}
+        row={row}
+        viewDetails={`/coupons/details/${row.original.id}`}
+        editItem={onEdit ? undefined : `/coupons/update/${row.original.id}`}
+        onEdit={onEdit}
+        onDelete={onDelete}
+        isDeleting={isDeleting}
+        isDeleteDialogOpen={isDeleteDialogOpen}
+        onDeleteConfirm={onDeleteConfirm}
+        onDeleteCancel={onDeleteCancel}
+        deletingId={deletingId}
+        permissions={permissions}
+      />
+    ),
+  },
+];

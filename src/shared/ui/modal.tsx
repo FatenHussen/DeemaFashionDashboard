@@ -65,7 +65,7 @@ export function Modal({
 
   const content = (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center p-4"
+      className="fixed inset-0 z-[var(--layout-modal-zIndex)] flex items-start justify-center p-4"
       onClick={!disableBackdropClick && onClose ? onClose : undefined}
     >
       <div

@@ -42,11 +42,7 @@ export function LayoutSection({
         className={mergeClasses([
           layoutClasses.root,
           ' relative min-h-screen',
-          'bg-gradient-to-br from-background via-background to-background',
-          // Subtle grid pattern overlay - only on main content area, not sidebar
-          'after:absolute after:inset-0 after:pointer-events-none after:z-0',
-          'after:bg-[linear-gradient(rgba(0,0,0,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.02)_1px,transparent_1px)]',
-          'after:bg-[size:20px_20px]',
+          'bg-background',
           className,
         ])}
         {...other}
@@ -58,11 +54,11 @@ export function LayoutSection({
               className={mergeClasses([
                 layoutClasses.sidebarContainer,
                 'flex flex-1 flex-col relative z-[1]',
-                // Dynamic margin-left based on sidebar width CSS variables
+                // Dynamic margin-inline-start based on sidebar width CSS variables
                 // Uses --layout-nav-current-width if set, otherwise falls back to vertical width
-                'lg:ml-[var(--layout-nav-current-width,var(--layout-nav-vertical-width))]',
+                'lg:ms-(--layout-nav-current-width,var(--layout-nav-vertical-width))',
                 // Transition for smooth width changes
-                'transition-[margin-left] duration-[var(--layout-transition-duration)] ease-[var(--layout-transition-easing)]',
+                'transition-[margin-inline-start] duration-(--layout-transition-duration) ease-(--layout-transition-easing)',
               ])}
             >
               {headerSection}

@@ -53,6 +53,7 @@ export function NavHorizontal({
           data={data}
           checkPermissions={checkPermissions}
           checkPermission={checkPermission}
+          enabledRootRedirect
           {...other}
         />
       </Box>

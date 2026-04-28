@@ -6,7 +6,8 @@ import { Iconify } from '../../iconify';
 
 // ----------------------------------------------------------------------
 
-type LargeBlockProps = React.ComponentProps<'div'> & {
+type LargeBlockProps = Omit<React.ComponentProps<'div'>, 'children'> & {
+  children?: React.ReactNode;
   title: string;
   tooltip?: string;
   canReset?: boolean;
@@ -64,7 +65,8 @@ export function LargeBlock({
 
 // ----------------------------------------------------------------------
 
-type SmallBlockProps = React.ComponentProps<'div'> & {
+type SmallBlockProps = Omit<React.ComponentProps<'div'>, 'children'> & {
+  children?: React.ReactNode;
   label: string;
   canReset?: boolean;
   onReset?: () => void;
