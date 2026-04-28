@@ -19,6 +19,10 @@ export interface ScheduledBasketItemAlternative {
   price?: number;
   discount?: number | null;
   price_after_discount?: number | null;
+  brand?: string | { name?: string | { ar?: string; en?: string } };
+  product?: {
+    brand?: string | { name?: string | { ar?: string; en?: string } };
+  };
 }
 
 export interface ScheduledBasketItem {
@@ -34,11 +38,13 @@ export interface ScheduledBasketItem {
   is_extra?: boolean;
   min_quantity?: number;
   max_quantity?: number;
+  /** When present, prefer over separate brand fetches */
+  brand?: string | { name?: string | { ar?: string; en?: string } };
   product?: {
     id: number;
     name: string | { ar?: string; en?: string };
     image?: string;
-    brand?: string;
+    brand?: string | { name?: string | { ar?: string; en?: string } };
   };
   variant_image?: string | null;
   variant?: {
@@ -73,6 +79,7 @@ export interface ScheduledBasketData {
   categories?: Array<{ id: number; name: string | { ar?: string; en?: string } }>;
   category?: { id: number; name: string | { ar?: string; en?: string } } | string;
   image?: string;
+  images?: string[];
   num_varieties?: number;
   original_price?: number;
   discount: string | number;
@@ -147,6 +154,7 @@ export interface ScheduledBasketCreateUpdatePayload {
   discount_type: 'fixed' | 'percentage';
   delivery_price?: number;
   image?: File | string | null;
+  images?: File[];
   items: Array<{
     shop_product_variant_id: number;
     shop_product_variant_ids?: number[];

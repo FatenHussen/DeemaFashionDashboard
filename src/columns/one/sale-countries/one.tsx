@@ -3,6 +3,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 import type { SaleCountryListItem } from '@/pages/dashboard/sale-countries/types/sale-country.types';
 
 import { z } from 'zod';
+import { TableActiveBadge } from '@/shared/components/table-status-badges';
 import { createToggleColumn } from '@/shared/ui/table-data/data-table-toggle-cell';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
@@ -49,15 +50,11 @@ export const saleCountryColumns = (
     accessorKey: 'is_active',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.status')} />,
     cell: ({ row }) => (
-      <span
-        className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-          row.original.is_active
-            ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-            : 'bg-muted text-muted-foreground'
-        }`}
-      >
-        {row.original.is_active ? t('active') : t('inactive')}
-      </span>
+      <TableActiveBadge
+        isActive={row.original.is_active}
+        activeLabel={t('active')}
+        inactiveLabel={t('inactive')}
+      />
     ),
   },
   {

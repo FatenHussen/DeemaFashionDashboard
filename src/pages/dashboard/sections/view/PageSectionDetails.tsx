@@ -161,7 +161,6 @@ export default function PageSectionDetailsPage() {
                 />
                 <DetailRow label={t('columns.order')} value={(pageSection as any).order} />
                 <DetailRow label={t('form.pageSectionFormVariantLabel')} value={variantDisplay} />
-                <DetailRow label={t('form.displayTypeId')} value={(pageSection as any).display_type_id} />
                 <DetailRow label={t('form.backgroundColor')} value={(pageSection as any).background_color} />
                 <DetailRow
                   label={t('form.backgroundCardColor')}

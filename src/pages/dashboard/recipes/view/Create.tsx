@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Iconify } from '@/shared/components/iconify';
+import { compressImage } from '@/utils/compress-image';
 import { useParams, useNavigate, useLocation } from 'react-router';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { _ShopApi } from '@/pages/dashboard/vendor/api/shop.services';
@@ -218,8 +219,17 @@ export default function CreatePage() {
 
   const onSubmit = async (data: RecipeFormValues) => {
     try {
+      const image =
+        data.image instanceof File ? await compressImage(data.image) : data.image;
+      const images = data.images?.length
+        ? await Promise.all(
+            data.images.map((f) => (f instanceof File ? compressImage(f) : f))
+          )
+        : data.images;
       const payload = {
         ...data,
+        image,
+        images,
         items: data.items.filter((it) => it.shop_product_variant_id > 0),
       };
       if (isEditMode && id) {
@@ -554,6 +564,9 @@ export default function CreatePage() {
             </Box>
             <Box>
               <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground text-sm">{t('columns.servings')}</Typography>
+              <Typography variant="caption" className="mb-1 block text-muted-foreground">
+                {t('form.recipeServesFieldHelp')}
+              </Typography>
               <RHFTextField name="serves" placeholder={t('form.servesPlaceholder')} fullWidth />
             </Box>
             <Box>
@@ -614,9 +627,12 @@ export default function CreatePage() {
           {itemFields.map((field, index) => {
             const sel = itemSelects[index] ?? { categoryId: 0, shopId: 0 };
             return (
-              <Box key={field.id} className="border border-border rounded-lg p-3 mb-3 flex flex-col gap-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-muted-foreground">
+              <Box
+                key={field.id}
+                className="mb-3 flex flex-col gap-4 rounded-xl border border-border/80 bg-card/30 p-4"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm font-semibold text-foreground">
                     {t('form.recipeItemNumber', { number: index + 1 })}
                   </span>
                   {itemFields.length > 1 && (
@@ -636,10 +652,10 @@ export default function CreatePage() {
                   )}
                 </div>
 
-                {/* Row 1: Category + Shop */}
-                <div className="flex gap-2 flex-wrap">
-                  <Box className="flex-1 min-w-[150px]">
-                    <Typography variant="subtitle2" className="mb-1 text-xs text-muted-foreground">
+                {/* Row 1: Category + Shop (each item can be from a different category / store) */}
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <Box className="min-w-0">
+                    <Typography variant="subtitle2" className="mb-1 text-xs font-medium text-foreground">
                       {t('form.recipeFilterByCategory')}
                     </Typography>
                     <InfiniteScrollSelect
@@ -652,8 +668,8 @@ export default function CreatePage() {
                     />
                   </Box>
 
-                  <Box className="flex-1 min-w-[150px]">
-                    <Typography variant="subtitle2" className="mb-1 text-xs text-muted-foreground">
+                  <Box className="min-w-0">
+                    <Typography variant="subtitle2" className="mb-1 text-xs font-medium text-foreground">
                       {t('form.recipeSelectShopRequired')} <span className="text-destructive">*</span>
                     </Typography>
                     <InfiniteScrollSelect
@@ -677,8 +693,8 @@ export default function CreatePage() {
                 </div>
 
                 {/* Row 2: Product Variant */}
-                <Box>
-                  <Typography variant="subtitle2" className="mb-1 text-xs text-muted-foreground">
+                <Box className="min-w-0">
+                  <Typography variant="subtitle2" className="mb-1 text-xs font-medium text-foreground">
                     {t('form.recipeProductVariantRequired')} <span className="text-destructive">*</span>
                   </Typography>
                   <Controller
@@ -710,6 +726,7 @@ export default function CreatePage() {
                               per_page: 10,
                               shop_id: sel.shopId || undefined,
                               category_id: sel.categoryId || undefined,
+                              include_pricing_in_label: false,
                             })
                           }
                           placeholder={
@@ -726,9 +743,12 @@ export default function CreatePage() {
                 </Box>
 
                 {/* Row 3: Switchable Category */}
-                <Box>
-                  <Typography variant="subtitle2" className="mb-1 text-xs text-muted-foreground">
+                <Box className="min-w-0">
+                  <Typography variant="subtitle2" className="mb-1 text-xs font-medium text-foreground">
                     {t('form.recipeSwitchableCategoryOptional')}
+                  </Typography>
+                  <Typography variant="caption" className="mb-1 block text-muted-foreground">
+                    {t('form.recipeSwitchableCategoryExplain')}
                   </Typography>
                   <Controller
                     name={`items.${index}.switchable_category_id`}
@@ -755,24 +775,26 @@ export default function CreatePage() {
                 </Box>
 
                 {/* Row 4: Quantity fields + is_required */}
-                <div className="flex gap-2 flex-wrap items-end">
-                  <Box className="flex-1 min-w-[80px]">
-                    <Typography variant="subtitle2" className="mb-1 text-xs text-muted-foreground">{t('form.quantity')}</Typography>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:items-end">
+                  <Box className="min-w-0">
+                    <Typography variant="subtitle2" className="mb-1 text-xs font-medium text-foreground">
+                      {t('form.quantity')}
+                    </Typography>
                     <RHFTextField name={`items.${index}.quantity`} type="number" placeholder={t('form.placeholderOne')} fullWidth />
                   </Box>
-                  <Box className="flex-1 min-w-[80px]">
-                    <Typography variant="subtitle2" className="mb-1 text-xs text-muted-foreground">
+                  <Box className="min-w-0">
+                    <Typography variant="subtitle2" className="mb-1 text-xs font-medium text-foreground">
                       {t('form.recipeMinQty')}
                     </Typography>
                     <RHFTextField name={`items.${index}.min_quantity`} type="number" placeholder={t('form.placeholderOne')} fullWidth />
                   </Box>
-                  <Box className="flex-1 min-w-[80px]">
-                    <Typography variant="subtitle2" className="mb-1 text-xs text-muted-foreground">
+                  <Box className="min-w-0">
+                    <Typography variant="subtitle2" className="mb-1 text-xs font-medium text-foreground">
                       {t('form.recipeMaxQty')}
                     </Typography>
                     <RHFTextField name={`items.${index}.max_quantity`} type="number" placeholder={t('form.placeholderOne')} fullWidth />
                   </Box>
-                  <Box className="flex-1 min-w-[100px] flex items-center pb-1">
+                  <Box className="col-span-2 flex min-w-[100px] items-center pb-1 sm:col-span-1">
                     <Controller
                       name={`items.${index}.is_required`}
                       control={control}

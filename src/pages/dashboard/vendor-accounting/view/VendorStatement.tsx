@@ -5,6 +5,7 @@ import { paths } from '@/routes/paths';
 import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
+import { formatCurrency } from '@/utils/format-currency';
 import { formatTranslated } from '@/utils/format-translated';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { withdrawRequestColumns } from '@/columns/one/vendor-accounting/withdraw-requests';
@@ -15,9 +16,6 @@ import { useFetchVendorStatement } from '../hooks';
 import { ProcessWithdrawRequestModal } from '../components/process-withdraw-request-modal';
 
 // ----------------------------------------------------------------------
-
-const formatCurrency = (val: number) =>
-  val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 interface WalletStatProps {
   label: string;
@@ -82,49 +80,49 @@ export default function VendorStatementPage() {
     ? [
         {
           label: t('vendorAccounting.grossSales'),
-          value: formatCurrency(wallet.gross_sales),
+          value: formatCurrency(wallet.gross_sales, { decimals: 2 }),
           icon: 'solar:chart-2-bold',
           colorClass: 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400',
         },
         {
           label: t('vendorAccounting.platformCommission'),
-          value: formatCurrency(wallet.platform_commission),
+          value: formatCurrency(wallet.platform_commission, { decimals: 2 }),
           icon: 'solar:percent-bold',
           colorClass: 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400',
         },
         {
           label: t('vendorAccounting.discountsShare'),
-          value: formatCurrency(wallet.discounts_share),
+          value: formatCurrency(wallet.discounts_share, { decimals: 2 }),
           icon: 'solar:tag-bold',
           colorClass: 'bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400',
         },
         {
           label: t('vendorAccounting.refunds'),
-          value: formatCurrency(wallet.refunds),
+          value: formatCurrency(wallet.refunds, { decimals: 2 }),
           icon: 'solar:arrow-left-bold',
           colorClass: 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400',
         },
         {
           label: t('vendorAccounting.netDue'),
-          value: formatCurrency(wallet.net_due),
+          value: formatCurrency(wallet.net_due, { decimals: 2 }),
           icon: 'solar:wallet-bold',
           colorClass: 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400',
         },
         {
           label: t('vendorAccounting.paid'),
-          value: formatCurrency(wallet.paid),
+          value: formatCurrency(wallet.paid, { decimals: 2 }),
           icon: 'solar:check-circle-bold',
           colorClass: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400',
         },
         {
           label: t('vendorAccounting.pendingWithdrawals'),
-          value: formatCurrency(wallet.pending_withdrawals),
+          value: formatCurrency(wallet.pending_withdrawals, { decimals: 2 }),
           icon: 'solar:clock-circle-bold',
           colorClass: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400',
         },
         {
           label: t('vendorAccounting.availableForWithdraw'),
-          value: formatCurrency(wallet.available_for_withdraw),
+          value: formatCurrency(wallet.available_for_withdraw, { decimals: 2 }),
           icon: 'solar:banknote-bold',
           colorClass: 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400',
         },

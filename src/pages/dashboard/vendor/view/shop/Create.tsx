@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
 import { MultiSelect } from '@/shared/ui/multi-select';
+import { compressImage } from '@/utils/compress-image';
 import { useMemo, useEffect, type ReactNode } from 'react';
 import { formatTranslated } from '@/utils/format-translated';
 import { MapPicker } from '@/shared/components/map/map-picker';
@@ -343,7 +344,8 @@ export default function CreatePage() {
     try {
       const payload = {
         vendor_id: data.vendor_id,
-        logo: data.logo instanceof File ? data.logo : undefined,
+        logo:
+          data.logo instanceof File ? await compressImage(data.logo) : undefined,
         name: {
           ar: data.name.ar,
           en: data.name.en,

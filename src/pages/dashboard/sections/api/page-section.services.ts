@@ -1,7 +1,6 @@
 import type {
   PagesResponse,
   SectionsListResponse,
-  DisplayTypesResponse,
   PageSectionListResponse,
   PageSectionDetailsResponse,
   PageSectionCreateUpdatePayload,
@@ -48,23 +47,6 @@ export const _PageSectionApi = {
 
   getPages: async (): Promise<PagesResponse> => {
     const response = await axiosInstance.get<PagesResponse>(apiRoutes.pageSection.pages);
-    return response.data;
-  },
-
-  getDisplayTypes: async (
-    manualModel?: string,
-    pageId?: string | number
-  ): Promise<DisplayTypesResponse> => {
-    const params: Record<string, string | number> = {};
-    if (manualModel) params.manual_model = manualModel;
-    if (pageId != null && pageId !== '') {
-      const id = typeof pageId === 'string' ? parseInt(String(pageId), 10) : pageId;
-      if (!Number.isNaN(id) && id > 0) params.page_id = id;
-    }
-    const response = await axiosInstance.get<DisplayTypesResponse>(
-      apiRoutes.pageSection.displayTypes,
-      { params: Object.keys(params).length ? params : undefined }
-    );
     return response.data;
   },
 

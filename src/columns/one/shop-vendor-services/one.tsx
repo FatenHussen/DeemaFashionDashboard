@@ -4,6 +4,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 import { z } from 'zod';
 import { Iconify } from '@/shared/components/iconify';
 import { formatTranslated } from '@/utils/format-translated';
+import { TableActiveBadge } from '@/shared/components/table-status-badges';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 
@@ -75,17 +76,30 @@ export const shopVendorServiceColumns = (
     id: 'price',
     accessorKey: 'price',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.price')} />,
-    cell: ({ row }) => (
-      <div className="flex items-center gap-1.5">
-        <Iconify icon="solar:tag-price-bold" className="text-muted-foreground" width={16} height={16} />
-        <span className="text-sm font-semibold text-foreground">
-          {row.original.price}
-          {row.original.price_unit && (
-            <span className="text-xs text-muted-foreground ml-1">/ {row.original.price_unit}</span>
-          )}
-        </span>
-      </div>
-    ),
+    cell: ({ row }) => {
+      const rawUnit = (row.original.price_unit ?? '').trim().toLowerCase();
+      const priceUnitLabelMap: Record<string, string> = {
+        'per hour': t('form.perHour'),
+        'per visit': t('form.perVisit'),
+        'per day': t('form.perDay'),
+        'per service': t('form.perService'),
+        per_service: t('form.perService'),
+        fixed: t('form.fixed'),
+      };
+      const priceUnitLabel = priceUnitLabelMap[rawUnit] ?? row.original.price_unit;
+
+      return (
+        <div className="flex items-center gap-1.5">
+          <Iconify icon="solar:tag-price-bold" className="text-muted-foreground" width={16} height={16} />
+          <span className="text-sm font-semibold text-foreground">
+            {row.original.price}
+            {priceUnitLabel && (
+              <span className="text-xs text-muted-foreground ml-1">/ {priceUnitLabel}</span>
+            )}
+          </span>
+        </div>
+      );
+    },
   },
   {
     id: 'duration',
@@ -97,7 +111,12 @@ export const shopVendorServiceColumns = (
       <div className="flex items-center gap-1.5">
         <Iconify icon="solar:clock-circle-bold" className="text-muted-foreground" width={16} height={16} />
         <span className="text-sm text-muted-foreground">
-          {row.original.duration_minutes != null ? `${row.original.duration_minutes} min` : '-'}
+          {row.original.duration_minutes != null
+            ? `${row.original.duration_minutes} ${t('form.durationMinutesShort')
+                .replace('(', '')
+                .replace(')', '')
+                .trim()}`
+            : '-'}
         </span>
       </div>
     ),
@@ -109,20 +128,11 @@ export const shopVendorServiceColumns = (
     cell: ({ row }) => {
       const isActive = row.original.is_active;
       return (
-        <div
-          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border w-fit ${
-            isActive
-              ? 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/50 text-emerald-700 dark:text-emerald-300'
-              : 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800/50 text-red-700 dark:text-red-300'
-          }`}
-        >
-          <Iconify
-            icon={isActive ? 'solar:check-circle-bold' : 'solar:close-circle-bold'}
-            width={14}
-            height={14}
-          />
-          <span className="text-xs font-medium">{isActive ? t('active') : t('inactive')}</span>
-        </div>
+        <TableActiveBadge
+          isActive={isActive}
+          activeLabel={t('active')}
+          inactiveLabel={t('inactive')}
+        />
       );
     },
   },

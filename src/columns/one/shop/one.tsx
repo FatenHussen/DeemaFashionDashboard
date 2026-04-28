@@ -4,6 +4,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 import { z } from 'zod';
 import { Iconify } from '@/shared/components/iconify';
 import { formatTranslated } from '@/utils/format-translated';
+import { TableActiveBadge } from '@/shared/components/table-status-badges';
 import { createToggleColumn } from '@/shared/ui/table-data/data-table-toggle-cell';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { normalizeShopTypeFromApi } from '@/pages/dashboard/vendor/types/shop.types';
@@ -179,15 +180,19 @@ export const shopColumns = (
   {
     id: 'shop_type',
     accessorKey: 'shop_type',
+    meta: {
+      headerClassName: 'min-w-[220px]',
+      cellClassName: 'min-w-[220px]',
+    },
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.shopType')} />,
     cell: ({ row }) => {
       const type = normalizeShopTypeFromApi(row.original);
       const labelKey =
         type === 'restaurant'
-          ? 'shopTypeFilterRestaurant'
+          ? 'form.shopTypeRestaurant'
           : type === 'service_provider'
-            ? 'shopTypeFilterServiceProvider'
-            : 'shopTypeFilterStore';
+            ? 'form.shopTypeServiceProvider'
+            : 'form.shopTypeStore';
       const variant: PillStatusVariant =
         type === 'restaurant' ? 'busy' : type === 'service_provider' ? 'available' : 'neutral';
       return <PillStatusBadge label={t(labelKey)} variant={variant} />;
@@ -284,9 +289,10 @@ export const shopColumns = (
     cell: ({ row }) => {
       const isActive = row.original.is_active;
       return (
-        <PillStatusBadge
-          label={isActive ? t('active') : t('inactive')}
-          variant={isActive ? 'available' : 'inactive'}
+        <TableActiveBadge
+          isActive={isActive}
+          activeLabel={t('active')}
+          inactiveLabel={t('inactive')}
         />
       );
     },

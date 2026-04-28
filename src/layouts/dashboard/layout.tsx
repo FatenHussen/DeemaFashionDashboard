@@ -22,6 +22,7 @@ import { NavHorizontal } from './nav-horizontal';
 import { Searchbar } from '../components/searchbar';
 import { getNavData } from '../nav-config-dashboard';
 import { MenuButton } from '../components/menu-button';
+import { DashboardQuickNav } from './dashboard-quick-nav';
 import { LogoutButton } from '../components/logout-button';
 import { SettingsButton } from '../components/settings-button';
 import { LanguagePopover } from '../components/language-popover';
@@ -251,7 +252,12 @@ export function DashboardLayout({
 
   const renderFooter = () => null;
 
-  const renderMain = () => <MainSection {...slotProps?.main}>{children}</MainSection>;
+  const renderMain = () => (
+    <MainSection {...slotProps?.main}>
+      <DashboardQuickNav />
+      {children}
+    </MainSection>
+  );
 
   return (
     <LayoutSection

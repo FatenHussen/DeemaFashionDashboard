@@ -31,14 +31,14 @@ import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout
 
 // Friendly, distinct accent palette per resource group (stable hash → color).
 const RESOURCE_PALETTE = [
-  { ring: 'ring-sky-200/60 dark:ring-sky-800/40', bar: 'from-sky-500 to-blue-500', soft: 'bg-sky-500/10', text: 'text-sky-700 dark:text-sky-300', emoji: '🛡️' },
-  { ring: 'ring-emerald-200/60 dark:ring-emerald-800/40', bar: 'from-emerald-500 to-teal-500', soft: 'bg-emerald-500/10', text: 'text-emerald-700 dark:text-emerald-300', emoji: '🌿' },
-  { ring: 'ring-violet-200/60 dark:ring-violet-800/40', bar: 'from-violet-500 to-fuchsia-500', soft: 'bg-violet-500/10', text: 'text-violet-700 dark:text-violet-300', emoji: '✨' },
-  { ring: 'ring-amber-200/60 dark:ring-amber-800/40', bar: 'from-amber-500 to-orange-500', soft: 'bg-amber-500/10', text: 'text-amber-700 dark:text-amber-300', emoji: '🔆' },
-  { ring: 'ring-rose-200/60 dark:ring-rose-800/40', bar: 'from-rose-500 to-pink-500', soft: 'bg-rose-500/10', text: 'text-rose-700 dark:text-rose-300', emoji: '💗' },
-  { ring: 'ring-cyan-200/60 dark:ring-cyan-800/40', bar: 'from-cyan-500 to-sky-500', soft: 'bg-cyan-500/10', text: 'text-cyan-700 dark:text-cyan-300', emoji: '💧' },
-  { ring: 'ring-indigo-200/60 dark:ring-indigo-800/40', bar: 'from-indigo-500 to-violet-500', soft: 'bg-indigo-500/10', text: 'text-indigo-700 dark:text-indigo-300', emoji: '🪄' },
-  { ring: 'ring-lime-200/60 dark:ring-lime-800/40', bar: 'from-lime-500 to-green-500', soft: 'bg-lime-500/10', text: 'text-lime-700 dark:text-lime-300', emoji: '🌱' },
+  { ring: 'ring-sky-400/80 dark:ring-sky-600/60', bar: 'from-sky-700 to-blue-700', soft: 'bg-sky-500/30', text: 'text-foreground', emoji: '🛡️' },
+  { ring: 'ring-emerald-400/80 dark:ring-emerald-600/60', bar: 'from-emerald-700 to-teal-700', soft: 'bg-emerald-500/30', text: 'text-foreground', emoji: '🌿' },
+  { ring: 'ring-violet-400/80 dark:ring-violet-600/60', bar: 'from-violet-700 to-fuchsia-700', soft: 'bg-violet-500/30', text: 'text-foreground', emoji: '✨' },
+  { ring: 'ring-amber-400/80 dark:ring-amber-600/60', bar: 'from-amber-700 to-orange-700', soft: 'bg-amber-500/30', text: 'text-foreground', emoji: '🔆' },
+  { ring: 'ring-rose-400/80 dark:ring-rose-600/60', bar: 'from-rose-700 to-pink-700', soft: 'bg-rose-500/30', text: 'text-foreground', emoji: '💗' },
+  { ring: 'ring-cyan-400/80 dark:ring-cyan-600/60', bar: 'from-cyan-700 to-sky-700', soft: 'bg-cyan-500/30', text: 'text-foreground', emoji: '💧' },
+  { ring: 'ring-indigo-400/80 dark:ring-indigo-600/60', bar: 'from-indigo-700 to-violet-700', soft: 'bg-indigo-500/30', text: 'text-foreground', emoji: '🪄' },
+  { ring: 'ring-lime-400/80 dark:ring-lime-600/60', bar: 'from-lime-700 to-green-700', soft: 'bg-lime-500/30', text: 'text-foreground', emoji: '🌱' },
 ];
 
 function paletteFor(resource: string) {
@@ -55,14 +55,14 @@ function paletteFor(resource: string) {
 function actionStyle(name: string): { chip: string; dot: string; icon: string } {
   const action = (name.split('.')[1] || '').toLowerCase();
   if (action.includes('view') || action.includes('read') || action.includes('list') || action.includes('show'))
-    return { chip: 'border-sky-300/60 bg-sky-50/80 text-sky-800 dark:border-sky-700/50 dark:bg-sky-950/30 dark:text-sky-200', dot: 'bg-sky-500', icon: 'solar:eye-bold' };
+    return { chip: 'border-sky-700 bg-sky-700 text-white dark:border-sky-500 dark:bg-sky-500 dark:text-white', dot: 'bg-white/90 dark:bg-white/90', icon: 'solar:eye-bold' };
   if (action.includes('create') || action.includes('add') || action.includes('store'))
-    return { chip: 'border-emerald-300/60 bg-emerald-50/80 text-emerald-800 dark:border-emerald-700/50 dark:bg-emerald-950/30 dark:text-emerald-200', dot: 'bg-emerald-500', icon: 'solar:add-circle-bold' };
+    return { chip: 'border-emerald-700 bg-emerald-700 text-white dark:border-emerald-500 dark:bg-emerald-500 dark:text-white', dot: 'bg-white/90 dark:bg-white/90', icon: 'solar:add-circle-bold' };
   if (action.includes('update') || action.includes('edit'))
-    return { chip: 'border-amber-300/60 bg-amber-50/80 text-amber-800 dark:border-amber-700/50 dark:bg-amber-950/30 dark:text-amber-200', dot: 'bg-amber-500', icon: 'solar:pen-bold' };
+    return { chip: 'border-amber-700 bg-amber-700 text-white dark:border-amber-500 dark:bg-amber-500 dark:text-white', dot: 'bg-white/90 dark:bg-white/90', icon: 'solar:pen-bold' };
   if (action.includes('delete') || action.includes('destroy') || action.includes('remove'))
-    return { chip: 'border-rose-300/60 bg-rose-50/80 text-rose-800 dark:border-rose-700/50 dark:bg-rose-950/30 dark:text-rose-200', dot: 'bg-rose-500', icon: 'solar:trash-bin-trash-bold' };
-  return { chip: 'border-violet-300/60 bg-violet-50/80 text-violet-800 dark:border-violet-700/50 dark:bg-violet-950/30 dark:text-violet-200', dot: 'bg-violet-500', icon: 'solar:bolt-bold' };
+    return { chip: 'border-rose-700 bg-rose-700 text-white dark:border-rose-500 dark:bg-rose-500 dark:text-white', dot: 'bg-white/90 dark:bg-white/90', icon: 'solar:trash-bin-trash-bold' };
+  return { chip: 'border-violet-700 bg-violet-700 text-white dark:border-violet-500 dark:bg-violet-500 dark:text-white', dot: 'bg-white/90 dark:bg-white/90', icon: 'solar:bolt-bold' };
 }
 
 // ----------------------------------------------------------------------

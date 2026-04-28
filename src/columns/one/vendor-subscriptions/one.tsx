@@ -4,6 +4,7 @@ import type { VendorSubscriptionListItem } from '@/pages/dashboard/vendor/types/
 
 import { z } from 'zod';
 import { formatTranslated } from '@/utils/format-translated';
+import { TableTonedStatusPill } from '@/shared/components/table-status-badges';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 
@@ -13,16 +14,34 @@ export interface VendorSubscriptionFormValues extends VendorSubscriptionListItem
   [key: string]: any;
 }
 
-const STATUS_COLORS: Record<string, string> = {
-  active: 'bg-green-500/10 text-green-600 border-green-500/20',
-  expired: 'bg-red-500/10 text-red-600 border-red-500/20',
-  cancelled: 'bg-neutral-500/10 text-neutral-600 border-neutral-500/20',
-  pending: 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20',
+const STATUS_PILL: Record<string, { icon: string; className: string }> = {
+  active: { icon: 'solar:check-circle-bold', className: 'border-emerald-800 bg-emerald-600' },
+  expired: { icon: 'solar:calendar-minimalistic-bold', className: 'border-red-800 bg-red-600' },
+  cancelled: { icon: 'solar:close-circle-bold', className: 'border-slate-600 bg-slate-500' },
+  pending: { icon: 'solar:clock-circle-bold', className: 'border-amber-700 bg-amber-500' },
 };
 
 /** List API returns `vendor_name`; older payloads used `shop_name`. */
 const vendorOrShopLabel = (row: VendorSubscriptionListItem): string =>
   row.vendor_name ?? row.shop_name ?? '—';
+
+const formatSimpleDate = (value?: string | null): string => {
+  if (!value) return '-';
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleDateString();
+};
+
+const getVendorSubscriptionStatusLabel = (status: string, t: TFunction<'table'>): string => {
+  const key = status.toLowerCase();
+  const labels: Record<string, string> = {
+    active: t('active'),
+    expired: t('expired'),
+    cancelled: t('statusCancelled'),
+    canceled: t('statusCancelled'),
+    pending: t('pending'),
+  };
+  return labels[key] ?? status;
+};
 
 export const vendorSubscriptionColumns = (
   permissions: { update: boolean; delete: boolean },
@@ -56,17 +75,13 @@ export const vendorSubscriptionColumns = (
     id: 'starts_at',
     accessorKey: 'starts_at',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.starts')} />,
-    cell: ({ row }) => (
-      <span className="text-sm text-muted-foreground">{row.original.starts_at}</span>
-    ),
+    cell: ({ row }) => <span className="text-sm text-muted-foreground">{formatSimpleDate(row.original.starts_at)}</span>,
   },
   {
     id: 'ends_at',
     accessorKey: 'ends_at',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.ends')} />,
-    cell: ({ row }) => (
-      <span className="text-sm text-muted-foreground">{row.original.ends_at}</span>
-    ),
+    cell: ({ row }) => <span className="text-sm text-muted-foreground">{formatSimpleDate(row.original.ends_at)}</span>,
   },
   {
     id: 'auto_renew',
@@ -75,10 +90,10 @@ export const vendorSubscriptionColumns = (
     cell: ({ row }) =>
       row.original.auto_renew ? (
         <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-blue-500/20 text-blue-600">
-          Yes
+          {t('yes')}
         </span>
       ) : (
-        <span className="text-muted-foreground text-xs">No</span>
+        <span className="text-muted-foreground text-xs">{t('no')}</span>
       ),
   },
   {
@@ -87,12 +102,11 @@ export const vendorSubscriptionColumns = (
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.status')} />,
     cell: ({ row }) => {
       const status = row.original.status;
+      const cfg = STATUS_PILL[status] ?? STATUS_PILL.pending;
       return (
-        <span
-          className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${STATUS_COLORS[status] ?? STATUS_COLORS.pending}`}
-        >
-          {status}
-        </span>
+        <TableTonedStatusPill icon={cfg.icon} className={cfg.className}>
+          {getVendorSubscriptionStatusLabel(status, t)}
+        </TableTonedStatusPill>
       );
     },
   },
@@ -100,9 +114,7 @@ export const vendorSubscriptionColumns = (
     id: 'created_at',
     accessorKey: 'created_at',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.created')} />,
-    cell: ({ row }) => (
-      <span className="text-xs text-muted-foreground">{row.original.created_at}</span>
-    ),
+    cell: ({ row }) => <span className="text-xs text-muted-foreground">{formatSimpleDate(row.original.created_at)}</span>,
   },
   {
     id: 'actions',

@@ -4,6 +4,7 @@ import type { PopupCampaignListItem } from '@/pages/dashboard/popup-campaigns/ty
 
 import { z } from 'zod';
 import { Iconify } from '@/shared/components/iconify';
+import { TableTonedStatusPill } from '@/shared/components/table-status-badges';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 
@@ -68,21 +69,20 @@ export const popupCampaignColumns = (
     cell: ({ row }) => {
       const s = String(row.original.status ?? '');
       const active = s === 'active';
+      if (!s) {
+        return <span className="text-xs text-muted-foreground">—</span>;
+      }
       return (
-        <div
-          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border w-fit ${
+        <TableTonedStatusPill
+          icon={active ? 'solar:check-circle-bold' : 'solar:clock-circle-bold'}
+          className={
             active
-              ? 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/50 text-emerald-700 dark:text-emerald-300'
-              : 'bg-muted/40 border-border/60 text-muted-foreground'
-          }`}
+              ? 'border-emerald-800 bg-emerald-600'
+              : 'border-slate-600 bg-slate-500'
+          }
         >
-          <Iconify
-            icon={active ? 'solar:check-circle-bold' : 'solar:clock-circle-bold'}
-            width={14}
-            height={14}
-          />
-          <span className="text-xs font-medium">{s || '—'}</span>
-        </div>
+          {s}
+        </TableTonedStatusPill>
       );
     },
   },

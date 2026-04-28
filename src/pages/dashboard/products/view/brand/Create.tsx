@@ -9,6 +9,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
 import { MultiSelect } from '@/shared/ui/multi-select';
+import { compressImage } from '@/utils/compress-image';
 import { formatTranslated } from '@/utils/format-translated';
 import { _CityApi } from '@/pages/dashboard/locations/api/city.services';
 import { _CategoryApi } from '@/pages/dashboard/categories/api/category.services';
@@ -165,7 +166,8 @@ export default function CreatePage() {
           en: data.name.en,
           ar: data.name.ar,
         },
-        image: data.image instanceof File ? data.image : undefined,
+        image:
+          data.image instanceof File ? await compressImage(data.image) : undefined,
         category_ids: catIds,
         category_id: catIds[0] ?? 0,
         governorate_id: data.governorate_id,

@@ -25,7 +25,7 @@ export function NavSubheader({ open, children, className, ...other }: NavSubhead
         navSectionClasses.subheader,
         'cursor-pointer items-center relative gap-2 inline-flex self-start w-full',
         'text-[var(--nav-subheader-color)] px-3 py-1.5 mt-5 mb-1',
-        'text-[10px] font-bold uppercase tracking-[0.12em]',
+        'text-[15px] font-semibold tracking-normal',
         'transition-colors duration-200 ease-out',
         'hover:text-[var(--nav-subheader-hover-color)]',
         'rounded-md select-none',

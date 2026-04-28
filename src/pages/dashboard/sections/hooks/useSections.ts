@@ -5,17 +5,22 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { _SectionApi } from '../api/section.services';
 
-export const useFetchSections = (page: number = 1, limit: number = 25, search?: string) =>
+export const useFetchSections = (
+  page: number = 1,
+  limit: number = 25,
+  search?: string,
+  categoryId?: number
+) =>
   useQuery({
-    queryKey: queryKeys.section.list({ page, limit, search }),
-    queryFn: () => _SectionApi.getListSections(page, limit, search),
+    queryKey: queryKeys.section.list({ page, limit, search, category_id: categoryId }),
+    queryFn: () => _SectionApi.getListSections(page, limit, search, categoryId),
   });
 
 export const useFetchSectionDetails = (id: number | string) =>
   useQuery({
     queryKey: queryKeys.section.details(id),
     queryFn: () => _SectionApi.getSectionDetails(id),
-    enabled: !!id,
+    enabled: !!id && /^\d+$/.test(String(id).trim()),
   });
 
 export const useCreateSection = () => {

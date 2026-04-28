@@ -3,6 +3,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 
 import { z } from 'zod';
 import { Iconify } from '@/shared/components/iconify';
+import { TableActiveBadge } from '@/shared/components/table-status-badges';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 
@@ -18,6 +19,12 @@ export interface QuickActionRow {
   created_at?: string;
   [key: string]: unknown;
 }
+
+const formatSimpleDate = (value?: string) => {
+  if (!value) return '-';
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleDateString();
+};
 
 export const quickActionColumns = (
   permissions: { update: boolean; delete: boolean },
@@ -97,20 +104,11 @@ export const quickActionColumns = (
     cell: ({ row }) => {
       const isActive = row.original.is_active;
       return (
-        <div
-          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border w-fit ${
-            isActive
-              ? 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/50 text-emerald-700 dark:text-emerald-300'
-              : 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800/50 text-red-700 dark:text-red-300'
-          }`}
-        >
-          <Iconify
-            icon={isActive ? 'solar:check-circle-bold' : 'solar:close-circle-bold'}
-            width={14}
-            height={14}
-          />
-          <span className="text-xs font-medium">{isActive ? t('active') : t('inactive')}</span>
-        </div>
+        <TableActiveBadge
+          isActive={isActive}
+          activeLabel={t('active')}
+          inactiveLabel={t('inactive')}
+        />
       );
     },
   },
@@ -128,7 +126,7 @@ export const quickActionColumns = (
           width={16}
           height={16}
         />
-        <span className="text-sm text-muted-foreground">{row.original.created_at ?? '-'}</span>
+        <span className="text-sm text-muted-foreground">{formatSimpleDate(row.original.created_at)}</span>
       </div>
     ),
   },

@@ -1,8 +1,8 @@
-import { useMemo } from 'react';
 import { Button } from '@/shared/ui/button';
 import { useTranslation } from 'react-i18next';
 // data-table-pagination.tsx
 import { type Table } from '@tanstack/react-table';
+import { useMemo, useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { Select, SelectItem, SelectValue, SelectContent, SelectTrigger } from '@/shared/ui/select';
 
@@ -159,6 +159,47 @@ export function DataTablePagination<TData>({
     handlePageChange(totalPages - 1);
   };
 
+  const [jumpValue, setJumpValue] = useState<string>('');
+
+  useEffect(() => {
+    setJumpValue('');
+  }, [currentPageIndex]);
+
+  const handleJumpSubmit = () => {
+    const parsed = Number.parseInt(jumpValue, 10);
+    if (!Number.isFinite(parsed)) return;
+    const clamped = Math.min(Math.max(parsed, 1), totalPages);
+    handlePageChange(clamped - 1);
+    setJumpValue('');
+  };
+
+  const jumpToPageInput = totalPages > 1 && (
+    <div className="flex shrink-0 items-center gap-1.5">
+      <span className="whitespace-nowrap text-xs font-medium text-foreground sm:text-sm">
+        {t('goToPage')}
+      </span>
+      <input
+        type="number"
+        min={1}
+        max={totalPages}
+        value={jumpValue}
+        onChange={(e) => setJumpValue(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            handleJumpSubmit();
+          }
+        }}
+        onBlur={() => {
+          if (jumpValue) handleJumpSubmit();
+        }}
+        placeholder={`${currentPageIndex}`}
+        aria-label={t('goToPage')}
+        className="h-8 w-14 rounded-md border border-border bg-background px-2 text-center text-xs font-medium text-foreground outline-none transition-colors focus:border-primary sm:text-sm"
+      />
+    </div>
+  );
+
   // Early return if table is not available
   if (!table && !pagination) {
     return (
@@ -301,6 +342,7 @@ export function DataTablePagination<TData>({
               {t('pageOf', { current: currentPageIndex, total: totalPages })}
             </span>
           )}
+          {!isPagePaginateHiddent && jumpToPageInput}
           <div className="flex items-center gap-2">
             <span className="whitespace-nowrap text-sm font-medium">{t('rowsperpage')}</span>
             {rowsPerPageSelect}

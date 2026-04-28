@@ -67,6 +67,14 @@ export const apiRoutes = {
     /** Persist drag-and-drop ordering. Body: `{ ordered_ids: number[] }`. */
     sort: `${ROOTS.ADMIN}/brands/sort`,
   },
+  // Product unit routes (admin CRUD; `name` is `{ ar, en }` JSON)
+  unit: {
+    list: `${ROOTS.ADMIN}/units`,
+    create: `${ROOTS.ADMIN}/units`,
+    update: (id: number | string) => `${ROOTS.ADMIN}/units/${id}`,
+    delete: (id: number | string) => `${ROOTS.ADMIN}/units/${id}`,
+    details: (id: number | string) => `${ROOTS.ADMIN}/units/${id}`,
+  },
   // Governorate routes
   governorate: {
     list: `${ROOTS.ADMIN}/governorates`,
@@ -158,7 +166,6 @@ export const apiRoutes = {
     delete: (id: number | string) => `${ROOTS.ADMIN}/page-sections/${id}`,
     details: (id: number | string) => `${ROOTS.ADMIN}/page-sections/${id}`,
     pages: `${ROOTS.ADMIN}/sections/pages`,
-    displayTypes: `${ROOTS.ADMIN}/sections/display-types`,
   },
   // Other API routes (from old endpoints)
   chat: '/api/chat',

@@ -56,7 +56,10 @@ export default function Page() {
   const [search, setSearch] = useState('');
   const [isActiveFilter, setIsActiveFilter] = useState<'' | '1' | '0'>('');
   const [categoryFilter, setCategoryFilter] = useState('');
-  const [originCountryFilter, setOriginCountryFilter] = useState('');
+  const [subCategoryFilter, setSubCategoryFilter] = useState('');
+  const [countryFilter, setCountryFilter] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [isSortOpen, setIsSortOpen] = useState(false);
 
   const setPageOne = useCallback(() => {
@@ -75,7 +78,7 @@ export default function Page() {
       return;
     }
     setPageOne();
-  }, [search, isActiveFilter, categoryFilter, originCountryFilter, setPageOne]);
+  }, [search, isActiveFilter, categoryFilter, subCategoryFilter, countryFilter, dateFrom, dateTo, setPageOne]);
 
   const { data: categoriesResp } = useQuery({
     queryKey: ['categories', 'brand-index-filter'],
@@ -85,6 +88,18 @@ export default function Page() {
     () => buildCategorySelectRows((categoriesResp?.data?.items ?? []) as CategoryData[]),
     [categoriesResp?.data?.items]
   );
+
+  const { data: subCategoriesResp } = useQuery({
+    queryKey: ['categories', 'brand-index-sub', categoryFilter],
+    queryFn: () =>
+      _CategoryApi.getListCategoriesPaginated({
+        page: 1,
+        per_page: 500,
+        parent_id: categoryFilter ? Number(categoryFilter) : undefined,
+      }),
+    enabled: Boolean(categoryFilter),
+  });
+  const subCategoryOptions = (subCategoriesResp?.data?.items ?? []) as CategoryData[];
 
   const { data: countriesResp } = useFetchCountries(1, 400);
   const filterCountries = countriesResp?.data?.items ?? [];
@@ -102,7 +117,10 @@ export default function Page() {
     ...(search.trim() ? { search: search.trim() } : {}),
     ...(isActiveFilter === '' ? {} : { is_active: isActiveFilter === '1' }),
     ...(categoryFilter ? { category_id: Number(categoryFilter) } : {}),
-    ...(originCountryFilter ? { origin_country_id: Number(originCountryFilter) } : {}),
+    ...(subCategoryFilter ? { sub_category_id: Number(subCategoryFilter) } : {}),
+    ...(countryFilter ? { country_id: Number(countryFilter) } : {}),
+    ...(dateFrom ? { date_from: dateFrom } : {}),
+    ...(dateTo ? { date_to: dateTo } : {}),
   });
   const deleteBrandMutation = useDeleteBrand();
   const sortBrandsMutation = useSortBrands();
@@ -204,13 +222,19 @@ export default function Page() {
   const activeFilterCount =
     (isActiveFilter ? 1 : 0) +
     (categoryFilter ? 1 : 0) +
-    (originCountryFilter ? 1 : 0);
+    (subCategoryFilter ? 1 : 0) +
+    (countryFilter ? 1 : 0) +
+    (dateFrom ? 1 : 0) +
+    (dateTo ? 1 : 0);
 
   const onFilterReset = () => {
     setSearch('');
     setIsActiveFilter('');
     setCategoryFilter('');
-    setOriginCountryFilter('');
+    setSubCategoryFilter('');
+    setCountryFilter('');
+    setDateFrom('');
+    setDateTo('');
     setPageOne();
   };
 
@@ -288,6 +312,7 @@ export default function Page() {
                 value={categoryFilter}
                 onChange={(e) => {
                   setCategoryFilter(e.target.value);
+                  setSubCategoryFilter('');
                   setPageOne();
                 }}
               >
@@ -300,12 +325,32 @@ export default function Page() {
               </select>
             </FilterGroup>
 
+            {categoryFilter ? (
+              <FilterGroup label={t('form.brandSubCategory')}>
+                <select
+                  className={filterSelectClass}
+                  value={subCategoryFilter}
+                  onChange={(e) => {
+                    setSubCategoryFilter(e.target.value);
+                    setPageOne();
+                  }}
+                >
+                  <option value="">{t('all')}</option>
+                  {subCategoryOptions.map((c) => (
+                    <option key={c.id} value={String(c.id)}>
+                      {formatTranslated(c.name as { en?: string; ar?: string })}
+                    </option>
+                  ))}
+                </select>
+              </FilterGroup>
+            ) : null}
+
             <FilterGroup label={t('form.country')}>
               <select
                 className={filterSelectClass}
-                value={originCountryFilter}
+                value={countryFilter}
                 onChange={(e) => {
-                  setOriginCountryFilter(e.target.value);
+                  setCountryFilter(e.target.value);
                   setPageOne();
                 }}
               >
@@ -316,6 +361,29 @@ export default function Page() {
                   </option>
                 ))}
               </select>
+            </FilterGroup>
+
+            <FilterGroup label={t('fromDate')}>
+              <input
+                type="date"
+                className={filterSelectClass}
+                value={dateFrom}
+                onChange={(e) => {
+                  setDateFrom(e.target.value);
+                  setPageOne();
+                }}
+              />
+            </FilterGroup>
+            <FilterGroup label={t('toDate')}>
+              <input
+                type="date"
+                className={filterSelectClass}
+                value={dateTo}
+                onChange={(e) => {
+                  setDateTo(e.target.value);
+                  setPageOne();
+                }}
+              />
             </FilterGroup>
           </div>
         }

@@ -3,6 +3,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 import type { AffiliateWithdrawItem } from '@/pages/dashboard/affiliate-withdraw-requests/types/affiliate-withdraw.types';
 
 import { z } from 'zod';
+import { TableTonedStatusPill } from '@/shared/components/table-status-badges';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 
@@ -12,10 +13,10 @@ const AffiliateWithdrawSchema = z.object({
   status: z.string(),
 });
 
-const statusColors: Record<string, string> = {
-  pending: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
-  approved: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-  rejected: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+const statusPill: Record<string, { icon: string; className: string }> = {
+  pending: { icon: 'solar:clock-circle-bold', className: 'border-amber-700 bg-amber-500' },
+  approved: { icon: 'solar:check-circle-bold', className: 'border-emerald-800 bg-emerald-600' },
+  rejected: { icon: 'solar:close-circle-bold', className: 'border-red-800 bg-red-600' },
 };
 
 export const affiliateWithdrawColumns = (
@@ -44,11 +45,19 @@ export const affiliateWithdrawColumns = (
     id: 'status',
     accessorKey: 'status',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.status')} />,
-    cell: ({ row }) => (
-      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusColors[row.original.status] ?? 'bg-muted text-muted-foreground'}`}>
-        {t(`form.affiliateWithdrawStatus_${row.original.status}`, { defaultValue: row.original.status })}
-      </span>
-    ),
+    cell: ({ row }) => {
+      const key = String(row.original.status);
+      const cfg = statusPill[key] ?? {
+        icon: 'solar:info-circle-bold',
+        className: 'border-slate-600 bg-slate-500',
+      };
+      const label = t(`form.affiliateWithdrawStatus_${key}`, { defaultValue: key });
+      return (
+        <TableTonedStatusPill icon={cfg.icon} className={cfg.className}>
+          {label}
+        </TableTonedStatusPill>
+      );
+    },
   },
   {
     id: 'created_at',

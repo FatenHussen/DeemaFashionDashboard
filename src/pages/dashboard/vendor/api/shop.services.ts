@@ -16,8 +16,14 @@ const buildFormDataPayload = (data: ShopCreateUpdatePayload): FormData => {
   formData.append('description[en]', data.description.en);
   formData.append('address[ar]', data.address.ar);
   formData.append('address[en]', data.address.en);
-  formData.append('lat', String(data.lat));
-  formData.append('lng', String(data.lng));
+  formData.append(
+    'lat',
+    data.lat != null && !Number.isNaN(Number(data.lat)) ? String(data.lat) : ''
+  );
+  formData.append(
+    'lng',
+    data.lng != null && !Number.isNaN(Number(data.lng)) ? String(data.lng) : ''
+  );
   formData.append('phone', data.phone);
   formData.append('mobile', data.mobile);
   formData.append('email', data.email);

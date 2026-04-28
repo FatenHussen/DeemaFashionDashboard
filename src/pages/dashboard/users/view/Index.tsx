@@ -221,7 +221,6 @@ export default function Page() {
         columnTranslations={{
           id: t('columns.id'),
           name: t('columns.name'),
-          email: t('columns.email'),
           phone: t('columns.phone'),
           affiliate: t('columns.affiliate'),
           created_at: t('columns.created'),

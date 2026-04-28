@@ -3,6 +3,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 
 import { z } from 'zod';
 import { formatTranslated } from '@/utils/format-translated';
+import { TableTonedStatusPill } from '@/shared/components/table-status-badges';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { sectionTypeLabel } from '@/pages/dashboard/sections/utils/section-type-label';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
@@ -19,6 +20,17 @@ export interface SectionFormValues {
   type: 'api' | 'manual';
   [key: string]: any;
 }
+
+const sectionTypePill: Record<SectionFormValues['type'], { icon: string; className: string }> = {
+  api: {
+    icon: 'solar:code-bold',
+    className: 'border-blue-800 bg-blue-600 dark:border-blue-300',
+  },
+  manual: {
+    icon: 'solar:book-bookmark-bold',
+    className: 'border-violet-800 bg-violet-600 dark:border-violet-300',
+  },
+};
 
 export const sectionColumns = (
   permissions: {
@@ -45,16 +57,11 @@ export const sectionColumns = (
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.type')} />,
     cell: ({ row }) => {
       const type = row.original.type;
+      const pill = sectionTypePill[type];
       return (
-        <div
-          className={`text-xs px-2 py-1 rounded-full w-fit ${
-            type === 'api'
-              ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
-              : 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400'
-          }`}
-        >
+        <TableTonedStatusPill icon={pill.icon} className={pill.className}>
           {sectionTypeLabel(t, type)}
-        </div>
+        </TableTonedStatusPill>
       );
     },
   },

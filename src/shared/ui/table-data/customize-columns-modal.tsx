@@ -3,7 +3,7 @@ import type { UniqueIdentifier } from '@dnd-kit/core';
 
 import { Settings2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { useCallback, useMemo, useState } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import { useLocalizationStore } from '@/store/useLocalizationStore';
 import {
   useSensor,

@@ -40,6 +40,18 @@ const statusColors: Record<string, string> = {
   cancelled: 'bg-muted text-muted-foreground',
 };
 
+function getOrderStatusLabel(statusRaw: string, t: (key: string) => string): string {
+  const status = normalizeOrderStatus(statusRaw);
+  const labels: Record<OrderStatus, string> = {
+    pending: t('statusPending'),
+    preparing: t('statusPreparing'),
+    out_delivery: t('statusOutDelivery'),
+    delivered: t('statusDelivered'),
+    cancelled: t('statusCancelled'),
+  };
+  return labels[status] ?? status.replace(/_/g, ' ');
+}
+
 /** Next order-level statuses: forward steps, or full pipeline when cancelled (admin can reopen). */
 function getNextStatuses(currentRaw: string): OrderStatus[] {
   const current = normalizeOrderStatus(currentRaw);
@@ -252,7 +264,7 @@ export default function DetailsPage() {
               <span
                 className={`inline-flex w-fit shrink-0 items-center rounded-full px-3 py-1.5 text-sm font-medium capitalize ${statusColors[order.status] || 'bg-muted text-muted-foreground'}`}
               >
-                {order.status?.replace('_', ' ')}
+                {getOrderStatusLabel(order.status, t)}
               </span>
             </Box>
           </Box>
@@ -264,7 +276,7 @@ export default function DetailsPage() {
                 <span
                   className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-medium ${statusColors[order.status] || 'bg-muted text-muted-foreground'}`}
                 >
-                  {order.status.replace('_', ' ')}
+                  {getOrderStatusLabel(order.status, t)}
                 </span>
                 {getNextStatuses(order.status).length > 0 ? (
                   <>
@@ -277,7 +289,7 @@ export default function DetailsPage() {
                         disabled={changeStatusMutation.isPending}
                         className="text-sm"
                       >
-                        {s.replace('_', ' ')}
+                        {getOrderStatusLabel(s, t)}
                       </Button>
                     ))}
                   </>
@@ -854,7 +866,7 @@ export default function DetailsPage() {
                       <span
                         className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${statusColors[normalizeOrderStatus(item.status)] || 'bg-muted text-muted-foreground'}`}
                       >
-                        {normalizeOrderStatus(item.status).replace('_', ' ')}
+                        {getOrderStatusLabel(item.status, t)}
                       </span>
                       <select
                         value={normalizeOrderStatus(item.status)}
@@ -866,7 +878,7 @@ export default function DetailsPage() {
                       >
                         {ORDER_STATUS_OPTIONS.map((s) => (
                           <option key={s} value={s}>
-                            {s.replace('_', ' ')}
+                            {getOrderStatusLabel(s, t)}
                           </option>
                         ))}
                       </select>

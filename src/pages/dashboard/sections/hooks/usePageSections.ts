@@ -26,12 +26,6 @@ export const useFetchPages = () => useQuery({
     queryFn: () => _PageSectionApi.getPages(),
   });
 
-// Fetch display types
-export const useFetchDisplayTypes = (manualModel?: string, pageId?: string | number) => useQuery({
-    queryKey: [...queryKeys.pageSection.displayTypes(), manualModel ?? '', String(pageId ?? '')],
-    queryFn: () => _PageSectionApi.getDisplayTypes(manualModel, pageId),
-  });
-
 // Fetch sections (for section_id dropdown)
 export const useFetchSectionsForDropdown = () => useQuery({
     queryKey: queryKeys.section.list({ page: 1, limit: 100 }),

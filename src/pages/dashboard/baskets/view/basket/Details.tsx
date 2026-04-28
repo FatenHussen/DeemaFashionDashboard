@@ -6,6 +6,7 @@ import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
 import { formatTranslated } from '@/utils/format-translated';
 import { useFetchBasketById } from '@/pages/dashboard/baskets/hooks/basket';
+import { formatBasketBrandLabel, resolveBasketGalleryUrls } from '@/utils/basket-gallery';
 
 import { CONFIG } from 'src/global-config';
 import { Box, Typography } from 'src/shared/ui';
@@ -71,6 +72,7 @@ export default function DetailsPage() {
 
   const nameStr = formatName(basket.name);
   const catName = categorySubtitle(basket);
+  const headerGallery = resolveBasketGalleryUrls(basket);
   const discountNum = basket.discount ?? basket.discount_value ?? 0;
   const discountText =
     basket.discount_type === 'percentage' ? `${discountNum}%` : String(discountNum);
@@ -90,12 +92,17 @@ export default function DetailsPage() {
               {t('back')}
             </Button>
             <Box className="mb-2 flex flex-wrap items-center gap-4">
-              {basket.image ? (
-                <img
-                  src={basket.image}
-                  alt={nameStr}
-                  className="h-16 w-16 rounded-xl border border-border/50 object-cover"
-                />
+              {headerGallery.length > 0 ? (
+                <Box className="flex flex-wrap gap-2">
+                  {headerGallery.map((u) => (
+                    <img
+                      key={u}
+                      src={u}
+                      alt={nameStr}
+                      className="h-16 w-16 rounded-xl border border-border/50 object-cover"
+                    />
+                  ))}
+                </Box>
               ) : (
                 <Box className="flex h-16 w-16 items-center justify-center rounded-xl border border-primary/20 bg-primary/10">
                   <Iconify icon="solar:cart-large-2-bold" className="text-primary" width={32} height={32} />
@@ -206,6 +213,11 @@ export default function DetailsPage() {
                         <Typography variant="subtitle2" className="font-semibold">
                           {itemTitle(item)}
                         </Typography>
+                        {formatBasketBrandLabel(item.brand ?? item.product?.brand) ? (
+                          <Typography variant="caption" className="text-muted-foreground">
+                            {formatBasketBrandLabel(item.brand ?? item.product?.brand)}
+                          </Typography>
+                        ) : null}
                         {item.shop_variant?.shop_name ? (
                           <Typography variant="caption" className="text-muted-foreground">
                             {item.shop_variant.shop_name}
@@ -227,6 +239,31 @@ export default function DetailsPage() {
                           <Typography variant="caption" className="mt-1 block text-muted-foreground">
                             {item.variant.map((v) => String(v)).join(' · ')}
                           </Typography>
+                        ) : null}
+                        {item.alternatives && item.alternatives.length > 0 ? (
+                          <Box className="mt-3 border-t border-border/40 pt-3">
+                            <Typography variant="caption" className="text-muted-foreground">
+                              {t('form.scheduledBasketDetailsAlternatives')}
+                            </Typography>
+                            <Box className="mt-1 flex flex-wrap gap-2">
+                              {item.alternatives.map((alt) => (
+                                <span
+                                  key={alt.shop_product_variant_id}
+                                  className="rounded-md border border-border/50 px-2 py-1 text-xs"
+                                >
+                                  {alt.name || `#${alt.shop_product_variant_id}`}
+                                  {formatBasketBrandLabel(alt.brand ?? alt.product?.brand)
+                                    ? ` · ${formatBasketBrandLabel(alt.brand ?? alt.product?.brand)}`
+                                    : ''}
+                                  {alt.price != null ? ` — ${t('form.priceLabel')}: ${alt.price}` : ''}
+                                  {alt.discount != null ? ` · ${t('columns.discount')}: ${alt.discount}` : ''}
+                                  {alt.price_after_discount != null
+                                    ? ` · ${t('columns.priceAfterDiscount')}: ${alt.price_after_discount}`
+                                    : ''}
+                                </span>
+                              ))}
+                            </Box>
+                          </Box>
                         ) : null}
                       </Box>
                       <Box className="text-end text-sm">

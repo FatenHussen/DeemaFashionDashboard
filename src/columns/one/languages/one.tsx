@@ -2,6 +2,7 @@ import type { TFunction } from 'i18next';
 import type { ColumnDef } from '@tanstack/react-table';
 
 import { z } from 'zod';
+import { TableActiveBadge } from '@/shared/components/table-status-badges';
 import { createToggleColumn } from '@/shared/ui/table-data/data-table-toggle-cell';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
@@ -98,15 +99,11 @@ export const languageColumns = (
     cell: ({ row }) => {
       const isActive = row.original.is_active;
       return (
-        <div
-          className={`text-xs px-2 py-1 rounded-full w-fit ${
-            isActive
-              ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-              : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
-          }`}
-        >
-          {isActive ? t('active') : t('inactive')}
-        </div>
+        <TableActiveBadge
+          isActive={isActive}
+          activeLabel={t('active')}
+          inactiveLabel={t('inactive')}
+        />
       );
     },
   },

@@ -2,6 +2,7 @@ import type { TFunction } from 'i18next';
 import type { ColumnDef } from '@tanstack/react-table';
 
 import { z } from 'zod';
+import { TableActiveBadge } from '@/shared/components/table-status-badges';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 
@@ -16,11 +17,13 @@ export interface UserBasketScheduleTableItem {
   id: number;
   user: { id: number; name: string; email?: string; phone?: string };
   name: string;
+  items_preview?: string | string[] | null;
   num_varieties: number;
   original_price: number;
   final_price: number;
   discount_value: string;
   discount_type: string;
+  discount_amount?: number;
   schedule: { id: number; name: string; interval_days: number };
   start_date: string;
   next_run_date: string;
@@ -68,6 +71,26 @@ export const userBasketScheduleColumns = (
     cell: ({ row }) => <span className="text-sm font-medium">{row.original.name || '—'}</span>,
   },
   {
+    id: 'items_preview',
+    accessorKey: 'items_preview',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title={t('columns.itemsPreview')} />
+    ),
+    cell: ({ row }) => {
+      const v = row.original.items_preview;
+      if (v == null) return <span className="text-sm text-muted-foreground">—</span>;
+      const text = Array.isArray(v) ? v.filter(Boolean).join(', ') : String(v).trim();
+      return (
+        <span
+          className="text-sm text-muted-foreground line-clamp-2 max-w-[min(100%,14rem)]"
+          title={text}
+        >
+          {text || '—'}
+        </span>
+      );
+    },
+  },
+  {
     id: 'num_varieties',
     accessorKey: 'num_varieties',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.varieties')} />,
@@ -79,6 +102,16 @@ export const userBasketScheduleColumns = (
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.originalPrice')} />,
     cell: ({ row }) => (
       <span className="text-sm tabular-nums">{row.original.original_price ?? '—'}</span>
+    ),
+  },
+  {
+    id: 'discount_amount',
+    accessorKey: 'discount_amount',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.discountAmount')} />,
+    cell: ({ row }) => (
+      <span className="text-sm tabular-nums text-orange-700">
+        {row.original.discount_amount != null ? row.original.discount_amount : '—'}
+      </span>
     ),
   },
   {
@@ -142,11 +175,11 @@ export const userBasketScheduleColumns = (
     cell: ({ row }) => {
       const active = Boolean(row.original.is_active);
       return (
-        <span
-          className={`px-2 py-1 rounded-full text-xs font-medium ${active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}
-        >
-          {active ? t('active') : t('inactive')}
-        </span>
+        <TableActiveBadge
+          isActive={active}
+          activeLabel={t('active')}
+          inactiveLabel={t('inactive')}
+        />
       );
     },
   },

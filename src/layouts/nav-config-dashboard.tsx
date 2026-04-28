@@ -91,6 +91,7 @@ export function getNavData(t: TFunction<'nav'>): NavSectionProps['data'] {
         { title: t('categoryAttributes'), path: paths.dashboard.categoryAttributes, icon: ICONS.params, requiredPermission: 'categoryattribute.view' },
         { title: t('categoryDetails'), path: paths.dashboard.categoryDetails, icon: ICONS.menuItem, requiredPermission: 'categorydetail.view' },
         { title: t('brands'), path: paths.dashboard.brands, icon: ICONS.ecommerce, requiredPermission: 'brand.view' },
+        { title: t('units'), path: paths.dashboard.units, icon: ICONS.params, requiredPermission: 'unit.view' },
         { title: t('products'), path: paths.dashboard.products, icon: ICONS.product, requiredPermission: 'product.view' },
         { title: t('inventory'), path: paths.dashboard.inventory, icon: ICONS.folder, requiredPermission: 'product.view' },
         // { title: t('crimage.pngeateProductNav'), path: paths.dashboard.product.create, icon: ICONS.ecommerce, requiredPermission: 'product.create' },
@@ -110,7 +111,21 @@ export function getNavData(t: TFunction<'nav'>): NavSectionProps['data'] {
         { title: t('sections'), path: paths.dashboard.sections, icon: ICONS.menuItem, requiredPermission: 'section.view' },
         { title: t('pageSections'), path: paths.dashboard.pageSections, icon: ICONS.menuItem, requiredPermission: 'pagesection.view' },
         { title: t('quickActions'), path: paths.dashboard.quickActions.root, icon: ICONS.menuItem, requiredPermission: 'quickaction.view' },
-        { title: t('popupCampaigns'), path: paths.dashboard.popupCampaigns.root, icon: ICONS.tour, requiredPermission: 'popupCampaign.view' },
+        { title: t('recipes'), path: paths.dashboard.recipes, icon: ICONS.file, requiredPermission: 'recipe.view' },
+      ],
+    },
+    /**
+     * 3b. Advertising & promos (app intro, flash, banners)
+     */
+    {
+      subheader: (
+        <span className="flex items-center gap-3">
+          <Iconify icon="solar:megaphone-bold" width={16} height={16} />
+          <span>{t('advertisingGroup')}</span>
+        </span>
+      ) as any,
+      items: [
+        { title: t('appIntroNav'), path: paths.dashboard.popupCampaigns.root, icon: ICONS.tour, requiredPermission: 'popupCampaign.view' },
         {
           title: t('flashSales'),
           path: paths.dashboard.flashSales.root,
@@ -118,7 +133,6 @@ export function getNavData(t: TFunction<'nav'>): NavSectionProps['data'] {
           requiredPermission: FLASH_SALE_PERMISSION.view,
         },
         { title: t('banners'), path: paths.dashboard.banners, icon: ICONS.ecommerce, requiredPermission: 'banner.view' },
-        { title: t('recipes'), path: paths.dashboard.recipes, icon: ICONS.file, requiredPermission: 'recipe.view' },
       ],
     },
     /**

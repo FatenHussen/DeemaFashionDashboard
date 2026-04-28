@@ -6,12 +6,13 @@ import type {
 
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
-import { useQuery } from '@tanstack/react-query';
 import { apiRoutes, axiosInstance } from '@/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
+import { useQuery, useQueries } from '@tanstack/react-query';
 import { formatTranslated } from '@/utils/format-translated';
+import { useFetchUnits } from '@/pages/dashboard/units/hooks/unit';
 import { useFetchShops } from '@/pages/dashboard/vendor/hooks/shop';
 import { compressImage, compressImages } from '@/utils/compress-image';
 import { _VendorApi } from '@/pages/dashboard/vendor/api/vendor.services';
@@ -49,6 +50,7 @@ import { paths } from 'src/routes/paths';
 
 import { CONFIG } from 'src/global-config';
 import { Label } from 'src/shared/components/label';
+import { MultiSelect } from 'src/shared/ui/multi-select';
 import { Box, Tab, Tabs, Button, Typography } from 'src/shared/ui';
 import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
 import { RHFBadgeSelector } from 'src/shared/components/hook-form/rhf-badge-selector';
@@ -388,6 +390,46 @@ function ExistingImagePreview({
   );
 }
 
+function LocalFilePreview({
+  file,
+  label,
+}: {
+  file: File | null;
+  label: string;
+}) {
+  const [previewUrl, setPreviewUrl] = useState<string>('');
+
+  useEffect(() => {
+    if (!(file instanceof File)) {
+      setPreviewUrl('');
+      return () => {};
+    }
+    const objectUrl = URL.createObjectURL(file);
+    setPreviewUrl(objectUrl);
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [file]);
+
+  if (!(file instanceof File)) return null;
+
+  return (
+    <Box className="mt-3 flex flex-col gap-2">
+      {previewUrl ? (
+        <img
+          src={previewUrl}
+          alt={file.name || label}
+          className="max-h-32 max-w-[280px] rounded-lg border border-border/60 object-contain bg-muted"
+        />
+      ) : null}
+      <Typography variant="caption" className="text-muted-foreground">
+        {label}
+      </Typography>
+      <Typography variant="caption" className="text-muted-foreground break-all">
+        {file.name}
+      </Typography>
+    </Box>
+  );
+}
+
 /** API returns `attribute` in one locale (often AR); category `name` may be {en, ar} — match any. */
 function categoryAttrLabelMatches(attr: any, apiAttributeLabel: string): boolean {
   const api = String(apiAttributeLabel ?? '').trim().toLowerCase();
@@ -518,6 +560,8 @@ export default function CreatePage() {
 
   const [previewImages, setPreviewImages] = useState<string[]>([]);
   const [mainCategoryId, setMainCategoryId] = useState(0);
+  /** Extra categories to load "bought with" suggestions (merged with main product category). */
+  const [boughtWithExtraCategoryIds, setBoughtWithExtraCategoryIds] = useState<number[]>([]);
   const productImagesInputId = useId();
   const thumbnailInputId = useId();
   const seoImageInputId = useId();
@@ -557,6 +601,15 @@ export default function CreatePage() {
 
   const productDualPriceReady = Boolean(usdCurrency && sypCurrency);
 
+  const { data: unitsListResponse } = useFetchUnits({ page: 1, per_page: 500, is_active: 1 });
+  const unitSelectOptions = useMemo(() => {
+    const items = unitsListResponse?.data?.items ?? [];
+    return items.map((u) => ({
+      id: u.id,
+      label: formatTranslated(u.name as { en?: string; ar?: string }),
+    }));
+  }, [unitsListResponse?.data?.items]);
+
   const { data: iconsListResponse } = useQuery({
     queryKey: ['icons', 'product-form'],
     queryFn: () =>
@@ -589,12 +642,12 @@ export default function CreatePage() {
     sale_country_id: 0,
     price_currency_id: 0,
     price_local: 0,
-    price: 0,
+    price: undefined,
     discount: 0,
     discount_type: 'none',
     cost_price: undefined,
     quantity: 0,
-    unit: '',
+    unit_id: 0,
     warranty_period: undefined,
     sku: '',
     model: '',
@@ -633,7 +686,8 @@ export default function CreatePage() {
   useEffect(() => {
     if (!currenciesReady || !usdCurrency) return;
     setValue('price_currency_id', usdCurrency.id, { shouldDirty: false });
-    const usd = Number(priceWatch) || 0;
+    const raw = priceWatch;
+    const usd = raw != null && !Number.isNaN(Number(raw)) ? Number(raw) : 0;
     setValue('price_local', usdToLocalAmount(usd, parseCurrencyRate(usdCurrency)), {
       shouldDirty: false,
     });
@@ -785,25 +839,64 @@ export default function CreatePage() {
 
   const categoryIdNum = categoryId ? Number(categoryId) : 0;
 
-  // Related products: same category only (requires category_id on the product)
-  const {
-    data: allProductsResponse,
-    isSuccess: boughtWithListReady,
-    isFetching: isFetchingBoughtWithList,
-  } = useQuery({
-    queryKey: ['product', 'list-for-select', categoryIdNum],
-    queryFn: () =>
-      axiosInstance
-        .get(apiRoutes.product.list, {
-          params: { per_page: 200, category_id: categoryIdNum },
-        })
-        .then((r) => r.data),
+  const { data: boughtWithCategoriesResp } = useQuery({
+    queryKey: ['categories', 'product-form-bought-with'],
+    queryFn: () => _CategoryApi.getListCategoriesPaginated({ page: 1, per_page: 500 }),
     enabled: categoryIdNum > 0,
   });
-  const allProducts: any[] = useMemo(
-    () => allProductsResponse?.data?.data ?? allProductsResponse?.data?.items ?? [],
-    [allProductsResponse]
+  const boughtWithCategoryOptions = useMemo(
+    () =>
+      (boughtWithCategoriesResp?.data?.items ?? []).map((c: { id: number; name: unknown }) => ({
+        value: c.id,
+        label: formatTranslated(c.name as Parameters<typeof formatTranslated>[0]),
+      })),
+    [boughtWithCategoriesResp?.data?.items]
   );
+
+  const boughtWithCategoryIds = useMemo(() => {
+    const ids: number[] = [];
+    if (categoryIdNum > 0) ids.push(categoryIdNum);
+    for (const x of boughtWithExtraCategoryIds) {
+      const n = Number(x);
+      if (n > 0 && !ids.includes(n)) ids.push(n);
+    }
+    return ids;
+  }, [categoryIdNum, boughtWithExtraCategoryIds]);
+
+  useEffect(() => {
+    setBoughtWithExtraCategoryIds((prev) => prev.filter((x) => x !== categoryIdNum));
+  }, [categoryIdNum]);
+
+  const boughtWithProductQueries = useQueries({
+    queries: boughtWithCategoryIds.map((cid) => ({
+      queryKey: ['product', 'list-for-select', cid],
+      queryFn: () =>
+        axiosInstance
+          .get(apiRoutes.product.list, {
+            params: { per_page: 200, category_id: cid },
+          })
+          .then((r) => r.data),
+      enabled: cid > 0,
+    })),
+  });
+
+  const allProducts: any[] = useMemo(() => {
+    const map = new Map<number, any>();
+    for (const q of boughtWithProductQueries) {
+      const raw = q.data as any;
+      const items = raw?.data?.data ?? raw?.data?.items ?? [];
+      for (const p of items) {
+        const pid = Number(p.id);
+        if (!map.has(pid)) map.set(pid, p);
+      }
+    }
+    return [...map.values()];
+  }, [boughtWithProductQueries]);
+
+  const boughtWithListReady =
+    boughtWithCategoryIds.length > 0 &&
+    boughtWithProductQueries.every((q) => q.isFetched);
+  const isFetchingBoughtWithList = boughtWithProductQueries.some((q) => q.isFetching);
 
   useEffect(() => {
     if (categoryIdNum <= 0 || !boughtWithListReady || isFetchingBoughtWithList) return;
@@ -882,13 +975,14 @@ export default function CreatePage() {
               ? Number(p.sale_country.id)
               : 0,
         price_currency_id: 0,
-        price_local: Number(p.price) || 0,
-        price: Number(p.price) || 0,
+        price_local:
+          p.price != null && !Number.isNaN(Number(p.price)) ? Number(p.price) : 0,
+        price: p.price == null || Number.isNaN(Number(p.price)) ? undefined : Number(p.price),
         discount: p.discount != null ? Number(p.discount) : 0,
         discount_type: (p.discount_type as 'none' | 'percentage' | 'fixed') || 'none',
         cost_price: p.cost_price != null ? Number(p.cost_price) : undefined,
         quantity: Number(p.quantity) || 0,
-        unit: p.unit ?? '',
+        unit_id: p.unit_id != null && Number(p.unit_id) > 0 ? Number(p.unit_id) : 0,
         warranty_period: p.warranty_period != null ? Number(p.warranty_period) : undefined,
         sku: p.sku ?? '',
         model: p.model ?? '',
@@ -1239,6 +1333,7 @@ export default function CreatePage() {
         category_details: payload.category_details?.filter(
           (cd) => cd.category_detail_id && cd.category_detail_id > 0
         ),
+        unit_id: payload.unit_id && payload.unit_id > 0 ? payload.unit_id : undefined,
         ...(restaurantMode && {
           brand_id: undefined,
           sku: null,
@@ -1276,9 +1371,16 @@ export default function CreatePage() {
         ...apiPayload
       } = uploadPayload;
 
+      const stripSeoIfNoFile = (p: Record<string, unknown>) => {
+        if (!(p.seo_image instanceof File)) {
+          delete p.seo_image;
+        }
+      };
+
       if (isEditMode && id) {
         // In edit mode, variants and shop_variants are managed independently via their own save/delete buttons.
         const { variants: _omitVariants, shop_variants: _omitShopVariants, ...editApiPayload } = apiPayload as any;
+        stripSeoIfNoFile(editApiPayload);
         console.log('[Product Form] Sending update payload:', { id, data: editApiPayload });
         await updateProductMutation.mutateAsync({
           id,
@@ -1286,6 +1388,7 @@ export default function CreatePage() {
         });
         toast.success(t('form.productUpdatedSuccess'));
       } else {
+        stripSeoIfNoFile(apiPayload as Record<string, unknown>);
         console.log('[Product Form] Sending create payload:', apiPayload);
         await createProductMutation.mutateAsync(apiPayload as ProductCreateUpdatePayload);
         toast.success(t('form.productCreatedSuccess'));
@@ -1906,13 +2009,18 @@ export default function CreatePage() {
         </Box>
         )}
 
-        {/* ─── Price, discount, cost ───────────────────────────── */}
+        {/* ─── Price, discount, cost — price optional (nullable in API) ─ */}
         <Box className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <Box className="group md:col-span-2 lg:col-span-3">
-            <Box className="flex items-center gap-2 mb-2">
-              <Iconify icon="solar:dollar-bold" className="text-primary" width={20} />
-              <Typography variant="subtitle2" className="font-semibold text-foreground">
-                {t('form.productPriceRequired')}
+            <Box className="flex flex-col gap-1 mb-2">
+              <Box className="flex items-center gap-2">
+                <Iconify icon="solar:dollar-bold" className="text-primary" width={20} />
+                <Typography variant="subtitle2" className="font-semibold text-foreground">
+                  {t('form.productPriceOptionalSection')}
+                </Typography>
+              </Box>
+              <Typography variant="caption" className="text-muted-foreground max-w-3xl">
+                {t('form.productPriceOptionalHint')}
               </Typography>
             </Box>
             {currenciesReady && activeCurrencies.length > 0 ? (
@@ -1933,11 +2041,15 @@ export default function CreatePage() {
                           {...field}
                           type="number"
                           placeholder="0.00"
-                          value={field.value ?? ''}
+                          value={field.value === undefined || field.value === null ? '' : field.value}
                           onChange={(e) => {
                             const raw = e.target.value;
-                            const v = raw === '' ? 0 : Number(raw);
-                            field.onChange(Number.isFinite(v) ? v : 0);
+                            if (raw === '') {
+                              field.onChange(undefined);
+                              return;
+                            }
+                            const v = Number(raw);
+                            field.onChange(Number.isFinite(v) ? v : undefined);
                           }}
                           className={fieldInputClass(!!error)}
                           step="any"
@@ -1958,18 +2070,31 @@ export default function CreatePage() {
                       type="number"
                       placeholder="0.00"
                       value={(() => {
-                        const usdNum = Number(priceWatch) || 0;
+                        const pw = priceWatch;
+                        if (pw == null || Number.isNaN(Number(pw))) return '';
+                        const usdNum = Number(pw);
                         const syp = usdToLocalAmount(usdNum, parseCurrencyRate(sypCurrency!));
-                        return usdNum === 0 && syp === 0 ? '' : syp;
+                        return syp;
                       })()}
                       onChange={(e) => {
                         const raw = e.target.value;
-                        const v = raw === '' ? 0 : Number(raw);
                         const rate = parseCurrencyRate(sypCurrency!);
-                        setValue('price', localAmountToUsd(Number.isFinite(v) ? v : 0, rate), {
-                          shouldValidate: true,
-                          shouldDirty: true,
-                        });
+                        if (raw === '') {
+                          setValue('price', undefined, {
+                            shouldValidate: true,
+                            shouldDirty: true,
+                          });
+                          return;
+                        }
+                        const v = Number(raw);
+                        setValue(
+                          'price',
+                          localAmountToUsd(Number.isFinite(v) ? v : 0, rate),
+                          {
+                            shouldValidate: true,
+                            shouldDirty: true,
+                          }
+                        );
                       }}
                       className={fieldInputClass(!!errors.price)}
                       step="any"
@@ -1994,11 +2119,15 @@ export default function CreatePage() {
                           {...field}
                           type="number"
                           placeholder="0.00"
-                          value={field.value ?? ''}
+                          value={field.value === undefined || field.value === null ? '' : field.value}
                           onChange={(e) => {
                             const raw = e.target.value;
-                            const v = raw === '' ? 0 : Number(raw);
-                            field.onChange(Number.isFinite(v) ? v : 0);
+                            if (raw === '') {
+                              field.onChange(undefined);
+                              return;
+                            }
+                            const v = Number(raw);
+                            field.onChange(Number.isFinite(v) ? v : undefined);
                           }}
                           className={fieldInputClass(!!error)}
                           step="any"
@@ -2025,7 +2154,16 @@ export default function CreatePage() {
                       {...field}
                       type="number"
                       placeholder="0.00"
-                      onChange={(e) => field.onChange(Number(e.target.value))}
+                      value={field.value === undefined || field.value === null ? '' : field.value}
+                      onChange={(e) => {
+                        const raw = e.target.value;
+                        if (raw === '') {
+                          field.onChange(undefined);
+                          return;
+                        }
+                        const v = Number(raw);
+                        field.onChange(Number.isFinite(v) ? v : undefined);
+                      }}
                       className={fieldInputClass(!!error)}
                     />
                     <FieldErrorText message={error?.message} />
@@ -2033,9 +2171,6 @@ export default function CreatePage() {
                 )}
               />
             )}
-            <Typography variant="caption" className="text-muted-foreground mt-2 block">
-              {t('form.productPriceUsdHint')}
-            </Typography>
             {errors.price?.message ? (
               <FieldErrorText message={errors.price.message} />
             ) : null}
@@ -2166,19 +2301,28 @@ export default function CreatePage() {
           </Box>
           <Box className="group">
             <Typography variant="subtitle2" className="font-semibold text-foreground mb-2">
-              {t('form.productUnitHint')}
+              {t('form.unitSelectLabel')}
             </Typography>
             <Controller
-              name="unit"
+              name="unit_id"
               control={control}
               render={({ field, fieldState: { error } }) => (
                 <div>
-                  <input
-                    {...field}
-                    type="text"
-                    placeholder={t('form.unitPlaceholder')}
+                  <select
                     className={fieldInputClass(!!error)}
-                  />
+                    value={!field.value ? '' : String(field.value)}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      field.onChange(v ? Number(v) : 0);
+                    }}
+                  >
+                    <option value="">{t('form.unitSelectPlaceholder')}</option>
+                    {unitSelectOptions.map((o) => (
+                      <option key={o.id} value={o.id}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
                   <FieldErrorText message={error?.message} />
                 </div>
               )}
@@ -2370,11 +2514,10 @@ export default function CreatePage() {
                   {t('form.chooseThumbnail')}
                 </label>
                 <FieldErrorText message={error?.message} />
-                {value instanceof File ? (
-                  <Typography variant="caption" className="ml-2">
-                    {value.name}
-                  </Typography>
-                ) : null}
+                <LocalFilePreview
+                  file={value instanceof File ? value : null}
+                  label={t('form.thumbnailOptional')}
+                />
                 <ExistingImagePreview
                   url={productResponse?.thumbnail}
                   label={t('form.currentThumbnailServer')}
@@ -2428,7 +2571,26 @@ export default function CreatePage() {
               {t('form.noProductsInCategoryBoughtWith')}
             </Typography>
           ) : (
-            <Box className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 max-h-48 overflow-y-auto border border-border rounded-lg p-3">
+            <>
+            {categoryIdNum > 0 && boughtWithCategoryOptions.length > 0 ? (
+              <Box className="mb-4 rounded-lg border border-border/60 bg-muted/20 p-3">
+                <Typography variant="subtitle2" className="mb-1 font-semibold text-foreground">
+                  {t('form.boughtWithExtraCategoriesLabel')}
+                </Typography>
+                <Typography variant="caption" className="mb-2 block text-muted-foreground">
+                  {t('form.boughtWithExtraCategoriesHelper')}
+                </Typography>
+                <MultiSelect
+                  options={boughtWithCategoryOptions.filter((o) => Number(o.value) !== categoryIdNum)}
+                  value={boughtWithExtraCategoryIds}
+                  onChange={(vals) => setBoughtWithExtraCategoryIds(vals.map((v) => Number(v)))}
+                  placeholder={t('form.boughtWithExtraCategoriesPlaceholder')}
+                  helperText={t('form.boughtWithExtraCategoriesHint')}
+                  fullWidth
+                />
+              </Box>
+            ) : null}
+            <Box className="grid grid-cols-1 gap-2 md:grid-cols-2 max-h-52 overflow-y-auto rounded-lg border border-border p-3 lg:grid-cols-3">
               {allProducts
                 .filter((p: any) => String(p.id) !== String(id))
                 .map((p: any) => {
@@ -2438,7 +2600,7 @@ export default function CreatePage() {
                   return (
                     <Label
                       key={p.id}
-                      className={`flex items-center gap-2 cursor-pointer p-2 rounded-lg border transition-colors ${
+                      className={`flex min-h-[2.75rem] cursor-pointer items-center gap-2 rounded-lg border p-2 transition-colors ${
                         selected
                           ? 'border-primary bg-primary/10'
                           : 'border-border hover:bg-muted'
@@ -2448,15 +2610,19 @@ export default function CreatePage() {
                         type="checkbox"
                         checked={selected}
                         onChange={() => toggleBoughtWith(Number(p.id))}
-                        className="w-4 h-4 shrink-0"
+                        className="h-4 w-4 shrink-0"
                       />
-                      <Typography variant="caption" className="text-foreground truncate">
-                        #{p.id} {pName}
+                      <Typography variant="caption" className="min-w-0 flex-1 text-foreground">
+                        <span className="tabular-nums font-medium" dir="ltr">
+                          #{p.id}
+                        </span>{' '}
+                        <span className="break-words">{pName}</span>
                       </Typography>
                     </Label>
                   );
                 })}
             </Box>
+            </>
           )}
         </Box>
 
@@ -3335,12 +3501,21 @@ export default function CreatePage() {
                           const isTrendChecked = isTrendEl?.checked ?? false;
                           try {
                             const newImgs = watch(`variants.${variantIndex}.images`);
+                            const rawImages =
+                              Array.isArray(newImgs) && newImgs.length > 0 ? newImgs : undefined;
+                            const images = rawImages?.length
+                              ? await Promise.all(
+                                  rawImages.map((f) =>
+                                    f instanceof File ? compressImage(f) : f
+                                  )
+                                )
+                              : undefined;
                             await updateVariantMutation.mutateAsync({
                               id: variantId,
                               data: {
                                 attributes_values_ids: watch(`variants.${variantIndex}.attributes_values_ids`) || [],
                                 existing_images_ids: watch(`variants.${variantIndex}.existing_images_ids`) || [],
-                                images: Array.isArray(newImgs) && newImgs.length > 0 ? newImgs : undefined,
+                                images,
                                 sku: watch(`variants.${variantIndex}.sku`) ?? '',
                                 model: watch(`variants.${variantIndex}.model`) ?? '',
                                 barcode: watch(`variants.${variantIndex}.barcode`) ?? '',
@@ -3778,11 +3953,10 @@ export default function CreatePage() {
                     {t('form.chooseSeoImage')}
                   </label>
                   <FieldErrorText message={error?.message} />
-                  {value instanceof File ? (
-                    <Typography variant="caption" className="ml-2">
-                      {(value as File).name}
-                    </Typography>
-                  ) : null}
+                  <LocalFilePreview
+                    file={value instanceof File ? value : null}
+                    label={t('form.seoImageOptional')}
+                  />
                   <ExistingImagePreview
                     url={productResponse?.seo_image}
                     label={t('form.currentSeoImage')}

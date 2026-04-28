@@ -111,6 +111,15 @@ function formatColumnTopLabel(n: number) {
   return formatAxisTick(v);
 }
 
+function resolveLocalizedName(
+  value: string | { ar?: string | null; en?: string | null } | null | undefined,
+  lang: 'ar' | 'en'
+) {
+  if (typeof value === 'string') return value.trim() || '-';
+  if (!value) return '-';
+  return value[lang] ?? value.en ?? value.ar ?? '-';
+}
+
 
 const CHART_GLASS_INNER =
   'relative overflow-hidden rounded-2xl border border-primary/[0.12] bg-gradient-to-br from-primary/[0.05] via-card/95 to-primary/[0.03] p-1 shadow-[inset_0_1px_0_0_rgb(var(--primary)/0.08)]';
@@ -463,12 +472,27 @@ export default function StatisticsPage() {
     return buildIntegerYTicks(maxO, 6);
   }, [revenueChartData]);
 
-  const ordersPieData = useMemo(() => Object.entries(ordersByStatus)
+  const ordersPieData = useMemo(() => {
+    const labelMap: Record<string, string> = {
+      pending: t('statistics.statusPending'),
+      preparing: t('statistics.statusPreparing'),
+      out_for_delivery: t('statistics.statusOutForDelivery'),
+      delivered: t('statistics.statusDelivered'),
+      cancelled: t('statistics.statusCancelled'),
+      returned: t('statistics.statusReturned'),
+      not_delivered: t('statistics.statusNotDelivered'),
+      paid: t('statistics.statusPaid'),
+      unpaid: t('statistics.statusUnpaid'),
+    };
+    return Object.entries(ordersByStatus)
       .filter(([, v]) => (v as number) > 0)
       .map(([name, value]) => ({
-        name: name.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
+        name:
+          labelMap[name] ??
+          name.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
         value: value as number,
-      })), [ordersByStatus]);
+      }));
+  }, [ordersByStatus, t]);
 
   const categoriesPieData = useMemo(() => {
     const raw = topCategoriesData?.data?.data ?? [];
@@ -903,7 +927,7 @@ export default function StatisticsPage() {
                                 <div className="min-w-0 flex-1">
                                   <div className="flex items-start gap-2">
                                     <Typography variant="caption" className="line-clamp-2 flex-1 font-semibold leading-snug text-foreground">
-                                      {shop.name?.[lang as 'ar' | 'en'] ?? shop.name?.en ?? '-'}
+                                      {resolveLocalizedName(shop.name, lang as 'ar' | 'en')}
                                     </Typography>
                                     <span
                                       className={`mt-0.5 h-2 w-2 shrink-0 rounded-full ring-2 ring-card ${
@@ -1406,7 +1430,7 @@ export default function StatisticsPage() {
                               aria-hidden
                             />
                             <span className="line-clamp-2 leading-snug">
-                              {shop.name?.[lang as 'ar' | 'en'] ?? shop.name?.en ?? '-'}
+                              {resolveLocalizedName(shop.name, lang as 'ar' | 'en')}
                             </span>
                           </div>
                         </td>

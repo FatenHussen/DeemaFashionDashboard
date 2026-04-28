@@ -3,6 +3,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 import type { PointExchangeItem } from '@/pages/dashboard/point-exchanges/types/point-exchange.types';
 
 import { z } from 'zod';
+import { TableTonedStatusPill } from '@/shared/components/table-status-badges';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 
@@ -60,17 +61,26 @@ export const pointExchangeColumns = (
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.status')} />,
     cell: ({ row }) => {
       const status = row.original.status;
-      const label = status ? status.charAt(0).toUpperCase() + status.slice(1) : '-';
-      const statusClass =
-        status === 'completed' || status === 'approved'
-          ? 'bg-green-500/20 text-green-600'
-          : status === 'rejected'
-            ? 'bg-red-500/20 text-red-600'
-            : 'bg-yellow-500/20 text-yellow-600';
+      const statusKey = (status ?? '').toLowerCase();
+      const statusLabelMap: Record<string, string> = {
+        completed: t('columns.completed'),
+        approved: t('columns.approved'),
+        rejected: t('columns.rejected'),
+        pending: t('columns.pending'),
+      };
+      const label = statusLabelMap[statusKey] ?? (status ? status.charAt(0).toUpperCase() + status.slice(1) : '-');
+      let pill = { icon: 'solar:info-circle-bold', className: 'border-slate-600 bg-slate-500' };
+      if (status === 'completed' || status === 'approved') {
+        pill = { icon: 'solar:check-circle-bold', className: 'border-emerald-800 bg-emerald-600' };
+      } else if (status === 'rejected') {
+        pill = { icon: 'solar:close-circle-bold', className: 'border-red-800 bg-red-600' };
+      } else if (status) {
+        pill = { icon: 'solar:clock-circle-bold', className: 'border-amber-700 bg-amber-500' };
+      }
       return (
-        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${statusClass}`}>
+        <TableTonedStatusPill icon={pill.icon} className={pill.className}>
           {label}
-        </span>
+        </TableTonedStatusPill>
       );
     },
   },

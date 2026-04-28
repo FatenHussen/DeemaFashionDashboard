@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
 import { formatTranslated } from '@/utils/format-translated';
+import { formatBasketBrandLabel, resolveBasketGalleryUrls } from '@/utils/basket-gallery';
 import { useFetchScheduledBasketById } from '@/pages/dashboard/baskets/hooks/scheduled-basket';
 
 import { CONFIG } from 'src/global-config';
@@ -61,6 +62,7 @@ export default function DetailsPage() {
 
   const nameStr = formatName(scheduledBasket.name);
   const catName = categorySubtitle(scheduledBasket);
+  const headerGallery = resolveBasketGalleryUrls(scheduledBasket);
   const discountText =
     scheduledBasket.discount_type === 'percentage' ? `${scheduledBasket.discount}%` : `${scheduledBasket.discount}`;
 
@@ -75,8 +77,12 @@ export default function DetailsPage() {
               {t('form.scheduledBasketDetailsBack')}
             </Button>
             <Box className="mb-2 flex items-center gap-4">
-              {scheduledBasket.image ? (
-                <img src={scheduledBasket.image} alt={nameStr} className="h-16 w-16 rounded-xl object-cover border border-border/50" />
+              {headerGallery.length > 0 ? (
+                <Box className="flex flex-wrap gap-2">
+                  {headerGallery.map((u) => (
+                    <img key={u} src={u} alt={nameStr} className="h-16 w-16 rounded-xl object-cover border border-border/50" />
+                  ))}
+                </Box>
               ) : (
                 <Box className="flex h-16 w-16 items-center justify-center rounded-xl border border-primary/20 bg-primary/10">
                   <Iconify icon="solar:calendar-bold" className="text-primary" width={32} height={32} />
@@ -247,8 +253,10 @@ export default function DetailsPage() {
                           <Typography variant="subtitle2" className="font-semibold">
                             {formatName(item.product?.name) || t('variantNumber', { id: item.shop_product_variant_id })}
                           </Typography>
-                          {item.product?.brand ? (
-                            <Typography variant="caption" className="text-muted-foreground">{item.product.brand}</Typography>
+                          {formatBasketBrandLabel(item.brand ?? item.product?.brand) ? (
+                            <Typography variant="caption" className="text-muted-foreground">
+                              {formatBasketBrandLabel(item.brand ?? item.product?.brand)}
+                            </Typography>
                           ) : null}
                           {item.variant?.attributes && item.variant.attributes.length > 0 ? (
                             <Typography variant="caption" className="mt-1 block text-muted-foreground">
@@ -310,6 +318,9 @@ export default function DetailsPage() {
                             {item.alternatives.map((alt) => (
                               <span key={alt.shop_product_variant_id} className="rounded-md border border-border/50 px-2 py-1 text-xs">
                                 {alt.name || `#${alt.shop_product_variant_id}`}
+                                {formatBasketBrandLabel(alt.brand ?? alt.product?.brand)
+                                  ? ` · ${formatBasketBrandLabel(alt.brand ?? alt.product?.brand)}`
+                                  : ''}
                                 {alt.price != null ? ` — ${t('form.priceLabel')}: ${alt.price}` : ''}
                                 {alt.discount != null ? ` · ${t('columns.discount')}: ${alt.discount}` : ''}
                                 {alt.price_after_discount != null

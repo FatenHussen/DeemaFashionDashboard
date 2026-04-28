@@ -12,6 +12,9 @@ export async function compressImage(
   // Skip non-image files
   if (!file.type.startsWith('image/')) return file;
 
+  // Keep animation / vector formats intact (re-encoding would break them).
+  if (file.type === 'image/gif' || file.type === 'image/svg+xml') return file;
+
   // Skip already small files (< 200KB)
   if (file.size < 200 * 1024) return file;
 

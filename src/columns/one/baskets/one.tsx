@@ -4,6 +4,7 @@ import type { BasketData } from '@/pages/dashboard/baskets/types/basket.types';
 
 import { z } from 'zod';
 import { formatTranslated } from '@/utils/format-translated';
+import { resolveBasketGalleryUrls } from '@/utils/basket-gallery';
 import { createToggleColumn } from '@/shared/ui/table-data/data-table-toggle-cell';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
@@ -32,6 +33,21 @@ export const basketColumns = (
   deletingId?: number | null,
   onEdit?: (row: any) => void
 ): ColumnDef<BasketFormValues>[] => [
+  {
+    id: 'image',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.image')} />,
+    cell: ({ row }) => {
+      const urls = resolveBasketGalleryUrls(row.original);
+      const img = urls[0];
+      return img ? (
+        <img src={img} alt="" className="h-10 w-10 rounded-lg border border-border/50 object-cover" />
+      ) : (
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted text-xs text-muted-foreground">
+          —
+        </div>
+      );
+    },
+  },
   {
     id: 'name',
     accessorKey: 'name',

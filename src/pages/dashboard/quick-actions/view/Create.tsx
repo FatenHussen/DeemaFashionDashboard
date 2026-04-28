@@ -6,6 +6,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Iconify } from '@/shared/components/iconify';
 import { useParams, useNavigate } from 'react-router';
+import { compressImage } from '@/utils/compress-image';
 import { _PageSectionApi } from '@/pages/dashboard/sections/api/page-section.services';
 
 import { paths } from 'src/routes/paths';
@@ -143,14 +144,21 @@ export default function CreatePage() {
 
   const onSubmit = async (data: QuickActionCreateFormValues | QuickActionUpdateFormValues) => {
     try {
+      const icon =
+        data.icon instanceof File ? await compressImage(data.icon) : data.icon;
+      const withIcon = { ...data, icon } as
+        | QuickActionCreateFormValues
+        | QuickActionUpdateFormValues;
       if (isEditMode && id) {
         await updateMutation.mutateAsync({
           id,
-          formData: buildUpdateFormData(data as QuickActionUpdateFormValues),
+          formData: buildUpdateFormData(withIcon as QuickActionUpdateFormValues),
         });
         toast.success(t('form.quickActionUpdatedSuccess'));
       } else {
-        await createMutation.mutateAsync(buildCreateFormData(data as QuickActionCreateFormValues));
+        await createMutation.mutateAsync(
+          buildCreateFormData(withIcon as QuickActionCreateFormValues)
+        );
         toast.success(t('form.quickActionCreatedSuccess'));
       }
       navigate(paths.dashboard.quickActions.root);
@@ -177,7 +185,9 @@ export default function CreatePage() {
         errorMessage={errorMessage}
         title={isEditMode ? t('form.quickActionFormTitleEdit') : t('form.quickActionFormTitleCreate')}
         description={
-          isEditMode ? t('form.quickActionFormDescEdit') : t('form.quickActionFormDescCreate')
+          isEditMode
+            ? `${t('form.quickActionFormDescEdit')} ${t('form.quickActionCustomizationHint')}`
+            : `${t('form.quickActionFormDescCreate')} ${t('form.quickActionCustomizationHint')}`
         }
         isEditMode={isEditMode}
         submitLabel={isEditMode ? t('edit') : t('create')}
@@ -234,10 +244,13 @@ export default function CreatePage() {
                   {t('form.quickActionFormPageLabel')}
                 </Typography>
               </Box>
+              <Typography variant="caption" className="text-muted-foreground mb-2 block leading-relaxed">
+                {t('form.quickActionPageSourceHelper')}
+              </Typography>
               <RHFSelect
                 name="page_id"
                 options={pageOptions}
-                placeholder={t('form.quickActionFormPageLabel')}
+                placeholder={t('form.quickActionFormPagePlaceholder')}
               />
             </Box>
 

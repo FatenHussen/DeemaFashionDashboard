@@ -4,6 +4,7 @@ import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
 import { mergeClasses } from 'minimal-shared/utils';
 import { useMemo, useState, useEffect } from 'react';
+import { compressImage } from '@/utils/compress-image';
 import { useUpdateSetting } from '@/pages/dashboard/settings/hooks/setting';
 
 import { Modal } from 'src/shared/ui/modal';
@@ -147,7 +148,9 @@ export function SettingEditModal({ open, onClose, item }: SettingEditModalProps)
           toast.error(t('form.settingsFileSelectRequired'));
           return;
         }
-        await updateMutation.mutateAsync({ key: item.key, value: fileDraft, isFile: true });
+        const value =
+          fileDraft.type.startsWith('image/') ? await compressImage(fileDraft) : fileDraft;
+        await updateMutation.mutateAsync({ key: item.key, value, isFile: true });
         toast.success(t('form.settingsUpdatedSuccess'));
         onClose();
         return;

@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import type { TFunction } from 'i18next';
+import type { ProductDetailData } from '@/pages/dashboard/products/types/product.types';
 
 import { toast } from 'react-toastify';
 import { Button } from '@/shared/ui/button';
@@ -8,6 +9,7 @@ import { useTranslation } from 'react-i18next';
 import { useRef, useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
+import { compressImages } from '@/utils/compress-image';
 import { formatTranslated } from '@/utils/format-translated';
 import { useFetchProductById } from '@/pages/dashboard/products/hooks/product';
 import {
@@ -52,6 +54,29 @@ function productCountrySaleDisplay(product: Record<string, unknown>): ReactNode 
     return typeof c.name === 'string' ? c.name : formatTranslated(c.name as any);
   }
   return '—';
+}
+
+function seoKeywordsLines(kw: ProductDetailData['seo_keywords']): { en?: string; ar?: string } {
+  if (!kw || typeof kw !== 'object') {
+    return {};
+  }
+  const rec = kw as Record<string, unknown>;
+  const part = (v: unknown): string | undefined => {
+    if (v == null) return undefined;
+    if (Array.isArray(v)) {
+      const s = v.map((x) => String(x).trim()).filter(Boolean).join(', ');
+      return s || undefined;
+    }
+    if (typeof v === 'string') {
+      const s = v.trim();
+      return s || undefined;
+    }
+    return undefined;
+  };
+  return {
+    en: part(rec.en),
+    ar: part(rec.ar),
+  };
 }
 
 function boughtWithItemLabel(
@@ -174,9 +199,11 @@ function EditVariantModal({ open, variant, onClose, onSuccess }: EditVariantModa
     }
   }, [open, variant]);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!variant?.id) return;
     const attrIds: number[] = (variant.attributes ?? []).map((a: any) => a.value_id ?? a.id).filter(Boolean);
+    const images =
+      newImages.length > 0 ? await compressImages(newImages) : undefined;
     updateVariant(
       {
         id: variant.id,
@@ -185,7 +212,7 @@ function EditVariantModal({ open, variant, onClose, onSuccess }: EditVariantModa
           is_active: isActive,
           attributes_values_ids: attrIds,
           existing_images_ids: keptImageIds,
-          images: newImages.length > 0 ? newImages : undefined,
+          images,
           sku,
           model,
           barcode,
@@ -565,6 +592,11 @@ export default function DetailsPage() {
     gallery[heroImageIndex]?.url ?? (typeof product.thumbnail === 'string' ? product.thumbnail : undefined);
   const variantCount = Array.isArray(product.variants) ? product.variants.length : 0;
 
+  const seoKw = seoKeywordsLines(product.seo_keywords);
+  const seoImageAlt =
+    [product.seo_title?.en, product.seo_title?.ar].filter(Boolean).join(' — ') ||
+    t('form.productDetailsSeoImage');
+
   const sectionShell =
     'rounded-2xl border border-border/40 bg-card/60 shadow-lg shadow-black/[0.04] ring-1 ring-border/30 backdrop-blur-sm';
 
@@ -803,42 +835,78 @@ export default function DetailsPage() {
             </Box>
 
             {/* SEO */}
-            {(product.seo_title || product.seo_description || product.seo_keywords || product.seo_image) && (
+            {(product.seo_title ||
+              product.seo_description ||
+              product.seo_keywords ||
+              product.seo_image) && (
               <Box className={`p-6 md:p-8 ${sectionShell}`}>
                 <Typography variant="h6" className="font-semibold mb-4 flex items-center gap-2">
                   <Iconify icon="solar:globe-bold" width={20} />
                   {t('form.seoTitle')}
                 </Typography>
-                <Box className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <DetailRow
-                    label={t('form.productDetailsSeoTitleEn')}
-                    value={product.seo_title?.en}
-                    emptyLabel={na}
-                  />
-                  <DetailRow
-                    label={t('form.productDetailsSeoTitleAr')}
-                    value={product.seo_title?.ar}
-                    emptyLabel={na}
-                  />
-                  <DetailRow
-                    label={t('form.productDetailsSeoDescEn')}
-                    value={product.seo_description?.en}
-                    emptyLabel={na}
-                  />
-                  <DetailRow
-                    label={t('form.productDetailsSeoDescAr')}
-                    value={product.seo_description?.ar}
-                    emptyLabel={na}
-                  />
-                </Box>
-                {product.seo_image ? (
-                  <Box className="mt-4">
-                    <Typography variant="body2" className="text-muted-foreground mb-1">
-                      {t('form.productDetailsSeoImage')}
-                    </Typography>
-                    <img src={product.seo_image} alt="" className="max-h-32 rounded-lg border border-border/60" />
+                <Box className="flex flex-col gap-6 lg:flex-row lg:items-start">
+                  <Box className="min-w-0 flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <DetailRow
+                      label={t('form.productDetailsSeoTitleEn')}
+                      value={product.seo_title?.en}
+                      emptyLabel={na}
+                    />
+                    <DetailRow
+                      label={t('form.productDetailsSeoTitleAr')}
+                      value={product.seo_title?.ar}
+                      emptyLabel={na}
+                    />
+                    <DetailRow
+                      label={t('form.productDetailsSeoDescEn')}
+                      value={product.seo_description?.en}
+                      emptyLabel={na}
+                    />
+                    <DetailRow
+                      label={t('form.productDetailsSeoDescAr')}
+                      value={product.seo_description?.ar}
+                      emptyLabel={na}
+                    />
+                    <DetailRow
+                      label={t('form.productDetailsSeoKeywordsEn')}
+                      value={seoKw.en}
+                      emptyLabel={na}
+                    />
+                    <DetailRow
+                      label={t('form.productDetailsSeoKeywordsAr')}
+                      value={seoKw.ar}
+                      emptyLabel={na}
+                    />
                   </Box>
-                ) : null}
+                  {product.seo_image ? (
+                    <Box className="w-full shrink-0 lg:max-w-md">
+                      <Typography variant="body2" className="text-muted-foreground font-medium mb-2">
+                        {t('form.productDetailsSeoImage')}
+                      </Typography>
+                      <a
+                        href={product.seo_image}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block overflow-hidden rounded-lg border border-border/60 bg-muted/20"
+                      >
+                        <img
+                          src={product.seo_image}
+                          alt={seoImageAlt}
+                          className="mx-auto max-h-72 w-full object-contain"
+                        />
+                      </a>
+                      <Typography variant="caption" className="mt-2 block">
+                        <a
+                          href={product.seo_image}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary underline-offset-4 hover:underline"
+                        >
+                          {t('form.productDetailsSeoImageOpenFull')}
+                        </a>
+                      </Typography>
+                    </Box>
+                  ) : null}
+                </Box>
               </Box>
             )}
 
@@ -1231,7 +1299,17 @@ export default function DetailsPage() {
                 />
                 <DetailRow
                   label={t('form.productDetailsUnit')}
-                  value={product.unit ?? '—'}
+                  value={(() => {
+                    const u = product as ProductDetailData & {
+                      unit?: string | null | { id?: number; name?: { en?: string; ar?: string } };
+                    };
+                    const raw = u.unit;
+                    if (raw && typeof raw === 'object' && raw.name) {
+                      return formatTranslated(raw.name as { en?: string; ar?: string });
+                    }
+                    if (typeof raw === 'string' && raw.trim()) return raw;
+                    return '—';
+                  })()}
                   emptyLabel={na}
                 />
                 <DetailRow

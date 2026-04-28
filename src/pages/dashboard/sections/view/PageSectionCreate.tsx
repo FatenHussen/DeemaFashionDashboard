@@ -2,13 +2,12 @@ import type { SectionItem, FilterConfig, PageSectionVariant } from '../types/pag
 
 import { axiosInstance } from '@/api';
 import { toast } from 'react-toastify';
+import { useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
-import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState, useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
-import { useForm , Controller, useFormContext } from 'react-hook-form';
 import { useFetchSectionDetails } from '@/pages/dashboard/sections/hooks/useSections';
 import { RHFInfiniteSelect } from '@/shared/components/hook-form/rhf-infinite-select';
 import { _PageSectionApi } from '@/pages/dashboard/sections/api/page-section.services';
@@ -84,7 +83,6 @@ export default function CreatePage() {
     },
     section_id: '',
     page_id: '',
-    display_type_id: '',
     position: 'after' as const,
     variant: 'vertical' as PageSectionVariant,
     order: 1,
@@ -101,7 +99,6 @@ export default function CreatePage() {
   const { handleSubmit, reset, watch, setValue } = methods;
 
   const watchedSectionId = watch('section_id');
-  const watchedPageId = watch('page_id');
   const sectionIdForDetails =
     typeof watchedSectionId === 'string' ? parseInt(watchedSectionId, 10) : Number(watchedSectionId);
   const { data: sectionDetailsData } = useFetchSectionDetails(sectionIdForDetails || '');
@@ -143,7 +140,6 @@ export default function CreatePage() {
         },
         section_id: ps.section_id ?? ps.section?.id ?? '',
         page_id: ps.page_id ?? ps.page?.id ?? '',
-        display_type_id: pageSection.display_type_id ?? '',
         position: pageSection.position ?? 'after',
         variant: parsePageSectionVariant(ps.variant),
         order: pageSection.order ?? 1,
@@ -173,10 +169,6 @@ export default function CreatePage() {
         section_id:
           typeof data.section_id === 'string' ? parseInt(data.section_id) : data.section_id,
         page_id: typeof data.page_id === 'string' ? parseInt(data.page_id) : data.page_id,
-        display_type_id:
-          typeof data.display_type_id === 'string'
-            ? parseInt(data.display_type_id)
-            : data.display_type_id,
         position: data.position,
         variant: data.variant,
         order: typeof data.order === 'string' ? parseInt(data.order) : data.order,
@@ -374,33 +366,6 @@ export default function CreatePage() {
           </Box>
         </Box>
 
-        {/* ── Section: Display Type ── */}
-        <Box className="rounded-2xl border border-border/50 bg-card/50 shadow-sm">
-          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-sky-500/[0.06] via-sky-500/[0.02] to-transparent">
-            <Box className="h-8 w-8 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center shrink-0">
-              <Iconify icon="solar:gallery-bold" className="text-sky-500" width={15} />
-            </Box>
-            <Typography variant="subtitle2" className="font-semibold text-foreground">
-              {t('form.pageSectionFormDisplayTypeLabel')}
-            </Typography>
-          </Box>
-          <Box className="p-6">
-            <DisplayTypeImageSelect
-              name="display_type_id"
-              pageId={watchedPageId}
-              manualModel={
-                selectedSection?.manual?.manual_model ??
-                (sectionDetailsData?.data as any)?.manual?.manual_model ??
-                null
-              }
-              selectedSection={selectedSection}
-              sectionId={sectionIdForDetails || null}
-              helperText={t('form.selectDisplayHelper')}
-              currentDisplayTypeId={pageSectionData?.data?.display_type_id}
-            />
-          </Box>
-        </Box>
-
         {/* ── Section: Layout ── */}
         <Box className="rounded-2xl border border-border/50 bg-card/50 shadow-sm">
           <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-emerald-500/[0.06] via-emerald-500/[0.02] to-transparent">
@@ -525,148 +490,6 @@ export default function CreatePage() {
   );
 }
 
-function parsePositiveId(value: unknown): number {
-  if (value === null || value === undefined || value === '') return 0;
-  const n = typeof value === 'string' ? parseInt(value, 10) : Number(value);
-  return !Number.isNaN(n) && n > 0 ? n : 0;
-}
-
-function DisplayTypeImageSelect({
-  name,
-  pageId,
-  manualModel,
-  selectedSection,
-  sectionId,
-  helperText,
-  currentDisplayTypeId,
-}: {
-  name: string;
-  pageId?: string | number;
-  manualModel?: string | null;
-  selectedSection: SectionItem | null;
-  sectionId?: number | null;
-  helperText?: string;
-  currentDisplayTypeId?: number;
-}) {
-  const { t } = useTranslation('table');
-  const { control } = useFormContext();
-  const hasSection = !!(selectedSection || sectionId);
-  const hasPage = parsePositiveId(pageId) > 0;
-  const canLoadDisplayTypes = hasSection && hasPage;
-  const displayTypesQuery = useQuery({
-    queryKey: [
-      'pageSection',
-      'displayTypes',
-      manualModel || '',
-      String(pageId ?? ''),
-    ],
-    queryFn: () =>
-      _PageSectionApi.getDisplayTypes(manualModel || undefined, pageId),
-    enabled: canLoadDisplayTypes,
-  });
-
-  const displayTypes = displayTypesQuery.data?.data ?? [];
-
-  return (
-    <Box className="group">
-      <Box className="flex items-center gap-2 mb-2">
-        <Iconify icon="solar:gallery-bold" className="text-primary" width={24} height={24} />
-        <Typography variant="subtitle2" className="font-semibold text-foreground">
-          {t('form.pageSectionFormDisplayTypeLabel')}
-        </Typography>
-      </Box>
-      <Controller
-        name={name}
-        control={control}
-        render={({ field, fieldState: { error } }) => (
-          <Box>
-            {!hasSection ? (
-              <Box className="p-6 border border-dashed rounded-lg text-center">
-                <Iconify
-                  icon="solar:widget-bold"
-                  className="w-12 h-12 text-muted-foreground/50 mx-auto mb-2"
-                />
-                <Typography variant="body2" className="text-muted-foreground">
-                  {t('form.pageSectionSelectSectionForDisplayTypes')}
-                </Typography>
-              </Box>
-            ) : !hasPage ? (
-              <Box className="p-6 border border-dashed rounded-lg text-center">
-                <Iconify
-                  icon="solar:document-bold"
-                  className="w-12 h-12 text-muted-foreground/50 mx-auto mb-2"
-                />
-                <Typography variant="body2" className="text-muted-foreground">
-                  {t('form.pageSectionSelectPageForDisplayTypes')}
-                </Typography>
-              </Box>
-            ) : displayTypesQuery.isLoading ? (
-              <Box className="flex justify-center gap-2 py-8">
-                <Iconify
-                  icon="solar:refresh-circle-bold"
-                  className="w-8 h-8 text-primary animate-spin"
-                />
-                <Typography variant="body2" className="text-muted-foreground">
-                  {t('form.pageSectionLoadingDisplayTypes')}
-                </Typography>
-              </Box>
-            ) : displayTypes.length === 0 ? (
-              <Box className="p-6 border border-dashed rounded-lg text-center">
-                <Typography variant="body2" className="text-muted-foreground">
-                  {t('form.pageSectionNoDisplayTypes')}
-                </Typography>
-              </Box>
-            ) : (
-              <Box className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                {displayTypes.map((dt: { id: number; image_url: string }) => {
-                  const parsedValue = typeof field.value === 'string'
-                    ? parseInt(field.value, 10)
-                    : Number(field.value);
-                  const isSelected = parsedValue > 0 && parsedValue === dt.id;
-                  return (
-                    <button
-                      key={dt.id}
-                      type="button"
-                      onClick={() => field.onChange(dt.id)}
-                      className={`relative rounded-lg border-2 overflow-hidden transition-all hover:border-primary/50 ${
-                        isSelected ? 'border-primary ring-2 ring-primary/20' : 'border-border'
-                      }`}
-                    >
-                      <img
-                        src={dt.image_url}
-                        alt={t('form.displayTypeImageAlt', { id: dt.id })}
-                        className="w-full aspect-[4/3] object-cover"
-                      />
-                      {isSelected && (
-                        <Box className="absolute inset-0 bg-primary/10 flex items-center justify-center">
-                          <Iconify
-                            icon="solar:check-circle-bold"
-                            className="text-primary w-8 h-8"
-                          />
-                        </Box>
-                      )}
-                    </button>
-                  );
-                })}
-              </Box>
-            )}
-            {error && (
-              <Typography variant="caption" className="text-destructive mt-1 block">
-                {error.message}
-              </Typography>
-            )}
-            {!error && helperText && (
-              <Typography variant="caption" className="text-muted-foreground mt-1 block">
-                {helperText}
-              </Typography>
-            )}
-          </Box>
-        )}
-      />
-    </Box>
-  );
-}
-
 function formatFilterItemLabel(raw: string) {
   return raw.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
 }
@@ -696,7 +519,7 @@ function DynamicFilterField({
           type="number"
           value={value || ''}
           onChange={(e) => onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
-          className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+          className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
           placeholder={t('form.filterEnterPlaceholder', { name: nameForPlaceholder })}
         />
       </Box>
@@ -769,5 +592,35 @@ function DynamicFilterField({
     );
   }
 
-  return null;
+  if (filterConfig.type === 'text') {
+    return (
+      <Box className="group">
+        <Typography variant="subtitle2" className="font-semibold text-foreground mb-2">
+          {label}
+        </Typography>
+        <input
+          type="text"
+          value={value != null && value !== undefined ? String(value) : ''}
+          onChange={(e) => onChange(e.target.value === '' ? undefined : e.target.value)}
+          className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+          placeholder={t('form.filterEnterPlaceholder', { name: nameForPlaceholder })}
+        />
+      </Box>
+    );
+  }
+
+  return (
+    <Box className="group">
+      <Typography variant="subtitle2" className="font-semibold text-foreground mb-2">
+        {label}
+      </Typography>
+      <input
+        type="text"
+        value={value != null && value !== undefined ? String(value) : ''}
+        onChange={(e) => onChange(e.target.value === '' ? undefined : e.target.value)}
+        className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+        placeholder={t('form.filterEnterPlaceholder', { name: nameForPlaceholder })}
+      />
+    </Box>
+  );
 }

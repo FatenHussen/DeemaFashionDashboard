@@ -9,6 +9,7 @@ import { mergeClasses } from 'minimal-shared/utils';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm, Controller } from 'react-hook-form';
 import { Iconify } from '@/shared/components/iconify';
+import { compressImage } from '@/utils/compress-image';
 import { _UserApi } from '@/pages/dashboard/users/api/user.services';
 import { useRef, useMemo, useState, useEffect, useCallback } from 'react';
 import { _DriverApi } from '@/pages/dashboard/driver/api/driver.services';
@@ -178,7 +179,12 @@ export default function CreatePage() {
 
   const onSubmit = async (data: NotificationFormValues) => {
     try {
-      await createMutation.mutateAsync(data);
+      const payload = {
+        ...data,
+        media:
+          data.media instanceof File ? await compressImage(data.media) : data.media,
+      };
+      await createMutation.mutateAsync(payload);
       toast.success(t('form.notificationSentSuccess'));
       navigate('/admin-notifications');
     } catch {

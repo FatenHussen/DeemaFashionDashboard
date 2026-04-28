@@ -171,9 +171,9 @@ export function CreateFormLayout<T extends Record<string, any>>({
       >
         {/* Hero Header */}
         <Box className="mb-5">
-          <Box className="relative rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm shadow-sm overflow-hidden">
-            {/* Subtle gradient accent */}
-            <Box className="absolute inset-0 bg-gradient-to-br from-primary/[0.02] via-transparent to-primary/[0.01]" />
+          <Box className="relative rounded-2xl border-2 border-primary/30 bg-gradient-to-br from-primary/[0.08] via-card to-card shadow-md overflow-hidden">
+            {/* Primary accent strip */}
+            <Box className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary/70 via-primary to-primary/70" />
 
             <Box className="relative p-6 md:p-8">
               <Box className="flex items-start justify-between gap-6 flex-wrap">

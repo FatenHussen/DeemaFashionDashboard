@@ -11,8 +11,24 @@ function linearizeChannel(c: number): number {
 }
 
 /** Hex from shop-variant API `label`, e.g. `(Color: #F0E68C | Size: …)`. */
+function coerceHexFromUnknown(v: unknown): string | null {
+  if (v == null || typeof v !== 'string') return null;
+  const s = v.trim();
+  if (/^#?[0-9A-Fa-f]{3,8}$/.test(s)) {
+    const h = s.startsWith('#') ? s : `#${s}`;
+    return h.length > 7 ? h.slice(0, 7).toUpperCase() : h.toUpperCase();
+  }
+  return null;
+}
+
 export function shopVariantOptionColorHex(item: object): string | null {
   const r = item as Record<string, unknown>;
+  const direct =
+    coerceHexFromUnknown(r.color_hex) ??
+    coerceHexFromUnknown(r.hex_color) ??
+    coerceHexFromUnknown((r as { color?: { hex?: string } }).color?.hex);
+  if (direct) return direct;
+
   const label = formatTranslated(r.label as TranslatedValue, '');
   const m = String(label).match(COLOR_HEX_IN_LABEL);
   return m ? m[1].toUpperCase() : null;

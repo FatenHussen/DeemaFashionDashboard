@@ -131,10 +131,17 @@ export default function Page() {
   const filterShops = (shopsIndexResp as { data?: { items?: { id: number; name: string }[] } })?.data
     ?.items ?? [];
 
+  const searchTrim = search.trim();
+  const searchAsId = /^\d+$/.test(searchTrim) ? Number(searchTrim) : null;
+
   const { data: productsResponse, isLoading, isError, error } = useFetchProducts({
     page,
     limit,
-    ...(search.trim() ? { search: search.trim() } : {}),
+    ...(searchAsId != null
+      ? { id: searchAsId }
+      : searchTrim
+        ? { search: searchTrim }
+        : {}),
     ...(approvalStatus ? { approval_status: approvalStatus } : {}),
     ...(categoryFilter ? { category_id: Number(categoryFilter) } : {}),
     ...(brandFilter ? { brand_id: Number(brandFilter) } : {}),

@@ -5,6 +5,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Iconify } from '@/shared/components/iconify';
 import { useParams, useNavigate } from 'react-router';
+import { compressImage } from '@/utils/compress-image';
 import {
   SaleCountryFormSchema,
   type SaleCountryFormValues,
@@ -77,7 +78,7 @@ export default function CreatePage() {
           id,
           data: {
             name: data.name,
-            icon: data.icon instanceof File ? data.icon : undefined,
+            icon: data.icon instanceof File ? await compressImage(data.icon) : undefined,
             is_active: data.is_active,
           },
         });
@@ -90,7 +91,7 @@ export default function CreatePage() {
         }
         await createMutation.mutateAsync({
           name: data.name,
-          icon: data.icon,
+          icon: await compressImage(data.icon),
           is_active: data.is_active,
         });
         toast.success(t('form.saleCountryCreatedSuccess'));

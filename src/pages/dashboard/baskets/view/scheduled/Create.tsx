@@ -8,7 +8,9 @@ import { useMemo, useState, useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Iconify } from '@/shared/components/iconify';
 import { MultiSelect } from '@/shared/ui/multi-select';
+import { compressImage } from '@/utils/compress-image';
 import { formatTranslated } from '@/utils/format-translated';
+import { resolveBasketGalleryUrls } from '@/utils/basket-gallery';
 import { useParams, useNavigate, useLocation } from 'react-router';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { InfiniteScrollSelect } from '@/shared/components/infinite-scroll-select';
@@ -164,6 +166,7 @@ export default function CreatePage() {
     discount_type: 'percentage',
     delivery_price: 0,
     image: null,
+    images: [],
     items: [{ shop_product_variant_id: 0, quantity: 1, shop_product_variant_ids: [], is_required: false, is_extra: false, min_quantity: 0, max_quantity: 0 }],
     schedules: [
       {
@@ -193,9 +196,38 @@ export default function CreatePage() {
   } = useFieldArray({ control, name: 'schedules' });
   const schedulesWatch = watch('schedules');
   const imageValue = watch('image');
+  const extraImageFiles = watch('images') ?? [];
   const categoryIds = watch('category_ids') ?? [];
-  const primaryCategoryId = categoryIds[0] ?? 0;
   const mainBasketDiscountType = watch('discount_type');
+
+  const scheduledSource = scheduledBasketResponse?.data ?? scheduledBasketFromState;
+  const existingGallery = useMemo(
+    () => (isEditMode && scheduledSource ? resolveBasketGalleryUrls(scheduledSource) : []),
+    [isEditMode, scheduledSource]
+  );
+  const [fileImagePreview, setFileImagePreview] = useState<string | null>(null);
+  const [extraImagePreviews, setExtraImagePreviews] = useState<string[]>([]);
+  useEffect(() => {
+    if (!(imageValue instanceof File)) {
+      setFileImagePreview(null);
+      return undefined;
+    }
+    const u = URL.createObjectURL(imageValue);
+    setFileImagePreview(u);
+    return () => URL.revokeObjectURL(u);
+  }, [imageValue]);
+  const extraSig = extraImageFiles.map((f) => `${f.name}:${f.size}`).join('|');
+  useEffect(() => {
+    if (!extraImageFiles.length) {
+      setExtraImagePreviews([]);
+      return undefined;
+    }
+    const urls = extraImageFiles.map((f) => URL.createObjectURL(f));
+    setExtraImagePreviews(urls);
+    return () => {
+      urls.forEach((u) => URL.revokeObjectURL(u));
+    };
+  }, [extraSig]);
 
   const { data: categoriesListResponse } = useQuery({
     queryKey: ['categories', 'scheduled-basket-form-options'],
@@ -232,7 +264,6 @@ export default function CreatePage() {
               page: 1,
               per_page: 500,
               category_ids: categoryIds,
-              category_id: primaryCategoryId,
             })
           : Promise.resolve({
             status: true,
@@ -277,17 +308,6 @@ export default function CreatePage() {
     });
   };
 
-  const [fileImagePreview, setFileImagePreview] = useState<string | null>(null);
-  useEffect(() => {
-    if (!(imageValue instanceof File)) {
-      setFileImagePreview(null);
-      return undefined;
-    }
-    const u = URL.createObjectURL(imageValue);
-    setFileImagePreview(u);
-    return () => URL.revokeObjectURL(u);
-  }, [imageValue]);
-
   useEffect(() => {
     const source = isEditMode ? (scheduledBasketResponse?.data ?? scheduledBasketFromState) : null;
     if (source) {
@@ -313,6 +333,7 @@ export default function CreatePage() {
         discount_type: source.discount_type || 'percentage',
         delivery_price: source.delivery_price || 0,
         image: null,
+        images: [],
         items: combinedLines.length
           ? combinedLines.map(mapScheduledBasketLineItem)
           : [{ shop_product_variant_id: 0, quantity: 1, shop_product_variant_ids: [], is_required: false, is_extra: false, min_quantity: 0, max_quantity: 0 }],
@@ -328,6 +349,13 @@ export default function CreatePage() {
 
   const onSubmit = async (data: ScheduledBasketFormValues) => {
     try {
+      const image =
+        data.image instanceof File ? await compressImage(data.image) : data.image;
+      const images = data.images?.length
+        ? await Promise.all(
+            data.images.map((f) => (f instanceof File ? compressImage(f) : f))
+          )
+        : undefined;
       const payload: ScheduledBasketCreateUpdatePayload = {
         category_ids: data.category_ids,
         category_id: data.category_ids[0],
@@ -336,7 +364,8 @@ export default function CreatePage() {
         discount: data.discount,
         discount_type: data.discount_type,
         delivery_price: data.delivery_price,
-        image: data.image,
+        image,
+        images,
         items: data.items,
         schedules: data.schedules.map((s) => ({
           title: s.title,
@@ -563,11 +592,18 @@ export default function CreatePage() {
               </Typography>
               <RHFTextField name="delivery_price" type="number" placeholder={t('form.placeholderZero')} fullWidth />
             </Box>
-            <Box className="group">
+            <Box className="group md:col-span-2">
               <Box className="flex items-center gap-2 mb-2">
                 <Iconify icon="solar:gallery-add-bold" className="text-amber-500" width={20} height={20} />
                 <Typography variant="subtitle2" className="font-semibold text-foreground">{t('form.basketImage')}</Typography>
               </Box>
+              {isEditMode && existingGallery.length > 0 && (
+                <Box className="mb-3 flex flex-wrap gap-2">
+                  {existingGallery.map((u) => (
+                    <img key={u} src={u} alt="" className="h-16 w-16 rounded-lg border border-border/60 object-cover" />
+                  ))}
+                </Box>
+              )}
               <Controller
                 name="image"
                 control={control}
@@ -579,11 +615,15 @@ export default function CreatePage() {
                       accept="image/jpeg,image/png,image/jpg,image/gif"
                       onChange={(e) => { const file = e.target.files?.[0]; onChange(file || null); }}
                       error={!!error}
-                      helperText={error?.message || t('form.basketImageHelper')}
+                      helperText={error?.message || t('form.basketImageHelperPrimary')}
                       fullWidth
                     />
                     {(() => {
-                      const displaySrc = fileImagePreview || (!(imageValue instanceof File) && (scheduledBasketResponse?.data?.image || scheduledBasketFromState?.image));
+                      const displaySrc =
+                        fileImagePreview ||
+                        (!(value instanceof File) && isEditMode
+                          ? scheduledBasketResponse?.data?.image || scheduledBasketFromState?.image || existingGallery[0]
+                          : null);
                       return displaySrc ? (
                         <Box className="mt-3">
                           <Box className="relative inline-block">
@@ -593,6 +633,35 @@ export default function CreatePage() {
                         </Box>
                       ) : null;
                     })()}
+                  </div>
+                )}
+              />
+              <Typography variant="caption" className="mt-2 block text-muted-foreground">
+                {t('form.basketAdditionalImagesLabel')}
+              </Typography>
+              <Controller
+                name="images"
+                control={control}
+                render={({ field: { onChange, value, ...field }, fieldState: { error } }) => (
+                  <div className="w-full">
+                    <Input
+                      {...field}
+                      value=""
+                      type="file"
+                      accept="image/jpeg,image/png,image/jpg,image/gif"
+                      multiple
+                      onChange={(e) => onChange(e.target.files ? Array.from(e.target.files) : [])}
+                      error={!!error}
+                      helperText={error?.message || t('form.basketAdditionalImagesHelper')}
+                      fullWidth
+                    />
+                    {extraImagePreviews.length > 0 && (
+                      <Box className="mt-2 flex flex-wrap gap-2">
+                        {extraImagePreviews.map((u, i) => (
+                          <img key={`${u}-${i}`} src={u} alt="" className="h-16 w-16 rounded-lg border border-border/60 object-cover" />
+                        ))}
+                      </Box>
+                    )}
                   </div>
                 )}
               />
@@ -800,7 +869,6 @@ export default function CreatePage() {
                                 page,
                                 per_page: perPage,
                                 category_ids: categoryIds,
-                                category_id: primaryCategoryId,
                               });
                             }}
                             placeholder={t('form.variantId')}

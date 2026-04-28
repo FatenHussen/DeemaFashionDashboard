@@ -3,6 +3,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 import type { ComplaintItem } from '@/pages/dashboard/complaints/types/complaint.types';
 
 import { z } from 'zod';
+import { TableTonedStatusPill } from '@/shared/components/table-status-badges';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 import {
@@ -84,16 +85,16 @@ export const complaintColumns = (
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.status')} />,
     cell: ({ row }) => {
       const status = row.original.status;
-      const variant =
+      const cfg =
         status === 'new'
-          ? 'bg-amber-500/20 text-amber-600'
+          ? { icon: 'solar:letter-unread-bold', className: 'border-amber-700 bg-amber-500' }
           : status === 'resolved'
-            ? 'bg-green-500/20 text-green-600'
-            : 'bg-red-500/20 text-red-600';
+            ? { icon: 'solar:check-circle-bold', className: 'border-emerald-800 bg-emerald-600' }
+            : { icon: 'solar:close-circle-bold', className: 'border-red-800 bg-red-600' };
       return (
-        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${variant}`}>
+        <TableTonedStatusPill icon={cfg.icon} className={cfg.className}>
           {translateComplaintStatus(status, t)}
-        </span>
+        </TableTonedStatusPill>
       );
     },
   },

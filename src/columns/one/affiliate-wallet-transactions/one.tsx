@@ -38,8 +38,8 @@ const RowSchema = z.object({
 });
 
 const typeColors: Record<string, string> = {
-  commission: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400',
-  withdraw: 'bg-slate-100 text-slate-800 dark:bg-slate-800/60 dark:text-slate-200',
+  commission: 'bg-black text-white',
+  withdraw: 'bg-black text-white',
 };
 
 const detailsPath = paths.dashboard.affiliateWalletTransactions;
@@ -93,7 +93,7 @@ export const affiliateWalletTransactionColumns = (
     cell: ({ row }) => (
       <span
         className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-          typeColors[row.original.type] ?? 'bg-muted text-muted-foreground'
+          typeColors[row.original.type] ?? 'bg-black text-white'
         }`}
       >
         {t(`form.affiliateWalletTxType_${row.original.type}`, { defaultValue: row.original.type })}

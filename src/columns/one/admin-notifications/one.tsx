@@ -4,6 +4,7 @@ import type { NotificationItem } from '@/pages/dashboard/admin-notifications/typ
 
 import { z } from 'zod';
 import { formatTranslated } from '@/utils/format-translated';
+import { TableTonedStatusPill } from '@/shared/components/table-status-badges';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 import { notificationTypeLabel } from '@/pages/dashboard/admin-notifications/utils/type-labels';
@@ -12,17 +13,17 @@ const NotificationRowSchema = z.object({
   id: z.number(),
 });
 
-const TYPE_COLORS: Record<string, string> = {
-  all: 'bg-blue-500/10 text-blue-600 border-blue-500/20',
-  user: 'bg-green-500/10 text-green-600 border-green-500/20',
-  driver: 'bg-orange-500/10 text-orange-600 border-orange-500/20',
-  vendor: 'bg-purple-500/10 text-purple-600 border-purple-500/20',
+const TYPE_PILL: Record<string, { icon: string; className: string }> = {
+  all: { icon: 'solar:users-group-rounded-bold', className: 'border-blue-800 bg-blue-600' },
+  user: { icon: 'solar:user-bold', className: 'border-emerald-800 bg-emerald-600' },
+  driver: { icon: 'solar:delivery-bold', className: 'border-orange-800 bg-orange-600' },
+  vendor: { icon: 'solar:shop-bold', className: 'border-violet-800 bg-violet-600' },
 };
 
-const CHANNEL_COLORS: Record<string, string> = {
-  fcm: 'bg-orange-500/10 text-orange-600 border-orange-500/20',
-  sms: 'bg-blue-500/10 text-blue-600 border-blue-500/20',
-  email: 'bg-purple-500/10 text-purple-600 border-purple-500/20',
+const CHANNEL_PILL: Record<string, { icon: string; className: string }> = {
+  fcm: { icon: 'solar:bell-bold', className: 'border-orange-800 bg-orange-600' },
+  sms: { icon: 'solar:chat-round-bold', className: 'border-blue-800 bg-blue-600' },
+  email: { icon: 'solar:letter-bold', className: 'border-violet-800 bg-violet-600' },
 };
 
 export interface NotificationFormValues extends NotificationItem {
@@ -79,28 +80,29 @@ export const adminNotificationColumns = (
       if (parts.length === 0) return <span className="text-muted-foreground">—</span>;
       if (parts.length === 1) {
         const key = parts[0]!;
+        const cfg = TYPE_PILL[key] ?? {
+          icon: 'solar:tag-bold',
+          className: 'border-slate-600 bg-slate-500',
+        };
         return (
-          <span
-            className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${
-              TYPE_COLORS[key] ?? 'bg-muted text-muted-foreground border-border'
-            }`}
-          >
+          <TableTonedStatusPill icon={cfg.icon} className={cfg.className}>
             {notificationTypeLabel(key, t)}
-          </span>
+          </TableTonedStatusPill>
         );
       }
       return (
         <div className="flex flex-wrap gap-1 max-w-md">
-          {parts.map((key) => (
-            <span
-              key={key}
-              className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${
-                TYPE_COLORS[key] ?? 'bg-muted text-muted-foreground border-border'
-              }`}
-            >
-              {notificationTypeLabel(key, t)}
-            </span>
-          ))}
+          {parts.map((key) => {
+            const cfg = TYPE_PILL[key] ?? {
+              icon: 'solar:tag-bold',
+              className: 'border-slate-600 bg-slate-500',
+            };
+            return (
+              <TableTonedStatusPill key={key} icon={cfg.icon} className={cfg.className}>
+                {notificationTypeLabel(key, t)}
+              </TableTonedStatusPill>
+            );
+          })}
         </div>
       );
     },
@@ -115,16 +117,17 @@ export const adminNotificationColumns = (
       const channels: string[] = row.original.channels ?? [];
       return (
         <div className="flex flex-wrap gap-1">
-          {channels.map((ch) => (
-            <span
-              key={ch}
-              className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${
-                CHANNEL_COLORS[ch] ?? 'bg-muted text-muted-foreground border-border'
-              }`}
-            >
-              {ch.toUpperCase()}
-            </span>
-          ))}
+          {channels.map((ch) => {
+            const cfg = CHANNEL_PILL[ch] ?? {
+              icon: 'solar:tag-bold',
+              className: 'border-slate-600 bg-slate-500',
+            };
+            return (
+              <TableTonedStatusPill key={ch} icon={cfg.icon} className={cfg.className}>
+                {ch.toUpperCase()}
+              </TableTonedStatusPill>
+            );
+          })}
         </div>
       );
     },

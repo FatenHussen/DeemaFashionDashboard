@@ -40,7 +40,7 @@ export interface PageSectionDetailsResponse {
 }
 
 export interface FilterConfig {
-  type: 'select' | 'number';
+  type: 'select' | 'number' | 'text';
   /** When set, options are loaded from this API path (relative to API base). */
   url?: string;
   /** Static enum options for `select` filters (no URL). */
@@ -82,20 +82,6 @@ export interface PagesResponse {
   data: Page[];
 }
 
-export interface DisplayType {
-  id: number;
-  image_url: string;
-  manual_model?: string;
-  fields?: string[];
-  created_at?: string;
-}
-
-export interface DisplayTypesResponse {
-  status: boolean;
-  message: string;
-  data: DisplayType[];
-}
-
 export interface PageSectionCreateUpdatePayload {
   name: {
     en: string;
@@ -103,7 +89,6 @@ export interface PageSectionCreateUpdatePayload {
   };
   section_id: string | number;
   page_id: string | number;
-  display_type_id: number;
   position: 'before' | 'after';
   variant: PageSectionVariant;
   order: number;

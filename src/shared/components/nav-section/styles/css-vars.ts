@@ -4,36 +4,36 @@ import { varAlpha } from 'minimal-shared/utils';
 
 export const bulletColor = { dark: '#282F37', light: '#EDEFF2' };
 
-// Sidebar nav — active states use brand primary #FFA000
+// Sidebar nav — active states use brand primary (darker orange for readability)
 const palette = {
   text: {
-    primary: 'rgb(33, 43, 54)',
-    secondary: 'rgb(74, 85, 104)',
-    disabled: 'rgb(145, 158, 171)',
+    primary: 'rgb(17, 24, 39)',
+    secondary: 'rgb(55, 65, 81)',
+    disabled: 'rgb(107, 114, 128)',
   },
   primary: {
-    main: 'rgb(255, 160, 0)',
-    mainChannel: '255 160 0',
-    light: 'rgb(255, 194, 71)',
+    main: 'rgb(194, 120, 0)',
+    mainChannel: '194 120 0',
+    light: 'rgb(229, 150, 30)',
   },
   action: {
-    hover: 'rgba(255, 160, 0, 0.08)',
-    selected: 'rgba(255, 160, 0, 0.12)',
+    hover: 'rgba(194, 120, 0, 0.08)',
+    selected: 'rgba(194, 120, 0, 0.12)',
   },
 };
 
 function colorVars(variant?: 'vertical' | 'mini' | 'horizontal'): React.CSSProperties {
   return {
     '--nav-item-color': palette.text.secondary,
-    '--nav-item-hover-bg': 'rgba(255, 160, 0, 0.08)',
+    '--nav-item-hover-bg': 'rgba(194, 120, 0, 0.08)',
     '--nav-item-caption-color': palette.text.disabled,
     // root
     '--nav-item-root-active-color': palette.primary.main,
     '--nav-item-root-active-color-on-dark': palette.primary.light,
-    '--nav-item-root-active-bg': 'rgba(255, 160, 0, 0.12)',
-    '--nav-item-root-active-hover-bg': 'rgba(255, 160, 0, 0.16)',
+    '--nav-item-root-active-bg': 'rgba(194, 120, 0, 0.12)',
+    '--nav-item-root-active-hover-bg': 'rgba(194, 120, 0, 0.16)',
     '--nav-item-root-open-color': palette.text.primary,
-    '--nav-item-root-open-bg': 'rgba(255, 160, 0, 0.06)',
+    '--nav-item-root-open-bg': 'rgba(194, 120, 0, 0.06)',
     // sub
     '--nav-item-sub-active-color': palette.primary.main,
     '--nav-item-sub-active-bg': varAlpha(palette.primary.mainChannel, 0.08),

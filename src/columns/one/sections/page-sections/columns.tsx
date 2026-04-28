@@ -3,7 +3,9 @@ import type { ColumnDef } from '@tanstack/react-table';
 
 import { z } from 'zod';
 import { formatTranslated } from '@/utils/format-translated';
+import { TableTonedStatusPill } from '@/shared/components/table-status-badges';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
+import { sectionTypeLabel } from '@/pages/dashboard/sections/utils/section-type-label';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 
 const PageSectionSchema = z.object({
@@ -13,7 +15,6 @@ const PageSectionSchema = z.object({
   variant: z.enum(['vertical', 'horizontal', 'square']).optional(),
   position: z.enum(['before', 'after']).optional(),
   order: z.number().optional(),
-  display_type_id: z.number().optional(),
   manual_model: z.string().optional(),
 });
 
@@ -31,13 +32,24 @@ export interface PageSectionFormValues {
   variant?: 'vertical' | 'horizontal' | 'square';
   position?: 'before' | 'after';
   order?: number;
-  display_type_id?: number;
   manual_model?: string;
   filters?: Record<string, unknown> | unknown[] | null;
   background_color?: string | null;
   background_card_color?: string | null;
   [key: string]: any;
 }
+
+const pageSectionTypePill: Record<NonNullable<PageSectionFormValues['type']>, { icon: string; className: string }> =
+  {
+    api: {
+      icon: 'solar:code-bold',
+      className: 'border-blue-800 bg-blue-600 dark:border-blue-300',
+    },
+    manual: {
+      icon: 'solar:book-bookmark-bold',
+      className: 'border-violet-800 bg-violet-600 dark:border-violet-300',
+    },
+  };
 
 export const pageSectionColumns = (
   permissions: {
@@ -74,16 +86,12 @@ export const pageSectionColumns = (
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.type')} />,
     cell: ({ row }) => {
       const type = row.original.type;
+      if (!type) return <span className="text-muted-foreground">—</span>;
+      const pill = pageSectionTypePill[type];
       return (
-        <div
-          className={`text-xs px-2 py-1 rounded-full w-fit uppercase ${
-            type === 'api'
-              ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
-              : 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400'
-          }`}
-        >
-          {type}
-        </div>
+        <TableTonedStatusPill icon={pill.icon} className={pill.className}>
+          {sectionTypeLabel(t, type)}
+        </TableTonedStatusPill>
       );
     },
   },

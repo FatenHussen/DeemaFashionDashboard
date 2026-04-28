@@ -5,6 +5,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
+import { compressImage } from '@/utils/compress-image';
 import {
   LanguageSchema,
   type LanguageSchemaType,
@@ -90,7 +91,8 @@ export default function CreatePage() {
         direction: data.direction,
         is_active: data.is_active,
         is_default: data.is_default,
-        flag_icon: data.flag_icon instanceof File ? data.flag_icon : undefined,
+        flag_icon:
+          data.flag_icon instanceof File ? await compressImage(data.flag_icon) : undefined,
       };
 
       if (isEditMode && id) {

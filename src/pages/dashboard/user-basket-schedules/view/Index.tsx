@@ -8,6 +8,8 @@ import {
   useSetUserBasketScheduleActive,
 } from '@/pages/dashboard/user-basket-schedules/hooks/user-basket-schedule';
 
+import { paths } from 'src/routes/paths';
+
 import { CONFIG } from 'src/global-config';
 
 export default function Page() {
@@ -65,7 +67,8 @@ export default function Page() {
               : null,
         })}
         data={rawItems as UserBasketScheduleTableItem[]}
-        hasDetails={false}
+        hasDetails
+        detailsLink={`${paths.dashboard.userBasketSchedules}/details`}
         permissions={{
           create: false,
           update: hasPermission('update', 'userbasketschedule'),
@@ -76,8 +79,10 @@ export default function Page() {
           id: t('columns.id'),
           user: t('columns.user'),
           name: t('form.basketLabel'),
+          items_preview: t('columns.itemsPreview'),
           num_varieties: t('columns.varieties'),
           original_price: t('columns.originalPrice'),
+          discount_amount: t('columns.discountAmount'),
           final_price: t('columns.finalPrice'),
           discount: t('columns.discount'),
           schedule: t('form.scheduleLabel'),

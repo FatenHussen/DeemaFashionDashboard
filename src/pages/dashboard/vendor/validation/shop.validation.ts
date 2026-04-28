@@ -32,6 +32,12 @@ const bilingualSchema = (arMsg: string, enMsg: string) =>
     en: zod.string().min(1, { message: enMsg }),
   });
 
+const optionalBilingualSchema = () =>
+  zod.object({
+    ar: zod.string().optional().default(''),
+    en: zod.string().optional().default(''),
+  });
+
 const DayScheduleSchema = zod.object({
   open: zod.string().optional(),
   close: zod.string().optional(),
@@ -64,24 +70,33 @@ export const ShopSchema = zod.object({
     }, t('shop.logoFormat')),
   name: bilingualSchema(t('shop.nameArRequired'), t('shop.nameEnRequired')),
   description: bilingualSchema(t('shop.descriptionArRequired'), t('shop.descriptionEnRequired')),
-  address: bilingualSchema(t('shop.addressArRequired'), t('shop.addressEnRequired')),
-  lat: zod.coerce.number({ required_error: t('shop.latRequired') }),
-  lng: zod.coerce.number({ required_error: t('shop.lngRequired') }),
-  phone: zod.string().min(1, { message: t('shop.phoneRequired') }),
+  address: optionalBilingualSchema(),
+  lat: zod.preprocess(
+    (v) =>
+      v === '' || v === null || v === undefined || Number.isNaN(Number(v)) ? undefined : v,
+    zod.coerce.number().optional()
+  ),
+  lng: zod.preprocess(
+    (v) =>
+      v === '' || v === null || v === undefined || Number.isNaN(Number(v)) ? undefined : v,
+    zod.coerce.number().optional()
+  ),
+  phone: zod.string().default(''),
   mobile: zod
     .string()
-    .min(1, { message: t('shop.mobileRequired') })
-    .refine(isValidShopMobile, { message: t('shop.invalidMobileFormat') }),
+    .default('')
+    .refine((v) => !v?.trim() || isValidShopMobile(v), { message: t('shop.invalidMobileFormat') }),
   email: zod
     .string()
-    .min(1, { message: t('shop.emailRequired') })
-    .email({ message: t('shop.emailInvalid') }),
+    .default('')
+    .refine(
+      (v) => v.trim() === '' || zod.string().email().safeParse(v).success,
+      { message: t('shop.emailInvalid') }
+    ),
   working_hours: WorkingHoursSchema,
   is_active: zod.boolean(),
-  area_id: zod.coerce.number().min(1, { message: t('shop.areaRequired') }),
-  service_ids: zod
-    .array(zod.object({ id: zod.number() }))
-    .min(1, { message: t('shop.atLeastOneService') }),
+  area_id: zod.coerce.number().min(0),
+  service_ids: zod.array(zod.object({ id: zod.number() })).default([]),
   badges: zod.array(zod.number()).default([]),
   /** UI only; API receives `is_restaurant` (true when restaurant). */
   shop_type: zod.enum(['restaurant', 'service_provider', 'store']),

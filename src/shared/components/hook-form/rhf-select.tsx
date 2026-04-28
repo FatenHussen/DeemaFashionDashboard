@@ -28,10 +28,16 @@ export function RHFSelect({
     <Controller
       name={name}
       control={control}
-      render={({ field, fieldState: { error } }) => (
+      render={({ field, fieldState: { error } }) => {
+        const selectValue =
+          field.value === '' || field.value == null ? undefined : String(field.value);
+        return (
         <div className={className}>
           <Select
-            value={field.value === '' || field.value == null ? undefined : String(field.value)}
+            // Radix Select can stay visually empty when the controlled value is set in the same
+            // tick as `reset()`. Remounting when the value changes forces the trigger to show it.
+            key={`rhf-sel-${name}-${selectValue ?? 'empty'}`}
+            value={selectValue}
             onValueChange={field.onChange}
             disabled={disabled}
           >
@@ -55,7 +61,8 @@ export function RHFSelect({
             </Typography>
           )}
         </div>
-      )}
+        );
+      }}
     />
   );
 }

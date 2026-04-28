@@ -40,6 +40,11 @@ export const _BasketApi = {
     if (data.offer_ends_at) formData.append('offer_ends_at', data.offer_ends_at);
     if (data.delivery_price !== undefined) formData.append('delivery_price', String(data.delivery_price));
     if (data.image instanceof File) formData.append('image', data.image);
+    if (data.images?.length) {
+      data.images.forEach((file) => {
+        if (file instanceof File) formData.append('images[]', file);
+      });
+    }
 
     data.items.forEach((item, i) => {
       formData.append(`items[${i}][shop_product_variant_id]`, String(item.shop_product_variant_id));
@@ -77,6 +82,11 @@ export const _BasketApi = {
     if (data.offer_ends_at) formData.append('offer_ends_at', data.offer_ends_at);
     if (data.delivery_price !== undefined) formData.append('delivery_price', String(data.delivery_price));
     if (data.image instanceof File) formData.append('image', data.image);
+    if (data.images?.length) {
+      data.images.forEach((file) => {
+        if (file instanceof File) formData.append('images[]', file);
+      });
+    }
 
     data.items.forEach((item, i) => {
       formData.append(`items[${i}][shop_product_variant_id]`, String(item.shop_product_variant_id));

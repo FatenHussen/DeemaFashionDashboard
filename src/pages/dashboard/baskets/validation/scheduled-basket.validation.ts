@@ -25,6 +25,7 @@ export const ScheduledBasketSchema = z
   discount_type: z.enum(['fixed', 'percentage']),
   delivery_price: z.coerce.number().min(0).optional(),
   image: z.instanceof(File).optional().or(z.literal('')).or(z.null()),
+  images: z.array(z.instanceof(File)).optional().default([]),
   items: z
     .array(
       z.object({

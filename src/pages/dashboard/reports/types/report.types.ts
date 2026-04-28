@@ -16,6 +16,9 @@ export interface SalesReportData {
   total_delivery_fees: number;
   total_discounts: number;
   average_order_value: number;
+  total_cost?: number;
+  total_expenses?: number;
+  net_profit?: number;
   orders: SalesReportOrder[];
 }
 

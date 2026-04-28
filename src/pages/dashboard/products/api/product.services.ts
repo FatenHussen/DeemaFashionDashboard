@@ -36,7 +36,9 @@ const buildProductFormData = (data: ProductCreateUpdatePayload): FormData => {
   formData.append('name[ar]', data.name.ar);
   formData.append('description[en]', data.description.en);
   formData.append('description[ar]', data.description.ar);
-  formData.append('price', data.price.toString());
+  if (data.price !== undefined && data.price !== null && !Number.isNaN(Number(data.price))) {
+    formData.append('price', String(data.price));
+  }
   formData.append('quantity', data.quantity.toString());
   formData.append('is_instant_delivery', data.is_instant_delivery.toString());
 
@@ -51,7 +53,9 @@ const buildProductFormData = (data: ProductCreateUpdatePayload): FormData => {
   if (data.cost_price !== undefined && data.cost_price !== null) {
     formData.append('cost_price', String(data.cost_price));
   }
-  formData.append('unit', data.unit ?? '');
+  if (data.unit_id != null && data.unit_id > 0) {
+    formData.append('unit_id', String(data.unit_id));
+  }
   if (data.warranty_period !== undefined && data.warranty_period !== null) {
     formData.append('warranty_period', String(data.warranty_period));
   }
@@ -219,6 +223,8 @@ export type ProductListQueryParams = {
   approval_status?: string;
   is_visible?: boolean | number | string;
   search?: string;
+  /** When set, list is filtered to this product id (numeric search in UI). */
+  id?: number;
   sort_field?: string;
   sort_order?: string;
   sortField?: string;

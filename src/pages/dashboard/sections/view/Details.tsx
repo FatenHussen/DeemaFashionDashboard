@@ -64,7 +64,24 @@ export default function DetailsPage() {
   const { t } = useTranslation('table');
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { data: sectionResponse, isLoading, error } = useFetchSectionDetails(id || '');
+  const numericId = id && /^\d+$/.test(String(id).trim()) ? String(id).trim() : '';
+
+  const { data: sectionResponse, isLoading, error } = useFetchSectionDetails(numericId);
+
+  if (!numericId) {
+    return (
+      <Box className="flex items-center justify-center min-h-[400px] p-6">
+        <Box className="w-full max-w-md rounded-xl border border-border/50 bg-background p-6 shadow-lg">
+          <Typography variant="h6" className="mb-2 text-destructive">
+            {t('form.sectionDetailsInvalidId')}
+          </Typography>
+          <Button variant="outlined" onClick={() => navigate('/sections')}>
+            {t('form.backToSliders')}
+          </Button>
+        </Box>
+      </Box>
+    );
+  }
 
   if (isLoading) {
     return <LoadingScreen />;

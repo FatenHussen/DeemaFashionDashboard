@@ -4,6 +4,7 @@ import type { DriverWalletTransactionItem } from '@/pages/dashboard/driver-walle
 
 import { z } from 'zod';
 import { Link } from 'react-router';
+import { Iconify } from '@/shared/components/iconify';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 import { DriverCreativeAvatar } from '@/pages/dashboard/driver-wallet-transactions/components/driver-creative-avatar';
@@ -36,9 +37,17 @@ const RowSchema = z.object({
   type: z.string(),
 });
 
-const typeColors: Record<string, string> = {
-  paid_by_user: 'bg-sky-100 text-sky-900 dark:bg-sky-900/35 dark:text-sky-200',
-  paid_by_system: 'bg-violet-100 text-violet-900 dark:bg-violet-900/35 dark:text-violet-200',
+const typeStyles: Record<string, { wrap: string; icon: string; iconWrap: string }> = {
+  paid_by_user: {
+    wrap: 'border-cyan-300/80 bg-gradient-to-r from-cyan-500/20 via-sky-500/15 to-blue-500/20 text-black dark:border-cyan-500/40 dark:from-cyan-500/25 dark:via-sky-500/20 dark:to-blue-500/25 dark:text-black',
+    icon: 'solar:user-circle-bold',
+    iconWrap: 'bg-cyan-500/90 text-white',
+  },
+  paid_by_system: {
+    wrap: 'border-violet-300/80 bg-gradient-to-r from-violet-500/20 via-fuchsia-500/15 to-indigo-500/20 text-black dark:border-violet-500/40 dark:from-violet-500/25 dark:via-fuchsia-500/20 dark:to-indigo-500/25 dark:text-violet-100',
+    icon: 'solar:shield-check-bold',
+    iconWrap: 'bg-violet-500/90 text-white',
+  },
 };
 
 const detailsPath = paths.dashboard.driverWalletTransactions;
@@ -87,15 +96,23 @@ export const driverWalletTransactionColumns = (
     id: 'type',
     accessorKey: 'type',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.type')} />,
-    cell: ({ row }) => (
-      <span
-        className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-          typeColors[row.original.type] ?? 'bg-muted text-muted-foreground'
-        }`}
-      >
-        {t(`form.driverWalletTxType_${row.original.type}`, { defaultValue: row.original.type })}
-      </span>
-    ),
+    cell: ({ row }) => {
+      const style = typeStyles[row.original.type];
+      return (
+        <span
+          className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold shadow-sm ${
+            style?.wrap ?? 'border-border bg-muted text-muted-foreground'
+          }`}
+        >
+          {style ? (
+            <span className={`inline-flex h-4.5 w-4.5 items-center justify-center rounded-full ${style.iconWrap}`}>
+              <Iconify icon={style.icon} width={12} height={12} />
+            </span>
+          ) : null}
+          {t(`form.driverWalletTxType_${row.original.type}`, { defaultValue: row.original.type })}
+        </span>
+      );
+    },
   },
   {
     id: 'amount',

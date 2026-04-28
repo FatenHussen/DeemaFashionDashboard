@@ -16,23 +16,24 @@ import { LoadingScreen } from 'src/shared/components/loading-screen';
 
 // ----------------------------------------------------------------------
 
+const walletHeroGradient =
+  'from-primary/20 via-amber-400/15 to-background dark:from-primary/30 dark:via-amber-900/30 dark:to-background';
+
 const heroByType: Record<
   string,
   { gradient: string; ring: string; icon: string; glow: string }
 > = {
   commission: {
-    gradient:
-      'from-emerald-500/[0.18] via-teal-500/[0.08] to-background dark:from-emerald-500/25 dark:via-teal-950/40 dark:to-background',
-    ring: 'ring-emerald-500/25',
+    gradient: walletHeroGradient,
+    ring: 'ring-primary/25',
     icon: 'solar:wallet-money-bold',
-    glow: 'bg-emerald-400/30',
+    glow: 'bg-primary/25',
   },
   withdraw: {
-    gradient:
-      'from-amber-500/[0.18] via-orange-500/[0.08] to-background dark:from-amber-500/20 dark:via-orange-950/35 dark:to-background',
-    ring: 'ring-amber-500/25',
+    gradient: walletHeroGradient,
+    ring: 'ring-primary/25',
     icon: 'solar:card-transfer-bold',
-    glow: 'bg-amber-400/25',
+    glow: 'bg-amber-400/20',
   },
 };
 
@@ -91,8 +92,7 @@ export default function DetailsPage() {
   const item = response?.data;
 
   const hero = heroByType[item?.type ?? ''] ?? {
-    gradient:
-      'from-primary/15 via-violet-500/10 to-background dark:from-primary/25 dark:via-violet-950/30 dark:to-background',
+    gradient: walletHeroGradient,
     ring: 'ring-primary/20',
     icon: 'solar:wallet-bold',
     glow: 'bg-primary/25',
@@ -164,7 +164,7 @@ export default function DetailsPage() {
           />
           <div
             className={cn(
-              'pointer-events-none absolute -bottom-20 -left-10 h-56 w-56 rounded-full bg-violet-500/15 blur-3xl dark:bg-violet-500/10'
+              'pointer-events-none absolute -bottom-20 -left-10 h-56 w-56 rounded-full bg-amber-400/20 blur-3xl dark:bg-amber-700/15'
             )}
           />
 

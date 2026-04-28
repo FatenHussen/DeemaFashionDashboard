@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
 import { DataTable } from '@/shared/ui/table-data/table-data';
+import { TableTonedStatusPill } from '@/shared/components/table-status-badges';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 
 import { paths } from 'src/routes/paths';
@@ -41,15 +42,15 @@ const WALLET_CARDS = [
 const STATUS_CONFIG: Record<WithdrawStatus, { icon: string; className: string }> = {
   pending: {
     icon: 'solar:hourglass-bold',
-    className: 'bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800/50 text-amber-700 dark:text-amber-300',
+    className: 'border-amber-700 bg-amber-500',
   },
   paid: {
     icon: 'solar:check-circle-bold',
-    className: 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/50 text-emerald-700 dark:text-emerald-300',
+    className: 'border-emerald-800 bg-emerald-600',
   },
   rejected: {
     icon: 'solar:close-circle-bold',
-    className: 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800/50 text-red-700 dark:text-red-300',
+    className: 'border-red-800 bg-red-600',
   },
 };
 
@@ -143,10 +144,9 @@ export default function VendorAccountingVendorDetailsPage() {
               ? t('withdrawStatusPaid')
               : t('withdrawStatusRejected');
         return (
-          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border w-fit ${config.className}`}>
-            <Iconify icon={config.icon} width={14} height={14} />
-            <span className="text-xs font-medium">{statusLabel}</span>
-          </div>
+          <TableTonedStatusPill icon={config.icon} className={config.className}>
+            {statusLabel}
+          </TableTonedStatusPill>
         );
       },
     },

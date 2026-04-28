@@ -5,6 +5,7 @@ import type { FaqItem } from '@/pages/dashboard/content/types/faq.types';
 import { z } from 'zod';
 import { formatTranslated } from '@/utils/format-translated';
 import { faqTypeLabel } from '@/pages/dashboard/content/utils/faq-type-label';
+import { TableTonedStatusPill } from '@/shared/components/table-status-badges';
 import { createToggleColumn } from '@/shared/ui/table-data/data-table-toggle-cell';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
@@ -15,14 +16,14 @@ export interface FaqFormValues extends FaqItem {
   [key: string]: any;
 }
 
-const TYPE_COLORS: Record<string, string> = {
-  orders: 'bg-blue-500/10 text-blue-600 border-blue-500/20',
-  delivery: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
-  payments: 'bg-amber-500/10 text-amber-600 border-amber-500/20',
-  account: 'bg-violet-500/10 text-violet-600 border-violet-500/20',
-  'stores&drivers': 'bg-orange-500/10 text-orange-600 border-orange-500/20',
-  'stores & drivers': 'bg-orange-500/10 text-orange-600 border-orange-500/20',
-  other: 'bg-muted text-muted-foreground border-border',
+const TYPE_PILL: Record<string, { icon: string; className: string }> = {
+  orders: { icon: 'solar:cart-bold', className: 'border-blue-800 bg-blue-600' },
+  delivery: { icon: 'solar:delivery-bold', className: 'border-emerald-800 bg-emerald-600' },
+  payments: { icon: 'solar:wallet-bold', className: 'border-amber-800 bg-amber-500' },
+  account: { icon: 'solar:user-bold', className: 'border-violet-800 bg-violet-600' },
+  'stores&drivers': { icon: 'solar:shop-bold', className: 'border-orange-800 bg-orange-600' },
+  'stores & drivers': { icon: 'solar:shop-bold', className: 'border-orange-800 bg-orange-600' },
+  other: { icon: 'solar:question-circle-bold', className: 'border-slate-600 bg-slate-500' },
 };
 
 export const faqColumns = (
@@ -40,12 +41,11 @@ export const faqColumns = (
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.type')} />,
     cell: ({ row }) => {
       const type = row.original.type;
+      const cfg = TYPE_PILL[type] ?? TYPE_PILL.other;
       return (
-        <span
-          className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${TYPE_COLORS[type] ?? TYPE_COLORS.other}`}
-        >
+        <TableTonedStatusPill icon={cfg.icon} className={cfg.className}>
           {faqTypeLabel(t, type)}
-        </span>
+        </TableTonedStatusPill>
       );
     },
   },

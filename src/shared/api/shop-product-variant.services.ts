@@ -12,7 +12,9 @@ export interface ShopProductVariantItem {
   cost_price?: number | null;
   /** Present on list/detail payloads from API */
   variant_image?: string | null;
-  product?: { image?: string | null };
+  product?: { image?: string | null; brand?: string | { name?: string | { ar?: string; en?: string } } };
+  /** May be present on list/detail — avoids extra brand fetches */
+  brand?: string | { name?: string | { ar?: string; en?: string } };
   sku?: string | null;
   model?: string | null;
   barcode?: string | null;
@@ -34,8 +36,12 @@ export interface ShopProductVariantListResponse {
 }
 
 /** Appends API pricing fields to the option label (order: price · discount · price_after_discount). */
-function formatShopProductVariantListLabel(item: ShopProductVariantItem): string {
+function formatShopProductVariantListLabel(
+  item: ShopProductVariantItem,
+  includePricing = true
+): string {
   const base = typeof item.label === 'string' ? item.label : String(item.label ?? '');
+  if (!includePricing) return base;
   const bits: string[] = [];
   if (item.price != null) bits.push(String(item.price));
   if (item.discount != null) bits.push(String(item.discount));
@@ -89,16 +95,30 @@ export const _ShopProductVariantApi = {
     category_id?: number;
     /** When set, backend may filter variants in any of these categories */
     category_ids?: number[];
+    /** When false, dropdown shows product/variant name only (no appended price numbers). */
+    include_pricing_in_label?: boolean;
   }): Promise<ShopProductVariantListResponse> => {
     const page = params?.page ?? 1;
     const perPage = params?.per_page ?? 10;
     try {
-      const { category_ids, ...rest } = params ?? {};
-      const query: Record<string, unknown> = { ...rest };
+      const { category_ids, include_pricing_in_label, ...rest } = params ?? {};
+      const includePricing = include_pricing_in_label !== false;
+      const restQuery = { ...rest } as Record<string, string | number | boolean | undefined>;
+      delete (restQuery as { include_pricing_in_label?: boolean }).include_pricing_in_label;
       if (category_ids?.length) {
-        query.category_ids = category_ids;
+        delete restQuery.category_id;
       }
-      const response = await axiosInstance.get(apiRoutes.shopProductVariant.list, { params: query });
+      const usp = new URLSearchParams();
+      Object.entries(restQuery).forEach(([k, v]) => {
+        if (v === undefined || v === null) return;
+        usp.append(k, String(v));
+      });
+      if (category_ids?.length) {
+        category_ids.forEach((id) => usp.append('category_ids[]', String(id)));
+      }
+      const qs = usp.toString();
+      const listUrl = qs ? `${apiRoutes.shopProductVariant.list}?${qs}` : apiRoutes.shopProductVariant.list;
+      const response = await axiosInstance.get(listUrl);
       const data = response?.data;
       if (!data?.data?.items || !Array.isArray(data.data.items)) {
         return emptyResponse(page, perPage);
@@ -111,7 +131,7 @@ export const _ShopProductVariantApi = {
             id: typeof i.id === 'number' ? i.id : Number(i.id),
             label: typeof i.label === 'string' ? i.label : String(i.label ?? ''),
           };
-          return { ...row, label: formatShopProductVariantListLabel(row) };
+          return { ...row, label: formatShopProductVariantListLabel(row, includePricing) };
         })
         .filter((i: ShopProductVariantItem) => Number.isFinite(i.id) && i.id > 0);
       return {

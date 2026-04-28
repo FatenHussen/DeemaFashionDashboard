@@ -4,15 +4,16 @@ import type { ActivityLogItem } from '@/pages/dashboard/activity-logs/types/acti
 
 import { Button } from '@/shared/ui/button';
 import { Iconify } from '@/shared/components/iconify';
+import { TableTonedStatusPill } from '@/shared/components/table-status-badges';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 
-const actionColors: Record<string, string> = {
-  created: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-  Created: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-  updated: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-  Updated: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-  deleted: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
-  Deleted: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+const actionPill: Record<string, { icon: string; className: string }> = {
+  created: { icon: 'solar:add-circle-bold', className: 'border-emerald-800 bg-emerald-600' },
+  Created: { icon: 'solar:add-circle-bold', className: 'border-emerald-800 bg-emerald-600' },
+  updated: { icon: 'solar:pen-bold', className: 'border-sky-800 bg-sky-600' },
+  Updated: { icon: 'solar:pen-bold', className: 'border-sky-800 bg-sky-600' },
+  deleted: { icon: 'solar:trash-bin-trash-bold', className: 'border-red-800 bg-red-600' },
+  Deleted: { icon: 'solar:trash-bin-trash-bold', className: 'border-red-800 bg-red-600' },
 };
 
 export type ActivityLogColumnsOptions = {
@@ -42,11 +43,18 @@ export const activityLogColumns = (
     id: 'action',
     accessorKey: 'action',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.action')} />,
-    cell: ({ row }) => (
-      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${actionColors[row.original.action] ?? 'bg-muted text-muted-foreground'}`}>
-        {row.original.action}
-      </span>
-    ),
+    cell: ({ row }) => {
+      const a = row.original.action;
+      const cfg = actionPill[a] ?? {
+        icon: 'solar:bolt-bold',
+        className: 'border-slate-600 bg-slate-500',
+      };
+      return (
+        <TableTonedStatusPill icon={cfg.icon} className={cfg.className}>
+          {a}
+        </TableTonedStatusPill>
+      );
+    },
   },
   {
     id: 'model',

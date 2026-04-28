@@ -31,7 +31,7 @@ export interface OrdersByStatus {
 
 export interface TopShop {
   id: number;
-  name: { ar: string; en: string };
+  name: string | { ar?: string | null; en?: string | null };
   total_orders: number;
   average_rating: number;
   is_active: boolean;

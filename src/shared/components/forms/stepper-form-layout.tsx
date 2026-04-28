@@ -157,13 +157,14 @@ export function StepperFormLayout<T extends Record<string, any>>({
         {/* Header */}
         <Box className="mb-6 sm:mb-8">
           <Box
-            className={`rounded-2xl border border-border/60 bg-card/80 backdrop-blur-sm shadow-sm ${
-              isFullWidth ? 'overflow-hidden ring-1 ring-primary/[0.06]' : ''
+            className={`relative rounded-2xl border-2 border-primary/30 bg-gradient-to-br from-primary/[0.08] via-card to-card shadow-md overflow-hidden ${
+              isFullWidth ? 'ring-1 ring-primary/10' : ''
             }`}
           >
+            <Box className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary/70 via-primary to-primary/70" />
             <Box
-              className={`flex items-start justify-between gap-4 sm:gap-6 flex-wrap p-4 sm:p-6 ${
-                isFullWidth ? 'md:p-8 bg-gradient-to-br from-card via-card to-primary/[0.03]' : ''
+              className={`relative flex items-start justify-between gap-4 sm:gap-6 flex-wrap p-4 sm:p-6 ${
+                isFullWidth ? 'md:p-8' : ''
               }`}
             >
               <Box className="flex items-start gap-4 flex-1 min-w-0">

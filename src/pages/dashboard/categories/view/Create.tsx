@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Iconify } from '@/shared/components/iconify';
+import { compressImage } from '@/utils/compress-image';
 import { formatTranslated } from '@/utils/format-translated';
 import { useMemo, useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router';
@@ -158,12 +159,14 @@ export default function CreatePage() {
 
   const onSubmit = async (data: CategoryFormValues) => {
     try {
+      const icon =
+        data.icon instanceof File ? await compressImage(data.icon) : data.icon || null;
       const payload = {
         name: {
           en: data.name.en,
           ar: data.name.ar,
         },
-        icon: data.icon || null,
+        icon,
         parent_id: data.parent_id || null,
         order: data.order ?? 0,
         is_active: data.is_active,

@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Iconify } from '@/shared/components/iconify';
+import { compressImage } from '@/utils/compress-image';
 import { useParams, useNavigate, useLocation } from 'react-router';
 import { stripBilingualDescriptionForForm } from '@/utils/optional-bilingual-api-placeholder';
 import {
@@ -118,7 +119,8 @@ export default function CreatePage() {
       const payload = {
         title: { en: data.title.en, ar: data.title.ar },
         description: { en: data.description.en, ar: data.description.ar },
-        image: data.image instanceof File ? data.image : null,
+        image:
+          data.image instanceof File ? await compressImage(data.image) : null,
         link: data.link,
         expires_at: data.expires_at?.trim() ?? '',
       };

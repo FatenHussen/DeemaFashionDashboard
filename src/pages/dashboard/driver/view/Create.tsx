@@ -6,6 +6,7 @@ import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
 import { useForm, Controller } from 'react-hook-form';
 import { MultiSelect } from '@/shared/ui/multi-select';
+import { compressImage } from '@/utils/compress-image';
 import { formatTranslated } from '@/utils/format-translated';
 import { useFetchShops } from '@/pages/dashboard/vendor/hooks/shop';
 import { useFetchCities } from '@/pages/dashboard/locations/hooks/city';
@@ -173,6 +174,12 @@ export default function CreatePage() {
 
   const onSubmit = async (data: DriverFormValues) => {
     try {
+      const image =
+        data.image instanceof File ? await compressImage(data.image) : undefined;
+      const vehicle_image =
+        data.vehicle_image instanceof File
+          ? await compressImage(data.vehicle_image)
+          : undefined;
       const payload = {
         name: data.name,
         phone: data.phone,
@@ -185,8 +192,8 @@ export default function CreatePage() {
         vehicle_name: data.vehicle_name ?? '',
         vehicle_type: data.vehicle_type ?? '',
         vehicle_number: data.vehicle_number ?? '',
-        ...(data.image instanceof File ? { image: data.image } : {}),
-        ...(data.vehicle_image instanceof File ? { vehicle_image: data.vehicle_image } : {}),
+        ...(image ? { image } : {}),
+        ...(vehicle_image ? { vehicle_image } : {}),
         ...(!isEditMode && data.shop_ids && data.shop_ids.length > 0
           ? { shop_ids: data.shop_ids }
           : {}),

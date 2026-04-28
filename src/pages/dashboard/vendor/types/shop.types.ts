@@ -98,10 +98,15 @@ export interface ShopData {
 export function normalizeShopTypeFromApi(
   shop: Pick<ShopData, 'shop_type' | 'is_restaurant' | 'is_service_provider'>
 ): ShopType {
-  const raw = String(shop.shop_type ?? '').toLowerCase();
-  if (raw === 'restaurant' || raw === 'service_provider' || raw === 'store') {
-    return raw;
+  const raw = String(shop.shop_type ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, '_');
+  if (raw === 'restaurant' || raw === 'service_provider' || raw === 'store') return raw;
+  if (raw === 'serviceprovider' || raw === 'provider' || raw === 'service') {
+    return 'service_provider';
   }
+  if (raw === 'shop') return 'store';
   if (shop.is_restaurant) return 'restaurant';
   if (shop.is_service_provider) return 'service_provider';
   return 'store';
@@ -183,8 +188,8 @@ export interface ShopCreateUpdatePayload {
     ar: string;
     en: string;
   };
-  lat: number;
-  lng: number;
+  lat?: number;
+  lng?: number;
   phone: string;
   mobile: string;
   email: string;

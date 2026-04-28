@@ -5,6 +5,7 @@ import type { SubscriptionListItem } from '@/pages/dashboard/subscriptions/types
 import { z } from 'zod';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
+import { TableActiveBadge, TableTonedStatusPill } from '@/shared/components/table-status-badges';
 
 const pkgDisplayName = (name: SubscriptionListItem['package']['name']): string => {
   if (!name) return '';
@@ -113,21 +114,20 @@ export const subscriptionColumns = (t: TFunction<'table'>): ColumnDef<Subscripti
     accessorKey: 'status',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.status')} />,
     cell: ({ row }) => {
-      const status = row.original.status;
-      const colorClass =
+      const status = String(row.original.status);
+      const label = subscriptionStatusLabel(status, t);
+      const cfg =
         status === 'active'
-          ? 'bg-green-500/20 text-green-600'
+          ? { icon: 'solar:check-circle-bold', className: 'border-emerald-800 bg-emerald-600' }
           : status === 'expired'
-            ? 'bg-muted text-muted-foreground'
+            ? { icon: 'solar:calendar-minimalistic-bold', className: 'border-slate-600 bg-slate-500' }
             : status === 'cancelled'
-              ? 'bg-red-500/20 text-red-600'
-              : 'bg-yellow-500/20 text-yellow-600';
+              ? { icon: 'solar:close-circle-bold', className: 'border-red-800 bg-red-600' }
+              : { icon: 'solar:clock-circle-bold', className: 'border-amber-700 bg-amber-500' };
       return (
-        <span
-          className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${colorClass}`}
-        >
-          {subscriptionStatusLabel(String(status), t)}
-        </span>
+        <TableTonedStatusPill icon={cfg.icon} className={cfg.className}>
+          {label}
+        </TableTonedStatusPill>
       );
     },
   },
@@ -138,13 +138,11 @@ export const subscriptionColumns = (t: TFunction<'table'>): ColumnDef<Subscripti
     cell: ({ row }) => {
       const isActive = row.original.is_active;
       return (
-        <span
-          className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-            isActive ? 'bg-green-500/20 text-green-600' : 'bg-red-500/20 text-red-600'
-          }`}
-        >
-          {isActive ? t('active') : t('inactive')}
-        </span>
+        <TableActiveBadge
+          isActive={Boolean(isActive)}
+          activeLabel={t('active')}
+          inactiveLabel={t('inactive')}
+        />
       );
     },
   },

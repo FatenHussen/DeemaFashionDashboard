@@ -11,10 +11,16 @@ export const _SectionApi = {
   getListSections: async (
     page: number = 1,
     perPage: number = 25,
-    search?: string
+    search?: string,
+    categoryId?: number
   ): Promise<SectionListResponse> => {
     const response = await axiosInstance.get<SectionListResponse>(apiRoutes.section.list, {
-      params: { page, per_page: perPage, ...(search?.trim() ? { search: search.trim() } : {}) },
+      params: {
+        page,
+        per_page: perPage,
+        ...(search?.trim() ? { search: search.trim() } : {}),
+        ...(categoryId != null && categoryId > 0 ? { category_id: categoryId } : {}),
+      },
     });
     return response.data;
   },

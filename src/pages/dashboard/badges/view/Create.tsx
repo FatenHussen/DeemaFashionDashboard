@@ -5,6 +5,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Iconify } from '@/shared/components/iconify';
 import { useParams, useNavigate } from 'react-router';
+import { compressImage } from '@/utils/compress-image';
 import {
   BadgeSchema,
   type BadgeFormValues,
@@ -120,7 +121,7 @@ export default function CreatePage() {
         if (data.name?.en || data.name?.ar) payload.name = data.name;
         if (data.color) payload.color = data.color;
       } else {
-        if (data.image instanceof File) payload.image = data.image;
+        if (data.image instanceof File) payload.image = await compressImage(data.image);
       }
 
       if (isEditMode && id) {

@@ -2,6 +2,7 @@ import type { TFunction } from 'i18next';
 import type { ColumnDef } from '@tanstack/react-table';
 
 import { z } from 'zod';
+import { TableActiveBadge } from '@/shared/components/table-status-badges';
 import { createToggleColumn } from '@/shared/ui/table-data/data-table-toggle-cell';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
@@ -76,9 +77,11 @@ export const scheduleColumns = (
     accessorKey: 'is_active',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.status')} />,
     cell: ({ row }) => (
-      <span className={`px-2 py-1 rounded-full text-xs font-medium ${row.original.is_active ? 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300' : 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300'}`}>
-        {row.original.is_active ? t('active') : t('inactive')}
-      </span>
+      <TableActiveBadge
+        isActive={row.original.is_active}
+        activeLabel={t('active')}
+        inactiveLabel={t('inactive')}
+      />
     ),
   },
   {

@@ -9,7 +9,9 @@ export const _UserBasketScheduleApi = {
   },
 
   getById: async (id: number | string): Promise<UserBasketScheduleDetailsResponse> => {
-    const response = await axiosInstance.get(apiRoutes.userBasketSchedule.details(id));
+    const response = await axiosInstance.get<UserBasketScheduleDetailsResponse>(
+      apiRoutes.userBasketSchedule.details(id)
+    );
     return response.data;
   },
 

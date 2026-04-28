@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -6,7 +5,10 @@ import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { formatTranslated } from '@/utils/format-translated';
+import { useRef, useMemo, useState, useEffect, useCallback } from 'react';
+import { InfiniteScrollSelect } from '@/shared/components/infinite-scroll-select';
 import { _CategoryApi } from '@/pages/dashboard/categories/api/category.services';
+import { useFetchCategories, useFetchCategoryById } from '@/pages/dashboard/categories/hooks/category';
 import {
   CategoryDetailSchema,
   type CategoryDetailFormValues,
@@ -25,19 +27,23 @@ import { RHFInfiniteSelect } from 'src/shared/components/hook-form/rhf-infinite-
 
 // ----------------------------------------------------------------------
 
-const categoryFetcher = (page: number, limit: number) =>
-  _CategoryApi.getListCategoriesPaginated({ page, per_page: limit }).then((r) => ({
+const rootCategoryFetcher = (page: number, limit: number) =>
+  _CategoryApi.getListCategoriesPaginated({ page, per_page: limit, parent_id: null }).then((r) => ({
     data: {
       items: r.data.items.map((cat) => ({ id: cat.id, label: cat.name })),
       pagination: r.data.pagination,
     },
   }));
 
+type SubmitAction = 'back' | 'stay';
+
 export default function CreatePage() {
   const { t } = useTranslation('table');
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
+  const submitActionRef = useRef<SubmitAction>('back');
   const isEditMode = !!id;
+  const [mainCategoryId, setMainCategoryId] = useState(0);
 
   // Hooks for fetching and mutations
   const { data: categoryDetailData, isLoading: isLoadingDetail } =
@@ -59,7 +65,50 @@ export default function CreatePage() {
     defaultValues,
   });
 
-  const { handleSubmit, reset, control } = methods;
+  const { handleSubmit, reset, control, watch, setValue } = methods;
+  const categoryId = watch('category_id');
+  const categoryMetaId = categoryId && Number(categoryId) > 0 ? Number(categoryId) : 0;
+
+  const { data: selectedCategoryResp } = useFetchCategoryById(categoryMetaId > 0 ? categoryMetaId : '');
+
+  const { data: subcategoriesListResp, isLoading: isLoadingSubCats } = useFetchCategories(
+    1,
+    10,
+    mainCategoryId > 0 ? { parent_id: mainCategoryId } : undefined,
+    { enabled: mainCategoryId > 0 }
+  );
+
+  const hasChildCategories = useMemo(() => {
+    if (mainCategoryId <= 0) return false;
+    const items = subcategoriesListResp?.data?.items ?? [];
+    const total = subcategoriesListResp?.data?.pagination?.total;
+    if (typeof total === 'number') return total > 0;
+    return items.length > 0;
+  }, [mainCategoryId, subcategoriesListResp]);
+
+  const mainCategoryInitialLabel = useMemo(() => {
+    const category = selectedCategoryResp?.data;
+    if (!isEditMode || !category) return undefined;
+    if (category.parent_id && category.parent) {
+      return formatTranslated(category.parent.name);
+    }
+    return formatTranslated(category.name);
+  }, [isEditMode, selectedCategoryResp?.data]);
+
+  const childCategoryFetcher = useCallback(
+    (page: number, limit: number) =>
+      _CategoryApi.getListCategoriesPaginated({
+        page,
+        per_page: limit,
+        parent_id: mainCategoryId,
+      }).then((r) => ({
+        data: {
+          items: r.data.items.map((cat) => ({ id: cat.id, label: cat.name })),
+          pagination: r.data.pagination,
+        },
+      })),
+    [mainCategoryId]
+  );
 
   const { fields: valueOptionFields, append: appendValueOption, remove: removeValueOption } =
     useFieldArray({ control, name: 'value_options' });
@@ -83,6 +132,20 @@ export default function CreatePage() {
       });
     }
   }, [categoryDetailData, isEditMode, isLoadingDetail, reset]);
+
+  useEffect(() => {
+    if (!selectedCategoryResp?.data) return;
+    const category = selectedCategoryResp.data;
+    const parentId = category.parent_id != null && Number(category.parent_id) > 0 ? Number(category.parent_id) : 0;
+    setMainCategoryId(parentId > 0 ? parentId : Number(category.id));
+  }, [selectedCategoryResp?.data]);
+
+  useEffect(() => {
+    if (mainCategoryId <= 0 || isLoadingSubCats) return;
+    if (!hasChildCategories) {
+      setValue('category_id', mainCategoryId);
+    }
+  }, [mainCategoryId, hasChildCategories, isLoadingSubCats, setValue]);
 
   const isSubmitting =
     createCategoryDetailMutation.isPending || updateCategoryDetailMutation.isPending;
@@ -109,11 +172,15 @@ export default function CreatePage() {
       if (isEditMode && id) {
         await updateCategoryDetailMutation.mutateAsync({ id, data: payload });
         toast.success(t('form.categoryDetailUpdatedSuccess'));
-        navigate('/categories/details');
+        if (submitActionRef.current === 'back') {
+          navigate('/categories/details');
+        }
       } else {
         await createCategoryDetailMutation.mutateAsync(payload);
         toast.success(t('form.categoryDetailCreatedSuccess'));
-        navigate('/categories/details');
+        if (submitActionRef.current === 'back') {
+          navigate('/categories/details');
+        }
       }
     } catch (error: any) {
       console.error('Error saving category detail:', error);
@@ -151,9 +218,19 @@ export default function CreatePage() {
         submitLabel={
           isEditMode ? t('form.updateCategoryDetailSubmit') : t('form.createCategoryDetailSubmit')
         }
+        secondarySubmitLabel={t('save')}
         submittingLabel={
           isEditMode ? t('form.updatingCategoryDetail') : t('form.creatingCategoryDetail')
         }
+        secondarySubmittingLabel={
+          isEditMode ? t('form.updatingCategoryDetail') : t('form.creatingCategoryDetail')
+        }
+        onSubmitButtonClick={() => {
+          submitActionRef.current = 'back';
+        }}
+        onSecondarySubmitButtonClick={() => {
+          submitActionRef.current = 'stay';
+        }}
       >
         {/* ── Section: Category ── */}
         <Box className="rounded-2xl border border-border/50 bg-card/50 shadow-sm">
@@ -170,22 +247,54 @@ export default function CreatePage() {
               <Box className="flex items-center gap-2 mb-2">
                 <Iconify icon="solar:diagram-bold" className="text-violet-500" width={20} height={20} />
                 <Typography variant="subtitle2" className="font-semibold text-foreground">
-                  {t('form.categoryLabel')}
+                  {t('form.productMainCategory')}
                 </Typography>
               </Box>
-              <RHFInfiniteSelect
-                name="category_id"
-                queryKey={['categories', 'infinite', 'detail-form']}
-                fetcher={categoryFetcher}
-                placeholder={t('form.selectCategory')}
-                helperText={t('form.categoryDetailHelper')}
-                initialLabel={
-                  categoryDetailData?.data?.category?.name
-                    ? formatTranslated(categoryDetailData.data.category.name)
-                    : undefined
-                }
+              <InfiniteScrollSelect
+                value={mainCategoryId}
+                onChange={(val) => {
+                  setMainCategoryId(val);
+                  setValue('category_id', 0);
+                }}
+                queryKey={['categories', 'infinite', 'category-detail-form', 'roots']}
+                fetcher={rootCategoryFetcher}
+                placeholder={t('form.selectMainCategory')}
+                initialLabel={mainCategoryInitialLabel}
               />
             </Box>
+            {hasChildCategories ? (
+              <Box className="group mt-4">
+                <Box className="flex items-center gap-2 mb-2">
+                  <Iconify icon="solar:diagram-up-bold" className="text-violet-500" width={20} height={20} />
+                  <Typography variant="subtitle2" className="font-semibold text-foreground">
+                    {t('form.productSubcategory')}
+                  </Typography>
+                </Box>
+                <RHFInfiniteSelect
+                  name="category_id"
+                  queryKey={[
+                    'categories',
+                    'infinite',
+                    'category-detail-form',
+                    'children',
+                    mainCategoryId,
+                  ]}
+                  fetcher={childCategoryFetcher}
+                  placeholder={t('form.selectSubcategory')}
+                  helperText={t('form.categoryDetailHelper')}
+                  disabled={!mainCategoryId}
+                  initialLabel={
+                    categoryDetailData?.data?.category?.name
+                      ? formatTranslated(categoryDetailData.data.category.name)
+                      : undefined
+                  }
+                />
+              </Box>
+            ) : mainCategoryId > 0 && !isLoadingSubCats ? (
+              <Typography variant="caption" className="text-muted-foreground block mt-3">
+                {t('form.productCategoryUsesMainOnly')}
+              </Typography>
+            ) : null}
           </Box>
         </Box>
 

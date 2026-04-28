@@ -78,13 +78,18 @@ export const badgeColumns = (
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('form.badgePositionLabel')} />,
     cell: ({ row }) => {
       const pos = row.original.position;
+      const isTop = pos === 'top';
       return (
-        <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium ${
-          pos === 'top'
-            ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-            : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+        <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-bold ${
+          isTop
+            ? 'border-blue-300 bg-blue-100 text-black dark:border-blue-500/50 dark:bg-blue-500/20 dark:text-black'
+            : 'border-amber-300 bg-amber-100 text-black dark:border-amber-500/50 dark:bg-amber-500/20 dark:text-black'
         }`}>
-          {pos === 'top' ? t('form.badgePositionTop') : t('form.badgePositionBottom')}
+          <span
+            className={`h-1.5 w-1.5 rounded-full ${isTop ? 'bg-blue-600 dark:bg-blue-300' : 'bg-amber-600 dark:bg-amber-300'}`}
+            aria-hidden
+          />
+          {isTop ? t('form.badgePositionTop') : t('form.badgePositionBottom')}
         </span>
       );
     },

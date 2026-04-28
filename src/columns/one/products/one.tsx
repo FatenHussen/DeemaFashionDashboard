@@ -251,12 +251,43 @@ export const brandColumns = (
 function ProductPriceCell({
   productId,
   currentPrice,
+  priceFormatted,
+  currency,
+  currencySymbol,
   onOpenVariantsModal,
 }: {
   productId: number;
   currentPrice: number;
+  priceFormatted?: string | null;
+  currency?: string | null;
+  currencySymbol?: string | null;
   onOpenVariantsModal: (id: number, listRowPrice: number) => void;
 }) {
+  const displayPrice = (() => {
+    const apiFormatted = String(priceFormatted ?? '').trim();
+    if (apiFormatted) return apiFormatted;
+    const amount = Number(currentPrice);
+    if (!Number.isFinite(amount)) return '—';
+    const locale = navigator.language || 'en-US';
+    if (currency && currency.length === 3) {
+      try {
+        return new Intl.NumberFormat(locale, {
+          style: 'currency',
+          currency,
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        }).format(amount);
+      } catch {
+        // Fallback to a manual symbol + number string when currency code is not supported.
+      }
+    }
+    const compact = new Intl.NumberFormat(locale, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amount);
+    return `${currencySymbol ?? '$'} ${compact}`;
+  })();
+
   return (
     <button
       type="button"
@@ -272,7 +303,9 @@ function ProductPriceCell({
         width={16}
         height={16}
       />
-      <span className="text-sm font-semibold text-foreground">ل.س {currentPrice}</span>
+      <span className="text-sm font-semibold text-foreground" dir="ltr">
+        {displayPrice}
+      </span>
       <Iconify
         icon="solar:layers-minimalistic-bold"
         className="text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
@@ -332,6 +365,16 @@ export const productColumns = (
     },
   },
   {
+    id: 'id',
+    accessorKey: 'id',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
+    cell: ({ row }) => (
+      <span className="tabular-nums text-sm font-medium text-foreground" dir="ltr">
+        {row.original.id}
+      </span>
+    ),
+  },
+  {
     id: 'name',
     accessorKey: 'name',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.name')} />,
@@ -370,6 +413,9 @@ export const productColumns = (
       <ProductPriceCell
         productId={row.original.id}
         currentPrice={row.original.price}
+        priceFormatted={row.original.price_formatted}
+        currency={row.original.currency}
+        currencySymbol={row.original.currency_symbol}
         onOpenVariantsModal={onOpenVariantsModal}
       />
     ),
@@ -411,34 +457,6 @@ export const productColumns = (
         </div>
       );
     },
-  },
-  {
-    id: 'sku',
-    accessorKey: 'sku',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.sku')} />,
-    cell: ({ row }) => (
-      <span className="text-sm text-muted-foreground font-mono">
-        {row.original.sku || 'N/A'}
-      </span>
-    ),
-  },
-  {
-    id: 'created_at',
-    accessorKey: 'created_at',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.createdAt')} />,
-    cell: ({ row }) => (
-      <div className="flex items-center gap-2">
-        <Iconify
-          icon="solar:calendar-date-bold"
-          className="text-muted-foreground flex-shrink-0"
-          width={16}
-          height={16}
-        />
-        <span className="text-sm text-muted-foreground">
-          {new Date(row.original.created_at).toLocaleDateString()}
-        </span>
-      </div>
-    ),
   },
   ...(permissions.update
     ? [createToggleColumn<ProductFormValues>({ entityType: 'product' })]

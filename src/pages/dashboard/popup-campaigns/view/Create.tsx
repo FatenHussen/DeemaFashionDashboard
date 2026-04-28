@@ -1,4 +1,5 @@
 import type { FieldErrors } from 'react-hook-form';
+import type { PopupCampaignDetail } from '../types';
 
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
@@ -6,10 +7,11 @@ import { useParams, useNavigate } from 'react-router';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Iconify } from '@/shared/components/iconify';
-import { useMemo, useState, useEffect, useCallback } from 'react';
+import { compressImage } from '@/utils/compress-image';
 import { RHFSelect } from '@/shared/components/hook-form/rhf-select';
 import { RHFTextField } from '@/shared/components/hook-form/rhf-text-field';
 import { useFetchPages } from '@/pages/dashboard/sections/hooks/usePageSections';
+import { useMemo, useState, useEffect, useCallback, useLayoutEffect } from 'react';
 
 import { paths } from 'src/routes/paths';
 
@@ -44,15 +46,17 @@ import {
 // ----------------------------------------------------------------------
 
 function toLoc(v: unknown): { en: string; ar: string } {
-  if (v && typeof v === 'object' && v !== null && 'en' in v) {
-    const o = v as { en?: string; ar?: string };
-    return { en: o.en ?? '', ar: o.ar ?? '' };
+  if (v && typeof v === 'object' && v !== null) {
+    const o = v as { en?: unknown; ar?: unknown };
+    if ('en' in o || 'ar' in o) {
+      return { en: o.en != null ? String(o.en) : '', ar: o.ar != null ? String(o.ar) : '' };
+    }
   }
   if (typeof v === 'string') {
     try {
       const p = JSON.parse(v) as { en?: string; ar?: string };
-      if (p && typeof p === 'object' && p !== null && 'en' in p) {
-        return { en: p.en ?? '', ar: p.ar ?? '' };
+      if (p && typeof p === 'object' && p !== null && ('en' in p || 'ar' in p)) {
+        return { en: p.en != null ? String(p.en) : '', ar: p.ar != null ? String(p.ar) : '' };
       }
     } catch {
       /* plain string */
@@ -110,9 +114,7 @@ function appendLocaleField(
 }
 
 function buildFormData(
-  data: PopupCampaignCreateFormValues | PopupCampaignUpdateFormValues,
-  isUpdate: boolean,
-  options?: { existingMediaPath?: string | null }
+  data: PopupCampaignCreateFormValues | PopupCampaignUpdateFormValues
 ): FormData {
   const fd = new FormData();
   const slug = (data.slug ?? '').trim() || slugify(data.title.en);
@@ -150,14 +152,76 @@ function buildFormData(
   fd.append('max_impressions', String(data.max_impressions ?? 0));
 
   const file = 'media' in data && data.media instanceof File ? data.media : null;
+  // Laravel validates `media_path` as an uploaded file; do not send a string path (breaks on update).
   if (file) {
-    fd.append('media', file);
-    fd.append('media_path', '__pending_upload__');
-  } else if (isUpdate && options?.existingMediaPath) {
-    fd.append('media_path', String(options.existingMediaPath));
+    fd.append('media_path', file);
   }
 
   return fd;
+}
+
+/** Map API detail to update form. */
+function mapDetailToFormValues(d: PopupCampaignDetail): PopupCampaignUpdateFormValues {
+  const raw = d as unknown as Record<string, unknown>;
+  const pages = toStringArray(d.show_on_pages ?? raw['show_on_pages']);
+  const fields = toStringArray(
+    d.form_fields ?? (raw['formFields'] as unknown) ?? (raw['form_fields'] as unknown)
+  );
+  const typeStr = String(raw.type ?? raw.campaign_type ?? raw.popup_type ?? d.type ?? 'modal');
+  const statusStr = String(
+    raw.status ?? raw.campaign_status ?? d.status ?? 'draft'
+  );
+  const mediaTypeStr = String(
+    raw.media_type ?? raw.mediaType ?? d.media_type ?? 'image'
+  );
+  const _mediaSet = new Set<string>(['image', 'video', 'gif']);
+  const mediaTypeNormalized = (
+    _mediaSet.has(mediaTypeStr) ? mediaTypeStr : 'image'
+  ) as PopupCampaignCreateFormValues['media_type'];
+  return {
+    title: toLoc(d.title),
+    headline: toLoc(d.headline),
+    subheadline: toLoc(d.subheadline),
+    description: toLoc(d.description),
+    slug: String(d.slug ?? raw.slug ?? '').trim() || slugify(toLoc(d.title).en),
+    priority: Number(d.priority ?? 0),
+    type: fromApiType(typeStr),
+    status: fromApiStatus(statusStr) as PopupCampaignCreateFormValues['status'],
+    button_text: String(d.button_text ?? ''),
+    button_url: String(d.button_url ?? ''),
+    secondary_button_text: String(d.secondary_button_text ?? ''),
+    media_type: mediaTypeNormalized as PopupCampaignCreateFormValues['media_type'],
+    media: null,
+    form_enabled: Boolean(d.form_enabled) || fields.length > 0,
+    form_fields: fields,
+    show_on_pages: pages,
+    audience_type: fromApiAudience(String(d.audience_type ?? 'all_visitors')),
+    trigger_type: fromApiTrigger(String(d.trigger_type ?? 'on_load')),
+    trigger_value: d.trigger_value != null ? Number(d.trigger_value) : null,
+    show_every: Number(d.show_every ?? 0),
+    max_impressions: Number(d.max_impressions ?? 0),
+  };
+}
+
+/**
+ * `getById` returns `{ status, message, data }`, but the query layer may also surface a bare
+ * resource object — support both so edit mode always receives a campaign.
+ */
+function extractPopupCampaignDetail(
+  res: { status?: boolean; message?: string; data?: PopupCampaignDetail } | undefined | null
+): PopupCampaignDetail | undefined {
+  if (res == null) return undefined;
+  if (res.data && typeof res.data === 'object' && res.data !== null && 'id' in (res.data as object)) {
+    return res.data;
+  }
+  const top = res as unknown as Record<string, unknown>;
+  if (
+    (typeof top.id === 'number' || typeof top.id === 'string') &&
+    (top.title != null || top.slug != null)
+  ) {
+    return res as unknown as PopupCampaignDetail;
+  }
+  return undefined;
 }
 
 export default function CreatePage() {
@@ -173,7 +237,8 @@ export default function CreatePage() {
     isLoading: isLoadingDetail,
     isError: isDetailError,
   } = useFetchPopupCampaignById(id, Boolean(isEditMode && id));
-  const detail = detailResponse?.data;
+  const detail = useMemo(() => extractPopupCampaignDetail(detailResponse), [detailResponse]);
+
   const { data: pagesResponse, isLoading: isLoadingPages } = useFetchPages();
   const createMutation = useCreatePopupCampaign();
   const updateMutation = useUpdatePopupCampaign();
@@ -300,36 +365,18 @@ export default function CreatePage() {
   const triggerType = watch('trigger_type');
   const formEnabled = watch('form_enabled');
 
-  useEffect(() => {
-    if (!isEditMode || !detail) return;
-    const d = detail;
-    const pages = toStringArray(d.show_on_pages);
-    const fields = toStringArray(d.form_fields);
-    reset({
-      title: toLoc(d.title),
-      headline: toLoc(d.headline),
-      subheadline: toLoc(d.subheadline),
-      description: toLoc(d.description),
-      slug: String(d.slug ?? '').trim() || slugify(toLoc(d.title).en),
-      priority: Number(d.priority ?? 0),
-      type: fromApiType(String(d.type ?? 'modal')),
-      status: fromApiStatus(String(d.status ?? 'draft')) as PopupCampaignCreateFormValues['status'],
-      button_text: String(d.button_text ?? ''),
-      button_url: String(d.button_url ?? ''),
-      secondary_button_text: String(d.secondary_button_text ?? ''),
-      media_type: String(d.media_type ?? 'image') as PopupCampaignCreateFormValues['media_type'],
-      media: null,
-      form_enabled: Boolean(d.form_enabled),
-      form_fields: fields,
-      show_on_pages: pages,
-      audience_type: fromApiAudience(String(d.audience_type ?? 'all_visitors')),
-      trigger_type: fromApiTrigger(String(d.trigger_type ?? 'on_load')),
-      trigger_value: d.trigger_value != null ? Number(d.trigger_value) : null,
-      show_every: Number(d.show_every ?? 0),
-      max_impressions: Number(d.max_impressions ?? 0),
-    });
-    setFormFieldsInput(fields.join(', '));
-    setPreviewUrl(resolveStorageUrl(d.media_path as string | null | undefined));
+  /**
+   * Apply API detail to the form. Do not use the `useForm({ values })` option here: in RHF 7.56+,
+   * when `values` is deep-equal to the previous snapshot (new object reference, same data), the
+   * effect falls through to `_resetDefaultValues()` and clears the form — Radix Selects and local
+   * `formFieldsInput` then look empty on edit.
+   */
+  useLayoutEffect(() => {
+    if (!isEditMode || !detail?.id) return;
+    const next = mapDetailToFormValues(detail);
+    reset(next, { keepDefaultValues: false });
+    setFormFieldsInput((next.form_fields ?? []).join(', '));
+    setPreviewUrl(resolveStorageUrl(detail.media_path as string | null | undefined));
   }, [isEditMode, detail, reset]);
 
   /** If the CMS only has one page, pre-select it so submit is not blocked on an easy-to-miss field. */
@@ -367,18 +414,23 @@ export default function CreatePage() {
     data: PopupCampaignCreateFormValues | PopupCampaignUpdateFormValues
   ) => {
     try {
+      let payload = { ...data };
+      if (
+        payload.media instanceof File &&
+        payload.media_type === 'image' &&
+        payload.media.type !== 'image/gif'
+      ) {
+        payload = { ...payload, media: await compressImage(payload.media) };
+      }
+
       if (isEditMode && id) {
         await updateMutation.mutateAsync({
           id,
-          formData: buildFormData(data as PopupCampaignUpdateFormValues, true, {
-            existingMediaPath: detail?.media_path,
-          }),
+          formData: buildFormData(payload as PopupCampaignUpdateFormValues),
         });
         toast.success(t('form.popupCampaignUpdatedSuccess'));
       } else {
-        await createMutation.mutateAsync(
-          buildFormData(data as PopupCampaignCreateFormValues, false)
-        );
+        await createMutation.mutateAsync(buildFormData(payload as PopupCampaignCreateFormValues));
         toast.success(t('form.popupCampaignCreatedSuccess'));
       }
       navigate(paths.dashboard.popupCampaigns.root);
@@ -507,17 +559,10 @@ export default function CreatePage() {
               <Typography variant="subtitle2" className="mb-2 font-semibold">
                 {t('form.popupCampaignSlug')}
               </Typography>
-              <RHFSelect
+              <RHFTextField
                 name="slug"
-                options={pageOptions}
-                placeholder={
-                  isLoadingPages
-                    ? t('form.popupCampaignSlugLoading')
-                    : pageOptions.length === 0 && !isLoadingPages
-                      ? t('form.popupCampaignSlugEmpty')
-                      : t('form.popupCampaignSlugPlaceholder')
-                }
-                disabled={isLoadingPages}
+                placeholder={t('form.popupCampaignSlugPlaceholder')}
+                fullWidth
               />
               <Typography variant="caption" className="text-muted-foreground mt-1 block">
                 {t('form.popupCampaignSlugHint')}

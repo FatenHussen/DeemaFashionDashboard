@@ -4,6 +4,8 @@ import type { ScheduledBasketData } from '@/pages/dashboard/baskets/types/schedu
 
 import { z } from 'zod';
 import { formatTranslated } from '@/utils/format-translated';
+import { resolveBasketGalleryUrls } from '@/utils/basket-gallery';
+import { TableActiveBadge } from '@/shared/components/table-status-badges';
 import { createToggleColumn } from '@/shared/ui/table-data/data-table-toggle-cell';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
@@ -35,7 +37,8 @@ export const scheduledBasketColumns = (
     id: 'image',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.image')} />,
     cell: ({ row }) => {
-      const img = row.original.image;
+      const urls = resolveBasketGalleryUrls(row.original);
+      const img = urls[0];
       return img ? (
         <img src={img} alt="" className="w-10 h-10 rounded-lg object-cover border border-border/50" />
       ) : (
@@ -140,15 +143,11 @@ export const scheduledBasketColumns = (
     cell: ({ row }) => {
       const isActive = row.original.is_active;
       return (
-        <span
-          className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-            isActive
-              ? 'bg-green-500/20 text-green-600'
-              : 'bg-red-500/20 text-red-600'
-          }`}
-        >
-          {isActive ? t('active') : t('inactive')}
-        </span>
+        <TableActiveBadge
+          isActive={isActive}
+          activeLabel={t('active')}
+          inactiveLabel={t('inactive')}
+        />
       );
     },
   },

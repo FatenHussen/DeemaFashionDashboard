@@ -35,10 +35,13 @@ export const ProductSchema = zod
     /** UI: amount in selected currency; `price` is always USD for the API. */
     price_currency_id: zod.coerce.number().min(0).optional().default(0),
     price_local: zod.preprocess(
-      (v) => (v === '' || v === null || v === undefined ? 0 : v),
-      zod.coerce.number().min(0)
+      (v) => (v === '' || v === null || v === undefined ? undefined : v),
+      zod.coerce.number().min(0).optional()
     ),
-    price: zod.coerce.number().min(0, { message: t('product.pricePositive') }),
+    price: zod.preprocess(
+      (v) => (v === '' || v === null || v === undefined ? undefined : v),
+      zod.coerce.number().min(0, { message: t('product.pricePositive') }).optional()
+    ),
     discount: zod.coerce.number().min(0).default(0),
     discount_type: zod.enum(['none', 'percentage', 'fixed']).default('none'),
     cost_price: zod.preprocess(
@@ -46,7 +49,8 @@ export const ProductSchema = zod
       zod.coerce.number().min(0).optional()
     ),
     quantity: zod.coerce.number().min(0, { message: t('product.quantityPositive') }),
-    unit: zod.string().optional(),
+    /** From `/admin/units`; `0` = not selected. */
+    unit_id: zod.coerce.number().min(0).optional().default(0),
     warranty_period: zod.preprocess(
       (v) => (v === '' || v === null || v === undefined ? undefined : v),
       zod.coerce.number().min(0).optional()

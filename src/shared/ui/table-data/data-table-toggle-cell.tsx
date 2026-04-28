@@ -11,7 +11,13 @@ function ToggleVisibilityColumnHeader<TData>({
   column,
 }: HeaderContext<TData, unknown>) {
   const { t } = useTranslation('table');
-  return <DataTableColumnHeader column={column} title={t('columns.visibility')} />;
+  return (
+    <DataTableColumnHeader
+      column={column}
+      title={t('columns.visibility')}
+      className="text-center"
+    />
+  );
 }
 
 interface ToggleCellProps {
@@ -44,7 +50,7 @@ function ToggleCell({ id, isActive, entityType }: ToggleCellProps) {
   };
 
   return (
-    <div className="flex items-center justify-center">
+    <div className="flex w-full items-center justify-start">
       <button
         type="button"
         role="switch"
@@ -97,6 +103,10 @@ export function createToggleColumn<TData>({
     id: 'toggle_active',
     accessorKey: 'is_active',
     header: ToggleVisibilityColumnHeader,
+    meta: {
+      headerClassName: 'text-center',
+      cellClassName: 'text-center',
+    },
     cell: ({ row }: { row: Row<TData> }) => {
       const original = row.original as any;
       const id = original?.id as number;
@@ -104,7 +114,7 @@ export function createToggleColumn<TData>({
 
       if (id == null) return null;
 
-      return <ToggleCell id={id} isActive={isActive} entityType={entityType} />;
+      return <ToggleCell  id={id} isActive={isActive} entityType={entityType} />;
     },
     enableSorting: false,
   };

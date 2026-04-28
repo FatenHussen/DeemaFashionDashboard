@@ -54,6 +54,11 @@ export const queryKeys = {
     list: (params?: Record<string, unknown>) => ['brand', 'list', params] as const,
     details: (id: number | string) => ['brand', 'details', id] as const,
   },
+  // Unit (measurement) query keys
+  unit: {
+    list: (params?: Record<string, unknown>) => ['unit', 'list', params] as const,
+    details: (id: number | string) => ['unit', 'details', id] as const,
+  },
   // Product query keys (admin `/admin/products` list filters)
   product: {
     list: (params?: Record<string, unknown>) => ['product', 'list', params] as const,
@@ -115,7 +120,8 @@ export const queryKeys = {
   },
   // Section query keys
   section: {
-    list: (params?: { page?: number; limit?: number; search?: string }) => ['section', 'list', params] as const,
+    list: (params?: { page?: number; limit?: number; search?: string; category_id?: number }) =>
+      ['section', 'list', params] as const,
     details: (id: number | string) => ['section', 'details', id] as const,
     itemTypes: () => ['section', 'item-types'] as const,
     manualItems: (manualModel: string, url: string, params?: { page?: number; limit?: number; search?: string }) =>
@@ -152,7 +158,6 @@ export const queryKeys = {
     list: (params?: { page?: number; limit?: number; search?: string }) => ['pageSection', 'list', params] as const,
     details: (id: number | string) => ['pageSection', 'details', id] as const,
     pages: () => ['pageSection', 'pages'] as const,
-    displayTypes: () => ['pageSection', 'display-types'] as const,
   },
   // Order query keys
   order: {

@@ -1,5 +1,19 @@
 // ----------------------------------------------------------------------
 
+export interface BasketItemAlternative {
+  product_id?: number;
+  shop_product_variant_id: number;
+  name?: string;
+  image_url?: string;
+  price?: number;
+  discount?: number | null;
+  price_after_discount?: number | null;
+  brand?: string | { name?: string | { ar?: string; en?: string } };
+  product?: {
+    brand?: string | { name?: string | { ar?: string; en?: string } };
+  };
+}
+
 export interface BasketItem {
   id?: number;
   product_id?: number;
@@ -8,10 +22,13 @@ export interface BasketItem {
   quantity: number;
   unit_price?: number;
   subtotal?: number;
+  /** When present, no extra brand fetch is usually needed */
+  brand?: string | { name?: string | { ar?: string; en?: string } };
   product?: {
     id: number;
     name: string | { ar?: string; en?: string };
     image?: string;
+    brand?: string | { name?: string | { ar?: string; en?: string } };
     price?: number;
   };
   /** Variant-specific image from API (e.g. shop product variant list / basket details) */
@@ -33,6 +50,7 @@ export interface BasketItem {
     model?: string | null;
     barcode?: string | null;
   };
+  alternatives?: BasketItemAlternative[];
   created_at?: string;
   updated_at?: string;
 }
@@ -54,6 +72,8 @@ export interface BasketData {
   offer_ends_at?: string;
   delivery_price?: number;
   image?: string;
+  /** Gallery URLs; if empty, UI falls back to `image` */
+  images?: string[];
   items?: BasketItem[];
   items_count?: number;
   num_varieties?: number;
@@ -102,6 +122,8 @@ export interface BasketCreateUpdatePayload {
   discount_type: 'fixed' | 'percentage';
   delivery_price?: number;
   image?: File | string | null;
+  /** Additional gallery files (multipart `images[]`) */
+  images?: File[];
   items: Array<{ shop_product_variant_id: number; quantity: number }>;
   badges?: number[];
 }

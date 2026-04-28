@@ -6,11 +6,10 @@ import { paths } from '@/routes/paths';
 import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { Iconify } from '@/shared/components/iconify';
+import { formatCurrency } from '@/utils/format-currency';
 import { formatTranslated } from '@/utils/format-translated';
+import { TableActiveBadge } from '@/shared/components/table-status-badges';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
-
-const formatCurrency = (val: number) =>
-  val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 function ViewStatementButton({ vendorId }: { vendorId: number }) {
   const navigate = useNavigate();
@@ -72,7 +71,7 @@ export const vendorAccountingColumns = (
     ),
     cell: ({ row }) => (
       <span className="text-sm font-semibold text-foreground">
-        {formatCurrency(row.original.wallet.gross_sales)}
+        {formatCurrency(row.original.wallet.gross_sales, { decimals: 2 })}
       </span>
     ),
   },
@@ -84,7 +83,7 @@ export const vendorAccountingColumns = (
     ),
     cell: ({ row }) => (
       <span className="text-sm text-orange-600 dark:text-orange-400 font-medium">
-        {formatCurrency(row.original.wallet.platform_commission)}
+        {formatCurrency(row.original.wallet.platform_commission, { decimals: 2 })}
       </span>
     ),
   },
@@ -96,7 +95,7 @@ export const vendorAccountingColumns = (
     ),
     cell: ({ row }) => (
       <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">
-        {formatCurrency(row.original.wallet.net_due)}
+        {formatCurrency(row.original.wallet.net_due, { decimals: 2 })}
       </span>
     ),
   },
@@ -108,7 +107,7 @@ export const vendorAccountingColumns = (
     ),
     cell: ({ row }) => (
       <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
-        {formatCurrency(row.original.wallet.paid)}
+        {formatCurrency(row.original.wallet.paid, { decimals: 2 })}
       </span>
     ),
   },
@@ -120,7 +119,7 @@ export const vendorAccountingColumns = (
     ),
     cell: ({ row }) => (
       <span className="text-sm font-bold text-purple-600 dark:text-purple-400">
-        {formatCurrency(row.original.wallet.available_for_withdraw)}
+        {formatCurrency(row.original.wallet.available_for_withdraw, { decimals: 2 })}
       </span>
     ),
   },
@@ -131,20 +130,11 @@ export const vendorAccountingColumns = (
     cell: ({ row }) => {
       const isActive = row.original.vendor.is_active;
       return (
-        <div
-          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border w-fit ${
-            isActive
-              ? 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/50 text-emerald-700 dark:text-emerald-300'
-              : 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800/50 text-red-700 dark:text-red-300'
-          }`}
-        >
-          <Iconify
-            icon={isActive ? 'solar:check-circle-bold' : 'solar:close-circle-bold'}
-            width={14}
-            height={14}
-          />
-          <span className="text-xs font-medium">{isActive ? t('active') : t('inactive')}</span>
-        </div>
+        <TableActiveBadge
+          isActive={isActive}
+          activeLabel={t('active')}
+          inactiveLabel={t('inactive')}
+        />
       );
     },
   },

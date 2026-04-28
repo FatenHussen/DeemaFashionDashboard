@@ -63,7 +63,9 @@ export const userGiftColumns = (t: TFunction<'table'>): ColumnDef<UserGiftFormVa
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.status')} />,
     cell: ({ row }) => {
       const status = row.original.status;
-      const label = status ? status.charAt(0).toUpperCase() + status.slice(1) : '-';
+      const label = status
+        ? t(`form.userGiftStatus_${status}` as const, { defaultValue: status })
+        : '-';
       const statusClass =
         status === 'delivered'
           ? 'bg-green-500/20 text-green-600'

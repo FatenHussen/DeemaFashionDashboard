@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { compressImage } from '@/utils/compress-image';
 import { formatTranslated } from '@/utils/format-translated';
 import { useParams, useNavigate, useLocation } from 'react-router';
 import { useInfiniteSelect } from '@/shared/hooks/use-infinite-select';
@@ -547,8 +548,12 @@ export default function CreatePage() {
 
   const onSubmit = async (data: GiftFormValues) => {
     try {
+      const dataWithImage =
+        data.image instanceof File
+          ? { ...data, image: await compressImage(data.image) }
+          : data;
       if (isEditMode && id) {
-        const payload = buildPayload(data);
+        const payload = buildPayload(dataWithImage);
         await updateMutation.mutateAsync({ id, data: payload });
         toast.success(t('form.giftUpdatedToast'));
       } else if (data.giftMode === 'tikmool' && data.shop_product_variant_ids.length > 0) {
@@ -563,7 +568,7 @@ export default function CreatePage() {
           t('form.giftBulkCreatedToast', { count: data.shop_product_variant_ids.length })
         );
       } else {
-        const payload = buildPayload(data);
+        const payload = buildPayload(dataWithImage);
         await createMutation.mutateAsync(payload);
         toast.success(t('form.giftCreatedToast'));
       }

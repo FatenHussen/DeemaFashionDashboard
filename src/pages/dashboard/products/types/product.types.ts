@@ -69,7 +69,9 @@ export interface ProductDetailData {
   origin_country?: { id: number; name: string | { en: string; ar: string } } | null;
   /** Sale market (from `/admin/sale-countries`); `name` may be a plain string */
   sale_country?: { id: number; name: string | { en: string; ar: string }; icon?: string | null } | null;
-  price: number;
+  price: number | null;
+  /** When API uses `/admin/units` instead of free-text `unit`. */
+  unit_id?: number | null;
   /** Human-readable primary price when API provides it */
   price_formatted?: string | null;
   /** Map keyed by ISO currency code (e.g. USD, SYP) */
@@ -83,7 +85,7 @@ export interface ProductDetailData {
   cost_price_formatted?: string | null;
   cost_price_currencies?: Record<string, ProductDetailCurrencyAmount> | null;
   quantity: number | null;
-  unit?: string | null;
+  unit?: string | { id?: number; name?: string | { en: string; ar: string } } | null;
   warranty_period?: number | null;
   sku: string | null;
   model: string | null;
@@ -105,7 +107,11 @@ export interface ProductDetailData {
   rejection_reason?: string | null;
   seo_title?: { en: string; ar: string } | null;
   seo_description?: { en: string; ar: string } | null;
-  seo_keywords?: { ar?: string[]; en?: string[] } | Record<string, string[]> | null;
+  /** API may return comma-separated strings or string arrays per locale. */
+  seo_keywords?:
+    | { ar?: string[] | string; en?: string[] | string }
+    | Record<string, string[] | string>
+    | null;
   seo_image?: string | null;
   variants: Array<{
     id: number;
@@ -182,12 +188,12 @@ export interface ProductCreateUpdatePayload {
   full_description?: { en: string; ar: string };
   country_id?: number;
   sale_country_id?: number;
-  price: number;
+  price?: number;
   discount?: number;
   discount_type?: ProductDiscountType;
   cost_price?: number;
   quantity: number;
-  unit?: string;
+  unit_id?: number;
   warranty_period?: number;
   sku?: string;
   model?: string;

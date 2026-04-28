@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useMemo, useState, useEffect } from 'react';
 import { Box, Button, Typography } from '@/shared/ui';
 import { Iconify } from '@/shared/components/iconify';
+import { formatCurrency } from '@/utils/format-currency';
 import { LoadingScreen } from '@/shared/components/loading-screen';
 
 import { paths } from 'src/routes/paths';
@@ -40,31 +41,70 @@ export default function SalesReportPage() {
   };
   const reportData = data?.data;
 
-  const kpiItems = useMemo(
-    () =>
-      reportData
-        ? [
-            { label: t('reports.kpiTotalOrders'), value: reportData.total_orders },
-            {
-              label: t('reports.kpiTotalRevenue'),
-              value: reportData.total_revenue?.toFixed(2) ?? '0',
-            },
-            {
-              label: t('reports.kpiDeliveryFees'),
-              value: reportData.total_delivery_fees?.toFixed(2) ?? '0',
-            },
-            {
-              label: t('reports.kpiTotalDiscounts'),
-              value: reportData.total_discounts?.toFixed(2) ?? '0',
-            },
-            {
-              label: t('reports.kpiAvgOrderValue'),
-              value: reportData.average_order_value?.toFixed(2) ?? '0',
-            },
-          ]
-        : [],
-    [reportData, t, i18n.language]
-  );
+  const kpiItems = useMemo(() => {
+    if (!reportData) return [];
+
+    const revenue = Number(reportData.total_revenue) || 0;
+    const cost = Number(reportData.total_cost) || 0;
+    const expenses = Number(reportData.total_expenses) || 0;
+    const computedNet =
+      typeof reportData.net_profit === 'number'
+        ? reportData.net_profit
+        : revenue - cost - expenses;
+
+    return [
+      {
+        label: t('reports.kpiTotalOrders'),
+        value: String(reportData.total_orders ?? 0),
+        tone: 'default' as const,
+      },
+      {
+        label: t('reports.kpiTotalRevenue'),
+        value: formatCurrency(revenue, { decimals: 2 }),
+        tone: 'success' as const,
+      },
+      {
+        label: t('reports.kpiTotalCost'),
+        value: formatCurrency(cost, { decimals: 2 }),
+        tone: 'warn' as const,
+      },
+      {
+        label: t('reports.kpiTotalExpenses'),
+        value: formatCurrency(expenses, { decimals: 2 }),
+        tone: 'warn' as const,
+      },
+      {
+        label: t('reports.kpiDeliveryFees'),
+        value: formatCurrency(Number(reportData.total_delivery_fees) || 0, { decimals: 2 }),
+        tone: 'default' as const,
+      },
+      {
+        label: t('reports.kpiTotalDiscounts'),
+        value: formatCurrency(Number(reportData.total_discounts) || 0, { decimals: 2 }),
+        tone: 'default' as const,
+      },
+      {
+        label: t('reports.kpiAvgOrderValue'),
+        value: formatCurrency(Number(reportData.average_order_value) || 0, { decimals: 2 }),
+        tone: 'default' as const,
+      },
+      {
+        label: t('reports.kpiNetProfit'),
+        value: formatCurrency(computedNet, { decimals: 2 }),
+        tone: computedNet >= 0 ? ('success' as const) : ('danger' as const),
+      },
+    ];
+  }, [reportData, t, i18n.language]);
+
+  const rangeLabel = useMemo(() => {
+    const fmt = (d?: string) => (d ? dayjs(d).format('YYYY-MM-DD') : '');
+    if (appliedFrom && appliedTo) {
+      return t('reports.rangeBoth', { from: fmt(appliedFrom), to: fmt(appliedTo) });
+    }
+    if (appliedFrom) return t('reports.rangeFromOnly', { from: fmt(appliedFrom) });
+    if (appliedTo) return t('reports.rangeToOnly', { to: fmt(appliedTo) });
+    return t('reports.rangeAll');
+  }, [appliedFrom, appliedTo, t, i18n.language]);
 
   if (isLoading && !reportData) return <LoadingScreen />;
 
@@ -122,17 +162,41 @@ export default function SalesReportPage() {
       <div className="w-full space-y-4 transition-opacity duration-500 p-6">
         {reportData && (
           <>
-            <Box className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-              {kpiItems.map(({ label, value }) => (
-                <Box key={label} className={`${tableContainerClass} p-4`}>
-                  <Typography variant="caption" className="text-muted-foreground font-medium">
-                    {label}
-                  </Typography>
-                  <Typography variant="h6" className="font-bold">
-                    {value}
+            <Box className="rounded-xl border-2 border-primary/30 bg-gradient-to-br from-primary/[0.06] via-card to-card px-5 py-4 shadow-sm">
+              <Box className="flex flex-wrap items-center justify-between gap-3">
+                <Box className="flex items-center gap-2">
+                  <Iconify icon="solar:calendar-bold" className="text-primary" width={18} />
+                  <Typography variant="subtitle2" className="font-semibold text-foreground">
+                    {t('reports.reportPeriod')}
                   </Typography>
                 </Box>
-              ))}
+                <Typography variant="body2" className="font-semibold text-foreground tabular-nums">
+                  {rangeLabel}
+                </Typography>
+              </Box>
+            </Box>
+
+            <Box className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {kpiItems.map(({ label, value, tone }) => {
+                const toneClass =
+                  tone === 'success'
+                    ? 'text-emerald-700 dark:text-emerald-400'
+                    : tone === 'warn'
+                      ? 'text-amber-700 dark:text-amber-400'
+                      : tone === 'danger'
+                        ? 'text-red-700 dark:text-red-400'
+                        : 'text-foreground';
+                return (
+                  <Box key={label} className={`${tableContainerClass} p-4`}>
+                    <Typography variant="caption" className="text-muted-foreground font-medium">
+                      {label}
+                    </Typography>
+                    <Typography variant="h6" className={`font-bold ${toneClass}`}>
+                      {value}
+                    </Typography>
+                  </Box>
+                );
+              })}
             </Box>
 
             {reportData.orders && reportData.orders.length > 0 && (

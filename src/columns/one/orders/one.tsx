@@ -4,6 +4,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 
 import { z } from 'zod';
 import { Iconify } from '@/shared/components/iconify';
+import { TableTonedStatusPill } from '@/shared/components/table-status-badges';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 import {
   type OrderData,
@@ -39,30 +40,37 @@ const ORDER_STATUS_BADGE: Record<
 > = {
   pending: {
     icon: 'solar:hourglass-bold',
-    className:
-      'bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800/50 text-amber-700 dark:text-amber-300',
+    className: 'border-amber-700 bg-amber-500',
   },
   preparing: {
     icon: 'solar:chef-hat-bold',
-    className:
-      'bg-sky-50 dark:bg-sky-950/20 border-sky-200 dark:border-sky-800/50 text-sky-700 dark:text-sky-300',
+    className: 'border-sky-800 bg-sky-600',
   },
   out_delivery: {
     icon: 'solar:delivery-bold',
-    className:
-      'bg-violet-50 dark:bg-violet-950/20 border-violet-200 dark:border-violet-800/50 text-violet-700 dark:text-violet-300',
+    className: 'border-violet-800 bg-violet-600',
   },
   delivered: {
     icon: 'solar:check-circle-bold',
-    className:
-      'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/50 text-emerald-700 dark:text-emerald-300',
+    className: 'border-emerald-800 bg-emerald-600',
   },
   cancelled: {
     icon: 'solar:close-circle-bold',
-    className:
-      'bg-slate-100 dark:bg-slate-900/30 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300',
+    className: 'border-slate-700 bg-slate-600',
   },
 };
+
+function getOrderStatusLabel(status: OrderStatus, t: TFunction<'table'>): string {
+  const labels: Record<OrderStatus, string> = {
+    pending: t('statusPending'),
+    preparing: t('statusPreparing'),
+    out_delivery: t('statusOutDelivery'),
+    delivered: t('statusDelivered'),
+    cancelled: t('statusCancelled'),
+  };
+
+  return labels[status] ?? status.replace(/_/g, ' ');
+}
 
 function toNum(v: unknown): number {
   if (v == null || v === '') return 0;
@@ -203,24 +211,20 @@ export const orderColumns = (
       const n = normalizeOrderStatus(row.original.status);
       const cfg = ORDER_STATUS_BADGE[n] ?? ORDER_STATUS_BADGE.pending;
       return (
-        <div
-          className={`flex max-w-full min-w-0 items-center gap-1.5 whitespace-nowrap rounded-lg border px-2.5 py-1 w-fit ${cfg.className}`}
-        >
-          <Iconify icon={cfg.icon} width={14} height={14} className="shrink-0" />
-          <span className="text-xs font-medium capitalize">{n.replace(/_/g, ' ')}</span>
-        </div>
+        <TableTonedStatusPill icon={cfg.icon} className={cfg.className}>
+          {getOrderStatusLabel(n, t)}
+        </TableTonedStatusPill>
       );
     },
   },
   {
     id: 'driver',
-    accessorKey: 'driver',
+    accessorFn: (row) => row.driver?.name ?? row.driver?.phone ?? '',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.driver')} />,
-    cell: ({ row }) => (
-      <span className="text-sm text-muted-foreground">
-        {row.original.driver?.phone || t('columns.notAssigned')}
-      </span>
-    ),
+    cell: ({ row }) => {
+      const label = row.original.driver?.name?.trim() || row.original.driver?.phone?.trim();
+      return <span className="text-sm text-muted-foreground">{label || t('columns.notAssigned')}</span>;
+    },
   },
   {
     id: 'created_at',

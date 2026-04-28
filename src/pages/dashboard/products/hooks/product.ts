@@ -10,6 +10,7 @@ export const useFetchProducts = (params?: {
   limit?: number;
   per_page?: number;
   search?: string;
+  id?: number;
   sort_field?: string;
   sort_order?: string;
   shop_id?: number;

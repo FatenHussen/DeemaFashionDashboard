@@ -25,6 +25,11 @@ function buildScheduledBasketFormData(data: ScheduledBasketCreateUpdatePayload):
   if (data.discount !== undefined) formData.append('discount', String(data.discount));
   if (data.delivery_price !== undefined) formData.append('delivery_price', String(data.delivery_price));
   if (data.image instanceof File) formData.append('image', data.image);
+  if (data.images?.length) {
+    data.images.forEach((file) => {
+      if (file instanceof File) formData.append('images[]', file);
+    });
+  }
   formData.append('is_active', String(data.is_active));
 
   data.schedules.forEach((sch, i) => {

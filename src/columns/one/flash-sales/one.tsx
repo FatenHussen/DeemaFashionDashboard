@@ -4,12 +4,19 @@ import type { FlashSaleListItem } from '@/pages/dashboard/flash-sales/types';
 
 import { z } from 'zod';
 import { Iconify } from '@/shared/components/iconify';
+import { TableActiveBadge } from '@/shared/components/table-status-badges';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 
 const RowSchema = z.object({ id: z.number() }).passthrough();
 
 export type FlashSaleRow = FlashSaleListItem;
+
+const formatSimpleDate = (value?: string | null) => {
+  if (!value) return '—';
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleDateString();
+};
 
 export const flashSaleColumns = (
   permissions: { update: boolean },
@@ -57,7 +64,7 @@ export const flashSaleColumns = (
           width={16}
           height={16}
         />
-        <span className="text-sm text-muted-foreground">{row.original.end_date ?? '—'}</span>
+        <span className="text-sm text-muted-foreground">{formatSimpleDate(row.original.end_date)}</span>
       </div>
     ),
   },
@@ -68,22 +75,11 @@ export const flashSaleColumns = (
     cell: ({ row }) => {
       const active = Boolean(row.original.is_active);
       return (
-        <div
-          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border w-fit ${
-            active
-              ? 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/50 text-emerald-700 dark:text-emerald-300'
-              : 'bg-muted/40 border-border/60 text-muted-foreground'
-          }`}
-        >
-          <Iconify
-            icon={active ? 'solar:check-circle-bold' : 'solar:close-circle-bold'}
-            width={14}
-            height={14}
-          />
-          <span className="text-xs font-medium">
-            {active ? t('form.flashSaleStatusActive') : t('form.flashSaleStatusInactive')}
-          </span>
-        </div>
+        <TableActiveBadge
+          isActive={active}
+          activeLabel={t('form.flashSaleStatusActive')}
+          inactiveLabel={t('form.flashSaleStatusInactive')}
+        />
       );
     },
   },

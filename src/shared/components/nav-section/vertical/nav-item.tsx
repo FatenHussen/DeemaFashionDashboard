@@ -147,9 +147,10 @@ export const NavItem = forwardRef<HTMLButtonElement, NavItemProps>(function NavI
           <span
             className={mergeClasses([
               navSectionClasses.item.title,
-              'flex-auto text-sm font-medium',
+              'flex-auto',
+              isRootItem ? 'text-[12px] font-semibold' : 'text-[11px] font-medium',
               'overflow-hidden text-ellipsis whitespace-nowrap',
-              active ? 'font-semibold' : '',
+              active ? (isRootItem ? 'font-bold' : 'font-medium') : '',
               slotProps?.title?.className,
             ])}
             style={slotProps?.title?.style}
@@ -162,7 +163,7 @@ export const NavItem = forwardRef<HTMLButtonElement, NavItemProps>(function NavI
               <span
                 className={mergeClasses([
                   navSectionClasses.item.caption,
-                  'text-xs text-[var(--nav-item-caption-color)]',
+                  'text-[13px] text-[var(--nav-item-caption-color)]',
                   'overflow-hidden text-ellipsis whitespace-nowrap',
                   slotProps?.caption?.className,
                 ])}

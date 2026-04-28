@@ -13,7 +13,17 @@ export type BrandListQueryParams = {
   per_page?: number;
   is_active?: 0 | 1 | boolean;
   category_id?: number;
+  /** Sub / child category; aliases supported server-side: `child_category_id`, `second_category_id` */
+  sub_category_id?: number;
+  /**
+   * Country filter. Server maps this to the same handling as `origin_country_id` when both exist.
+   * Prefer one of `country_id` or `origin_country_id` in a single request.
+   */
+  country_id?: number;
   origin_country_id?: number;
+  /** Inclusive `YYYY-MM-DD` on `created_at` */
+  date_from?: string;
+  date_to?: string;
   /** Sort field — defaults to `order` to reflect drag-and-drop sorting. */
   sort_field?: string;
   /** Sort direction — defaults to `asc` when `sort_field` is set. */
@@ -29,8 +39,14 @@ export const _BrandApi = {
     if (params?.search?.trim()) searchParams.set('search', params.search.trim());
     if (params?.category_id != null && params.category_id > 0)
       searchParams.set('category_id', String(params.category_id));
+    if (params?.sub_category_id != null && params.sub_category_id > 0)
+      searchParams.set('sub_category_id', String(params.sub_category_id));
+    if (params?.country_id != null && params.country_id > 0)
+      searchParams.set('country_id', String(params.country_id));
     if (params?.origin_country_id != null && params.origin_country_id > 0)
       searchParams.set('origin_country_id', String(params.origin_country_id));
+    if (params?.date_from?.trim()) searchParams.set('date_from', params.date_from.trim());
+    if (params?.date_to?.trim()) searchParams.set('date_to', params.date_to.trim());
     if (params?.is_active === true || params?.is_active === 1) searchParams.set('is_active', '1');
     else if (params?.is_active === false || params?.is_active === 0) searchParams.set('is_active', '0');
     if (params?.sort_field) {

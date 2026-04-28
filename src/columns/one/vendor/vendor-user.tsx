@@ -3,6 +3,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 
 import { z } from 'zod';
 import { formatTranslated } from '@/utils/format-translated';
+import { TableActiveBadge } from '@/shared/components/table-status-badges';
 import { createToggleColumn } from '@/shared/ui/table-data/data-table-toggle-cell';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
@@ -85,15 +86,11 @@ export const vendorUserColumns = (
     cell: ({ row }) => {
       const isActive = row.original.is_active;
       return (
-        <span
-          className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-            isActive
-              ? 'bg-green-500/20 text-green-700 dark:text-green-400'
-              : 'bg-red-500/20 text-red-700 dark:text-red-400'
-          }`}
-        >
-          {isActive ? t('active') : t('inactive')}
-        </span>
+        <TableActiveBadge
+          isActive={isActive}
+          activeLabel={t('active')}
+          inactiveLabel={t('inactive')}
+        />
       );
     },
   },

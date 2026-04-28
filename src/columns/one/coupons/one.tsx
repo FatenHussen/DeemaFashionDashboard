@@ -7,6 +7,7 @@ import { formatTranslated } from '@/utils/format-translated';
 import { createToggleColumn } from '@/shared/ui/table-data/data-table-toggle-cell';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
+import { TableActiveBadge, TableTonedStatusPill } from '@/shared/components/table-status-badges';
 
 const CouponSchema = z.object({
   id: z.number(),
@@ -104,20 +105,22 @@ export const couponColumns = (
     cell: ({ row }) => {
       const isActive = row.original.is_active;
       const isExpired = row.original.is_expired;
-      const label = isExpired ? t('columns.expired') : isActive ? t('active') : t('inactive');
-      const variant = isExpired ? 'secondary' : isActive ? 'default' : 'destructive';
+      if (isExpired) {
+        return (
+          <TableTonedStatusPill
+            icon="solar:calendar-minimalistic-bold"
+            className="border-slate-600 bg-slate-500"
+          >
+            {t('columns.expired')}
+          </TableTonedStatusPill>
+        );
+      }
       return (
-        <span
-          className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-            variant === 'default'
-              ? 'bg-green-500/20 text-green-600'
-              : variant === 'destructive'
-                ? 'bg-red-500/20 text-red-600'
-                : 'bg-muted text-muted-foreground'
-          }`}
-        >
-          {label}
-        </span>
+        <TableActiveBadge
+          isActive={isActive}
+          activeLabel={t('active')}
+          inactiveLabel={t('inactive')}
+        />
       );
     },
   },

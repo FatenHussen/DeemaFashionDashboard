@@ -39,6 +39,9 @@ const BrandIndexPage = lazy(() => import('@/pages/dashboard/products/view/brand/
 const BrandCreatePage = lazy(() => import('@/pages/dashboard/products/view/brand/Create'));
 const BrandDetailsPage = lazy(() => import('@/pages/dashboard/products/view/brand/Details'));
 
+const UnitIndexPage = lazy(() => import('@/pages/dashboard/units/view/Index'));
+const UnitCreatePage = lazy(() => import('@/pages/dashboard/units/view/Create'));
+
 const ProductIndexPage = lazy(() => import('@/pages/dashboard/products/view/product/Index'));
 const ProductCreatePage = lazy(() => import('@/pages/dashboard/products/view/product/Create'));
 const ProductDetailsPage = lazy(() => import('@/pages/dashboard/products/view/product/Details'));
@@ -327,6 +330,9 @@ const ScheduleCreatePage = lazy(() => import('@/pages/dashboard/schedules/view/C
 
 // User Basket Schedules
 const UserBasketScheduleIndexPage = lazy(() => import('@/pages/dashboard/user-basket-schedules/view/Index'));
+const UserBasketScheduleDetailsPage = lazy(
+  () => import('@/pages/dashboard/user-basket-schedules/view/Details')
+);
 
 // Vendor Service Types
 const VendorServiceTypeIndexPage = lazy(
@@ -660,6 +666,36 @@ export const dashboardRoutes: RouteObject[] = [
         element: (
           <RequirePermission permission="brand.view">
             <BrandDetailsPage />
+          </RequirePermission>
+        ),
+      },
+    ],
+  },
+  {
+    path: 'products/units',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: (
+          <RequirePermission permission="unit.view">
+            <UnitIndexPage />
+          </RequirePermission>
+        ),
+        index: true,
+      },
+      {
+        path: 'create',
+        element: (
+          <RequirePermission permission="unit.create">
+            <UnitCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'update/:id',
+        element: (
+          <RequirePermission permission="unit.update">
+            <UnitCreatePage />
           </RequirePermission>
         ),
       },
@@ -2155,6 +2191,14 @@ export const dashboardRoutes: RouteObject[] = [
           </RequirePermission>
         ),
         index: true,
+      },
+      {
+        path: 'details/:id',
+        element: (
+          <RequirePermission permission="userbasketschedule.view">
+            <UserBasketScheduleDetailsPage />
+          </RequirePermission>
+        ),
       },
     ],
   },

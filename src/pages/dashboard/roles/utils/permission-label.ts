@@ -1,14 +1,22 @@
 import type { TFunction } from 'i18next';
 
+import { formatPermissionLabel } from '@/lib/format-permission-label';
+
+function normalizePermissionKey(raw: string): string {
+  return raw.trim().replace(/\s+/g, '').toLowerCase();
+}
+
+function resourceI18nKey(resource: string): string {
+  return resource.replace(/\./g, '_');
+}
+
 export function translatePermissionName(name: string, t: TFunction<'table'>): string {
-  const dot = name.indexOf('.');
-  if (dot === -1) return name;
-  const resource = name.slice(0, dot);
-  const action = name.slice(dot + 1);
-  if (!action) return name;
-  return t(`form.permissionLabels.${resource}.${action}` as any, { defaultValue: name });
+  return formatPermissionLabel(name, t);
 }
 
 export function translatePermissionResource(resource: string, t: TFunction<'table'>): string {
-  return t(`form.permissionResourceLabels.${resource}` as any, { defaultValue: resource });
+  const rk = resourceI18nKey(normalizePermissionKey(resource));
+  return t(`permResource.${rk}` as any, {
+    defaultValue: resource,
+  });
 }

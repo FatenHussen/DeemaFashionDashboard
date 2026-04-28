@@ -3,27 +3,23 @@ import type { ColumnDef } from '@tanstack/react-table';
 import type { WithdrawRequest } from '@/pages/dashboard/vendor-accounting/types';
 
 import { Iconify } from '@/shared/components/iconify';
+import { formatCurrency } from '@/utils/format-currency';
 import { formatTranslated } from '@/utils/format-translated';
+import { TableTonedStatusPill } from '@/shared/components/table-status-badges';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
-
-const formatCurrency = (val: number) =>
-  val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const statusConfig = {
   pending: {
     icon: 'solar:clock-circle-bold',
-    className:
-      'bg-yellow-50 dark:bg-yellow-950/20 border-yellow-200 dark:border-yellow-800/50 text-yellow-700 dark:text-yellow-300',
+    className: 'border-amber-700 bg-amber-500',
   },
   paid: {
     icon: 'solar:check-circle-bold',
-    className:
-      'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/50 text-emerald-700 dark:text-emerald-300',
+    className: 'border-emerald-800 bg-emerald-600',
   },
   rejected: {
     icon: 'solar:close-circle-bold',
-    className:
-      'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800/50 text-red-700 dark:text-red-300',
+    className: 'border-red-800 bg-red-600',
   },
 } as const;
 
@@ -74,7 +70,7 @@ export const withdrawRequestColumns = (
     ),
     cell: ({ row }) => (
       <span className="text-sm font-bold text-foreground">
-        {formatCurrency(row.original.amount)}
+        {formatCurrency(row.original.amount, { decimals: 2 })}
       </span>
     ),
   },
@@ -87,12 +83,9 @@ export const withdrawRequestColumns = (
       const cfg = statusConfig[status];
       if (!cfg) return null;
       return (
-        <div
-          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border w-fit ${cfg.className}`}
-        >
-          <Iconify icon={cfg.icon} width={14} height={14} />
-          <span className="text-xs font-medium">{withdrawStatusLabel(t, status)}</span>
-        </div>
+        <TableTonedStatusPill icon={cfg.icon} className={cfg.className}>
+          {withdrawStatusLabel(t, status)}
+        </TableTonedStatusPill>
       );
     },
   },

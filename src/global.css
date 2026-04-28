@@ -31,17 +31,17 @@
 :root {
   /* Light theme colors - using RGB values for opacity support */
   --background: 250 251 252;
-  --foreground: 17 24 39;
+  --foreground: 15 23 42;
   --card: 255 255 255;
-  --card-foreground: 17 24 39;
-  --border: 224 228 234;
-  --input: 224 228 234;
+  --card-foreground: 15 23 42;
+  --border: 203 213 225;
+  --input: 203 213 225;
   --muted: 245 247 250;
-  --muted-foreground: 100 116 139;
-  --primary: 0 167 111;
+  --muted-foreground: 51 65 85;
+  --primary: 194 120 0;
   --primary-foreground: 255 255 255;
   --popover: 255 255 255;
-  --popover-foreground: 17 24 39;
+  --popover-foreground: 15 23 42;
 
   /* Elevation shadows */
   --shadow-xs: 0 1px 2px rgba(0,0,0,0.05);
@@ -49,8 +49,8 @@
   --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -1px rgba(0,0,0,0.05);
   --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.07), 0 4px 6px -2px rgba(0,0,0,0.04);
   --shadow-xl: 0 20px 25px -5px rgba(0,0,0,0.07), 0 10px 10px -5px rgba(0,0,0,0.03);
-  --shadow-primary-sm: 0 2px 8px rgba(0,167,111,0.15);
-  --shadow-primary-md: 0 4px 14px rgba(0,167,111,0.20);
+  --shadow-primary-sm: 0 2px 8px rgba(194,120,0,0.18);
+  --shadow-primary-md: 0 4px 14px rgba(194,120,0,0.22);
 
   /* Radius */
   --radius-sm: 6px;
@@ -66,11 +66,11 @@
   --foreground: 241 245 249;
   --card: 22 30 44;
   --card-foreground: 241 245 249;
-  --border: 44 55 72;
-  --input: 44 55 72;
+  --border: 71 85 105;
+  --input: 71 85 105;
   --muted: 22 30 44;
-  --muted-foreground: 148 163 184;
-  --primary: 0 167 111;
+  --muted-foreground: 203 213 225;
+  --primary: 229 150 30;
   --primary-foreground: 255 255 255;
   --popover: 22 30 44;
   --popover-foreground: 241 245 249;
@@ -81,8 +81,8 @@
   --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.28), 0 2px 4px -1px rgba(0,0,0,0.18);
   --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.30), 0 4px 6px -2px rgba(0,0,0,0.20);
   --shadow-xl: 0 20px 25px -5px rgba(0,0,0,0.35), 0 10px 10px -5px rgba(0,0,0,0.25);
-  --shadow-primary-sm: 0 2px 8px rgba(0,167,111,0.25);
-  --shadow-primary-md: 0 4px 14px rgba(0,167,111,0.30);
+  --shadow-primary-sm: 0 2px 8px rgba(194,120,0,0.28);
+  --shadow-primary-md: 0 4px 14px rgba(194,120,0,0.32);
 }
 
 /** **************************************
@@ -454,8 +454,8 @@ input[type='number']::-webkit-inner-spin-button {
 
 /* Stat card gradient accents */
 .stat-card-primary {
-  background: linear-gradient(135deg, rgb(var(--card)) 0%, rgba(0, 167, 111, 0.04) 100%);
-  border-color: rgba(0, 167, 111, 0.15);
+  background: linear-gradient(135deg, rgb(var(--card)) 0%, rgba(194, 120, 0, 0.05) 100%);
+  border-color: rgba(194, 120, 0, 0.20);
 }
 .stat-card-blue {
   background: linear-gradient(135deg, rgb(var(--card)) 0%, rgba(59, 130, 246, 0.04) 100%);

@@ -5,6 +5,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Iconify } from '@/shared/components/iconify';
 import { useParams, useNavigate } from 'react-router';
+import { compressImage } from '@/utils/compress-image';
 import { TinyMCEEditorField } from '@/shared/components/tinymce-editor/tinymce-editor';
 import {
   useCreateIcon,
@@ -94,16 +95,20 @@ export default function CreatePage() {
 
   const onSubmit = async (data: IconFormValues) => {
     try {
+      const prepared =
+        data.image instanceof File
+          ? { ...data, image: await compressImage(data.image) }
+          : data;
       if (isEditMode && id) {
-        await updateMutation.mutateAsync({ id, data: data as any });
+        await updateMutation.mutateAsync({ id, data: prepared as any });
         toast.success(t('form.iconUpdatedSuccess'));
         navigate('/icons');
       } else {
-        if (!(data.image instanceof File)) {
+        if (!(prepared.image instanceof File)) {
           toast.error(t('form.imageRequired'));
           return;
         }
-        await createMutation.mutateAsync(data as any);
+        await createMutation.mutateAsync(prepared as any);
         toast.success(t('form.iconCreatedSuccess'));
         navigate('/icons');
       }

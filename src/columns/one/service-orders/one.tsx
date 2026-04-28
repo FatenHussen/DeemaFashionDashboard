@@ -5,6 +5,7 @@ import type { ServiceOrderData, ServiceOrderStatus } from '@/pages/dashboard/ser
 import { Iconify } from '@/shared/components/iconify';
 import { formatTranslated } from '@/utils/format-translated';
 import { FINAL_STATUSES } from '@/pages/dashboard/service-orders/types';
+import { TableTonedStatusPill } from '@/shared/components/table-status-badges';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 
 export type ServiceOrderRow = ServiceOrderData;
@@ -15,33 +16,27 @@ const STATUS_CONFIG: Record<
 > = {
   pending: {
     icon: 'solar:hourglass-bold',
-    className:
-      'bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800/50 text-amber-700 dark:text-amber-300',
+    className: 'border-amber-700 bg-amber-500',
   },
   confirmed: {
     icon: 'solar:check-circle-bold',
-    className:
-      'bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800/50 text-blue-700 dark:text-blue-300',
+    className: 'border-blue-800 bg-blue-600',
   },
   in_progress: {
     icon: 'solar:play-circle-bold',
-    className:
-      'bg-violet-50 dark:bg-violet-950/20 border-violet-200 dark:border-violet-800/50 text-violet-700 dark:text-violet-300',
+    className: 'border-violet-800 bg-violet-600',
   },
   completed: {
     icon: 'solar:check-square-bold',
-    className:
-      'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/50 text-emerald-700 dark:text-emerald-300',
+    className: 'border-emerald-800 bg-emerald-600',
   },
   canceled: {
     icon: 'solar:close-circle-bold',
-    className:
-      'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800/50 text-red-700 dark:text-red-300',
+    className: 'border-red-800 bg-red-600',
   },
   rejected: {
     icon: 'solar:close-square-bold',
-    className:
-      'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800/50 text-red-700 dark:text-red-300',
+    className: 'border-rose-900 bg-rose-600',
   },
 };
 
@@ -53,6 +48,19 @@ const ALL_STATUSES: ServiceOrderStatus[] = [
   'canceled',
   'rejected',
 ];
+
+function getServiceOrderStatusLabel(status: ServiceOrderStatus, t: TFunction<'table'>): string {
+  const labels: Record<ServiceOrderStatus, string> = {
+    pending: t('statusPending'),
+    confirmed: t('statusConfirmed'),
+    in_progress: t('statusInProgress'),
+    completed: t('columns.completed'),
+    canceled: t('statusCancelled'),
+    rejected: t('statusRejected'),
+  };
+
+  return labels[status] ?? status.replace(/_/g, ' ');
+}
 
 export const serviceOrderColumns = (
   permissions: { update: boolean },
@@ -133,10 +141,9 @@ export const serviceOrderColumns = (
 
       if (!permissions.update || isFinal) {
         return (
-          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border w-fit ${config.className}`}>
-            <Iconify icon={config.icon} width={14} height={14} />
-            <span className="text-xs font-medium capitalize">{status.replace('_', ' ')}</span>
-          </div>
+          <TableTonedStatusPill icon={config.icon} className={config.className}>
+            {getServiceOrderStatusLabel(status, t)}
+          </TableTonedStatusPill>
         );
       }
 
@@ -146,11 +153,11 @@ export const serviceOrderColumns = (
             value={status}
             disabled={isChanging}
             onChange={(e) => onStatusChange?.(row.original.id, e.target.value as ServiceOrderStatus)}
-            className={`appearance-none cursor-pointer rounded-lg border px-2.5 py-1 text-xs font-medium pr-6 focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-60 ${config.className}`}
+            className={`appearance-none cursor-pointer rounded-full border-2 px-2.5 py-1 pr-7 text-xs font-bold text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60 ${config.className}`}
           >
             {ALL_STATUSES.map((s) => (
               <option key={s} value={s} className="bg-background text-foreground">
-                {s.replace('_', ' ')}
+                {getServiceOrderStatusLabel(s, t)}
               </option>
             ))}
           </select>

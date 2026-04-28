@@ -9,6 +9,36 @@ import type {
 
 import { apiRoutes, axiosInstance } from '@/api';
 
+function normalizeOrderListResponse(raw: OrderListResponse): OrderListResponse {
+  const items = raw?.data?.items ?? [];
+  const normalizedItems = items.map((item: any) => {
+    const fallbackDriver =
+      item?.driver ??
+      item?.driver_data ??
+      item?.assigned_driver ??
+      (item?.driver_id
+        ? {
+            id: Number(item.driver_id),
+            name: item?.driver_name ?? undefined,
+            phone: item?.driver_phone ?? '',
+          }
+        : undefined);
+
+    return {
+      ...item,
+      driver: fallbackDriver,
+    };
+  });
+
+  return {
+    ...raw,
+    data: {
+      ...raw.data,
+      items: normalizedItems,
+    },
+  };
+}
+
 export const _OrderApi = {
   getListOrders: async (params?: {
     page?: number;
@@ -21,7 +51,7 @@ export const _OrderApi = {
     const response = await axiosInstance.get<OrderListResponse>(apiRoutes.order.list, {
       params,
     });
-    return response.data;
+    return normalizeOrderListResponse(response.data);
   },
 
   getOrderById: async (id: number | string): Promise<OrderDetailsResponse> => {

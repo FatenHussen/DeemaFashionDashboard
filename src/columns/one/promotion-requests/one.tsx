@@ -2,6 +2,7 @@ import type { TFunction } from 'i18next';
 import type { ColumnDef } from '@tanstack/react-table';
 
 import { z } from 'zod';
+import { TableTonedStatusPill } from '@/shared/components/table-status-badges';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 
@@ -21,10 +22,10 @@ export interface PromotionRequestTableItem {
   created_at: string;
 }
 
-const statusColors: Record<string, string> = {
-  pending: 'bg-yellow-100 text-yellow-700',
-  approved: 'bg-green-100 text-green-700',
-  rejected: 'bg-red-100 text-red-700',
+const statusPill: Record<string, { icon: string; className: string }> = {
+  pending: { icon: 'solar:clock-circle-bold', className: 'border-amber-700 bg-amber-500' },
+  approved: { icon: 'solar:check-circle-bold', className: 'border-emerald-800 bg-emerald-600' },
+  rejected: { icon: 'solar:close-circle-bold', className: 'border-red-800 bg-red-600' },
 };
 
 export const promotionRequestColumns = (
@@ -56,13 +57,18 @@ export const promotionRequestColumns = (
     id: 'status',
     accessorKey: 'status',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.status')} />,
-    cell: ({ row }) => (
-      <span
-        className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${statusColors[row.original.status] ?? 'bg-muted text-muted-foreground'}`}
-      >
-        {row.original.status}
-      </span>
-    ),
+    cell: ({ row }) => {
+      const key = String(row.original.status);
+      const cfg = statusPill[key] ?? {
+        icon: 'solar:info-circle-bold',
+        className: 'border-slate-600 bg-slate-500',
+      };
+      return (
+        <TableTonedStatusPill icon={cfg.icon} className={cfg.className}>
+          {row.original.status}
+        </TableTonedStatusPill>
+      );
+    },
   },
   {
     id: 'created_at',

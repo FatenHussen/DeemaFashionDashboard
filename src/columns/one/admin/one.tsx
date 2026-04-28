@@ -3,6 +3,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 
 import { z } from 'zod';
 import { Iconify } from '@/shared/components/iconify';
+import { TableActiveBadge } from '@/shared/components/table-status-badges';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 
@@ -94,21 +95,11 @@ export const adminColumns = (
     cell: ({ row }) => {
       const isActive = Boolean(row.original.is_active);
       return (
-        <div
-          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border w-fit ${
-            isActive
-              ? 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/50 text-emerald-700 dark:text-emerald-300'
-              : 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800/50 text-red-700 dark:text-red-300'
-          }`}
-        >
-          <Iconify
-            icon={isActive ? 'solar:check-circle-bold' : 'solar:close-circle-bold'}
-            width={14}
-            height={14}
-            className="flex-shrink-0"
-          />
-          <span className="text-xs font-medium">{isActive ? t('active') : t('inactive')}</span>
-        </div>
+        <TableActiveBadge
+          isActive={isActive}
+          activeLabel={t('active')}
+          inactiveLabel={t('inactive')}
+        />
       );
     },
   },

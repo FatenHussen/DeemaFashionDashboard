@@ -10,6 +10,8 @@ export interface UserBasketScheduleItem {
   };
   /** Basket / subscription name (flat on list payload; not nested under `basket`). */
   name: string;
+  /** Short text summary for admin list (when API provides it). */
+  items_preview?: string | string[] | null;
   image: string | null;
   num_varieties: number;
   original_price: number;

@@ -25,14 +25,6 @@ export const PageSectionSchema = z.object({
     },
     { message: t('pageSection.pageRequired') }
   ),
-  display_type_id: z.union([z.string(), z.number()]).refine(
-    (val) => {
-      if (typeof val === 'string') return val !== '';
-      if (typeof val === 'number') return val > 0;
-      return false;
-    },
-    { message: t('pageSection.displayTypeRequired') }
-  ),
   position: z.enum(['before', 'after'], {
     required_error: t('pageSection.positionRequired'),
   }),

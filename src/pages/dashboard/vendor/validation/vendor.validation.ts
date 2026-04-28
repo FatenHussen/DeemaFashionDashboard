@@ -33,8 +33,9 @@ export const VendorSchema = zod.object({
   owner_name: zod.string().min(1, { message: t('vendor.ownerNameRequired') }),
   owner_phone: zod
     .string()
-    .min(1, { message: t('vendor.ownerPhoneRequired') })
-    .refine(isValidOwnerPhone, { message: t('vendor.invalidPhoneFormat') }),
+    .refine((val) => !val.trim() || isValidOwnerPhone(val), {
+      message: t('vendor.invalidPhoneFormat'),
+    }),
   commercial_register: zod.string(),
   contract_date: zod.string().min(1, { message: t('vendor.contractDateRequired') }),
   contract_number: zod.string().min(1, { message: t('vendor.contractNumberRequired') }),

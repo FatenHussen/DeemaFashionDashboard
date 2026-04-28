@@ -361,6 +361,11 @@ export default function CreatePage() {
               {t('form.flashSaleCategoryLabel')} & {t('form.flashSaleVendorLabel')}
             </Typography>
           </Box>
+          <Box className="border-b border-border/30 px-6 py-3">
+            <Typography variant="body2" className="text-foreground/90 leading-relaxed">
+              {t('form.flashSalePlacementOverview')}
+            </Typography>
+          </Box>
           <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
             <Box className="group">
               <Box className="flex items-center gap-2 mb-2">

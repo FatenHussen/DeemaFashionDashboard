@@ -3,6 +3,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 import type { GiftData } from '@/pages/dashboard/gifts/types/gift.types';
 
 import { z } from 'zod';
+import { TableActiveBadge } from '@/shared/components/table-status-badges';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 
@@ -67,9 +68,11 @@ export const giftColumns = (
     accessorKey: 'is_active',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.status')} />,
     cell: ({ row }) => (
-      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${row.original.is_active ? 'bg-green-500/20 text-green-600' : 'bg-red-500/20 text-red-600'}`}>
-        {row.original.is_active ? t('active') : t('inactive')}
-      </span>
+      <TableActiveBadge
+        isActive={row.original.is_active}
+        activeLabel={t('active')}
+        inactiveLabel={t('inactive')}
+      />
     ),
   },
   {

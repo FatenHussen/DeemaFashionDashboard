@@ -7,10 +7,6 @@ import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actio
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 import { formatSellerRegistrationCountry } from '@/pages/dashboard/vendor/utils/seller-registration-display';
 
-import i18n from 'src/lib/i18n';
-
-const tc = (key: string) => i18n.t(key, { ns: 'common' });
-
 // ----------------------------------------------------------------------
 
 const SellerRegistrationSchema = z.object({ id: z.number() });
@@ -123,9 +119,9 @@ export const sellerRegistrationColumns = (
                 onApprove(row.original.id);
               }}
               className="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium bg-green-500/15 text-green-700 dark:text-green-400 hover:bg-green-500/25 transition-colors"
-              title={tc('approve')}
+              title={t('approve')}
             >
-              ✓ {tc('approve')}
+              ✓ {t('approve')}
             </button>
           )}
           {isPending && onReject && (
@@ -135,9 +131,9 @@ export const sellerRegistrationColumns = (
                 onReject(row.original.id);
               }}
               className="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium bg-red-500/15 text-red-700 dark:text-red-400 hover:bg-red-500/25 transition-colors"
-              title={tc('reject')}
+              title={t('reject')}
             >
-              ✗ {tc('reject')}
+              ✗ {t('reject')}
             </button>
           )}
           <DataTableRowActions

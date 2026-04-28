@@ -2,8 +2,8 @@
  * Popup campaign admin API client.
  *
  * Create/update use `multipart/form-data`: Laravel expects nested keys `title[en]`, `title[ar]`, same for
- * headline/subheadline/description; file field `media` plus `media_path` placeholder `__pending_upload__` on create
- * when uploading a new file (backend stores path after upload).
+ * headline/subheadline/description; new uploads use the file field `media_path` (validated as file on the API).
+ * Omit `media_path` when keeping existing media on update.
  */
 import type { PopupCampaignDetail, PopupCampaignListResponse, PopupCampaignDetailResponse } from '../types';
 
@@ -13,6 +13,24 @@ import { apiRoutes, axiosInstance } from '@/api';
  * Resolves the campaign object whether the HTTP body is `{ data: { id, ... } }`, double-wrapped
  * `data.data`, or a bare resource (no envelope).
  */
+/** Laravel JsonResource can nest fields under `attributes` next to `id`. */
+function mergeResourceAttributesIfNeeded(
+  node: Record<string, unknown> | null | undefined
+): Record<string, unknown> {
+  if (!node || typeof node !== 'object') return {};
+  if (
+    'attributes' in node &&
+    node.attributes != null &&
+    typeof node.attributes === 'object' &&
+    !Array.isArray(node.attributes) &&
+    !('title' in node) &&
+    !('headline' in node)
+  ) {
+    return { ...node, ...((node as { attributes: Record<string, unknown> }).attributes) };
+  }
+  return { ...node };
+}
+
 function normalizeDetailPayload(body: unknown): PopupCampaignDetail | null {
   const root = body as Record<string, unknown> | null | undefined;
   if (!root || typeof root !== 'object') return null;
@@ -20,15 +38,19 @@ function normalizeDetailPayload(body: unknown): PopupCampaignDetail | null {
   const first = root.data;
   if (first != null && typeof first === 'object' && !Array.isArray(first)) {
     if ('id' in first) {
-      return first as PopupCampaignDetail;
+      return mergeResourceAttributesIfNeeded(
+        first as Record<string, unknown>
+      ) as unknown as PopupCampaignDetail;
     }
     const second = (first as Record<string, unknown>).data;
     if (second != null && typeof second === 'object' && !Array.isArray(second) && 'id' in second) {
-      return second as unknown as PopupCampaignDetail;
+      return mergeResourceAttributesIfNeeded(
+        second as Record<string, unknown>
+      ) as unknown as PopupCampaignDetail;
     }
   }
   if ('id' in root && (typeof root.id === 'number' || typeof root.id === 'string')) {
-    return root as unknown as PopupCampaignDetail;
+    return mergeResourceAttributesIfNeeded(root) as unknown as PopupCampaignDetail;
   }
   return null;
 }

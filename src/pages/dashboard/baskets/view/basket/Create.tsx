@@ -2,15 +2,17 @@ import type { CategoryData } from '@/pages/dashboard/categories/types/category.t
 import type { BasketItem , BasketCreateUpdatePayload } from '@/pages/dashboard/baskets/types/basket.types';
 
 import { toast } from 'react-toastify';
-import { useMemo, useEffect } from 'react';
 import { Button } from '@/shared/ui/button';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
+import { useMemo, useState, useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Iconify } from '@/shared/components/iconify';
 import { useParams, useNavigate } from 'react-router';
 import { MultiSelect } from '@/shared/ui/multi-select';
+import { compressImage } from '@/utils/compress-image';
 import { formatTranslated } from '@/utils/format-translated';
+import { resolveBasketGalleryUrls } from '@/utils/basket-gallery';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { InfiniteScrollSelect } from '@/shared/components/infinite-scroll-select';
 import { _CategoryApi } from '@/pages/dashboard/categories/api/category.services';
@@ -29,7 +31,7 @@ import {
 import { resolveStorageImageUrl, shopVariantOptionImage, shopVariantOptionColorHex } from '@/utils/shop-variant-image';
 
 import { CONFIG } from 'src/global-config';
-import { Box, Typography } from 'src/shared/ui';
+import { Box, Input, Typography } from 'src/shared/ui';
 import { LoadingScreen } from 'src/shared/components/loading-screen';
 import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
 import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
@@ -91,6 +93,7 @@ export default function CreatePage() {
     discount_type: 'percentage',
     delivery_price: 0,
     image: null,
+    images: [],
     items: [{ shop_product_variant_id: 0, quantity: 1 }],
     badges: [],
   };
@@ -102,7 +105,38 @@ export default function CreatePage() {
 
   const { handleSubmit, reset, control, watch, setValue } = methods;
   const categoryIds = watch('category_ids') ?? [];
-  const primaryCategoryId = categoryIds[0] ?? 0;
+  const imageValue = watch('image');
+  const extraImageFiles = watch('images') ?? [];
+  const [fileImagePreview, setFileImagePreview] = useState<string | null>(null);
+  const [extraImagePreviews, setExtraImagePreviews] = useState<string[]>([]);
+
+  const existingGallery = useMemo(
+    () => (isEditMode && basketResponse?.data ? resolveBasketGalleryUrls(basketResponse.data) : []),
+    [isEditMode, basketResponse?.data]
+  );
+
+  useEffect(() => {
+    if (!(imageValue instanceof File)) {
+      setFileImagePreview(null);
+      return undefined;
+    }
+    const u = URL.createObjectURL(imageValue);
+    setFileImagePreview(u);
+    return () => URL.revokeObjectURL(u);
+  }, [imageValue]);
+
+  const extraSig = extraImageFiles.map((f) => `${f.name}:${f.size}`).join('|');
+  useEffect(() => {
+    if (!extraImageFiles.length) {
+      setExtraImagePreviews([]);
+      return undefined;
+    }
+    const urls = extraImageFiles.map((f) => URL.createObjectURL(f));
+    setExtraImagePreviews(urls);
+    return () => {
+      urls.forEach((u) => URL.revokeObjectURL(u));
+    };
+  }, [extraSig]);
 
   const { data: categoriesListResponse } = useQuery({
     queryKey: ['categories', 'basket-form-options'],
@@ -156,6 +190,7 @@ export default function CreatePage() {
         discount_type: source.discount_type || 'percentage',
         delivery_price: source.delivery_price ?? 0,
         image: null,
+        images: [],
         items: source.items?.length
           ? source.items.map((it) => ({
               shop_product_variant_id: Number(it.shop_product_variant_id) || 0,
@@ -174,6 +209,13 @@ export default function CreatePage() {
 
   const onSubmit = async (data: BasketFormValues) => {
     try {
+      const image =
+        data.image instanceof File ? await compressImage(data.image) : data.image;
+      const images = data.images?.length
+        ? await Promise.all(
+            data.images.map((f) => (f instanceof File ? compressImage(f) : f))
+          )
+        : undefined;
       const payload: BasketCreateUpdatePayload = {
         category_ids: data.category_ids,
         category_id: data.category_ids[0],
@@ -183,7 +225,8 @@ export default function CreatePage() {
         discount: data.discount,
         discount_type: data.discount_type,
         delivery_price: data.delivery_price,
-        image: data.image,
+        image,
+        images,
         items: data.items,
         badges: data.badges,
       };
@@ -356,7 +399,7 @@ export default function CreatePage() {
               <Iconify icon="solar:tag-price-bold" className="text-amber-500" width={15} />
             </Box>
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              {t('form.discountType')} · {t('form.offerEndsAt')} · {t('form.deliveryPrice')}
+              {t('form.discountType')} · {t('form.offerEndsAt')} · {t('form.deliveryPrice')} · {t('form.basketImage')}
             </Typography>
           </Box>
           <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -403,6 +446,96 @@ export default function CreatePage() {
                 {t('form.deliveryPrice')}
               </Typography>
               <RHFTextField name="delivery_price" type="number" placeholder={t('form.placeholderZero')} fullWidth />
+            </Box>
+            <Box className="group md:col-span-2">
+              <Box className="flex items-center gap-2 mb-2">
+                <Iconify icon="solar:gallery-add-bold" className="text-amber-500" width={20} height={20} />
+                <Typography variant="subtitle2" className="font-semibold text-foreground">
+                  {t('form.basketImage')}
+                </Typography>
+              </Box>
+              {isEditMode && existingGallery.length > 0 && (
+                <Box className="mb-3 flex flex-wrap gap-2">
+                  {existingGallery.map((u) => (
+                    <img
+                      key={u}
+                      src={u}
+                      alt=""
+                      className="h-16 w-16 rounded-lg border border-border/60 object-cover"
+                    />
+                  ))}
+                </Box>
+              )}
+              <Controller
+                name="image"
+                control={control}
+                render={({ field: { onChange, value, ...field }, fieldState: { error } }) => (
+                  <div className="w-full">
+                    <Input
+                      {...field}
+                      type="file"
+                      accept="image/jpeg,image/png,image/jpg,image/gif"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        onChange(file || null);
+                      }}
+                      error={!!error}
+                      helperText={error?.message || t('form.basketImageHelperPrimary')}
+                      fullWidth
+                    />
+                    {(() => {
+                      const displaySrc =
+                        fileImagePreview ||
+                        (!(value instanceof File) && isEditMode
+                          ? basketResponse?.data?.image || existingGallery[0]
+                          : null);
+                      return displaySrc ? (
+                        <Box className="mt-2">
+                          <img
+                            src={displaySrc}
+                            alt=""
+                            className="max-h-32 max-w-xs rounded-xl border border-border/60 object-cover"
+                          />
+                        </Box>
+                      ) : null;
+                    })()}
+                  </div>
+                )}
+              />
+              <Typography variant="caption" className="mt-2 block text-muted-foreground">
+                {t('form.basketAdditionalImagesLabel')}
+              </Typography>
+              <Controller
+                name="images"
+                control={control}
+                render={({ field: { onChange, value, ...field }, fieldState: { error } }) => (
+                  <div className="w-full">
+                    <Input
+                      {...field}
+                      value=""
+                      type="file"
+                      accept="image/jpeg,image/png,image/jpg,image/gif"
+                      multiple
+                      onChange={(e) => onChange(e.target.files ? Array.from(e.target.files) : [])}
+                      error={!!error}
+                      helperText={error?.message || t('form.basketAdditionalImagesHelper')}
+                      fullWidth
+                    />
+                    {extraImagePreviews.length > 0 && (
+                      <Box className="mt-2 flex flex-wrap gap-2">
+                        {extraImagePreviews.map((u, i) => (
+                          <img
+                            key={`${u}-${i}`}
+                            src={u}
+                            alt=""
+                            className="h-16 w-16 rounded-lg border border-border/60 object-cover"
+                          />
+                        ))}
+                      </Box>
+                    )}
+                  </div>
+                )}
+              />
             </Box>
           </Box>
         </Box>
@@ -463,7 +596,6 @@ export default function CreatePage() {
                               page,
                               per_page: perPage,
                               category_ids: categoryIds,
-                              category_id: primaryCategoryId,
                             });
                           }}
                           placeholder={t('form.variantId')}

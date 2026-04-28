@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { createToggleColumn } from '@/shared/ui/table-data/data-table-toggle-cell';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
+import { TableActiveBadge, TableTonedStatusPill } from '@/shared/components/table-status-badges';
 
 const UserSchema = z.object({
   id: z.number(),
@@ -57,14 +58,6 @@ export const userColumns = (
     ),
   },
   {
-    id: 'email',
-    accessorKey: 'email',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.email')} />,
-    cell: ({ row }) => (
-      <span className="text-sm text-muted-foreground">{row.original.email}</span>
-    ),
-  },
-  {
     id: 'phone',
     accessorKey: 'phone',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.phone')} />,
@@ -92,15 +85,11 @@ export const userColumns = (
     cell: ({ row }) => {
       const isActive = Boolean(row.original.is_active);
       return (
-        <span
-          className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-            isActive
-              ? 'bg-green-500/20 text-green-700 dark:text-green-400'
-              : 'bg-red-500/20 text-red-700 dark:text-red-400'
-          }`}
-        >
-          {isActive ? t('active') : t('inactive')}
-        </span>
+        <TableActiveBadge
+          isActive={isActive}
+          activeLabel={t('active')}
+          inactiveLabel={t('inactive')}
+        />
       );
     },
   },
@@ -113,17 +102,24 @@ export const userColumns = (
       const isAff = aff?.is_affiliate ?? false;
       const approved = aff?.affiliate_approved ?? false;
       const label = !isAff ? t('no') : approved ? t('columns.approved') : t('columns.pending');
-      const variant = !isAff
-        ? 'bg-muted text-muted-foreground'
-        : approved
-          ? 'bg-green-500/20 text-green-600'
-          : 'bg-amber-500/20 text-amber-600';
+      if (!isAff) {
+        return (
+          <TableTonedStatusPill icon="solar:close-circle-bold" className="border-slate-600 bg-slate-500">
+            {label}
+          </TableTonedStatusPill>
+        );
+      }
+      if (approved) {
+        return (
+          <TableTonedStatusPill icon="solar:check-circle-bold" className="border-emerald-800 bg-emerald-600">
+            {label}
+          </TableTonedStatusPill>
+        );
+      }
       return (
-        <span
-          className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${variant}`}
-        >
+        <TableTonedStatusPill icon="solar:clock-circle-bold" className="border-amber-700 bg-amber-500">
           {label}
-        </span>
+        </TableTonedStatusPill>
       );
     },
   },
