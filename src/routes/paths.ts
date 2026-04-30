@@ -6,9 +6,11 @@ export const ROOTS = {
   ADMIN: '/admin',
   VENDOR: '/vendor',
   SHOP: '/shop',
+  RESTAURANTS: '/restaurants',
   PROFILE: '/profile',
   ROLE: '/role',
   DRIVER: '/driver',
+  SERVICE_PROVIDERS: '/service-providers',
   PRODUCTS: '/products',
   BRANDS: '/products/brands',
   UNITS: '/products/units',
@@ -115,9 +117,11 @@ export const paths = {
     root: ROOTS.ADMIN,
     vendor: ROOTS.VENDOR,
     shop: ROOTS.SHOP,
+    restaurants: ROOTS.RESTAURANTS,
     profile: ROOTS.PROFILE,
     role: ROOTS.ROLE,
     driver: ROOTS.DRIVER,
+    serviceProviders: ROOTS.SERVICE_PROVIDERS,
     products: ROOTS.PRODUCTS,
     /** Product CRUD sub-routes under `/products` */
     product: {

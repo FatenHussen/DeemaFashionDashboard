@@ -131,7 +131,12 @@ export const shopColumns = (
   isDeleteDialogOpen?: boolean,
   onDeleteConfirm?: () => void,
   onDeleteCancel?: () => void,
-  deletingId?: number | null
+  deletingId?: number | null,
+  paths?: {
+    viewDetailsBase?: string;
+    editItemBase?: string;
+  },
+  options?: { hideShopTypeColumn?: boolean }
 ): ColumnDef<ShopFormValues>[] => [
   {
     id: 'name',
@@ -177,27 +182,33 @@ export const shopColumns = (
       );
     },
   },
-  {
-    id: 'shop_type',
-    accessorKey: 'shop_type',
-    meta: {
-      headerClassName: 'min-w-[220px]',
-      cellClassName: 'min-w-[220px]',
-    },
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.shopType')} />,
-    cell: ({ row }) => {
-      const type = normalizeShopTypeFromApi(row.original);
-      const labelKey =
-        type === 'restaurant'
-          ? 'form.shopTypeRestaurant'
-          : type === 'service_provider'
-            ? 'form.shopTypeServiceProvider'
-            : 'form.shopTypeStore';
-      const variant: PillStatusVariant =
-        type === 'restaurant' ? 'busy' : type === 'service_provider' ? 'available' : 'neutral';
-      return <PillStatusBadge label={t(labelKey)} variant={variant} />;
-    },
-  },
+  ...(options?.hideShopTypeColumn
+    ? []
+    : [
+        {
+          id: 'shop_type',
+          accessorKey: 'shop_type',
+          meta: {
+            headerClassName: 'min-w-[220px]',
+            cellClassName: 'min-w-[220px]',
+          },
+          header: ({ column }) => (
+            <DataTableColumnHeader column={column} title={t('columns.shopType')} />
+          ),
+          cell: ({ row }) => {
+            const type = normalizeShopTypeFromApi(row.original);
+            const labelKey =
+              type === 'restaurant'
+                ? 'form.shopTypeRestaurant'
+                : type === 'service_provider'
+                  ? 'form.shopTypeServiceProvider'
+                  : 'form.shopTypeStore';
+            const variant: PillStatusVariant =
+              type === 'restaurant' ? 'busy' : type === 'service_provider' ? 'available' : 'neutral';
+            return <PillStatusBadge label={t(labelKey)} variant={variant} />;
+          },
+        } satisfies ColumnDef<ShopFormValues>,
+      ]),
   {
     id: 'rating',
     accessorKey: 'average_rating',
@@ -317,8 +328,8 @@ export const shopColumns = (
       <DataTableRowActions
         schema={ShopSchema}
         row={row}
-        viewDetails={`/shop/details/${row.original.id}`}
-        editItem={`/shop/update/${row.original.id}`}
+        viewDetails={`${paths?.viewDetailsBase ?? '/shop/details'}/${row.original.id}`}
+        editItem={`${paths?.editItemBase ?? '/shop/update'}/${row.original.id}`}
         onDelete={onDelete}
         isDeleting={isDeleting}
         isDeleteDialogOpen={isDeleteDialogOpen}

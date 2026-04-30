@@ -37,7 +37,9 @@ export const shopVendorServiceColumns = (
   {
     id: 'shop',
     accessorKey: 'shop',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.shop')} />,
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title={t('columns.shopVendorLinkShop')} />
+    ),
     cell: ({ row }) => {
       const shopName = row.original.shop
         ? formatTranslated(row.original.shop.name)
@@ -56,7 +58,7 @@ export const shopVendorServiceColumns = (
     id: 'vendor_service',
     accessorKey: 'vendor_service',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={t('columns.vendorService')} />
+      <DataTableColumnHeader column={column} title={t('columns.shopVendorLinkService')} />
     ),
     cell: ({ row }) => {
       const serviceName = row.original.vendor_service

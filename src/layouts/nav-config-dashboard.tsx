@@ -192,16 +192,49 @@ export function getNavData(t: TFunction<'nav'>): NavSectionProps['data'] {
         { title: t('vendorUsers'), path: paths.dashboard.vendorUsers, icon: ICONS.job, requiredPermission: 'vendoruser.view' },
         { title: t('sellerRegistrations'), path: paths.dashboard.sellerRegistrations, icon: ICONS.file, requiredPermission: 'sellerregistration.view' },
         { title: t('shop'), path: paths.dashboard.shop, icon: ICONS.analytics, requiredPermission: 'shop.view' },
-        { title: t('driver'), path: paths.dashboard.driver, icon: ICONS.order, requiredPermission: 'driver.view' },
+        {
+          title: t('restaurantsNav'),
+          path: paths.dashboard.restaurants,
+          icon: <Iconify icon="solar:chef-hat-bold" width={22} height={22} />,
+          requiredPermission: 'shop.view',
+        },
+      ],
+    },
+    /**
+     * 6b. Drivers
+     */
+    {
+      subheader: (
+        <span className="flex items-center gap-3">
+          <Iconify icon="solar:scooter-bold" width={16} height={16} />
+          <span>{t('driversGroup')}</span>
+        </span>
+      ) as any,
+      items: [
+        { title: t('driver'), path: paths.dashboard.driver, icon: <Iconify icon="solar:delivery-bold-duotone" width={22} height={22} />, requiredPermission: 'driver.view' },
         {
           title: t('driverWalletTransactions'),
           path: paths.dashboard.driverWalletTransactions,
           icon: ICONS.banking,
           requiredPermission: 'driverwallettransaction.view',
         },
-        { title: t('vendorServiceTypes'), path: paths.dashboard.vendorServiceTypes, icon: ICONS.menuItem, requiredPermission: 'vendorservicetype.view' },
-        { title: t('vendorServices'), path: paths.dashboard.vendorServices, icon: ICONS.course, requiredPermission: 'vendorservice.view' },
-        { title: t('shopVendorServices'), path: paths.dashboard.shopVendorServices, icon: ICONS.booking, requiredPermission: 'shopvendorservice.view' },
+      ],
+    },
+    /**
+     * 6c. Service Providers
+     */
+    {
+      subheader: (
+        <span className="flex items-center gap-3">
+          <Iconify icon="solar:settings-bold" width={16} height={16} />
+          <span>{t('serviceProvidersGroup')}</span>
+        </span>
+      ) as any,
+      items: [
+        { title: t('serviceProvidersNav'), path: paths.dashboard.serviceProviders, icon: <Iconify icon="solar:hand-stars-bold" width={22} height={22} />, requiredPermission: 'shop.view' },
+        { title: t('providerServiceCategoriesNav'), path: paths.dashboard.vendorServiceTypes, icon: ICONS.menuItem, requiredPermission: 'vendorservicetype.view' },
+        { title: t('providerServiceTypesNav'), path: paths.dashboard.vendorServices, icon: ICONS.course, requiredPermission: 'vendorservice.view' },
+        { title: t('providerServicesNav'), path: paths.dashboard.shopVendorServices, icon: ICONS.booking, requiredPermission: 'shopvendorservice.view' },
       ],
     },
     /**

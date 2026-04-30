@@ -161,7 +161,15 @@ export const queryKeys = {
   },
   // Order query keys
   order: {
-    list: (params?: { page?: number; per_page?: number; status?: string; search?: string }) =>
+    list: (params?: {
+      page?: number;
+      per_page?: number;
+      status?: string;
+      search?: string;
+      driver_id?: number;
+      sort_field?: string;
+      sort_order?: 'asc' | 'desc';
+    }) =>
       ['order', 'list', params] as const,
     details: (id: number | string) => ['order', 'details', id] as const,
     toAssign: (params: {

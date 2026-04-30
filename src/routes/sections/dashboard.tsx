@@ -24,6 +24,12 @@ const VendorCreatePage = lazy(() => import('@/pages/dashboard/vendor/view/vendor
 const ShopIndexPage = lazy(() => import('@/pages/dashboard/vendor/view/shop/Index'));
 const ShopCreatePage = lazy(() => import('@/pages/dashboard/vendor/view/shop/Create'));
 const ShopDetailsPage = lazy(() => import('@/pages/dashboard/vendor/view/shop/Details'));
+const ServiceProviderIndexPage = lazy(
+  () => import('@/pages/dashboard/vendor/view/service-provider/Index')
+);
+const ServiceProviderDetailsPage = lazy(
+  () => import('@/pages/dashboard/vendor/view/service-provider/Details')
+);
 
 const ProfilePage = lazy(() => import('@/pages/dashboard/profile/view/Profile'));
 
@@ -293,6 +299,9 @@ const DriverWalletTransactionIndexPage = lazy(
 const DriverWalletTransactionDetailsPage = lazy(
   () => import('@/pages/dashboard/driver-wallet-transactions/view/Details')
 );
+const DriverOrdersPage = lazy(
+  () => import('@/pages/dashboard/driver-wallet-transactions/view/DriverOrders')
+);
 
 // Icons
 const IconIndexPage = lazy(() => import('@/pages/dashboard/icons/view/Index'));
@@ -509,6 +518,82 @@ export const dashboardRoutes: RouteObject[] = [
         element: (
           <RequirePermission permission="shop.view">
             <ShopDetailsPage />
+          </RequirePermission>
+        ),
+      },
+    ],
+  },
+  {
+    path: 'restaurants',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: (
+          <RequirePermission permission="shop.view">
+            <ShopIndexPage />
+          </RequirePermission>
+        ),
+        index: true,
+      },
+      {
+        path: 'create',
+        element: (
+          <RequirePermission permission="shop.create">
+            <ShopCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'update/:id',
+        element: (
+          <RequirePermission permission="shop.update">
+            <ShopCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'details/:id',
+        element: (
+          <RequirePermission permission="shop.view">
+            <ShopDetailsPage />
+          </RequirePermission>
+        ),
+      },
+    ],
+  },
+  {
+    path: 'service-providers',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: (
+          <RequirePermission permission="shop.view">
+            <ServiceProviderIndexPage />
+          </RequirePermission>
+        ),
+        index: true,
+      },
+      {
+        path: 'create',
+        element: (
+          <RequirePermission permission="shop.create">
+            <ShopCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'update/:id',
+        element: (
+          <RequirePermission permission="shop.update">
+            <ShopCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'details/:id',
+        element: (
+          <RequirePermission permission="shop.view">
+            <ServiceProviderDetailsPage />
           </RequirePermission>
         ),
       },
@@ -1923,6 +2008,14 @@ export const dashboardRoutes: RouteObject[] = [
         element: (
           <RequirePermission permission="driverwallettransaction.view">
             <DriverWalletTransactionDetailsPage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'driver/:driverId/orders',
+        element: (
+          <RequirePermission permission="driverwallettransaction.view">
+            <DriverOrdersPage />
           </RequirePermission>
         ),
       },

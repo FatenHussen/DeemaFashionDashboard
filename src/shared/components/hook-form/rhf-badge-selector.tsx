@@ -164,8 +164,8 @@ export function RHFBadgeSelector({ name, label, helperText }: RHFBadgeSelectorPr
                 {/* ── Helper hint ────────────────────────────── */}
                 <Box className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs ${
                   activeTab === 'top'
-                    ? 'bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400'
-                    : 'bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400'
+                    ? 'bg-dark-50 text-dark-600 dark:bg-dark-950/30 dark:text-dark-400'
+                    : 'bg-dark-50 text-dark-600 dark:bg-dark-950/30 dark:text-dark-400'
                 }`}>
                   <Iconify
                     icon={activeTab === 'top' ? 'solar:info-circle-bold' : 'solar:layers-bold'}
