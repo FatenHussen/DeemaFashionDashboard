@@ -11,6 +11,7 @@ import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
 import { compressImages } from '@/utils/compress-image';
 import { formatTranslated } from '@/utils/format-translated';
+import { formatApiCurrencyAmountForLanguage } from '@/utils/format-currency';
 import { useFetchProductById } from '@/pages/dashboard/products/hooks/product';
 import {
   useUpdateProductVariant,
@@ -132,7 +133,10 @@ function DetailRow({ label, value, emptyLabel }: { label: string; value: ReactNo
 
 /** Renders `*_currencies` maps, then `*_formatted`, then legacy amount + label. */
 function productMoneyDisplay(args: {
-  currencies?: Record<string, { formatted?: string }> | null | undefined;
+  currencies?: Record<
+    string,
+    { amount?: number; currency?: string; symbol?: string; formatted?: string } | null
+  > | null | undefined;
   singleFormatted?: string | null | undefined;
   amount?: number | null | undefined;
   legacyAmountPrefix: string;
@@ -145,8 +149,16 @@ function productMoneyDisplay(args: {
       <Box className="flex flex-col gap-0.5">
         {entries.map(([code, row]) => (
           <Typography key={code} variant="body1" className="tabular-nums">
-            <span className="me-2 text-xs font-medium text-muted-foreground">{code}</span>
-            {row?.formatted ?? '—'}
+            {row != null &&
+            typeof row.amount === 'number' &&
+            Number.isFinite(row.amount) &&
+            (row.currency != null || code)
+              ? formatApiCurrencyAmountForLanguage({
+                  amount: row.amount,
+                  currency: (row.currency ?? code) as string,
+                  symbol: row.symbol,
+                })
+              : (row?.formatted ?? '—')}
           </Typography>
         ))}
       </Box>
@@ -155,6 +167,47 @@ function productMoneyDisplay(args: {
   if (singleFormatted) return singleFormatted;
   if (amount != null && !Number.isNaN(Number(amount))) return `${legacyAmountPrefix} ${amount}`;
   return '—';
+}
+
+function approvalChipClass(statusRaw: string | null | undefined): string {
+  const s = String(statusRaw ?? '').toLowerCase();
+  if (s.includes('reject')) {
+    return 'border-rose-500/35 bg-rose-500/10 text-rose-800 dark:text-rose-300';
+  }
+  if (s.includes('pending') || s.includes('draft') || s.includes('review')) {
+    return 'border-amber-500/35 bg-amber-500/12 text-amber-950 dark:text-amber-300';
+  }
+  if (s.includes('approv')) {
+    return 'border-emerald-500/35 bg-emerald-500/10 text-emerald-900 dark:text-emerald-300';
+  }
+  return 'border-border/60 bg-muted/45 text-muted-foreground';
+}
+
+function formatDiscountTypeLabel(dt: string | null | undefined, tr: TFunction<'table'>): string {
+  const v = String(dt ?? '').toLowerCase().trim();
+  if (v === 'percentage') return tr('form.discountTypePercentage');
+  if (v === 'fixed') return tr('form.discountTypeFixed');
+  if (v === 'none' || v === '') return tr('form.discountTypeNone');
+  return String(dt ?? '—');
+}
+
+function badgeAdminLabel(
+  badge: { id: number; name?: unknown },
+  tr: TFunction<'table'>
+): string {
+  const n = badge.name;
+  if (n != null && typeof n === 'object' && !Array.isArray(n)) {
+    const s = formatTranslated(n as { en?: string; ar?: string })?.trim();
+    if (s) return s;
+  }
+  if (typeof n === 'string' && n.trim()) return n.trim();
+  return tr('form.productDetailsBadgeNumber', { id: badge.id });
+}
+
+function boolFromApi(v: unknown): boolean {
+  if (typeof v === 'boolean') return v;
+  if (typeof v === 'number') return v !== 0;
+  return Boolean(v);
 }
 
 // ----------------------------------------------------------------------
@@ -672,16 +725,46 @@ export default function DetailsPage() {
                     {formatTranslated(product.category?.name) ?? product.category_id}
                   </Box>
                   {(product.approval_status_label ?? product.approval_status) ? (
-                    <Box className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-400">
+                    <Box
+                      className={`rounded-full border px-3 py-1 text-xs font-semibold ${approvalChipClass(product.approval_status ?? product.approval_status_label)}`}
+                    >
                       {product.approval_status_label ?? product.approval_status}
                     </Box>
                   ) : null}
+                  <Box
+                    className={`rounded-full border px-3 py-1 text-xs font-medium ${
+                      product.is_visible !== false && product.is_visible !== 0
+                        ? 'border-sky-500/35 bg-sky-500/10 text-sky-900 dark:text-sky-300'
+                        : 'border-border/60 bg-muted/40 text-muted-foreground'
+                    }`}
+                  >
+                    {product.is_visible !== false && product.is_visible !== 0
+                      ? t('form.productDetailsVisible')
+                      : t('form.productDetailsHidden')}
+                  </Box>
+                  <Box
+                    className={`rounded-full border px-3 py-1 text-xs font-medium ${
+                      boolFromApi(product.is_active ?? true)
+                        ? 'border-violet-500/35 bg-violet-500/10 text-violet-900 dark:text-violet-300'
+                        : 'border-border/60 bg-muted/40 text-muted-foreground'
+                    }`}
+                  >
+                    {boolFromApi(product.is_active ?? true)
+                      ? t('form.productDetailsListingActive')
+                      : t('form.productDetailsListingInactive')}
+                  </Box>
                 </Box>
                 <Typography variant="h3" className="mb-2 text-3xl font-bold tracking-tight text-foreground md:text-4xl">
                   {formatTranslated(product.name)}
                 </Typography>
                 <Typography variant="body2" className="max-w-2xl text-muted-foreground">
                   {t('form.productDetailsIdLabel')} · {product.id}
+                  {product.product_number ? (
+                    <>
+                      {' · '}
+                      {t('form.productDetailsProductNumber')}: {product.product_number}
+                    </>
+                  ) : null}
                   {product.vendor ? (
                     <>
                       {' · '}
@@ -689,15 +772,41 @@ export default function DetailsPage() {
                     </>
                   ) : null}
                 </Typography>
+                {product.rating_count != null && Number(product.rating_count) > 0 ? (
+                  <Typography variant="caption" className="mt-2 block text-muted-foreground">
+                    {t('form.productDetailsRatingLine', {
+                      rating: Number(product.rating ?? 0).toFixed(1),
+                      count: product.rating_count,
+                    })}
+                  </Typography>
+                ) : null}
+                {product.rejection_reason ? (
+                  <Box className="mt-4 rounded-xl border border-rose-500/35 bg-rose-500/[0.08] px-4 py-3">
+                    <Typography variant="caption" className="font-semibold text-rose-800 dark:text-rose-300">
+                      {t('form.productDetailsRejectionReason')}
+                    </Typography>
+                    <Typography variant="body2" className="mt-1 text-foreground">
+                      {product.rejection_reason}
+                    </Typography>
+                  </Box>
+                ) : null}
               </Box>
 
               <Box className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                 <Box className="rounded-xl border border-border/50 bg-background/50 p-3 text-center sm:text-start">
                   <Typography variant="caption" className="text-muted-foreground">
-                    {t('form.quantity')}
+                    {t('form.productDetailsCatalogQty')}
                   </Typography>
                   <Typography variant="h6" className="font-semibold tabular-nums">
                     {product.quantity ?? '—'}
+                  </Typography>
+                </Box>
+                <Box className="rounded-xl border border-border/50 bg-background/50 p-3 text-center sm:text-start">
+                  <Typography variant="caption" className="text-muted-foreground">
+                    {t('form.productDetailsStock')}
+                  </Typography>
+                  <Typography variant="h6" className="font-semibold tabular-nums">
+                    {product.stock != null ? product.stock : '—'}
                   </Typography>
                 </Box>
                 <Box className="rounded-xl border border-border/50 bg-background/50 p-3 text-center sm:text-start">
@@ -708,7 +817,17 @@ export default function DetailsPage() {
                     {variantCount}
                   </Typography>
                 </Box>
-                <Box className="col-span-2 rounded-xl border border-border/50 bg-background/50 p-3 sm:col-span-1">
+                {product.max_purchase_quantity != null ? (
+                  <Box className="rounded-xl border border-border/50 bg-background/50 p-3 text-center sm:text-start">
+                    <Typography variant="caption" className="text-muted-foreground">
+                      {t('form.productDetailsMaxPurchase')}
+                    </Typography>
+                    <Typography variant="h6" className="font-semibold tabular-nums">
+                      {product.max_purchase_quantity}
+                    </Typography>
+                  </Box>
+                ) : null}
+                <Box className="rounded-xl border border-border/50 bg-background/50 p-3 text-center sm:text-start">
                   <Typography variant="caption" className="text-muted-foreground">
                     {t('form.instantDelivery')}
                   </Typography>
@@ -735,17 +854,24 @@ export default function DetailsPage() {
 
         <Box className="flex flex-col gap-6 xl:grid xl:grid-cols-12 xl:items-start xl:gap-8">
           <Box className="order-2 space-y-6 xl:order-1 xl:col-span-8">
-            {/* Basic Information */}
+            {/* Admin essentials — identifiers & logistics */}
             <Box className={`p-6 md:p-8 ${sectionShell}`}>
               <Typography variant="h6" className="mb-4 flex items-center gap-2 font-semibold">
                 <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                  <Iconify icon="solar:info-circle-bold" width={22} />
+                  <Iconify icon="solar:clipboard-list-bold" width={22} />
                 </span>
-                {t('form.productDetailsSectionBasic')}
+                {t('form.productDetailsSectionEssentials')}
               </Typography>
               <Box className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <DetailRow label={t('form.nameEn')} value={product.name?.en} emptyLabel={na} />
                 <DetailRow label={t('form.nameAr')} value={product.name?.ar} emptyLabel={na} />
+                {product.product_number ? (
+                  <DetailRow
+                    label={t('form.productDetailsProductNumber')}
+                    value={product.product_number}
+                    emptyLabel={na}
+                  />
+                ) : null}
                 <DetailRow
                   label={t('columns.category')}
                   value={formatTranslated(product.category?.name) ?? product.category_id}
@@ -761,11 +887,6 @@ export default function DetailsPage() {
                 <DetailRow
                   label={t('form.productVendor')}
                   value={product.vendor ? formatTranslated(product.vendor.name as any) : '—'}
-                  emptyLabel={na}
-                />
-                <DetailRow
-                  label={t('form.productDetailsApproval')}
-                  value={product.approval_status_label ?? product.approval_status ?? '—'}
                   emptyLabel={na}
                 />
                 {!isRestaurant && (
@@ -793,8 +914,17 @@ export default function DetailsPage() {
                   emptyLabel={na}
                 />
                 <DetailRow
-                  label={t('form.instantDelivery')}
-                  value={product.is_instant_delivery ? yes : no}
+                  label={t('form.productDetailsDeliveryTime')}
+                  value={product.delivery_time}
+                  emptyLabel={na}
+                />
+                <DetailRow
+                  label={t('form.productDetailsExpiryDate')}
+                  value={
+                    product.expiry_date
+                      ? String(product.expiry_date).slice(0, 10)
+                      : undefined
+                  }
                   emptyLabel={na}
                 />
               </Box>
@@ -930,6 +1060,35 @@ export default function DetailsPage() {
               </Box>
             )}
 
+            {/* Badges (product merchandising) */}
+            {product.badges?.length > 0 && (
+              <Box className={`p-6 md:p-8 ${sectionShell}`}>
+                <Typography variant="h6" className="mb-4 flex items-center gap-2 font-semibold">
+                  <Iconify icon="solar:medal-ribbon-star-bold" width={20} />
+                  {t('form.productDetailsBadges')}
+                </Typography>
+                <Box className="flex flex-wrap gap-2">
+                  {product.badges.map((bd: any) => (
+                    <Box
+                      key={bd.id}
+                      className="inline-flex items-center gap-2 rounded-xl border border-border/50 bg-muted/25 px-3 py-2"
+                    >
+                      {bd.icon ? (
+                        <img src={bd.icon} alt="" className="h-7 w-7 rounded-md object-cover" />
+                      ) : (
+                        <span className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/10 text-primary">
+                          <Iconify icon="solar:medal-ribbon-bold" width={16} />
+                        </span>
+                      )}
+                      <Typography variant="body2" className="font-medium">
+                        {badgeAdminLabel(bd, t)}
+                      </Typography>
+                    </Box>
+                  ))}
+                </Box>
+              </Box>
+            )}
+
             {/* Variants */}
             {product.variants?.length > 0 && (
               <Box className={`p-6 md:p-8 ${sectionShell}`}>
@@ -939,16 +1098,41 @@ export default function DetailsPage() {
                 </Typography>
                 <Box className="space-y-4">
                   {product.variants.map((variant: any, i: number) => (
-                    <Box key={variant.id ?? i} className="rounded-lg border border-border/40 p-4 space-y-3">
+                    <Box key={variant.id ?? i} className="space-y-3 rounded-xl border border-border/40 bg-card/30 p-4">
                       {/* Variant header with actions */}
-                      <Box className="flex items-center justify-between">
-                        <Typography variant="subtitle2" className="font-medium">
-                          {t('form.productDetailsVariantHeader', {
-                            n: i + 1,
-                            id: variant.id,
-                          })}
-                        </Typography>
-                        <Box className="flex items-center gap-1">
+                      <Box className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <Box className="min-w-0 flex-1 space-y-1">
+                          <Typography variant="subtitle1" className="font-semibold leading-snug text-foreground">
+                            {variant.name
+                              ? formatTranslated(variant.name)
+                              : t('form.productDetailsVariantHeader', {
+                                  n: i + 1,
+                                  id: variant.id,
+                                })}
+                          </Typography>
+                          <Typography variant="caption" className="font-mono text-muted-foreground">
+                            ID #{variant.id}
+                          </Typography>
+                          <Box className="flex flex-wrap gap-1.5 pt-1">
+                            {boolFromApi(variant.is_trend) ? (
+                              <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-semibold text-amber-900 dark:text-amber-300">
+                                {t('form.productDetailsVariantIsTrendLabel')}
+                              </span>
+                            ) : null}
+                            <span
+                              className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                                boolFromApi(variant.is_active ?? true)
+                                  ? 'bg-emerald-500/15 text-emerald-900 dark:text-emerald-300'
+                                  : 'bg-muted text-muted-foreground'
+                              }`}
+                            >
+                              {boolFromApi(variant.is_active ?? true)
+                                ? t('form.productDetailsVariantIsActiveLabel')
+                                : t('inactive')}
+                            </span>
+                          </Box>
+                        </Box>
+                        <Box className="flex shrink-0 items-center gap-1">
                           <Button
                             size="small"
                             variant="text"
@@ -1017,50 +1201,126 @@ export default function DetailsPage() {
                         </Box>
                       )}
 
+                      {variant.images?.length > 0 && (
+                        <Box>
+                          <Typography variant="caption" className="mb-2 block text-muted-foreground">
+                            {t('form.productDetailsVariantImages')}
+                          </Typography>
+                          <Box className="flex max-w-full gap-2 overflow-x-auto pb-1 [scrollbar-width:thin]">
+                            {variant.images.map((img: { id: number; url: string }) => (
+                              <a
+                                key={img.id}
+                                href={img.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-border/50 bg-muted/30 ring-offset-2 hover:ring-2 hover:ring-primary/30"
+                              >
+                                <img src={img.url} alt="" className="h-full w-full object-cover" />
+                              </a>
+                            ))}
+                          </Box>
+                        </Box>
+                      )}
+
                       {/* Shop pricing */}
                       {variant.shops?.length > 0 && (
                         <Box>
-                          <Typography variant="caption" className="text-muted-foreground mb-2 block">
+                          <Typography variant="caption" className="mb-2 block text-muted-foreground">
                             {t('form.productDetailsShopPricing')}
                           </Typography>
-                          <Box className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                          <Box className="grid grid-cols-1 gap-3 md:grid-cols-2">
                             {variant.shops.map((shop: any, si: number) => (
-                              <Box key={si} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border/40 bg-muted/20 px-3 py-2 text-sm">
-                                <span className="font-medium">{shop.shop_name}</span>
-                                <Box className="flex flex-wrap items-center gap-x-3 gap-y-1 text-muted-foreground">
-                                  <span>
-                                    {t('form.priceLabel')}:{' '}
-                                    <span className="tabular-nums text-foreground">{shop.price ?? na}</span>
-                                  </span>
-                                  <span>
-                                    {t('columns.discount')}:{' '}
-                                    <span className="tabular-nums text-foreground">{shop.discount ?? na}</span>
-                                  </span>
-                                  <span>
-                                    {t('columns.priceAfterDiscount')}:{' '}
-                                    <span className="tabular-nums text-foreground">
-                                      {shop.price_after_discount ?? na}
-                                    </span>
-                                  </span>
-                                  <span>
-                                    ×{shop.quantity}
-                                  </span>
-                                  <Button
-                                    size="small"
-                                    variant="text"
-                                    onClick={() => setEditShopVariant(shop)}
-                                    className="text-primary hover:bg-primary/10 min-w-0 px-1.5 h-7"
-                                  >
-                                    <Iconify icon="solar:pen-bold" width={14} />
-                                  </Button>
-                                  <Button
-                                    size="small"
-                                    variant="text"
-                                    onClick={() => setDeleteShopVariantId(shop.id)}
-                                    className="text-destructive hover:bg-destructive/10 min-w-0 px-1.5 h-7"
-                                  >
-                                    <Iconify icon="solar:trash-bin-minimalistic-bold" width={14} />
-                                  </Button>
+                              <Box
+                                key={shop.id ?? si}
+                                className="rounded-xl border border-border/45 bg-muted/15 p-3 shadow-sm"
+                              >
+                                <Box className="flex flex-wrap items-start justify-between gap-2">
+                                  <Box className="min-w-0">
+                                    <Typography variant="body2" className="font-semibold text-foreground">
+                                      {shop.shop_name}
+                                    </Typography>
+                                    {shop.is_restaurant ? (
+                                      <Typography variant="caption" className="text-muted-foreground">
+                                        {t('form.isRestaurant')}
+                                      </Typography>
+                                    ) : null}
+                                  </Box>
+                                  <Box className="flex shrink-0 gap-0.5">
+                                    <Button
+                                      size="small"
+                                      variant="text"
+                                      onClick={() => setEditShopVariant(shop)}
+                                      className="h-8 min-w-0 px-1.5 text-primary hover:bg-primary/10"
+                                    >
+                                      <Iconify icon="solar:pen-bold" width={14} />
+                                    </Button>
+                                    <Button
+                                      size="small"
+                                      variant="text"
+                                      onClick={() => setDeleteShopVariantId(shop.id)}
+                                      className="h-8 min-w-0 px-1.5 text-destructive hover:bg-destructive/10"
+                                    >
+                                      <Iconify icon="solar:trash-bin-minimalistic-bold" width={14} />
+                                    </Button>
+                                  </Box>
+                                </Box>
+                                <Box className="mt-3 grid gap-2 text-xs sm:grid-cols-2">
+                                  <Box className="rounded-lg bg-background/60 px-2 py-1.5">
+                                    <Typography variant="caption" className="text-muted-foreground">
+                                      {t('columns.priceAfterDiscount')}
+                                    </Typography>
+                                    <Typography variant="body2" component="div" className="font-medium tabular-nums">
+                                      {productMoneyDisplay({
+                                        currencies: shop.price_after_discount_currencies,
+                                        amount: shop.price_after_discount,
+                                        legacyAmountPrefix: t('currencySyrianPound'),
+                                      })}
+                                    </Typography>
+                                  </Box>
+                                  <Box className="rounded-lg bg-background/60 px-2 py-1.5">
+                                    <Typography variant="caption" className="text-muted-foreground">
+                                      {t('form.priceLabel')}
+                                    </Typography>
+                                    <Typography variant="body2" component="div" className="font-medium tabular-nums">
+                                      {productMoneyDisplay({
+                                        currencies: shop.price_currencies,
+                                        amount: shop.price,
+                                        legacyAmountPrefix: t('currencySyrianPound'),
+                                      })}
+                                    </Typography>
+                                  </Box>
+                                  <Box className="rounded-lg bg-background/60 px-2 py-1.5">
+                                    <Typography variant="caption" className="text-muted-foreground">
+                                      {t('columns.discount')}
+                                    </Typography>
+                                    <Typography variant="body2" component="div" className="tabular-nums">
+                                      {productMoneyDisplay({
+                                        currencies: shop.discount_currencies,
+                                        amount: shop.discount,
+                                        legacyAmountPrefix: t('currencySyrianPound'),
+                                      })}
+                                    </Typography>
+                                  </Box>
+                                  <Box className="rounded-lg bg-background/60 px-2 py-1.5">
+                                    <Typography variant="caption" className="text-muted-foreground">
+                                      {t('form.productCostPriceOptional')}
+                                    </Typography>
+                                    <Typography variant="body2" component="div" className="tabular-nums">
+                                      {productMoneyDisplay({
+                                        currencies: shop.cost_price_currencies,
+                                        amount: shop.cost_price,
+                                        legacyAmountPrefix: t('currencySyrianPound'),
+                                      })}
+                                    </Typography>
+                                  </Box>
+                                  <Box className="rounded-lg bg-background/60 px-2 py-1.5 sm:col-span-2">
+                                    <Typography variant="caption" className="text-muted-foreground">
+                                      {t('form.quantity')}
+                                    </Typography>
+                                    <Typography variant="body2" className="font-semibold tabular-nums">
+                                      {shop.quantity ?? na}
+                                    </Typography>
+                                  </Box>
                                 </Box>
                               </Box>
                             ))}
@@ -1178,6 +1438,11 @@ export default function DetailsPage() {
                 <Box className="space-y-3">
                   {product.extra_details.map((ed: any) => (
                     <Box key={ed.id} className="rounded-lg border border-border/40 bg-muted/20 p-3">
+                      {ed.category?.name ? (
+                        <Typography variant="caption" className="mb-2 block font-semibold text-primary">
+                          {ed.category.name}
+                        </Typography>
+                      ) : null}
                       <Box className="grid grid-cols-2 gap-2 text-sm">
                         <Box>
                           <Typography variant="caption" className="text-muted-foreground">
@@ -1203,12 +1468,18 @@ export default function DetailsPage() {
                           </Typography>
                           <Typography variant="body2">{ed.value?.ar}</Typography>
                         </Box>
-                        {ed.price != null ? (
-                          <Box>
+                        {ed.price != null || ed.price_currencies ? (
+                          <Box className="col-span-2">
                             <Typography variant="caption" className="text-muted-foreground">
                               {t('form.productDetailsExtraPrice')}
                             </Typography>
-                            <Typography variant="body2">{t('currencySyrianPound')} {ed.price}</Typography>
+                            <Typography variant="body2" component="div">
+                              {productMoneyDisplay({
+                                currencies: ed.price_currencies,
+                                amount: ed.price,
+                                legacyAmountPrefix: t('currencySyrianPound'),
+                              })}
+                            </Typography>
                           </Box>
                         ) : null}
                       </Box>
@@ -1286,15 +1557,37 @@ export default function DetailsPage() {
                   emptyLabel={na}
                 />
                 <Box className="h-px bg-border/60" />
-                <DetailRow label={t('form.quantity')} value={product.quantity} emptyLabel={na} />
+                <DetailRow label={t('form.productDetailsCatalogQty')} value={product.quantity} emptyLabel={na} />
+                <DetailRow
+                  label={t('form.productDetailsStock')}
+                  value={product.stock != null ? String(product.stock) : undefined}
+                  emptyLabel={na}
+                />
+                <DetailRow
+                  label={t('form.productDetailsMaxPurchase')}
+                  value={
+                    product.max_purchase_quantity != null
+                      ? String(product.max_purchase_quantity)
+                      : undefined
+                  }
+                  emptyLabel={na}
+                />
                 <DetailRow
                   label={t('form.productDetailsDiscount')}
-                  value={product.discount != null ? String(product.discount) : '—'}
+                  value={
+                    product.discount != null
+                      ? `${product.discount}${
+                          String(product.discount_type ?? '').toLowerCase() === 'percentage'
+                            ? '%'
+                            : ''
+                        }`
+                      : '—'
+                  }
                   emptyLabel={na}
                 />
                 <DetailRow
                   label={t('form.productDetailsDiscountType')}
-                  value={String(product.discount_type ?? '—')}
+                  value={formatDiscountTypeLabel(product.discount_type, t)}
                   emptyLabel={na}
                 />
                 <DetailRow

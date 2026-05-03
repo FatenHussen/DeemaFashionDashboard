@@ -16,9 +16,11 @@ type Props = {
   onClose: () => void;
   order: OrderFormValues | null;
   t: TFunction<'table'>;
+  /** When set, refetches this query key after success (e.g. route param string). */
+  queryId?: number | string;
 };
 
-export function RejectOrderModal({ open, onClose, order, t }: Props) {
+export function RejectOrderModal({ open, onClose, order, t, queryId }: Props) {
   const changeStatusMutation = useChangeOrderStatus();
 
   const form = useForm<FormValues>({
@@ -45,7 +47,8 @@ export function RejectOrderModal({ open, onClose, order, t }: Props) {
     try {
       await changeStatusMutation.mutateAsync({
         id: order.id,
-        data: { status: 'cancelled', rejection_reason: reason },
+        data: { status: 'cancelled_by_admin', rejection_reason: reason },
+        queryId: queryId ?? order.id,
       });
       toast.success(t('orderRejectSuccess'));
       onClose();

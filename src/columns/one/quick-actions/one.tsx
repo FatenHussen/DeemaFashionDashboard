@@ -12,6 +12,7 @@ const RowSchema = z.object({ id: z.number() }).passthrough();
 export interface QuickActionRow {
   id: number;
   title: string;
+  button_text?: string | { en?: string; ar?: string };
   page?: { id: number; title: string; slug: string };
   icon: string;
   order: number;
@@ -24,6 +25,15 @@ const formatSimpleDate = (value?: string) => {
   if (!value) return '-';
   const parsed = new Date(value);
   return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleDateString();
+};
+
+const formatQuickActionButtonText = (raw: QuickActionRow['button_text']) => {
+  if (raw == null || raw === '') return '';
+  if (typeof raw === 'string') return raw.trim();
+  const en = raw.en?.trim() ?? '';
+  const ar = raw.ar?.trim() ?? '';
+  if (en && ar) return `${en} · ${ar}`;
+  return en || ar || '';
 };
 
 export const quickActionColumns = (
@@ -39,7 +49,9 @@ export const quickActionColumns = (
   {
     id: 'icon',
     accessorKey: 'icon',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.icon')} />,
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title={t('form.quickActionColBackgroundImage')} />
+    ),
     cell: ({ row }) => {
       const src = row.original.icon;
       return (
@@ -66,6 +78,21 @@ export const quickActionColumns = (
     cell: ({ row }) => (
       <span className="text-sm font-medium text-foreground line-clamp-2">{row.original.title}</span>
     ),
+  },
+  {
+    id: 'button_text',
+    accessorFn: (row) => formatQuickActionButtonText(row.button_text),
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title={t('form.quickActionColButtonText')} />
+    ),
+    cell: ({ row }) => {
+      const label = formatQuickActionButtonText(row.original.button_text);
+      return (
+        <span className="text-sm text-muted-foreground line-clamp-2">
+          {label || '—'}
+        </span>
+      );
+    },
   },
   {
     id: 'page',

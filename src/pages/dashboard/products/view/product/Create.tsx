@@ -1,4 +1,5 @@
 import type { CurrencyData } from '@/pages/dashboard/currencies/types/currency.types';
+import type { ProductExtraDetailRowApi } from '@/pages/dashboard/categories/types/product-extra-detail.types';
 import type {
   ProductDetailData,
   ProductCreateUpdatePayload,
@@ -26,6 +27,7 @@ import { _CategoryApi } from '@/pages/dashboard/categories/api/category.services
 import { TinyMCEEditorField } from '@/shared/components/tinymce-editor/tinymce-editor';
 import { _SaleCountryApi } from '@/pages/dashboard/sale-countries/api/sale-country.services';
 import { useFetchCategoryAttributes } from '@/pages/dashboard/categories/hooks/category-attribute';
+import { useFetchProductExtraDetails } from '@/pages/dashboard/categories/hooks/product-extra-detail';
 import {
   useFetchCategories,
   useFetchCategoryById,
@@ -552,6 +554,37 @@ function resolveVariantAttributeValueIds(
   return ids;
 }
 
+function normalizeProductExtraLang(v: unknown): { en: string; ar: string } {
+  if (typeof v === 'string') return { en: v.trim(), ar: v.trim() };
+  if (v && typeof v === 'object') {
+    const o = v as { en?: string; ar?: string };
+    return { en: (o.en ?? '').trim(), ar: (o.ar ?? '').trim() };
+  }
+  return { en: '', ar: '' };
+}
+
+function findPresetIdForProductExtraPivot(
+  pivot: { key?: { en?: string; ar?: string }; value?: { en?: string; ar?: string } },
+  presets: ProductExtraDetailRowApi[]
+): number {
+  const ke = pivot.key?.en?.trim() ?? '';
+  const ka = pivot.key?.ar?.trim() ?? '';
+  const ve = pivot.value?.en?.trim() ?? '';
+  const va = pivot.value?.ar?.trim() ?? '';
+  for (const pr of presets) {
+    const pk = normalizeProductExtraLang(pr.detail_key);
+    const pv = normalizeProductExtraLang(pr.detail_value);
+    if (pk.en === ke && pk.ar === ka && pv.en === ve && pv.ar === va) return pr.id;
+  }
+  return 0;
+}
+
+function labelProductExtraPreset(pr: ProductExtraDetailRowApi): string {
+  const kt = formatTranslated(pr.detail_key as Parameters<typeof formatTranslated>[0]);
+  const vt = formatTranslated(pr.detail_value as Parameters<typeof formatTranslated>[0]);
+  return `${kt} — ${vt}`;
+}
+
 function toDateInputLocalYMD(d: Date): string {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -846,6 +879,25 @@ export default function CreatePage() {
 
   const categoryIdNum = categoryId ? Number(categoryId) : 0;
 
+  const { data: productExtraDetailsResp, isFetching: isFetchingProductExtraPresets } =
+    useFetchProductExtraDetails(
+      { page: 1, per_page: 500, category_id: categoryIdNum, is_active: true },
+      { enabled: categoryIdNum > 0 }
+    );
+  const productExtraPresets: ProductExtraDetailRowApi[] =
+    productExtraDetailsResp?.data?.items ?? [];
+
+  const prevCategoryForExtrasRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (
+      prevCategoryForExtrasRef.current !== null &&
+      prevCategoryForExtrasRef.current !== categoryIdNum
+    ) {
+      setValue('extra_details', []);
+    }
+    prevCategoryForExtrasRef.current = categoryIdNum;
+  }, [categoryIdNum, setValue]);
+
   const { data: boughtWithCategoriesResp } = useQuery({
     queryKey: ['categories', 'product-form-bought-with'],
     queryFn: () => _CategoryApi.getListCategoriesPaginated({ page: 1, per_page: 500 }),
@@ -932,6 +984,7 @@ export default function CreatePage() {
   const { fields: categoryDetailsFields, append: appendCategoryDetail, remove: removeCategoryDetail } =
     useFieldArray({ control, name: 'category_details' });
   const watchedCategoryDetailRows = useWatch({ control, name: 'category_details' }) ?? [];
+  const watchedExtraDetailsRows = useWatch({ control, name: 'extra_details' }) ?? [];
   const { fields: shopVariantsFields, append: appendShopVariant, remove: removeShopVariant } =
     useFieldArray({ control, name: 'shop_variants' });
 
@@ -1035,11 +1088,14 @@ export default function CreatePage() {
             detail_value: { en: cd.value?.en ?? '', ar: cd.value?.ar ?? '' },
           })) ?? [],
         extra_details:
-          p.extra_details?.map((ed) => ({
+          p.extra_details?.map((ed: any) => ({
             id: ed.id,
-            detail_key: { en: ed.key?.en ?? '', ar: ed.key?.ar ?? '' },
-            detail_value: { en: ed.value?.en ?? '', ar: ed.value?.ar ?? '' },
-            price: ed.price != null ? Number(ed.price) : undefined,
+            product_extra_detail_id: Number(ed.product_extra_detail_id) || 0,
+            quantity: ed.quantity != null ? Number(ed.quantity) : 1,
+            price:
+              ed.price !== '' && ed.price != null && !Number.isNaN(Number(ed.price))
+                ? Number(ed.price)
+                : 0,
           })) ?? [],
         bought_with: (p.bought_with ?? [])
           .map((v: any) => (typeof v === 'object' && v?.id != null ? v.id : v))
@@ -1102,6 +1158,97 @@ export default function CreatePage() {
       categoryDetailsFixedRef.current = id;
     }
   }, [isEditMode, productResponse, availableCategoryDetails, setValue, id]);
+
+  // Resolve product_extra_detail_id when editing (API may only return key/value on the pivot).
+  useEffect(() => {
+    if (!isEditMode || !productResponse?.extra_details?.length || !id || categoryIdNum <= 0) {
+      return;
+    }
+    const presets = productExtraPresets;
+    if (!presets.length) return;
+
+    const rows = (getValues('extra_details') ?? []) as Array<{
+      id?: number;
+      product_extra_detail_id?: number;
+      quantity?: number;
+      price?: number;
+    }>;
+    if (!rows.length) return;
+
+    const normalizeExtraLinePrice = (v: unknown) =>
+      v !== '' && v != null && !Number.isNaN(Number(v)) ? Number(v) : 0;
+
+    let changed = false;
+    const next = rows.map((row) => {
+      const qty =
+        row.quantity != null && !Number.isNaN(Number(row.quantity)) ? Number(row.quantity) : 1;
+      const linePrice = normalizeExtraLinePrice(row.price);
+      const productExtraDetailId = Number(row.product_extra_detail_id) || 0;
+
+      if (productExtraDetailId > 0) {
+        return {
+          id: row.id,
+          product_extra_detail_id: productExtraDetailId,
+          quantity: qty,
+          price: linePrice,
+        };
+      }
+
+      const pivot = productResponse.extra_details!.find((e: any) => Number(e.id) === Number(row.id));
+      if (!pivot) {
+        return {
+          id: row.id,
+          product_extra_detail_id: 0,
+          quantity: qty,
+          price: linePrice,
+        };
+      }
+
+      const directId = Number((pivot as any).product_extra_detail_id);
+      if (directId > 0) {
+        changed = true;
+        return {
+          id: row.id,
+          product_extra_detail_id: directId,
+          quantity: qty,
+          price: linePrice,
+        };
+      }
+
+      const matched = findPresetIdForProductExtraPivot(
+        { key: pivot.key, value: pivot.value },
+        presets
+      );
+      if (!matched) {
+        return {
+          id: row.id,
+          product_extra_detail_id: 0,
+          quantity: qty,
+          price: linePrice,
+        };
+      }
+
+      changed = true;
+      return {
+        id: row.id,
+        product_extra_detail_id: matched,
+        quantity: qty,
+        price: linePrice,
+      };
+    });
+
+    if (changed) {
+      setValue('extra_details', next, { shouldValidate: false });
+    }
+  }, [
+    isEditMode,
+    id,
+    categoryIdNum,
+    productExtraPresets,
+    productResponse?.extra_details,
+    getValues,
+    setValue,
+  ]);
 
   const variantsFixedRef = useRef<string | null>(null);
 
@@ -2774,9 +2921,9 @@ export default function CreatePage() {
           )}
         </Box>
 
-        {/* ─── Extra Details ────────────────────────────────────── */}
+        {/* ─── Extra Details (presets from category add-ons) ───── */}
         <Box className="border-t border-border pt-6">
-          <Box className="flex items-center justify-between mb-4">
+          <Box className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between mb-4">
             <Box className="flex items-center gap-2">
               <Iconify icon="solar:add-circle-bold" className="text-primary" width={20} />
               <Typography variant="h6" className="font-semibold text-foreground">
@@ -2787,11 +2934,12 @@ export default function CreatePage() {
               type="button"
               variant="outlined"
               size="small"
+              disabled={categoryIdNum <= 0 || productExtraPresets.length === 0}
               onClick={() =>
                 appendExtraDetail({
-                  detail_key: { en: '', ar: '' },
-                  detail_value: { en: '', ar: '' },
-                  price: undefined,
+                  product_extra_detail_id: 0,
+                  quantity: 1,
+                  price: 0,
                 })
               }
             >
@@ -2800,103 +2948,158 @@ export default function CreatePage() {
             </Button>
           </Box>
 
+          {categoryIdNum <= 0 ? (
+            <Typography variant="caption" className="text-muted-foreground block mb-3">
+              {t('form.selectCategoryFirstExtraDetails')}
+            </Typography>
+          ) : isFetchingProductExtraPresets && productExtraPresets.length === 0 ? (
+            <Typography variant="caption" className="text-muted-foreground block mb-3">
+              {t('form.loadingProductExtraPresets')}
+            </Typography>
+          ) : productExtraPresets.length === 0 ? (
+            <Typography variant="caption" className="text-muted-foreground block mb-3">
+              {t('form.noProductExtraDetailsForCategory')}
+            </Typography>
+          ) : null}
+
+          {typeof errors.extra_details?.message === 'string' && errors.extra_details.message ? (
+            <Typography variant="caption" className="text-destructive block mb-3">
+              {errors.extra_details.message}
+            </Typography>
+          ) : null}
+
           <Box className="space-y-4">
-            {extraDetailsFields.map((field, index) => (
-              <Box key={field.id} className="p-4 border border-border rounded-lg">
-                <Box className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
-                  <Controller
-                    name={`extra_details.${index}.detail_key.en`}
-                    control={control}
-                    render={({ field: f, fieldState: { error } }) => (
-                      <div>
-                        <input
-                          {...f}
-                          placeholder={t('form.productKeyEnPlaceholder')}
-                          className={fieldInputClass(!!error)}
-                        />
-                        <FieldErrorText message={error?.message} />
-                      </div>
-                    )}
-                  />
-                  <Controller
-                    name={`extra_details.${index}.detail_key.ar`}
-                    control={control}
-                    render={({ field: f, fieldState: { error } }) => (
-                      <div>
-                        <input
-                          {...f}
-                          dir="rtl"
-                          placeholder={t('form.extraDetailKeyArPlaceholder')}
-                          className={fieldInputClass(!!error)}
-                        />
-                        <FieldErrorText message={error?.message} />
-                      </div>
-                    )}
-                  />
-                  <Controller
-                    name={`extra_details.${index}.detail_value.en`}
-                    control={control}
-                    render={({ field: f, fieldState: { error } }) => (
-                      <div>
-                        <input
-                          {...f}
-                          placeholder={t('form.productValueEnPlaceholder')}
-                          className={fieldInputClass(!!error)}
-                        />
-                        <FieldErrorText message={error?.message} />
-                      </div>
-                    )}
-                  />
-                  <Controller
-                    name={`extra_details.${index}.detail_value.ar`}
-                    control={control}
-                    render={({ field: f, fieldState: { error } }) => (
-                      <div>
-                        <input
-                          {...f}
-                          dir="rtl"
-                          placeholder={t('form.extraDetailValueArPlaceholder')}
-                          className={fieldInputClass(!!error)}
-                        />
-                        <FieldErrorText message={error?.message} />
-                      </div>
-                    )}
-                  />
-                  <Controller
-                    name={`extra_details.${index}.price`}
-                    control={control}
-                    render={({ field: f, fieldState: { error } }) => (
-                      <div>
-                        <input
-                          {...f}
-                          type="number"
-                          placeholder={t('form.extraPriceOptional')}
-                          value={f.value ?? ''}
-                          onChange={(e) =>
-                            f.onChange(toTwoDecimalNumber(e.target.value))
-                          }
-                          className={fieldInputClass(!!error)}
-                          step="0.01"
-                        />
-                        <FieldErrorText message={error?.message} />
-                      </div>
-                    )}
-                  />
+            {extraDetailsFields.map((field, index) => {
+              const rowValues = watchedExtraDetailsRows as Array<{
+                product_extra_detail_id?: number;
+              }>;
+              const currentPid = Number(rowValues[index]?.product_extra_detail_id) || 0;
+              const takenIds = new Set(
+                rowValues
+                  .map((r, j) => (j !== index ? Number(r?.product_extra_detail_id) || 0 : 0))
+                  .filter((n) => n > 0)
+              );
+              const rowOptions = productExtraPresets.filter(
+                (p) => p.id === currentPid || !takenIds.has(p.id)
+              );
+              return (
+                <Box key={field.id} className="p-4 border border-border rounded-lg space-y-3">
+                  <Box className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="md:col-span-2">
+                      <Controller
+                        name={`extra_details.${index}.product_extra_detail_id`}
+                        control={control}
+                        render={({ field: f, fieldState: { error } }) => (
+                          <div>
+                            <select
+                              value={f.value ? String(f.value) : ''}
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                f.onChange(v ? Number(v) : 0);
+                              }}
+                              onBlur={f.onBlur}
+                              ref={f.ref}
+                              className={fieldInputClass(!!error)}
+                              disabled={
+                                categoryIdNum <= 0 || rowOptions.length === 0 || !productExtraPresets.length
+                              }
+                            >
+                              <option value="">{t('form.productExtraDetailSelectPlaceholder')}</option>
+                              {rowOptions.map((pr) => (
+                                <option key={pr.id} value={String(pr.id)}>
+                                  {labelProductExtraPreset(pr)}
+                                </option>
+                              ))}
+                            </select>
+                            <FieldErrorText message={error?.message} />
+                          </div>
+                        )}
+                      />
+                    </div>
+                    <Controller
+                      name={`extra_details.${index}.quantity`}
+                      control={control}
+                      render={({ field: f, fieldState: { error } }) => (
+                        <div>
+                          <Typography
+                            variant="subtitle2"
+                            component="div"
+                            className="font-semibold text-foreground mb-2"
+                          >
+                            {t('form.extraDetailQuantityLabel')}
+                          </Typography>
+                          <input
+                            type="number"
+                            min={1}
+                            step={1}
+                            placeholder={t('form.extraQuantityOptional')}
+                            value={
+                              f.value === undefined || f.value === null ? '' : String(f.value)
+                            }
+                            onChange={(e) => {
+                              const raw = e.target.value.trim();
+                              if (raw === '') {
+                                f.onChange(undefined);
+                                return;
+                              }
+                              const n = Number.parseInt(raw, 10);
+                              f.onChange(Number.isNaN(n) ? undefined : n);
+                            }}
+                            onBlur={f.onBlur}
+                            name={f.name}
+                            ref={f.ref}
+                            className={fieldInputClass(!!error)}
+                          />
+                          <FieldErrorText message={error?.message} />
+                        </div>
+                      )}
+                    />
+                    <Controller
+                      name={`extra_details.${index}.price`}
+                      control={control}
+                      render={({ field: f, fieldState: { error } }) => (
+                        <div>
+                          <Typography
+                            variant="subtitle2"
+                            component="div"
+                            className="font-semibold text-foreground mb-2"
+                          >
+                            {t('form.extraDetailPriceLabel')}
+                          </Typography>
+                          <input
+                            type="number"
+                            placeholder="0.00"
+                            value={f.value === undefined || f.value === null ? '' : String(f.value)}
+                            onChange={(e) =>
+                              f.onChange(toTwoDecimalNumber(e.target.value))
+                            }
+                            onBlur={f.onBlur}
+                            name={f.name}
+                            ref={f.ref}
+                            className={fieldInputClass(!!error)}
+                            step="0.01"
+                            min={0}
+                          />
+                          <FieldErrorText message={error?.message} />
+                        </div>
+                      )}
+                    />
+                  </Box>
+                  <Box className="flex justify-end">
+                    <Button
+                      type="button"
+                      variant="text"
+                      size="small"
+                      onClick={() => removeExtraDetail(index)}
+                      className="text-destructive"
+                    >
+                      <Iconify icon="solar:trash-bin-bold" width={16} className="mr-1" />
+                      {t('form.remove')}
+                    </Button>
+                  </Box>
                 </Box>
-                <Box className="flex justify-end">
-                  <Button
-                    type="button"
-                    variant="text"
-                    size="small"
-                    onClick={() => removeExtraDetail(index)}
-                    className="text-destructive"
-                  >
-                    <Iconify icon="solar:trash-bin-bold" width={16} className="mr-1" />
-                    {t('form.remove')}
-                  </Button>
-                </Box>
-              </Box>
-            ))}
+              );
+            })}
           </Box>
         </Box>
           </Box>
@@ -3972,11 +4175,10 @@ export default function CreatePage() {
         {productFormTab === 'extras' && (
           <Box className="space-y-6">
         {/* ─── Badges ────────────────────────────────────────────── */}
-        <Box className="border-t border-border pt-6">
-
-             <Typography variant="h6" className="font-semibold text-foreground">
-              {t('form.badgesTitle')}
-            </Typography>
+        <Box className="space-y-4 border-t border-border pt-6">
+          <Typography variant="h6" className="font-semibold text-foreground">
+            {t('form.badgesTitle')}
+          </Typography>
           <RHFBadgeSelector name="badges" />
         </Box>
 

@@ -108,6 +108,11 @@ export const queryKeys = {
       ['categorydetail', 'list', params] as const,
     details: (id: number | string) => ['categorydetail', 'details', id] as const,
   },
+  productExtraDetail: {
+    list: (params?: Record<string, unknown>) =>
+      ['productextradetail', 'list', params] as const,
+    details: (id: number | string) => ['productextradetail', 'details', id] as const,
+  },
   // Service query keys
   service: {
     list: (params?: { page?: number; limit?: number }) => ['service', 'list', params] as const,
@@ -270,6 +275,10 @@ export const queryKeys = {
     list: (params?: { page?: number; per_page?: number; type?: string }) =>
       ['faq', 'list', params] as const,
     details: (id: number | string) => ['faq', 'details', id] as const,
+  },
+  contactMethod: {
+    list: (params?: Record<string, unknown>) => ['contactMethod', 'list', params] as const,
+    details: (id: number | string) => ['contactMethod', 'details', id] as const,
   },
   // Vendor Subscription query keys
   vendorSubscription: {

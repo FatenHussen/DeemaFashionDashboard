@@ -1,16 +1,18 @@
+import type { CategoryData, CategoryListResponse } from '@/pages/dashboard/categories/types/category.types';
+
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
-import { useQuery } from '@tanstack/react-query';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Iconify } from '@/shared/components/iconify';
 import { compressImage } from '@/utils/compress-image';
+import { useQuery, useQueries } from '@tanstack/react-query';
 import { formatTranslated } from '@/utils/format-translated';
-import { useMemo, useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router';
+import { useRef, useMemo, useState, useEffect, useCallback } from 'react';
 import { _CategoryApi } from '@/pages/dashboard/categories/api/category.services';
+import { InfiniteScrollSelect } from '@/shared/components/infinite-scroll-select';
 import { RHFInfiniteSelect } from '@/shared/components/hook-form/rhf-infinite-select';
-import { buildParentPickerOptions } from '@/pages/dashboard/categories/utils/build-parent-picker-options';
 import {
   CategorySchema,
   type CategoryFormValues,
@@ -20,6 +22,17 @@ import {
   useUpdateCategory,
   useFetchCategoryById,
 } from '@/pages/dashboard/categories/hooks/category';
+import {
+  categoryListTotal,
+  MAX_CATEGORY_SUB_LEVELS,
+  leafCategoryIdFromCascade,
+} from '@/pages/dashboard/categories/utils/category-cascade-shared';
+import {
+  ancestorsChainFromFlat,
+  paginateSelectRowsLocal,
+  buildParentPickerOptions,
+  collectSelfAndDescendantIds,
+} from '@/pages/dashboard/categories/utils/build-parent-picker-options';
 
 import { CONFIG } from 'src/global-config';
 import { Box, Input, Switch, Typography } from 'src/shared/ui';
@@ -27,6 +40,17 @@ import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
 import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
 
 // ----------------------------------------------------------------------
+
+function parentIdFromCascade(mainCategoryId: number, subSelections: number[]): number | null {
+  if (mainCategoryId <= 0) return null;
+  return leafCategoryIdFromCascade(mainCategoryId, subSelections);
+}
+
+function categoryListLabel(cat: Pick<CategoryData, 'name'>): string {
+  return typeof cat.name === 'object' && cat.name !== null
+    ? formatTranslated(cat.name as { en?: string; ar?: string })
+    : String(cat.name ?? '');
+}
 
 export default function CreatePage() {
   const { t } = useTranslation('table');
@@ -43,17 +67,46 @@ export default function CreatePage() {
     return Number.isFinite(n) && n > 0 ? n : null;
   }, [searchParams]);
 
-  const { data: flatForParent, dataUpdatedAt: flatParentDataUpdatedAt } = useQuery({
+  const {
+    data: flatForParent,
+    dataUpdatedAt: flatParentDataUpdatedAt,
+    isFetched: flatParentFetched,
+  } = useQuery({
     queryKey: ['categories', 'flat-parent-picker'],
     queryFn: () => _CategoryApi.getListCategoriesPaginated({ page: 1, per_page: 500 }),
   });
 
+  const flatItems = flatForParent?.data?.items ?? [];
+
+  const { data: categoryData, isLoading: isLoadingCategory } = useFetchCategoryById(id || '');
+
+  const legacyParentPicker = useMemo(() => {
+    if (!flatParentFetched || flatItems.length === 0) return false;
+    let targetPid: number | null = null;
+    if (isEditMode && categoryData?.data?.parent_id != null && Number(categoryData.data.parent_id) > 0) {
+      targetPid = Number(categoryData.data.parent_id);
+    } else if (!isEditMode && queryParentId != null && queryParentId > 0) {
+      targetPid = queryParentId;
+    }
+    if (targetPid == null) return false;
+    const chain = ancestorsChainFromFlat(flatItems, targetPid);
+    return chain.length > MAX_CATEGORY_SUB_LEVELS + 1;
+  }, [
+    flatParentFetched,
+    flatItems,
+    isEditMode,
+    categoryData?.data?.parent_id,
+    queryParentId,
+  ]);
+
   const parentPickerRows = useMemo(
     () =>
-      buildParentPickerOptions(flatForParent?.data?.items ?? [], {
-        excludeCategoryId: isEditMode && id ? Number(id) : undefined,
-      }),
-    [flatForParent?.data?.items, id, isEditMode]
+      legacyParentPicker
+        ? buildParentPickerOptions(flatItems, {
+            excludeCategoryId: isEditMode && id ? Number(id) : undefined,
+          })
+        : [],
+    [flatItems, id, isEditMode, legacyParentPicker]
   );
 
   const parentCategoryFetcher = useCallback(
@@ -85,8 +138,83 @@ export default function CreatePage() {
     [parentPickerRows, t]
   );
 
-  // Hooks for fetching and mutations
-  const { data: categoryData, isLoading: isLoadingCategory } = useFetchCategoryById(id || '');
+  const excludedIds = useMemo(
+    () => collectSelfAndDescendantIds(flatItems, isEditMode && id ? Number(id) : 0),
+    [flatItems, id, isEditMode]
+  );
+
+  const [mainCategoryId, setMainCategoryId] = useState(0);
+  const [subSelections, setSubSelections] = useState<number[]>([]);
+  const [cascadeHydrated, setCascadeHydrated] = useState(false);
+  const cascadeHydratedKeyRef = useRef<string>('');
+
+  const rootCascadeFetcher = useCallback(
+    async (page: number, limit: number) => {
+      const r = await _CategoryApi.getListCategoriesPaginated({
+        page: 1,
+        per_page: 500,
+        parent_id: null,
+      });
+      const roots = r.data.items
+        .filter((cat) => !excludedIds.has(cat.id))
+        .map((cat) => ({
+          id: cat.id,
+          label: categoryListLabel(cat),
+        }));
+      const noneRow = { id: 0, label: t('form.noParent') };
+      return paginateSelectRowsLocal([noneRow, ...roots], page, limit);
+    },
+    [excludedIds, t]
+  );
+
+  const subCascadeFetchers = useMemo(
+    () =>
+      Array.from({ length: MAX_CATEGORY_SUB_LEVELS }, (_, levelIndex) => async (page: number, limit: number) => {
+          const parentId =
+            levelIndex === 0 ? mainCategoryId : subSelections[levelIndex - 1] ?? 0;
+          const directRow = {
+            id: 0,
+            label:
+              levelIndex === 0
+                ? t('form.categoryDirectUnderMain')
+                : t('form.categoryDirectUnderParent'),
+          };
+          if (parentId <= 0) {
+            return paginateSelectRowsLocal([directRow], page, limit);
+          }
+          const r = await _CategoryApi.getListCategoriesPaginated({
+            page: 1,
+            per_page: 500,
+            parent_id: parentId,
+          });
+          const rows = r.data.items
+            .filter((cat) => !excludedIds.has(cat.id))
+            .map((cat) => ({
+              id: cat.id,
+              label: categoryListLabel(cat),
+            }));
+          return paginateSelectRowsLocal([directRow, ...rows], page, limit);
+        }),
+    [mainCategoryId, subSelections, excludedIds, t]
+  );
+
+  const subChildrenProbes = useQueries({
+    queries: Array.from({ length: MAX_CATEGORY_SUB_LEVELS }, (_, level) => {
+      const parentId =
+        level === 0 ? mainCategoryId : subSelections[level - 1] ?? 0;
+      return {
+        queryKey: ['categories', 'children-probe', 'sub-level', level, parentId],
+        queryFn: () =>
+          _CategoryApi.getListCategoriesPaginated({
+            page: 1,
+            per_page: 1,
+            parent_id: parentId,
+          }),
+        enabled: !legacyParentPicker && parentId > 0,
+      };
+    }),
+  });
+
   const createCategoryMutation = useCreateCategory();
   const updateCategoryMutation = useUpdateCategory();
 
@@ -97,12 +225,12 @@ export default function CreatePage() {
         ar: '',
       },
       icon: null,
-      parent_id: !isEditMode ? queryParentId : null,
+      parent_id: null,
       order: 0,
       is_active: true,
       is_restaurant: false,
     }),
-    [isEditMode, queryParentId]
+    [isEditMode]
   );
 
   const methods = useForm<CategoryFormValues>({
@@ -114,11 +242,112 @@ export default function CreatePage() {
   const iconValue = watch('icon');
 
   useEffect(() => {
-    if (isEditMode) return;
-    if (queryParentId != null && queryParentId > 0) {
-      setValue('parent_id', queryParentId);
+    cascadeHydratedKeyRef.current = '';
+    setCascadeHydrated(false);
+  }, [id]);
+
+  useEffect(() => {
+    if (legacyParentPicker) {
+      setCascadeHydrated(true);
+      return;
     }
-  }, [isEditMode, queryParentId, setValue]);
+
+    const ready =
+      flatParentFetched &&
+      (!isEditMode || (!isLoadingCategory && !!categoryData?.data));
+
+    if (!ready) {
+      setCascadeHydrated(false);
+      return;
+    }
+
+    const hydrateKey = `${id ?? 'new'}|${isEditMode ? String(categoryData?.data?.parent_id ?? '') : String(queryParentId ?? '')}`;
+
+    const items = flatItems;
+
+    if (isEditMode && categoryData?.data) {
+      const pid = categoryData.data.parent_id;
+      if (pid != null && Number(pid) > 0 && items.length === 0) {
+        setCascadeHydrated(false);
+        return;
+      }
+      if (
+        pid != null &&
+        Number(pid) > 0 &&
+        items.length > 0 &&
+        ancestorsChainFromFlat(items, Number(pid)).length === 0
+      ) {
+        setCascadeHydrated(false);
+        return;
+      }
+    } else if (!isEditMode && queryParentId != null && queryParentId > 0 && items.length === 0) {
+      setCascadeHydrated(false);
+      return;
+    } else if (
+      !isEditMode &&
+      queryParentId != null &&
+      queryParentId > 0 &&
+      items.length > 0 &&
+      ancestorsChainFromFlat(items, queryParentId).length === 0
+    ) {
+      setCascadeHydrated(false);
+      return;
+    }
+
+    if (cascadeHydratedKeyRef.current === hydrateKey) {
+      setCascadeHydrated(true);
+      return;
+    }
+    cascadeHydratedKeyRef.current = hydrateKey;
+
+    if (isEditMode && categoryData?.data) {
+      const pid = categoryData.data.parent_id;
+      if (pid == null || Number(pid) <= 0) {
+        setMainCategoryId(0);
+        setSubSelections([]);
+      } else {
+        const chain = ancestorsChainFromFlat(items, Number(pid));
+        if (chain.length >= 1) {
+          setMainCategoryId(chain[0].id);
+          const tailIds = chain.slice(1).map((c) => c.id);
+          setSubSelections(tailIds.slice(0, MAX_CATEGORY_SUB_LEVELS));
+        }
+      }
+    } else if (queryParentId != null && queryParentId > 0 && items.length > 0) {
+      const chain = ancestorsChainFromFlat(items, queryParentId);
+      if (chain.length >= 1) {
+        setMainCategoryId(chain[0].id);
+        const tailIds = chain.slice(1).map((c) => c.id);
+        setSubSelections(tailIds.slice(0, MAX_CATEGORY_SUB_LEVELS));
+      }
+    } else {
+      setMainCategoryId(0);
+      setSubSelections([]);
+    }
+
+    setCascadeHydrated(true);
+  }, [
+    legacyParentPicker,
+    flatParentFetched,
+    flatItems,
+    isEditMode,
+    isLoadingCategory,
+    categoryData?.data,
+    categoryData?.data?.parent_id,
+    queryParentId,
+    id,
+  ]);
+
+  useEffect(() => {
+    if (legacyParentPicker || !cascadeHydrated) return;
+    setValue('parent_id', parentIdFromCascade(mainCategoryId, subSelections));
+  }, [
+    legacyParentPicker,
+    cascadeHydrated,
+    mainCategoryId,
+    subSelections,
+    setValue,
+  ]);
 
   // Fetch category data if in edit mode
   useEffect(() => {
@@ -192,6 +421,24 @@ export default function CreatePage() {
   };
 
   const infoText = isEditMode ? t('form.categoryFormInfoEdit') : t('form.categoryFormInfoCreate');
+
+  const cascadeEditLabels = useMemo(() => {
+    if (legacyParentPicker || !isEditMode || !categoryData?.data?.parent_id) {
+      return { main: undefined as string | undefined, subs: [] as (string | undefined)[] };
+    }
+    const pid = Number(categoryData.data.parent_id);
+    if (!(pid > 0) || flatItems.length === 0) {
+      return { main: undefined, subs: [] };
+    }
+    const chain = ancestorsChainFromFlat(flatItems, pid);
+    if (chain.length > MAX_CATEGORY_SUB_LEVELS + 1) {
+      return { main: undefined, subs: [] };
+    }
+    return {
+      main: chain[0] ? categoryListLabel(chain[0]) : undefined,
+      subs: chain.slice(1).map((c) => categoryListLabel(c)),
+    };
+  }, [legacyParentPicker, isEditMode, categoryData?.data?.parent_id, flatItems]);
 
   const parentCategoryLabel =
     categoryData?.data?.parent &&
@@ -275,30 +522,112 @@ export default function CreatePage() {
             </Typography>
           </Box>
           <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
-            <Box className="group">
-              <Box className="flex items-center gap-2 mb-2">
-                <Iconify icon="solar:diagram-bold" className="text-violet-500" width={20} height={20} />
-                <Typography variant="subtitle2" className="font-semibold text-foreground">
-                  {t('form.parentCategorySection')}
-                </Typography>
-              </Box>
-              <RHFInfiniteSelect
-                name="parent_id"
-                queryKey={[
-                  'categories',
-                  'infinite',
-                  'parent-form',
-                  flatParentDataUpdatedAt ?? 0,
-                  isEditMode ? id : '',
-                ]}
-                fetcher={parentCategoryFetcher}
-                placeholder={t('form.parentCategoryPlaceholder')}
-                helperText={t('form.selectParentCategoryHelper')}
-                initialLabel={parentCategoryLabel ?? undefined}
-              />
+            <Box className="group md:col-span-2 space-y-5">
+              <Typography variant="caption" className="text-muted-foreground block">
+                {legacyParentPicker
+                  ? t('form.selectParentCategoryHelper')
+                  : t('form.categoryHierarchyCascadeHelper')}
+              </Typography>
+
+              {legacyParentPicker ? (
+                <Box className="space-y-2">
+                  <Box className="flex items-center gap-2 mb-2">
+                    <Iconify icon="solar:diagram-bold" className="text-violet-500" width={20} height={20} />
+                    <Typography variant="subtitle2" className="font-semibold text-foreground">
+                      {t('form.parentCategoryPlaceholder')}
+                    </Typography>
+                  </Box>
+                  <RHFInfiniteSelect
+                    name="parent_id"
+                    queryKey={[
+                      'categories',
+                      'infinite',
+                      'parent-form',
+                      flatParentDataUpdatedAt ?? 0,
+                      isEditMode ? id : '',
+                      'legacy-deep',
+                    ]}
+                    fetcher={parentCategoryFetcher}
+                    placeholder={t('form.parentCategoryPlaceholder')}
+                    helperText={t('form.categoryDeepParentHint')}
+                    initialLabel={parentCategoryLabel ?? undefined}
+                  />
+                </Box>
+              ) : (
+                <>
+                  <Box>
+                    <Box className="flex items-center gap-2 mb-2">
+                      <Iconify icon="solar:diagram-bold" className="text-violet-500" width={20} height={20} />
+                      <Typography variant="subtitle2" className="font-semibold text-foreground">
+                        {t('form.productMainCategory')}
+                      </Typography>
+                    </Box>
+                    <InfiniteScrollSelect
+                      value={mainCategoryId}
+                      onChange={(val) => {
+                        setMainCategoryId(val);
+                        setSubSelections([]);
+                      }}
+                      queryKey={[
+                        'categories',
+                        'infinite',
+                        'category-create',
+                        'roots',
+                        flatParentDataUpdatedAt ?? 0,
+                        isEditMode ? id : '',
+                        excludedIds.size,
+                      ]}
+                      fetcher={rootCascadeFetcher}
+                      placeholder={t('form.selectMainCategory')}
+                      initialLabel={cascadeEditLabels.main}
+                    />
+                  </Box>
+
+                  {Array.from({ length: MAX_CATEGORY_SUB_LEVELS }, (_, level) => {
+                    const parentId =
+                      level === 0 ? mainCategoryId : subSelections[level - 1] ?? 0;
+                    const total = categoryListTotal(
+                      subChildrenProbes[level]?.data as CategoryListResponse | undefined
+                    );
+                    const showLevel =
+                      mainCategoryId > 0 && parentId > 0 && total > 0;
+                    if (!showLevel) return null;
+
+                    const fetcher = subCascadeFetchers[level];
+                    return (
+                      <Box key={level}>
+                        <Box className="flex items-center gap-2 mb-2">
+                          <Iconify icon="solar:diagram-up-bold" className="text-violet-500" width={20} height={20} />
+                          <Typography variant="subtitle2" className="font-semibold text-foreground">
+                            {t('form.categorySubOptionalLevel', { n: level + 1 })}
+                          </Typography>
+                        </Box>
+                        <InfiniteScrollSelect
+                          value={subSelections[level] ?? 0}
+                          onChange={(val) => {
+                            setSubSelections((prev) => [...prev.slice(0, level), val]);
+                          }}
+                          queryKey={[
+                            'categories',
+                            'infinite',
+                            'category-create',
+                            'sub',
+                            level,
+                            parentId,
+                            excludedIds.size,
+                          ]}
+                          fetcher={fetcher}
+                          placeholder={t('form.productSubcategory')}
+                          initialLabel={cascadeEditLabels.subs[level]}
+                        />
+                      </Box>
+                    );
+                  })}
+                </>
+              )}
             </Box>
 
-            <Box className="group">
+            <Box className="group md:col-span-2 md:max-w-md">
               <Box className="flex items-center gap-2 mb-2">
                 <Iconify icon="solar:sort-bold" className="text-violet-500" width={20} height={20} />
                 <Typography variant="subtitle2" className="font-semibold text-foreground">

@@ -7,17 +7,19 @@ import { Iconify } from '@/shared/components/iconify';
 import { TableTonedStatusPill } from '@/shared/components/table-status-badges';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 import {
-  type OrderData,
-  type OrderStatus,
-  normalizeOrderStatus,
-} from '@/pages/dashboard/orders/types/order.types';
-import {
   DropdownMenu,
   DropdownMenuItem,
   DropdownMenuContent,
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from '@/shared/ui/dropdown-menu';
+import {
+  type OrderData,
+  type OrderStatus,
+  normalizeOrderStatus,
+  orderStatusBlocksReject,
+  orderStatusBlocksAssignDriver,
+} from '@/pages/dashboard/orders/types/order.types';
 
 import { CONFIG } from 'src/global-config';
 
@@ -58,6 +60,18 @@ const ORDER_STATUS_BADGE: Record<
     icon: 'solar:close-circle-bold',
     className: 'border-slate-700 bg-slate-600',
   },
+  cancelled_by_admin: {
+    icon: 'solar:shield-warning-bold',
+    className: 'border-rose-800 bg-rose-600',
+  },
+  faild_deliver: {
+    icon: 'solar:danger-bold',
+    className: 'border-orange-800 bg-orange-600',
+  },
+  returned_by_user: {
+    icon: 'solar:undo-left-bold',
+    className: 'border-cyan-800 bg-cyan-600',
+  },
 };
 
 function getOrderStatusLabel(status: OrderStatus, t: TFunction<'table'>): string {
@@ -67,6 +81,9 @@ function getOrderStatusLabel(status: OrderStatus, t: TFunction<'table'>): string
     out_delivery: t('statusOutDelivery'),
     delivered: t('statusDelivered'),
     cancelled: t('statusCancelled'),
+    cancelled_by_admin: t('statusCancelledByAdmin'),
+    faild_deliver: t('statusFaildDeliver'),
+    returned_by_user: t('statusReturnedByUser'),
   };
 
   return labels[status] ?? status.replace(/_/g, ' ');
@@ -242,12 +259,8 @@ export const orderColumns = (
       const order = row.original;
       const st = normalizeOrderStatus(order.status);
       const canOpenAssignDriver =
-        permissions.update &&
-        st !== 'delivered' &&
-        st !== 'out_delivery' &&
-        st !== 'cancelled';
-      const canRejectOrder =
-        permissions.update && st !== 'delivered' && st !== 'cancelled';
+        permissions.update && !orderStatusBlocksAssignDriver(st);
+      const canRejectOrder = permissions.update && !orderStatusBlocksReject(st);
 
       return (
         <div className="flex items-center justify-end">

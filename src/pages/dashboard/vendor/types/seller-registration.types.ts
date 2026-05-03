@@ -20,18 +20,26 @@ export interface SellerRegistrationItem {
   id: number;
   seller_name: string;
   email: string;
+  phone?: string | null;
   store_name: string;
+  country_id?: number;
   address?: string;
   commercial_register_number?: string;
   commercial_register_date?: string;
   country?: string | SellerRegistrationCountry;
   governorate?: SellerRegistrationGovernorate | string | null;
   city?: SellerRegistrationCity | string | null;
-  logo: string | null;
+  /** May be omitted on list endpoints */
+  logo?: string | null;
   status: SellerRegistrationStatus;
+  /** Primary classification from registration API (`shop`, `restaurant`, etc.). */
+  seller_type?: string | null;
+  is_service_provider?: boolean | null;
+  is_restaurant?: boolean | null;
   registered_at: string;
   created_at: string;
-  updated_at: string;
+  /** May be omitted on list endpoints */
+  updated_at?: string;
 }
 
 export interface SellerRegistrationListResponse {

@@ -9,8 +9,11 @@ import { Iconify } from '@/shared/components/iconify';
 import { useForm, FormProvider } from 'react-hook-form';
 import { useAssignDriver } from '@/pages/dashboard/orders/hooks/order';
 import { _DriverApi } from '@/pages/dashboard/driver/api/driver.services';
-import { normalizeOrderStatus } from '@/pages/dashboard/orders/types/order.types';
 import { RHFInfiniteSelect } from '@/shared/components/hook-form/rhf-infinite-select';
+import {
+  normalizeOrderStatus,
+  orderStatusBlocksAssignDriver,
+} from '@/pages/dashboard/orders/types/order.types';
 
 const driverFetcher = (page: number, limit: number) =>
   _DriverApi.getListDrivers({ page, per_page: limit }).then((r) => ({
@@ -50,7 +53,7 @@ export function AssignDriverModal({ open, onClose, order, t }: Props) {
     order?.order_code ?? order?.order_number ?? (order ? String(order.id) : '');
   const isBusy = assignDriverMutation.isPending;
   const st = order ? normalizeOrderStatus(order.status) : 'pending';
-  const canAssignDriver = st !== 'delivered' && st !== 'out_delivery';
+  const canAssignDriver = !orderStatusBlocksAssignDriver(st);
 
   const onSubmit = handleSubmit(async (data) => {
     if (!order || !canAssignDriver || !data.driver_id || data.driver_id === 0) return;

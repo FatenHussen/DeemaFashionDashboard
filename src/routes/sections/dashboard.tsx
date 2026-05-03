@@ -4,6 +4,11 @@ import { Outlet } from 'react-router';
 import { lazy, Suspense } from 'react';
 import { RequirePermission } from '@/auth/components/require-permission';
 import { FLASH_SALE_PERMISSION } from '@/pages/dashboard/flash-sales/permissions';
+import {
+  CONTACT_METHOD_CREATE_ANY,
+  CONTACT_METHOD_UPDATE_ANY,
+  CONTACT_METHOD_VIEW_ANY,
+} from '@/pages/dashboard/contact-methods/permissions';
 
 import { CONFIG } from 'src/global-config';
 import { AuthGuard } from 'src/pages/auth/guard';
@@ -78,6 +83,13 @@ const CategoryDetailIndexPage = lazy(
 );
 const CategoryDetailCreatePage = lazy(
   () => import('@/pages/dashboard/categories/view/details/Create')
+);
+
+const ProductExtraDetailIndexPage = lazy(
+  () => import('@/pages/dashboard/categories/view/extra-details/Index')
+);
+const ProductExtraDetailCreatePage = lazy(
+  () => import('@/pages/dashboard/categories/view/extra-details/Create')
 );
 
 const ServiceIndexPage = lazy(() => import('@/pages/dashboard/vendor/view/service/Index'));
@@ -194,6 +206,9 @@ const LegalDocumentEditPage = lazy(() => import('@/pages/dashboard/content/view/
 // FAQs
 const FaqIndexPage = lazy(() => import('@/pages/dashboard/content/view/faq/Index'));
 const FaqCreatePage = lazy(() => import('@/pages/dashboard/content/view/faq/Create'));
+
+const ContactMethodIndexPage = lazy(() => import('@/pages/dashboard/contact-methods/view/Index'));
+const ContactMethodCreatePage = lazy(() => import('@/pages/dashboard/contact-methods/view/Create'));
 
 // Vendor Subscriptions
 const VendorSubscriptionIndexPage = lazy(
@@ -983,6 +998,42 @@ export const dashboardRoutes: RouteObject[] = [
     ],
   },
   {
+    path: 'categories/extra-details',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: (
+          <RequirePermission
+            permissionAny={['productextradetail.view', 'categorydetail.view']}
+          >
+            <ProductExtraDetailIndexPage />
+          </RequirePermission>
+        ),
+        index: true,
+      },
+      {
+        path: 'create',
+        element: (
+          <RequirePermission
+            permissionAny={['productextradetail.create', 'categorydetail.create']}
+          >
+            <ProductExtraDetailCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'update/:id',
+        element: (
+          <RequirePermission
+            permissionAny={['productextradetail.update', 'categorydetail.update']}
+          >
+            <ProductExtraDetailCreatePage />
+          </RequirePermission>
+        ),
+      },
+    ],
+  },
+  {
     path: 'services',
     element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
     children: [
@@ -1693,6 +1744,36 @@ export const dashboardRoutes: RouteObject[] = [
         element: (
           <RequirePermission permission="faq.update">
             <FaqCreatePage />
+          </RequirePermission>
+        ),
+      },
+    ],
+  },
+  {
+    path: 'contact-methods',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: (
+          <RequirePermission permissionAny={[...CONTACT_METHOD_VIEW_ANY]}>
+            <ContactMethodIndexPage />
+          </RequirePermission>
+        ),
+        index: true,
+      },
+      {
+        path: 'create',
+        element: (
+          <RequirePermission permissionAny={[...CONTACT_METHOD_CREATE_ANY]}>
+            <ContactMethodCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'update/:id',
+        element: (
+          <RequirePermission permissionAny={[...CONTACT_METHOD_UPDATE_ANY]}>
+            <ContactMethodCreatePage />
           </RequirePermission>
         ),
       },

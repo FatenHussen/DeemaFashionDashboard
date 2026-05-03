@@ -50,6 +50,8 @@ export interface ProductDetailCurrencyAmount {
 /** Product as returned in the SINGLE/DETAIL response (bilingual fields + relations) */
 export interface ProductDetailData {
   id: number;
+  /** Optional merchandising / ERP reference */
+  product_number?: string | null;
   category_id: number;
   brand_id: number | null;
   vendor_id?: number | null;
@@ -85,6 +87,9 @@ export interface ProductDetailData {
   cost_price_formatted?: string | null;
   cost_price_currencies?: Record<string, ProductDetailCurrencyAmount> | null;
   quantity: number | null;
+  /** Aggregated sellable stock when API provides it (may differ from `quantity`). */
+  stock?: number | null;
+  max_purchase_quantity?: number | null;
   unit?: string | { id?: number; name?: string | { en: string; ar: string } } | null;
   warranty_period?: number | null;
   sku: string | null;
@@ -115,18 +120,25 @@ export interface ProductDetailData {
   seo_image?: string | null;
   variants: Array<{
     id: number;
+    name?: string | { en: string; ar: string };
     sku?: string | null;
     model?: string | null;
     barcode?: string | null;
+    is_trend?: boolean | number;
+    is_active?: boolean | number;
     attributes: Array<{ attribute: string; value: string; type: string }>;
     shops: Array<{
       id?: number;
       shop_id: number;
       shop_name: string;
       price: number;
+      price_currencies?: Record<string, ProductDetailCurrencyAmount> | null;
       discount?: number | null;
+      discount_currencies?: Record<string, ProductDetailCurrencyAmount> | null;
       price_after_discount?: number | null;
+      price_after_discount_currencies?: Record<string, ProductDetailCurrencyAmount> | null;
       cost_price?: number | null;
+      cost_price_currencies?: Record<string, ProductDetailCurrencyAmount> | null;
       quantity: number;
     }>;
     images: Array<{ id: number; url: string }>;
@@ -140,12 +152,22 @@ export interface ProductDetailData {
   }>;
   extra_details: Array<{
     id: number;
+    category?: { id: number; name: string };
     key: { en: string; ar: string };
     value: { en: string; ar: string };
     price?: number | null;
+    price_currencies?: Record<string, ProductDetailCurrencyAmount> | null;
+    quantity?: number | null;
+    product_extra_detail_id?: number | null;
   }>;
   images: Array<{ id: number; url: string }>;
-  badges?: Array<{ id: number; position?: string; postion?: string }>;
+  badges?: Array<{
+    id: number;
+    name?: string | { en: string; ar: string } | null;
+    icon?: string | null;
+    position?: string;
+    postion?: string;
+  }>;
   icons?: Array<{ id: number; name?: string; icon?: string }>;
   rating?: number;
   rating_count?: number;
@@ -235,9 +257,11 @@ export interface ProductCreateUpdatePayload {
 
   extra_details?: Array<{
     id?: number;
-    detail_key: { en: string; ar: string };
-    detail_value: { en: string; ar: string };
-    price?: number;
+    /** Preset row from `/admin/product-extra-details` */
+    product_extra_detail_id: number;
+    /** Omitted or empty in UI defaults to 1 */
+    quantity?: number;
+    price: number;
   }>;
 
   bought_with?: number[];

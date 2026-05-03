@@ -1,12 +1,16 @@
 // ----------------------------------------------------------------------
 
-export type PageSectionVariant = 'vertical' | 'horizontal' | 'square';
+/** Values allowed when creating or updating a page section. */
+export type PageSectionVariant = 'vertical' | 'square';
+
+/** API may still return deprecated values on older rows (e.g. `horizontal`). */
+export type PageSectionVariantResponse = PageSectionVariant | 'horizontal';
 
 export interface PageSectionListItem {
   id: number;
   name: string | Record<string, string> | unknown[];
   type?: 'api' | 'manual';
-  variant?: PageSectionVariant;
+  variant?: PageSectionVariantResponse;
   position?: 'before' | 'after';
   order?: number;
   display_type_id?: number;
