@@ -274,10 +274,10 @@ export function CreateFormLayout<T extends Record<string, any>>({
             /* Project-wide section card polish for create/update forms */
             .create-form-sections > .rounded-2xl {
               border-width: 1px !important;
-              border-color: color-mix(in oklab, hsl(var(--border)) 62%, transparent) !important;
+              border-color: var(--color-primary) !important;
               box-shadow:
                 0 1px 2px rgba(0, 0, 0, 0.05),
-                0 0 0 1px color-mix(in oklab, hsl(var(--border)) 20%, transparent) inset;
+                0 0 0 1px color-mix(in oklab, var(--color-primary) 35%, transparent) inset;
             }
 
             /* Remove duplicated section title bars (keep field labels only) */
