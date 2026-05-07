@@ -1,5 +1,5 @@
 import type { FieldErrors } from 'react-hook-form';
-import type { PopupCampaignDetail } from '../types';
+import type { PopupCampaignDetail, PopupCampaignUpsertPayload } from '../types';
 
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
@@ -7,7 +7,6 @@ import { useParams, useNavigate } from 'react-router';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Iconify } from '@/shared/components/iconify';
-import { compressImage } from '@/utils/compress-image';
 import { RHFSelect } from '@/shared/components/hook-form/rhf-select';
 import { RHFTextField } from '@/shared/components/hook-form/rhf-text-field';
 import { useFetchPages } from '@/pages/dashboard/sections/hooks/usePageSections';
@@ -104,60 +103,37 @@ function resolveStorageUrl(path: string | null | undefined): string | null {
   return `${base}/${s.replace(/^\//, '')}`;
 }
 
-function appendLocaleField(
-  fd: FormData,
-  key: 'title' | 'headline' | 'subheadline' | 'description',
-  loc: { en: string; ar: string }
-) {
-  fd.append(`${key}[en]`, (loc.en ?? '').trim());
-  fd.append(`${key}[ar]`, (loc.ar ?? '').trim());
+function trimLocale(loc: { en: string; ar: string }): { en: string; ar: string } {
+  return { en: (loc.en ?? '').trim(), ar: (loc.ar ?? '').trim() };
 }
 
-function buildFormData(
+function buildPayload(
   data: PopupCampaignCreateFormValues | PopupCampaignUpdateFormValues
-): FormData {
-  const fd = new FormData();
+): PopupCampaignUpsertPayload {
   const slug = (data.slug ?? '').trim() || slugify(data.title.en);
-
-  appendLocaleField(fd, 'title', data.title);
-  appendLocaleField(fd, 'headline', data.headline);
-  appendLocaleField(fd, 'subheadline', data.subheadline);
-  appendLocaleField(fd, 'description', data.description);
-  fd.append('slug', slug);
-  fd.append('priority', String(data.priority ?? 0));
-
-  fd.append('type', data.type);
-  fd.append('status', toApiStatus(data.status));
-
-  fd.append('button_text', (data.button_text ?? '').trim());
   const buttonUrl = (data.button_url ?? '').trim();
-  if (buttonUrl) fd.append('button_url', buttonUrl);
   const secondary = (data.secondary_button_text ?? '').trim();
-  if (secondary) fd.append('secondary_button_text', secondary);
-
-  fd.append('media_type', data.media_type);
-
-  (data.show_on_pages ?? []).forEach((p) => fd.append('show_on_pages[]', p));
-
-  fd.append('audience_type', toApiAudienceType(data.audience_type));
-  fd.append('trigger_type', data.trigger_type);
-  if (data.trigger_value != null) {
-    fd.append('trigger_value', String(data.trigger_value));
-  }
-
-  fd.append('form_enabled', data.form_enabled ? '1' : '0');
-  (data.form_fields ?? []).forEach((f) => fd.append('form_fields[]', f));
-
-  fd.append('show_every', String(data.show_every ?? 0));
-  fd.append('max_impressions', String(data.max_impressions ?? 0));
-
-  const file = 'media' in data && data.media instanceof File ? data.media : null;
-  // Laravel validates `media_path` as an uploaded file; do not send a string path (breaks on update).
-  if (file) {
-    fd.append('media_path', file);
-  }
-
-  return fd;
+  return {
+    title: trimLocale(data.title),
+    slug,
+    type: data.type,
+    status: toApiStatus(data.status) as PopupCampaignUpsertPayload['status'],
+    priority: Number(data.priority ?? 0),
+    headline: trimLocale(data.headline),
+    subheadline: trimLocale(data.subheadline),
+    description: trimLocale(data.description),
+    button_text: (data.button_text ?? '').trim(),
+    button_url: buttonUrl || null,
+    secondary_button_text: secondary || null,
+    media_type: data.media_type,
+    media_path: (data.media_path ?? '').trim(),
+    show_on_pages: data.show_on_pages ?? [],
+    audience_type: toApiAudienceType(data.audience_type) as PopupCampaignUpsertPayload['audience_type'],
+    trigger_type: data.trigger_type,
+    trigger_value: data.trigger_value != null ? Number(data.trigger_value) : null,
+    form_enabled: Boolean(data.form_enabled),
+    form_fields: data.form_fields ?? [],
+  };
 }
 
 /** Map API detail to update form. */
@@ -191,15 +167,13 @@ function mapDetailToFormValues(d: PopupCampaignDetail): PopupCampaignUpdateFormV
     button_url: String(d.button_url ?? ''),
     secondary_button_text: String(d.secondary_button_text ?? ''),
     media_type: mediaTypeNormalized as PopupCampaignCreateFormValues['media_type'],
-    media: null,
+    media_path: String(d.media_path ?? ''),
     form_enabled: Boolean(d.form_enabled) || fields.length > 0,
     form_fields: fields,
     show_on_pages: pages,
     audience_type: fromApiAudience(String(d.audience_type ?? 'all_visitors')),
     trigger_type: fromApiTrigger(String(d.trigger_type ?? 'on_load')),
     trigger_value: d.trigger_value != null ? Number(d.trigger_value) : null,
-    show_every: Number(d.show_every ?? 0),
-    max_impressions: Number(d.max_impressions ?? 0),
   };
 }
 
@@ -229,7 +203,6 @@ export default function CreatePage() {
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
   const isEditMode = !!id;
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [formFieldsInput, setFormFieldsInput] = useState<string>('');
 
   const {
@@ -338,18 +311,16 @@ export default function CreatePage() {
     audience_type: 'all_visitors' as const,
     trigger_type: 'on_load' as const,
     trigger_value: null,
-    show_every: 0,
-    max_impressions: 0,
   };
 
   const createDefaults: PopupCampaignCreateFormValues = {
     ...emptyDefaults,
-    media: null,
+    media_path: '',
   };
 
   const updateDefaults: PopupCampaignUpdateFormValues = {
     ...emptyDefaults,
-    media: null,
+    media_path: '',
   };
 
   const schema = isEditMode ? PopupCampaignUpdateSchema : PopupCampaignCreateSchema;
@@ -360,8 +331,8 @@ export default function CreatePage() {
   });
 
   const { handleSubmit, reset, control, watch, setValue, setFocus, getValues } = methods;
-  const mediaFile = watch('media');
   const mediaType = watch('media_type');
+  const mediaPath = watch('media_path');
   const triggerType = watch('trigger_type');
   const formEnabled = watch('form_enabled');
 
@@ -376,7 +347,6 @@ export default function CreatePage() {
     const next = mapDetailToFormValues(detail);
     reset(next, { keepDefaultValues: false });
     setFormFieldsInput((next.form_fields ?? []).join(', '));
-    setPreviewUrl(resolveStorageUrl(detail.media_path as string | null | undefined));
   }, [isEditMode, detail, reset]);
 
   /** If the CMS only has one page, pre-select it so submit is not blocked on an easy-to-miss field. */
@@ -388,18 +358,6 @@ export default function CreatePage() {
     if (pageOptions.length !== 1) return;
     setValue('slug', pageOptions[0].value, { shouldValidate: true, shouldDirty: true });
   }, [isEditMode, isLoadingPages, pageOptions, getValues, setValue]);
-
-  useEffect(() => {
-    if (mediaFile instanceof File) {
-      const reader = new FileReader();
-      reader.onloadend = () => setPreviewUrl(reader.result as string);
-      reader.readAsDataURL(mediaFile);
-    } else if (!isEditMode && !mediaFile) {
-      setPreviewUrl(null);
-    } else if (isEditMode && !mediaFile && detail?.media_path) {
-      setPreviewUrl(resolveStorageUrl(detail.media_path));
-    }
-  }, [mediaFile, isEditMode, detail?.media_path]);
 
   const parseCsv = (value: string): string[] =>
     value
@@ -414,23 +372,15 @@ export default function CreatePage() {
     data: PopupCampaignCreateFormValues | PopupCampaignUpdateFormValues
   ) => {
     try {
-      let payload = { ...data };
-      if (
-        payload.media instanceof File &&
-        payload.media_type === 'image' &&
-        payload.media.type !== 'image/gif'
-      ) {
-        payload = { ...payload, media: await compressImage(payload.media) };
-      }
-
       if (isEditMode && id) {
+        const payload = buildPayload(data);
         await updateMutation.mutateAsync({
           id,
-          formData: buildFormData(payload as PopupCampaignUpdateFormValues),
+          payload,
         });
         toast.success(t('form.popupCampaignUpdatedSuccess'));
       } else {
-        await createMutation.mutateAsync(buildFormData(payload as PopupCampaignCreateFormValues));
+        await createMutation.mutateAsync(buildPayload(data));
         toast.success(t('form.popupCampaignCreatedSuccess'));
       }
       navigate(paths.dashboard.popupCampaigns.root);
@@ -443,7 +393,7 @@ export default function CreatePage() {
     (errors: FieldErrors<PopupCampaignCreateFormValues | PopupCampaignUpdateFormValues>) => {
       if (errors.slug) {
         toast.error(t('form.popupCampaignSlugRequiredToast'));
-      } else if ('media' in errors && errors.media) {
+      } else if ('media_path' in errors && errors.media_path) {
         toast.error(t('form.popupCampaignMediaRequiredToast'));
       } else {
         toast.error(t('formValidationFailed'));
@@ -469,8 +419,7 @@ export default function CreatePage() {
 
   const handleCancel = () => navigate(paths.dashboard.popupCampaigns.root);
 
-  const fileAccept =
-    mediaType === 'video' ? 'video/*' : mediaType === 'gif' ? 'image/gif' : 'image/*';
+  const previewUrl = resolveStorageUrl(mediaPath);
 
   if (isEditMode && id && isLoadingDetail) return <LoadingScreen />;
 
@@ -752,18 +701,6 @@ export default function CreatePage() {
                 {t('form.popupCampaignTriggerValueHint')}
               </Typography>
             </Box>
-            <Box className="group">
-              <Typography variant="subtitle2" className="mb-2 font-semibold">
-                {t('form.popupCampaignShowEvery')}
-              </Typography>
-              <RHFTextField name="show_every" type="number" placeholder="0" min={0} fullWidth />
-            </Box>
-            <Box className="group">
-              <Typography variant="subtitle2" className="mb-2 font-semibold">
-                {t('form.popupCampaignMaxImpressions')}
-              </Typography>
-              <RHFTextField name="max_impressions" type="number" placeholder="0" min={0} fullWidth />
-            </Box>
           </Box>
         </Box>
 
@@ -841,59 +778,33 @@ export default function CreatePage() {
               <Typography variant="subtitle2" className="mb-2 font-semibold">
                 {t('form.popupCampaignMediaFile')}
               </Typography>
-              <Controller
-                name="media"
-                control={control}
-                render={({ field: { onChange, value, ...field }, fieldState: { error } }) => (
-                  <div className="w-full">
-                    <Input
-                      {...field}
-                      type="file"
-                      accept={fileAccept}
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        onChange(file || null);
-                      }}
-                      error={!!error}
-                      helperText={
-                        error?.message ||
-                        (isEditMode
-                          ? t('form.popupCampaignMediaHelperEdit')
-                          : t('form.popupCampaignMediaHelperCreate'))
-                      }
-                      fullWidth
-                    />
-                    {previewUrl && mediaType === 'image' && (
-                      <Box className="mt-4">
-                        <img
-                          src={previewUrl}
-                          alt=""
-                          className="max-h-48 rounded-lg border border-border/60 object-contain"
-                        />
-                      </Box>
-                    )}
-                    {previewUrl && mediaType === 'gif' && (
-                      <Box className="mt-4">
-                        <img
-                          src={previewUrl}
-                          alt=""
-                          className="max-h-48 rounded-lg border border-border/60 object-contain"
-                        />
-                      </Box>
-                    )}
-                    {previewUrl && mediaType === 'video' && (
-                      <Box className="mt-4">
-                        <video
-                          src={previewUrl}
-                          className="max-h-56 w-full max-w-md rounded-lg border border-border/60"
-                          controls
-                          muted
-                        />
-                      </Box>
-                    )}
-                  </div>
-                )}
+              <RHFTextField
+                name="media_path"
+                placeholder={t('popupCampaign.mediaPathPlaceholder')}
+                fullWidth
               />
+              <Typography variant="caption" className="text-muted-foreground mt-1 block">
+                {t('form.popupCampaignMediaHelperCreate')}
+              </Typography>
+              {previewUrl && (mediaType === 'image' || mediaType === 'gif') && (
+                <Box className="mt-4">
+                  <img
+                    src={previewUrl}
+                    alt=""
+                    className="max-h-48 rounded-lg border border-border/60 object-contain"
+                  />
+                </Box>
+              )}
+              {previewUrl && mediaType === 'video' && (
+                <Box className="mt-4">
+                  <video
+                    src={previewUrl}
+                    className="max-h-56 w-full max-w-md rounded-lg border border-border/60"
+                    controls
+                    muted
+                  />
+                </Box>
+              )}
             </Box>
           </Box>
         </Box>

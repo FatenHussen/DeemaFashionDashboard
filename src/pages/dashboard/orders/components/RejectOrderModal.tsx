@@ -10,11 +10,16 @@ import { Iconify } from '@/shared/components/iconify';
 import { useChangeOrderStatus } from '@/pages/dashboard/orders/hooks/order';
 
 type FormValues = { rejection_reason: string };
+type RejectableOrderRef = {
+  id: number | string;
+  order_code?: string;
+  order_number?: string;
+};
 
 type Props = {
   open: boolean;
   onClose: () => void;
-  order: OrderFormValues | null;
+  order: RejectableOrderRef | OrderFormValues | null;
   t: TFunction<'table'>;
 };
 

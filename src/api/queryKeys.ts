@@ -253,7 +253,14 @@ export const queryKeys = {
   },
   // Legal Document query keys
   legalDocument: {
-    list: (params?: { page?: number; per_page?: number }) =>
+    list: (params?: {
+      page?: number;
+      per_page?: number;
+      search?: string;
+      key?: string;
+      sort_field?: 'id' | 'key' | 'created_at' | 'updated_at';
+      sort_order?: 'asc' | 'desc';
+    }) =>
       ['legalDocument', 'list', params] as const,
     details: (id: number | string) => ['legalDocument', 'details', id] as const,
   },

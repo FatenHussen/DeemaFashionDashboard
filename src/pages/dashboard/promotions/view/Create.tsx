@@ -1,12 +1,13 @@
 import type { DiscountType } from '@/pages/dashboard/promotions/types/promotion.types';
 
 import { toast } from 'react-toastify';
-import { useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useRef, useMemo, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Iconify } from '@/shared/components/iconify';
 import { useParams, useNavigate } from 'react-router';
+import { useFetchPages } from '@/pages/dashboard/sections/hooks/usePageSections';
 import {
   PromotionSchema,
   type PromotionFormValues,
@@ -22,6 +23,21 @@ import { Box, Typography } from 'src/shared/ui';
 import { LoadingScreen } from 'src/shared/components/loading-screen';
 import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
 import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
+import { RHFMultiSelect } from 'src/shared/components/hook-form/rhf-multi-select';
+
+function toStringArray(v: unknown): string[] {
+  if (Array.isArray(v)) return v.map((x) => String(x));
+  if (typeof v === 'string' && v.trim() !== '') {
+    try {
+      const parsed = JSON.parse(v);
+      if (Array.isArray(parsed)) return parsed.map((x) => String(x));
+    } catch {
+      /* comma-separated fallback */
+    }
+    return v.split(',').map((s) => s.trim()).filter(Boolean);
+  }
+  return [];
+}
 
 /** Map API variants to form values so the select shows the current type on edit. */
 function normalizePromotionDiscountType(raw: unknown): DiscountType | null {
@@ -50,8 +66,31 @@ export default function CreatePage() {
   const isEditMode = !!id;
 
   const { data: detailsResponse, isLoading: isLoadingDetails } = useFetchPromotionById(id || '');
+  const { data: pagesResponse, isLoading: isLoadingPages } = useFetchPages();
   const createMutation = useCreatePromotion();
   const updateMutation = useUpdatePromotion();
+
+  const pageOptions = useMemo(() => {
+    const items = pagesResponse?.data ?? [];
+    return items
+      .filter((p) => typeof p?.slug === 'string' && p.slug.trim() !== '')
+      .map((p) => ({ value: p.slug, label: p.title || p.slug }));
+  }, [pagesResponse]);
+
+  const pageSlugsOptions = useMemo(() => {
+    const known = new Set(pageOptions.map((o) => String(o.value)));
+    const extra: { value: string; label: string }[] = [];
+    if (isEditMode && detailsResponse?.data) {
+      const raw = detailsResponse.data as { page_slugs?: unknown; pageSlugs?: unknown };
+      for (const s of toStringArray(raw.page_slugs ?? raw.pageSlugs)) {
+        if (s && !known.has(s)) {
+          known.add(s);
+          extra.push({ value: s, label: s });
+        }
+      }
+    }
+    return extra.length ? [...pageOptions, ...extra] : pageOptions;
+  }, [pageOptions, isEditMode, detailsResponse?.data]);
 
   /** Server value for discount_type on edit (API may not accept changing it; also safe if disabled fields are omitted). */
   const originalDiscountTypeRef = useRef<DiscountType | null>(null);
@@ -68,6 +107,8 @@ export default function CreatePage() {
     get_quantity: null,
     discount_value: null,
     discount_type: null,
+    page_slugs: [],
+    position: 0,
   };
 
   const methods = useForm<PromotionFormValues>({
@@ -84,6 +125,7 @@ export default function CreatePage() {
       const item = detailsResponse.data;
       const discountType = normalizePromotionDiscountType(item.discount_type);
       originalDiscountTypeRef.current = discountType;
+      const rawItem = item as typeof item & { page_slugs?: unknown; pageSlugs?: unknown };
       reset({
         name: { en: item.name?.en ?? '', ar: item.name?.ar ?? '' },
         description: { en: item.description?.en ?? '', ar: item.description?.ar ?? '' },
@@ -96,6 +138,9 @@ export default function CreatePage() {
         get_quantity: item.get_quantity ?? null,
         discount_value: item.discount_value ?? null,
         discount_type: discountType,
+        page_slugs: toStringArray(rawItem.page_slugs ?? rawItem.pageSlugs),
+        position:
+          item.position != null && !Number.isNaN(Number(item.position)) ? Number(item.position) : 0,
       });
     }
   }, [detailsResponse?.data, isEditMode, reset]);
@@ -119,6 +164,8 @@ export default function CreatePage() {
       if (data.min_spend != null) payload.min_spend = data.min_spend;
       if (data.buy_quantity != null) payload.buy_quantity = data.buy_quantity;
       if (data.get_quantity != null) payload.get_quantity = data.get_quantity;
+      payload.page_slugs = data.page_slugs ?? [];
+      payload.position = data.position ?? 0;
 
       if (isEditMode && id) {
         await updateMutation.mutateAsync({ id, data: payload });
@@ -275,6 +322,49 @@ export default function CreatePage() {
             <Box>
               <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.endDateOptional')}</Typography>
               <RHFTextField name="ends_at" type="date" helperText={t('form.endDateHelper')} />
+            </Box>
+          </Box>
+        </Box>
+
+        {/* ── Section: Page placement ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-emerald-500/[0.06] via-emerald-500/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:map-point-bold" className="text-emerald-500" width={15} />
+            </Box>
+            <Typography variant="subtitle2" className="font-semibold text-foreground">
+              {t('form.promotionPlacementSection')}
+            </Typography>
+          </Box>
+          <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+            <Box className="md:col-span-2">
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
+                {t('form.promotionPageSlugs')}
+              </Typography>
+              <RHFMultiSelect
+                name="page_slugs"
+                options={pageSlugsOptions}
+                placeholder={
+                  isLoadingPages
+                    ? t('form.promotionPageSlugsLoading')
+                    : t('form.promotionPageSlugsPlaceholder')
+                }
+                fullWidth
+                isDisabled={isLoadingPages}
+                isSearchable
+              />
+              <Typography variant="caption" className="text-muted-foreground mt-1 block">
+                {t('form.promotionPageSlugsHint')}
+              </Typography>
+            </Box>
+            <Box>
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
+                {t('form.promotionPosition')}
+              </Typography>
+              <RHFTextField name="position" type="number" placeholder="0" min={0} />
+              <Typography variant="caption" className="text-muted-foreground mt-1 block">
+                {t('form.promotionPositionHint')}
+              </Typography>
             </Box>
           </Box>
         </Box>

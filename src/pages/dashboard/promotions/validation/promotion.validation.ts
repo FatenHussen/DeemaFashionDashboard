@@ -25,6 +25,11 @@ export const PromotionSchema = z
     get_quantity: z.number().optional().nullable(),
     discount_value: z.number().optional().nullable(),
     discount_type: z.enum(['percentage', 'fixed']).optional().nullable(),
+    page_slugs: z.array(z.string()).optional().default([]),
+    position: z.preprocess(
+      (val) => (val === '' || val === null || val === undefined ? 0 : val),
+      z.coerce.number().int().min(0)
+    ),
   })
   .superRefine((data, ctx) => {
     const usesDiscount = data.type === 'simple_discount' || data.type === 'spend_x_discount';

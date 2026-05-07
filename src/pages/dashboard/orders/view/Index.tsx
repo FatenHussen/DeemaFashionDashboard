@@ -105,6 +105,13 @@ export default function Page() {
     { key: 'out_delivery' as const, label: t('statusOutDelivery'), icon: 'solar:delivery-bold' },
     { key: 'delivered' as const, label: t('statusDelivered'), icon: 'solar:check-circle-bold' },
     { key: 'cancelled' as const, label: t('statusCancelled'), icon: 'solar:close-circle-bold' },
+    {
+      key: 'cancelled_by_admin' as const,
+      label: t('statusCancelledByAdmin'),
+      icon: 'solar:shield-cross-bold',
+    },
+    { key: 'faild_deliver' as const, label: t('statusFaildDeliver'), icon: 'solar:danger-triangle-bold' },
+    { key: 'returned_by_user' as const, label: t('statusReturnedByUser'), icon: 'solar:undo-left-bold' },
   ];
 
   const sidebarContent = (

@@ -5,7 +5,10 @@ export type OrderStatus =
   | 'preparing'
   | 'out_delivery'
   | 'delivered'
-  | 'cancelled';
+  | 'cancelled'
+  | 'cancelled_by_admin'
+  | 'faild_deliver'
+  | 'returned_by_user';
 
 /** All statuses selectable when updating an order (admin). */
 export const ORDER_STATUS_OPTIONS: OrderStatus[] = [
@@ -14,6 +17,9 @@ export const ORDER_STATUS_OPTIONS: OrderStatus[] = [
   'out_delivery',
   'delivered',
   'cancelled',
+  'cancelled_by_admin',
+  'faild_deliver',
+  'returned_by_user',
 ];
 
 /** Forward fulfillment flow only (no going back to a previous step). */
@@ -47,6 +53,11 @@ export function normalizeOrderStatus(raw: string | number | undefined | null): O
     delivered: 'delivered',
     cancelled: 'cancelled',
     canceled: 'cancelled',
+    cancelled_by_admin: 'cancelled_by_admin',
+    canceled_by_admin: 'cancelled_by_admin',
+    faild_deliver: 'faild_deliver',
+    failed_deliver: 'faild_deliver',
+    returned_by_user: 'returned_by_user',
   };
   if (aliases[s]) return aliases[s];
   if ((ORDER_STATUS_OPTIONS as readonly string[]).includes(s)) return s as OrderStatus;

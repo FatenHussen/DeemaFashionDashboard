@@ -24,6 +24,10 @@ export interface PromotionDetailItem {
   discount_value: number | null;
   discount_type: DiscountType | null;
   gift_product_ids: number[];
+  /** CMS page slugs where this promotion is shown */
+  page_slugs?: string[] | null;
+  /** Display order among promotions on a page */
+  position?: number | null;
 }
 
 export interface PromotionListResponse {
@@ -58,6 +62,8 @@ export interface PromotionCreatePayload {
   get_quantity?: number;
   discount_value?: number;
   discount_type?: DiscountType;
+  page_slugs?: string[];
+  position?: number;
 }
 
 export interface PromotionUpdatePayload extends PromotionCreatePayload {

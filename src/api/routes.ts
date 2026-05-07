@@ -325,8 +325,10 @@ export const apiRoutes = {
   // Legal Document routes
   legalDocument: {
     list: `${ROOTS.ADMIN}/legal-documents`,
+    create: `${ROOTS.ADMIN}/legal-documents`,
     details: (id: number | string) => `${ROOTS.ADMIN}/legal-documents/${id}`,
     update: (id: number | string) => `${ROOTS.ADMIN}/legal-documents/${id}`,
+    delete: (id: number | string) => `${ROOTS.ADMIN}/legal-documents/${id}`,
   },
   // FAQ routes
   faq: {

@@ -5,7 +5,16 @@ import i18n from 'src/lib/i18n';
 const t = (key: string) => i18n.t(key, { ns: 'validation' });
 
 export const ChangeOrderStatusSchema = z.object({
-  status: z.enum(['pending', 'preparing', 'out_delivery', 'delivered', 'cancelled']),
+  status: z.enum([
+    'pending',
+    'preparing',
+    'out_delivery',
+    'delivered',
+    'cancelled',
+    'cancelled_by_admin',
+    'faild_deliver',
+    'returned_by_user',
+  ]),
 });
 
 export const AssignDriverSchema = z.object({

@@ -35,6 +35,7 @@ export const PageSectionSchema = z.object({
   background_color: z.string().optional(),
   background_card_color: z.string().optional(),
   filters: z.record(z.any()).optional(),
+  show_when: z.record(z.any()).optional(),
 });
 
 export type PageSectionFormValues = z.infer<typeof PageSectionSchema>;

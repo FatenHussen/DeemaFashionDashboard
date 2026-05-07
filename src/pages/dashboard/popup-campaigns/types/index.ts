@@ -111,3 +111,25 @@ export interface PopupCampaignDetailResponse {
   message: string;
   data: PopupCampaignDetail;
 }
+
+export interface PopupCampaignUpsertPayload {
+  title: LocalizedString;
+  slug: string;
+  type: PopupCampaignType;
+  status: PopupCampaignStatus;
+  priority: number;
+  headline: LocalizedString;
+  subheadline?: LocalizedString | null;
+  description?: LocalizedString | null;
+  button_text: string;
+  button_url?: string | null;
+  secondary_button_text?: string | null;
+  media_type: PopupCampaignMediaType;
+  media_path: string;
+  form_enabled: boolean;
+  form_fields?: string[] | null;
+  show_on_pages?: string[] | null;
+  audience_type: PopupCampaignAudienceType;
+  trigger_type: PopupCampaignTriggerType;
+  trigger_value?: number | null;
+}

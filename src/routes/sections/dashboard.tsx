@@ -183,6 +183,7 @@ const RecipeDetailsPage = lazy(() => import('@/pages/dashboard/recipes/view/Deta
 
 // Legal Documents
 const LegalDocumentIndexPage = lazy(() => import('@/pages/dashboard/content/view/legal-document/Index'));
+const LegalDocumentCreatePage = lazy(() => import('@/pages/dashboard/content/view/legal-document/Create'));
 const LegalDocumentEditPage = lazy(() => import('@/pages/dashboard/content/view/legal-document/Edit'));
 
 // FAQs
@@ -1572,6 +1573,14 @@ export const dashboardRoutes: RouteObject[] = [
           </RequirePermission>
         ),
         index: true,
+      },
+      {
+        path: 'create',
+        element: (
+          <RequirePermission permission="legaldocument.create">
+            <LegalDocumentCreatePage />
+          </RequirePermission>
+        ),
       },
       {
         path: 'update/:id',

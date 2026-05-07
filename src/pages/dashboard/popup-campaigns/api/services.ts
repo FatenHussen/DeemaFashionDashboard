@@ -1,11 +1,15 @@
 /**
  * Popup campaign admin API client.
  *
- * Create/update use `multipart/form-data`: Laravel expects nested keys `title[en]`, `title[ar]`, same for
- * headline/subheadline/description; new uploads use the file field `media_path` (validated as file on the API).
- * Omit `media_path` when keeping existing media on update.
+ * Create/update use JSON body with localized objects (`title.ar/en`, `headline.ar/en`, ...).
+ * Primary CTA destination is `button_url`, and media is provided by `media_path` string.
  */
-import type { PopupCampaignDetail, PopupCampaignListResponse, PopupCampaignDetailResponse } from '../types';
+import type {
+  PopupCampaignDetail,
+  PopupCampaignListResponse,
+  PopupCampaignDetailResponse,
+  PopupCampaignUpsertPayload,
+} from '../types';
 
 import { apiRoutes, axiosInstance } from '@/api';
 
@@ -111,12 +115,10 @@ export const _PopupCampaignApi = {
     };
   },
 
-  create: async (formData: FormData): Promise<PopupCampaignDetailResponse> => {
-    // Do not set Content-Type manually — axios must send multipart boundary or Laravel may not parse fields/files.
+  create: async (payload: PopupCampaignUpsertPayload): Promise<PopupCampaignDetailResponse> => {
     const response = await axiosInstance.post<PopupCampaignDetailResponse>(
       apiRoutes.popupCampaign.create,
-      formData,
-      { maxBodyLength: Infinity, maxContentLength: Infinity }
+      payload
     );
     const body = response.data as PopupCampaignDetailResponse & { status?: boolean; message?: string };
     if (body && body.status === false) {
@@ -127,13 +129,11 @@ export const _PopupCampaignApi = {
 
   update: async (
     id: number | string,
-    formData: FormData
+    payload: PopupCampaignUpsertPayload
   ): Promise<PopupCampaignDetailResponse> => {
-    // Same as create: let axios set multipart boundary (manual Content-Type breaks parsing).
     const response = await axiosInstance.put<PopupCampaignDetailResponse>(
       apiRoutes.popupCampaign.update(id),
-      formData,
-      { maxBodyLength: Infinity, maxContentLength: Infinity }
+      payload
     );
     const body = response.data as PopupCampaignDetailResponse & { status?: boolean; message?: string };
     if (body && body.status === false) {

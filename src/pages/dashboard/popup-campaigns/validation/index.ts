@@ -85,28 +85,24 @@ const baseFields = {
   audience_type: audienceEnum,
   trigger_type: triggerEnum,
   trigger_value: zod.coerce.number().int().min(0).optional().nullable().default(null),
-  show_every: zod.coerce.number().int().min(0),
-  max_impressions: zod.coerce.number().int().min(0),
 };
 
 export const PopupCampaignCreateSchema = zod.object({
   ...baseFields,
-  media: zod
-    .custom<File | null>((v) => v === null || v instanceof File)
-    .refine((v) => v instanceof File, { message: t('imageRequired') }),
+  media_path: zod.string().min(1, { message: t('required') }).max(2048),
 });
 
 export const PopupCampaignUpdateSchema = zod.object({
   ...baseFields,
-  media: zod.custom<File | null>((v) => v === null || v instanceof File).optional(),
+  media_path: zod.string().min(1, { message: t('required') }).max(2048),
 });
 
 export type PopupCampaignCreateFormValues = Omit<
   zod.infer<typeof PopupCampaignCreateSchema>,
-  'media'
-> & { media: File | null };
+  never
+>;
 
 export type PopupCampaignUpdateFormValues = Omit<
   zod.infer<typeof PopupCampaignUpdateSchema>,
-  'media'
-> & { media: File | null };
+  never
+>;

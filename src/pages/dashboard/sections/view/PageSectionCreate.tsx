@@ -68,6 +68,7 @@ export default function CreatePage() {
   const [selectedSectionId, setSelectedSectionId] = useState<number | null>(null);
   const [selectedSection, setSelectedSection] = useState<SectionItem | null>(null);
   const [filterValues, setFilterValues] = useState<Record<string, any>>({});
+  const [showWhenValues, setShowWhenValues] = useState<Record<string, any>>({});
 
   const { data: pageSectionData, isLoading: isLoadingPageSection } = useFetchPageSectionDetails(
     id || ''
@@ -89,6 +90,7 @@ export default function CreatePage() {
     background_color: '',
     background_card_color: '',
     filters: {},
+    show_when: {},
   };
 
   const methods = useForm<PageSectionFormValues>({
@@ -96,7 +98,7 @@ export default function CreatePage() {
     defaultValues,
   });
 
-  const { handleSubmit, reset, watch, setValue } = methods;
+  const { handleSubmit, reset, watch } = methods;
 
   const watchedSectionId = watch('section_id');
   const sectionIdForDetails =
@@ -146,9 +148,13 @@ export default function CreatePage() {
         background_color: pageSection.background_color || '',
         background_card_color: pageSection.background_card_color || '',
         filters: {},
+        show_when: {},
       });
       if (ps.filters && typeof ps.filters === 'object' && !Array.isArray(ps.filters)) {
         setFilterValues(ps.filters);
+      }
+      if (ps.show_when && typeof ps.show_when === 'object' && !Array.isArray(ps.show_when)) {
+        setShowWhenValues(ps.show_when);
       }
     }
   }, [pageSectionData, isEditMode, isLoadingPageSection, reset]);
@@ -175,6 +181,7 @@ export default function CreatePage() {
         background_color: data.background_color || undefined,
         background_card_color: data.background_card_color || undefined,
         filters: Object.keys(filterValues).length > 0 ? filterValues : undefined,
+        show_when: Object.keys(showWhenValues).length > 0 ? showWhenValues : undefined,
       };
 
       if (isEditMode && id) {
@@ -197,6 +204,13 @@ export default function CreatePage() {
 
   const handleFilterChange = (filterKey: string, value: any) => {
     setFilterValues((prev) => ({
+      ...prev,
+      [filterKey]: value,
+    }));
+  };
+
+  const handleShowWhenChange = (filterKey: string, value: any) => {
+    setShowWhenValues((prev) => ({
       ...prev,
       [filterKey]: value,
     }));
@@ -461,7 +475,7 @@ export default function CreatePage() {
           </Box>
         </Box>
 
-        {/* ── Section: Dynamic Filters ── */}
+        {/* ── Section: Query Filters ── */}
         {sectionIdForDetails && Object.keys(sectionFilters).length > 0 && (
           <Box className="rounded-2xl border border-border/50 bg-card/50 shadow-sm">
             <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-amber-500/[0.06] via-amber-500/[0.02] to-transparent">
@@ -469,7 +483,7 @@ export default function CreatePage() {
                 <Iconify icon="solar:filter-bold" className="text-amber-500" width={15} />
               </Box>
               <Typography variant="subtitle2" className="font-semibold text-foreground">
-                {t('form.pageSectionFormFiltersTitle')}
+                {t('form.pageSectionFormQueryFiltersTitle')}
               </Typography>
             </Box>
             <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -480,6 +494,31 @@ export default function CreatePage() {
                   filterConfig={filterConfig}
                   value={filterValues[filterKey]}
                   onChange={(value) => handleFilterChange(filterKey, value)}
+                />
+              ))}
+            </Box>
+          </Box>
+        )}
+
+        {/* ── Section: Show When Filters ── */}
+        {sectionIdForDetails && Object.keys(sectionFilters).length > 0 && (
+          <Box className="rounded-2xl border border-border/50 bg-card/50 shadow-sm">
+            <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-amber-500/[0.06] via-amber-500/[0.02] to-transparent">
+              <Box className="h-8 w-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
+                <Iconify icon="solar:filter-bold" className="text-amber-500" width={15} />
+              </Box>
+              <Typography variant="subtitle2" className="font-semibold text-foreground">
+                {t('form.pageSectionFormShowWhenTitle')}
+              </Typography>
+            </Box>
+            <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+              {Object.entries(sectionFilters).map(([filterKey, filterConfig]) => (
+                <DynamicFilterField
+                  key={`show_when_${filterKey}`}
+                  filterKey={filterKey}
+                  filterConfig={filterConfig}
+                  value={showWhenValues[filterKey]}
+                  onChange={(value) => handleShowWhenChange(filterKey, value)}
                 />
               ))}
             </Box>

@@ -97,4 +97,7 @@ export interface PageSectionCreateUpdatePayload {
   filters?: {
     [key: string]: any;
   };
+  show_when?: {
+    [key: string]: any;
+  };
 }

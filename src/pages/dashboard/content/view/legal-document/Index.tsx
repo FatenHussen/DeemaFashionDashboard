@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DataTable } from '@/shared/ui/table-data/table-data';
+import { usePermissions } from '@/auth/hooks/use-permissions';
 import { useFetchLegalDocuments } from '@/pages/dashboard/content/hooks/legal-document';
 import {
   legalDocumentColumns,
@@ -11,6 +12,7 @@ import { CONFIG } from 'src/global-config';
 
 export default function Page() {
   const { t } = useTranslation('table');
+  const { can } = usePermissions();
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState<string>('');
@@ -51,6 +53,9 @@ export default function Page() {
       }
     : { current_page: 1, last_page: 1, per_page: 10, total: 0, from: 0, to: 0 };
 
+  const hasCreatePermission = can('legaldocument.create');
+  const hasUpdatePermission = can('legaldocument.update');
+
   return (
     <>
       <title>{t('form.legalDocumentsIndexDocumentTitle', { appName: CONFIG.appName })}</title>
@@ -61,9 +66,10 @@ export default function Page() {
         data={items}
         hasDetails
         detailsLink="/legal-documents/update"
+        createPath="/legal-documents/create"
         permissions={{
-          create: false,
-          update: true,
+          create: hasCreatePermission,
+          update: hasUpdatePermission,
           delete: false,
         }}
         isLoading={isLoading}

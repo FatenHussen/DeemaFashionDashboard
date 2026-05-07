@@ -1,12 +1,12 @@
 import type { ReactNode } from 'react';
 
-import { useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { Button } from '@/shared/ui/button';
 import { useTranslation } from 'react-i18next';
 import { Iconify } from '@/shared/components/iconify';
 import { useParams, useNavigate } from 'react-router';
 import { useForm, FormProvider } from 'react-hook-form';
+import { useState, useEffect, useCallback } from 'react';
 import { _DriverApi } from '@/pages/dashboard/driver/api/driver.services';
 import { joinOrderRoom, leaveOrderRoom, useOrderLocation } from '@/lib/socket';
 import { RHFInfiniteSelect } from '@/shared/components/hook-form/rhf-infinite-select';
@@ -29,6 +29,7 @@ import { CONFIG } from 'src/global-config';
 import { Box, Typography } from 'src/shared/ui';
 
 import OrderTrackingMap from '../components/OrderTrackingMap';
+import { RejectOrderModal } from '../components/RejectOrderModal';
 
 // ----------------------------------------------------------------------
 
@@ -38,6 +39,9 @@ const statusColors: Record<string, string> = {
   out_delivery: 'bg-purple-500/20 text-purple-600',
   delivered: 'bg-green-500/20 text-green-600',
   cancelled: 'bg-muted text-muted-foreground',
+  cancelled_by_admin: 'bg-rose-500/20 text-rose-600',
+  faild_deliver: 'bg-orange-500/20 text-orange-600',
+  returned_by_user: 'bg-cyan-500/20 text-cyan-600',
 };
 
 function getOrderStatusLabel(statusRaw: string, t: (key: string) => string): string {
@@ -48,6 +52,9 @@ function getOrderStatusLabel(statusRaw: string, t: (key: string) => string): str
     out_delivery: t('statusOutDelivery'),
     delivered: t('statusDelivered'),
     cancelled: t('statusCancelled'),
+    cancelled_by_admin: t('statusCancelledByAdmin'),
+    faild_deliver: t('statusFaildDeliver'),
+    returned_by_user: t('statusReturnedByUser'),
   };
   return labels[status] ?? status.replace(/_/g, ' ');
 }
@@ -130,6 +137,9 @@ export default function DetailsPage() {
   const { watch: watchDriverId, reset: resetDriverForm, setValue: setDriverId } = assignDriverForm;
   const selectedDriverId = watchDriverId('driver_id');
   const order = orderResponse?.data;
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+  const openCancelModal = useCallback(() => setIsCancelModalOpen(true), []);
+  const closeCancelModal = useCallback(() => setIsCancelModalOpen(false), []);
 
   // Live order tracking via socket
   const isTrackable = order?.status === 'out_delivery';
@@ -184,6 +194,12 @@ export default function DetailsPage() {
   const normalizedOrderStatus = normalizeOrderStatus(order.status);
   const canAssignDriver =
     normalizedOrderStatus !== 'delivered' && normalizedOrderStatus !== 'out_delivery';
+  const canCancelOrder =
+    normalizedOrderStatus !== 'delivered' &&
+    normalizedOrderStatus !== 'cancelled' &&
+    normalizedOrderStatus !== 'cancelled_by_admin' &&
+    normalizedOrderStatus !== 'faild_deliver' &&
+    normalizedOrderStatus !== 'returned_by_user';
 
   const handleChangeStatus = async (status: OrderStatus) => {
     try {
@@ -226,6 +242,12 @@ export default function DetailsPage() {
   return (
     <>
       <title>{t('form.orderDetailsDocumentTitle', { appName: CONFIG.appName })}</title>
+      <RejectOrderModal
+        open={isCancelModalOpen}
+        onClose={closeCancelModal}
+        order={order ? { id: order.id, order_code: order.order_code } : null}
+        t={t}
+      />
       <Box className="relative min-h-screen overflow-hidden bg-background px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
         <Box className="pointer-events-none fixed inset-0 bg-gradient-to-br from-background via-background to-muted/30" />
 
@@ -298,6 +320,17 @@ export default function DetailsPage() {
                     {t('orders.finalStatusNoChanges')}
                   </Typography>
                 )}
+                {canCancelOrder ? (
+                  <Button
+                    variant="outlined"
+                    color="error"
+                    onClick={openCancelModal}
+                    disabled={changeStatusMutation.isPending}
+                    className="text-sm"
+                  >
+                    {t('cancelOrder')}
+                  </Button>
+                ) : null}
               </Box>
             </OrderSection>
 
