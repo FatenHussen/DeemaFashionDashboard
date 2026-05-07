@@ -92,8 +92,9 @@ export default function Page() {
         isLoading={isLoading}
         columnTranslations={{
           id: t('columns.id'),
-          icon: t('columns.icon'),
+          icon: t('form.quickActionColBackgroundImage'),
           title: t('columns.title'),
+          button_text: t('form.quickActionColButtonText'),
           page: t('columns.page'),
           order: t('columns.order'),
           status: t('columns.status'),

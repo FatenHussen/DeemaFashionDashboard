@@ -7,17 +7,19 @@ import { Iconify } from '@/shared/components/iconify';
 import { TableTonedStatusPill } from '@/shared/components/table-status-badges';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 import {
-  type OrderData,
-  type OrderStatus,
-  normalizeOrderStatus,
-} from '@/pages/dashboard/orders/types/order.types';
-import {
   DropdownMenu,
   DropdownMenuItem,
   DropdownMenuContent,
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from '@/shared/ui/dropdown-menu';
+import {
+  type OrderData,
+  type OrderStatus,
+  normalizeOrderStatus,
+  orderStatusBlocksReject,
+  orderStatusBlocksAssignDriver,
+} from '@/pages/dashboard/orders/types/order.types';
 
 import { CONFIG } from 'src/global-config';
 
@@ -59,11 +61,13 @@ const ORDER_STATUS_BADGE: Record<
     className: 'border-slate-700 bg-slate-600',
   },
   cancelled_by_admin: {
+
     icon: 'solar:shield-cross-bold',
     className: 'border-rose-800 bg-rose-600',
   },
   faild_deliver: {
     icon: 'solar:danger-triangle-bold',
+
     className: 'border-orange-800 bg-orange-600',
   },
   returned_by_user: {
@@ -270,6 +274,7 @@ export const orderColumns = (
         !ORDER_CANCELLED_STATES.includes(st);
       const canRejectOrder =
         permissions.update && st !== 'delivered' && !ORDER_CANCELLED_STATES.includes(st);
+
 
       return (
         <div className="flex items-center justify-end">

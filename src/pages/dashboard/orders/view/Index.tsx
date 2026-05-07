@@ -8,6 +8,10 @@ import { orderColumns, type OrderFormValues } from '@/columns/one/orders/one';
 import { useMemo, useState, useEffect, useCallback, type ReactNode } from 'react';
 import { RejectOrderModal } from '@/pages/dashboard/orders/components/RejectOrderModal';
 import { AssignDriverModal } from '@/pages/dashboard/orders/components/AssignDriverModal';
+import {
+  type OrderStatus,
+  ORDER_STATUS_OPTIONS,
+} from '@/pages/dashboard/orders/types/order.types';
 
 import { CONFIG } from 'src/global-config';
 
@@ -98,25 +102,40 @@ export default function Page() {
     [t, navigate, hasPermission, openAssignDriverModal, openRejectModal]
   );
 
+  const statusChipIcons: Record<OrderStatus, string> = {
+    pending: 'solar:hourglass-bold',
+    preparing: 'solar:chef-hat-bold',
+    out_delivery: 'solar:delivery-bold',
+    delivered: 'solar:check-circle-bold',
+    cancelled: 'solar:close-circle-bold',
+    cancelled_by_admin: 'solar:shield-warning-bold',
+    faild_deliver: 'solar:danger-bold',
+    returned_by_user: 'solar:undo-left-bold',
+  };
+
+  const statusChipLabelKeys: Record<OrderStatus, string> = {
+    pending: 'statusPending',
+    preparing: 'statusPreparing',
+    out_delivery: 'statusOutDelivery',
+    delivered: 'statusDelivered',
+    cancelled: 'statusCancelled',
+    cancelled_by_admin: 'statusCancelledByAdmin',
+    faild_deliver: 'statusFaildDeliver',
+    returned_by_user: 'statusReturnedByUser',
+  };
+
   const statusChips = [
     { key: 'all' as const, label: t('all'), icon: 'solar:list-bold' },
-    { key: 'pending' as const, label: t('statusPending'), icon: 'solar:hourglass-bold' },
-    { key: 'preparing' as const, label: t('statusPreparing'), icon: 'solar:chef-hat-bold' },
-    { key: 'out_delivery' as const, label: t('statusOutDelivery'), icon: 'solar:delivery-bold' },
-    { key: 'delivered' as const, label: t('statusDelivered'), icon: 'solar:check-circle-bold' },
-    { key: 'cancelled' as const, label: t('statusCancelled'), icon: 'solar:close-circle-bold' },
-    {
-      key: 'cancelled_by_admin' as const,
-      label: t('statusCancelledByAdmin'),
-      icon: 'solar:shield-cross-bold',
-    },
-    { key: 'faild_deliver' as const, label: t('statusFaildDeliver'), icon: 'solar:danger-triangle-bold' },
-    { key: 'returned_by_user' as const, label: t('statusReturnedByUser'), icon: 'solar:undo-left-bold' },
+    ...ORDER_STATUS_OPTIONS.map((key) => ({
+      key,
+      label: t(statusChipLabelKeys[key]),
+      icon: statusChipIcons[key],
+    })),
   ];
 
   const sidebarContent = (
     <FilterGroup label={t('columns.status')}>
-      <div className="flex flex-col gap-2">
+      <div className="flex max-h-[min(70vh,26rem)] flex-col gap-2 overflow-y-auto pe-1">
         {statusChips.map(({ key: s, label, icon }) => {
           const active = (s === 'all' && !statusFilter) || statusFilter === s;
           return (

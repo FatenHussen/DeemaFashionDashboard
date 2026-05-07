@@ -146,21 +146,49 @@ export const ProductSchema = zod
       .array(
         zod.object({
           id: zod.coerce.number().optional(),
-          detail_key: zod.object({
-            en: zod.string(),
-            ar: zod.string(),
-          }),
-          detail_value: zod.object({
-            en: zod.string(),
-            ar: zod.string(),
-          }),
+          product_extra_detail_id: zod.coerce.number(),
+          quantity: zod.preprocess(
+            (v) => (v === '' || v === null || v === undefined ? 1 : v),
+            zod.coerce.number().min(1, { message: t('product.extraDetailQuantityMin') })
+          ),
           price: zod.preprocess(
-            (v) => (v === '' || v === null || v === undefined ? undefined : v),
-            zod.coerce.number().min(0).optional()
+            (v) => {
+              if (v === '' || v === null || v === undefined) return undefined;
+              const n = typeof v === 'number' ? v : Number(v);
+              return Number.isFinite(n) ? n : undefined;
+            },
+            zod
+              .number({
+                invalid_type_error: t('product.extraDetailPriceRequired'),
+                required_error: t('product.extraDetailPriceRequired'),
+              })
+              .min(0, { message: t('product.pricePositive') })
           ),
         })
       )
-      .optional(),
+      .optional()
+      .superRefine((rows, ctx) => {
+        const list = rows ?? [];
+        list.forEach((row, i) => {
+          if (!row.product_extra_detail_id || row.product_extra_detail_id <= 0) {
+            ctx.addIssue({
+              code: zod.ZodIssueCode.custom,
+              message: t('product.extraDetailPresetRequired'),
+              path: [i, 'product_extra_detail_id'],
+            });
+          }
+        });
+        const ids = list
+          .map((r) => Number(r.product_extra_detail_id))
+          .filter((n) => n > 0);
+        if (ids.length !== new Set(ids).size) {
+          ctx.addIssue({
+            code: zod.ZodIssueCode.custom,
+            message: t('product.extraDetailDuplicate'),
+            path: ['extra_details'],
+          });
+        }
+      }),
 
     bought_with: zod.preprocess(
       (val) => {

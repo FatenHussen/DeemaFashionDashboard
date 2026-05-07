@@ -125,6 +125,14 @@ export const apiRoutes = {
     delete: (id: number | string) => `${ROOTS.ADMIN}/category-details/${id}`,
     details: (id: number | string) => `${ROOTS.ADMIN}/category-details/${id}`,
   },
+  // Product extra details (per-category presets; linked on product create/update)
+  productExtraDetail: {
+    list: `${ROOTS.ADMIN}/product-extra-details`,
+    create: `${ROOTS.ADMIN}/product-extra-details`,
+    update: (id: number | string) => `${ROOTS.ADMIN}/product-extra-details/${id}`,
+    delete: (id: number | string) => `${ROOTS.ADMIN}/product-extra-details/${id}`,
+    details: (id: number | string) => `${ROOTS.ADMIN}/product-extra-details/${id}`,
+  },
   // Service routes
   service: {
     list: `${ROOTS.ADMIN}/services`,
@@ -576,6 +584,14 @@ export const apiRoutes = {
     list: `${ROOTS.ADMIN}/vendor-withdraw-requests`,
     details: (id: number | string) => `${ROOTS.ADMIN}/vendor-withdraw-requests/${id}`,
     update: (id: number | string) => `${ROOTS.ADMIN}/vendor-withdraw-requests/${id}`,
+  },
+  // Contact methods (settings — CRUD)
+  contactMethod: {
+    list: `${ROOTS.ADMIN}/contact-methods`,
+    create: `${ROOTS.ADMIN}/contact-methods`,
+    details: (id: number | string) => `${ROOTS.ADMIN}/contact-methods/${id}`,
+    update: (id: number | string) => `${ROOTS.ADMIN}/contact-methods/${id}`,
+    delete: (id: number | string) => `${ROOTS.ADMIN}/contact-methods/${id}`,
   },
   // Statistics routes
   statistics: {

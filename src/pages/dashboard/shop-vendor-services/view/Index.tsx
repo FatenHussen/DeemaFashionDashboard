@@ -93,8 +93,8 @@ export default function Page() {
         isLoading={isLoading}
         columnTranslations={{
           id: t('columns.id'),
-          shop: t('columns.shop'),
-          vendor_service: t('columns.vendorService'),
+          shop: t('columns.shopVendorLinkShop'),
+          vendor_service: t('columns.shopVendorLinkService'),
           price: t('columns.price'),
           duration: t('columns.duration'),
           status: t('columns.status'),

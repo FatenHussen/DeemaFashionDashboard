@@ -140,7 +140,15 @@ export default function CreatePage() {
             <Typography variant="subtitle2" className="font-semibold text-foreground">{t('form.vendorServiceType')}</Typography>
           </Box>
           <Box className="p-6">
-            <RHFSelect name="vendor_service_type_id" options={typeOptions} placeholder={t('form.vendorServiceTypePlaceholder')} />
+            <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5">
+              <Iconify icon="solar:widget-bold" className="text-violet-500" width={16} />
+              {t('form.vendorServiceTypePlaceholder')}
+            </Typography>
+            <RHFSelect
+              name="vendor_service_type_id"
+              options={typeOptions}
+              placeholder={t('form.vendorServiceTypePlaceholder')}
+            />
           </Box>
         </Box>
 

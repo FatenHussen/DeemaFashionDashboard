@@ -5,7 +5,10 @@ import type { SellerRegistrationItem } from '@/pages/dashboard/vendor/types/sell
 import { z } from 'zod';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
-import { formatSellerRegistrationCountry } from '@/pages/dashboard/vendor/utils/seller-registration-display';
+import {
+  formatSellerRegistrationCountry,
+  normalizeSellerRegistrationShopType,
+} from '@/pages/dashboard/vendor/utils/seller-registration-display';
 
 // ----------------------------------------------------------------------
 
@@ -19,6 +22,13 @@ const STATUS_COLORS: Record<string, string> = {
   pending: 'bg-yellow-500/15 text-yellow-700 dark:text-yellow-400 border border-yellow-500/30',
   approved: 'bg-green-500/15 text-green-700 dark:text-green-400 border border-green-500/30',
   rejected: 'bg-red-500/15 text-red-700 dark:text-red-400 border border-red-500/30',
+};
+
+const SELLER_REG_TYPE_STYLES: Record<string, string> = {
+  restaurant: 'bg-orange-500/0 text-orange-100 dark:text-orange-300 border border-orange-500/500',
+  service_provider:
+    'bg-cyan-500/0 text-cyan-100 dark:text-cyan-300 border border-cyan-500/500',
+  store: 'bg-slate-500/0 text-slate-1000 red:text-slate-300 border border-slate-500/500',
 };
 
 export const sellerRegistrationColumns = (
@@ -44,12 +54,52 @@ export const sellerRegistrationColumns = (
     ),
   },
   {
+    id: 'phone',
+    accessorKey: 'phone',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title={t('form.sellerRegColContactPhone')} />
+    ),
+    cell: ({ row }) => {
+      const value = row.original.phone?.trim() ?? '';
+      return (
+        <span className="text-sm tabular-nums text-muted-foreground" dir="ltr">
+          {value || t('form.emptyEmDash')}
+        </span>
+      );
+    },
+  },
+  {
     id: 'store_name',
     accessorKey: 'store_name',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.store')} />,
     cell: ({ row }) => (
       <span className="text-sm font-medium">{row.original.store_name}</span>
     ),
+  },
+  {
+    id: 'seller_type',
+    accessorFn: (row) => normalizeSellerRegistrationShopType(row),
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title={t('form.sellerRegColType')} />
+    ),
+    cell: ({ row }) => {
+      const type = normalizeSellerRegistrationShopType(row.original);
+      const labelKey =
+        type === 'restaurant'
+          ? 'form.shopTypeRestaurant'
+          : type === 'service_provider'
+            ? 'form.shopTypeServiceProvider'
+            : 'form.shopTypeStore';
+      return (
+        <span
+          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+            SELLER_REG_TYPE_STYLES[type] ?? SELLER_REG_TYPE_STYLES.store
+          }`}
+        >
+          {t(labelKey)}
+        </span>
+      );
+    },
   },
   {
     id: 'country',

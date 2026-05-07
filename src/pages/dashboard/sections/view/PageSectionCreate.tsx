@@ -32,10 +32,12 @@ import { InfiniteScrollSelect } from 'src/shared/components/infinite-scroll-sele
 
 // ----------------------------------------------------------------------
 
-const PAGE_SECTION_VARIANTS: PageSectionVariant[] = ['vertical', 'horizontal', 'square'];
+const PAGE_SECTION_VARIANTS: PageSectionVariant[] = ['vertical', 'square'];
 
 function parsePageSectionVariant(value: unknown): PageSectionVariant {
-  if (value === 'vertical' || value === 'horizontal' || value === 'square') return value;
+  if (value === 'vertical' || value === 'square') return value;
+  /** Legacy API value — normalize so the form only submits allowed variants. */
+  if (value === 'horizontal') return 'vertical';
   return 'vertical';
 }
 

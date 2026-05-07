@@ -130,7 +130,9 @@ export default function Page() {
         columnTranslations={{
           id: t('form.sellerRegColId'),
           seller_name: t('form.sellerRegColSeller'),
+          phone: t('form.sellerRegColContactPhone'),
           store_name: t('form.sellerRegColStore'),
+          seller_type: t('form.sellerRegColType'),
           country: t('form.sellerRegColLocation'),
           status: t('form.sellerRegColStatus'),
           registered_at: t('form.sellerRegColRegistered'),

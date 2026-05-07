@@ -1,14 +1,15 @@
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
+import { useQuery } from '@tanstack/react-query';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { formatTranslated } from '@/utils/format-translated';
-import { useRef, useMemo, useState, useEffect, useCallback } from 'react';
-import { InfiniteScrollSelect } from '@/shared/components/infinite-scroll-select';
+import { useRef, useMemo, useEffect, useCallback } from 'react';
 import { _CategoryApi } from '@/pages/dashboard/categories/api/category.services';
-import { useFetchCategories, useFetchCategoryById } from '@/pages/dashboard/categories/hooks/category';
+import { MAX_CATEGORY_SUB_LEVELS } from '@/pages/dashboard/categories/utils/category-cascade-shared';
+import { CategoryLeafCascadeFields } from '@/pages/dashboard/categories/components/category-leaf-cascade-fields';
 import {
   CategoryDetailSchema,
   type CategoryDetailFormValues,
@@ -18,6 +19,11 @@ import {
   useUpdateCategoryDetail,
   useFetchCategoryDetailById,
 } from '@/pages/dashboard/categories/hooks/category-detail';
+import {
+  ancestorsChainFromFlat,
+  buildCategorySelectRows,
+  paginateSelectRowsLocal,
+} from '@/pages/dashboard/categories/utils/build-parent-picker-options';
 
 import { CONFIG } from 'src/global-config';
 import { Box, Button, Typography } from 'src/shared/ui';
@@ -27,14 +33,6 @@ import { RHFInfiniteSelect } from 'src/shared/components/hook-form/rhf-infinite-
 
 // ----------------------------------------------------------------------
 
-const rootCategoryFetcher = (page: number, limit: number) =>
-  _CategoryApi.getListCategoriesPaginated({ page, per_page: limit, parent_id: null }).then((r) => ({
-    data: {
-      items: r.data.items.map((cat) => ({ id: cat.id, label: cat.name })),
-      pagination: r.data.pagination,
-    },
-  }));
-
 type SubmitAction = 'back' | 'stay';
 
 export default function CreatePage() {
@@ -43,13 +41,52 @@ export default function CreatePage() {
   const navigate = useNavigate();
   const submitActionRef = useRef<SubmitAction>('back');
   const isEditMode = !!id;
-  const [mainCategoryId, setMainCategoryId] = useState(0);
+
+  const {
+    data: flatForParent,
+    dataUpdatedAt: flatParentDataUpdatedAt,
+    isFetched: flatParentFetched,
+  } = useQuery({
+    queryKey: ['categories', 'flat-parent-picker'],
+    queryFn: () => _CategoryApi.getListCategoriesPaginated({ page: 1, per_page: 500 }),
+  });
+
+  const flatItems = flatForParent?.data?.items ?? [];
 
   // Hooks for fetching and mutations
   const { data: categoryDetailData, isLoading: isLoadingDetail } =
     useFetchCategoryDetailById(id || '');
   const createCategoryDetailMutation = useCreateCategoryDetail();
   const updateCategoryDetailMutation = useUpdateCategoryDetail();
+
+  const hydrateLeafCategoryId = useMemo(() => {
+    const cid = categoryDetailData?.data?.category?.id;
+    if (!isEditMode || cid == null) return null;
+    const n = Number(cid);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  }, [isEditMode, categoryDetailData?.data?.category?.id]);
+
+  const legacyCategoryCascade = useMemo(() => {
+    if (!flatParentFetched || flatItems.length === 0) return false;
+    if (hydrateLeafCategoryId == null || hydrateLeafCategoryId <= 0) return false;
+    const chain = ancestorsChainFromFlat(flatItems, hydrateLeafCategoryId);
+    return chain.length > MAX_CATEGORY_SUB_LEVELS + 1;
+  }, [flatParentFetched, flatItems, hydrateLeafCategoryId]);
+
+  const legacyFlatRows = useMemo(() => buildCategorySelectRows(flatItems), [flatItems]);
+
+  const legacyCategoryFetcher = useCallback(
+    (page: number, limit: number) => {
+      const rows = legacyFlatRows.map((r) => ({
+        id: r.id,
+        label: r.label,
+        depth: r.depth,
+        hasChildren: r.hasChildren,
+      }));
+      return Promise.resolve(paginateSelectRowsLocal(rows, page, limit));
+    },
+    [legacyFlatRows]
+  );
 
   const defaultValues: CategoryDetailFormValues = {
     category_id: 0,
@@ -65,49 +102,13 @@ export default function CreatePage() {
     defaultValues,
   });
 
-  const { handleSubmit, reset, control, watch, setValue } = methods;
-  const categoryId = watch('category_id');
-  const categoryMetaId = categoryId && Number(categoryId) > 0 ? Number(categoryId) : 0;
+  const { handleSubmit, reset, control, setValue } = methods;
 
-  const { data: selectedCategoryResp } = useFetchCategoryById(categoryMetaId > 0 ? categoryMetaId : '');
-
-  const { data: subcategoriesListResp, isLoading: isLoadingSubCats } = useFetchCategories(
-    1,
-    10,
-    mainCategoryId > 0 ? { parent_id: mainCategoryId } : undefined,
-    { enabled: mainCategoryId > 0 }
-  );
-
-  const hasChildCategories = useMemo(() => {
-    if (mainCategoryId <= 0) return false;
-    const items = subcategoriesListResp?.data?.items ?? [];
-    const total = subcategoriesListResp?.data?.pagination?.total;
-    if (typeof total === 'number') return total > 0;
-    return items.length > 0;
-  }, [mainCategoryId, subcategoriesListResp]);
-
-  const mainCategoryInitialLabel = useMemo(() => {
-    const category = selectedCategoryResp?.data;
-    if (!isEditMode || !category) return undefined;
-    if (category.parent_id && category.parent) {
-      return formatTranslated(category.parent.name);
-    }
-    return formatTranslated(category.name);
-  }, [isEditMode, selectedCategoryResp?.data]);
-
-  const childCategoryFetcher = useCallback(
-    (page: number, limit: number) =>
-      _CategoryApi.getListCategoriesPaginated({
-        page,
-        per_page: limit,
-        parent_id: mainCategoryId,
-      }).then((r) => ({
-        data: {
-          items: r.data.items.map((cat) => ({ id: cat.id, label: cat.name })),
-          pagination: r.data.pagination,
-        },
-      })),
-    [mainCategoryId]
+  const syncLeafCategory = useCallback(
+    (leafId: number) => {
+      setValue('category_id', leafId, { shouldValidate: true, shouldDirty: true });
+    },
+    [setValue]
   );
 
   const { fields: valueOptionFields, append: appendValueOption, remove: removeValueOption } =
@@ -132,20 +133,6 @@ export default function CreatePage() {
       });
     }
   }, [categoryDetailData, isEditMode, isLoadingDetail, reset]);
-
-  useEffect(() => {
-    if (!selectedCategoryResp?.data) return;
-    const category = selectedCategoryResp.data;
-    const parentId = category.parent_id != null && Number(category.parent_id) > 0 ? Number(category.parent_id) : 0;
-    setMainCategoryId(parentId > 0 ? parentId : Number(category.id));
-  }, [selectedCategoryResp?.data]);
-
-  useEffect(() => {
-    if (mainCategoryId <= 0 || isLoadingSubCats) return;
-    if (!hasChildCategories) {
-      setValue('category_id', mainCategoryId);
-    }
-  }, [mainCategoryId, hasChildCategories, isLoadingSubCats, setValue]);
 
   const isSubmitting =
     createCategoryDetailMutation.isPending || updateCategoryDetailMutation.isPending;
@@ -243,46 +230,24 @@ export default function CreatePage() {
             </Typography>
           </Box>
           <Box className="p-6">
-            <Box className="group">
-              <Box className="flex items-center gap-2 mb-2">
-                <Iconify icon="solar:diagram-bold" className="text-violet-500" width={20} height={20} />
-                <Typography variant="subtitle2" className="font-semibold text-foreground">
-                  {t('form.productMainCategory')}
+            {legacyCategoryCascade ? (
+              <Box className="space-y-2">
+                <Typography variant="caption" className="text-muted-foreground block">
+                  {t('form.selectParentCategoryHelper')}
                 </Typography>
-              </Box>
-              <InfiniteScrollSelect
-                value={mainCategoryId}
-                onChange={(val) => {
-                  setMainCategoryId(val);
-                  setValue('category_id', 0);
-                }}
-                queryKey={['categories', 'infinite', 'category-detail-form', 'roots']}
-                fetcher={rootCategoryFetcher}
-                placeholder={t('form.selectMainCategory')}
-                initialLabel={mainCategoryInitialLabel}
-              />
-            </Box>
-            {hasChildCategories ? (
-              <Box className="group mt-4">
-                <Box className="flex items-center gap-2 mb-2">
-                  <Iconify icon="solar:diagram-up-bold" className="text-violet-500" width={20} height={20} />
-                  <Typography variant="subtitle2" className="font-semibold text-foreground">
-                    {t('form.productSubcategory')}
-                  </Typography>
-                </Box>
                 <RHFInfiniteSelect
                   name="category_id"
                   queryKey={[
                     'categories',
                     'infinite',
                     'category-detail-form',
-                    'children',
-                    mainCategoryId,
+                    'legacy-flat',
+                    flatParentDataUpdatedAt ?? 0,
+                    id ?? '',
                   ]}
-                  fetcher={childCategoryFetcher}
-                  placeholder={t('form.selectSubcategory')}
-                  helperText={t('form.categoryDetailHelper')}
-                  disabled={!mainCategoryId}
+                  fetcher={legacyCategoryFetcher}
+                  placeholder={t('form.selectCategory')}
+                  helperText={t('form.categoryDeepParentHint')}
                   initialLabel={
                     categoryDetailData?.data?.category?.name
                       ? formatTranslated(categoryDetailData.data.category.name)
@@ -290,11 +255,18 @@ export default function CreatePage() {
                   }
                 />
               </Box>
-            ) : mainCategoryId > 0 && !isLoadingSubCats ? (
-              <Typography variant="caption" className="text-muted-foreground block mt-3">
-                {t('form.productCategoryUsesMainOnly')}
-              </Typography>
-            ) : null}
+            ) : (
+              <CategoryLeafCascadeFields
+                t={t}
+                legacyMode={false}
+                flatItems={flatItems}
+                flatParentFetched={flatParentFetched}
+                flatParentDataUpdatedAt={flatParentDataUpdatedAt ?? 0}
+                hydrateLeafCategoryId={hydrateLeafCategoryId}
+                hydrationKey={id ?? 'new-detail'}
+                onEffectiveLeafChange={syncLeafCategory}
+              />
+            )}
           </Box>
         </Box>
 

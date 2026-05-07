@@ -169,18 +169,24 @@ const buildProductFormData = (data: ProductCreateUpdatePayload): FormData => {
     });
   }
 
-  if (data.extra_details && data.extra_details.length > 0) {
-    data.extra_details.forEach((detail, index) => {
+  const extraRows = (data.extra_details ?? []).filter(
+    (d: { product_extra_detail_id?: number }) =>
+      d.product_extra_detail_id != null && Number(d.product_extra_detail_id) > 0
+  );
+  if (extraRows.length > 0) {
+    extraRows.forEach((detail, index: number) => {
       if (detail.id) {
         formData.append(`extra_details[${index}][id]`, detail.id.toString());
       }
-      formData.append(`extra_details[${index}][detail_key][en]`, detail.detail_key.en);
-      formData.append(`extra_details[${index}][detail_key][ar]`, detail.detail_key.ar);
-      formData.append(`extra_details[${index}][detail_value][en]`, detail.detail_value.en);
-      formData.append(`extra_details[${index}][detail_value][ar]`, detail.detail_value.ar);
-      if (detail.price !== undefined && detail.price !== null && !Number.isNaN(Number(detail.price))) {
-        formData.append(`extra_details[${index}][price]`, String(detail.price));
-      }
+      formData.append(
+        `extra_details[${index}][product_extra_detail_id]`,
+        String(detail.product_extra_detail_id)
+      );
+      formData.append(
+        `extra_details[${index}][quantity]`,
+        String(detail.quantity ?? 1)
+      );
+      formData.append(`extra_details[${index}][price]`, String(detail.price));
     });
   }
 

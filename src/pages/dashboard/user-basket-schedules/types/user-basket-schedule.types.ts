@@ -1,5 +1,46 @@
 // ----------------------------------------------------------------------
 
+export interface UserBasketScheduleCurrencyAmount {
+  amount: number;
+  currency: string;
+  symbol: string;
+  formatted: string;
+}
+
+export interface UserBasketScheduleLineItem {
+  id: number;
+  quantity: number;
+  original_price: number;
+  currency: string;
+  currency_symbol: string;
+  original_price_formatted: string;
+  original_price_currencies?: Record<string, UserBasketScheduleCurrencyAmount>;
+  discount_amount: number;
+  discount_amount_formatted?: string;
+  discount_amount_currencies?: Record<string, UserBasketScheduleCurrencyAmount>;
+  price_after_discount: number;
+  price_after_discount_formatted?: string;
+  price_after_discount_currencies?: Record<string, UserBasketScheduleCurrencyAmount>;
+  shop_product_variant_id: number;
+  availability_status: string;
+  is_available: boolean;
+  available_quantity: number | null;
+  resolved_shop_product_variant_id: number | null;
+  product: {
+    id: number;
+    name: string;
+    image: string | null;
+    brand: { id: number; name: string; image: string | null } | null;
+    is_instant_delivery?: number;
+  };
+  variant: {
+    name: string[];
+    sku: string | null;
+    model: string | null;
+    barcode: string | null;
+  };
+}
+
 export interface UserBasketScheduleItem {
   id: number;
   user: {
@@ -7,6 +48,7 @@ export interface UserBasketScheduleItem {
     name: string;
     email?: string;
     phone?: string;
+    image?: string | null;
   };
   /** Basket / subscription name (flat on list payload; not nested under `basket`). */
   name: string;
@@ -23,12 +65,17 @@ export interface UserBasketScheduleItem {
     id: number;
     name: string;
     interval_days: number;
+    discount_type?: string;
+    discount_value?: number | string;
+    is_active?: boolean;
   };
   is_active: boolean;
   start_date: string;
   next_run_date: string;
   created_at: string;
   updated_at: string;
+  /** Populated on single-record (details) responses. */
+  items?: UserBasketScheduleLineItem[];
 }
 
 export interface UserBasketScheduleListResponse {

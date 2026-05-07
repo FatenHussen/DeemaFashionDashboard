@@ -253,7 +253,7 @@ export function DashboardLayout({
   const renderFooter = () => null;
 
   const renderMain = () => (
-    <MainSection {...slotProps?.main}>
+    <MainSection className="overflow-visible" {...slotProps?.main}>
       <DashboardQuickNav />
       {children}
     </MainSection>

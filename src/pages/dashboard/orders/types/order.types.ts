@@ -10,7 +10,7 @@ export type OrderStatus =
   | 'faild_deliver'
   | 'returned_by_user';
 
-/** All statuses selectable when updating an order (admin). */
+/** All statuses selectable when updating an order (admin) or filtering the list. */
 export const ORDER_STATUS_OPTIONS: OrderStatus[] = [
   'pending',
   'preparing',
@@ -30,8 +30,41 @@ export const ORDER_STATUS_PIPELINE: OrderStatus[] = [
   'delivered',
 ];
 
-/** Statuses strictly after the current step in the pipeline (skip allowed). */
+/** Admin may restart fulfillment from these terminal / failure states. */
+export const ORDER_STATUSES_REOPEN_PIPELINE: OrderStatus[] = [
+  'cancelled',
+  'cancelled_by_admin',
+  'faild_deliver',
+  'returned_by_user',
+];
+
+/** Blocks assigning or changing driver (includes in-transit). */
+export function orderStatusBlocksAssignDriver(status: OrderStatus): boolean {
+  return (
+    status === 'delivered' ||
+    status === 'out_delivery' ||
+    status === 'cancelled' ||
+    status === 'cancelled_by_admin' ||
+    status === 'faild_deliver' ||
+    status === 'returned_by_user'
+  );
+}
+
+/** Blocks “reject order” when already in a terminal outcome. */
+export function orderStatusBlocksReject(status: OrderStatus): boolean {
+  return (
+    status === 'delivered' ||
+    status === 'cancelled' ||
+    status === 'cancelled_by_admin' ||
+    status === 'faild_deliver' ||
+    status === 'returned_by_user'
+  );
+}
+
+/** Statuses strictly after the current step in the pipeline (skip allowed), or full pipeline when reopening. */
 export function getUpcomingOrderStatuses(current: OrderStatus): OrderStatus[] {
+  if (current === 'delivered') return [];
+  if (ORDER_STATUSES_REOPEN_PIPELINE.includes(current)) return [...ORDER_STATUS_PIPELINE];
   const idx = ORDER_STATUS_PIPELINE.indexOf(current);
   if (idx === -1) return [];
   return ORDER_STATUS_PIPELINE.slice(idx + 1);
@@ -55,9 +88,13 @@ export function normalizeOrderStatus(raw: string | number | undefined | null): O
     canceled: 'cancelled',
     cancelled_by_admin: 'cancelled_by_admin',
     canceled_by_admin: 'cancelled_by_admin',
+    cancelledbyadmin: 'cancelled_by_admin',
     faild_deliver: 'faild_deliver',
     failed_deliver: 'faild_deliver',
+    failed_delivery: 'faild_deliver',
+    failddeliver: 'faild_deliver',
     returned_by_user: 'returned_by_user',
+    returnedbyuser: 'returned_by_user',
   };
   if (aliases[s]) return aliases[s];
   if ((ORDER_STATUS_OPTIONS as readonly string[]).includes(s)) return s as OrderStatus;
@@ -164,6 +201,7 @@ export interface OrderDetailTimestamps {
   preparing_at: string | null;
   out_delivery_at: string | null;
   delivered_at: string | null;
+  returned_by_user_at?: string | null;
 }
 
 export interface OrderDetailUser {
@@ -171,6 +209,9 @@ export interface OrderDetailUser {
   name: string;
   email: string;
   phone: string;
+  area?: string;
+  address?: string;
+  is_active?: boolean;
   affiliate: {
     is_affiliate: boolean;
     affiliate_approved: boolean;
@@ -200,13 +241,38 @@ export interface OrderDetailItemVariantAttribute {
   attribute: string;
 }
 
+/** Optional line extra from cart (name/price varies by API). */
+export interface OrderDetailItemExtra {
+  id?: number;
+  name?: string;
+  label?: string;
+  price?: number;
+  quantity?: number;
+  [key: string]: unknown;
+}
+
 export interface OrderDetailItem {
   id: number;
   product_name: string;
+  product_image?: string | null;
+  note?: string | null;
   quantity: number;
-  price: number;
-  discount: number;
+  /** Legacy list/detail field; detail API may use `unit_price` / `final_price` instead. */
+  price?: number;
+  unit_price?: number;
+  final_price?: number;
+  subtotal?: number;
+  total?: number;
+  unit_price_formatted?: string | null;
+  final_price_formatted?: string | null;
+  subtotal_formatted?: string | null;
+  total_formatted?: string | null;
+  extras_total?: number;
+  extras_total_formatted?: string | null;
+  discount?: number;
   status: OrderStatus;
+  delivery_time?: string | null;
+  extras?: OrderDetailItemExtra[] | null;
   variant_attributes?:
     | Array<OrderDetailItemVariantAttribute>
     | Record<string, string | OrderDetailItemVariantAttribute>
@@ -217,20 +283,30 @@ export interface OrderDetailData {
   id: number;
   order_code: string;
   status: OrderStatus;
+  rejection_reason?: string | null;
   cart_type: string;
   is_instant_delivery: boolean;
   delivery_price: number;
+  currency?: string;
+  currency_symbol?: string;
   subtotal: number;
   total: number;
-  total_with_delivery: number;
+  /** Present on some responses; otherwise derive from `total` or `total + delivery`. */
+  total_with_delivery?: number;
+  subtotal_formatted?: string | null;
+  delivery_price_formatted?: string | null;
+  total_formatted?: string | null;
   total_quantity: number;
   basket_discount: number;
+  basket_discount_formatted?: string | null;
   coupon_discount: number | null;
   assigned_by: string;
   coupon_discount_from_points: string;
   free_delivery_from_points: number;
-  used_coupon_exchange_id: number | null;
-  used_free_delivery_exchange_id: number | null;
+  used_coupon_exchange_id?: number | null;
+  use_coupon_exchange_id?: number | null;
+  used_free_delivery_exchange_id?: number | null;
+  use_free_delivery_exchange_id?: number | null;
   created_at: string;
   affiliate: OrderDetailAffiliate | null;
   timestamps: OrderDetailTimestamps;
@@ -262,7 +338,7 @@ export interface OrderDetailsResponse {
 
 export interface ChangeOrderStatusPayload {
   status: OrderStatus;
-  /** Required when setting status to `cancelled` (admin rejection). */
+  /** Required when rejecting / cancelling by admin (see API rules). */
   rejection_reason?: string;
 }
 

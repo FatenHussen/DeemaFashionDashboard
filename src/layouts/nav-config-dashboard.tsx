@@ -2,6 +2,7 @@ import type { TFunction } from 'i18next';
 import type { NavSectionProps } from 'src/shared/components/nav-section';
 
 import { FLASH_SALE_PERMISSION } from '@/pages/dashboard/flash-sales/permissions';
+import { CONTACT_METHOD_VIEW_ANY } from '@/pages/dashboard/contact-methods/permissions';
 
 import { paths } from 'src/routes/paths';
 
@@ -90,6 +91,13 @@ export function getNavData(t: TFunction<'nav'>): NavSectionProps['data'] {
         { title: t('categories'), path: paths.dashboard.categories, icon: ICONS.product, requiredPermission: 'category.view' },
         { title: t('categoryAttributes'), path: paths.dashboard.categoryAttributes, icon: ICONS.params, requiredPermission: 'categoryattribute.view' },
         { title: t('categoryDetails'), path: paths.dashboard.categoryDetails, icon: ICONS.menuItem, requiredPermission: 'categorydetail.view' },
+        {
+          title: t('categoryAddOns'),
+          path: paths.dashboard.categoryExtraDetails,
+          icon: ICONS.label,
+          /** Backend may expose `productextradetail.*` later; until then, same admins as category details see this item */
+          requiredPermissionAny: ['productextradetail.view', 'categorydetail.view'],
+        },
         { title: t('brands'), path: paths.dashboard.brands, icon: ICONS.ecommerce, requiredPermission: 'brand.view' },
         { title: t('units'), path: paths.dashboard.units, icon: ICONS.params, requiredPermission: 'unit.view' },
         { title: t('products'), path: paths.dashboard.products, icon: ICONS.product, requiredPermission: 'product.view' },
@@ -125,7 +133,6 @@ export function getNavData(t: TFunction<'nav'>): NavSectionProps['data'] {
         </span>
       ) as any,
       items: [
-        { title: t('appIntroNav'), path: paths.dashboard.popupCampaigns.root, icon: ICONS.tour, requiredPermission: 'popupCampaign.view' },
         {
           title: t('flashSales'),
           path: paths.dashboard.flashSales.root,
@@ -192,16 +199,49 @@ export function getNavData(t: TFunction<'nav'>): NavSectionProps['data'] {
         { title: t('vendorUsers'), path: paths.dashboard.vendorUsers, icon: ICONS.job, requiredPermission: 'vendoruser.view' },
         { title: t('sellerRegistrations'), path: paths.dashboard.sellerRegistrations, icon: ICONS.file, requiredPermission: 'sellerregistration.view' },
         { title: t('shop'), path: paths.dashboard.shop, icon: ICONS.analytics, requiredPermission: 'shop.view' },
-        { title: t('driver'), path: paths.dashboard.driver, icon: ICONS.order, requiredPermission: 'driver.view' },
+        {
+          title: t('restaurantsNav'),
+          path: paths.dashboard.restaurants,
+          icon: <Iconify icon="solar:chef-hat-bold" width={22} height={22} />,
+          requiredPermission: 'shop.view',
+        },
+      ],
+    },
+    /**
+     * 6b. Drivers
+     */
+    {
+      subheader: (
+        <span className="flex items-center gap-3">
+          <Iconify icon="solar:scooter-bold" width={16} height={16} />
+          <span>{t('driversGroup')}</span>
+        </span>
+      ) as any,
+      items: [
+        { title: t('driver'), path: paths.dashboard.driver, icon: <Iconify icon="solar:delivery-bold-duotone" width={22} height={22} />, requiredPermission: 'driver.view' },
         {
           title: t('driverWalletTransactions'),
           path: paths.dashboard.driverWalletTransactions,
           icon: ICONS.banking,
           requiredPermission: 'driverwallettransaction.view',
         },
-        { title: t('vendorServiceTypes'), path: paths.dashboard.vendorServiceTypes, icon: ICONS.menuItem, requiredPermission: 'vendorservicetype.view' },
-        { title: t('vendorServices'), path: paths.dashboard.vendorServices, icon: ICONS.course, requiredPermission: 'vendorservice.view' },
-        { title: t('shopVendorServices'), path: paths.dashboard.shopVendorServices, icon: ICONS.booking, requiredPermission: 'shopvendorservice.view' },
+      ],
+    },
+    /**
+     * 6c. Service Providers
+     */
+    {
+      subheader: (
+        <span className="flex items-center gap-3">
+          <Iconify icon="solar:settings-bold" width={16} height={16} />
+          <span>{t('serviceProvidersGroup')}</span>
+        </span>
+      ) as any,
+      items: [
+        { title: t('serviceProvidersNav'), path: paths.dashboard.serviceProviders, icon: <Iconify icon="solar:hand-stars-bold" width={22} height={22} />, requiredPermission: 'shop.view' },
+        { title: t('providerServiceCategoriesNav'), path: paths.dashboard.vendorServiceTypes, icon: ICONS.menuItem, requiredPermission: 'vendorservicetype.view' },
+        { title: t('providerServiceTypesNav'), path: paths.dashboard.vendorServices, icon: ICONS.course, requiredPermission: 'vendorservice.view' },
+        { title: t('providerServicesNav'), path: paths.dashboard.shopVendorServices, icon: ICONS.booking, requiredPermission: 'shopvendorservice.view' },
       ],
     },
     /**
@@ -282,6 +322,12 @@ export function getNavData(t: TFunction<'nav'>): NavSectionProps['data'] {
       items: [
         { title: t('coupons'), path: paths.dashboard.coupons, icon: ICONS.invoice, requiredPermission: 'coupon.view' },
         { title: t('promotions'), path: paths.dashboard.promotions, icon: ICONS.label, requiredPermission: 'promotion.view' },
+        {
+          title: t('popupCampaigns'),
+          path: paths.dashboard.popupCampaigns.root,
+          icon: ICONS.tour,
+          requiredPermission: 'popupcampaign.view',
+        },
         { title: t('promotionRequests'), path: paths.dashboard.promotionRequests, icon: ICONS.file, requiredPermission: 'promotionrequest.view' },
         { title: t('services'), path: paths.dashboard.services, icon: ICONS.course, requiredPermission: 'service.view' },
       ],
@@ -308,6 +354,12 @@ export function getNavData(t: TFunction<'nav'>): NavSectionProps['data'] {
         },
         { title: t('legalDocuments'), path: paths.dashboard.legalDocuments, icon: ICONS.lock, requiredPermission: 'legaldocument.view' },
         { title: t('faqs'), path: paths.dashboard.faqs, icon: ICONS.blog, requiredPermission: 'faq.view' },
+        {
+          title: t('contactMethods'),
+          path: paths.dashboard.contactMethods,
+          icon: <Iconify icon="solar:phone-calling-rounded-bold" width={22} height={22} />,
+          requiredPermissionAny: [...CONTACT_METHOD_VIEW_ANY],
+        },
         { title: t('complaints'), path: paths.dashboard.complaints, icon: ICONS.chat, requiredPermission: 'complaint.view' },
         { title: t('adminNotifications'), path: paths.dashboard.adminNotifications, icon: <Iconify icon="solar:bell-bold" width={22} height={22} />, requiredPermission: 'notification.view' },
         { title: t('settings'), path: paths.dashboard.settings, icon: ICONS.params, requiredPermission: 'setting.view' },

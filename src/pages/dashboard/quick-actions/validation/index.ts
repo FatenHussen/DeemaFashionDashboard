@@ -9,8 +9,14 @@ const titleShape = zod.object({
   ar: zod.string().min(1, { message: t('titleArRequired') }).max(255),
 });
 
+const buttonTextShape = zod.object({
+  en: zod.string().min(1, { message: t('buttonTextEnRequired') }).max(255),
+  ar: zod.string().min(1, { message: t('buttonTextArRequired') }).max(255),
+});
+
 export const QuickActionCreateSchema = zod.object({
   title: titleShape,
+  button_text: buttonTextShape,
   page_id: zod.string().min(1, { message: t('pageRequired') }),
   icon: zod
     .custom<File | null>((v) => v === null || v instanceof File)
@@ -21,6 +27,7 @@ export const QuickActionCreateSchema = zod.object({
 
 export const QuickActionUpdateSchema = zod.object({
   title: titleShape,
+  button_text: buttonTextShape,
   page_id: zod.string().min(1, { message: t('pageRequired') }),
   icon: zod
     .custom<File | null>((v) => v === null || v instanceof File)

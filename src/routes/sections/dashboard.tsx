@@ -4,6 +4,11 @@ import { Outlet } from 'react-router';
 import { lazy, Suspense } from 'react';
 import { RequirePermission } from '@/auth/components/require-permission';
 import { FLASH_SALE_PERMISSION } from '@/pages/dashboard/flash-sales/permissions';
+import {
+  CONTACT_METHOD_CREATE_ANY,
+  CONTACT_METHOD_UPDATE_ANY,
+  CONTACT_METHOD_VIEW_ANY,
+} from '@/pages/dashboard/contact-methods/permissions';
 
 import { CONFIG } from 'src/global-config';
 import { AuthGuard } from 'src/pages/auth/guard';
@@ -24,6 +29,12 @@ const VendorCreatePage = lazy(() => import('@/pages/dashboard/vendor/view/vendor
 const ShopIndexPage = lazy(() => import('@/pages/dashboard/vendor/view/shop/Index'));
 const ShopCreatePage = lazy(() => import('@/pages/dashboard/vendor/view/shop/Create'));
 const ShopDetailsPage = lazy(() => import('@/pages/dashboard/vendor/view/shop/Details'));
+const ServiceProviderIndexPage = lazy(
+  () => import('@/pages/dashboard/vendor/view/service-provider/Index')
+);
+const ServiceProviderDetailsPage = lazy(
+  () => import('@/pages/dashboard/vendor/view/service-provider/Details')
+);
 
 const ProfilePage = lazy(() => import('@/pages/dashboard/profile/view/Profile'));
 
@@ -72,6 +83,13 @@ const CategoryDetailIndexPage = lazy(
 );
 const CategoryDetailCreatePage = lazy(
   () => import('@/pages/dashboard/categories/view/details/Create')
+);
+
+const ProductExtraDetailIndexPage = lazy(
+  () => import('@/pages/dashboard/categories/view/extra-details/Index')
+);
+const ProductExtraDetailCreatePage = lazy(
+  () => import('@/pages/dashboard/categories/view/extra-details/Create')
 );
 
 const ServiceIndexPage = lazy(() => import('@/pages/dashboard/vendor/view/service/Index'));
@@ -190,6 +208,9 @@ const LegalDocumentEditPage = lazy(() => import('@/pages/dashboard/content/view/
 const FaqIndexPage = lazy(() => import('@/pages/dashboard/content/view/faq/Index'));
 const FaqCreatePage = lazy(() => import('@/pages/dashboard/content/view/faq/Create'));
 
+const ContactMethodIndexPage = lazy(() => import('@/pages/dashboard/contact-methods/view/Index'));
+const ContactMethodCreatePage = lazy(() => import('@/pages/dashboard/contact-methods/view/Create'));
+
 // Vendor Subscriptions
 const VendorSubscriptionIndexPage = lazy(
   () => import('@/pages/dashboard/vendor/view/subscription/Index')
@@ -293,6 +314,9 @@ const DriverWalletTransactionIndexPage = lazy(
 );
 const DriverWalletTransactionDetailsPage = lazy(
   () => import('@/pages/dashboard/driver-wallet-transactions/view/Details')
+);
+const DriverOrdersPage = lazy(
+  () => import('@/pages/dashboard/driver-wallet-transactions/view/DriverOrders')
 );
 
 // Icons
@@ -510,6 +534,82 @@ export const dashboardRoutes: RouteObject[] = [
         element: (
           <RequirePermission permission="shop.view">
             <ShopDetailsPage />
+          </RequirePermission>
+        ),
+      },
+    ],
+  },
+  {
+    path: 'restaurants',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: (
+          <RequirePermission permission="shop.view">
+            <ShopIndexPage />
+          </RequirePermission>
+        ),
+        index: true,
+      },
+      {
+        path: 'create',
+        element: (
+          <RequirePermission permission="shop.create">
+            <ShopCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'update/:id',
+        element: (
+          <RequirePermission permission="shop.update">
+            <ShopCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'details/:id',
+        element: (
+          <RequirePermission permission="shop.view">
+            <ShopDetailsPage />
+          </RequirePermission>
+        ),
+      },
+    ],
+  },
+  {
+    path: 'service-providers',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: (
+          <RequirePermission permission="shop.view">
+            <ServiceProviderIndexPage />
+          </RequirePermission>
+        ),
+        index: true,
+      },
+      {
+        path: 'create',
+        element: (
+          <RequirePermission permission="shop.create">
+            <ShopCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'update/:id',
+        element: (
+          <RequirePermission permission="shop.update">
+            <ShopCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'details/:id',
+        element: (
+          <RequirePermission permission="shop.view">
+            <ServiceProviderDetailsPage />
           </RequirePermission>
         ),
       },
@@ -893,6 +993,42 @@ export const dashboardRoutes: RouteObject[] = [
         element: (
           <RequirePermission permission="categorydetail.update">
             <CategoryDetailCreatePage />
+          </RequirePermission>
+        ),
+      },
+    ],
+  },
+  {
+    path: 'categories/extra-details',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: (
+          <RequirePermission
+            permissionAny={['productextradetail.view', 'categorydetail.view']}
+          >
+            <ProductExtraDetailIndexPage />
+          </RequirePermission>
+        ),
+        index: true,
+      },
+      {
+        path: 'create',
+        element: (
+          <RequirePermission
+            permissionAny={['productextradetail.create', 'categorydetail.create']}
+          >
+            <ProductExtraDetailCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'update/:id',
+        element: (
+          <RequirePermission
+            permissionAny={['productextradetail.update', 'categorydetail.update']}
+          >
+            <ProductExtraDetailCreatePage />
           </RequirePermission>
         ),
       },
@@ -1623,6 +1759,36 @@ export const dashboardRoutes: RouteObject[] = [
     ],
   },
   {
+    path: 'contact-methods',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: (
+          <RequirePermission permissionAny={[...CONTACT_METHOD_VIEW_ANY]}>
+            <ContactMethodIndexPage />
+          </RequirePermission>
+        ),
+        index: true,
+      },
+      {
+        path: 'create',
+        element: (
+          <RequirePermission permissionAny={[...CONTACT_METHOD_CREATE_ANY]}>
+            <ContactMethodCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'update/:id',
+        element: (
+          <RequirePermission permissionAny={[...CONTACT_METHOD_UPDATE_ANY]}>
+            <ContactMethodCreatePage />
+          </RequirePermission>
+        ),
+      },
+    ],
+  },
+  {
     path: 'admin-notifications',
     element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
     children: [
@@ -1932,6 +2098,14 @@ export const dashboardRoutes: RouteObject[] = [
         element: (
           <RequirePermission permission="driverwallettransaction.view">
             <DriverWalletTransactionDetailsPage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'driver/:driverId/orders',
+        element: (
+          <RequirePermission permission="driverwallettransaction.view">
+            <DriverOrdersPage />
           </RequirePermission>
         ),
       },

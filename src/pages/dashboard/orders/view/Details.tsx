@@ -1,15 +1,18 @@
 import type { ReactNode } from 'react';
+import type { OrderFormValues } from '@/columns/one/orders/one';
 
 import { toast } from 'react-toastify';
+import { useState, useEffect } from 'react';
 import { Button } from '@/shared/ui/button';
 import { useTranslation } from 'react-i18next';
 import { Iconify } from '@/shared/components/iconify';
 import { useParams, useNavigate } from 'react-router';
 import { useForm, FormProvider } from 'react-hook-form';
-import { useState, useEffect, useCallback } from 'react';
 import { _DriverApi } from '@/pages/dashboard/driver/api/driver.services';
 import { joinOrderRoom, leaveOrderRoom, useOrderLocation } from '@/lib/socket';
 import { RHFInfiniteSelect } from '@/shared/components/hook-form/rhf-infinite-select';
+import { RejectOrderModal } from '@/pages/dashboard/orders/components/RejectOrderModal';
+import { OrderLineItemCard } from '@/pages/dashboard/orders/components/OrderLineItemCard';
 import {
   useAssignDriver,
   useFetchOrderById,
@@ -20,28 +23,25 @@ import {
   type OrderStatus,
   normalizeOrderStatus,
   ORDER_STATUS_OPTIONS,
-  ORDER_STATUS_PIPELINE,
+  orderStatusBlocksAssignDriver,
 } from '@/pages/dashboard/orders/types/order.types';
-
-import { toDisplayString } from 'src/utils/to-display-string';
 
 import { CONFIG } from 'src/global-config';
 import { Box, Typography } from 'src/shared/ui';
 
 import OrderTrackingMap from '../components/OrderTrackingMap';
-import { RejectOrderModal } from '../components/RejectOrderModal';
 
 // ----------------------------------------------------------------------
 
-const statusColors: Record<string, string> = {
-  pending: 'bg-yellow-500/20 text-yellow-600',
-  preparing: 'bg-blue-500/20 text-blue-600',
-  out_delivery: 'bg-purple-500/20 text-purple-600',
-  delivered: 'bg-green-500/20 text-green-600',
+const statusColors: Record<OrderStatus, string> = {
+  pending: 'bg-yellow-500/20 text-yellow-600 dark:text-yellow-400',
+  preparing: 'bg-blue-500/20 text-blue-600 dark:text-blue-400',
+  out_delivery: 'bg-purple-500/20 text-purple-600 dark:text-purple-400',
+  delivered: 'bg-green-500/20 text-green-600 dark:text-green-400',
   cancelled: 'bg-muted text-muted-foreground',
-  cancelled_by_admin: 'bg-rose-500/20 text-rose-600',
-  faild_deliver: 'bg-orange-500/20 text-orange-600',
-  returned_by_user: 'bg-cyan-500/20 text-cyan-600',
+  cancelled_by_admin: 'bg-rose-500/15 text-rose-700 dark:text-rose-400',
+  faild_deliver: 'bg-orange-500/15 text-orange-800 dark:text-orange-300',
+  returned_by_user: 'bg-cyan-500/15 text-cyan-800 dark:text-cyan-300',
 };
 
 function getOrderStatusLabel(statusRaw: string, t: (key: string) => string): string {
@@ -59,22 +59,16 @@ function getOrderStatusLabel(statusRaw: string, t: (key: string) => string): str
   return labels[status] ?? status.replace(/_/g, ' ');
 }
 
-/** Next order-level statuses: forward steps, or full pipeline when cancelled (admin can reopen). */
-function getNextStatuses(currentRaw: string): OrderStatus[] {
-  const current = normalizeOrderStatus(currentRaw);
-  if (current === 'delivered') return [];
-  if (current === 'cancelled') {
-    return [...ORDER_STATUS_PIPELINE];
-  }
-  const idx = ORDER_STATUS_PIPELINE.indexOf(current);
-  if (idx === -1) return [];
-  return ORDER_STATUS_PIPELINE.slice(idx + 1);
-}
-
 const formatDate = (dateStr: string | null | undefined) => {
   if (!dateStr) return '-';
   return new Date(dateStr).toLocaleString();
 };
+
+function formatMoneyLine(formatted: string | null | undefined, fallback: unknown): string {
+  if (formatted) return formatted;
+  if (fallback === null || fallback === undefined || fallback === '') return '—';
+  return String(fallback);
+}
 
 const driverFetcher = (page: number, limit: number) =>
   _DriverApi.getListDrivers({ page, per_page: limit }).then((r) => ({
@@ -137,12 +131,17 @@ export default function DetailsPage() {
   const { watch: watchDriverId, reset: resetDriverForm, setValue: setDriverId } = assignDriverForm;
   const selectedDriverId = watchDriverId('driver_id');
   const order = orderResponse?.data;
-  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
-  const openCancelModal = useCallback(() => setIsCancelModalOpen(true), []);
-  const closeCancelModal = useCallback(() => setIsCancelModalOpen(false), []);
+
+  const [statusDraft, setStatusDraft] = useState<OrderStatus>('pending');
+  const [rejectModalOpen, setRejectModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (!order) return;
+    setStatusDraft(normalizeOrderStatus(order.status));
+  }, [order?.id, order?.status]);
 
   // Live order tracking via socket
-  const isTrackable = order?.status === 'out_delivery';
+  const isTrackable = order ? normalizeOrderStatus(order.status) === 'out_delivery' : false;
   const liveLocation = useOrderLocation(isTrackable ? order?.id ?? null : null);
 
   useEffect(() => {
@@ -192,14 +191,7 @@ export default function DetailsPage() {
   }
 
   const normalizedOrderStatus = normalizeOrderStatus(order.status);
-  const canAssignDriver =
-    normalizedOrderStatus !== 'delivered' && normalizedOrderStatus !== 'out_delivery';
-  const canCancelOrder =
-    normalizedOrderStatus !== 'delivered' &&
-    normalizedOrderStatus !== 'cancelled' &&
-    normalizedOrderStatus !== 'cancelled_by_admin' &&
-    normalizedOrderStatus !== 'faild_deliver' &&
-    normalizedOrderStatus !== 'returned_by_user';
+  const canAssignDriver = !orderStatusBlocksAssignDriver(normalizedOrderStatus);
 
   const handleChangeStatus = async (status: OrderStatus) => {
     try {
@@ -209,7 +201,22 @@ export default function DetailsPage() {
         queryId: id,
       });
       toast.success(t('statusChangedSuccess'));
-    } catch { return; }
+    } catch {
+      return;
+    }
+  };
+
+  const handleApplyOrderStatus = () => {
+    const current = normalizeOrderStatus(order.status);
+    if (statusDraft === current) {
+      toast.info(t('orders.sameOrderStatus'));
+      return;
+    }
+    if (statusDraft === 'cancelled_by_admin') {
+      setRejectModalOpen(true);
+      return;
+    }
+    void handleChangeStatus(statusDraft);
   };
 
   const handleAssignDriver = async (data: { driver_id: number }) => {
@@ -242,11 +249,13 @@ export default function DetailsPage() {
   return (
     <>
       <title>{t('form.orderDetailsDocumentTitle', { appName: CONFIG.appName })}</title>
+
       <RejectOrderModal
-        open={isCancelModalOpen}
-        onClose={closeCancelModal}
-        order={order ? { id: order.id, order_code: order.order_code } : null}
+        open={rejectModalOpen}
+        onClose={() => setRejectModalOpen(false)}
+        order={order as unknown as OrderFormValues}
         t={t}
+        queryId={id}
       />
       <Box className="relative min-h-screen overflow-hidden bg-background px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
         <Box className="pointer-events-none fixed inset-0 bg-gradient-to-br from-background via-background to-muted/30" />
@@ -284,7 +293,7 @@ export default function DetailsPage() {
                 </Box>
               </Box>
               <span
-                className={`inline-flex w-fit shrink-0 items-center rounded-full px-3 py-1.5 text-sm font-medium capitalize ${statusColors[order.status] || 'bg-muted text-muted-foreground'}`}
+                className={`inline-flex w-fit shrink-0 items-center rounded-full px-3 py-1.5 text-sm font-medium capitalize ${statusColors[normalizedOrderStatus] ?? 'bg-muted text-muted-foreground'}`}
               >
                 {getOrderStatusLabel(order.status, t)}
               </span>
@@ -294,43 +303,45 @@ export default function DetailsPage() {
           {/* Actions: status + driver */}
           <Box className="mb-4 grid gap-4 lg:mb-5 lg:grid-cols-2 lg:gap-5">
             <OrderSection title={t('orders.changeOrderStatus')} icon="solar:transfer-horizontal-bold">
-              <Box className="flex flex-wrap items-center gap-3">
-                <span
-                  className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-medium ${statusColors[order.status] || 'bg-muted text-muted-foreground'}`}
-                >
-                  {getOrderStatusLabel(order.status, t)}
-                </span>
-                {getNextStatuses(order.status).length > 0 ? (
-                  <>
-                    <Iconify icon="solar:arrow-right-bold" width={16} className="text-muted-foreground" />
-                    {getNextStatuses(order.status).map((s) => (
-                      <Button
-                        key={s}
-                        variant="outlined"
-                        onClick={() => handleChangeStatus(s)}
-                        disabled={changeStatusMutation.isPending}
-                        className="text-sm"
-                      >
-                        {getOrderStatusLabel(s, t)}
-                      </Button>
-                    ))}
-                  </>
-                ) : (
-                  <Typography variant="caption" className="text-muted-foreground">
-                    {t('orders.finalStatusNoChanges')}
-                  </Typography>
-                )}
-                {canCancelOrder ? (
-                  <Button
-                    variant="outlined"
-                    color="error"
-                    onClick={openCancelModal}
-                    disabled={changeStatusMutation.isPending}
-                    className="text-sm"
+              <Box className="flex flex-col gap-4">
+                <Box className="flex flex-wrap items-center gap-3">
+                  <span
+                    className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-medium ${statusColors[normalizedOrderStatus] ?? 'bg-muted text-muted-foreground'}`}
                   >
-                    {t('cancelOrder')}
+                    {getOrderStatusLabel(order.status, t)}
+                  </span>
+                  <Typography variant="caption" className="text-muted-foreground">
+                    {t('orders.changeOrderStatusHint')}
+                  </Typography>
+                </Box>
+                <Box className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                  <Box className="min-w-0 flex-1 space-y-1.5">
+                    <Typography variant="caption" className="text-muted-foreground">
+                      {t('orders.selectOrderStatus')}
+                    </Typography>
+                    <select
+                      value={statusDraft}
+                      onChange={(e) => setStatusDraft(e.target.value as OrderStatus)}
+                      disabled={changeStatusMutation.isPending}
+                      className="h-10 w-full max-w-md rounded-lg border border-input bg-background px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25 disabled:opacity-50"
+                    >
+                      {ORDER_STATUS_OPTIONS.map((s) => (
+                        <option key={s} value={s}>
+                          {getOrderStatusLabel(s, t)}
+                        </option>
+                      ))}
+                    </select>
+                  </Box>
+                  <Button
+                    type="button"
+                    variant="contained"
+                    onClick={handleApplyOrderStatus}
+                    disabled={changeStatusMutation.isPending || statusDraft === normalizedOrderStatus}
+                    className="w-full shrink-0 sm:w-auto"
+                  >
+                    {changeStatusMutation.isPending ? t('orders.updatingStatus') : t('orders.applyOrderStatus')}
                   </Button>
-                ) : null}
+                </Box>
               </Box>
             </OrderSection>
 
@@ -433,6 +444,16 @@ export default function DetailsPage() {
                     {formatDate(order.created_at)}
                   </Typography>
                 </Box>
+                {order.rejection_reason ? (
+                  <Box className="sm:col-span-2">
+                    <Typography variant="caption" className="text-muted-foreground">
+                      {t('rejectionReason')}
+                    </Typography>
+                    <Typography variant="body2" className="mt-1 rounded-lg border border-border/60 bg-muted/30 p-3 text-foreground">
+                      {order.rejection_reason}
+                    </Typography>
+                  </Box>
+                ) : null}
               </Box>
             </OrderSection>
 
@@ -594,7 +615,7 @@ export default function DetailsPage() {
                     {t('orders.subtotal')}
                   </Typography>
                   <Typography variant="body1" className="font-medium">
-                    {order.subtotal}
+                    {formatMoneyLine(order.subtotal_formatted, order.subtotal)}
                   </Typography>
                 </Box>
                 <Box>
@@ -602,7 +623,7 @@ export default function DetailsPage() {
                     {t('orders.deliveryPrice')}
                   </Typography>
                   <Typography variant="body1" className="font-medium">
-                    {order.delivery_price}
+                    {formatMoneyLine(order.delivery_price_formatted, order.delivery_price)}
                   </Typography>
                 </Box>
                 <Box>
@@ -610,7 +631,10 @@ export default function DetailsPage() {
                     {t('orders.totalWithDelivery')}
                   </Typography>
                   <Typography variant="body1" className="font-medium">
-                    {order.total_with_delivery}
+                    {formatMoneyLine(
+                      order.total_formatted,
+                      order.total_with_delivery ?? order.total
+                    )}
                   </Typography>
                 </Box>
                 <Box>
@@ -618,7 +642,7 @@ export default function DetailsPage() {
                     {t('orders.basketDiscount')}
                   </Typography>
                   <Typography variant="body1" className="font-medium">
-                    {order.basket_discount}
+                    {formatMoneyLine(order.basket_discount_formatted, order.basket_discount)}
                   </Typography>
                 </Box>
                 {order.coupon_discount != null && order.coupon_discount !== 0 && (
@@ -659,7 +683,7 @@ export default function DetailsPage() {
                     {t('orders.total')}
                   </Typography>
                   <Typography variant="body1" className="font-bold text-primary">
-                    {order.total}
+                    {formatMoneyLine(order.total_formatted, order.total)}
                   </Typography>
                 </Box>
               </Box>
@@ -697,6 +721,14 @@ export default function DetailsPage() {
                   </Typography>
                   <Typography variant="body1" className="font-medium">
                     {formatDate(order.timestamps.delivered_at)}
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography variant="caption" className="text-muted-foreground">
+                    {t('orders.returnedByUserAt')}
+                  </Typography>
+                  <Typography variant="body1" className="font-medium">
+                    {formatDate(order.timestamps.returned_by_user_at)}
                   </Typography>
                 </Box>
               </Box>
@@ -844,80 +876,39 @@ export default function DetailsPage() {
           )}
 
           {/* Order Items */}
-          <OrderSection title={t('orders.orderItems')} icon="solar:cart-large-2-bold">
-            <Box className="space-y-4">
-                {order.items?.map((item) => (
-                  <Box
+          <OrderSection
+            title={t('orders.orderItems')}
+            icon="solar:cart-large-2-bold"
+            headerRight={
+              order.items?.length ? (
+                <span className="shrink-0 rounded-full border border-border/50 bg-muted/40 px-3 py-1 text-xs font-semibold tabular-nums text-muted-foreground">
+                  {t('orders.itemsCountBadge', { count: order.items.length })}
+                </span>
+              ) : undefined
+            }
+          >
+            <Box className="space-y-5">
+              {!order.items?.length ? (
+                <Box className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-border/60 bg-muted/10 py-14">
+                  <Iconify icon="solar:cart-cross-bold" width={48} className="text-muted-foreground/40" />
+                  <Typography variant="body2" className="text-muted-foreground">
+                    {t('orders.noOrderItems')}
+                  </Typography>
+                </Box>
+              ) : (
+                order.items.map((item, index) => (
+                  <OrderLineItemCard
                     key={item.id}
-                    className="flex items-start gap-4 p-4 rounded-xl border border-border/50 bg-background"
-                  >
-                    <Box className="flex-1">
-                      <Typography variant="subtitle2" className="font-semibold">
-                        {item.product_name}
-                      </Typography>
-                      <Typography variant="caption" className="text-muted-foreground block">
-                        {t('form.orderItemQtyPriceLine', { qty: item.quantity, price: item.price })}
-                        {item.discount > 0 && ` · ${t('form.orderItemDiscountInline', { amount: item.discount })}`}
-                      </Typography>
-                      {item.variant_attributes &&
-                        (Array.isArray(item.variant_attributes)
-                          ? item.variant_attributes.length > 0
-                          : Object.keys(item.variant_attributes).length > 0) && (
-                          <Box className="flex flex-wrap gap-1 mt-1">
-                            {Array.isArray(item.variant_attributes)
-                              ? item.variant_attributes.map((attr: any, idx: number) => (
-                                  <span
-                                    key={idx}
-                                    className="inline-flex items-center rounded-full px-2 py-0.5 text-xs bg-muted text-muted-foreground"
-                                  >
-                                    {toDisplayString(attr.attribute)}:{' '}
-                                    {attr.type === 'color' ? (
-                                      <span className="inline-flex items-center gap-1">
-                                        <span
-                                          className="inline-block w-3 h-3 rounded-full border border-border/50"
-                                          style={{ backgroundColor: attr.value }}
-                                        />
-                                        {toDisplayString(attr.value)}
-                                      </span>
-                                    ) : (
-                                      toDisplayString(attr.value)
-                                    )}
-                                  </span>
-                                ))
-                              : Object.entries(item.variant_attributes).map(([key, value]) => (
-                                  <span
-                                    key={key}
-                                    className="inline-flex items-center rounded-full px-2 py-0.5 text-xs bg-muted text-muted-foreground"
-                                  >
-                                    {key}: {toDisplayString(value)}
-                                  </span>
-                                ))}
-                          </Box>
-                        )}
-                    </Box>
-                    <Box className="flex items-center gap-2">
-                      <span
-                        className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${statusColors[normalizeOrderStatus(item.status)] || 'bg-muted text-muted-foreground'}`}
-                      >
-                        {getOrderStatusLabel(item.status, t)}
-                      </span>
-                      <select
-                        value={normalizeOrderStatus(item.status)}
-                        onChange={(e) =>
-                          handleChangeItemStatus(item.id, e.target.value as OrderStatus)
-                        }
-                        className="h-8 rounded-md border border-input bg-background px-2 text-xs"
-                        disabled={changeItemStatusMutation.isPending}
-                      >
-                        {ORDER_STATUS_OPTIONS.map((s) => (
-                          <option key={s} value={s}>
-                            {getOrderStatusLabel(s, t)}
-                          </option>
-                        ))}
-                      </select>
-                    </Box>
-                  </Box>
-                ))}
+                    item={item}
+                    index={index}
+                    t={t}
+                    statusTone={statusColors}
+                    getStatusLabel={(s) => getOrderStatusLabel(s, t)}
+                    onItemStatusChange={handleChangeItemStatus}
+                    itemStatusPending={changeItemStatusMutation.isPending}
+                  />
+                ))
+              )}
             </Box>
           </OrderSection>
         </Box>

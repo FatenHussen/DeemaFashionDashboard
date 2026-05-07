@@ -12,7 +12,10 @@ import { CONFIG } from 'src/global-config';
 import { Box, Typography } from 'src/shared/ui';
 import { LoadingScreen } from 'src/shared/components/loading-screen';
 
-import { formatSellerRegistrationCountry } from '../../utils/seller-registration-display';
+import {
+  formatSellerRegistrationCountry,
+  normalizeSellerRegistrationShopType,
+} from '../../utils/seller-registration-display';
 import {
   useRejectSellerRegistration,
   useApproveSellerRegistration,
@@ -190,6 +193,14 @@ export default function DetailsPage() {
   };
 
   const locLine = locationLine(item);
+  const contactPhone = item.phone?.trim() ?? '';
+  const regShopType = normalizeSellerRegistrationShopType(item);
+  const sellerTypeLabelKey =
+    regShopType === 'restaurant'
+      ? 'form.shopTypeRestaurant'
+      : regShopType === 'service_provider'
+        ? 'form.shopTypeServiceProvider'
+        : 'form.shopTypeStore';
 
   return (
     <>
@@ -331,7 +342,17 @@ export default function DetailsPage() {
               <div className="grid gap-3 sm:grid-cols-1">
                 <InfoRow icon="solar:user-bold" label={t('form.sellerName')} value={item.seller_name} />
                 <InfoRow icon="solar:letter-bold" label={t('columns.email')} value={item.email} />
+                <InfoRow
+                  icon="solar:phone-bold"
+                  label={t('form.sellerRegColContactPhone')}
+                  value={contactPhone ? <span dir="ltr">{contactPhone}</span> : t('form.emptyEmDash')}
+                />
                 <InfoRow icon="solar:shop-bold" label={t('form.storeName')} value={item.store_name} />
+                <InfoRow
+                  icon="solar:widget-5-bold"
+                  label={t('form.sellerRegColType')}
+                  value={t(sellerTypeLabelKey)}
+                />
                 <InfoRow
                   icon="solar:streets-map-point-bold"
                   label={t('columns.address')}

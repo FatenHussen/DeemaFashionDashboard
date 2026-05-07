@@ -7,6 +7,7 @@ export interface QuickActionPageSummary {
 export interface QuickActionListItem {
   id: number;
   title: string;
+  button_text?: string | { en?: string; ar?: string };
   page?: QuickActionPageSummary;
   icon: string;
   order: number;
@@ -32,6 +33,7 @@ export interface QuickActionListResponse {
 export interface QuickActionDetail {
   id: number;
   title: { en: string; ar: string };
+  button_text?: { en: string; ar: string };
   page_id: number;
   page?: QuickActionPageSummary;
   icon: string;

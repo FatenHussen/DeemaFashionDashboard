@@ -45,6 +45,34 @@ function collectDescendantIds(rootId: number, childrenByParent: Map<number | nul
   return blocked;
 }
 
+/** Category id plus all descendants (edit mode: cannot pick self/descendants as parent). */
+export function collectSelfAndDescendantIds(items: CategoryData[], categoryId: number): Set<number> {
+  const out = new Set<number>();
+  if (!Number.isFinite(categoryId) || categoryId <= 0) return out;
+  const childrenByParent = buildChildrenMap(items);
+  out.add(categoryId);
+  for (const id of collectDescendantIds(categoryId, childrenByParent)) {
+    out.add(id);
+  }
+  return out;
+}
+
+/** Root → … → nodeId (inclusive), using parent_id from flat list. Empty if node missing. */
+export function ancestorsChainFromFlat(items: CategoryData[], nodeId: number): CategoryData[] {
+  const byId = new Map(items.map((c) => [c.id, c]));
+  const rev: CategoryData[] = [];
+  let cur: number | null = nodeId;
+  while (cur != null && cur > 0) {
+    const c = byId.get(cur);
+    if (!c) break;
+    rev.push(c);
+    const pk = parentKey(c);
+    cur = pk;
+  }
+  rev.reverse();
+  return rev;
+}
+
 export type ParentPickerOption = { id: number; label: string; depth: number; hasChildren: boolean };
 
 export type CategorySelectRow = { id: number; label: string; depth: number; hasChildren: boolean };

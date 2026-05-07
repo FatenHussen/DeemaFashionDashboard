@@ -3,6 +3,7 @@ import type { Dayjs, OpUnitType } from 'dayjs';
 import dayjs from 'dayjs';
 import duration from 'dayjs/plugin/duration';
 import relativeTime from 'dayjs/plugin/relativeTime';
+import { normalizeIndicNumeralsToLatin } from '@/utils/numeral-locale';
 
 // ----------------------------------------------------------------------
 
@@ -55,7 +56,7 @@ const isValidDate = (date: DatePickerFormat) =>
 // ----------------------------------------------------------------------
 
 export function today(template?: string): string {
-  return dayjs(new Date()).startOf('day').format(template);
+  return normalizeIndicNumeralsToLatin(dayjs(new Date()).startOf('day').format(template));
 }
 
 // ----------------------------------------------------------------------
@@ -68,7 +69,7 @@ export function fDateTime(date: DatePickerFormat, template?: string): string {
     return 'Invalid date';
   }
 
-  return dayjs(date).format(template ?? formatPatterns.dateTime);
+  return normalizeIndicNumeralsToLatin(dayjs(date).format(template ?? formatPatterns.dateTime));
 }
 
 // ----------------------------------------------------------------------
@@ -81,7 +82,7 @@ export function fDate(date: DatePickerFormat, template?: string): string {
     return 'Invalid date';
   }
 
-  return dayjs(date).format(template ?? formatPatterns.date);
+  return normalizeIndicNumeralsToLatin(dayjs(date).format(template ?? formatPatterns.date));
 }
 
 // ----------------------------------------------------------------------
@@ -94,7 +95,7 @@ export function fTime(date: DatePickerFormat, template?: string): string {
     return 'Invalid date';
   }
 
-  return dayjs(date).format(template ?? formatPatterns.time);
+  return normalizeIndicNumeralsToLatin(dayjs(date).format(template ?? formatPatterns.time));
 }
 
 // ----------------------------------------------------------------------
@@ -120,7 +121,7 @@ export function fToNow(date: DatePickerFormat): string {
     return 'Invalid date';
   }
 
-  return dayjs(date).toNow(true);
+  return normalizeIndicNumeralsToLatin(dayjs(date).toNow(true));
 }
 
 // ----------------------------------------------------------------------

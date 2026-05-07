@@ -206,23 +206,31 @@ export default function CreatePage() {
                 <Iconify icon="solar:case-minimalistic-bold" className="text-violet-500" width={15} />
               </Box>
               <Typography variant="subtitle2" className="font-semibold text-foreground">
-                {t('columns.shop')} & {t('columns.vendorService')}
+                {t('form.shopVendorServiceLinkSection')}
               </Typography>
             </Box>
             <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
               <Box className="group">
                 <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5">
                   <Iconify icon="solar:case-minimalistic-bold" className="text-violet-500" width={16} />
-                  {t('columns.shop')}
+                  {t('columns.shopVendorLinkShop')}
                 </Typography>
-                <RHFSelect name="shop_id" options={shopOptions} placeholder={t('form.selectShopPlaceholder')} />
+                <RHFSelect
+                  name="shop_id"
+                  options={shopOptions}
+                  placeholder={t('form.shopVendorLinkSelectShopPlaceholder')}
+                />
               </Box>
               <Box className="group">
                 <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5">
                   <Iconify icon="solar:course-bold" className="text-violet-500" width={16} />
-                  {t('columns.vendorService')}
+                  {t('columns.shopVendorLinkService')}
                 </Typography>
-                <RHFSelect name="vendor_service_id" options={vendorServiceOptions} placeholder={t('form.selectVendorService')} />
+                <RHFSelect
+                  name="vendor_service_id"
+                  options={vendorServiceOptions}
+                  placeholder={t('form.shopVendorLinkSelectServicePlaceholder')}
+                />
               </Box>
             </Box>
           </Box>

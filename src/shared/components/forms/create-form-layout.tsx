@@ -269,13 +269,31 @@ export function CreateFormLayout<T extends Record<string, any>>({
           </Box>
         )}
 
+        <style>
+          {`
+            /* Project-wide section card polish for create/update forms */
+            .create-form-sections > .rounded-2xl {
+              border-width: 1px !important;
+              border-color: var(--color-primary) !important;
+              box-shadow:
+                0 1px 2px rgba(0, 0, 0, 0.05),
+                0 0 0 1px color-mix(in oklab, var(--color-primary) 35%, transparent) inset;
+            }
+
+            /* Remove duplicated section title bars (keep field labels only) */
+            .create-form-sections > .rounded-2xl > [class*="px-6"][class*="py-4"][class*="border-b"] {
+              display: none !important;
+            }
+          `}
+        </style>
+
         {/* Form Card */}
         <Box className="rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm shadow-sm">
           <Form methods={methods} onSubmit={onSubmit}>
             {/* Content */}
             <Box
               className={mergeClasses([
-                'p-5 sm:p-6 md:p-8 pb-28 sm:pb-32',
+                'create-form-sections p-5 sm:p-6 md:p-8 pb-28 sm:pb-32',
                 formInnerClassName ?? 'flex flex-col gap-6',
               ])}
             >
