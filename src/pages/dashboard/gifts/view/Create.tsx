@@ -62,51 +62,36 @@ type VariantMultiPickerProps = {
 function VariantMultiPicker({ selectedIds, onChange, t, error, categoryFetcher }: VariantMultiPickerProps) {
   const [categoryId, setCategoryId] = useState<number | undefined>(undefined);
   const [search, setSearch] = useState('');
-  const [labelMap, setLabelMap] = useState<Map<number, string>>(new Map());
-  const [imageById, setImageById] = useState<Map<number, string>>(new Map());
-  const [colorHexById, setColorHexById] = useState<Map<number, string>>(new Map());
   const listRef = useRef<HTMLDivElement>(null);
 
   const { allItems, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
     useInfiniteSelect(
-      ['shopProductVariant', 'bulk', categoryId],
+      ['shopProductVariant', 'bulk', categoryId ?? 'all'],
       (page, limit) =>
         _ShopProductVariantApi
-          .getList({ page, per_page: limit, category_id: categoryId })
+          .getList({
+            page,
+            per_page: limit,
+            ...(categoryId != null && categoryId > 0 ? { category_id: categoryId } : {}),
+          })
           .then((res) => ({
             data: { items: res.data.items ?? [], pagination: res.data.pagination },
           })),
       20
     );
 
-  useEffect(() => {
-    setLabelMap((prev) => {
-      const next = new Map(prev);
-      allItems.forEach((item) => next.set(item.id, formatTranslated((item as any).label)));
-      return next;
+  const { labelMap, imageById, colorHexById } = useMemo(() => {
+    const labels = new Map<number, string>();
+    const images = new Map<number, string>();
+    const colors = new Map<number, string>();
+    allItems.forEach((item) => {
+      labels.set(item.id, formatTranslated((item as any).label));
+      const url = shopVariantOptionImage(item);
+      if (url) images.set(item.id, url);
+      const hex = shopVariantOptionColorHex(item);
+      if (hex) colors.set(item.id, hex);
     });
-  }, [allItems]);
-
-  useEffect(() => {
-    setImageById((prev) => {
-      const next = new Map(prev);
-      allItems.forEach((item) => {
-        const url = shopVariantOptionImage(item);
-        if (url) next.set(item.id, url);
-      });
-      return next;
-    });
-  }, [allItems]);
-
-  useEffect(() => {
-    setColorHexById((prev) => {
-      const next = new Map(prev);
-      allItems.forEach((item) => {
-        const hex = shopVariantOptionColorHex(item);
-        if (hex) next.set(item.id, hex);
-      });
-      return next;
-    });
+    return { labelMap: labels, imageById: images, colorHexById: colors };
   }, [allItems]);
 
   useEffect(() => {

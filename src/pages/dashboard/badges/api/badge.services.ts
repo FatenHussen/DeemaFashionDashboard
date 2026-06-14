@@ -1,6 +1,15 @@
-import type { BadgeListResponse, BadgeCreatePayload, BadgeDetailsResponse } from '../types/badge.types';
+import type { BadgeItem, BadgeListResponse, BadgeCreatePayload, BadgeDetailsResponse } from '../types/badge.types';
 
 import { apiRoutes, axiosInstance } from '@/api';
+import { parseRecordIsActive } from '@/utils/parse-record-is-active';
+
+function normalizeBadgeListItem(raw: BadgeItem): BadgeItem {
+  const row = raw as unknown as Record<string, unknown>;
+  return {
+    ...raw,
+    is_active: parseRecordIsActive(row),
+  };
+}
 
 function buildBadgeFormData(data: BadgeCreatePayload): FormData {
   const fd = new FormData();
@@ -15,7 +24,15 @@ function buildBadgeFormData(data: BadgeCreatePayload): FormData {
 export const _BadgeApi = {
   getListBadges: async (params?: { page?: number; per_page?: number; type?: string; search?: string }): Promise<BadgeListResponse> => {
     const response = await axiosInstance.get<BadgeListResponse>(apiRoutes.badge.list, { params });
-    return response.data;
+    const body = response.data;
+    if (!body?.data?.items) return body;
+    return {
+      ...body,
+      data: {
+        ...body.data,
+        items: body.data.items.map((item) => normalizeBadgeListItem(item)),
+      },
+    };
   },
 
   getBadgeById: async (id: number | string): Promise<BadgeDetailsResponse> => {

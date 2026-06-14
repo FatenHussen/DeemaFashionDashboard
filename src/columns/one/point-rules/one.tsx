@@ -69,14 +69,6 @@ export const pointRuleColumns = (
     ),
   },
   {
-    id: 'type',
-    accessorKey: 'type',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.type')} />,
-    cell: ({ row }) => (
-      <span className="px-2 py-1 rounded-md bg-muted text-sm capitalize">{row.original.type}</span>
-    ),
-  },
-  {
     id: 'expires',
     accessorKey: 'expires_after_days',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.expires')} />,

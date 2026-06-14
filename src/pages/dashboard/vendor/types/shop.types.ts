@@ -92,6 +92,10 @@ export interface ShopData {
   recommended?: boolean;
   coupons?: ShopCouponRef[];
   coupon_ids?: number[];
+  /** Many-to-many category IDs (admin create/update). */
+  category_ids?: number[];
+  /** Resolved category rows from API. */
+  categories?: Array<{ id: number; name: string | { ar: string; en: string } }>;
 }
 
 /** Resolves `shop_type` from API (explicit enum or legacy booleans). */
@@ -202,4 +206,5 @@ export interface ShopCreateUpdatePayload {
   payment_methods: ShopPaymentMethod[];
   pricing_tier: ShopPriceLevel;
   is_recommended: boolean;
+  category_ids?: number[];
 }

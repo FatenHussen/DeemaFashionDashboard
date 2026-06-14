@@ -1,6 +1,7 @@
 import type { TFunction } from 'i18next';
 
 import { Iconify } from '@/shared/components/iconify';
+import { formatDecimal, formatMoneyLine, normalizeFormattedMoneyText } from '@/utils/format-currency';
 import {
   type OrderStatus,
   type OrderDetailItem,
@@ -21,12 +22,6 @@ function resolveMediaUrl(path: string | null | undefined): string | null {
   const base = CONFIG.serverUrl?.replace(/\/$/, '') ?? '';
   const p = path.startsWith('/') ? path : `/${path}`;
   return base ? `${base}${p}` : path;
-}
-
-function formatMoneyLine(formatted: string | null | undefined, fallback: unknown): string {
-  if (formatted) return formatted;
-  if (fallback === null || fallback === undefined || fallback === '') return '—';
-  return String(fallback);
 }
 
 function itemUnitLabel(item: OrderDetailItem): string {
@@ -174,7 +169,10 @@ export function OrderLineItemCard({
                 />
               ) : null}
               {item.extras && item.extras.length > 0 && item.extras_total_formatted ? (
-                <PricingRow label={t('orders.itemExtras')} value={item.extras_total_formatted} />
+                <PricingRow
+                  label={t('orders.itemExtras')}
+                  value={normalizeFormattedMoneyText(item.extras_total_formatted)}
+                />
               ) : null}
               <PricingRow label={t('orders.itemLineTotalLabel')} value={itemLineTotalLabel(item)} emphasize />
             </div>
@@ -282,7 +280,7 @@ export function OrderLineItemCard({
                     <span className="min-w-0 truncate font-medium">{toDisplayString(ex.name ?? ex.label ?? '—')}</span>
                     {ex.price != null && (
                       <span className="shrink-0 tabular-nums text-xs font-semibold text-muted-foreground">
-                        +{String(ex.price)}
+                        +{formatDecimal(ex.price)}
                       </span>
                     )}
                   </li>
@@ -290,7 +288,10 @@ export function OrderLineItemCard({
               </ul>
               {item.extras_total_formatted ? (
                 <Typography variant="caption" className="mt-3 block border-t border-border/40 pt-3 font-medium text-muted-foreground">
-                  {t('orders.itemExtrasSubtotal')}: <span className="text-foreground">{item.extras_total_formatted}</span>
+                  {t('orders.itemExtrasSubtotal')}:{' '}
+                  <span className="text-foreground">
+                    {normalizeFormattedMoneyText(item.extras_total_formatted)}
+                  </span>
                 </Typography>
               ) : null}
             </Box>

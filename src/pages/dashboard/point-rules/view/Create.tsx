@@ -56,7 +56,7 @@ export default function CreatePage() {
         : { en: String(d.title || ''), ar: String(d.title || '') };
       reset({
         title,
-        type: d.type || 'fixed',
+        type: 'fixed',
         value: d.value || 0,
         min_order_amount: d.min_order_amount,
         expires_after_days: d.expires_after_days || 365,
@@ -149,26 +149,10 @@ export default function CreatePage() {
               <Iconify icon="solar:medal-ribbons-star-bold" className="text-amber-500" width={15} />
             </Box>
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              {t('columns.type')} & {t('form.pointsLabel')}
+              {t('form.pointsLabel')}
             </Typography>
           </Box>
           <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
-            <Box>
-              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5">
-                <Iconify icon="solar:tag-bold" className="text-amber-500" width={16} />
-                {t('columns.type')}
-              </Typography>
-              <Controller
-                name="type"
-                control={control}
-                render={({ field }) => (
-                  <select {...field} className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm">
-                    <option value="fixed">{t('form.pointRuleTypeFixed')}</option>
-                    <option value="percentage">{t('form.pointRuleTypePercentage')}</option>
-                  </select>
-                )}
-              />
-            </Box>
             <Box>
               <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5">
                 <Iconify icon="solar:medal-ribbons-star-bold" className="text-amber-500" width={16} />

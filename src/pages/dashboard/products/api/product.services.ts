@@ -43,7 +43,14 @@ const buildProductFormData = (data: ProductCreateUpdatePayload): FormData => {
   formData.append('is_instant_delivery', data.is_instant_delivery.toString());
 
   formData.append('is_visible', String(data.is_visible ?? 1));
-  formData.append('brand_id', String(data.brand_id ?? 0));
+  if (data.id != null) {
+    formData.append(
+      'brand_id',
+      data.brand_id != null && data.brand_id > 0 ? String(data.brand_id) : ''
+    );
+  } else if (data.brand_id != null && data.brand_id > 0) {
+    formData.append('brand_id', String(data.brand_id));
+  }
   formData.append('vendor_id', String(data.vendor_id ?? 0));
 
   const discountType = data.discount_type ?? 'none';
@@ -134,6 +141,12 @@ const buildProductFormData = (data: ProductCreateUpdatePayload): FormData => {
       if (variant.sku !== undefined && variant.sku !== '') {
         formData.append(`variants[${vIndex}][sku]`, variant.sku);
       }
+      if (variant.model !== undefined) {
+        formData.append(`variants[${vIndex}][model]`, variant.model ?? '');
+      }
+      if (variant.barcode !== undefined) {
+        formData.append(`variants[${vIndex}][barcode]`, variant.barcode ?? '');
+      }
       if (variant.name?.en !== undefined) {
         formData.append(`variants[${vIndex}][name][en]`, variant.name.en);
       }
@@ -148,6 +161,12 @@ const buildProductFormData = (data: ProductCreateUpdatePayload): FormData => {
       }
       if (variant.delivery_time !== undefined && variant.delivery_time !== '') {
         formData.append(`variants[${vIndex}][delivery_time]`, variant.delivery_time);
+      }
+      if (variant.is_trend !== undefined) {
+        formData.append(`variants[${vIndex}][is_trend]`, Number(variant.is_trend) === 1 ? '1' : '0');
+      }
+      if (variant.is_active !== undefined) {
+        formData.append(`variants[${vIndex}][is_active]`, Number(variant.is_active) === 1 ? '1' : '0');
       }
     });
   }
@@ -198,6 +217,9 @@ const buildProductFormData = (data: ProductCreateUpdatePayload): FormData => {
         shopVariant.variant_index.toString()
       );
       formData.append(`shop_variants[${index}][price]`, shopVariant.price.toString());
+      if (shopVariant.cost_price !== undefined && shopVariant.cost_price !== null) {
+        formData.append(`shop_variants[${index}][cost_price]`, String(shopVariant.cost_price));
+      }
       formData.append(`shop_variants[${index}][quantity]`, shopVariant.quantity.toString());
     });
   }
@@ -346,6 +368,90 @@ export const _ProductApi = {
     });
     // PHP only parses multipart bodies for POST. PUT + multipart often arrives empty on the server
     // unless we spoof: POST with _method=PUT (Laravel route still matches Route::put).
+    formData.append('_method', 'PUT');
+    const response = await axiosInstance.post(apiRoutes.product.update(id), formData, {
+      maxBodyLength: Infinity,
+      maxContentLength: Infinity,
+    });
+    return response.data;
+  },
+
+  /**
+   * Send a targeted product update containing ONLY variants/shop_variants nested arrays.
+   * Skips every other product field so backend leaves them untouched. Used to add a single
+   * new variant (or shop variant) to an existing product without touching the rest.
+   */
+  updateProductVariantsOnly: async (
+    id: number | string,
+    payload: {
+      variants?: NonNullable<ProductCreateUpdatePayload['variants']>;
+      shop_variants?: NonNullable<ProductCreateUpdatePayload['shop_variants']>;
+      category_id?: number;
+    }
+  ): Promise<any> => {
+    const formData = new FormData();
+    const variants = payload.variants ?? [];
+    const shopVariants = payload.shop_variants ?? [];
+
+    variants.forEach((variant, vIndex) => {
+      if (payload.category_id != null) {
+        formData.append(`variants[${vIndex}][category_id]`, String(payload.category_id));
+      }
+      if (variant.id) {
+        formData.append(`variants[${vIndex}][id]`, String(variant.id));
+      }
+      (variant.attributes_values_ids ?? []).forEach((attrId) => {
+        formData.append(
+          `variants[${vIndex}][attributes_values_ids][]`,
+          String(attrId)
+        );
+      });
+      const variantExistingImageIds = Array.isArray(variant.existing_images_ids)
+        ? variant.existing_images_ids
+        : [];
+      variantExistingImageIds.forEach((imgId) => {
+        formData.append(`variants[${vIndex}][existing_images_ids][]`, String(imgId));
+      });
+      if (variant.images && variant.images.length > 0) {
+        variant.images.forEach((file) => {
+          if (file instanceof File) {
+            formData.append(`variants[${vIndex}][images][]`, file);
+          }
+        });
+      }
+      if (variant.sku !== undefined && variant.sku !== '') {
+        formData.append(`variants[${vIndex}][sku]`, variant.sku);
+      }
+      if (variant.model !== undefined && variant.model !== '') {
+        formData.append(`variants[${vIndex}][model]`, variant.model);
+      }
+      if (variant.barcode !== undefined && variant.barcode !== '') {
+        formData.append(`variants[${vIndex}][barcode]`, variant.barcode);
+      }
+      if (variant.name?.en !== undefined) {
+        formData.append(`variants[${vIndex}][name][en]`, variant.name.en);
+      }
+      if (variant.name?.ar !== undefined) {
+        formData.append(`variants[${vIndex}][name][ar]`, variant.name.ar);
+      }
+    });
+
+    shopVariants.forEach((sv, index) => {
+      if (sv.id) {
+        formData.append(`shop_variants[${index}][id]`, String(sv.id));
+      }
+      formData.append(`shop_variants[${index}][shop_id]`, String(sv.shop_id));
+      formData.append(`shop_variants[${index}][variant_index]`, String(sv.variant_index));
+      formData.append(`shop_variants[${index}][price]`, String(sv.price));
+      formData.append(`shop_variants[${index}][quantity]`, String(sv.quantity));
+      if (sv.cost_price != null) {
+        formData.append(`shop_variants[${index}][cost_price]`, String(sv.cost_price));
+      }
+      if (sv.discount != null) {
+        formData.append(`shop_variants[${index}][discount]`, String(sv.discount));
+      }
+    });
+
     formData.append('_method', 'PUT');
     const response = await axiosInstance.post(apiRoutes.product.update(id), formData, {
       maxBodyLength: Infinity,

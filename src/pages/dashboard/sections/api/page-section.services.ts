@@ -1,4 +1,10 @@
 import type {
+  PagePreviewResponse,
+  PagePreviewQueryParams,
+  PageSectionReorderPayload,
+  PageSectionReorderResponse,
+} from '../types/page-preview.types';
+import type {
   PagesResponse,
   SectionsListResponse,
   PageSectionListResponse,
@@ -47,6 +53,28 @@ export const _PageSectionApi = {
 
   getPages: async (): Promise<PagesResponse> => {
     const response = await axiosInstance.get<PagesResponse>(apiRoutes.pageSection.pages);
+    return response.data;
+  },
+
+  getPagePreview: async (
+    id: number | string,
+    params?: PagePreviewQueryParams
+  ): Promise<PagePreviewResponse> => {
+    const response = await axiosInstance.get<PagePreviewResponse>(
+      apiRoutes.pageSection.pagePreview(id),
+      { params }
+    );
+    return response.data;
+  },
+
+  reorderPageSections: async (
+    pageId: number | string,
+    payload: PageSectionReorderPayload
+  ): Promise<PageSectionReorderResponse> => {
+    const response = await axiosInstance.post<PageSectionReorderResponse>(
+      apiRoutes.pageSection.pageReorder(pageId),
+      payload
+    );
     return response.data;
   },
 

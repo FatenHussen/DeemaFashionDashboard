@@ -12,7 +12,7 @@ import {
   type RoleFormValues,
 } from '@/pages/dashboard/roles/validation/role.validation';
 import {
-  translatePermissionName,
+  translatePermissionAction,
   translatePermissionResource,
 } from '@/pages/dashboard/roles/utils/permission-label';
 import {
@@ -68,7 +68,7 @@ function actionStyle(name: string): { chip: string; dot: string; icon: string } 
 // ----------------------------------------------------------------------
 
 export default function CreatePage() {
-  const { t } = useTranslation('table');
+  const { t } = useTranslation(['table', 'common']);
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
   const isEditMode = !!id;
@@ -426,9 +426,9 @@ export default function CreatePage() {
                                 <Typography
                                   variant="body2"
                                   className="truncate text-sm font-medium"
-                                  title={translatePermissionName(permission.name, t)}
+                                  title={translatePermissionAction(permission.name, t)}
                                 >
-                                  {translatePermissionName(permission.name, t)}
+                                  {translatePermissionAction(permission.name, t)}
                                 </Typography>
                               </label>
                             );

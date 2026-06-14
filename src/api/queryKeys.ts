@@ -163,6 +163,8 @@ export const queryKeys = {
     list: (params?: { page?: number; limit?: number; search?: string }) => ['pageSection', 'list', params] as const,
     details: (id: number | string) => ['pageSection', 'details', id] as const,
     pages: () => ['pageSection', 'pages'] as const,
+    pagePreview: (id: number | string, paramsKey?: string) =>
+      ['pageSection', 'pagePreview', id, paramsKey ?? ''] as const,
   },
   // Order query keys
   order: {
@@ -224,7 +226,12 @@ export const queryKeys = {
   },
   // Gift query keys
   gift: {
-    list: (params?: { page?: number; per_page?: number }) => ['gift', 'list', params] as const,
+    list: (params?: {
+      page?: number;
+      per_page?: number;
+      search?: string;
+      category_id?: number;
+    }) => ['gift', 'list', params] as const,
     details: (id: number | string) => ['gift', 'details', id] as const,
   },
   // User Gift query keys

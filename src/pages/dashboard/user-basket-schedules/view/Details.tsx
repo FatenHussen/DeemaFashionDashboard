@@ -15,7 +15,7 @@ import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
 import { fDate, fDateTime } from '@/utils/format-time';
 import { normalizeIndicNumeralsToLatin } from '@/utils/numeral-locale';
-import { formatCurrency, formatApiCurrencyAmountForLanguage } from '@/utils/format-currency';
+import { formatCurrency, formatMoneyLine, formatApiCurrencyAmountForLanguage } from '@/utils/format-currency';
 
 import { paths } from 'src/routes/paths';
 
@@ -420,9 +420,7 @@ function LineItemCard({
                 {t('columns.originalPrice')}
               </Typography>
               <Typography variant="body1" className="mt-1 font-semibold tabular-nums">
-                {item.original_price_formatted
-                  ? normalizeIndicNumeralsToLatin(item.original_price_formatted)
-                  : formatCurrency(item.original_price)}
+                {formatMoneyLine(item.original_price_formatted, item.original_price)}
               </Typography>
               <CollapsibleCurrencies
                 label={t('form.userBasketScheduleDetailConvertedAmounts')}
@@ -438,9 +436,7 @@ function LineItemCard({
                 variant="body1"
                 className="mt-1 font-semibold tabular-nums text-orange-700 dark:text-orange-400"
               >
-                {item.discount_amount_formatted != null && item.discount_amount_formatted !== ''
-                  ? normalizeIndicNumeralsToLatin(item.discount_amount_formatted)
-                  : formatCurrency(item.discount_amount)}
+                {formatMoneyLine(item.discount_amount_formatted, item.discount_amount)}
               </Typography>
               <CollapsibleCurrencies
                 label={t('form.userBasketScheduleDetailConvertedAmounts')}
@@ -453,9 +449,7 @@ function LineItemCard({
                 {t('columns.priceAfterDiscount')}
               </Typography>
               <Typography variant="h6" className="mt-1 font-bold tabular-nums text-primary">
-                {item.price_after_discount_formatted != null && item.price_after_discount_formatted !== ''
-                  ? normalizeIndicNumeralsToLatin(item.price_after_discount_formatted)
-                  : formatCurrency(item.price_after_discount)}
+                {formatMoneyLine(item.price_after_discount_formatted, item.price_after_discount)}
               </Typography>
               <Typography variant="caption" className="mt-2 block text-muted-foreground">
                 {t('form.userBasketScheduleDetailLineTotal')}:{' '}

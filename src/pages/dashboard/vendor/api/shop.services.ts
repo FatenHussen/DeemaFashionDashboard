@@ -52,6 +52,9 @@ const buildFormDataPayload = (data: ShopCreateUpdatePayload): FormData => {
   });
   formData.append('pricing_tier', data.pricing_tier);
   formData.append('is_recommended', data.is_recommended ? '1' : '0');
+  (data.category_ids ?? []).forEach((cid) => {
+    formData.append('category_ids[]', String(cid));
+  });
   return formData;
 };
 
@@ -64,6 +67,7 @@ export const _ShopApi = {
     /** Admin / user listing: filter by shop classification */
     shop_type?: string;
     search?: string;
+    category_id?: number;
   }): Promise<ShopListResponse> => {
     const response = await axiosInstance.get<ShopListResponse>(apiRoutes.shop.list, { params });
     return response.data;

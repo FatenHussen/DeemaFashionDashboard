@@ -8,6 +8,8 @@ import { createToggleColumn } from '@/shared/ui/table-data/data-table-toggle-cel
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 
+import { paths } from 'src/routes/paths';
+
 const BannerSchema = z.object({
   id: z.number(),
   title: z.string(),
@@ -160,8 +162,8 @@ export const bannerColumns = (
       <DataTableRowActions
         schema={BannerSchema}
         row={row}
-        viewDetails={`/sections/banners/update/${row.original.id}`}
-        editItem={onEdit ? undefined : `/sections/banners/update/${row.original.id}`}
+        viewDetails={`${paths.dashboard.banners}/update/${row.original.id}`}
+        editItem={onEdit ? undefined : `${paths.dashboard.banners}/update/${row.original.id}`}
         onEdit={onEdit}
         onDelete={onDelete}
         isDeleting={isDeleting}

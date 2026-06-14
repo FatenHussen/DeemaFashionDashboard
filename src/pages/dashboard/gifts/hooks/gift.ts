@@ -8,7 +8,7 @@ import { _GiftApi } from '../api/gift.services';
 export const useFetchGifts = (
   page: number = 1,
   perPage: number = 10,
-  params?: { search?: string }
+  params?: { search?: string; category_id?: number }
 ) =>
   useQuery({
     queryKey: queryKeys.gift.list({ page, per_page: perPage, ...params }),

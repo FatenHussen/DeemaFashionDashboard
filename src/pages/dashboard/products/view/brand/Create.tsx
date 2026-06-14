@@ -3,19 +3,20 @@ import type { CategoryData } from '@/pages/dashboard/categories/types/category.t
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
-import { useMemo, useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
-import { MultiSelect } from '@/shared/ui/multi-select';
 import { compressImage } from '@/utils/compress-image';
 import { formatTranslated } from '@/utils/format-translated';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 import { _CityApi } from '@/pages/dashboard/locations/api/city.services';
 import { _CategoryApi } from '@/pages/dashboard/categories/api/category.services';
+import { InfiniteScrollSelect } from '@/shared/components/infinite-scroll-select';
 import { RHFInfiniteSelect } from '@/shared/components/hook-form/rhf-infinite-select';
 import { _GovernorateApi } from '@/pages/dashboard/locations/api/governorate.services';
-import { buildParentPickerOptions } from '@/pages/dashboard/categories/utils/build-parent-picker-options';
+import { MAX_CATEGORY_SUB_LEVELS } from '@/pages/dashboard/categories/utils/category-cascade-shared';
+import { CategoryLeafCascadeFields } from '@/pages/dashboard/categories/components/category-leaf-cascade-fields';
 import {
   BrandSchema,
   type BrandFormValues,
@@ -25,6 +26,11 @@ import {
   useUpdateBrand,
   useFetchBrandById,
 } from '@/pages/dashboard/products/hooks/brand';
+import {
+  ancestorsChainFromFlat,
+  buildCategorySelectRows,
+  paginateSelectRowsLocal,
+} from '@/pages/dashboard/categories/utils/build-parent-picker-options';
 
 import { CONFIG } from 'src/global-config';
 import { Box, Input, Typography } from 'src/shared/ui';
@@ -75,37 +81,78 @@ export default function CreatePage() {
     city_id: 0,
   };
 
-  const { data: categoriesListResponse } = useQuery({
-    queryKey: ['categories', 'brand-form-options'],
+  const {
+    data: flatForParent,
+    dataUpdatedAt: flatParentDataUpdatedAt,
+    isFetched: flatParentFetched,
+  } = useQuery({
+    queryKey: ['categories', 'flat-parent-picker'],
     queryFn: () => _CategoryApi.getListCategoriesPaginated({ page: 1, per_page: 500 }),
   });
 
-  const categorySelectOptions = useMemo(() => {
-    const items = (categoriesListResponse?.data?.items ?? []) as CategoryData[];
-    const hierarchical = buildParentPickerOptions(items).map((r) => ({
-      value: r.id,
-      label: r.label,
-      depth: r.depth,
-      hasChildren: r.hasChildren,
-    }));
-    const src = brandResponse?.data;
-    const fromApi = (src?.categories ?? []).map((c) => ({
-      value: c.id,
-      label: formatTranslated(c.name as Parameters<typeof formatTranslated>[0]),
-      depth: 0,
-      hasChildren: false,
-    }));
-    const inTree = new Set(hierarchical.map((o) => Number(o.value)));
-    const extra = fromApi.filter((o) => !inTree.has(Number(o.value)));
-    return [...extra, ...hierarchical];
-  }, [categoriesListResponse?.data?.items, brandResponse?.data?.categories]);
+  const flatItems = (flatForParent?.data?.items ?? []) as CategoryData[];
+
+  const hydrateLeafCategoryId = useMemo(() => {
+    if (!isEditMode || !brandResponse?.data) return null;
+    const brand = brandResponse.data;
+    const idsFromPivot =
+      brand.category_ids?.length
+        ? brand.category_ids
+        : brand.categories?.map((c) => c.id) ?? [];
+    const legacyId = Number(brand.category?.id ?? brand.category_id ?? 0) || 0;
+    const ids =
+      idsFromPivot.length > 0 ? idsFromPivot : legacyId > 0 ? [legacyId] : [];
+    const first = ids[0];
+    if (first == null || !(Number(first) > 0)) return null;
+    return Number(first);
+  }, [isEditMode, brandResponse?.data]);
+
+  const legacyCategoryCascade = useMemo(() => {
+    if (!flatParentFetched || flatItems.length === 0) return false;
+    if (hydrateLeafCategoryId == null || hydrateLeafCategoryId <= 0) return false;
+    const chain = ancestorsChainFromFlat(flatItems, hydrateLeafCategoryId);
+    return chain.length > MAX_CATEGORY_SUB_LEVELS + 1;
+  }, [flatParentFetched, flatItems, hydrateLeafCategoryId]);
+
+  const legacyFlatRows = useMemo(() => buildCategorySelectRows(flatItems), [flatItems]);
+
+  const legacyCategoryFetcher = useCallback(
+    (page: number, limit: number) => {
+      const rows = legacyFlatRows.map((r) => ({
+        id: r.id,
+        label: r.label,
+        depth: r.depth,
+        hasChildren: r.hasChildren,
+      }));
+      return Promise.resolve(paginateSelectRowsLocal(rows, page, limit));
+    },
+    [legacyFlatRows]
+  );
+
+  const legacyCategoryNameLabel = useMemo(() => {
+    const list = brandResponse?.data?.categories;
+    const single = brandResponse?.data?.category;
+    const c = list?.length ? list[0] : single;
+    if (!c?.name) return undefined;
+    return formatTranslated(c.name as Parameters<typeof formatTranslated>[0]);
+  }, [brandResponse?.data?.categories, brandResponse?.data?.category]);
 
   const methods = useForm<BrandFormValues>({
     resolver: zodResolver(BrandSchema),
     defaultValues,
   });
 
-  const { handleSubmit, reset, control, watch, setValue } = methods;
+  const { handleSubmit, reset, control, watch, setValue, formState: { errors } } = methods;
+
+  const syncLeafCategory = useCallback(
+    (leafId: number) => {
+      setValue('category_ids', leafId > 0 ? [leafId] : [], {
+        shouldValidate: true,
+        shouldDirty: true,
+      });
+    },
+    [setValue]
+  );
   const imageFile = watch('image');
 
   // Fetch brand data if in edit mode
@@ -219,45 +266,79 @@ export default function CreatePage() {
         <Box className="rounded-2xl border border-border/50 bg-card/50 shadow-sm">
           <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-violet-500/[0.06] via-violet-500/[0.02] to-transparent">
             <Box className="h-8 w-8 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center shrink-0">
-              <Iconify icon="solar:widget-5-bold" className="text-violet-500" width={15} />
+              <Iconify icon="solar:diagram-bold" className="text-violet-500" width={15} />
             </Box>
             <Typography variant="subtitle2" className="font-semibold text-foreground">
               {t('form.categoryLabel')}
             </Typography>
           </Box>
           <Box className="p-6">
-            <Box className="group">
-              <Box className="flex items-center gap-2 mb-2">
-                <Iconify icon="solar:widget-5-bold" className="text-violet-500" width={20} height={20} />
-                <Typography variant="subtitle2" className="font-semibold text-foreground">
-                  {t('form.categoryLabel')}
+            {legacyCategoryCascade ? (
+              <Box className="space-y-2">
+                <Typography variant="caption" className="text-muted-foreground block">
+                  {t('form.selectParentCategoryHelper')}
                 </Typography>
-              </Box>
-              <Controller
-                name="category_ids"
-                control={control}
-                render={({ field, fieldState: { error } }) => {
-                  const ids = Array.isArray(field.value) ? field.value.map(Number).filter((n) => n > 0) : [];
-                  return (
+                <Controller
+                  name="category_ids"
+                  control={control}
+                  render={({ field, fieldState: { error } }) => (
                     <div>
-                      <MultiSelect
-                        options={categorySelectOptions}
-                        value={ids}
-                        onChange={(vals) => {
-                          field.onChange((vals as (string | number)[]).map((x) => Number(x)));
+                      <InfiniteScrollSelect
+                        value={
+                          Array.isArray(field.value) && field.value.length
+                            ? Number(field.value[0])
+                            : 0
+                        }
+                        onChange={(val) => {
+                          field.onChange(val > 0 ? [val] : []);
                         }}
+                        queryKey={[
+                          'categories',
+                          'infinite',
+                          'brand-form',
+                          'legacy-flat',
+                          flatParentDataUpdatedAt ?? 0,
+                          id ?? '',
+                        ]}
+                        fetcher={legacyCategoryFetcher}
                         placeholder={t('form.selectCategory')}
-                        noOptionsMessage={t('noOptionsFound')}
-                        fullWidth
-                        isSearchable
-                        error={!!error}
-                        helperText={error?.message ?? t('form.brandCategoryHelper')}
+                        initialLabel={legacyCategoryNameLabel}
                       />
+                      {(error?.message || t('form.categoryDeepParentHint')) && (
+                        <Typography
+                          variant="caption"
+                          className={`mt-1 block ${error ? 'text-destructive' : 'text-muted-foreground'}`}
+                        >
+                          {error?.message ?? t('form.categoryDeepParentHint')}
+                        </Typography>
+                      )}
                     </div>
-                  );
-                }}
+                  )}
+                />
+              </Box>
+            ) : (
+              <CategoryLeafCascadeFields
+                t={t}
+                legacyMode={false}
+                flatItems={flatItems}
+                flatParentFetched={flatParentFetched}
+                flatParentDataUpdatedAt={flatParentDataUpdatedAt ?? 0}
+                hydrateLeafCategoryId={hydrateLeafCategoryId}
+                hydrationKey={id ?? 'new-brand'}
+                onEffectiveLeafChange={syncLeafCategory}
               />
-            </Box>
+            )}
+            {errors.category_ids?.message ? (
+              <Typography variant="caption" className="text-destructive mt-2 block">
+                {String(errors.category_ids.message)}
+              </Typography>
+            ) : (
+              !legacyCategoryCascade && (
+                <Typography variant="caption" className="text-muted-foreground mt-2 block">
+                  {t('form.brandCategoryHelper')}
+                </Typography>
+              )
+            )}
           </Box>
         </Box>
 

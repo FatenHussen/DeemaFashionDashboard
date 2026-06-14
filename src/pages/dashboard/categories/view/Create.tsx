@@ -60,6 +60,12 @@ export default function CreatePage() {
   const isEditMode = !!id;
   const [previewImage, setPreviewImage] = useState<string | null>(null);
 
+  const categoryType: 'normal' | 'restaurant' =
+    searchParams.get('type') === 'restaurant' ? 'restaurant' : 'normal';
+  const isRestaurantMode = categoryType === 'restaurant';
+  const categoriesListPath =
+    categoryType === 'restaurant' ? '/categories?tab=restaurant' : '/categories';
+
   const queryParentId = useMemo(() => {
     const raw = searchParams.get('parent_id');
     if (raw == null || raw === '') return null;
@@ -72,13 +78,29 @@ export default function CreatePage() {
     dataUpdatedAt: flatParentDataUpdatedAt,
     isFetched: flatParentFetched,
   } = useQuery({
-    queryKey: ['categories', 'flat-parent-picker'],
-    queryFn: () => _CategoryApi.getListCategoriesPaginated({ page: 1, per_page: 500 }),
+    queryKey: ['categories', 'flat-parent-picker', categoryType],
+    queryFn: () =>
+      _CategoryApi.getListCategoriesPaginated({
+        page: 1,
+        per_page: 500,
+        is_restaurant: isRestaurantMode ? 1 : 0,
+      }),
   });
 
   const flatItems = flatForParent?.data?.items ?? [];
 
   const { data: categoryData, isLoading: isLoadingCategory } = useFetchCategoryById(id || '');
+
+  useEffect(() => {
+    if (!isEditMode || !categoryData?.data || isLoadingCategory || !id) return;
+    const catIsRestaurant = Boolean(categoryData.data.is_restaurant);
+    if (catIsRestaurant !== isRestaurantMode) {
+      navigate(
+        `/categories/update/${id}?type=${catIsRestaurant ? 'restaurant' : 'normal'}`,
+        { replace: true }
+      );
+    }
+  }, [isEditMode, categoryData?.data, isLoadingCategory, isRestaurantMode, id, navigate]);
 
   const legacyParentPicker = useMemo(() => {
     if (!flatParentFetched || flatItems.length === 0) return false;
@@ -154,6 +176,7 @@ export default function CreatePage() {
         page: 1,
         per_page: 500,
         parent_id: null,
+        is_restaurant: isRestaurantMode ? 1 : 0,
       });
       const roots = r.data.items
         .filter((cat) => !excludedIds.has(cat.id))
@@ -164,7 +187,7 @@ export default function CreatePage() {
       const noneRow = { id: 0, label: t('form.noParent') };
       return paginateSelectRowsLocal([noneRow, ...roots], page, limit);
     },
-    [excludedIds, t]
+    [excludedIds, isRestaurantMode, t]
   );
 
   const subCascadeFetchers = useMemo(
@@ -186,6 +209,7 @@ export default function CreatePage() {
             page: 1,
             per_page: 500,
             parent_id: parentId,
+            is_restaurant: isRestaurantMode ? 1 : 0,
           });
           const rows = r.data.items
             .filter((cat) => !excludedIds.has(cat.id))
@@ -195,7 +219,7 @@ export default function CreatePage() {
             }));
           return paginateSelectRowsLocal([directRow, ...rows], page, limit);
         }),
-    [mainCategoryId, subSelections, excludedIds, t]
+    [mainCategoryId, subSelections, excludedIds, isRestaurantMode, t]
   );
 
   const subChildrenProbes = useQueries({
@@ -203,12 +227,13 @@ export default function CreatePage() {
       const parentId =
         level === 0 ? mainCategoryId : subSelections[level - 1] ?? 0;
       return {
-        queryKey: ['categories', 'children-probe', 'sub-level', level, parentId],
+        queryKey: ['categories', 'children-probe', 'sub-level', level, parentId, categoryType],
         queryFn: () =>
           _CategoryApi.getListCategoriesPaginated({
             page: 1,
             per_page: 1,
             parent_id: parentId,
+            is_restaurant: isRestaurantMode ? 1 : 0,
           }),
         enabled: !legacyParentPicker && parentId > 0,
       };
@@ -228,9 +253,9 @@ export default function CreatePage() {
       parent_id: null,
       order: 0,
       is_active: true,
-      is_restaurant: false,
+      is_restaurant: isRestaurantMode,
     }),
-    [isEditMode]
+    [isRestaurantMode]
   );
 
   const methods = useForm<CategoryFormValues>({
@@ -240,6 +265,10 @@ export default function CreatePage() {
 
   const { handleSubmit, reset, control, watch, setValue } = methods;
   const iconValue = watch('icon');
+
+  useEffect(() => {
+    setValue('is_restaurant', isRestaurantMode);
+  }, [isRestaurantMode, setValue]);
 
   useEffect(() => {
     cascadeHydratedKeyRef.current = '';
@@ -359,7 +388,7 @@ export default function CreatePage() {
         parent_id: category.parent_id,
         order: (category as any).order ?? 0,
         is_active: Boolean((category as any).is_active),
-        is_restaurant: Boolean((category as any).is_restaurant),
+        is_restaurant: isRestaurantMode,
       });
 
       // Set preview image if icon exists
@@ -367,7 +396,7 @@ export default function CreatePage() {
         setPreviewImage(category.icon);
       }
     }
-  }, [categoryData, isEditMode, isLoadingCategory, reset]);
+  }, [categoryData, isEditMode, isLoadingCategory, isRestaurantMode, reset]);
 
   // Update preview when icon changes
   useEffect(() => {
@@ -399,17 +428,17 @@ export default function CreatePage() {
         parent_id: data.parent_id || null,
         order: data.order ?? 0,
         is_active: data.is_active,
-        is_restaurant: data.is_restaurant,
+        is_restaurant: isRestaurantMode,
       };
 
       if (isEditMode && id) {
         await updateCategoryMutation.mutateAsync({ id, data: payload });
         toast.success(t('form.categoryUpdatedSuccess'));
-        navigate('/categories');
+        navigate(categoriesListPath);
       } else {
         await createCategoryMutation.mutateAsync(payload);
         toast.success(t('form.categoryCreatedSuccess'));
-        navigate('/categories');
+        navigate(categoriesListPath);
       }
     } catch (error: any) {
       console.error('Error saving category:', error);
@@ -417,7 +446,7 @@ export default function CreatePage() {
   };
 
   const handleCancel = () => {
-    navigate('/categories');
+    navigate(categoriesListPath);
   };
 
   const infoText = isEditMode ? t('form.categoryFormInfoEdit') : t('form.categoryFormInfoCreate');
@@ -543,6 +572,7 @@ export default function CreatePage() {
                       'categories',
                       'infinite',
                       'parent-form',
+                      categoryType,
                       flatParentDataUpdatedAt ?? 0,
                       isEditMode ? id : '',
                       'legacy-deep',
@@ -573,6 +603,7 @@ export default function CreatePage() {
                         'infinite',
                         'category-create',
                         'roots',
+                        categoryType,
                         flatParentDataUpdatedAt ?? 0,
                         isEditMode ? id : '',
                         excludedIds.size,
@@ -614,6 +645,7 @@ export default function CreatePage() {
                             'sub',
                             level,
                             parentId,
+                            categoryType,
                             excludedIds.size,
                           ]}
                           fetcher={fetcher}
@@ -670,30 +702,6 @@ export default function CreatePage() {
                     </Typography>
                     <Typography variant="caption" className="text-muted-foreground">
                       {t('form.isActiveHelper')}
-                    </Typography>
-                  </Box>
-                </div>
-              )}
-            />
-
-            <Controller
-              name="is_restaurant"
-              control={control}
-              render={({ field }) => (
-                <div className="flex items-center gap-3 p-4 rounded-xl border border-border/60 bg-background/60 hover:border-orange-500/40 hover:bg-orange-500/[0.02] transition-colors">
-                  <Switch
-                    checked={field.value}
-                    onChange={(e) => field.onChange((e.target as HTMLInputElement).checked)}
-                  />
-                  <Box>
-                    <Box className="flex items-center gap-2">
-                      <Iconify icon="solar:shop-bold" className="text-orange-500" width={16} height={16} />
-                      <Typography variant="subtitle2" className="font-semibold text-foreground">
-                        {t('form.isRestaurant')}
-                      </Typography>
-                    </Box>
-                    <Typography variant="caption" className="text-muted-foreground">
-                      {t('form.isRestaurantHelper')}
                     </Typography>
                   </Box>
                 </div>

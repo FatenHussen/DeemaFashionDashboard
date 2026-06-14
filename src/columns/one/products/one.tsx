@@ -8,6 +8,7 @@ import { Dialog } from '@/shared/ui/dialog';
 import { Iconify } from '@/shared/components/iconify';
 import { useState, useEffect, type MouseEvent } from 'react';
 import { formatTranslated } from '@/utils/format-translated';
+import { normalizeFormattedMoneyText } from '@/utils/format-currency';
 import { createToggleColumn } from '@/shared/ui/table-data/data-table-toggle-cell';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
@@ -265,7 +266,7 @@ function ProductPriceCell({
 }) {
   const displayPrice = (() => {
     const apiFormatted = String(priceFormatted ?? '').trim();
-    if (apiFormatted) return apiFormatted;
+    if (apiFormatted) return normalizeFormattedMoneyText(apiFormatted);
     const amount = Number(currentPrice);
     if (!Number.isFinite(amount)) return '—';
     const locale = navigator.language || 'en-US';
@@ -274,7 +275,7 @@ function ProductPriceCell({
         return new Intl.NumberFormat(locale, {
           style: 'currency',
           currency,
-          minimumFractionDigits: 2,
+          minimumFractionDigits: 0,
           maximumFractionDigits: 2,
         }).format(amount);
       } catch {
@@ -282,7 +283,7 @@ function ProductPriceCell({
       }
     }
     const compact = new Intl.NumberFormat(locale, {
-      minimumFractionDigits: 2,
+      minimumFractionDigits: 0,
       maximumFractionDigits: 2,
     }).format(amount);
     return `${currencySymbol ?? '$'} ${compact}`;

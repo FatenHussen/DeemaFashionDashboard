@@ -3,6 +3,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 import type { RecipeData } from '@/pages/dashboard/recipes/types/recipe.types';
 
 import { z } from 'zod';
+import { formatMoneyLine } from '@/utils/format-currency';
 import { createToggleColumn } from '@/shared/ui/table-data/data-table-toggle-cell';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
@@ -65,11 +66,20 @@ export const recipeColumns = (
       <div className="text-sm">
         {row.original.price_after_discount != null && row.original.price_after_discount !== row.original.price ? (
           <div className="flex flex-col">
-            <span className="line-through text-muted-foreground text-xs">{row.original.price_formatted}</span>
-            <span className="font-semibold text-foreground">{row.original.price_after_discount_formatted}</span>
+            <span className="line-through text-muted-foreground text-xs">
+              {formatMoneyLine(row.original.price_formatted, row.original.price)}
+            </span>
+            <span className="font-semibold text-foreground">
+              {formatMoneyLine(
+                row.original.price_after_discount_formatted,
+                row.original.price_after_discount
+              )}
+            </span>
           </div>
         ) : (
-          <span className="font-semibold text-foreground">{row.original.price_formatted || '-'}</span>
+          <span className="font-semibold text-foreground">
+            {formatMoneyLine(row.original.price_formatted, row.original.price) || '-'}
+          </span>
         )}
       </div>
     ),

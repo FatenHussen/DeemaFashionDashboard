@@ -1,4 +1,10 @@
-export type PromotionType = 'simple_discount' | 'spend_x_discount' | 'buy_x_get_y';
+export type PromotionType =
+  | 'simple_discount'
+  | 'spend_x_discount'
+  | 'spend_x_get_gift'
+  | 'spend_x_get_points'
+  | 'free_shipping'
+  | 'spend_x_get_free_shipping';
 export type DiscountType = 'percentage' | 'fixed';
 
 export interface PromotionListItem {
@@ -62,10 +68,9 @@ export interface PromotionCreatePayload {
   get_quantity?: number;
   discount_value?: number;
   discount_type?: DiscountType;
+  gift_product_ids?: number[];
   page_slugs?: string[];
   position?: number;
 }
 
-export interface PromotionUpdatePayload extends PromotionCreatePayload {
-  gift_product_ids?: number[];
-}
+export type PromotionUpdatePayload = PromotionCreatePayload;

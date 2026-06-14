@@ -37,7 +37,13 @@ export const useFetchPopupCampaignById = (id: number | string | undefined, enabl
 export const useCreatePopupCampaign = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload: PopupCampaignUpsertPayload) => _PopupCampaignApi.create(payload),
+    mutationFn: ({
+      fields,
+      mediaFile,
+    }: {
+      fields: PopupCampaignUpsertPayload;
+      mediaFile: File;
+    }) => _PopupCampaignApi.create(fields, mediaFile),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['popupCampaign', 'list'] });
     },
@@ -47,8 +53,15 @@ export const useCreatePopupCampaign = () => {
 export const useUpdatePopupCampaign = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, payload }: { id: number | string; payload: PopupCampaignUpsertPayload }) =>
-      _PopupCampaignApi.update(id, payload),
+    mutationFn: ({
+      id,
+      fields,
+      mediaFile,
+    }: {
+      id: number | string;
+      fields: PopupCampaignUpsertPayload;
+      mediaFile?: File | null;
+    }) => _PopupCampaignApi.update(id, fields, mediaFile),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['popupCampaign', 'list'] });
       queryClient.invalidateQueries({ queryKey: queryKeys.popupCampaign.details(variables.id) });

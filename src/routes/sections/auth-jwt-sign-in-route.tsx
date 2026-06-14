@@ -1,13 +1,11 @@
+import { type CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
-import { lazy, Suspense, type CSSProperties } from 'react';
 
 import { GuestGuard } from 'src/pages/auth/guard';
+import JwtSignInPage from 'src/pages/auth/jwt/sign-in';
 import { AuthSplitLayout } from 'src/layouts/auth-split';
-import { SplashScreen } from 'src/shared/components/loading-screen';
 
 // ----------------------------------------------------------------------
-
-const JwtSignInPage = lazy(() => import('src/pages/auth/jwt/sign-in'));
 
 export function JwtSignInRoute() {
   const { t } = useTranslation('common');
@@ -33,9 +31,7 @@ export function JwtSignInRoute() {
           },
         }}
       >
-        <Suspense fallback={<SplashScreen />}>
-          <JwtSignInPage />
-        </Suspense>
+        <JwtSignInPage />
       </AuthSplitLayout>
     </GuestGuard>
   );

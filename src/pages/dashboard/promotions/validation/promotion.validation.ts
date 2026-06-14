@@ -16,7 +16,14 @@ export const PromotionSchema = z
       en: z.string().min(1, t('promotion.descriptionEnRequired')),
       ar: z.string().min(1, t('promotion.descriptionArRequired')),
     }),
-    type: z.enum(['simple_discount', 'spend_x_discount', 'buy_x_get_y']),
+    type: z.enum([
+      'simple_discount',
+      'spend_x_discount',
+      'spend_x_get_gift',
+      'spend_x_get_points',
+      'free_shipping',
+      'spend_x_get_free_shipping',
+    ]),
     is_active: z.boolean().optional(),
     starts_at: z.string().optional(),
     ends_at: z.string().optional(),
@@ -25,6 +32,7 @@ export const PromotionSchema = z
     get_quantity: z.number().optional().nullable(),
     discount_value: z.number().optional().nullable(),
     discount_type: z.enum(['percentage', 'fixed']).optional().nullable(),
+    gift_product_ids: z.array(z.number()).optional().default([]),
     page_slugs: z.array(z.string()).optional().default([]),
     position: z.preprocess(
       (val) => (val === '' || val === null || val === undefined ? 0 : val),

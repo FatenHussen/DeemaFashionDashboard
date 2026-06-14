@@ -8,6 +8,8 @@ import { usePermissions } from '@/auth/hooks/use-permissions';
 import { bannerColumns, type BannerFormValues } from '@/columns/one/banners/one';
 import { useFetchBanners, useDeleteBanner } from '@/pages/dashboard/banners/hooks/banner';
 
+import { paths } from 'src/routes/paths';
+
 import { CONFIG } from 'src/global-config';
 
 export default function Page() {
@@ -59,7 +61,7 @@ export default function Page() {
   };
 
   const handleEdit = (row: { original: BannerFormValues }) => {
-    navigate(`/sections/banners/update/${row.original.id}`, {
+    navigate(`${paths.dashboard.banners}/update/${row.original.id}`, {
       state: { banner: row.original },
     });
   };
@@ -122,9 +124,9 @@ export default function Page() {
           handleEdit
         )}
         data={bannerData}
-        createPath="/sections/banners/create"
+        createPath={`${paths.dashboard.banners}/create`}
         hasDetails
-        detailsLink="/sections/banners/update"
+        detailsLink={`${paths.dashboard.banners}/update`}
         permissions={{
           create: hasPermission('create', 'banner'),
           update: hasPermission('update', 'banner'),

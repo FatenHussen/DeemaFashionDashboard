@@ -1,15 +1,17 @@
 import { useNavigate } from 'react-router';
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Box, Button, Typography } from '@/shared/ui';
 import { Iconify } from '@/shared/components/iconify';
+import { numberFormatLocaleForUi } from '@/utils/numeral-locale';
 import { LoadingScreen } from '@/shared/components/loading-screen';
+import { Box, Button, Typography, DatePickerField } from '@/shared/ui';
 
 import { paths } from 'src/routes/paths';
 
 import { CONFIG } from 'src/global-config';
 
 import { useFetchSalesByLocationReport } from '../hooks/report';
+import { ReportPeriodBanner } from '../components/report-period-banner';
 
 // ----------------------------------------------------------------------
 
@@ -45,6 +47,8 @@ export default function SalesByLocationReportPage() {
     setAppliedFrom(fromDate);
     setAppliedTo(toDate);
   };
+  const numberLocale = numberFormatLocaleForUi(i18n.language);
+
   const reportData = (data?.data ?? data) as
     | {
         by_governorate?: {
@@ -92,17 +96,15 @@ export default function SalesByLocationReportPage() {
           </Box>
         </Box>
         <Box className="flex flex-wrap items-center gap-2">
-          <input
-            type="date"
+          <DatePickerField
             value={fromDate}
-            onChange={(e) => setFromDate(e.target.value)}
-            className="h-9 rounded-lg border border-input bg-background px-3 text-sm"
+            onChange={setFromDate}
+            className="h-9 min-w-[140px] rounded-lg border border-input bg-background px-3 text-sm w-auto max-sm:flex-1"
           />
-          <input
-            type="date"
+          <DatePickerField
             value={toDate}
-            onChange={(e) => setToDate(e.target.value)}
-            className="h-9 rounded-lg border border-input bg-background px-3 text-sm"
+            onChange={setToDate}
+            className="h-9 min-w-[140px] rounded-lg border border-input bg-background px-3 text-sm w-auto max-sm:flex-1"
           />
           <Button variant="outlined" size="small" onClick={handleApply}>
             {t('reports.apply')}
@@ -111,6 +113,7 @@ export default function SalesByLocationReportPage() {
       </div>
 
       <div className="w-full space-y-4 transition-opacity duration-500 p-6">
+        <ReportPeriodBanner appliedFrom={appliedFrom} appliedTo={appliedTo} lang={lang} />
         {reportData ? (
           <Box className="space-y-4">
             {(reportData.by_governorate?.length ?? 0) > 0 && (
@@ -142,10 +145,12 @@ export default function SalesByLocationReportPage() {
                           className="border-b border-border/20 hover:bg-muted/20 transition-colors"
                         >
                           <td className="py-3 px-5 font-medium">{getDisplayName(item.governorate, lang)}</td>
-                          <td className="text-end py-3 px-5">{Number(item.total_orders ?? 0).toLocaleString()}</td>
                           <td className="text-end py-3 px-5">
-                            {Number(item.total_revenue ?? 0).toLocaleString(undefined, {
-                              minimumFractionDigits: 2,
+                            {Number(item.total_orders ?? 0).toLocaleString(numberLocale)}
+                          </td>
+                          <td className="text-end py-3 px-5">
+                            {Number(item.total_revenue ?? 0).toLocaleString(numberLocale, {
+                              minimumFractionDigits: 0,
                               maximumFractionDigits: 2,
                             })}
                           </td>
@@ -186,10 +191,12 @@ export default function SalesByLocationReportPage() {
                           className="border-b border-border/20 hover:bg-muted/20 transition-colors"
                         >
                           <td className="py-3 px-5 font-medium">{getDisplayName(item.city, lang)}</td>
-                          <td className="text-end py-3 px-5">{Number(item.total_orders ?? 0).toLocaleString()}</td>
                           <td className="text-end py-3 px-5">
-                            {Number(item.total_revenue ?? 0).toLocaleString(undefined, {
-                              minimumFractionDigits: 2,
+                            {Number(item.total_orders ?? 0).toLocaleString(numberLocale)}
+                          </td>
+                          <td className="text-end py-3 px-5">
+                            {Number(item.total_revenue ?? 0).toLocaleString(numberLocale, {
+                              minimumFractionDigits: 0,
                               maximumFractionDigits: 2,
                             })}
                           </td>

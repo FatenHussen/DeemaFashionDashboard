@@ -21,57 +21,6 @@ import { CONFIG } from 'src/global-config';
 
 const PER_PAGE = 10;
 
-type ShopDiscountMode = 'fixed' | 'percentage';
-
-function normalizeShopDiscountType(raw: string | null | undefined): ShopDiscountMode | null {
-  if (raw == null || String(raw).trim() === '') return null;
-  const s = String(raw).toLowerCase();
-  if (s === 'percentage' || s === 'percent') return 'percentage';
-  if (s === 'fixed' || s === 'amount') return 'fixed';
-  return null;
-}
-
-/** Prefer API `discount_type`; otherwise infer from price / discount / price_after_discount. */
-function resolveShopDiscountMode(
-  apiType: string | null | undefined,
-  price: number,
-  discount: number | null | undefined,
-  pad: number | null | undefined
-): ShopDiscountMode {
-  const fromApi = normalizeShopDiscountType(apiType);
-  if (fromApi) return fromApi;
-  if (discount == null || pad == null) return 'fixed';
-  if (!Number.isFinite(price) || !Number.isFinite(discount) || !Number.isFinite(pad)) return 'fixed';
-  const eps = 0.02;
-  const fixedPad = price - discount;
-  const pctPad = price * (1 - discount / 100);
-  const close = (a: number, b: number) => Math.abs(a - b) < eps;
-  const fixedOk = close(fixedPad, pad);
-  const pctOk = close(pctPad, pad);
-  if (pctOk && !fixedOk) return 'percentage';
-  return 'fixed';
-}
-
-function roundMoney(n: number): number {
-  return Math.round(n * 100) / 100;
-}
-
-function formatPriceAfterDiscount(
-  priceUsd: number,
-  mode: ShopDiscountMode,
-  discountStr: string
-): string {
-  const raw = discountStr.trim();
-  if (raw === '') return String(roundMoney(priceUsd));
-  const d = Number.parseFloat(raw);
-  if (!Number.isFinite(d) || d < 0) return '—';
-  if (mode === 'percentage') {
-    if (d > 100) return '—';
-    return String(roundMoney(Math.max(0, priceUsd * (1 - d / 100))));
-  }
-  return String(roundMoney(Math.max(0, priceUsd - d)));
-}
-
 function parseCurrencyRate(c: CurrencyData): number {
   const r = Number((c as { exchange_rate?: string | number }).exchange_rate);
   return r > 0 ? r : 1;
@@ -130,7 +79,6 @@ function ShopVariantRowEditor({
     save: string;
     price: string;
     cost: string;
-    discount: string;
     priceAfterDiscount: string;
     stock: string;
   };
@@ -143,55 +91,24 @@ function ShopVariantRowEditor({
   const [costPrice, setCostPrice] = useState(
     shopVariant.cost_price != null ? String(shopVariant.cost_price) : ''
   );
-  const [discount, setDiscount] = useState(
-    shopVariant.discount != null ? String(shopVariant.discount) : ''
-  );
-  const [discountMode, setDiscountMode] = useState<ShopDiscountMode>(() =>
-    resolveShopDiscountMode(
-      shopVariant.discount_type,
-      Number(shopVariant.price) || 0,
-      shopVariant.discount ?? null,
-      shopVariant.price_after_discount ?? null
-    )
-  );
   const [quantity, setQuantity] = useState(String(shopVariant.quantity));
 
   useEffect(() => {
     setPrice(String(shopVariant.price));
     setCostPrice(shopVariant.cost_price != null ? String(shopVariant.cost_price) : '');
-    setDiscount(shopVariant.discount != null ? String(shopVariant.discount) : '');
-    setDiscountMode(
-      resolveShopDiscountMode(
-        shopVariant.discount_type,
-        Number(shopVariant.price) || 0,
-        shopVariant.discount ?? null,
-        shopVariant.price_after_discount ?? null
-      )
-    );
     setQuantity(String(shopVariant.quantity));
   }, [shopVariant]);
-
-  const discountStr = shopVariant.discount != null ? String(shopVariant.discount) : '';
-  const baselineDiscountMode = resolveShopDiscountMode(
-    shopVariant.discount_type,
-    Number(shopVariant.price) || 0,
-    shopVariant.discount ?? null,
-    shopVariant.price_after_discount ?? null
-  );
 
   const dirty =
     price !== String(shopVariant.price) ||
     costPrice !==
       (shopVariant.cost_price != null ? String(shopVariant.cost_price) : '') ||
-    discount !== discountStr ||
-    discountMode !== baselineDiscountMode ||
     quantity !== String(shopVariant.quantity);
 
   const handleSave = () => {
     const p = parseFloat(price);
     const q = parseInt(quantity, 10);
     const c = costPrice.trim() === '' ? undefined : parseFloat(costPrice);
-    const d = discount.trim() === '' ? undefined : parseFloat(discount);
     if (Number.isNaN(p) || p < 0) {
       toast.error(t('productVariantsModalInvalidPrice'));
       return;
@@ -204,14 +121,6 @@ function ShopVariantRowEditor({
       toast.error(t('productVariantsModalInvalidCost'));
       return;
     }
-    if (d !== undefined && (Number.isNaN(d) || d < 0)) {
-      toast.error(t('productVariantsModalInvalidDiscount'));
-      return;
-    }
-    if (d !== undefined && discountMode === 'percentage' && d > 100) {
-      toast.error(t('productVariantsModalInvalidDiscountPercent'));
-      return;
-    }
 
     mutate(
       {
@@ -220,7 +129,6 @@ function ShopVariantRowEditor({
           price: p,
           quantity: q,
           ...(c !== undefined ? { cost_price: c } : {}),
-          ...(d !== undefined ? { discount: d, discount_type: discountMode } : {}),
         },
       },
       {
@@ -244,7 +152,7 @@ function ShopVariantRowEditor({
     const usdP = Number(shopVariant.price) || 0;
     const sypP = dualPriceReady ? usdToLocalAmount(usdP, sypRate) : null;
     return (
-      <div className="grid grid-cols-1 gap-2 rounded-md border border-border/60 bg-muted/20 px-3 py-2 text-sm sm:grid-cols-2 lg:grid-cols-6">
+      <div className="grid grid-cols-1 gap-2 rounded-md border border-border/60 bg-muted/20 px-3 py-2 text-sm sm:grid-cols-2 lg:grid-cols-4">
         <div className="font-medium text-foreground lg:col-span-1">{shopName}</div>
         <div>
           <span className="text-muted-foreground">{t('form.productPriceUsdLabel')}: </span>
@@ -255,18 +163,6 @@ function ShopVariantRowEditor({
               {sypP}
             </>
           ) : null}
-        </div>
-        <div>
-          <span className="text-muted-foreground">{labels.discount}: </span>
-          {shopVariant.discount != null
-            ? baselineDiscountMode === 'percentage'
-              ? `${shopVariant.discount}%`
-              : String(shopVariant.discount)
-            : '—'}
-        </div>
-        <div>
-          <span className="text-muted-foreground">{labels.priceAfterDiscount}: </span>
-          {shopVariant.price_after_discount ?? '—'}
         </div>
         <div>
           <span className="text-muted-foreground">{labels.cost}: </span>
@@ -343,35 +239,14 @@ function ShopVariantRowEditor({
             className="h-9 w-full min-w-0"
           />
         </div>
-        <div className={fieldShell}>
-          <span className={labelClass}>{t('productVariantsDiscountModeLabel')}</span>
-          <select
-            value={discountMode}
-            onChange={(e) => setDiscountMode(e.target.value as ShopDiscountMode)}
-            className="h-9 w-full min-w-0 rounded-md border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
-          >
-            <option value="fixed">{t('productVariantsDiscountModeAmount')}</option>
-            <option value="percentage">{t('productVariantsDiscountModePercentage')}</option>
-          </select>
-        </div>
-        <div className={fieldShell}>
-          <span className={labelClass}>{t('productVariantsDiscountValueLabel')}</span>
-          <Input
-            type="number"
-            step={discountMode === 'percentage' ? '0.01' : '0.01'}
-            min={0}
-            max={discountMode === 'percentage' ? 100 : undefined}
-            value={discount}
-            onChange={(e) => setDiscount(e.target.value)}
-            className="h-9 w-full min-w-0"
-          />
-        </div>
-        <div className={fieldShell}>
-          <span className={labelClass}>{labels.priceAfterDiscount}</span>
-          <span className="flex min-h-9 items-center text-sm tabular-nums text-foreground">
-            {formatPriceAfterDiscount(usdNum, discountMode, discount)}
-          </span>
-        </div>
+        {shopVariant.price_after_discount != null ? (
+          <div className={fieldShell}>
+            <span className={labelClass}>{labels.priceAfterDiscount}</span>
+            <span className="flex min-h-9 items-center text-sm tabular-nums text-foreground">
+              {shopVariant.price_after_discount}
+            </span>
+          </div>
+        ) : null}
         <div className={fieldShell}>
           <span className={labelClass}>{labels.stock}</span>
           <Input
@@ -531,7 +406,6 @@ export function ProductVariantsPriceModal({
     price: t('columns.price'),
     cost: t('productVariantsModalCost'),
     stock: t('columns.stock'),
-    discount: t('columns.discount'),
     priceAfterDiscount: t('columns.priceAfterDiscount'),
   };
 

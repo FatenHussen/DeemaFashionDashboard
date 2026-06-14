@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next';
 import { Iconify } from '@/shared/components/iconify';
 import { useParams, useNavigate } from 'react-router';
 import { useForm, FormProvider } from 'react-hook-form';
+import { formatMoneyLine } from '@/utils/format-currency';
 import { _DriverApi } from '@/pages/dashboard/driver/api/driver.services';
 import { joinOrderRoom, leaveOrderRoom, useOrderLocation } from '@/lib/socket';
 import { RHFInfiniteSelect } from '@/shared/components/hook-form/rhf-infinite-select';
@@ -63,12 +64,6 @@ const formatDate = (dateStr: string | null | undefined) => {
   if (!dateStr) return '-';
   return new Date(dateStr).toLocaleString();
 };
-
-function formatMoneyLine(formatted: string | null | undefined, fallback: unknown): string {
-  if (formatted) return formatted;
-  if (fallback === null || fallback === undefined || fallback === '') return '—';
-  return String(fallback);
-}
 
 const driverFetcher = (page: number, limit: number) =>
   _DriverApi.getListDrivers({ page, per_page: limit }).then((r) => ({
@@ -418,6 +413,14 @@ export default function DetailsPage() {
                   </Typography>
                   <Typography variant="body1" className="font-medium">
                     {order.is_instant_delivery ? t('common.yes') : t('common.no')}
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography variant="caption" className="text-muted-foreground">
+                    {t('orders.isPaid')}
+                  </Typography>
+                  <Typography variant="body1" className="font-medium">
+                    {order.is_paid ? t('common.yes') : t('common.no')}
                   </Typography>
                 </Box>
                 <Box>

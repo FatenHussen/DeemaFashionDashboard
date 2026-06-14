@@ -57,6 +57,7 @@ export interface ShopFormValues {
   shop_type?: string;
   is_restaurant?: boolean;
   is_service_provider?: boolean;
+  categories?: Array<{ id: number; name?: string | { ar?: string; en?: string } }>;
   [key: string]: any;
 }
 
@@ -178,6 +179,31 @@ export const shopColumns = (
             <Iconify icon="solar:case-minimalistic-bold" className="text-muted-foreground" width={14} height={14} />
           </div>
           <span className="text-sm font-medium text-foreground truncate">{vendorName}</span>
+        </div>
+      );
+    },
+  },
+  {
+    id: 'categories',
+    accessorKey: 'categories',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title={t('form.shopCategoriesSection')} />
+    ),
+    cell: ({ row }) => {
+      const cats = row.original.categories;
+      if (!Array.isArray(cats) || cats.length === 0) {
+        return <span className="text-sm text-muted-foreground">—</span>;
+      }
+      return (
+        <div className="flex flex-wrap gap-1 max-w-[220px]">
+          {cats.map((c) => (
+            <span
+              key={c.id}
+              className="inline-flex rounded-md border border-border/60 bg-muted/40 px-2 py-0.5 text-[11px] font-medium text-foreground"
+            >
+              {formatTranslated(c.name) || `#${c.id}`}
+            </span>
+          ))}
         </div>
       );
     },

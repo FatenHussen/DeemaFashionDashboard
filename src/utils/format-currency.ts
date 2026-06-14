@@ -4,35 +4,95 @@ import { numberFormatLocaleForUi, normalizeIndicNumeralsToLatin } from '@/utils/
 const CURRENCY_SYMBOL_AR = 'ل.س';
 const CURRENCY_SYMBOL_EN = 'SYP';
 
+type FormatDecimalOptions = {
+  maxDecimals?: number;
+  locale?: string;
+};
+
 type FormatCurrencyOptions = {
   decimals?: number;
   symbol?: boolean;
 };
 
+type FormatMoneyLineOptions = {
+  maxDecimals?: number;
+  locale?: string;
+};
+
+function parseNumeric(value: number | string | null | undefined): number | null {
+  const numeric =
+    typeof value === 'number'
+      ? value
+      : Number.parseFloat(String(value ?? '').replace(/,/g, ''));
+  return Number.isFinite(numeric) ? numeric : null;
+}
+
+/** Format a number without trailing zeros (e.g. 100.00 -> 100, 55.50 -> 55.5). */
+export function formatDecimal(
+  value: number | string | null | undefined,
+  options: FormatDecimalOptions = {}
+): string {
+  const { maxDecimals = 2, locale = numberFormatLocaleForUi(i18n.language) } = options;
+  const numeric = parseNumeric(value);
+  if (numeric === null) return '—';
+
+  return normalizeIndicNumeralsToLatin(
+    numeric.toLocaleString(locale, {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: maxDecimals,
+    })
+  );
+}
+
+/** Strip trailing zeros from decimal portions in pre-formatted API money strings. */
+export function normalizeFormattedMoneyText(text: string | null | undefined): string {
+  if (!text) return '—';
+  const trimmed = text.trim();
+  if (!trimmed) return '—';
+
+  const normalized = trimmed.replace(/(\d[\d,]*)\.(\d+)/g, (_match, intPart: string, frac: string) => {
+    const trimmedFrac = frac.replace(/0+$/, '');
+    return trimmedFrac ? `${intPart}.${trimmedFrac}` : intPart;
+  });
+
+  return normalizeIndicNumeralsToLatin(normalized);
+}
+
+/**
+ * Prefer numeric fallback when available; otherwise normalize API formatted strings.
+ */
+export function formatMoneyLine(
+  formatted: string | null | undefined,
+  fallback: unknown,
+  options: FormatMoneyLineOptions = {}
+): string {
+  const numeric = parseNumeric(fallback as number | string | null | undefined);
+  if (numeric !== null) {
+    return formatDecimal(numeric, options);
+  }
+
+  if (formatted != null && String(formatted).trim() !== '') {
+    return normalizeFormattedMoneyText(String(formatted));
+  }
+
+  return '—';
+}
+
 export function formatCurrency(
   value: number | string | null | undefined,
   options: FormatCurrencyOptions = {}
 ): string {
-  const { decimals = 0, symbol = true } = options;
+  const { decimals = 2, symbol = true } = options;
+  const numeric = parseNumeric(value);
 
-  const numeric =
-    typeof value === 'number'
-      ? value
-      : Number.parseFloat(String(value ?? 0).replace(/,/g, ''));
-
-  if (!Number.isFinite(numeric)) {
+  if (numeric === null) {
     const zero = symbol ? normalizeIndicNumeralsToLatin(`0 ${getCurrencySymbol()}`) : '0';
     return zero;
   }
 
-  const locale = numberFormatLocaleForUi(i18n.language);
+  const formatted = formatDecimal(numeric, { maxDecimals: decimals });
 
-  const formatted = numeric.toLocaleString(locale, {
-    minimumFractionDigits: decimals,
-    maximumFractionDigits: decimals,
-  });
-
-  if (!symbol) return normalizeIndicNumeralsToLatin(formatted);
+  if (!symbol) return formatted;
 
   return normalizeIndicNumeralsToLatin(`${formatted} ${getCurrencySymbol()}`);
 }
@@ -54,14 +114,10 @@ function isArabicLanguage(lng: string): boolean {
 }
 
 function formatAmountForLocale(amount: number, lng: string): string {
-  const locale = numberFormatLocaleForUi(lng);
-  const maxFrac = Number.isInteger(amount) ? 0 : 2;
-  return normalizeIndicNumeralsToLatin(
-    amount.toLocaleString(locale, {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: maxFrac,
-    })
-  );
+  return formatDecimal(amount, {
+    maxDecimals: 2,
+    locale: numberFormatLocaleForUi(lng),
+  });
 }
 
 /**

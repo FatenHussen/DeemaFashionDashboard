@@ -85,17 +85,41 @@ const baseFields = {
   audience_type: audienceEnum,
   trigger_type: triggerEnum,
   trigger_value: zod.coerce.number().int().min(0).optional().nullable().default(null),
+  product_ids: zod.array(zod.coerce.number().int().positive()).optional().default([]),
+  shop_ids: zod.array(zod.coerce.number().int().positive()).optional().default([]),
+  recipe_ids: zod.array(zod.coerce.number().int().positive()).optional().default([]),
+  promotion_ids: zod.array(zod.coerce.number().int().positive()).optional().default([]),
 };
 
 export const PopupCampaignCreateSchema = zod.object({
   ...baseFields,
-  media_path: zod.string().min(1, { message: t('required') }).max(2048),
+  /** Unused on create (no existing asset); aligns form shape with edit mode for shared UI. */
+  media_path: zod.string().max(2048).optional().default(''),
+  media_file: zod.custom<File>((v) => v instanceof File, {
+    message: t('required'),
+  }),
 });
 
-export const PopupCampaignUpdateSchema = zod.object({
-  ...baseFields,
-  media_path: zod.string().min(1, { message: t('required') }).max(2048),
-});
+export const PopupCampaignUpdateSchema = zod
+  .object({
+    ...baseFields,
+    /** Existing media URL/path from API — used for preview when no new file is chosen. */
+    media_path: zod.string().max(2048).optional().default(''),
+    media_file: zod
+      .custom<File | null | undefined>((v) => v === undefined || v === null || v instanceof File)
+      .optional(),
+  })
+  .superRefine((data, ctx) => {
+    const hasExisting = Boolean(String(data.media_path ?? '').trim());
+    const hasNew = data.media_file instanceof File;
+    if (!hasExisting && !hasNew) {
+      ctx.addIssue({
+        code: zod.ZodIssueCode.custom,
+        message: t('required'),
+        path: ['media_file'],
+      });
+    }
+  });
 
 export type PopupCampaignCreateFormValues = Omit<
   zod.infer<typeof PopupCampaignCreateSchema>,

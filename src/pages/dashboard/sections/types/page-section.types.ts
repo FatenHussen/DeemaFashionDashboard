@@ -74,10 +74,11 @@ export interface SectionsListResponse {
 
 export interface Page {
   id: number;
-  title: string;
+  title: string | { ar?: string; en?: string };
   slug: string;
   created_at: string;
   updated_at: string;
+  filters?: Record<string, FilterConfig> | null;
 }
 
 export interface PagesResponse {

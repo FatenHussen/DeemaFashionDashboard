@@ -56,7 +56,6 @@ export type NotificationCreatePayload = {
   channels: NotificationChannel[];
   /** When length is 1, API may receive `type`; when multiple, `types`. */
   types: NotificationType[];
-  target_page?: string;
   emoji?: string;
   media?: File | null;
   driver_ids?: number[];

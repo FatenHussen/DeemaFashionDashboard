@@ -19,6 +19,8 @@ import {
   type BannerUpdateFormValues,
 } from '@/pages/dashboard/banners/validation/banner.validation';
 
+import { paths } from 'src/routes/paths';
+
 import { CONFIG } from 'src/global-config';
 import { Box, Input, Typography } from 'src/shared/ui';
 import { LoadingScreen } from 'src/shared/components/loading-screen';
@@ -128,7 +130,7 @@ export default function CreatePage() {
       if (isEditMode && id) {
         await updateBannerMutation.mutateAsync({ id, data: payload });
         toast.success(t('form.bannerUpdatedSuccess'));
-        navigate('/sections/banners');
+        navigate(paths.dashboard.banners);
       } else {
         if (!(payload.image instanceof File)) {
           toast.error(t('form.imageRequiredForNew'));
@@ -136,7 +138,7 @@ export default function CreatePage() {
         }
         await createBannerMutation.mutateAsync(payload);
         toast.success(t('form.bannerCreatedSuccess'));
-        navigate('/sections/banners');
+        navigate(paths.dashboard.banners);
       }
     } catch (error: any) {
       console.error('Error saving banner:', error);
@@ -144,7 +146,7 @@ export default function CreatePage() {
   };
 
   const handleCancel = () => {
-    navigate('/sections/banners');
+    navigate(paths.dashboard.banners);
   };
 
   const infoText = isEditMode ? t('form.bannerFormInfoEdit') : t('form.bannerFormInfoCreate');

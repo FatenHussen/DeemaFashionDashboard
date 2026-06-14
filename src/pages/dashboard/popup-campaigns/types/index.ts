@@ -59,6 +59,10 @@ export interface PopupCampaignListItem {
   show_on_pages?: string[] | null;
   show_every?: number;
   max_impressions?: number;
+  product_ids?: number[] | null;
+  shop_ids?: number[] | null;
+  recipe_ids?: number[] | null;
+  promotion_ids?: number[] | null;
   created_at?: string;
   updated_at?: string;
   [key: string]: unknown;
@@ -87,6 +91,10 @@ export interface PopupCampaignDetail {
   trigger_value?: number | null;
   show_every?: number;
   max_impressions?: number;
+  product_ids?: number[] | null;
+  shop_ids?: number[] | null;
+  recipe_ids?: number[] | null;
+  promotion_ids?: number[] | null;
   created_at?: string;
   updated_at?: string;
   [key: string]: unknown;
@@ -112,6 +120,10 @@ export interface PopupCampaignDetailResponse {
   data: PopupCampaignDetail;
 }
 
+/**
+ * Fields sent with create/update (multipart form body).
+ * Media is uploaded as the `media_path` file field — not a URL string.
+ */
 export interface PopupCampaignUpsertPayload {
   title: LocalizedString;
   slug: string;
@@ -125,11 +137,15 @@ export interface PopupCampaignUpsertPayload {
   button_url?: string | null;
   secondary_button_text?: string | null;
   media_type: PopupCampaignMediaType;
-  media_path: string;
   form_enabled: boolean;
   form_fields?: string[] | null;
   show_on_pages?: string[] | null;
   audience_type: PopupCampaignAudienceType;
   trigger_type: PopupCampaignTriggerType;
   trigger_value?: number | null;
+  /** Optional targeting — omit or null when empty. */
+  product_ids?: number[] | null;
+  shop_ids?: number[] | null;
+  recipe_ids?: number[] | null;
+  promotion_ids?: number[] | null;
 }

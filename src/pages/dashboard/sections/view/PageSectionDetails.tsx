@@ -163,16 +163,28 @@ export default function PageSectionDetailsPage() {
                 <DetailRow label={t('form.pageSectionFormVariantLabel')} value={variantDisplay} />
                 <DetailRow label={t('form.backgroundColor')} value={(pageSection as any).background_color} />
                 <DetailRow
-                  label={t('form.backgroundCardColor')}
+                  label={t('form.pageSectionFormBackgroundCardColorOptional')}
                   value={
                     (pageSection as any).background_card_color ??
                     (pageSection as any).background_crad_color
                   }
                 />
+                {(pageSection as any).show_when != null && (
+                  <Box className="sm:col-span-2">
+                    <DetailRow
+                      label={t('form.pageSliderVisibilityFiltersTitle')}
+                      value={
+                        <pre className="text-xs bg-muted/50 p-3 rounded-lg overflow-auto max-h-40">
+                          {JSON.stringify((pageSection as any).show_when, null, 2)}
+                        </pre>
+                      }
+                    />
+                  </Box>
+                )}
                 {(pageSection as any).filters != null && (
                   <Box className="sm:col-span-2">
                     <DetailRow
-                      label={t('form.filters')}
+                      label={t('form.pageSliderContentFiltersTitle')}
                       value={
                         <pre className="text-xs bg-muted/50 p-3 rounded-lg overflow-auto max-h-40">
                           {JSON.stringify((pageSection as any).filters, null, 2)}

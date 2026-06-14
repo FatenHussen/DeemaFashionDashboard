@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
+import { formatDecimal } from '@/utils/format-currency';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { TableTonedStatusPill } from '@/shared/components/table-status-badges';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
@@ -16,11 +17,6 @@ import { CONFIG } from 'src/global-config';
 import { useFetchVendorStatement } from '../hooks';
 
 // ----------------------------------------------------------------------
-
-function formatCurrency(value: number | undefined | null) {
-  if (value === null || value === undefined) return '—';
-  return value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
 
 function getVendorName(name: Record<string, string> | undefined) {
   if (!name) return '—';
@@ -124,7 +120,7 @@ export default function VendorAccountingVendorDetailsPage() {
       ),
       cell: ({ row }) => (
         <span className="text-sm font-semibold text-foreground">
-          {formatCurrency(row.original.amount)}
+          {formatDecimal(row.original.amount)}
         </span>
       ),
     },
@@ -281,7 +277,7 @@ export default function VendorAccountingVendorDetailsPage() {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
             {WALLET_CARDS.map((card) => {
               const raw = wallet[card.key as keyof typeof wallet] as number | undefined;
-              const display = card.isMoney ? formatCurrency(raw) : (raw?.toLocaleString() ?? '—');
+              const display = card.isMoney ? formatDecimal(raw) : (raw?.toLocaleString() ?? '—');
               return (
                 <div key={card.key} className={`flex flex-col gap-3 rounded-xl border p-4 shadow-sm ${card.bg}`}>
                   <div className="flex items-center justify-between">

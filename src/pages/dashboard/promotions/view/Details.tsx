@@ -10,7 +10,10 @@ import { LoadingScreen } from 'src/shared/components/loading-screen';
 const typeColors: Record<string, string> = {
   simple_discount: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
   spend_x_discount: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
-  buy_x_get_y: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
+  spend_x_get_gift: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+  spend_x_get_points: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+  free_shipping: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400',
+  spend_x_get_free_shipping: 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400',
 };
 
 function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
@@ -33,7 +36,10 @@ export default function DetailsPage() {
     ({
       simple_discount: t('promotionTypes.simpleDiscount'),
       spend_x_discount: t('promotionTypes.spendXDiscount'),
-      buy_x_get_y: t('promotionTypes.buyXGetY'),
+      spend_x_get_gift: t('promotionTypes.spendXGetGift'),
+      spend_x_get_points: t('promotionTypes.spendXGetPoints'),
+      free_shipping: t('promotionTypes.freeShipping'),
+      spend_x_get_free_shipping: t('promotionTypes.spendXGetFreeShipping'),
     } as Record<string, string>)[type] ?? type;
 
   const item = response?.data;
@@ -44,6 +50,8 @@ export default function DetailsPage() {
       <Typography variant="h6" className="text-destructive">{t('noData')}</Typography>
     </Box>
   );
+
+  const pageSlugs: string[] = Array.isArray(item.page_slugs) ? item.page_slugs : [];
 
   return (
     <>
@@ -86,6 +94,37 @@ export default function DetailsPage() {
             {item.min_spend != null && <DetailRow label={t('form.minSpendLabel')} value={item.min_spend} />}
             {item.buy_quantity != null && <DetailRow label={t('form.buyQuantityLabel')} value={item.buy_quantity} />}
             {item.get_quantity != null && <DetailRow label={t('form.getQuantityLabel')} value={item.get_quantity} />}
+            {item.gift_product_ids != null && item.gift_product_ids.length > 0 && (
+              <DetailRow
+                label={t('form.giftProductIdsLabel')}
+                value={t('form.giftProductIdsCount', { count: item.gift_product_ids.length })}
+              />
+            )}
+            <DetailRow
+              label={t('form.positionLabel')}
+              value={item.position != null ? String(item.position) : null}
+            />
+            <Box className="col-span-2">
+              <Typography variant="body2" className="text-muted-foreground text-xs uppercase mb-2">
+                {t('form.pageSlugsLabel')}
+              </Typography>
+              {pageSlugs.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {pageSlugs.map((slug) => (
+                    <span
+                      key={slug}
+                      className="text-xs px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 font-medium"
+                    >
+                      {slug}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <Typography variant="body2" className="text-muted-foreground italic">
+                  {t('form.pageSlugsGlobal')}
+                </Typography>
+              )}
+            </Box>
           </div>
         </Box>
 

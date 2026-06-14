@@ -8,6 +8,7 @@ import { Button } from '@/shared/ui/button';
 import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
+import { formatDecimal } from '@/utils/format-currency';
 import { formatTranslated } from '@/utils/format-translated';
 import { usePermissions } from '@/auth/hooks/use-permissions';
 import { useFetchUserById, useDemoteAffiliate } from '@/pages/dashboard/users/hooks/user';
@@ -297,10 +298,10 @@ export default function DetailsPage() {
             ? { label: t('form.statTotalOrders'), value: String(stats.total_orders) }
             : null,
           stats.earned_commission != null
-            ? { label: t('form.statEarnedCommission'), value: String(stats.earned_commission) }
+            ? { label: t('form.statEarnedCommission'), value: formatDecimal(stats.earned_commission) }
             : null,
           stats.available_balance != null
-            ? { label: t('form.statAvailableBalance'), value: String(stats.available_balance) }
+            ? { label: t('form.statAvailableBalance'), value: formatDecimal(stats.available_balance) }
             : null,
         ].filter((x): x is { label: string; value: string } => x != null)
       : [];
@@ -505,7 +506,7 @@ export default function DetailsPage() {
                           {t('form.statTotalSales')}
                         </Typography>
                         <Typography variant="h6" className="mt-1 font-semibold">
-                          {stats.total_sales}
+                          {formatDecimal(stats.total_sales)}
                         </Typography>
                       </Box>
                     )}
@@ -515,7 +516,7 @@ export default function DetailsPage() {
                           {t('form.statEarnedCommission')}
                         </Typography>
                         <Typography variant="h6" className="mt-1 font-semibold">
-                          {stats.earned_commission}
+                          {formatDecimal(stats.earned_commission)}
                         </Typography>
                       </Box>
                     )}
@@ -525,7 +526,7 @@ export default function DetailsPage() {
                           {t('form.statPendingEarnings')}
                         </Typography>
                         <Typography variant="h6" className="mt-1 font-semibold">
-                          {stats.pending_earnings}
+                          {formatDecimal(stats.pending_earnings)}
                         </Typography>
                       </Box>
                     )}
@@ -535,7 +536,7 @@ export default function DetailsPage() {
                           {t('form.statWithdrawn')}
                         </Typography>
                         <Typography variant="h6" className="mt-1 font-semibold">
-                          {stats.withdrawn}
+                          {formatDecimal(stats.withdrawn)}
                         </Typography>
                       </Box>
                     )}
@@ -545,7 +546,7 @@ export default function DetailsPage() {
                           {t('form.statAvailableBalance')}
                         </Typography>
                         <Typography variant="h6" className="mt-1 font-semibold">
-                          {stats.available_balance}
+                          {formatDecimal(stats.available_balance)}
                         </Typography>
                       </Box>
                     )}

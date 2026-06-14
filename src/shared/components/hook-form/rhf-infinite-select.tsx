@@ -25,6 +25,8 @@ export type RHFInfiniteSelectProps = {
   pageSize?: number;
   /** Called after the field value changes — useful for side-effects like resetting dependent fields */
   onValueChange?: (value: number) => void;
+  /** Allow clearing the selection (sets value to 0) */
+  clearable?: boolean;
 };
 
 export function RHFInfiniteSelect({
@@ -42,6 +44,7 @@ export function RHFInfiniteSelect({
   getOptionColorHex,
   pageSize,
   onValueChange,
+  clearable,
 }: RHFInfiniteSelectProps) {
   const { control } = useFormContext();
 
@@ -67,6 +70,7 @@ export function RHFInfiniteSelect({
             getOptionColorHex={getOptionColorHex}
             disabled={disabled}
             pageSize={pageSize}
+            clearable={clearable}
           />
           {(error?.message || helperText) && (
             <Typography

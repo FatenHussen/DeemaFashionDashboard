@@ -16,8 +16,10 @@ import { formatTranslated } from '@/utils/format-translated';
 import { useFetchUnits } from '@/pages/dashboard/units/hooks/unit';
 import { useFetchShops } from '@/pages/dashboard/vendor/hooks/shop';
 import { compressImage, compressImages } from '@/utils/compress-image';
+import { _ShopApi } from '@/pages/dashboard/vendor/api/shop.services';
 import { _VendorApi } from '@/pages/dashboard/vendor/api/vendor.services';
 import { _BrandApi } from '@/pages/dashboard/products/api/brand.services';
+import { _ProductApi } from '@/pages/dashboard/products/api/product.services';
 import { useForm, useWatch, Controller, useFieldArray } from 'react-hook-form';
 import { _CountryApi } from '@/pages/dashboard/countries/api/country.services';
 import { useId, useRef, useMemo, useState, useEffect, useCallback } from 'react';
@@ -58,31 +60,14 @@ import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout
 import { RHFBadgeSelector } from 'src/shared/components/hook-form/rhf-badge-selector';
 import { RHFInfiniteSelect } from 'src/shared/components/hook-form/rhf-infinite-select';
 
-// ----------------------------------------------------------------------
+import { ProductShopVariantsSection } from './ProductShopVariantsSection';
 
-const mainCategoryFetcher = (page: number, limit: number) =>
-  _CategoryApi.getListCategoriesPaginated({ page, per_page: limit, parent_id: 0 }).then((r) => ({
-    data: {
-      items: r.data.items.map((cat) => ({
-        id: cat.id,
-        label: formatTranslated(cat.name as any),
-      })),
-      pagination: r.data.pagination,
-    },
-  }));
+// ----------------------------------------------------------------------
 
 const brandFetcher = (page: number, limit: number) =>
   _BrandApi.getListBrands({ page, per_page: limit }).then((r) => ({
     data: {
       items: r.data.items.map((b) => ({ id: b.id, label: b.name })),
-      pagination: r.data.pagination,
-    },
-  }));
-
-const vendorFetcher = (page: number, limit: number) =>
-  _VendorApi.getListVendor({ page, limit }).then((r) => ({
-    data: {
-      items: r.data.items.map((v) => ({ id: v.id, label: formatTranslated(v.name) })),
       pagination: r.data.pagination,
     },
   }));
@@ -105,6 +90,10 @@ const saleCountryFetcher = (page: number, limit: number) =>
       pagination: r.data.pagination,
     },
   }));
+
+function generateRandomSku(): string {
+  return 'SKU-' + Math.random().toString(36).substring(2, 10).toUpperCase();
+}
 
 type CategoryDetailValueOption = { en: string; ar: string };
 
@@ -180,6 +169,14 @@ function toTwoDecimalNumber(raw: string): number | undefined {
   return Math.round(value * 100) / 100;
 }
 
+/** Hide `0` in optional / numeric variant & shop fields (show empty like cleared input). */
+function optionalNumberInputDisplay(v: unknown): string | number {
+  if (v === undefined || v === null || v === '') return '';
+  const n = Number(v);
+  if (!Number.isFinite(n) || n === 0) return '';
+  return n;
+}
+
 function FieldErrorText({ message }: { message?: string }) {
   if (!message) return null;
   return (
@@ -235,6 +232,42 @@ function resolveProductMediaUrl(url: string): string {
 function filterFileList(v: unknown): File[] {
   if (!Array.isArray(v)) return [];
   return v.filter((x): x is File => x instanceof File);
+}
+
+/** Sorted attribute-value ids for matching a created variant back to a form variant row. */
+function extractVariantAttributeValueIds(variant: any): number[] {
+  if (!variant || typeof variant !== 'object') return [];
+  const directIds = (variant as { attributes_values_ids?: unknown }).attributes_values_ids;
+  if (Array.isArray(directIds)) {
+    return directIds
+      .map((x) => Number(x))
+      .filter((n) => Number.isFinite(n) && n > 0)
+      .sort((a, b) => a - b);
+  }
+  const attrs = (variant as { attributes?: unknown }).attributes;
+  if (Array.isArray(attrs)) {
+    return attrs
+      .map((a: any) => Number(a?.id ?? a?.attribute_value_id ?? a?.value_id))
+      .filter((n) => Number.isFinite(n) && n > 0)
+      .sort((a, b) => a - b);
+  }
+  return [];
+}
+
+/** Created shop variants live under `shop_variants` (new API) or `shops` (legacy detail shape). */
+function extractCreatedShopVariants(variant: any): any[] {
+  if (!variant || typeof variant !== 'object') return [];
+  if (Array.isArray(variant.shop_variants)) return variant.shop_variants;
+  if (Array.isArray(variant.shops)) return variant.shops;
+  return [];
+}
+
+function getShopIdFromCreatedShopVariant(csv: any): number {
+  if (!csv) return 0;
+  const fromShop = Number(csv?.shop?.id);
+  if (Number.isFinite(fromShop) && fromShop > 0) return fromShop;
+  const direct = Number(csv?.shop_id);
+  return Number.isFinite(direct) && direct > 0 ? direct : 0;
 }
 
 /**
@@ -600,6 +633,10 @@ export default function CreatePage() {
 
   const [previewImages, setPreviewImages] = useState<string[]>([]);
   const [mainCategoryId, setMainCategoryId] = useState(0);
+  /** Create mode: gate form until user picks retail vs restaurant. Edit mode: true once product loads. */
+  const [hasSelectedProductType, setHasSelectedProductType] = useState(isEditMode);
+  const restaurantShopMetaRef = useRef<Map<number, { vendorId: number }>>(new Map());
+  const prevIsRestaurantToggleRef = useRef<boolean | null>(null);
   /** Extra categories to load "bought with" suggestions (merged with main product category). */
   const [boughtWithExtraCategoryIds, setBoughtWithExtraCategoryIds] = useState<number[]>([]);
   const productImagesInputId = useId();
@@ -681,7 +718,7 @@ export default function CreatePage() {
     country_id: 0,
     sale_country_id: 0,
     price_currency_id: 0,
-    price_local: 0,
+    price_local: undefined,
     price: undefined,
     discount: 0,
     discount_type: 'none',
@@ -695,6 +732,7 @@ export default function CreatePage() {
     time_prepare: '',
     delivery_time: '',
     expiry_date: '',
+    is_restaurant: false,
     is_instant_delivery: 0,
     is_visible: 1,
     thumbnail: undefined,
@@ -726,8 +764,16 @@ export default function CreatePage() {
   useEffect(() => {
     if (!currenciesReady || !usdCurrency) return;
     setValue('price_currency_id', usdCurrency.id, { shouldDirty: false });
-    const raw = priceWatch;
-    const usd = raw != null && !Number.isNaN(Number(raw)) ? Number(raw) : 0;
+    const raw = priceWatch as number | string | null | undefined;
+    if (
+      raw == null ||
+      (typeof raw === 'string' && raw.trim() === '') ||
+      Number.isNaN(Number(raw))
+    ) {
+      setValue('price_local', undefined, { shouldDirty: false });
+      return;
+    }
+    const usd = Number(raw);
     setValue('price_local', usdToLocalAmount(usd, parseCurrencyRate(usdCurrency)), {
       shouldDirty: false,
     });
@@ -746,14 +792,51 @@ export default function CreatePage() {
   }, [isEditMode, editCategoryMetaId, editCategoryResp?.data]);
 
   const categoryId = watch('category_id');
+  const isRestaurantToggle = watch('is_restaurant');
 
   // ─── Restaurant mode detection ────────────────────────────────────────
   const { data: selectedCategoryResp } = useFetchCategoryById(
     categoryId && categoryId > 0 ? categoryId : ''
   );
-  const restaurantMode = Boolean(
+  const categoryIsRestaurant = Boolean(
     selectedCategoryResp?.data?.is_restaurant ??
-    (isEditMode && productResponse?.category?.is_restaurant)
+    (isEditMode && (productResponse?.is_restaurant ?? productResponse?.category?.is_restaurant))
+  );
+  const restaurantMode = isRestaurantToggle || categoryIsRestaurant;
+  const categoryRestaurantFilter = isRestaurantToggle ? 1 : 0;
+
+  const mainCategoryFetcher = useCallback(
+    (page: number, limit: number) =>
+      _CategoryApi.getListCategoriesPaginated({
+        page,
+        per_page: limit,
+        parent_id: 0,
+        is_restaurant: categoryRestaurantFilter,
+      }).then((r) => ({
+        data: {
+          items: r.data.items.map((cat) => ({
+            id: cat.id,
+            label: formatTranslated(cat.name as any),
+          })),
+          pagination: r.data.pagination,
+        },
+      })),
+    [categoryRestaurantFilter]
+  );
+
+  const vendorFetcher = useCallback(
+    (page: number, limit: number) =>
+      _VendorApi.getListVendor({
+        page,
+        limit,
+        ...(isRestaurantToggle ? { is_restaurant: 1 } : {}),
+      }).then((r) => ({
+        data: {
+          items: r.data.items.map((v) => ({ id: v.id, label: formatTranslated(v.name) })),
+          pagination: r.data.pagination,
+        },
+      })),
+    [isRestaurantToggle]
   );
 
   // Null out restricted fields whenever restaurantMode becomes true
@@ -765,7 +848,36 @@ export default function CreatePage() {
     setValue('barcode', '');
     setValue('country_id', 0);
     setValue('sale_country_id', 0);
-  }, [restaurantMode, setValue]);
+    const vars = getValues('variants') ?? [];
+    vars.forEach((_, i) => {
+      setValue(`variants.${i}.model`, '');
+      setValue(`variants.${i}.barcode`, '');
+    });
+  }, [restaurantMode, setValue, getValues]);
+
+  const skipRestaurantToggleReset = useRef(false);
+  useEffect(() => {
+    if (skipRestaurantToggleReset.current) {
+      skipRestaurantToggleReset.current = false;
+      prevIsRestaurantToggleRef.current = isRestaurantToggle;
+      return;
+    }
+    if (prevIsRestaurantToggleRef.current === null) {
+      prevIsRestaurantToggleRef.current = isRestaurantToggle;
+      return;
+    }
+    if (prevIsRestaurantToggleRef.current === isRestaurantToggle) return;
+    prevIsRestaurantToggleRef.current = isRestaurantToggle;
+    setMainCategoryId(0);
+    setValue('category_id', 0);
+    setValue('variants', []);
+    setValue('shop_variants', []);
+    restaurantShopMetaRef.current.clear();
+    if (getValues('vendor_scope') === 'external') {
+      setValue('vendor_id', 0);
+    }
+  }, [isRestaurantToggle, setValue, getValues]);
+
   // ──────────────────────────────────────────────────────────────────────
 
   const imagesFiles = watch('images');
@@ -798,8 +910,13 @@ export default function CreatePage() {
   const { data: subcategoriesListResp, isLoading: isLoadingSubCats } = useFetchCategories(
     1,
     10,
-    mainCategoryId > 0 ? { parent_id: mainCategoryId } : undefined,
-    { enabled: mainCategoryId > 0 }
+    mainCategoryId > 0
+      ? {
+          parent_id: mainCategoryId,
+          is_restaurant: categoryRestaurantFilter,
+        }
+      : undefined,
+    { enabled: mainCategoryId > 0 && hasSelectedProductType }
   );
 
   const hasChildCategories = useMemo(() => {
@@ -829,6 +946,7 @@ export default function CreatePage() {
         page,
         per_page: limit,
         parent_id: mainCategoryId,
+        is_restaurant: categoryRestaurantFilter,
       }).then((r) => ({
         data: {
           items: r.data.items.map((cat) => ({
@@ -838,15 +956,99 @@ export default function CreatePage() {
           pagination: r.data.pagination,
         },
       })),
-    [mainCategoryId]
+    [mainCategoryId, categoryRestaurantFilter]
+  );
+
+  const selectedRestaurantShopId = useMemo(() => {
+    if (!isRestaurantToggle || !categoryId || categoryId <= 0) return 0;
+    const row = watchedShopVariants.find((sv) => Number(sv.variant_index) === 0);
+    return Number(row?.shop_id) > 0 ? Number(row!.shop_id) : 0;
+  }, [isRestaurantToggle, categoryId, watchedShopVariants]);
+
+  const selectedRestaurantShopInitialLabel = useMemo(() => {
+    if (selectedRestaurantShopId <= 0) return undefined;
+    for (const v of productResponse?.variants ?? []) {
+      for (const s of v.shops ?? []) {
+        if (Number(s.shop_id) === selectedRestaurantShopId) {
+          return typeof s.shop_name === 'string' ? s.shop_name : formatTranslated(s.shop_name as any);
+        }
+      }
+    }
+    return undefined;
+  }, [selectedRestaurantShopId, productResponse?.variants]);
+
+  const restaurantShopFetcher = useCallback(
+    (page: number, limit: number) => {
+      if (!categoryId || categoryId <= 0) {
+        return Promise.resolve({
+          data: { items: [], pagination: { current_page: 1, last_page: 1, per_page: limit, total: 0 } },
+        });
+      }
+      return _ShopApi.getListShop({
+        page,
+        per_page: limit,
+        category_id: categoryId,
+        shop_type: 'restaurant',
+      }).then((r) => ({
+        data: {
+          items: r.data.items.map((shop) => {
+            const vendorId = Number(shop.vendor_id ?? shop.vendor?.id ?? 0);
+            restaurantShopMetaRef.current.set(shop.id, { vendorId });
+            return {
+              id: shop.id,
+              label: formatTranslated(shop.name as any),
+            };
+          }),
+          pagination: r.data.pagination,
+        },
+      }));
+    },
+    [categoryId]
+  );
+
+  const handleRestaurantShopSelect = useCallback(
+    (shopId: number) => {
+      if (shopId <= 0) {
+        setValue('shop_variants', []);
+        return;
+      }
+      const meta = restaurantShopMetaRef.current.get(shopId);
+      const vendorId = meta?.vendorId ?? 0;
+      setValue('vendor_scope', 'external');
+      if (vendorId > 0) setValue('vendor_id', vendorId);
+
+      const existing = getValues('shop_variants') ?? [];
+      const idx = existing.findIndex((sv) => Number(sv.variant_index) === 0);
+      const price = getValues('price');
+      const quantity = getValues('quantity');
+      const defaults = {
+        shop_id: shopId,
+        variant_index: 0,
+        price: price != null && !Number.isNaN(Number(price)) ? Number(price) : 0,
+        quantity: quantity != null && !Number.isNaN(Number(quantity)) ? Number(quantity) : 0,
+      };
+      if (idx >= 0) {
+        const next = [...existing];
+        next[idx] = { ...next[idx], shop_id: shopId };
+        setValue('shop_variants', next);
+      } else {
+        setValue('shop_variants', [...existing, defaults]);
+      }
+    },
+    [getValues, setValue]
   );
 
   useEffect(() => {
     if (mainCategoryId <= 0 || isLoadingSubCats) return;
     if (!hasChildCategories) {
       setValue('category_id', mainCategoryId);
+      if (isRestaurantToggle) {
+        setValue('shop_variants', []);
+        setValue('vendor_id', 0);
+        restaurantShopMetaRef.current.clear();
+      }
     }
-  }, [mainCategoryId, hasChildCategories, isLoadingSubCats, setValue]);
+  }, [mainCategoryId, hasChildCategories, isLoadingSubCats, isRestaurantToggle, setValue]);
 
   // Fetch category attributes when category changes
   const { data: categoryAttributesAll, isLoading: isLoadingAttributes } =
@@ -1006,11 +1208,150 @@ export default function CreatePage() {
     [getValues, setValue, removeVariant]
   );
 
+  /**
+   * Add ONE new variant to an existing product without disturbing the others.
+   * Sends PUT /products/{id} with `variants[]` containing existing rows (id-only)
+   * plus the new variant (full data). Matches the new variant back from the
+   * response by sorted `attributes_values_ids` and returns its id.
+   */
+  const createSingleVariantOnProduct = useCallback(
+    async (args: {
+      productId: number | string;
+      variantIndex: number;
+      attrIds: number[];
+      images: File[] | undefined;
+      sku: string;
+      model: string;
+      barcode: string;
+      nameEn: string;
+      nameAr: string;
+    }): Promise<number> => {
+      const { productId, variantIndex, attrIds, images, sku, model, barcode, nameEn, nameAr } =
+        args;
+      const allVariants = getValues('variants') ?? [];
+      const currentCategoryId = Number(getValues('category_id') ?? 0);
+      const apiVariantsPayload: NonNullable<ProductCreateUpdatePayload['variants']> = [];
+      allVariants.forEach((row, idx) => {
+        if (idx === variantIndex) {
+          apiVariantsPayload.push({
+            attributes_values_ids: attrIds,
+            images,
+            sku,
+            model,
+            barcode,
+            name: { en: nameEn, ar: nameAr },
+          });
+        } else if (row?.id) {
+          const rowIds = Array.isArray(row.attributes_values_ids)
+            ? row.attributes_values_ids.map(Number).filter((n) => Number.isFinite(n) && n > 0)
+            : [];
+          apiVariantsPayload.push({
+            id: row.id,
+            attributes_values_ids: rowIds,
+          });
+        }
+      });
+      const resp = await _ProductApi.updateProductVariantsOnly(productId, {
+        category_id: currentCategoryId > 0 ? currentCategoryId : undefined,
+        variants: apiVariantsPayload,
+      });
+      const updatedVariants: any[] = Array.isArray(resp?.data?.variants)
+        ? resp.data.variants
+        : [];
+      const sortedTarget = [...attrIds].sort((a, b) => a - b);
+      const match = updatedVariants.find((cv) => {
+        const cvIds = extractVariantAttributeValueIds(cv);
+        if (cvIds.length !== sortedTarget.length) return false;
+        return cvIds.every((vid, i) => vid === sortedTarget[i]);
+      });
+      return match?.id ? Number(match.id) : 0;
+    },
+    [getValues]
+  );
+
+  /**
+   * Add ONE new shop variant to an existing product/variant pair without disturbing other rows.
+   * Returns the newly-created shop_variant id (or 0 if not matched in response).
+   */
+  const createSingleShopVariantOnProduct = useCallback(
+    async (args: {
+      productId: number | string;
+      parentVariantId: number;
+      parentVariantIndex: number;
+      shopId: number;
+      price: number;
+      costPrice: number | undefined;
+      quantity: number;
+    }): Promise<number> => {
+      const { productId, parentVariantId, parentVariantIndex, shopId, price, costPrice, quantity } =
+        args;
+      const allVariants = getValues('variants') ?? [];
+      const allShopVariants = getValues('shop_variants') ?? [];
+      const currentCategoryId = Number(getValues('category_id') ?? 0);
+
+      // Map original variant index -> remapped index in the payload (we send only variants with id).
+      const variantsPayload: NonNullable<ProductCreateUpdatePayload['variants']> = [];
+      const remap = new Map<number, number>();
+      allVariants.forEach((row, idx) => {
+        if (row?.id) {
+          remap.set(idx, variantsPayload.length);
+          const rowIds = Array.isArray(row.attributes_values_ids)
+            ? row.attributes_values_ids.map(Number).filter((n) => Number.isFinite(n) && n > 0)
+            : [];
+          variantsPayload.push({ id: row.id, attributes_values_ids: rowIds });
+        }
+      });
+
+      const shopVariantsPayload: NonNullable<ProductCreateUpdatePayload['shop_variants']> = [];
+      // Keep existing shop variants (by id) so backend doesn't drop them.
+      allShopVariants.forEach((sv) => {
+        if (!sv?.id) return;
+        const remappedIdx = remap.get(Number(sv.variant_index));
+        if (remappedIdx == null) return;
+        shopVariantsPayload.push({
+          id: sv.id,
+          shop_id: Number(sv.shop_id),
+          variant_index: remappedIdx,
+          price: Number(sv.price ?? 0),
+          quantity: Number(sv.quantity ?? 0),
+        });
+      });
+      const parentRemapped = remap.get(parentVariantIndex);
+      if (parentRemapped == null) {
+        return 0;
+      }
+      shopVariantsPayload.push({
+        shop_id: shopId,
+        variant_index: parentRemapped,
+        price,
+        cost_price: costPrice,
+        quantity,
+      });
+
+      const resp = await _ProductApi.updateProductVariantsOnly(productId, {
+        category_id: currentCategoryId > 0 ? currentCategoryId : undefined,
+        variants: variantsPayload,
+        shop_variants: shopVariantsPayload,
+      });
+      const updatedVariants: any[] = Array.isArray(resp?.data?.variants)
+        ? resp.data.variants
+        : [];
+      const parentRow = updatedVariants.find((v) => Number(v?.id) === Number(parentVariantId));
+      const created = extractCreatedShopVariants(parentRow).find(
+        (csv) => getShopIdFromCreatedShopVariant(csv) === shopId
+      );
+      return created?.id ? Number(created.id) : 0;
+    },
+    [getValues]
+  );
+
   // Populate form in edit mode
   useEffect(() => {
     if (isEditMode && productResponse && !isLoadingProduct) {
       const p = productResponse;
       const sk = p.seo_keywords as { en?: string[]; ar?: string[] } | null | undefined;
+      skipRestaurantToggleReset.current = true;
+      setHasSelectedProductType(true);
       reset({
         category_id: Number(p.category?.id) || 0,
         brand_id: Number(p.brand?.id) || 0,
@@ -1035,13 +1376,19 @@ export default function CreatePage() {
               ? Number(p.sale_country.id)
               : 0,
         price_currency_id: 0,
-        price_local:
-          p.price != null && !Number.isNaN(Number(p.price)) ? Number(p.price) : 0,
+        /** Synced from `price` in useEffect once USD/SYP rates are ready */
+        price_local: undefined,
         price: p.price == null || Number.isNaN(Number(p.price)) ? undefined : Number(p.price),
-        discount: p.discount != null ? Number(p.discount) : 0,
+        discount:
+          p.discount != null && String(p.discount).trim() !== ''
+            ? Number(p.discount)
+            : undefined,
         discount_type: (p.discount_type as 'none' | 'percentage' | 'fixed') || 'none',
         cost_price: p.cost_price != null ? Number(p.cost_price) : undefined,
-        quantity: Number(p.quantity) || 0,
+        quantity:
+          p.quantity != null && String(p.quantity).trim() !== '' && !Number.isNaN(Number(p.quantity))
+            ? Number(p.quantity)
+            : undefined,
         unit_id: p.unit_id != null && Number(p.unit_id) > 0 ? Number(p.unit_id) : 0,
         warranty_period: p.warranty_period != null ? Number(p.warranty_period) : undefined,
         sku: p.sku ?? '',
@@ -1053,6 +1400,7 @@ export default function CreatePage() {
           p.expiry_date && typeof p.expiry_date === 'string'
             ? p.expiry_date.slice(0, 10)
             : '',
+        is_restaurant: Boolean(p.is_restaurant ?? p.category?.is_restaurant),
         is_instant_delivery: p.is_instant_delivery ? 1 : 0,
         is_visible: p.is_visible === false || p.is_visible === 0 ? 0 : 1,
         thumbnail: undefined,
@@ -1457,9 +1805,14 @@ export default function CreatePage() {
 
       // Variants are optional: only rows with at least one attribute value are sent; incomplete rows are omitted.
       const rawVariantRows = payload.variants ?? [];
-      const validVariants = rawVariantRows.filter(
-        (v) => Array.isArray(v.attributes_values_ids) && v.attributes_values_ids.length > 0
-      );
+      const validVariantEntries = rawVariantRows
+        .map((v, origIdx) => ({ row: v, origIdx }))
+        .filter(
+          ({ row: v }) =>
+            Array.isArray(v.attributes_values_ids) && v.attributes_values_ids.length > 0
+        );
+      const validVariants = validVariantEntries.map(({ row }) => row);
+      const validVariantOrigIndices = validVariantEntries.map(({ origIdx }) => origIdx);
 
       // After dropping variant rows, remap shop_variants.variant_index to the new indices.
       const variantIndexMap = new Map<number, number>();
@@ -1477,12 +1830,21 @@ export default function CreatePage() {
           variant_index: variantIndexMap.get(Number(sv.variant_index))!,
         }));
 
+      const variantsForPayload = restaurantMode
+        ? validVariants.map((v) => ({ ...v, model: '', barcode: '' }))
+        : validVariants;
+
       const finalPayload = {
         ...payload,
-        brand_id: payload.brand_id && payload.brand_id > 0 ? payload.brand_id : undefined,
+        brand_id:
+          payload.brand_id && payload.brand_id > 0
+            ? payload.brand_id
+            : isEditMode && !restaurantMode
+              ? null
+              : undefined,
         country_id: payload.country_id && payload.country_id > 0 ? payload.country_id : undefined,
         sale_country_id: payload.sale_country_id && payload.sale_country_id > 0 ? payload.sale_country_id : undefined,
-        variants: validVariants,
+        variants: variantsForPayload,
         shop_variants: remappedShopVariants,
         category_details: payload.category_details?.filter(
           (cd) => cd.category_detail_id && cd.category_detail_id > 0
@@ -1502,10 +1864,23 @@ export default function CreatePage() {
         ? await compressImages(finalPayload.images)
         : finalPayload.images;
       const variantsCompressed = await Promise.all(
-        (finalPayload.variants ?? []).map(async (v) => ({
-          ...v,
-          images: v.images?.length ? await compressImages(v.images) : v.images,
-        }))
+        (finalPayload.variants ?? []).map(async (v, k) => {
+          const imgs = v.images?.length ? await compressImages(v.images) : v.images;
+          const origIdx = validVariantOrigIndices[k] ?? k;
+          const trendEl =
+            typeof document !== 'undefined'
+              ? (document.querySelector(
+                  `[data-variant-field="is-trend-${origIdx}"]`
+                ) as HTMLInputElement | null)
+              : null;
+          const isTrend = trendEl?.checked ? 1 : 0;
+          return {
+            ...v,
+            images: imgs,
+            is_trend: isTrend,
+            is_active: 1,
+          };
+        })
       );
       let thumb = finalPayload.thumbnail;
       if (thumb instanceof File) thumb = await compressImage(thumb);
@@ -1522,6 +1897,7 @@ export default function CreatePage() {
         vendor_scope: _omitVendorScope,
         price_currency_id: _omitPriceCurrencyId,
         price_local: _omitPriceLocal,
+        is_restaurant: _omitIsRestaurant,
         ...apiPayload
       } = uploadPayload;
 
@@ -1542,10 +1918,18 @@ export default function CreatePage() {
         });
         toast.success(t('form.productUpdatedSuccess'));
       } else {
-        stripSeoIfNoFile(apiPayload as Record<string, unknown>);
-        console.log('[Product Form] Sending create payload:', apiPayload);
-        await createProductMutation.mutateAsync(apiPayload as ProductCreateUpdatePayload);
+        const createPayload = { ...(apiPayload as object) } as ProductCreateUpdatePayload;
+        stripSeoIfNoFile(createPayload as unknown as Record<string, unknown>);
+        console.log('[Product Form] Sending create payload:', createPayload);
+        const createResponse = await createProductMutation.mutateAsync(createPayload);
+        const newProductId = Number(
+          createResponse?.data?.id ?? createResponse?.id ?? 0
+        );
         toast.success(t('form.productCreatedSuccess'));
+        if (newProductId > 0) {
+          navigate(paths.dashboard.product.update(newProductId));
+          return;
+        }
       }
       navigate(paths.dashboard.products);
     } catch (error: any) {
@@ -1574,6 +1958,17 @@ export default function CreatePage() {
   };
 
   const [productFormTab, setProductFormTab] = useState<string>('basic');
+
+  useEffect(() => {
+    if (restaurantMode && productFormTab === 'variants') {
+      setProductFormTab('basic');
+    }
+  }, [restaurantMode, productFormTab]);
+
+  /** Index of the variant row currently being created via PUT /products/{id}. */
+  const [variantCreateBusyIdx, setVariantCreateBusyIdx] = useState<number | null>(null);
+  /** Field-array index of the shop-variant row currently being created via PUT /products/{id}. */
+  const [shopVariantCreateBusyIdx, setShopVariantCreateBusyIdx] = useState<number | null>(null);
 
   useEffect(() => {
     if (isEditMode && id) {
@@ -1629,7 +2024,9 @@ export default function CreatePage() {
           className="mb-6"
         >
           <Tab value="basic" label={t('form.productFormTabBasic')} />
-          <Tab value="variants" label={t('form.productFormTabVariants')} />
+          {!restaurantMode && (
+            <Tab value="variants" label={t('form.productFormTabVariants')} />
+          )}
           <Tab value="seo" label={t('form.productFormTabSeo')} />
           <Tab value="extras" label={t('form.productFormTabExtras')} />
         </Tabs>
@@ -1651,6 +2048,62 @@ export default function CreatePage() {
 
         {productFormTab === 'basic' && (
           <Box className="space-y-6">
+
+        {/* ─── Product type (first input) ───────────────────────── */}
+        <Controller
+          name="is_restaurant"
+          control={control}
+          render={({ field }) => (
+            <Box className="p-4 rounded-xl border border-border/60 bg-background/60 space-y-3">
+              <Box className="flex items-center gap-2">
+                <Iconify icon="solar:shop-bold" className="text-primary" width={18} height={18} />
+                <Typography variant="subtitle2" className="font-semibold text-foreground">
+                  {t('form.productTypeSection')}
+                </Typography>
+              </Box>
+              <Typography variant="caption" className="text-muted-foreground block">
+                {t('form.productTypeSectionHelper')}
+              </Typography>
+              <Box className="flex flex-wrap gap-6">
+                <label className="flex items-center gap-2 cursor-pointer text-sm">
+                  <input
+                    type="radio"
+                    className="w-4 h-4"
+                    checked={field.value === false}
+                    onChange={() => {
+                      field.onChange(false);
+                      setHasSelectedProductType(true);
+                    }}
+                  />
+                  {t('form.productTypeRetail')}
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer text-sm">
+                  <input
+                    type="radio"
+                    className="w-4 h-4"
+                    checked={field.value === true}
+                    onChange={() => {
+                      field.onChange(true);
+                      setHasSelectedProductType(true);
+                    }}
+                  />
+                  {t('form.productTypeRestaurant')}
+                </label>
+              </Box>
+            </Box>
+          )}
+        />
+
+        {!hasSelectedProductType && (
+          <Box className="rounded-lg border border-dashed border-border/70 bg-muted/30 px-4 py-6 text-center">
+            <Typography variant="body2" className="text-muted-foreground">
+              {t('form.selectProductTypeFirst')}
+            </Typography>
+          </Box>
+        )}
+
+        {hasSelectedProductType && (
+          <>
 
         {/* ─── Restaurant mode banner ───────────────────────────── */}
         {restaurantMode && (
@@ -1689,8 +2142,19 @@ export default function CreatePage() {
                 setValue('category_id', 0);
                 setValue('variants', []);
                 setValue('category_details', []);
+                if (isRestaurantToggle) {
+                  setValue('shop_variants', []);
+                  setValue('vendor_id', 0);
+                  restaurantShopMetaRef.current.clear();
+                }
               }}
-              queryKey={['categories', 'infinite', 'product-form', 'roots']}
+              queryKey={[
+                'categories',
+                'infinite',
+                'product-form',
+                'roots',
+                isRestaurantToggle ? 'restaurant' : 'retail',
+              ]}
               fetcher={mainCategoryFetcher}
               placeholder={t('form.selectMainCategory')}
               initialLabel={mainCategoryInitialLabel}
@@ -1702,7 +2166,14 @@ export default function CreatePage() {
               <Label className="text-sm font-medium mb-1 block">{t('form.productSubcategory')}</Label>
               <RHFInfiniteSelect
                 name="category_id"
-                queryKey={['categories', 'infinite', 'product-form', 'children', mainCategoryId]}
+                queryKey={[
+                  'categories',
+                  'infinite',
+                  'product-form',
+                  'children',
+                  mainCategoryId,
+                  isRestaurantToggle ? 'restaurant' : 'retail',
+                ]}
                 fetcher={childCategoryFetcher}
                 placeholder={t('form.selectSubcategory')}
                 initialLabel={
@@ -1714,6 +2185,11 @@ export default function CreatePage() {
                 onValueChange={() => {
                   setValue('variants', []);
                   setValue('category_details', []);
+                  if (isRestaurantToggle) {
+                    setValue('shop_variants', []);
+                    setValue('vendor_id', 0);
+                    restaurantShopMetaRef.current.clear();
+                  }
                 }}
               />
             </Box>
@@ -1721,6 +2197,67 @@ export default function CreatePage() {
             <Typography variant="caption" className="text-muted-foreground block">
               {t('form.productCategoryUsesMainOnly')}
             </Typography>
+          ) : null}
+
+          {isRestaurantToggle && categoryId > 0 ? (
+            <Box className="group">
+              <Box className="flex items-center gap-2 mb-2">
+                <Iconify icon="solar:shop-2-bold" className="text-orange-500" width={20} />
+                <Typography variant="subtitle2" className="font-semibold text-foreground">
+                  {t('form.selectRestaurant')}
+                </Typography>
+              </Box>
+              <Typography variant="caption" className="text-muted-foreground mb-2 block">
+                {t('form.selectRestaurantHelper')}
+              </Typography>
+              <InfiniteScrollSelect
+                value={selectedRestaurantShopId}
+                onChange={(shopId) => handleRestaurantShopSelect(shopId)}
+                queryKey={[
+                  'shops',
+                  'infinite',
+                  'product-form',
+                  'restaurant-by-category',
+                  categoryId,
+                ]}
+                fetcher={restaurantShopFetcher}
+                placeholder={t('form.selectRestaurantPlaceholder')}
+                initialLabel={selectedRestaurantShopInitialLabel}
+                clearable
+              />
+            </Box>
+          ) : null}
+
+          {isRestaurantToggle && selectedRestaurantShopId > 0 ? (
+            <ProductShopVariantsSection
+              variantIndex={0}
+              shops={
+                shops.length > 0
+                  ? shops
+                  : [{ id: selectedRestaurantShopId, name: selectedRestaurantShopInitialLabel ?? '' }]
+              }
+              shopVariantsFields={shopVariantsFields}
+              watchedShopVariants={watchedShopVariants}
+              control={control}
+              watch={watch}
+              setValue={setValue}
+              appendShopVariant={appendShopVariant}
+              removeShopVariant={removeShopVariant}
+              productDualPriceReady={productDualPriceReady}
+              usdCurrency={usdCurrency}
+              sypCurrency={sypCurrency}
+              isEditMode={isEditMode}
+              productId={id}
+              shopVariantCreateBusyIdx={shopVariantCreateBusyIdx}
+              setShopVariantCreateBusyIdx={setShopVariantCreateBusyIdx}
+              updateShopVariantMutation={updateShopVariantMutation}
+              deleteShopVariantMutation={deleteShopVariantMutation}
+              createSingleShopVariantOnProduct={createSingleShopVariantOnProduct}
+              embedded
+              hideShopSelect
+              hideAddButton
+              requireParentVariantId={false}
+            />
           ) : null}
         </Box>
 
@@ -1799,12 +2336,22 @@ export default function CreatePage() {
                   control={control}
                   render={({ field, fieldState: { error } }) => (
                     <div>
-                      <input
-                        {...field}
-                        type="text"
-                        placeholder={t('form.skuPlaceholder')}
-                        className={fieldInputClass(!!error)}
-                      />
+                      <div className="flex gap-2">
+                        <input
+                          {...field}
+                          type="text"
+                          placeholder={t('form.skuPlaceholder')}
+                          className={fieldInputClass(!!error)}
+                        />
+                        <button
+                          type="button"
+                          title={t('form.generateSku')}
+                          onClick={() => field.onChange(generateRandomSku())}
+                          className="flex items-center justify-center rounded-md border border-border bg-muted px-2 hover:bg-muted/80 transition-colors"
+                        >
+                          <Iconify icon="solar:shuffle-bold" width={18} />
+                        </button>
+                      </div>
                       <FieldErrorText message={error?.message} />
                     </div>
                   )}
@@ -1876,7 +2423,7 @@ export default function CreatePage() {
                   variant="text"
                   size="small"
                   onClick={() =>
-                    window.open(`${paths.dashboard.root}${paths.dashboard.brands}/create`, '_blank')
+                    window.open(paths.dashboard.brand.create, '_blank')
                   }
                   className="text-primary -mr-2"
                 >
@@ -1890,11 +2437,13 @@ export default function CreatePage() {
                 fetcher={brandFetcher}
                 placeholder={t('form.selectBrandOptional')}
                 initialLabel={productResponse?.brand ? formatTranslated(productResponse.brand.name as any) : undefined}
+                clearable
               />
             </Box>
           )}
 
-          {/* Vendor source (For me / Out) */}
+          {/* Vendor source (For me / Out) — retail products only */}
+          {!isRestaurantToggle && (
           <Box className="group">
             <Box className="flex items-center gap-2 mb-2">
               <Iconify icon="solar:shop-bold" className="text-primary" width={20} />
@@ -1937,11 +2486,16 @@ export default function CreatePage() {
                 </Box>
               )}
             />
-            {vendorScope === 'external' && (
+                {vendorScope === 'external' && !isRestaurantToggle && (
               <Box className="mt-3 space-y-4">
                 <RHFInfiniteSelect
                   name="vendor_id"
-                  queryKey={['vendors', 'infinite', 'product-form']}
+                  queryKey={[
+                    'vendors',
+                    'infinite',
+                    'product-form',
+                    isRestaurantToggle ? 'restaurant' : 'retail',
+                  ]}
                   fetcher={vendorFetcher}
                   placeholder={t('form.selectVendorRequired')}
                   initialLabel={
@@ -1980,6 +2534,7 @@ export default function CreatePage() {
               </Box>
             )}
           </Box>
+          )}
         </Box>
 
         {/* ════════════════════════════════════════════════════════
@@ -2194,7 +2749,7 @@ export default function CreatePage() {
                         <input
                           {...field}
                           type="number"
-                          placeholder="0.00"
+                          placeholder=""
                           value={field.value === undefined || field.value === null ? '' : field.value}
                           onChange={(e) => {
                             field.onChange(toTwoDecimalNumber(e.target.value));
@@ -2216,7 +2771,7 @@ export default function CreatePage() {
                     </Typography>
                     <input
                       type="number"
-                      placeholder="0.00"
+                      placeholder=""
                       value={(() => {
                         const pw = priceWatch;
                         if (pw == null || Number.isNaN(Number(pw))) return '';
@@ -2235,14 +2790,17 @@ export default function CreatePage() {
                           return;
                         }
                         const v = toTwoDecimalNumber(raw);
-                        setValue(
-                          'price',
-                          localAmountToUsd(v ?? 0, rate),
-                          {
+                        if (v == null) {
+                          setValue('price', undefined, {
                             shouldValidate: true,
                             shouldDirty: true,
-                          }
-                        );
+                          });
+                          return;
+                        }
+                        setValue('price', localAmountToUsd(v, rate), {
+                          shouldValidate: true,
+                          shouldDirty: true,
+                        });
                       }}
                       className={fieldInputClass(!!errors.price)}
                       step="0.01"
@@ -2266,7 +2824,7 @@ export default function CreatePage() {
                         <input
                           {...field}
                           type="number"
-                          placeholder="0.00"
+                          placeholder=""
                           value={field.value === undefined || field.value === null ? '' : field.value}
                           onChange={(e) => {
                             field.onChange(toTwoDecimalNumber(e.target.value));
@@ -2295,7 +2853,7 @@ export default function CreatePage() {
                     <input
                       {...field}
                       type="number"
-                      placeholder="0.00"
+                      placeholder=""
                       value={field.value === undefined || field.value === null ? '' : field.value}
                       onChange={(e) => {
                         field.onChange(toTwoDecimalNumber(e.target.value));
@@ -2349,11 +2907,11 @@ export default function CreatePage() {
                   <input
                     {...field}
                     type="number"
-                    placeholder="0"
-                    value={field.value ?? 0}
+                    placeholder=""
+                    value={field.value === undefined || field.value === null ? '' : field.value}
                     min={0}
                     max={discountTypeWatch === 'percentage' ? 100 : undefined}
-                    onChange={(e) => field.onChange(toTwoDecimalNumber(e.target.value) ?? 0)}
+                    onChange={(e) => field.onChange(toTwoDecimalNumber(e.target.value))}
                     className={fieldInputClass(!!error)}
                     step="0.01"
                   />
@@ -2374,8 +2932,10 @@ export default function CreatePage() {
                   <input
                     {...field}
                     type="number"
-                    placeholder="0.00"
-                    value={field.value ?? ''}
+                    placeholder=""
+                    value={
+                      field.value === undefined || field.value === null ? '' : field.value
+                    }
                     onChange={(e) =>
                       field.onChange(toTwoDecimalNumber(e.target.value))
                     }
@@ -2407,7 +2967,18 @@ export default function CreatePage() {
                     {...field}
                     type="number"
                     placeholder="0"
-                    onChange={(e) => field.onChange(Number(e.target.value))}
+                    value={field.value === undefined || field.value === null ? '' : field.value}
+                    onChange={(e) => {
+                      const raw = e.target.value;
+                      if (raw === '') {
+                        field.onChange(undefined as unknown as ProductFormValues['quantity']);
+                        return;
+                      }
+                      const n = Number(raw);
+                      field.onChange(
+                        (Number.isNaN(n) ? undefined : n) as ProductFormValues['quantity']
+                      );
+                    }}
                     className={fieldInputClass(!!error)}
                   />
                   <FieldErrorText message={error?.message} />
@@ -2479,7 +3050,7 @@ export default function CreatePage() {
                   <input
                     {...field}
                     type="number"
-                    placeholder="0"
+                    placeholder=""
                     value={field.value ?? ''}
                     onChange={(e) =>
                       field.onChange(e.target.value === '' ? undefined : Number(e.target.value))
@@ -3054,36 +3625,174 @@ export default function CreatePage() {
                         </div>
                       )}
                     />
-                    <Controller
-                      name={`extra_details.${index}.price`}
-                      control={control}
-                      render={({ field: f, fieldState: { error } }) => (
-                        <div>
-                          <Typography
-                            variant="subtitle2"
-                            component="div"
-                            className="font-semibold text-foreground mb-2"
-                          >
-                            {t('form.extraDetailPriceLabel')}
-                          </Typography>
-                          <input
-                            type="number"
-                            placeholder="0.00"
-                            value={f.value === undefined || f.value === null ? '' : String(f.value)}
-                            onChange={(e) =>
-                              f.onChange(toTwoDecimalNumber(e.target.value))
-                            }
-                            onBlur={f.onBlur}
-                            name={f.name}
-                            ref={f.ref}
-                            className={fieldInputClass(!!error)}
-                            step="0.01"
-                            min={0}
+                    <div>
+                      <Typography
+                        variant="subtitle2"
+                        component="div"
+                        className="font-semibold text-foreground mb-2"
+                      >
+                        {t('form.extraDetailPriceLabel')}
+                      </Typography>
+                      {currenciesReady && activeCurrencies.length > 0 ? (
+                        productDualPriceReady ? (
+                          <Box className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
+                            <Controller
+                              name={`extra_details.${index}.price`}
+                              control={control}
+                              render={({ field: f, fieldState: { error } }) => (
+                                <div>
+                                  <Typography
+                                    variant="caption"
+                                    className="text-muted-foreground mb-1 block"
+                                  >
+                                    {t('form.productPriceUsdLabel')}
+                                    {usdCurrency?.symbol ? (
+                                      <span className="ms-1 opacity-80">({usdCurrency.symbol})</span>
+                                    ) : null}
+                                  </Typography>
+                                  <input
+                                    type="number"
+                                    placeholder=""
+                                    value={
+                                      f.value === undefined || f.value === null ? '' : String(f.value)
+                                    }
+                                    onChange={(e) => f.onChange(toTwoDecimalNumber(e.target.value))}
+                                    onBlur={f.onBlur}
+                                    name={f.name}
+                                    ref={f.ref}
+                                    className={fieldInputClass(!!error)}
+                                    step="0.01"
+                                    min={0}
+                                  />
+                                  <FieldErrorText message={error?.message} />
+                                </div>
+                              )}
+                            />
+                            <div>
+                              <Typography
+                                variant="caption"
+                                className="text-muted-foreground mb-1 block"
+                              >
+                                {t('form.productPriceSypLabel')}
+                                {sypCurrency?.symbol ? (
+                                  <span className="ms-1 opacity-80">({sypCurrency.symbol})</span>
+                                ) : null}
+                              </Typography>
+                              <input
+                                type="number"
+                                placeholder=""
+                                value={(() => {
+                                  const pw = watchedExtraDetailsRows[index]?.price;
+                                  if (pw == null || Number.isNaN(Number(pw))) return '';
+                                  return usdToLocalAmount(Number(pw), parseCurrencyRate(sypCurrency!));
+                                })()}
+                                onChange={(e) => {
+                                  const raw = e.target.value;
+                                  const rate = parseCurrencyRate(sypCurrency!);
+                                  if (raw === '') {
+                                    setValue(`extra_details.${index}.price`, undefined, {
+                                      shouldValidate: true,
+                                      shouldDirty: true,
+                                    });
+                                    return;
+                                  }
+                                  const v = toTwoDecimalNumber(raw);
+                                  if (v == null) {
+                                    setValue(`extra_details.${index}.price`, undefined, {
+                                      shouldValidate: true,
+                                      shouldDirty: true,
+                                    });
+                                    return;
+                                  }
+                                  setValue(
+                                    `extra_details.${index}.price`,
+                                    localAmountToUsd(v, rate),
+                                    {
+                                      shouldValidate: true,
+                                      shouldDirty: true,
+                                    }
+                                  );
+                                }}
+                                className={fieldInputClass(
+                                  !!(errors.extra_details as any)?.[index]?.price
+                                )}
+                                step="0.01"
+                                min={0}
+                              />
+                            </div>
+                          </Box>
+                        ) : (
+                          <Box className="space-y-2">
+                            <Typography variant="caption" className="text-destructive block">
+                              {t('form.productPriceSypMissing')}
+                            </Typography>
+                            <Controller
+                              name={`extra_details.${index}.price`}
+                              control={control}
+                              render={({ field: f, fieldState: { error } }) => (
+                                <div>
+                                  <Typography
+                                    variant="caption"
+                                    className="text-muted-foreground mb-1 block"
+                                  >
+                                    {t('form.productPriceUsdLabel')}
+                                  </Typography>
+                                  <input
+                                    type="number"
+                                    placeholder=""
+                                    value={
+                                      f.value === undefined || f.value === null ? '' : String(f.value)
+                                    }
+                                    onChange={(e) => f.onChange(toTwoDecimalNumber(e.target.value))}
+                                    onBlur={f.onBlur}
+                                    name={f.name}
+                                    ref={f.ref}
+                                    className={fieldInputClass(!!error)}
+                                    step="0.01"
+                                    min={0}
+                                  />
+                                  <FieldErrorText message={error?.message} />
+                                </div>
+                              )}
+                            />
+                          </Box>
+                        )
+                      ) : (
+                        <Box className="space-y-2">
+                          {!currenciesReady ? (
+                            <Typography
+                              variant="caption"
+                              className="text-muted-foreground block"
+                            >
+                              {t('form.productPriceCurrenciesLoading')}
+                            </Typography>
+                          ) : null}
+                          <Controller
+                            name={`extra_details.${index}.price`}
+                            control={control}
+                            render={({ field: f, fieldState: { error } }) => (
+                              <div>
+                                <input
+                                  type="number"
+                                  placeholder="0.00"
+                                  value={
+                                    f.value === undefined || f.value === null ? '' : String(f.value)
+                                  }
+                                  onChange={(e) => f.onChange(toTwoDecimalNumber(e.target.value))}
+                                  onBlur={f.onBlur}
+                                  name={f.name}
+                                  ref={f.ref}
+                                  className={fieldInputClass(!!error)}
+                                  step="0.01"
+                                  min={0}
+                                />
+                                <FieldErrorText message={error?.message} />
+                              </div>
+                            )}
                           />
-                          <FieldErrorText message={error?.message} />
-                        </div>
+                        </Box>
                       )}
-                    />
+                    </div>
                   </Box>
                   <Box className="flex justify-end">
                     <Button
@@ -3102,63 +3811,26 @@ export default function CreatePage() {
             })}
           </Box>
         </Box>
+          </>
+        )}
           </Box>
         )}
 
-        {productFormTab === 'variants' && (
+        {!restaurantMode && productFormTab === 'variants' && (
           <Box className="space-y-6">
-        {/* ─── Category (main → sub / feature) ──────────────────── */}
-        <Box className="group">
-          <Box className="flex items-center gap-2 mb-2">
-            <Iconify icon="solar:folder-bold" className="text-primary" width={20} />
-            <Typography variant="subtitle2" className="font-semibold text-foreground">
-              {t('form.productCategorySection')}
-            </Typography>
+        {!isEditMode && (
+          <Box className="flex items-start gap-3 p-4 rounded-lg border border-primary/30 bg-primary/5">
+            <Iconify icon="solar:info-circle-bold" className="text-primary shrink-0 mt-0.5" width={20} />
+            <div>
+              <Typography variant="subtitle2" className="font-semibold text-primary">
+                {t('form.variantsTabCreateModeTitle')}
+              </Typography>
+              <Typography variant="caption" className="text-foreground/80">
+                {t('form.variantsTabCreateModeHint')}
+              </Typography>
+            </div>
           </Box>
-          <Box className="space-y-1">
-            <Label className="text-sm font-medium">{t('form.productMainCategory')}</Label>
-            <InfiniteScrollSelect
-              value={mainCategoryId}
-              onChange={(val) => {
-                setMainCategoryId(val);
-                setValue('category_id', 0);
-                setValue('variants', []);
-                setValue('category_details', []);
-              }}
-              queryKey={['categories', 'infinite', 'product-form', 'roots']}
-              fetcher={mainCategoryFetcher}
-              placeholder={t('form.selectMainCategory')}
-              initialLabel={mainCategoryInitialLabel}
-            />
-          </Box>
-          {hasChildCategories ? (
-            <Box className="space-y-1 mt-4">
-              <Label className="text-sm font-medium">{t('form.productSubcategory')}</Label>
-              <RHFInfiniteSelect
-                name="category_id"
-                queryKey={['categories', 'infinite', 'product-form', 'children', mainCategoryId]}
-                fetcher={childCategoryFetcher}
-                placeholder={t('form.selectSubcategory')}
-                initialLabel={
-                  productResponse?.category?.name
-                    ? formatTranslated(productResponse.category.name as any)
-                    : undefined
-                }
-                disabled={!mainCategoryId}
-                onValueChange={() => {
-                  setValue('variants', []);
-                  setValue('category_details', []);
-                }}
-              />
-            </Box>
-          ) : mainCategoryId > 0 && !isLoadingSubCats ? (
-            <Typography variant="caption" className="text-muted-foreground block mt-2">
-              {t('form.productCategoryUsesMainOnly')}
-            </Typography>
-          ) : null}
-        </Box>
-
-        {/* ─── Variants ─────────────────────────────────────────── */}
+        )}
         <Box>
           <Box className="flex items-center justify-between mb-4">
             <Box className="flex items-center gap-2">
@@ -3171,20 +3843,24 @@ export default function CreatePage() {
               type="button"
               variant="outlined"
               size="small"
-          disabled={!categoryId || categoryId === 0 || categoryAttributes.length === 0}
-          onClick={() =>
-            appendVariant({
-              attributes_values_ids: [],
-              images: [],
-              existing_images_ids: [],
-              sku: '',
-              model: '',
-              barcode: '',
-              name: { en: '', ar: '' },
-              stock: undefined,
-              max_purchase_quantity: undefined,
-              delivery_time: '',
-            })
+              disabled={
+                !categoryId ||
+                categoryId === 0 ||
+                categoryAttributes.length === 0
+              }
+              onClick={() =>
+                appendVariant({
+                  attributes_values_ids: [],
+                  images: [],
+                  existing_images_ids: [],
+                  sku: '',
+                  model: '',
+                  barcode: '',
+                  name: { en: '', ar: '' },
+                  stock: undefined,
+                  max_purchase_quantity: undefined,
+                  delivery_time: '',
+                })
               }
             >
               <Iconify icon="solar:add-circle-bold" width={16} className="mr-1" />
@@ -3464,7 +4140,7 @@ export default function CreatePage() {
                     })()}
                   </Box>
 
-                  {/* ─── Variant Extra Fields (SKU, Model, Barcode, Name, Stock, Purchase Qty, Delivery) ─── */}
+                  {/* ─── Variant extra fields (SKU; model/barcode hidden for restaurant; name, stock, …) ─── */}
                   <Box className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 border-t border-border pt-4">
                     <Box>
                       <Typography variant="caption" className="text-muted-foreground mb-1 block">
@@ -3475,60 +4151,74 @@ export default function CreatePage() {
                         control={control}
                         render={({ field, fieldState: { error } }) => (
                           <div>
-                            <input
-                              {...field}
-                              value={field.value ?? ''}
-                              type="text"
-                              placeholder={t('form.variantSkuPlaceholder')}
-                              className={fieldInputClass(!!error)}
-                            />
+                            <div className="flex gap-2">
+                              <input
+                                {...field}
+                                value={field.value ?? ''}
+                                type="text"
+                                placeholder={t('form.variantSkuPlaceholder')}
+                                className={fieldInputClass(!!error)}
+                              />
+                              <button
+                                type="button"
+                                title={t('form.generateSku')}
+                                onClick={() => field.onChange(generateRandomSku())}
+                                className="flex items-center justify-center rounded-md border border-border bg-muted px-2 hover:bg-muted/80 transition-colors"
+                              >
+                                <Iconify icon="solar:shuffle-bold" width={18} />
+                              </button>
+                            </div>
                             <FieldErrorText message={error?.message} />
                           </div>
                         )}
                       />
                     </Box>
-                    <Box>
-                      <Typography variant="caption" className="text-muted-foreground mb-1 block">
-                        {t('form.variantModel')}
-                      </Typography>
-                      <Controller
-                        name={`variants.${variantIndex}.model`}
-                        control={control}
-                        render={({ field, fieldState: { error } }) => (
-                          <div>
-                            <input
-                              {...field}
-                              value={field.value ?? ''}
-                              type="text"
-                              placeholder={t('form.variantModelPlaceholder')}
-                              className={fieldInputClass(!!error)}
-                            />
-                            <FieldErrorText message={error?.message} />
-                          </div>
-                        )}
-                      />
-                    </Box>
-                    <Box>
-                      <Typography variant="caption" className="text-muted-foreground mb-1 block">
-                        {t('form.variantBarcode')}
-                      </Typography>
-                      <Controller
-                        name={`variants.${variantIndex}.barcode`}
-                        control={control}
-                        render={({ field, fieldState: { error } }) => (
-                          <div>
-                            <input
-                              {...field}
-                              value={field.value ?? ''}
-                              type="text"
-                              placeholder={t('form.variantBarcodePlaceholder')}
-                              className={fieldInputClass(!!error)}
-                            />
-                            <FieldErrorText message={error?.message} />
-                          </div>
-                        )}
-                      />
-                    </Box>
+                    {!restaurantMode && (
+                      <>
+                        <Box>
+                          <Typography variant="caption" className="text-muted-foreground mb-1 block">
+                            {t('form.variantModel')}
+                          </Typography>
+                          <Controller
+                            name={`variants.${variantIndex}.model`}
+                            control={control}
+                            render={({ field, fieldState: { error } }) => (
+                              <div>
+                                <input
+                                  {...field}
+                                  value={field.value ?? ''}
+                                  type="text"
+                                  placeholder={t('form.variantModelPlaceholder')}
+                                  className={fieldInputClass(!!error)}
+                                />
+                                <FieldErrorText message={error?.message} />
+                              </div>
+                            )}
+                          />
+                        </Box>
+                        <Box>
+                          <Typography variant="caption" className="text-muted-foreground mb-1 block">
+                            {t('form.variantBarcode')}
+                          </Typography>
+                          <Controller
+                            name={`variants.${variantIndex}.barcode`}
+                            control={control}
+                            render={({ field, fieldState: { error } }) => (
+                              <div>
+                                <input
+                                  {...field}
+                                  value={field.value ?? ''}
+                                  type="text"
+                                  placeholder={t('form.variantBarcodePlaceholder')}
+                                  className={fieldInputClass(!!error)}
+                                />
+                                <FieldErrorText message={error?.message} />
+                              </div>
+                            )}
+                          />
+                        </Box>
+                      </>
+                    )}
                     <Box>
                       <Typography variant="caption" className="text-muted-foreground mb-1 block">
                         {t('form.variantNameEn')}
@@ -3585,7 +4275,7 @@ export default function CreatePage() {
                               {...field}
                               type="number"
                               placeholder={t('form.variantStockPlaceholder')}
-                              value={field.value ?? ''}
+                              value={optionalNumberInputDisplay(field.value)}
                               onChange={(e) =>
                                 field.onChange(e.target.value === '' ? undefined : Number(e.target.value))
                               }
@@ -3609,7 +4299,7 @@ export default function CreatePage() {
                               {...field}
                               type="number"
                               placeholder={t('form.variantMaxPurchaseQuantityPlaceholder')}
-                              value={field.value ?? ''}
+                              value={optionalNumberInputDisplay(field.value)}
                               onChange={(e) =>
                                 field.onChange(e.target.value === '' ? undefined : Number(e.target.value))
                               }
@@ -3683,343 +4373,162 @@ export default function CreatePage() {
                   </Box>
 
                   {/* ─── Variant Save / Delete (edit mode only) ─── */}
-                  {isEditMode && watch(`variants.${variantIndex}.id`) && (
+                  {isEditMode && (
                     <Box className="flex items-center gap-2 border-t border-border pt-3">
                       <Button
                         type="button"
                         variant="outlined"
                         size="small"
-                        disabled={updateVariantMutation.isPending}
+                        disabled={
+                          updateVariantMutation.isPending ||
+                          variantCreateBusyIdx === variantIndex
+                        }
                         onClick={async () => {
                           const variantId = watch(`variants.${variantIndex}.id`);
-                          if (!variantId) return;
-                          const isTrendEl = document.querySelector(`[data-variant-field="is-trend-${variantIndex}"]`) as HTMLInputElement | null;
+                          const isTrendEl = document.querySelector(
+                            `[data-variant-field="is-trend-${variantIndex}"]`
+                          ) as HTMLInputElement | null;
                           const isTrendChecked = isTrendEl?.checked ?? false;
-                          try {
-                            const newImgs = watch(`variants.${variantIndex}.images`);
-                            const rawImages =
-                              Array.isArray(newImgs) && newImgs.length > 0 ? newImgs : undefined;
-                            const images = rawImages?.length
-                              ? await Promise.all(
-                                  rawImages.map((f) =>
-                                    f instanceof File ? compressImage(f) : f
-                                  )
+                          const attrIds =
+                            watch(`variants.${variantIndex}.attributes_values_ids`) || [];
+                          if (!Array.isArray(attrIds) || attrIds.length === 0) {
+                            toast.error(t('form.variantAttributesRequired'));
+                            return;
+                          }
+                          const newImgs = watch(`variants.${variantIndex}.images`);
+                          const rawImages =
+                            Array.isArray(newImgs) && newImgs.length > 0 ? newImgs : undefined;
+                          const images = rawImages?.length
+                            ? await Promise.all(
+                                rawImages.map((f) =>
+                                  f instanceof File ? compressImage(f) : f
                                 )
-                              : undefined;
-                            await updateVariantMutation.mutateAsync({
-                              id: variantId,
-                              data: {
-                                attributes_values_ids: watch(`variants.${variantIndex}.attributes_values_ids`) || [],
-                                existing_images_ids: watch(`variants.${variantIndex}.existing_images_ids`) || [],
-                                images,
-                                sku: watch(`variants.${variantIndex}.sku`) ?? '',
-                                model: watch(`variants.${variantIndex}.model`) ?? '',
-                                barcode: watch(`variants.${variantIndex}.barcode`) ?? '',
-                                name: {
-                                  en: watch(`variants.${variantIndex}.name.en`) ?? '',
-                                  ar: watch(`variants.${variantIndex}.name.ar`) ?? '',
+                              )
+                            : undefined;
+                          const skuVal = watch(`variants.${variantIndex}.sku`) ?? '';
+                          const modelVal = restaurantMode
+                            ? ''
+                            : watch(`variants.${variantIndex}.model`) ?? '';
+                          const barcodeVal = restaurantMode
+                            ? ''
+                            : watch(`variants.${variantIndex}.barcode`) ?? '';
+                          const nameEn = watch(`variants.${variantIndex}.name.en`) ?? '';
+                          const nameAr = watch(`variants.${variantIndex}.name.ar`) ?? '';
+
+                          if (variantId) {
+                            try {
+                              await updateVariantMutation.mutateAsync({
+                                id: variantId,
+                                data: {
+                                  attributes_values_ids: attrIds,
+                                  existing_images_ids:
+                                    watch(`variants.${variantIndex}.existing_images_ids`) || [],
+                                  images,
+                                  sku: skuVal,
+                                  model: modelVal,
+                                  barcode: barcodeVal,
+                                  name: { en: nameEn, ar: nameAr },
+                                  is_trend: isTrendChecked ? 1 : 0,
                                 },
-                                stock: watch(`variants.${variantIndex}.stock`) ?? 0,
-                                max_purchase_quantity: watch(`variants.${variantIndex}.max_purchase_quantity`) ?? 0,
-                                delivery_time:
-                                  vendorScope === 'internal'
-                                    ? t('form.variantDeliveryTimeApiInternal')
-                                    : watch(`variants.${variantIndex}.delivery_time`) ?? '',
-                                is_trend: isTrendChecked ? 1 : 0,
-                              },
-                            });
-                            toast.success(t('form.variantSaveSuccess'));
-                          } catch {
-                            toast.error(t('form.variantSaveFailed'));
+                              });
+                              toast.success(t('form.variantSaveSuccess'));
+                            } catch {
+                              toast.error(t('form.variantSaveFailed'));
+                            }
+                          } else {
+                            if (!id) {
+                              toast.error(t('form.variantSaveProductFirst'));
+                              return;
+                            }
+                            try {
+                              setVariantCreateBusyIdx(variantIndex);
+                              const newId = await createSingleVariantOnProduct({
+                                productId: id,
+                                variantIndex,
+                                attrIds,
+                                images,
+                                sku: skuVal,
+                                model: modelVal,
+                                barcode: barcodeVal,
+                                nameEn,
+                                nameAr,
+                              });
+                              if (newId > 0) {
+                                setValue(`variants.${variantIndex}.id`, newId, {
+                                  shouldDirty: false,
+                                });
+                                setValue(`variants.${variantIndex}.images`, [], {
+                                  shouldDirty: false,
+                                });
+                                toast.success(t('form.variantCreateSuccess'));
+                              } else {
+                                toast.error(t('form.variantCreateFailed'));
+                              }
+                            } catch {
+                              toast.error(t('form.variantCreateFailed'));
+                            } finally {
+                              setVariantCreateBusyIdx(null);
+                            }
                           }
                         }}
                       >
                         <Iconify icon="solar:diskette-bold" width={16} className="mr-1" />
-                        {updateVariantMutation.isPending ? t('form.savingVariant') : t('form.saveVariant')}
+                        {watch(`variants.${variantIndex}.id`)
+                          ? updateVariantMutation.isPending
+                            ? t('form.savingVariant')
+                            : t('form.saveVariant')
+                          : variantCreateBusyIdx === variantIndex
+                            ? t('form.savingVariant')
+                            : t('form.createVariant')}
                       </Button>
-                      <Button
-                        type="button"
-                        variant="text"
-                        size="small"
-                        className="text-destructive"
-                        disabled={deleteVariantMutation.isPending}
-                        onClick={async () => {
-                          const variantId = watch(`variants.${variantIndex}.id`);
-                          if (!variantId) return;
-                          if (!window.confirm(t('form.variantDeleteConfirm'))) return;
-                          try {
-                            await deleteVariantMutation.mutateAsync(variantId);
-                            handleRemoveVariant(variantIndex);
-                            toast.success(t('form.variantDeleteSuccess'));
-                          } catch {
-                            toast.error(t('form.variantDeleteFailed'));
-                          }
-                        }}
-                      >
-                        <Iconify icon="solar:trash-bin-bold" width={16} className="mr-1" />
-                        {t('form.deleteVariant')}
-                      </Button>
+                      {watch(`variants.${variantIndex}.id`) && (
+                        <Button
+                          type="button"
+                          variant="text"
+                          size="small"
+                          className="text-destructive"
+                          disabled={deleteVariantMutation.isPending}
+                          onClick={async () => {
+                            const variantId = watch(`variants.${variantIndex}.id`);
+                            if (!variantId) return;
+                            if (!window.confirm(t('form.variantDeleteConfirm'))) return;
+                            try {
+                              await deleteVariantMutation.mutateAsync(variantId);
+                              handleRemoveVariant(variantIndex);
+                              toast.success(t('form.variantDeleteSuccess'));
+                            } catch {
+                              toast.error(t('form.variantDeleteFailed'));
+                            }
+                          }}
+                        >
+                          <Iconify icon="solar:trash-bin-bold" width={16} className="mr-1" />
+                          {t('form.deleteVariant')}
+                        </Button>
+                      )}
                     </Box>
                   )}
 
-                  {/* ─── Shop product variants (per variant) ───────────────── */}
-                  <Box
-                    id={`variant-shop-section-${variantIndex}`}
-                    className="border-t border-border pt-4 space-y-3 scroll-mt-24"
-                  >
-                    <Box className="flex items-center gap-2">
-                      <Iconify icon="solar:shop-2-bold" className="text-primary" width={20} />
-                      <Typography variant="subtitle2" className="font-semibold text-foreground">
-                        {t('form.shopVariantsTitle')}
-                      </Typography>
-                    </Box>
-                    {shops.length === 0 ? (
-                      <Typography variant="body2" className="text-muted-foreground">
-                        {t('form.noShopsAvailable')}
-                      </Typography>
-                    ) : (
-                      <>
-                        {shopVariantsFields.map((svField, svIdx) => {
-                          const boundVi = Number(watchedShopVariants?.[svIdx]?.variant_index);
-                          if (boundVi !== variantIndex) return null;
-                          return (
-                            <Box
-                              key={svField.id}
-                              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3 p-3 border border-border rounded-lg items-end"
-                            >
-                              <Box>
-                                <Typography variant="caption" className="text-muted-foreground mb-1 block">
-                                  {t('form.shop')}
-                                </Typography>
-                                <Controller
-                                  name={`shop_variants.${svIdx}.shop_id`}
-                                  control={control}
-                                  render={({ field: f, fieldState: { error } }) => (
-                                    <div>
-                                      <select
-                                        {...f}
-                                        value={f.value}
-                                        onChange={(e) => f.onChange(Number(e.target.value))}
-                                        className={fieldInputClass(!!error)}
-                                      >
-                                        {shops.map((s: any) => (
-                                          <option key={s.id} value={s.id}>
-                                            {typeof s.name === 'object' ? s.name?.en ?? s.name?.ar : s.name}
-                                          </option>
-                                        ))}
-                                      </select>
-                                      <FieldErrorText message={error?.message} />
-                                    </div>
-                                  )}
-                                />
-                              </Box>
-                              <Box>
-                                <Typography variant="caption" className="text-muted-foreground mb-1 block">
-                                  {t('form.priceLabel')}
-                                </Typography>
-                                <Controller
-                                  name={`shop_variants.${svIdx}.price`}
-                                  control={control}
-                                  render={({ field: f, fieldState: { error } }) => (
-                                    <div>
-                                      <input
-                                        {...f}
-                                        type="number"
-                                        placeholder={t('form.shopVariantPricePlaceholder')}
-                                        onChange={(e) =>
-                                          f.onChange(toTwoDecimalNumber(e.target.value) ?? 0)
-                                        }
-                                        className={fieldInputClass(!!error)}
-                                        step="0.01"
-                                      />
-                                      <FieldErrorText message={error?.message} />
-                                    </div>
-                                  )}
-                                />
-                              </Box>
-                              <Box>
-                                <Typography variant="caption" className="text-muted-foreground mb-1 block">
-                                  {t('form.productCostPriceOptional')}
-                                </Typography>
-                                <Controller
-                                  name={`shop_variants.${svIdx}.cost_price`}
-                                  control={control}
-                                  render={({ field: f, fieldState: { error } }) => (
-                                    <div>
-                                      <input
-                                        {...f}
-                                        type="number"
-                                        value={f.value ?? ''}
-                                        placeholder={t('form.shopVariantPricePlaceholder')}
-                                        onChange={(e) =>
-                                          f.onChange(toTwoDecimalNumber(e.target.value))
-                                        }
-                                        className={fieldInputClass(!!error)}
-                                        step="0.01"
-                                      />
-                                      <FieldErrorText message={error?.message} />
-                                    </div>
-                                  )}
-                                />
-                              </Box>
-                              <Box>
-                                <Typography variant="caption" className="text-muted-foreground mb-1 block">
-                                  {t('columns.discount')}
-                                </Typography>
-                                <Controller
-                                  name={`shop_variants.${svIdx}.discount`}
-                                  control={control}
-                                  render={({ field: f, fieldState: { error } }) => (
-                                    <div>
-                                      <input
-                                        {...f}
-                                        type="number"
-                                        value={f.value ?? ''}
-                                        placeholder={t('form.shopVariantDiscountPlaceholder')}
-                                        onChange={(e) =>
-                                          f.onChange(toTwoDecimalNumber(e.target.value))
-                                        }
-                                        className={fieldInputClass(!!error)}
-                                        step="0.01"
-                                      />
-                                      <FieldErrorText message={error?.message} />
-                                    </div>
-                                  )}
-                                />
-                              </Box>
-                              <Box>
-                                <Typography variant="caption" className="text-muted-foreground mb-1 block">
-                                  {t('form.quantity')}
-                                </Typography>
-                                <Box className="flex gap-2">
-                                  <Controller
-                                    name={`shop_variants.${svIdx}.quantity`}
-                                    control={control}
-                                    render={({ field: f, fieldState: { error } }) => (
-                                      <div className="flex-1 min-w-0">
-                                        <input
-                                          {...f}
-                                          type="number"
-                                          placeholder={t('form.shopVariantQuantityPlaceholder')}
-                                          onChange={(e) => f.onChange(Number(e.target.value))}
-                                          className={fieldInputClass(!!error)}
-                                        />
-                                        <FieldErrorText message={error?.message} />
-                                      </div>
-                                    )}
-                                  />
-                                  {!isEditMode && (
-                                    <Button
-                                      type="button"
-                                      variant="text"
-                                      size="small"
-                                      onClick={() => removeShopVariant(svIdx)}
-                                      className="text-destructive shrink-0"
-                                    >
-                                      <Iconify icon="solar:trash-bin-bold" width={16} />
-                                    </Button>
-                                  )}
-                                </Box>
-                              </Box>
-                              {isEditMode && (
-                                <Box className="flex items-center gap-2 col-span-full border-t border-border pt-2 mt-1">
-                                  {watch(`shop_variants.${svIdx}.id`) ? (
-                                    <>
-                                      <Button
-                                        type="button"
-                                        variant="outlined"
-                                        size="small"
-                                        disabled={updateShopVariantMutation.isPending}
-                                        onClick={async () => {
-                                          const svId = watch(`shop_variants.${svIdx}.id`);
-                                          if (!svId) return;
-                                          try {
-                                            const variantIdx = watch(`shop_variants.${svIdx}.variant_index`);
-                                            const linkedVariantId =
-                                              variantIdx != null
-                                                ? watch(`variants.${variantIdx}.id`)
-                                                : undefined;
-                                            await updateShopVariantMutation.mutateAsync({
-                                              id: svId,
-                                              data: {
-                                                price: watch(`shop_variants.${svIdx}.price`),
-                                                cost_price: watch(`shop_variants.${svIdx}.cost_price`),
-                                                discount: watch(`shop_variants.${svIdx}.discount`),
-                                                quantity: watch(`shop_variants.${svIdx}.quantity`),
-                                                shop_id: watch(`shop_variants.${svIdx}.shop_id`),
-                                                product_variant_id: linkedVariantId ?? undefined,
-                                              },
-                                            });
-                                            toast.success(t('form.shopVariantSaveSuccess'));
-                                          } catch {
-                                            toast.error(t('form.shopVariantSaveFailed'));
-                                          }
-                                        }}
-                                      >
-                                        <Iconify icon="solar:diskette-bold" width={16} className="mr-1" />
-                                        {t('form.saveShopVariant')}
-                                      </Button>
-                                      <Button
-                                        type="button"
-                                        variant="text"
-                                        size="small"
-                                        className="text-destructive"
-                                        disabled={deleteShopVariantMutation.isPending}
-                                        onClick={async () => {
-                                          const svId = watch(`shop_variants.${svIdx}.id`);
-                                          if (!svId) return;
-                                          if (!window.confirm(t('form.shopVariantDeleteConfirm'))) return;
-                                          try {
-                                            await deleteShopVariantMutation.mutateAsync(svId);
-                                            removeShopVariant(svIdx);
-                                            toast.success(t('form.shopVariantDeleteSuccess'));
-                                          } catch {
-                                            toast.error(t('form.shopVariantDeleteFailed'));
-                                          }
-                                        }}
-                                      >
-                                        <Iconify icon="solar:trash-bin-bold" width={16} className="mr-1" />
-                                        {t('form.deleteShopVariant')}
-                                      </Button>
-                                    </>
-                                  ) : (
-                                    <Button
-                                      type="button"
-                                      variant="text"
-                                      size="small"
-                                      onClick={() => removeShopVariant(svIdx)}
-                                      className="text-destructive shrink-0"
-                                    >
-                                      <Iconify icon="solar:trash-bin-bold" width={16} className="mr-1" />
-                                      {t('form.remove')}
-                                    </Button>
-                                  )}
-                                </Box>
-                              )}
-                            </Box>
-                          );
-                        })}
-                        <Button
-                          type="button"
-                          variant="outlined"
-                          size="small"
-                          onClick={() =>
-                            appendShopVariant({
-                              shop_id: shops[0]?.id ?? 0,
-                              variant_index: variantIndex,
-                              price: 0,
-                              cost_price: undefined,
-                              discount: undefined,
-                              quantity: 0,
-                            })
-                          }
-                        >
-                          <Iconify icon="solar:add-circle-bold" width={16} className="mr-1" />
-                          {t('form.addShopVariant')}
-                        </Button>
-                      </>
-                    )}
-                  </Box>
+                  <ProductShopVariantsSection
+                    variantIndex={variantIndex}
+                    shops={shops}
+                    shopVariantsFields={shopVariantsFields}
+                    watchedShopVariants={watchedShopVariants}
+                    control={control}
+                    watch={watch}
+                    setValue={setValue}
+                    appendShopVariant={appendShopVariant}
+                    removeShopVariant={removeShopVariant}
+                    productDualPriceReady={productDualPriceReady}
+                    usdCurrency={usdCurrency}
+                    sypCurrency={sypCurrency}
+                    isEditMode={isEditMode}
+                    productId={id}
+                    shopVariantCreateBusyIdx={shopVariantCreateBusyIdx}
+                    setShopVariantCreateBusyIdx={setShopVariantCreateBusyIdx}
+                    updateShopVariantMutation={updateShopVariantMutation}
+                    deleteShopVariantMutation={deleteShopVariantMutation}
+                    createSingleShopVariantOnProduct={createSingleShopVariantOnProduct}
+                  />
                 </Box>
               ))}
             </Box>

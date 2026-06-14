@@ -11,6 +11,29 @@ import { Form } from 'src/shared/components/hook-form/form-provider';
 
 // ----------------------------------------------------------------------
 
+/** Inline CSS (module scope avoids SWC/JSX confusion with `>` inside template + `{…}`). */
+const CREATE_FORM_SECTION_STYLES = `
+  /* Project-wide section card polish for create/update forms */
+  .create-form-sections > .rounded-2xl {
+    border-width: 1px !important;
+    border-color: var(--color-primary) !important;
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.05),
+      0 0 0 1px color-mix(in oklab, var(--color-primary) 35%, transparent) inset;
+  }
+
+  /*
+   * Hide duplicated section title bars by default (inner field labels remain).
+   * Add class \`create-form-section-keep-header\` on a section card when the header
+   * row must stay visible (e.g. actions like "Add item" live in the title bar).
+   */
+  .create-form-sections
+    > .rounded-2xl:not(.create-form-section-keep-header)
+    > [class*='px-6'][class*='py-4'][class*='border-b'] {
+    display: none !important;
+  }
+`;
+
 export interface CreateFormLayoutProps<T extends Record<string, any>> {
   // Form configuration
   methods: UseFormReturn<T>;
@@ -269,23 +292,7 @@ export function CreateFormLayout<T extends Record<string, any>>({
           </Box>
         )}
 
-        <style>
-          {`
-            /* Project-wide section card polish for create/update forms */
-            .create-form-sections > .rounded-2xl {
-              border-width: 1px !important;
-              border-color: var(--color-primary) !important;
-              box-shadow:
-                0 1px 2px rgba(0, 0, 0, 0.05),
-                0 0 0 1px color-mix(in oklab, var(--color-primary) 35%, transparent) inset;
-            }
-
-            /* Remove duplicated section title bars (keep field labels only) */
-            .create-form-sections > .rounded-2xl > [class*="px-6"][class*="py-4"][class*="border-b"] {
-              display: none !important;
-            }
-          `}
-        </style>
+        <style dangerouslySetInnerHTML={{ __html: CREATE_FORM_SECTION_STYLES }} />
 
         {/* Form Card */}
         <Box className="rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm shadow-sm">

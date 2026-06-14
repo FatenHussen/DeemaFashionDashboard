@@ -1,3 +1,5 @@
+import 'dayjs/locale/ar';
+
 import type { Dayjs, OpUnitType } from 'dayjs';
 
 import dayjs from 'dayjs';
@@ -83,6 +85,30 @@ export function fDate(date: DatePickerFormat, template?: string): string {
   }
 
   return normalizeIndicNumeralsToLatin(dayjs(date).format(template ?? formatPatterns.date));
+}
+
+export type UiLang = 'ar' | 'en';
+
+/** Date string for display; month names follow UI language (ar / en). */
+export function fDateLocalized(date: DatePickerFormat, lang: UiLang, template?: string): string {
+  if (!isValidDate(date)) {
+    return '';
+  }
+
+  return normalizeIndicNumeralsToLatin(
+    dayjs(date).locale(lang).format(template ?? formatPatterns.date)
+  );
+}
+
+/** Date + time for display; follows UI language (ar / en). */
+export function fDateTimeLocalized(date: DatePickerFormat, lang: UiLang, template?: string): string {
+  if (!isValidDate(date)) {
+    return '';
+  }
+
+  return normalizeIndicNumeralsToLatin(
+    dayjs(date).locale(lang).format(template ?? formatPatterns.dateTime)
+  );
 }
 
 // ----------------------------------------------------------------------

@@ -1,15 +1,16 @@
 import { useNavigate } from 'react-router';
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Box, Button, Typography } from '@/shared/ui';
 import { Iconify } from '@/shared/components/iconify';
 import { LoadingScreen } from '@/shared/components/loading-screen';
+import { Box, Button, Typography, DatePickerField } from '@/shared/ui';
 
 import { paths } from 'src/routes/paths';
 
 import { CONFIG } from 'src/global-config';
 
 import { useFetchSalesByCategoryReport } from '../hooks/report';
+import { ReportPeriodBanner } from '../components/report-period-banner';
 
 // ----------------------------------------------------------------------
 
@@ -77,17 +78,15 @@ export default function SalesByCategoryReportPage() {
           </Box>
         </Box>
         <Box className="flex flex-wrap items-center gap-2">
-          <input
-            type="date"
+          <DatePickerField
             value={fromDate}
-            onChange={(e) => setFromDate(e.target.value)}
-            className="h-9 rounded-lg border border-input bg-background px-3 text-sm"
+            onChange={setFromDate}
+            className="h-9 min-w-[140px] rounded-lg border border-input bg-background px-3 text-sm w-auto max-sm:flex-1"
           />
-          <input
-            type="date"
+          <DatePickerField
             value={toDate}
-            onChange={(e) => setToDate(e.target.value)}
-            className="h-9 rounded-lg border border-input bg-background px-3 text-sm"
+            onChange={setToDate}
+            className="h-9 min-w-[140px] rounded-lg border border-input bg-background px-3 text-sm w-auto max-sm:flex-1"
           />
           <Button variant="outlined" size="small" onClick={handleApply}>
             {t('reports.apply')}
@@ -96,6 +95,7 @@ export default function SalesByCategoryReportPage() {
       </div>
 
       <div className="w-full space-y-4 transition-opacity duration-500 p-6">
+        <ReportPeriodBanner appliedFrom={appliedFrom} appliedTo={appliedTo} lang={lang} />
         {reportData && (
           <>
             {categories.length > 0 ? (
@@ -129,7 +129,11 @@ export default function SalesByCategoryReportPage() {
                           <td className="py-3 px-5 font-medium">{getLocalName(item.category, lang)}</td>
                           <td className="text-end py-3 px-5">{item.total_quantity}</td>
                           <td className="text-end py-3 px-5">
-                            {item.total_revenue != null ? Number(item.total_revenue).toFixed(2) : '-'}
+                            {item.total_revenue != null
+                              ? Number(item.total_revenue).toLocaleString(undefined, {
+                                  maximumFractionDigits: 2,
+                                })
+                              : '-'}
                           </td>
                         </tr>
                       ))}

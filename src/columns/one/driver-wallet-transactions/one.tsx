@@ -5,6 +5,7 @@ import type { DriverWalletTransactionItem } from '@/pages/dashboard/driver-walle
 import { z } from 'zod';
 import { Link } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
+import { formatDecimal } from '@/utils/format-currency';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 import { DriverCreativeAvatar } from '@/pages/dashboard/driver-wallet-transactions/components/driver-creative-avatar';
@@ -119,7 +120,7 @@ export const driverWalletTransactionColumns = (
     accessorKey: 'amount',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.amount')} />,
     cell: ({ row }) => (
-      <span className="font-semibold text-foreground">{row.original.amount?.toLocaleString()}</span>
+      <span className="font-semibold text-foreground">{formatDecimal(row.original.amount)}</span>
     ),
   },
   {
@@ -129,7 +130,7 @@ export const driverWalletTransactionColumns = (
       <DataTableColumnHeader column={column} title={t('form.driverWalletTxDeliveryFee')} />
     ),
     cell: ({ row }) => (
-      <span className="text-sm tabular-nums">{row.original.delivery_fee?.toLocaleString()}</span>
+      <span className="text-sm tabular-nums">{formatDecimal(row.original.delivery_fee)}</span>
     ),
   },
   {

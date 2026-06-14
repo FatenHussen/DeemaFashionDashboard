@@ -422,6 +422,26 @@ export default function DetailsPage() {
                     />
                   </div>
                 )}
+                {item.categories && item.categories.length > 0 && (
+                  <div className="sm:col-span-2 lg:col-span-3">
+                    <InfoTile
+                      icon="solar:folder-bold"
+                      label={t('form.shopCategoriesSection')}
+                      value={
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {item.categories.map((c) => (
+                            <span
+                              key={c.id}
+                              className="inline-flex rounded-lg border border-violet-500/20 bg-violet-500/5 px-2.5 py-1 text-xs font-semibold text-violet-700 dark:text-violet-300"
+                            >
+                              {formatTranslated(c.name) || `#${c.id}`}
+                            </span>
+                          ))}
+                        </div>
+                      }
+                    />
+                  </div>
+                )}
                 {(item.created_at || item.updated_at) && (
                   <div className="flex flex-wrap gap-6 border-t border-border/40 pt-6 sm:col-span-2 lg:col-span-3">
                     {item.created_at && (

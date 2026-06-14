@@ -174,6 +174,9 @@ export const apiRoutes = {
     delete: (id: number | string) => `${ROOTS.ADMIN}/page-sections/${id}`,
     details: (id: number | string) => `${ROOTS.ADMIN}/page-sections/${id}`,
     pages: `${ROOTS.ADMIN}/sections/pages`,
+    pagePreview: (id: number | string) => `${ROOTS.ADMIN}/page-sections/pages/${id}/preview`,
+    /** Persist section order on a CMS page. Body: `{ sections: [{ id, order, position }] }`. */
+    pageReorder: (pageId: number | string) => `${ROOTS.ADMIN}/page-sections/pages/${pageId}/reorder`,
   },
   // Other API routes (from old endpoints)
   chat: '/api/chat',

@@ -1,5 +1,6 @@
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
+import { useQuery } from '@tanstack/react-query';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Iconify } from '@/shared/components/iconify';
 import { MultiSelect } from '@/shared/ui/multi-select';
@@ -12,6 +13,7 @@ import { useForm, Controller, type Resolver } from 'react-hook-form';
 import { _AreaApi } from '@/pages/dashboard/locations/api/area.services';
 import { useFetchServices } from '@/pages/dashboard/vendor/hooks/service';
 import { _VendorApi } from '@/pages/dashboard/vendor/api/vendor.services';
+import { _CategoryApi } from '@/pages/dashboard/categories/api/category.services';
 import {
   ShopSchema,
   type ShopFormValues,
@@ -218,6 +220,10 @@ function buildShopFormValuesFromApi(shop: ShopData): ShopFormValues {
     payment_methods: paymentMethodsFromShop(shop),
     pricing_tier: normalizeShopPriceLevelFromApi(shop),
     is_recommended: Boolean(shop.is_recommended ?? shop.recommended),
+    category_ids:
+      shop.category_ids?.length
+        ? shop.category_ids
+        : shop.categories?.map((c) => c.id).filter((id) => Number.isFinite(id) && id > 0) ?? [],
   };
 }
 
@@ -230,6 +236,7 @@ const SHOP_STEP_VALIDATION_FIELDS: string[][] = [
   [
     'area_id',
     'service_ids',
+    'category_ids',
     'is_active',
     'shop_type',
     'payment_methods',
@@ -262,6 +269,20 @@ export default function CreatePage() {
   const serviceOptions = services.map((s: any) => ({
     value: s.id,
     label: formatTranslated(s.name),
+  }));
+
+  const { data: categoryRows = [], isLoading: isLoadingCategories } = useQuery({
+    queryKey: ['categories', 'flat', 'shop-form', isRestaurantMode ? 'restaurant' : 'all'],
+    queryFn: () =>
+      _CategoryApi.getListAllCategoriesFlat({
+        per_page: 500,
+        is_active: true,
+        ...(isRestaurantMode ? { is_restaurant: true } : {}),
+      }),
+  });
+  const categoryOptions = categoryRows.map((c) => ({
+    value: c.id,
+    label: formatTranslated(c.name),
   }));
 
   const paymentMethodOptions = (['cash', 'online'] as const).map((key) => ({
@@ -308,6 +329,7 @@ export default function CreatePage() {
     payment_methods: [],
     pricing_tier: 'medium',
     is_recommended: false,
+    category_ids: [],
   };
 
   const editFormValues = useMemo(() => {
@@ -394,6 +416,7 @@ export default function CreatePage() {
         payment_methods: data.payment_methods ?? [],
         pricing_tier: data.pricing_tier,
         is_recommended: data.is_recommended,
+        category_ids: (data.category_ids ?? []).filter((categoryId) => categoryId > 0),
       };
 
       if (isEditMode && id) {
@@ -1101,6 +1124,53 @@ export default function CreatePage() {
                 )}
               />
             </Box>
+          </Box>
+
+          <Box className="group pt-2">
+            <Box className="flex items-center gap-2.5 mb-3">
+              <Box className="w-7 h-7 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
+                <Iconify
+                  icon="solar:folder-bold"
+                  className="text-primary"
+                  width={16}
+                  height={16}
+                />
+              </Box>
+              <Typography variant="subtitle2" className="font-semibold text-foreground">
+                {t('form.shopCategoriesSection')}
+              </Typography>
+            </Box>
+            <Controller
+              name="category_ids"
+              control={control}
+              render={({ field, fieldState: { error } }) => (
+                <div className="w-full">
+                  <MultiSelect
+                    options={categoryOptions}
+                    value={field.value ?? []}
+                    onChange={(ids) =>
+                      field.onChange(
+                        (ids as (string | number)[])
+                          .map((cid) => Number(cid))
+                          .filter((n) => Number.isFinite(n) && n > 0)
+                      )
+                    }
+                    placeholder={
+                      isLoadingCategories ? t('loading') : t('form.selectShopCategories')
+                    }
+                    isDisabled={isLoadingCategories || categoryOptions.length === 0}
+                  />
+                  <Typography variant="caption" className="text-muted-foreground mt-1 block">
+                    {t('form.shopCategoriesHelper')}
+                  </Typography>
+                  {error?.message && (
+                    <Typography variant="caption" className="text-destructive mt-1 block">
+                      {error.message}
+                    </Typography>
+                  )}
+                </div>
+              )}
+            />
           </Box>
 
           {/* Active Status */}

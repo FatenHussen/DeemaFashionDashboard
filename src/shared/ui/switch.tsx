@@ -20,33 +20,36 @@ export const Switch = forwardRef<HTMLInputElement, SwitchProps>(
             props.disabled ? 'cursor-not-allowed opacity-50' : '',
           ])}
         >
-          <input
-            ref={ref}
-            type="checkbox"
-            id={switchId}
-            className="peer sr-only"
-            {...props}
-          />
-          <div
-            className={mergeClasses([
-              'relative h-6 w-11 rounded-full bg-muted-foreground/30 transition-colors',
-              'peer-checked:bg-primary',
-              'peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary peer-focus:ring-offset-2 peer-focus:ring-offset-background',
-              'peer-disabled:cursor-not-allowed peer-disabled:opacity-50',
-              error ? 'bg-red-400/40 peer-checked:bg-red-500' : '',
-              className,
-            ])}
-          >
-            <div
+          <span className="relative inline-flex h-6 w-11 shrink-0 align-middle">
+            <input
+              ref={ref}
+              type="checkbox"
+              id={switchId}
+              className="peer sr-only"
+              {...props}
+            />
+            {/* Must be siblings of `.peer` for `peer-checked:` (Tailwind); nested thumb never received peer state */}
+            <span
+              aria-hidden
               className={mergeClasses([
-                'absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-background shadow transition-transform',
-                'peer-checked:translate-x-5',
+                'pointer-events-none absolute inset-0 rounded-full bg-muted-foreground/30 transition-colors duration-200',
+                'peer-checked:bg-primary',
+                'peer-focus-visible:outline-none peer-focus-visible:ring-2 peer-focus-visible:ring-primary peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-background',
+                'peer-disabled:cursor-not-allowed peer-disabled:opacity-50',
+                error ? 'bg-red-400/40 peer-checked:bg-red-500' : '',
+                className,
               ])}
             />
-          </div>
-          {label && (
-            <span className="text-sm text-foreground">{label}</span>
-          )}
+            <span
+              aria-hidden
+              className={mergeClasses([
+                'pointer-events-none absolute top-1/2 z-10 h-5 w-5 -translate-y-1/2 rounded-full bg-background shadow ring-1 ring-black/10',
+                'start-0.5 transition-[inset-inline-start] duration-200 ease-out',
+                'peer-checked:start-[calc(100%-1.375rem)]',
+              ])}
+            />
+          </span>
+          {label && <span className="text-sm text-foreground">{label}</span>}
         </label>
         {helperText && (
           <p
@@ -64,4 +67,3 @@ export const Switch = forwardRef<HTMLInputElement, SwitchProps>(
 );
 
 Switch.displayName = 'Switch';
-

@@ -6,6 +6,8 @@ import ReactSelect, { components as selectComponents } from 'react-select';
 import { ShopVariantColorSwatch } from '@/shared/components/shop-variant-color-swatch';
 import { categoryTreeIndentPx } from '@/pages/dashboard/categories/utils/build-parent-picker-options';
 
+import { isActiveLanguageArabic } from 'src/lib/language-code';
+
 // ----------------------------------------------------------------------
 
 export interface MultiSelectOption {
@@ -238,6 +240,7 @@ export function MultiSelect({
   isSearchable = true,
   showOptionImages,
 }: MultiSelectProps) {
+  const dir = isActiveLanguageArabic() ? 'rtl' : 'ltr';
   const selectOptions: MultiSelectOption[] = options;
 
   const selectValue = selectOptions.filter((opt) =>
@@ -256,10 +259,12 @@ export function MultiSelect({
     : { Option: MultiSelectOptionDefault };
 
   return (
-    <div className={cn(fullWidth && 'w-full', className)}>
+    <div className={cn(fullWidth && 'w-full', className)} dir={dir}>
       {label && <label className="mb-1 block text-sm font-medium text-foreground">{label}</label>}
       <ReactSelect<MultiSelectOption, true, GroupBase<MultiSelectOption>>
         isMulti
+        closeMenuOnSelect={false}
+        blurInputOnSelect={false}
         options={selectOptions}
         value={selectValue}
         onChange={handleChange}
@@ -282,6 +287,14 @@ export function MultiSelect({
                   boxShadow: '0 0 0 4px rgb(220 38 38 / 0.15)',
                 }
               : {}),
+          }),
+          menu: (base) => ({
+            ...(selectStyles.menu(base) as object),
+            direction: dir,
+          }),
+          menuList: (base) => ({
+            ...(selectStyles.menuList(base) as object),
+            direction: dir,
           }),
         }}
         theme={(theme) => ({

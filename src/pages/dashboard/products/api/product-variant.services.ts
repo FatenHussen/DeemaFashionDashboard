@@ -8,13 +8,10 @@ export interface ProductVariantUpdatePayload {
   attributes_values_ids?: number[];
   images?: File[];
   existing_images_ids?: number[];
-  sku?: string;
-  model?: string;
-  barcode?: string;
-  name?: { en: string; ar: string };
-  stock?: number;
-  max_purchase_quantity?: number;
-  delivery_time?: string;
+  sku?: string | null;
+  model?: string | null;
+  barcode?: string | null;
+  name?: { en?: string | null; ar?: string | null };
 }
 
 const buildVariantFormData = (data: ProductVariantUpdatePayload): FormData => {
@@ -22,15 +19,11 @@ const buildVariantFormData = (data: ProductVariantUpdatePayload): FormData => {
 
   if (data.is_trend !== undefined) formData.append('is_trend', String(data.is_trend));
   if (data.is_active !== undefined) formData.append('is_active', String(data.is_active));
-  if (data.sku !== undefined) formData.append('sku', data.sku);
-  if (data.model !== undefined) formData.append('model', data.model);
-  if (data.barcode !== undefined) formData.append('barcode', data.barcode);
-  if (data.name?.en !== undefined) formData.append('name[en]', data.name.en);
-  if (data.name?.ar !== undefined) formData.append('name[ar]', data.name.ar);
-  if (data.stock !== undefined) formData.append('stock', String(data.stock));
-  if (data.max_purchase_quantity !== undefined)
-    formData.append('max_purchase_quantity', String(data.max_purchase_quantity));
-  if (data.delivery_time !== undefined) formData.append('delivery_time', data.delivery_time);
+  if (data.sku !== undefined) formData.append('sku', data.sku == null ? '' : data.sku);
+  if (data.model !== undefined) formData.append('model', data.model == null ? '' : data.model);
+  if (data.barcode !== undefined) formData.append('barcode', data.barcode == null ? '' : data.barcode);
+  if (data.name?.en !== undefined) formData.append('name[en]', data.name.en == null ? '' : data.name.en);
+  if (data.name?.ar !== undefined) formData.append('name[ar]', data.name.ar == null ? '' : data.name.ar);
 
   (data.attributes_values_ids ?? []).forEach((id) => {
     formData.append('attributes_values_ids[]', String(id));

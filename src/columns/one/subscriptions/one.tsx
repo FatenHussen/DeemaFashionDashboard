@@ -58,7 +58,8 @@ export const subscriptionColumns = (t: TFunction<'table'>): ColumnDef<Subscripti
           <div>{display || '—'}</div>
           {price != null && (
             <div className="text-xs text-muted-foreground">
-              {t('columns.price')}: {Number(price).toFixed(2)}
+              {t('columns.price')}:{' '}
+              {Number(price).toLocaleString(undefined, { maximumFractionDigits: 2 })}
             </div>
           )}
         </div>

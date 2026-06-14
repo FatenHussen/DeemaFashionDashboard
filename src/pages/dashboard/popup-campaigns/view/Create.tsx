@@ -1,4 +1,6 @@
 import type { FieldErrors } from 'react-hook-form';
+import type { MultiSelectOption } from '@/shared/ui/multi-select';
+import type { ProductData } from '@/pages/dashboard/products/types/product.types';
 import type { PopupCampaignDetail, PopupCampaignUpsertPayload } from '../types';
 
 import { toast } from 'react-toastify';
@@ -7,10 +9,16 @@ import { useParams, useNavigate } from 'react-router';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Iconify } from '@/shared/components/iconify';
+import { formatTranslated } from '@/utils/format-translated';
+import { useFetchShops } from '@/pages/dashboard/vendor/hooks/shop';
 import { RHFSelect } from '@/shared/components/hook-form/rhf-select';
+import { useFetchRecipes } from '@/pages/dashboard/recipes/hooks/recipe';
 import { RHFTextField } from '@/shared/components/hook-form/rhf-text-field';
+import { useFetchProducts } from '@/pages/dashboard/products/hooks/product';
+import { useFetchPromotions } from '@/pages/dashboard/promotions/hooks/promotion';
 import { useFetchPages } from '@/pages/dashboard/sections/hooks/usePageSections';
 import { useMemo, useState, useEffect, useCallback, useLayoutEffect } from 'react';
+import { cmsPageSelectLabel } from '@/pages/dashboard/sections/utils/cms-page-select-label';
 
 import { paths } from 'src/routes/paths';
 
@@ -79,6 +87,30 @@ function toStringArray(v: unknown): string[] {
   return [];
 }
 
+function resolveProductListImageUrl(img: string | null | undefined): string | null {
+  if (img == null || String(img).trim() === '') return null;
+  const s = String(img).trim();
+  return s.startsWith('http') ? s : `${CONFIG.serverUrl}/${s.replace(/^\//, '')}`;
+}
+
+/** Parses `product_ids`, `products: [{id}]`, etc. */
+function parseIdArray(v: unknown): number[] {
+  if (v == null) return [];
+  if (!Array.isArray(v)) return [];
+  const out: number[] = [];
+  for (const x of v) {
+    if (typeof x === 'number' && Number.isFinite(x) && x > 0) out.push(x);
+    else if (x && typeof x === 'object' && 'id' in x) {
+      const n = Number((x as { id: unknown }).id);
+      if (Number.isFinite(n) && n > 0) out.push(n);
+    } else {
+      const n = Number(x);
+      if (Number.isFinite(n) && n > 0) out.push(n);
+    }
+  }
+  return [...new Set(out)];
+}
+
 function findFirstErrorFieldName(errors: unknown, prefix = ''): string | null {
   if (!errors || typeof errors !== 'object') return null;
   const o = errors as Record<string, unknown>;
@@ -113,6 +145,12 @@ function buildPayload(
   const slug = (data.slug ?? '').trim() || slugify(data.title.en);
   const buttonUrl = (data.button_url ?? '').trim();
   const secondary = (data.secondary_button_text ?? '').trim();
+  const packIds = (arr?: number[] | null) => {
+    const ids = (arr ?? [])
+      .map((n) => Number(n))
+      .filter((n) => Number.isFinite(n) && n > 0);
+    return ids.length ? ids : null;
+  };
   return {
     title: trimLocale(data.title),
     slug,
@@ -126,13 +164,16 @@ function buildPayload(
     button_url: buttonUrl || null,
     secondary_button_text: secondary || null,
     media_type: data.media_type,
-    media_path: (data.media_path ?? '').trim(),
     show_on_pages: data.show_on_pages ?? [],
     audience_type: toApiAudienceType(data.audience_type) as PopupCampaignUpsertPayload['audience_type'],
     trigger_type: data.trigger_type,
     trigger_value: data.trigger_value != null ? Number(data.trigger_value) : null,
     form_enabled: Boolean(data.form_enabled),
     form_fields: data.form_fields ?? [],
+    product_ids: packIds(data.product_ids),
+    shop_ids: packIds(data.shop_ids),
+    recipe_ids: packIds(data.recipe_ids),
+    promotion_ids: packIds(data.promotion_ids),
   };
 }
 
@@ -143,6 +184,12 @@ function mapDetailToFormValues(d: PopupCampaignDetail): PopupCampaignUpdateFormV
   const fields = toStringArray(
     d.form_fields ?? (raw['formFields'] as unknown) ?? (raw['form_fields'] as unknown)
   );
+  const productIds = parseIdArray(
+    raw.product_ids ?? d.product_ids ?? raw.products
+  );
+  const shopIds = parseIdArray(raw.shop_ids ?? d.shop_ids ?? raw.shops);
+  const recipeIds = parseIdArray(raw.recipe_ids ?? d.recipe_ids ?? raw.recipes);
+  const promotionIds = parseIdArray(raw.promotion_ids ?? d.promotion_ids ?? raw.promotions);
   const typeStr = String(raw.type ?? raw.campaign_type ?? raw.popup_type ?? d.type ?? 'modal');
   const statusStr = String(
     raw.status ?? raw.campaign_status ?? d.status ?? 'draft'
@@ -174,6 +221,11 @@ function mapDetailToFormValues(d: PopupCampaignDetail): PopupCampaignUpdateFormV
     audience_type: fromApiAudience(String(d.audience_type ?? 'all_visitors')),
     trigger_type: fromApiTrigger(String(d.trigger_type ?? 'on_load')),
     trigger_value: d.trigger_value != null ? Number(d.trigger_value) : null,
+    product_ids: productIds,
+    shop_ids: shopIds,
+    recipe_ids: recipeIds,
+    promotion_ids: promotionIds,
+    media_file: null,
   };
 }
 
@@ -204,6 +256,7 @@ export default function CreatePage() {
   const navigate = useNavigate();
   const isEditMode = !!id;
   const [formFieldsInput, setFormFieldsInput] = useState<string>('');
+  const [filePreviewDataUrl, setFilePreviewDataUrl] = useState<string | null>(null);
 
   const {
     data: detailResponse,
@@ -213,6 +266,13 @@ export default function CreatePage() {
   const detail = useMemo(() => extractPopupCampaignDetail(detailResponse), [detailResponse]);
 
   const { data: pagesResponse, isLoading: isLoadingPages } = useFetchPages();
+  const { data: productsResponse, isLoading: isLoadingProducts } = useFetchProducts({
+    page: 1,
+    limit: 500,
+  });
+  const { data: shopsResponse, isLoading: isLoadingShops } = useFetchShops(1, 500);
+  const { data: recipesResponse, isLoading: isLoadingRecipes } = useFetchRecipes(1, 500);
+  const { data: promotionsResponse, isLoading: isLoadingPromotions } = useFetchPromotions(1, 500);
   const createMutation = useCreatePopupCampaign();
   const updateMutation = useUpdatePopupCampaign();
 
@@ -220,7 +280,7 @@ export default function CreatePage() {
     const items = pagesResponse?.data ?? [];
     return items
       .filter((p) => typeof p?.slug === 'string' && p.slug.trim() !== '')
-      .map((p) => ({ value: p.slug, label: p.title || p.slug }));
+      .map((p) => ({ value: p.slug, label: cmsPageSelectLabel(p) }));
   }, [pagesResponse]);
 
   /** Keep slugs from saved campaign that are not in the CMS pages list (avoid dropping on edit). */
@@ -237,6 +297,120 @@ export default function CreatePage() {
     }
     return extra.length ? [...pageOptions, ...extra] : pageOptions;
   }, [pageOptions, isEditMode, detail]);
+
+  const productOptions: MultiSelectOption[] = useMemo(() => {
+    const raw = productsResponse?.data as
+      | { items?: ProductData[]; data?: ProductData[] }
+      | undefined;
+    const list = raw?.items ?? raw?.data ?? [];
+    const byId = new Map<number, MultiSelectOption>();
+
+    for (const p of list) {
+      const img = p.thumbnail ?? p.image ?? (p.images?.[0] != null ? String(p.images[0]) : null);
+      byId.set(p.id, {
+        value: p.id,
+        label:
+          formatTranslated(p.name as Parameters<typeof formatTranslated>[0]) ||
+          t('form.productFallbackLabel', { id: p.id }),
+        imageUrl: resolveProductListImageUrl(img),
+      });
+    }
+
+    if (detail) {
+      const r = detail as unknown as Record<string, unknown>;
+      const extraIds = parseIdArray(r.product_ids ?? r.products);
+      for (const pid of extraIds) {
+        if (byId.has(pid)) continue;
+        byId.set(pid, {
+          value: pid,
+          label: t('form.productFallbackLabel', { id: pid }),
+          imageUrl: null,
+        });
+      }
+    }
+
+    return Array.from(byId.values());
+  }, [productsResponse?.data, t, detail]);
+
+  const shopOptions: MultiSelectOption[] = useMemo(() => {
+    const shops =
+      (shopsResponse?.data as { items?: { id: number; name: unknown }[] } | undefined)?.items ?? [];
+    const byId = new Map<number, MultiSelectOption>();
+    for (const s of shops) {
+      byId.set(s.id, {
+        value: s.id,
+        label:
+          formatTranslated(s.name as Parameters<typeof formatTranslated>[0]) ||
+          t('form.shopFallbackLabel', { id: s.id }),
+      });
+    }
+    if (detail) {
+      const r = detail as unknown as Record<string, unknown>;
+      const extraIds = parseIdArray(r.shop_ids ?? r.shops);
+      for (const sid of extraIds) {
+        if (byId.has(sid)) continue;
+        byId.set(sid, {
+          value: sid,
+          label: t('form.shopFallbackLabel', { id: sid }),
+        });
+      }
+    }
+    return Array.from(byId.values());
+  }, [shopsResponse?.data, t, detail]);
+
+  const recipeOptions: MultiSelectOption[] = useMemo(() => {
+    const items = recipesResponse?.data?.items ?? [];
+    const byId = new Map<number, MultiSelectOption>();
+    for (const r of items) {
+      const label =
+        typeof r.name === 'string'
+          ? r.name
+          : formatTranslated(r.name as Parameters<typeof formatTranslated>[0]);
+      byId.set(r.id, {
+        value: r.id,
+        label: label || t('form.popupCampaignRecipeFallback', { id: r.id }),
+      });
+    }
+    if (detail) {
+      const raw = detail as unknown as Record<string, unknown>;
+      const extraIds = parseIdArray(raw.recipe_ids ?? raw.recipes);
+      for (const rid of extraIds) {
+        if (byId.has(rid)) continue;
+        byId.set(rid, {
+          value: rid,
+          label: t('form.popupCampaignRecipeFallback', { id: rid }),
+        });
+      }
+    }
+    return Array.from(byId.values());
+  }, [recipesResponse?.data, t, detail]);
+
+  const promotionOptions: MultiSelectOption[] = useMemo(() => {
+    const items = promotionsResponse?.data?.items ?? [];
+    const byId = new Map<number, MultiSelectOption>();
+    for (const p of items) {
+      const label =
+        typeof p.name === 'string'
+          ? p.name
+          : formatTranslated(p.name as Parameters<typeof formatTranslated>[0]);
+      byId.set(p.id, {
+        value: p.id,
+        label: label || t('form.popupCampaignPromotionFallback', { id: p.id }),
+      });
+    }
+    if (detail) {
+      const raw = detail as unknown as Record<string, unknown>;
+      const extraIds = parseIdArray(raw.promotion_ids ?? raw.promotions);
+      for (const pid of extraIds) {
+        if (byId.has(pid)) continue;
+        byId.set(pid, {
+          value: pid,
+          label: t('form.popupCampaignPromotionFallback', { id: pid }),
+        });
+      }
+    }
+    return Array.from(byId.values());
+  }, [promotionsResponse?.data, t, detail]);
 
   const typeOptions = useMemo(
     () =>
@@ -311,30 +485,57 @@ export default function CreatePage() {
     audience_type: 'all_visitors' as const,
     trigger_type: 'on_load' as const,
     trigger_value: null,
+    product_ids: [] as number[],
+    shop_ids: [] as number[],
+    recipe_ids: [] as number[],
+    promotion_ids: [] as number[],
   };
 
   const createDefaults: PopupCampaignCreateFormValues = {
     ...emptyDefaults,
     media_path: '',
+    media_file: undefined as unknown as PopupCampaignCreateFormValues['media_file'],
   };
 
   const updateDefaults: PopupCampaignUpdateFormValues = {
     ...emptyDefaults,
     media_path: '',
+    media_file: null,
   };
 
   const schema = isEditMode ? PopupCampaignUpdateSchema : PopupCampaignCreateSchema;
 
   const methods = useForm<PopupCampaignCreateFormValues | PopupCampaignUpdateFormValues>({
     resolver: zodResolver(schema) as any,
-    defaultValues: isEditMode ? updateDefaults : createDefaults,
+    defaultValues: (isEditMode ? updateDefaults : createDefaults) as any,
   });
 
   const { handleSubmit, reset, control, watch, setValue, setFocus, getValues } = methods;
   const mediaType = watch('media_type');
   const mediaPath = watch('media_path');
+  const mediaFile = watch('media_file');
   const triggerType = watch('trigger_type');
   const formEnabled = watch('form_enabled');
+
+  const mediaAccept = useMemo(() => {
+    if (mediaType === 'video') {
+      return 'video/mp4,video/quicktime,video/x-msvideo,video/webm,video/x-matroska,.mp4,.mov,.avi,.webm,.mkv';
+    }
+    if (mediaType === 'gif') {
+      return 'image/gif,.gif';
+    }
+    return 'image/jpeg,image/jpg,image/png,image/gif,image/webp,.jpg,.jpeg,.png,.gif,.webp';
+  }, [mediaType]);
+
+  useEffect(() => {
+    if (!(mediaFile instanceof File)) {
+      setFilePreviewDataUrl(null);
+      return;
+    }
+    const reader = new FileReader();
+    reader.onloadend = () => setFilePreviewDataUrl(reader.result as string);
+    reader.readAsDataURL(mediaFile);
+  }, [mediaFile]);
 
   /**
    * Apply API detail to the form. Do not use the `useForm({ values })` option here: in RHF 7.56+,
@@ -372,15 +573,19 @@ export default function CreatePage() {
     data: PopupCampaignCreateFormValues | PopupCampaignUpdateFormValues
   ) => {
     try {
+      const fields = buildPayload(data);
       if (isEditMode && id) {
-        const payload = buildPayload(data);
         await updateMutation.mutateAsync({
           id,
-          payload,
+          fields,
+          mediaFile: data.media_file instanceof File ? data.media_file : undefined,
         });
         toast.success(t('form.popupCampaignUpdatedSuccess'));
       } else {
-        await createMutation.mutateAsync(buildPayload(data));
+        await createMutation.mutateAsync({
+          fields,
+          mediaFile: data.media_file as File,
+        });
         toast.success(t('form.popupCampaignCreatedSuccess'));
       }
       navigate(paths.dashboard.popupCampaigns.root);
@@ -393,7 +598,7 @@ export default function CreatePage() {
     (errors: FieldErrors<PopupCampaignCreateFormValues | PopupCampaignUpdateFormValues>) => {
       if (errors.slug) {
         toast.error(t('form.popupCampaignSlugRequiredToast'));
-      } else if ('media_path' in errors && errors.media_path) {
+      } else if ('media_file' in errors && errors.media_file) {
         toast.error(t('form.popupCampaignMediaRequiredToast'));
       } else {
         toast.error(t('formValidationFailed'));
@@ -419,7 +624,9 @@ export default function CreatePage() {
 
   const handleCancel = () => navigate(paths.dashboard.popupCampaigns.root);
 
-  const previewUrl = resolveStorageUrl(mediaPath);
+  const previewUrl =
+    filePreviewDataUrl ??
+    (mediaPath && String(mediaPath).trim() ? resolveStorageUrl(mediaPath) : null);
 
   if (isEditMode && id && isLoadingDetail) return <LoadingScreen />;
 
@@ -665,6 +872,83 @@ export default function CreatePage() {
                 {t('form.popupCampaignShowOnPagesHint')}
               </Typography>
             </Box>
+            <Box className="group md:col-span-2 border-t border-border/40 pt-6 mt-1">
+              <Typography variant="subtitle1" className="mb-4 font-semibold text-foreground">
+                {t('form.popupCampaignTargetSectionTitle')}
+              </Typography>
+              <Typography variant="subtitle2" className="mb-2 font-semibold">
+                {t('form.popupCampaignTargetProducts')}
+              </Typography>
+              <RHFMultiSelect
+                name="product_ids"
+                options={productOptions}
+                placeholder={
+                  isLoadingProducts
+                    ? t('form.popupCampaignSlugLoading')
+                    : t('form.popupCampaignTargetProductsPlaceholder')
+                }
+                fullWidth
+                isDisabled={isLoadingProducts}
+                isSearchable
+                showOptionImages
+              />
+            </Box>
+            <Box className="group">
+              <Typography variant="subtitle2" className="mb-2 font-semibold">
+                {t('form.popupCampaignTargetShops')}
+              </Typography>
+              <RHFMultiSelect
+                name="shop_ids"
+                options={shopOptions}
+                placeholder={
+                  isLoadingShops
+                    ? t('form.popupCampaignSlugLoading')
+                    : t('form.popupCampaignTargetShopsPlaceholder')
+                }
+                fullWidth
+                isDisabled={isLoadingShops}
+                isSearchable
+              />
+            </Box>
+            <Box className="group">
+              <Typography variant="subtitle2" className="mb-2 font-semibold">
+                {t('form.popupCampaignTargetRecipes')}
+              </Typography>
+              <RHFMultiSelect
+                name="recipe_ids"
+                options={recipeOptions}
+                placeholder={
+                  isLoadingRecipes
+                    ? t('form.popupCampaignSlugLoading')
+                    : t('form.popupCampaignTargetRecipesPlaceholder')
+                }
+                fullWidth
+                isDisabled={isLoadingRecipes}
+                isSearchable
+              />
+            </Box>
+            <Box className="group">
+              <Typography variant="subtitle2" className="mb-2 font-semibold">
+                {t('form.popupCampaignTargetPromotions')}
+              </Typography>
+              <RHFMultiSelect
+                name="promotion_ids"
+                options={promotionOptions}
+                placeholder={
+                  isLoadingPromotions
+                    ? t('form.popupCampaignSlugLoading')
+                    : t('form.popupCampaignTargetPromotionsPlaceholder')
+                }
+                fullWidth
+                isDisabled={isLoadingPromotions}
+                isSearchable
+              />
+            </Box>
+            <Box className="group md:col-span-2">
+              <Typography variant="caption" className="text-muted-foreground block">
+                {t('form.popupCampaignTargetResourcesHint')}
+              </Typography>
+            </Box>
           </Box>
         </Box>
 
@@ -778,14 +1062,30 @@ export default function CreatePage() {
               <Typography variant="subtitle2" className="mb-2 font-semibold">
                 {t('form.popupCampaignMediaFile')}
               </Typography>
-              <RHFTextField
-                name="media_path"
-                placeholder={t('popupCampaign.mediaPathPlaceholder')}
-                fullWidth
+              <Controller
+                name="media_file"
+                control={control}
+                render={({ field, fieldState }) => (
+                  <Input
+                    {...field}
+                    value={undefined}
+                    type="file"
+                    accept={mediaAccept}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      field.onChange(file ?? (isEditMode ? null : undefined));
+                    }}
+                    error={!!fieldState.error}
+                    helperText={
+                      fieldState.error?.message ||
+                      (isEditMode
+                        ? t('form.popupCampaignMediaHelperEdit')
+                        : t('form.popupCampaignMediaHelperCreate'))
+                    }
+                    fullWidth
+                  />
+                )}
               />
-              <Typography variant="caption" className="text-muted-foreground mt-1 block">
-                {t('form.popupCampaignMediaHelperCreate')}
-              </Typography>
               {previewUrl && (mediaType === 'image' || mediaType === 'gif') && (
                 <Box className="mt-4">
                   <img

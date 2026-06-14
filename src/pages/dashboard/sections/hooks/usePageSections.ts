@@ -1,11 +1,16 @@
 import type {
   PageSectionCreateUpdatePayload,
 } from '../types/page-section.types';
+import type { PagePreviewQueryParams, PageSectionReorderPayload } from '../types/page-preview.types';
 
 import { queryKeys } from '@/api/queryKeys';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { _PageSectionApi } from '../api/page-section.services';
+import {
+  serializePagePreviewParams,
+  toPagePreviewRequestParams,
+} from '../utils/page-preview-params';
 
 // Fetch list of page sections
 export const useFetchPageSections = (page: number = 1, limit: number = 25, search?: string) => useQuery({
@@ -25,6 +30,18 @@ export const useFetchPages = () => useQuery({
     queryKey: queryKeys.pageSection.pages(),
     queryFn: () => _PageSectionApi.getPages(),
   });
+
+// Fetch page preview (sections layout for a CMS page)
+export const useFetchPagePreview = (id: string | number, params?: PagePreviewQueryParams) => {
+  const paramsKey = serializePagePreviewParams(params);
+
+  return useQuery({
+    queryKey: queryKeys.pageSection.pagePreview(id, paramsKey),
+    queryFn: () => _PageSectionApi.getPagePreview(id, toPagePreviewRequestParams(params ?? {})),
+    enabled: !!id,
+    staleTime: 0,
+  });
+};
 
 // Fetch sections (for section_id dropdown)
 export const useFetchSectionsForDropdown = () => useQuery({
@@ -61,6 +78,26 @@ export const useUpdatePageSection = () => {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['pageSection', 'list'] });
       queryClient.invalidateQueries({ queryKey: ['pageSection', 'details', variables.id] });
+    },
+  });
+};
+
+// Reorder sections on a CMS page preview
+export const useReorderPageSections = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      pageId,
+      sections,
+    }: {
+      pageId: string | number;
+      sections: PageSectionReorderPayload['sections'];
+    }) => _PageSectionApi.reorderPageSections(pageId, { sections }),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ['pageSection', 'pagePreview', variables.pageId],
+      });
     },
   });
 };

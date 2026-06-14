@@ -1,3 +1,5 @@
+import type { MultiSelectOption } from '@/shared/ui/multi-select';
+import type { ProductData } from '@/pages/dashboard/products/types/product.types';
 import type { DiscountType } from '@/pages/dashboard/promotions/types/promotion.types';
 
 import { toast } from 'react-toastify';
@@ -7,7 +9,10 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Iconify } from '@/shared/components/iconify';
 import { useParams, useNavigate } from 'react-router';
+import { formatTranslated } from '@/utils/format-translated';
+import { useFetchProducts } from '@/pages/dashboard/products/hooks/product';
 import { useFetchPages } from '@/pages/dashboard/sections/hooks/usePageSections';
+import { cmsPageSelectLabel } from '@/pages/dashboard/sections/utils/cms-page-select-label';
 import {
   PromotionSchema,
   type PromotionFormValues,
@@ -54,7 +59,10 @@ export default function CreatePage() {
   const PROMOTION_TYPES = [
     { value: 'simple_discount', label: t('promotionTypes.simpleDiscount') },
     { value: 'spend_x_discount', label: t('promotionTypes.spendXDiscount') },
-    { value: 'buy_x_get_y', label: t('promotionTypes.buyXGetY') },
+    { value: 'spend_x_get_gift', label: t('promotionTypes.spendXGetGift') },
+    { value: 'spend_x_get_points', label: t('promotionTypes.spendXGetPoints') },
+    { value: 'free_shipping', label: t('promotionTypes.freeShipping') },
+    { value: 'spend_x_get_free_shipping', label: t('promotionTypes.spendXGetFreeShipping') },
   ];
 
   const DISCOUNT_TYPES = [
@@ -67,6 +75,7 @@ export default function CreatePage() {
 
   const { data: detailsResponse, isLoading: isLoadingDetails } = useFetchPromotionById(id || '');
   const { data: pagesResponse, isLoading: isLoadingPages } = useFetchPages();
+  const { data: productsResponse } = useFetchProducts({ page: 1, limit: 500 });
   const createMutation = useCreatePromotion();
   const updateMutation = useUpdatePromotion();
 
@@ -74,7 +83,7 @@ export default function CreatePage() {
     const items = pagesResponse?.data ?? [];
     return items
       .filter((p) => typeof p?.slug === 'string' && p.slug.trim() !== '')
-      .map((p) => ({ value: p.slug, label: p.title || p.slug }));
+      .map((p) => ({ value: p.slug, label: cmsPageSelectLabel(p) }));
   }, [pagesResponse]);
 
   const pageSlugsOptions = useMemo(() => {
@@ -92,6 +101,30 @@ export default function CreatePage() {
     return extra.length ? [...pageOptions, ...extra] : pageOptions;
   }, [pageOptions, isEditMode, detailsResponse?.data]);
 
+  const productOptions: MultiSelectOption[] = useMemo(() => {
+    const raw = productsResponse?.data as
+      | { items?: ProductData[]; data?: ProductData[] }
+      | undefined;
+    const products = raw?.items ?? raw?.data ?? [];
+    const byId = new Map<number, MultiSelectOption>();
+    for (const p of products) {
+      byId.set(p.id, {
+        value: p.id,
+        label:
+          formatTranslated(p.name as Parameters<typeof formatTranslated>[0]) ||
+          `#${p.id}`,
+      });
+    }
+    if (isEditMode && detailsResponse?.data) {
+      for (const pid of detailsResponse.data.gift_product_ids ?? []) {
+        if (!byId.has(pid)) {
+          byId.set(pid, { value: pid, label: `#${pid}` });
+        }
+      }
+    }
+    return Array.from(byId.values());
+  }, [productsResponse?.data, isEditMode, detailsResponse?.data]);
+
   /** Server value for discount_type on edit (API may not accept changing it; also safe if disabled fields are omitted). */
   const originalDiscountTypeRef = useRef<DiscountType | null>(null);
 
@@ -107,6 +140,7 @@ export default function CreatePage() {
     get_quantity: null,
     discount_value: null,
     discount_type: null,
+    gift_product_ids: [],
     page_slugs: [],
     position: 0,
   };
@@ -138,6 +172,7 @@ export default function CreatePage() {
         get_quantity: item.get_quantity ?? null,
         discount_value: item.discount_value ?? null,
         discount_type: discountType,
+        gift_product_ids: item.gift_product_ids ?? [],
         page_slugs: toStringArray(rawItem.page_slugs ?? rawItem.pageSlugs),
         position:
           item.position != null && !Number.isNaN(Number(item.position)) ? Number(item.position) : 0,
@@ -155,13 +190,32 @@ export default function CreatePage() {
       };
       if (data.starts_at) payload.starts_at = data.starts_at;
       if (data.ends_at) payload.ends_at = data.ends_at;
-      if (data.discount_value != null) payload.discount_value = data.discount_value;
-      const discountTypeForPayload =
-        isEditMode && (data.type === 'simple_discount' || data.type === 'spend_x_discount')
-          ? data.discount_type ?? originalDiscountTypeRef.current
-          : data.discount_type;
-      if (discountTypeForPayload) payload.discount_type = discountTypeForPayload;
-      if (data.min_spend != null) payload.min_spend = data.min_spend;
+
+      const usesDiscount = data.type === 'simple_discount' || data.type === 'spend_x_discount';
+      const usesMinSpend =
+        data.type === 'spend_x_discount' ||
+        data.type === 'spend_x_get_gift' ||
+        data.type === 'spend_x_get_points' ||
+        data.type === 'spend_x_get_free_shipping';
+
+      if (usesDiscount && data.discount_value != null) payload.discount_value = data.discount_value;
+      if (data.type === 'spend_x_get_points' && data.discount_value != null)
+        payload.discount_value = data.discount_value;
+
+      if (usesDiscount) {
+        const discountTypeForPayload =
+          isEditMode
+            ? data.discount_type ?? originalDiscountTypeRef.current
+            : data.discount_type;
+        if (discountTypeForPayload) payload.discount_type = discountTypeForPayload;
+      }
+
+      if (usesMinSpend && data.min_spend != null) payload.min_spend = data.min_spend;
+
+      if (data.type === 'spend_x_get_gift') {
+        payload.gift_product_ids = data.gift_product_ids ?? [];
+      }
+
       if (data.buy_quantity != null) payload.buy_quantity = data.buy_quantity;
       if (data.get_quantity != null) payload.get_quantity = data.get_quantity;
       payload.page_slugs = data.page_slugs ?? [];
@@ -259,11 +313,12 @@ export default function CreatePage() {
               />
             </Box>
 
+            {/* Discount fields — simple_discount & spend_x_discount */}
             {(selectedType === 'simple_discount' || selectedType === 'spend_x_discount') && (
               <Box className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <Box>
                   <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5"><Iconify icon="solar:percent-bold" className="text-violet-500" width={16} />{t('form.discountValueLabel')}</Typography>
-                  <RHFTextField name="discount_value" type="number" placeholder={t('form.discountValuePlaceholder')} helperText={t('form.discountValueHelper')} min={0} max={(selectedType === 'simple_discount' || selectedType === 'spend_x_discount') && promotionDiscountType === 'percentage' ? 100 : undefined} />
+                  <RHFTextField name="discount_value" type="number" placeholder={t('form.discountValuePlaceholder')} helperText={t('form.discountValueHelper')} min={0} max={promotionDiscountType === 'percentage' ? 100 : undefined} />
                 </Box>
                 <Box>
                   <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5"><Iconify icon="solar:tag-price-bold" className="text-violet-500" width={16} />{t('form.discountTypeLabel')}</Typography>
@@ -282,23 +337,39 @@ export default function CreatePage() {
               </Box>
             )}
 
-            {selectedType === 'spend_x_discount' && (
+            {/* Min spend — spend_x_discount, spend_x_get_gift, spend_x_get_points, spend_x_get_free_shipping */}
+            {(selectedType === 'spend_x_discount' ||
+              selectedType === 'spend_x_get_gift' ||
+              selectedType === 'spend_x_get_points' ||
+              selectedType === 'spend_x_get_free_shipping') && (
               <Box>
                 <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5"><Iconify icon="solar:cart-bold" className="text-violet-500" width={16} />{t('form.minSpendLabel')}</Typography>
                 <RHFTextField name="min_spend" type="number" placeholder={t('form.minSpendPlaceholder')} helperText={t('form.minSpendHelper')} />
               </Box>
             )}
 
-            {selectedType === 'buy_x_get_y' && (
-              <Box className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <Box>
-                  <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5"><Iconify icon="solar:bag-bold" className="text-violet-500" width={16} />{t('form.buyQuantityLabel')}</Typography>
-                  <RHFTextField name="buy_quantity" type="number" placeholder={t('form.buyQuantityPlaceholder')} helperText={t('form.buyQuantityHelper')} />
-                </Box>
-                <Box>
-                  <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5"><Iconify icon="solar:gift-bold" className="text-violet-500" width={16} />{t('form.getQuantityLabel')}</Typography>
-                  <RHFTextField name="get_quantity" type="number" placeholder={t('form.getQuantityPlaceholder')} helperText={t('form.getQuantityHelper')} />
-                </Box>
+            {/* Points amount — spend_x_get_points */}
+            {selectedType === 'spend_x_get_points' && (
+              <Box>
+                <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5"><Iconify icon="solar:star-bold" className="text-violet-500" width={16} />{t('form.pointsAmountLabel')}</Typography>
+                <RHFTextField name="discount_value" type="number" placeholder={t('form.pointsAmountPlaceholder')} helperText={t('form.pointsAmountHelper')} min={0} />
+              </Box>
+            )}
+
+            {/* Gift products — spend_x_get_gift */}
+            {selectedType === 'spend_x_get_gift' && (
+              <Box>
+                <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5"><Iconify icon="solar:gift-bold" className="text-violet-500" width={16} />{t('form.giftProductsLabel')}</Typography>
+                <RHFMultiSelect
+                  name="gift_product_ids"
+                  options={productOptions}
+                  placeholder={t('form.giftProductsPlaceholder')}
+                  fullWidth
+                  isSearchable
+                />
+                <Typography variant="caption" className="text-muted-foreground mt-1 block">
+                  {t('form.giftProductsHint')}
+                </Typography>
               </Box>
             )}
           </Box>

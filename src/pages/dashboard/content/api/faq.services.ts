@@ -2,9 +2,19 @@ import type {
   FaqPayload,
   FaqListResponse,
   FaqDetailsResponse,
+  FaqItem,
 } from '../types/faq.types';
 
 import { apiRoutes, axiosInstance } from '@/api';
+import { parseRecordIsActive } from '@/utils/parse-record-is-active';
+
+function normalizeFaqListItem(raw: FaqItem): FaqItem {
+  const row = raw as unknown as Record<string, unknown>;
+  return {
+    ...raw,
+    is_active: parseRecordIsActive(row),
+  };
+}
 
 export const _FaqApi = {
   getList: async (params?: {
@@ -14,7 +24,15 @@ export const _FaqApi = {
     search?: string;
   }): Promise<FaqListResponse> => {
     const response = await axiosInstance.get<FaqListResponse>(apiRoutes.faq.list, { params });
-    return response.data;
+    const body = response.data;
+    if (!body?.data?.items) return body;
+    return {
+      ...body,
+      data: {
+        ...body.data,
+        items: body.data.items.map((item) => normalizeFaqListItem(item)),
+      },
+    };
   },
 
   getById: async (id: number | string): Promise<FaqDetailsResponse> => {

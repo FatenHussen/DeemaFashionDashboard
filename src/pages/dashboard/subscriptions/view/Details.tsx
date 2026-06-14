@@ -76,7 +76,9 @@ export default function DetailsPage() {
     item.remaining_orders === null || item.remaining_orders === undefined ? '∞' : String(item.remaining_orders);
 
   const priceDisplay =
-    item.package?.price != null ? Number(item.package.price).toFixed(2) : '—';
+    item.package?.price != null
+      ? Number(item.package.price).toLocaleString(undefined, { maximumFractionDigits: 2 })
+      : '—';
 
   return (
     <>

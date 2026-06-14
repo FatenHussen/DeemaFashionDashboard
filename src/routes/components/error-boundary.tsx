@@ -1,12 +1,20 @@
 import { useEffect } from 'react';
 import { useRouteError, isRouteErrorResponse } from 'react-router';
 
+import { isChunkLoadError, reloadOnChunkLoadError } from 'src/utils/lazy-with-retry';
+
 import i18n from 'src/lib/i18n';
 
 // ----------------------------------------------------------------------
 
 export function ErrorBoundary() {
   const error = useRouteError();
+
+  useEffect(() => {
+    if (isChunkLoadError(error)) {
+      reloadOnChunkLoadError();
+    }
+  }, [error]);
 
   useEffect(() => {
     // Set CSS variables for error boundary styles

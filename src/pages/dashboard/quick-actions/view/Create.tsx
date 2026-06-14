@@ -8,6 +8,7 @@ import { Iconify } from '@/shared/components/iconify';
 import { useParams, useNavigate } from 'react-router';
 import { compressImage } from '@/utils/compress-image';
 import { _PageSectionApi } from '@/pages/dashboard/sections/api/page-section.services';
+import { cmsPageSelectLabel } from '@/pages/dashboard/sections/utils/cms-page-select-label';
 
 import { paths } from 'src/routes/paths';
 
@@ -83,7 +84,7 @@ export default function CreatePage() {
   const pageOptions =
     (pagesRes?.data ?? []).map((p) => ({
       value: String(p.id),
-      label: typeof p.title === 'string' ? p.title : String(p.id),
+      label: cmsPageSelectLabel(p),
     })) || [];
 
   const createDefaults: QuickActionCreateFormValues = {
@@ -281,7 +282,7 @@ export default function CreatePage() {
               <Iconify icon="solar:document-text-bold" className="text-violet-500" width={15} />
             </Box>
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              {t('form.quickActionFormPageLabel')} & {t('form.quickActionFormOrderLabel')}
+              {t('form.pageSectionFormPageLabel')} & {t('form.quickActionFormOrderLabel')}
             </Typography>
           </Box>
           <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -289,16 +290,16 @@ export default function CreatePage() {
               <Box className="flex items-center gap-2 mb-2">
                 <Iconify icon="solar:document-text-bold" className="text-violet-500" width={20} height={20} />
                 <Typography variant="subtitle2" className="font-semibold text-foreground">
-                  {t('form.quickActionFormPageLabel')}
+                  {t('form.pageSectionFormPageLabel')}
                 </Typography>
               </Box>
               <Typography variant="caption" className="text-muted-foreground mb-2 block leading-relaxed">
-                {t('form.quickActionPageSourceHelper')}
+                {t('form.selectPageHelper')}
               </Typography>
               <RHFSelect
                 name="page_id"
                 options={pageOptions}
-                placeholder={t('form.quickActionFormPagePlaceholder')}
+                placeholder={t('form.selectPage')}
               />
             </Box>
 

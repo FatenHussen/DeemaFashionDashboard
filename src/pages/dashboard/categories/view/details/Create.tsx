@@ -314,8 +314,8 @@ export default function CreatePage() {
           </Box>
         </Box>
 
-        {/* ── Section: Preset values (value_options) ── */}
-        <Box className="rounded-2xl border border-border/50 bg-card/50 shadow-sm">
+        {/* ── Section: Preset values (value_options) ── Header kept visible: add-value control lives here */}
+        <Box className="create-form-section-keep-header rounded-2xl border border-border/50 bg-card/50 shadow-sm">
           <Box className="flex items-center justify-between gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-emerald-500/[0.06] via-emerald-500/[0.02] to-transparent flex-wrap">
             <Box className="flex items-center gap-3 min-w-0">
               <Box className="h-8 w-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">

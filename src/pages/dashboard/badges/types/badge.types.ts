@@ -6,6 +6,8 @@ export interface BadgeItem {
   color: string | null;
   position: BadgePosition;
   image?: string | null;
+  /** Normalized from list API (`is_active`, `is_visible`, `visibility`, etc.) for admin toggles. */
+  is_active?: boolean;
 }
 
 export interface BadgeListResponse {

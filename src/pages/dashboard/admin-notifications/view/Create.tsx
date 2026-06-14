@@ -107,7 +107,6 @@ export default function CreatePage() {
       body: '',
       types: ['all'],
       channels: ['fcm'],
-      target_page: '',
       emoji: '',
       media: null,
       driver_ids: [],
@@ -464,34 +463,18 @@ export default function CreatePage() {
             </Box>
           </Box>
 
-          {/* ── Section: Target Page & Media ── */}
+          {/* ── Section: Media ── */}
           <Box className="rounded-2xl border border-border/50 bg-card/50 shadow-sm">
             <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-amber-500/[0.06] via-amber-500/[0.02] to-transparent">
               <Box className="h-8 w-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
                 <Iconify icon="solar:gallery-add-bold" className="text-amber-500" width={15} />
               </Box>
               <Typography variant="subtitle2" className="font-semibold text-foreground">
-                {t('form.notificationTargetPageLabel')} & {t('form.notificationMediaLabel')}
+                {t('form.notificationMediaLabel')}
               </Typography>
             </Box>
             <Box className="p-6 flex flex-col gap-5">
               <Box>
-                <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
-                  {t('form.notificationTargetPageLabel')}
-                </Typography>
-                <RHFTextField
-                  name="target_page"
-                  placeholder={t('form.notificationTargetPagePlaceholder')}
-                  fullWidth
-                />
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {t('form.notificationTargetPageHint')}
-                </p>
-              </Box>
-              <Box>
-                <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
-                  {t('form.notificationMediaLabel')}
-                </Typography>
                 <input
                   ref={mediaInputRef}
                   type="file"

@@ -1,9 +1,9 @@
 import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useMemo, useState, useEffect } from 'react';
-import { Box, Button, Typography } from '@/shared/ui';
 import { Iconify } from '@/shared/components/iconify';
 import { LoadingScreen } from '@/shared/components/loading-screen';
+import { Box, Button, Typography, DatePickerField } from '@/shared/ui';
 import { useFetchDrivers } from '@/pages/dashboard/driver/hooks/driver';
 
 import { paths } from 'src/routes/paths';
@@ -12,6 +12,7 @@ import { CONFIG } from 'src/global-config';
 
 import { _ReportApi } from '../api/report.services';
 import { useFetchDriverPerformanceReport } from '../hooks/report';
+import { ReportPeriodBanner } from '../components/report-period-banner';
 import { ReportExportButtons } from '../components/report-export-buttons';
 
 // ----------------------------------------------------------------------
@@ -52,7 +53,12 @@ export default function DriverPerformanceReportPage() {
       reportData && appliedDriverId
         ? [
             { label: t('reports.driverKpiTotalOrders'), value: reportData.total_orders },
-            { label: t('reports.driverKpiTotalEarnings'), value: reportData.total_earnings?.toFixed(2) },
+            {
+              label: t('reports.driverKpiTotalEarnings'),
+              value: reportData.total_earnings?.toLocaleString(undefined, {
+                maximumFractionDigits: 2,
+              }),
+            },
             {
               label: t('reports.driverKpiAvgDeliveryTime'),
               value: reportData.average_delivery_time_minutes?.toFixed(1),
@@ -116,17 +122,15 @@ export default function DriverPerformanceReportPage() {
               );
             })}
           </select>
-          <input
-            type="date"
+          <DatePickerField
             value={fromDate}
-            onChange={(e) => setFromDate(e.target.value)}
-            className="h-9 rounded-lg border border-input bg-background px-3 text-sm"
+            onChange={setFromDate}
+            className="h-9 min-w-[140px] rounded-lg border border-input bg-background px-3 text-sm w-auto max-sm:flex-1"
           />
-          <input
-            type="date"
+          <DatePickerField
             value={toDate}
-            onChange={(e) => setToDate(e.target.value)}
-            className="h-9 rounded-lg border border-input bg-background px-3 text-sm"
+            onChange={setToDate}
+            className="h-9 min-w-[140px] rounded-lg border border-input bg-background px-3 text-sm w-auto max-sm:flex-1"
           />
           <Button variant="outlined" size="small" onClick={handleApply} disabled={!driverId}>
             {t('reports.apply')}
@@ -141,6 +145,7 @@ export default function DriverPerformanceReportPage() {
       </div>
 
       <div className="w-full space-y-4 transition-opacity duration-500 p-6">
+        <ReportPeriodBanner appliedFrom={appliedFrom} appliedTo={appliedTo} lang={lang} />
         {reportData && appliedDriverId && (
           <Box className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {kpiItems.map(({ label, value }) => (

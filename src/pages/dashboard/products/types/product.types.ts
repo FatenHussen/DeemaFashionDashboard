@@ -37,6 +37,7 @@ export interface ProductData {
   approval_status_label?: string | null;
   /** Shelf life / expiry (ISO or YYYY-MM-DD from API) */
   expiry_date?: string | null;
+  is_restaurant?: boolean;
 }
 
 /** Per-currency breakdown from product detail API (`price_currencies`, `cost_price_currencies`, etc.) */
@@ -103,6 +104,7 @@ export interface ProductDetailData {
   bought_with: number[] | Array<{ id: number; name?: string }>;
   is_instant_delivery: boolean | number;
   is_visible?: boolean | number;
+  is_restaurant?: boolean;
   thumbnail?: string | null;
   category: { id: number; name: string; is_restaurant?: boolean };
   brand: { id: number; name: string } | null;
@@ -203,7 +205,7 @@ export interface ProductCreateUpdatePayload {
   /** Sent in multipart body on update so the backend always receives the product id (not only in the URL). */
   id?: number;
   category_id: number;
-  brand_id?: number;
+  brand_id?: number | null;
   vendor_id?: number;
   name: { en: string; ar: string };
   description: { en: string; ar: string };
@@ -247,6 +249,10 @@ export interface ProductCreateUpdatePayload {
     stock?: number;
     max_purchase_quantity?: number;
     delivery_time?: string;
+    /** 0 | 1 for multipart */
+    is_trend?: number;
+    /** 0 | 1 for multipart */
+    is_active?: number;
   }>;
 
   category_details?: Array<{

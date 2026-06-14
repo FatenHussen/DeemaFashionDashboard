@@ -27,6 +27,8 @@ import {
   nativeSelectCategoryLabel,
 } from '@/pages/dashboard/categories/utils/build-parent-picker-options';
 
+import { paths } from 'src/routes/paths';
+
 import { CONFIG } from 'src/global-config';
 
 // ----------------------------------------------------------------------
@@ -279,7 +281,7 @@ export default function Page() {
           deletingId
         )}
         data={brandData}
-        createPath="/products/brands/create"
+        createPath={paths.dashboard.brand.create}
         hasDetails
         permissions={{
           create: hasPermission('create', 'brand'),

@@ -124,7 +124,24 @@ export function buildParentPickerOptions(
   };
 
   walk(null, 0);
-  return out;
+
+  const reached = new Set(out.map((r) => r.id));
+  const byId = new Map(items.map((c) => [c.id, c]));
+  const orphans: ParentPickerOption[] = [];
+  for (const c of items) {
+    if (excluded.has(c.id) || reached.has(c.id)) continue;
+    const chain = ancestorsChainFromFlat(items, c.id);
+    const depth = Math.max(0, chain.length - 1);
+    const hasChildren = (childrenByParent.get(c.id) ?? []).length > 0;
+    orphans.push({ id: c.id, label: categoryLabel(c), depth, hasChildren });
+  }
+  orphans.sort((a, b) => {
+    const ca = byId.get(a.id);
+    const cb = byId.get(b.id);
+    return (Number(ca?.order) || 0) - (Number(cb?.order) || 0) || a.id - b.id;
+  });
+
+  return [...out, ...orphans];
 }
 
 /**

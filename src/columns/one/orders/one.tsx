@@ -4,8 +4,14 @@ import type { ColumnDef } from '@tanstack/react-table';
 
 import { z } from 'zod';
 import { Iconify } from '@/shared/components/iconify';
+import { formatDecimal } from '@/utils/format-currency';
 import { TableTonedStatusPill } from '@/shared/components/table-status-badges';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
+import {
+  type OrderData,
+  type OrderStatus,
+  normalizeOrderStatus,
+} from '@/pages/dashboard/orders/types/order.types';
 import {
   DropdownMenu,
   DropdownMenuItem,
@@ -13,13 +19,6 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from '@/shared/ui/dropdown-menu';
-import {
-  type OrderData,
-  type OrderStatus,
-  normalizeOrderStatus,
-  orderStatusBlocksReject,
-  orderStatusBlocksAssignDriver,
-} from '@/pages/dashboard/orders/types/order.types';
 
 import { CONFIG } from 'src/global-config';
 
@@ -189,7 +188,7 @@ export const orderColumns = (
       const v = priceAfterDiscountValue(row.original);
       return (
         <span className="text-sm">
-          {v != null && Number.isFinite(v) ? String(v) : '-'}
+          {v != null && Number.isFinite(v) ? formatDecimal(v) : '-'}
         </span>
       );
     },

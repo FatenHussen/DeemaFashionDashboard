@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { cn } from '@/utils/utils';
 import { useTranslation } from 'react-i18next';
 import { Iconify } from '@/shared/components/iconify';
+import { formatDecimal } from '@/utils/format-currency';
 import { Link, useParams, useNavigate } from 'react-router';
 import { DriverCreativeAvatar } from '@/pages/dashboard/driver-wallet-transactions/components/driver-creative-avatar';
 import { useFetchDriverWalletTransactionById } from '@/pages/dashboard/driver-wallet-transactions/hooks/driver-wallet-transaction';
@@ -231,7 +232,7 @@ export default function DetailsPage() {
                   {t('columns.amount')}
                 </p>
                 <p className="mt-2 bg-gradient-to-br from-foreground to-foreground/70 bg-clip-text text-4xl font-bold tabular-nums tracking-tight text-transparent sm:text-5xl">
-                  {item.amount?.toLocaleString()}
+                  {formatDecimal(item.amount)}
                 </p>
                 <p className="mt-3 text-xs text-muted-foreground">{t('form.driverWalletTxAmountHint')}</p>
               </div>
@@ -275,7 +276,7 @@ export default function DetailsPage() {
                 <InfoRow
                   icon="solar:delivery-bold"
                   label={t('form.driverWalletTxDeliveryFee')}
-                  value={item.delivery_fee?.toLocaleString()}
+                  value={formatDecimal(item.delivery_fee)}
                 />
                 <InfoRow
                   icon="solar:percent-bold"

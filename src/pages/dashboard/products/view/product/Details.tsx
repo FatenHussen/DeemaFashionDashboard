@@ -1,18 +1,20 @@
 import type { ReactNode } from 'react';
 import type { TFunction } from 'i18next';
+import type { CurrencyData } from '@/pages/dashboard/currencies/types/currency.types';
 import type { ProductDetailData } from '@/pages/dashboard/products/types/product.types';
 
 import { toast } from 'react-toastify';
 import { Button } from '@/shared/ui/button';
 import { Dialog } from '@/shared/ui/dialog';
 import { useTranslation } from 'react-i18next';
-import { useRef, useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
 import { compressImages } from '@/utils/compress-image';
+import { useRef, useMemo, useState, useEffect } from 'react';
 import { formatTranslated } from '@/utils/format-translated';
-import { formatApiCurrencyAmountForLanguage } from '@/utils/format-currency';
 import { useFetchProductById } from '@/pages/dashboard/products/hooks/product';
+import { useFetchCurrencies } from '@/pages/dashboard/currencies/hooks/currency';
+import { formatDecimal, normalizeFormattedMoneyText, formatApiCurrencyAmountForLanguage } from '@/utils/format-currency';
 import {
   useUpdateProductVariant,
   useDeleteProductVariant,
@@ -158,14 +160,16 @@ function productMoneyDisplay(args: {
                   currency: (row.currency ?? code) as string,
                   symbol: row.symbol,
                 })
-              : (row?.formatted ?? '—')}
+              : normalizeFormattedMoneyText(row?.formatted ?? '—')}
           </Typography>
         ))}
       </Box>
     );
   }
-  if (singleFormatted) return singleFormatted;
-  if (amount != null && !Number.isNaN(Number(amount))) return `${legacyAmountPrefix} ${amount}`;
+  if (singleFormatted) return normalizeFormattedMoneyText(singleFormatted);
+  if (amount != null && !Number.isNaN(Number(amount))) {
+    return `${legacyAmountPrefix} ${formatDecimal(amount)}`;
+  }
   return '—';
 }
 
@@ -216,11 +220,19 @@ function boolFromApi(v: unknown): boolean {
 interface EditVariantModalProps {
   open: boolean;
   variant: any;
+  /** When product category is restaurant, variant model/barcode are not used. */
+  isRestaurant?: boolean;
   onClose: () => void;
   onSuccess: () => void;
 }
 
-function EditVariantModal({ open, variant, onClose, onSuccess }: EditVariantModalProps) {
+function EditVariantModal({
+  open,
+  variant,
+  isRestaurant = false,
+  onClose,
+  onSuccess,
+}: EditVariantModalProps) {
   const { t } = useTranslation('table');
   const { mutate: updateVariant, isPending } = useUpdateProductVariant();
 
@@ -229,6 +241,8 @@ function EditVariantModal({ open, variant, onClose, onSuccess }: EditVariantModa
   const [sku, setSku] = useState<string>(variant?.sku ?? '');
   const [model, setModel] = useState<string>(variant?.model ?? '');
   const [barcode, setBarcode] = useState<string>(variant?.barcode ?? '');
+  const [nameEn, setNameEn] = useState<string>('');
+  const [nameAr, setNameAr] = useState<string>('');
   const [newImages, setNewImages] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -239,6 +253,18 @@ function EditVariantModal({ open, variant, onClose, onSuccess }: EditVariantModa
       setSku(variant.sku != null ? String(variant.sku) : '');
       setModel(variant.model != null ? String(variant.model) : '');
       setBarcode(variant.barcode != null ? String(variant.barcode) : '');
+      const rawName = variant.name as unknown;
+      if (rawName && typeof rawName === 'object') {
+        const obj = rawName as { en?: unknown; ar?: unknown };
+        setNameEn(obj.en != null ? String(obj.en) : '');
+        setNameAr(obj.ar != null ? String(obj.ar) : '');
+      } else if (typeof rawName === 'string') {
+        setNameEn(rawName);
+        setNameAr(rawName);
+      } else {
+        setNameEn('');
+        setNameAr('');
+      }
       setNewImages([]);
     }
   }, [open, variant]);
@@ -267,8 +293,8 @@ function EditVariantModal({ open, variant, onClose, onSuccess }: EditVariantModa
           existing_images_ids: keptImageIds,
           images,
           sku,
-          model,
-          barcode,
+          ...(isRestaurant ? { model: '', barcode: '' } : { model, barcode }),
+          name: { en: nameEn, ar: nameAr },
         },
       },
       {
@@ -276,9 +302,6 @@ function EditVariantModal({ open, variant, onClose, onSuccess }: EditVariantModa
           toast.success(t('form.variantSaveSuccess'));
           onSuccess();
           onClose();
-        },
-        onError: () => {
-          toast.error(t('form.variantSaveFailed'));
         },
       }
     );
@@ -340,37 +363,74 @@ function EditVariantModal({ open, variant, onClose, onSuccess }: EditVariantModa
 
           <Box>
             <Typography variant="body2" className="text-muted-foreground mb-1 font-medium">
+              {t('form.nameEn')}
+            </Typography>
+            <input
+              type="text"
+              value={nameEn}
+              onChange={(e) => setNameEn(e.target.value)}
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+            />
+          </Box>
+          <Box>
+            <Typography variant="body2" className="text-muted-foreground mb-1 font-medium">
+              {t('form.nameAr')}
+            </Typography>
+            <input
+              type="text"
+              dir="rtl"
+              value={nameAr}
+              onChange={(e) => setNameAr(e.target.value)}
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+            />
+          </Box>
+          <Box>
+            <Typography variant="body2" className="text-muted-foreground mb-1 font-medium">
               {t('form.productSku')}
             </Typography>
-            <input
-              type="text"
-              value={sku}
-              onChange={(e) => setSku(e.target.value)}
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-            />
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={sku}
+                onChange={(e) => setSku(e.target.value)}
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+              />
+              <button
+                type="button"
+                title={t('form.generateSku')}
+                onClick={() => setSku('SKU-' + Math.random().toString(36).substring(2, 10).toUpperCase())}
+                className="flex items-center justify-center rounded-md border border-border bg-muted px-2 hover:bg-muted/80 transition-colors"
+              >
+                <Iconify icon="solar:shuffle-bold" width={18} />
+              </button>
+            </div>
           </Box>
-          <Box>
-            <Typography variant="body2" className="text-muted-foreground mb-1 font-medium">
-              {t('form.productModel')}
-            </Typography>
-            <input
-              type="text"
-              value={model}
-              onChange={(e) => setModel(e.target.value)}
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-            />
-          </Box>
-          <Box>
-            <Typography variant="body2" className="text-muted-foreground mb-1 font-medium">
-              {t('form.productBarcode')}
-            </Typography>
-            <input
-              type="text"
-              value={barcode}
-              onChange={(e) => setBarcode(e.target.value)}
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-            />
-          </Box>
+          {!isRestaurant && (
+            <>
+              <Box>
+                <Typography variant="body2" className="text-muted-foreground mb-1 font-medium">
+                  {t('form.productModel')}
+                </Typography>
+                <input
+                  type="text"
+                  value={model}
+                  onChange={(e) => setModel(e.target.value)}
+                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                />
+              </Box>
+              <Box>
+                <Typography variant="body2" className="text-muted-foreground mb-1 font-medium">
+                  {t('form.productBarcode')}
+                </Typography>
+                <input
+                  type="text"
+                  value={barcode}
+                  onChange={(e) => setBarcode(e.target.value)}
+                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                />
+              </Box>
+            </>
+          )}
 
           {/* existing images */}
           {existingImages.length > 0 && (
@@ -444,6 +504,24 @@ function EditVariantModal({ open, variant, onClose, onSuccess }: EditVariantModa
 }
 
 // ----------------------------------------------------------------------
+// Shop product variant edit — currency helpers (same convention as product price: API stores USD)
+
+function parseShopVariantCurrencyRate(c: CurrencyData): number {
+  const r = Number((c as { exchange_rate?: string | number }).exchange_rate);
+  return r > 0 ? r : 1;
+}
+
+function shopVariantLocalToUsd(local: number, exchangeRate: number): number {
+  const r = exchangeRate > 0 ? exchangeRate : 1;
+  return local / r;
+}
+
+function shopVariantUsdToLocal(usd: number, exchangeRate: number): number {
+  const r = exchangeRate > 0 ? exchangeRate : 1;
+  return usd * r;
+}
+
+// ----------------------------------------------------------------------
 // Shop Product Variant Edit Modal
 
 interface EditShopVariantModalProps {
@@ -456,22 +534,41 @@ interface EditShopVariantModalProps {
 function EditShopVariantModal({ open, shopVariant, onClose, onSuccess }: EditShopVariantModalProps) {
   const { t } = useTranslation('table');
   const { mutate: updateShopVariant, isPending } = useUpdateShopProductVariant();
+  const { data: currenciesResponse } = useFetchCurrencies(1, 100);
+
+  const activeCurrencies = useMemo(() => {
+    const raw = currenciesResponse?.data?.items ?? [];
+    return raw.filter((c) => {
+      const active = c.is_active as boolean | number | undefined;
+      return active === true || active === 1;
+    });
+  }, [currenciesResponse]);
+
+  const usdCurrency = useMemo(
+    () =>
+      activeCurrencies.find((c) => String(c.code).toUpperCase() === 'USD') ??
+      activeCurrencies.find((c) => c.is_default) ??
+      activeCurrencies[0],
+    [activeCurrencies]
+  );
+
+  const sypCurrency = useMemo(
+    () => activeCurrencies.find((c) => String(c.code).toUpperCase() === 'SYP'),
+    [activeCurrencies]
+  );
+
+  const dualPriceReady = Boolean(usdCurrency && sypCurrency);
+  const sypRate = sypCurrency ? parseShopVariantCurrencyRate(sypCurrency) : 1;
 
   const [price, setPrice] = useState<string>('');
   const [costPrice, setCostPrice] = useState<string>('');
-  const [discount, setDiscount] = useState<string>('');
   const [quantity, setQuantity] = useState<string>('');
-  const [shopId, setShopId] = useState<string>('');
-  const [productVariantId, setProductVariantId] = useState<string>('');
 
   useEffect(() => {
     if (open && shopVariant) {
       setPrice(shopVariant.price != null ? String(shopVariant.price) : '');
       setCostPrice(shopVariant.cost_price != null ? String(shopVariant.cost_price) : '');
-      setDiscount(shopVariant.discount != null ? String(shopVariant.discount) : '');
       setQuantity(shopVariant.quantity != null ? String(shopVariant.quantity) : '');
-      setShopId(shopVariant.shop_id != null ? String(shopVariant.shop_id) : '');
-      setProductVariantId(shopVariant.product_variant_id != null ? String(shopVariant.product_variant_id) : '');
     }
   }, [open, shopVariant]);
 
@@ -483,10 +580,7 @@ function EditShopVariantModal({ open, shopVariant, onClose, onSuccess }: EditSho
         data: {
           price: price !== '' ? Number(price) : undefined,
           cost_price: costPrice !== '' ? Number(costPrice) : undefined,
-          discount: discount !== '' ? Number(discount) : undefined,
           quantity: quantity !== '' ? Number(quantity) : undefined,
-          shop_id: shopId !== '' ? Number(shopId) : undefined,
-          product_variant_id: productVariantId !== '' ? Number(productVariantId) : undefined,
         },
       },
       {
@@ -494,9 +588,6 @@ function EditShopVariantModal({ open, shopVariant, onClose, onSuccess }: EditSho
           toast.success(t('form.shopVariantSaveSuccess'));
           onSuccess();
           onClose();
-        },
-        onError: () => {
-          toast.error(t('form.shopVariantSaveFailed'));
         },
       }
     );
@@ -510,38 +601,94 @@ function EditShopVariantModal({ open, shopVariant, onClose, onSuccess }: EditSho
       title={t('form.productDetailsEditShopVariantTitle', { id: shopVariant?.id ?? '' })}
       content={
         <Box className="space-y-3">
+          {dualPriceReady ? (
+            <>
+              <Box>
+                <Typography variant="body2" className="text-muted-foreground mb-1 font-medium">
+                  {t('form.productPriceUsdLabel')}
+                  {usdCurrency?.symbol ? (
+                    <span className="ms-1 opacity-80">({usdCurrency.symbol})</span>
+                  ) : null}
+                </Typography>
+                <input
+                  type="number"
+                  step="any"
+                  min={0}
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                />
+              </Box>
+              <Box>
+                <Typography variant="body2" className="text-muted-foreground mb-1 font-medium">
+                  {t('form.productPriceSypLabel')}
+                  {sypCurrency?.symbol ? (
+                    <span className="ms-1 opacity-80">({sypCurrency.symbol})</span>
+                  ) : null}
+                </Typography>
+                <input
+                  type="number"
+                  step="any"
+                  min={0}
+                  value={(() => {
+                    const u = parseFloat(price) || 0;
+                    const syp = shopVariantUsdToLocal(u, sypRate);
+                    return u === 0 && syp === 0 ? '' : syp;
+                  })()}
+                  onChange={(e) => {
+                    const raw = e.target.value;
+                    const v = raw === '' ? 0 : parseFloat(raw);
+                    setPrice(
+                      String(shopVariantLocalToUsd(Number.isFinite(v) ? v : 0, sypRate))
+                    );
+                  }}
+                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                />
+              </Box>
+            </>
+          ) : (
+            <Box>
+              <Typography variant="body2" className="text-muted-foreground mb-1 font-medium">
+                {t('form.priceLabel')}
+              </Typography>
+              <input
+                type="number"
+                step="0.01"
+                min={0}
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+              />
+            </Box>
+          )}
           {[
-            { label: t('form.priceLabel'), value: price, setter: setPrice },
-            { label: t('form.productCostPriceOptional'), value: costPrice, setter: setCostPrice },
-            { label: t('columns.discount'), value: discount, setter: setDiscount },
-            { label: t('form.quantity'), value: quantity, setter: setQuantity },
-            { label: t('form.productDetailsShopFieldShopId'), value: shopId, setter: setShopId },
-            {
-              label: t('form.productDetailsShopFieldProductVariantId'),
-              value: productVariantId,
-              setter: setProductVariantId,
-            },
-          ].map(({ label, value, setter }) => (
+            { label: t('form.productCostPriceOptional'), value: costPrice, setter: setCostPrice, step: '0.01' },
+            { label: t('form.quantity'), value: quantity, setter: setQuantity, step: '1' },
+          ].map(({ label, value, setter, step }) => (
             <Box key={label}>
               <Typography variant="body2" className="text-muted-foreground mb-1 font-medium">
                 {label}
               </Typography>
               <input
                 type="number"
+                step={step}
+                min={0}
                 value={value}
                 onChange={(e) => setter(e.target.value)}
                 className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
             </Box>
           ))}
-          <Box>
-            <Typography variant="body2" className="text-muted-foreground mb-1 font-medium">
-              {t('columns.priceAfterDiscount')}
-            </Typography>
-            <Typography variant="body2" className="rounded-md border border-border/60 bg-muted/30 px-3 py-2 tabular-nums">
-              {shopVariant?.price_after_discount != null ? String(shopVariant.price_after_discount) : '—'}
-            </Typography>
-          </Box>
+          {shopVariant?.price_after_discount != null ? (
+            <Box>
+              <Typography variant="body2" className="text-muted-foreground mb-1 font-medium">
+                {t('columns.priceAfterDiscount')}
+              </Typography>
+              <Typography variant="body2" className="rounded-md border border-border/60 bg-muted/30 px-3 py-2 tabular-nums">
+                {String(shopVariant.price_after_discount)}
+              </Typography>
+            </Box>
+          ) : null}
         </Box>
       }
       actions={
@@ -587,7 +734,6 @@ export default function DetailsPage() {
         setDeleteVariantId(null);
         refetch();
       },
-      onError: () => toast.error(t('form.variantDeleteFailed')),
     });
   };
 
@@ -599,7 +745,6 @@ export default function DetailsPage() {
         setDeleteShopVariantId(null);
         refetch();
       },
-      onError: () => toast.error(t('form.productDetailsShopVariantDeleteFailed')),
     });
   };
 
@@ -636,7 +781,7 @@ export default function DetailsPage() {
   }
 
   const product = productResponse as any;
-  const isRestaurant = Boolean(product?.category?.is_restaurant);
+  const isRestaurant = Boolean(product?.is_restaurant ?? product?.category?.is_restaurant);
   const yes = t('form.productDetailsYes');
   const no = t('form.productDetailsNo');
 
@@ -1157,14 +1302,18 @@ export default function DetailsPage() {
                           {t('form.productSku')}:{' '}
                           <span className="font-mono text-foreground">{variant.sku ?? na}</span>
                         </span>
-                        <span>
-                          {t('form.productModel')}:{' '}
-                          <span className="font-mono text-foreground">{variant.model ?? na}</span>
-                        </span>
-                        <span>
-                          {t('form.productBarcode')}:{' '}
-                          <span className="font-mono text-foreground">{variant.barcode ?? na}</span>
-                        </span>
+                        {!isRestaurant && (
+                          <>
+                            <span>
+                              {t('form.productModel')}:{' '}
+                              <span className="font-mono text-foreground">{variant.model ?? na}</span>
+                            </span>
+                            <span>
+                              {t('form.productBarcode')}:{' '}
+                              <span className="font-mono text-foreground">{variant.barcode ?? na}</span>
+                            </span>
+                          </>
+                        )}
                       </Box>
 
                       {/* Attributes */}
@@ -1338,6 +1487,7 @@ export default function DetailsPage() {
               <EditVariantModal
                 open={!!editVariant}
                 variant={editVariant}
+                isRestaurant={isRestaurant}
                 onClose={() => setEditVariant(null)}
                 onSuccess={() => refetch()}
               />

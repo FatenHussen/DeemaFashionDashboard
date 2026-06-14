@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { Iconify } from '@/shared/components/iconify';
+import { formatDecimal } from '@/utils/format-currency';
 
 import { paths } from 'src/routes/paths';
 
@@ -10,11 +11,6 @@ import { CONFIG } from 'src/global-config';
 import { useFetchVendorAccountingSummary } from '../hooks';
 
 // ----------------------------------------------------------------------
-
-function formatCurrency(value: number | undefined | null) {
-  if (value === null || value === undefined) return '—';
-  return value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
 
 type SummaryCard = {
   label: string;
@@ -215,7 +211,7 @@ export default function VendorAccountingSummaryPage() {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
             {SUMMARY_CARDS.map((card) => {
               const raw = summary?.[card.key as keyof typeof summary] as number | undefined;
-              const display = card.isMoney ? formatCurrency(raw) : (raw?.toLocaleString() ?? '—');
+              const display = card.isMoney ? formatDecimal(raw) : (raw?.toLocaleString() ?? '—');
               return (
                 <div
                   key={card.key}

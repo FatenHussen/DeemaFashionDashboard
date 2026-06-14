@@ -286,6 +286,7 @@ export interface OrderDetailData {
   rejection_reason?: string | null;
   cart_type: string;
   is_instant_delivery: boolean;
+  is_paid: boolean;
   delivery_price: number;
   currency?: string;
   currency_symbol?: string;

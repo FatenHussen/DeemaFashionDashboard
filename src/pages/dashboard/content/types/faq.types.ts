@@ -10,6 +10,8 @@ export interface FaqItem {
   question: string;
   answer: string;
   type: string;
+  /** Normalized from list API (`is_active`, `is_visible`, `visibility`, etc.) for admin toggles. */
+  is_active?: boolean;
 }
 
 export interface FaqListResponse {

@@ -16,6 +16,8 @@ export type GiftListParams = {
   page?: number;
   per_page?: number;
   search?: string;
+  /** Admin gifts list filter (same pattern as products). */
+  category_id?: number;
   is_active?: boolean;
   sort_by?: 'id' | 'points_required' | 'created_at';
   sort_order?: 'asc' | 'desc';
