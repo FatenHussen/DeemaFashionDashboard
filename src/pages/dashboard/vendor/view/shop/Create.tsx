@@ -23,6 +23,7 @@ import {
   useUpdateShop,
   useFetchShopById,
 } from '@/pages/dashboard/vendor/hooks/shop';
+import { CategoryHierarchyCheckboxTree } from '@/pages/dashboard/categories/components/category-hierarchy-checkbox-tree';
 import {
   type ShopData,
   type DaySchedule,
@@ -528,6 +529,42 @@ export default function CreatePage() {
     );
   };
 
+  const stepValidationFields = useMemo(() => {
+    if (!isRestaurantMode) return SHOP_STEP_VALIDATION_FIELDS;
+    return SHOP_STEP_VALIDATION_FIELDS.map((fields, index) =>
+      index === 4 ? fields.filter((field) => field !== 'category_ids') : fields
+    );
+  }, [isRestaurantMode]);
+
+  const restaurantCategoriesBeforeStepper = isRestaurantMode ? (
+    <ShopStepCanvas>
+      <Box className="group">
+        <Box className="flex items-center gap-2.5 mb-4">
+          <Box className="w-7 h-7 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
+            <Iconify icon="solar:folder-bold" className="text-primary" width={16} height={16} />
+          </Box>
+          <Typography variant="subtitle2" className="font-semibold text-foreground">
+            {t('form.restaurantCategoriesSection')}
+          </Typography>
+        </Box>
+        <Controller
+          name="category_ids"
+          control={control}
+          render={({ field, fieldState: { error } }) => (
+            <CategoryHierarchyCheckboxTree
+              categories={categoryRows}
+              value={field.value ?? []}
+              onChange={field.onChange}
+              isLoading={isLoadingCategories}
+              disabled={isLoadingCategories || categoryRows.length === 0}
+              error={error?.message ? String(error.message) : undefined}
+            />
+          )}
+        />
+      </Box>
+    </ShopStepCanvas>
+  ) : undefined;
+
   // Define steps for the stepper
   const steps = [
     {
@@ -575,13 +612,21 @@ export default function CreatePage() {
                   />
                 </Box>
 <Typography variant="subtitle2" className="font-semibold text-foreground">
-                {t('form.storeNameAr')}
+                {isRestaurantMode ? t('form.restaurantVendorNameAr') : t('form.storeNameAr')}
                 </Typography>
               </Box>
               <RHFTextField
                 name="name.ar"
-                placeholder={t('form.storeNameAr')}
-                helperText={t('form.shopNameArHelper')}
+                placeholder={
+                  isRestaurantMode
+                    ? t('form.restaurantVendorNameArPlaceholder')
+                    : t('form.storeNameAr')
+                }
+                helperText={
+                  isRestaurantMode
+                    ? t('form.restaurantVendorNameArHelper')
+                    : t('form.shopNameArHelper')
+                }
                 className="transition-all duration-200"
               />
             </Box>
@@ -597,13 +642,21 @@ export default function CreatePage() {
                   />
                 </Box>
 <Typography variant="subtitle2" className="font-semibold text-foreground">
-                {t('form.storeNameEn')}
+                {isRestaurantMode ? t('form.restaurantVendorNameEn') : t('form.storeNameEn')}
                 </Typography>
               </Box>
               <RHFTextField
                 name="name.en"
-                placeholder={t('form.storeNameEn')}
-                helperText={t('form.shopNameEnHelper')}
+                placeholder={
+                  isRestaurantMode
+                    ? t('form.restaurantVendorNameEnPlaceholder')
+                    : t('form.storeNameEn')
+                }
+                helperText={
+                  isRestaurantMode
+                    ? t('form.restaurantVendorNameEnHelper')
+                    : t('form.shopNameEnHelper')
+                }
                 className="transition-all duration-200"
               />
             </Box>
@@ -1126,6 +1179,7 @@ export default function CreatePage() {
             </Box>
           </Box>
 
+          {!isRestaurantMode ? (
           <Box className="group pt-2">
             <Box className="flex items-center gap-2.5 mb-3">
               <Box className="w-7 h-7 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
@@ -1172,6 +1226,7 @@ export default function CreatePage() {
               )}
             />
           </Box>
+          ) : null}
 
           {/* Active Status */}
           <Box className="group pt-2">
@@ -1303,7 +1358,8 @@ export default function CreatePage() {
         }
         maxWidth="full"
         steps={steps}
-        stepValidationFields={SHOP_STEP_VALIDATION_FIELDS}
+        stepValidationFields={stepValidationFields}
+        beforeStepper={restaurantCategoriesBeforeStepper}
         reviewHint={t('reviewBeforeSubmit')}
         submitLabel={
           isEditMode

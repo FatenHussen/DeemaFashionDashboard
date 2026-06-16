@@ -33,11 +33,13 @@ export const PromotionSchema = z
     discount_value: z.number().optional().nullable(),
     discount_type: z.enum(['percentage', 'fixed']).optional().nullable(),
     gift_product_ids: z.array(z.number()).optional().default([]),
+    product_ids: z.array(z.number()).optional().default([]),
+    shop_ids: z.array(z.number()).optional().default([]),
+    restaurant_ids: z.array(z.number()).optional().default([]),
+    recipe_ids: z.array(z.number()).optional().default([]),
+    shop_vendor_service_ids: z.array(z.coerce.number().int().positive()).optional().default([]),
     page_slugs: z.array(z.string()).optional().default([]),
-    position: z.preprocess(
-      (val) => (val === '' || val === null || val === undefined ? 0 : val),
-      z.coerce.number().int().min(0)
-    ),
+    position: z.enum(['top', 'bottom']).optional().default('top'),
   })
   .superRefine((data, ctx) => {
     const usesDiscount = data.type === 'simple_discount' || data.type === 'spend_x_discount';

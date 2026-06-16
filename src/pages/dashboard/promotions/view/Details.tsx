@@ -102,7 +102,15 @@ export default function DetailsPage() {
             )}
             <DetailRow
               label={t('form.positionLabel')}
-              value={item.position != null ? String(item.position) : null}
+              value={
+                item.position === 'top'
+                  ? t('form.promotionPositionTop')
+                  : item.position === 'bottom'
+                    ? t('form.promotionPositionBottom')
+                    : item.position != null
+                      ? String(item.position)
+                      : null
+              }
             />
             <Box className="col-span-2">
               <Typography variant="body2" className="text-muted-foreground text-xs uppercase mb-2">

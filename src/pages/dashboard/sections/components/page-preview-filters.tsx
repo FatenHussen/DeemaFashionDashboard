@@ -1,4 +1,3 @@
-import type { TFunction } from 'i18next';
 import type { FilterConfig } from '../types/page-section.types';
 
 import { axiosInstance } from '@/api';
@@ -6,18 +5,14 @@ import { useTranslation } from 'react-i18next';
 import { useRef, useState, useEffect } from 'react';
 import { Iconify } from '@/shared/components/iconify';
 import { InfiniteScrollSelect } from '@/shared/components/infinite-scroll-select';
+import {
+  filterFieldLabel,
+  filterOptionLabel,
+} from '@/pages/dashboard/sections/utils/filter-field-label';
 
 import { Box, Typography, SimpleSelect } from 'src/shared/ui';
 
 // ----------------------------------------------------------------------
-
-function formatFilterItemLabel(raw: string) {
-  return raw.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
-}
-
-function filterFieldLabel(t: TFunction<'table'>, key: string) {
-  return t(`form.pageSectionFilterKeys.${key}`, { defaultValue: formatFilterItemLabel(key) });
-}
 
 function DebouncedFilterInput({
   type,
@@ -110,7 +105,7 @@ function PagePreviewFilterField({
           placeholder={t('form.filterSelectPlaceholder', { name: label })}
           options={filterConfig.items.map((item) => ({
             value: item,
-            label: filterFieldLabel(t, String(item)),
+            label: filterOptionLabel(t, String(item)),
           }))}
         />
       </Box>

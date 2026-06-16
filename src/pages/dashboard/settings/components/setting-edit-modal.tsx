@@ -6,6 +6,7 @@ import { mergeClasses } from 'minimal-shared/utils';
 import { useMemo, useState, useEffect } from 'react';
 import { compressImage } from '@/utils/compress-image';
 import { useUpdateSetting } from '@/pages/dashboard/settings/hooks/setting';
+import { settingKeyLabel } from '@/pages/dashboard/settings/utils/setting-key-label';
 
 import { Modal } from 'src/shared/ui/modal';
 import { Button } from 'src/shared/ui/button';
@@ -200,13 +201,14 @@ export function SettingEditModal({ open, onClose, item }: SettingEditModalProps)
   };
 
   const typeLabel = typeof item.type === 'string' ? item.type : String(item.type);
+  const keyLabel = settingKeyLabel(t, item.key);
 
   return (
     <Modal open={open} onClose={onClose} maxWidth="xl">
       <div className="flex max-h-[min(88vh,820px)] w-full flex-col overflow-hidden rounded-xl border border-border bg-card shadow-xl">
         <div className="border-b border-border/80 bg-muted/20 px-5 py-4 sm:px-6">
           <Typography variant="h6" className="font-semibold text-foreground">
-            {t('form.settingsEditModalTitle')}
+            {t('form.settingsEditModalTitle', { name: keyLabel })}
           </Typography>
           <Typography variant="body2" className="mt-1 font-mono text-sm text-muted-foreground">
             {item.key}

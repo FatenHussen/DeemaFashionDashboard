@@ -87,8 +87,11 @@ const baseFields = {
   trigger_value: zod.coerce.number().int().min(0).optional().nullable().default(null),
   product_ids: zod.array(zod.coerce.number().int().positive()).optional().default([]),
   shop_ids: zod.array(zod.coerce.number().int().positive()).optional().default([]),
+  restaurant_ids: zod.array(zod.coerce.number().int().positive()).optional().default([]),
   recipe_ids: zod.array(zod.coerce.number().int().positive()).optional().default([]),
   promotion_ids: zod.array(zod.coerce.number().int().positive()).optional().default([]),
+  basket_ids: zod.array(zod.coerce.number().int().positive()).optional().default([]),
+  shop_vendor_service_ids: zod.array(zod.coerce.number().int().positive()).optional().default([]),
 };
 
 export const PopupCampaignCreateSchema = zod.object({

@@ -6,6 +6,7 @@ export type PromotionType =
   | 'free_shipping'
   | 'spend_x_get_free_shipping';
 export type DiscountType = 'percentage' | 'fixed';
+export type PromotionPosition = 'top' | 'bottom';
 
 export interface PromotionListItem {
   id: number;
@@ -30,10 +31,15 @@ export interface PromotionDetailItem {
   discount_value: number | null;
   discount_type: DiscountType | null;
   gift_product_ids: number[];
+  product_ids?: number[];
+  shop_ids?: number[];
+  restaurant_ids?: number[];
+  recipe_ids?: number[];
+  shop_vendor_service_ids?: number[] | null;
   /** CMS page slugs where this promotion is shown */
   page_slugs?: string[] | null;
-  /** Display order among promotions on a page */
-  position?: number | null;
+  /** Vertical placement on the page */
+  position?: PromotionPosition | null;
 }
 
 export interface PromotionListResponse {
@@ -69,8 +75,13 @@ export interface PromotionCreatePayload {
   discount_value?: number;
   discount_type?: DiscountType;
   gift_product_ids?: number[];
+  product_ids?: number[];
+  shop_ids?: number[];
+  restaurant_ids?: number[];
+  recipe_ids?: number[];
+  shop_vendor_service_ids?: number[] | null;
   page_slugs?: string[];
-  position?: number;
+  position?: PromotionPosition;
 }
 
 export type PromotionUpdatePayload = PromotionCreatePayload;

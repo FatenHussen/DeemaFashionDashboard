@@ -21,6 +21,7 @@ export const queryKeys = {
       vendor_id?: number;
       shop_status?: string;
       shop_type?: string;
+      is_restaurant?: 0 | 1 | boolean;
     }) => ['shop', 'list', params] as const,
     details: (id: number | string) => ['shop', 'details', id] as const,
   },

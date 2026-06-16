@@ -7,6 +7,7 @@ import { Iconify } from '@/shared/components/iconify';
 import { usePermissions } from '@/auth/hooks/use-permissions';
 import { useAdminToggleStatus } from '@/hooks/use-admin-toggle-status';
 import { useFetchSettings } from '@/pages/dashboard/settings/hooks/setting';
+import { settingKeyLabel } from '@/pages/dashboard/settings/utils/setting-key-label';
 import { SettingEditModal } from '@/pages/dashboard/settings/components/setting-edit-modal';
 import { type SettingItem, settingsItemsFromListData } from '@/pages/dashboard/settings/types/setting.types';
 
@@ -52,11 +53,17 @@ function SettingRow({
   const active = settingRowIsActive(item);
   const canToggle =
     active !== undefined && can('setting.update');
+  const keyLabel = settingKeyLabel(t, item.key);
 
   return (
     <tr className="border-b border-border/40 transition-colors hover:bg-muted/30">
-      <td className="px-4 py-3 font-mono text-sm text-muted-foreground">
-        {typeof item.key === 'string' ? item.key : JSON.stringify(item.key)}
+      <td className="px-4 py-3">
+        <Typography variant="body2" className="font-medium text-foreground">
+          {keyLabel}
+        </Typography>
+        <Typography variant="caption" className="font-mono text-muted-foreground">
+          {typeof item.key === 'string' ? item.key : JSON.stringify(item.key)}
+        </Typography>
       </td>
       <td className="px-4 py-3">
         <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">
@@ -164,7 +171,7 @@ export default function Page() {
               <thead>
                 <tr className="border-b border-border bg-muted/40">
                   <th className="px-4 py-3 text-start text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    {t('form.columnKey')}
+                    {t('form.columnSettingName')}
                   </th>
                   <th className="px-4 py-3 text-start text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                     {t('columns.type')}

@@ -67,6 +67,8 @@ export interface ShopProductVariantUpdatePayload {
   price?: number;
   cost_price?: number;
   quantity?: number;
+  discount?: number;
+  discount_type?: 'percentage' | 'fixed';
 }
 
 export const _ShopProductVariantApi = {

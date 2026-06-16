@@ -1,6 +1,7 @@
 import type { FieldErrors } from 'react-hook-form';
 import type { MultiSelectOption } from '@/shared/ui/multi-select';
 import type { ProductData } from '@/pages/dashboard/products/types/product.types';
+import type { ShopVendorServiceData } from '@/pages/dashboard/shop-vendor-services/types';
 import type { PopupCampaignDetail, PopupCampaignUpsertPayload } from '../types';
 
 import { toast } from 'react-toastify';
@@ -13,11 +14,13 @@ import { formatTranslated } from '@/utils/format-translated';
 import { useFetchShops } from '@/pages/dashboard/vendor/hooks/shop';
 import { RHFSelect } from '@/shared/components/hook-form/rhf-select';
 import { useFetchRecipes } from '@/pages/dashboard/recipes/hooks/recipe';
+import { useFetchBaskets } from '@/pages/dashboard/baskets/hooks/basket';
 import { RHFTextField } from '@/shared/components/hook-form/rhf-text-field';
 import { useFetchProducts } from '@/pages/dashboard/products/hooks/product';
-import { useFetchPromotions } from '@/pages/dashboard/promotions/hooks/promotion';
 import { useFetchPages } from '@/pages/dashboard/sections/hooks/usePageSections';
+import { useFetchPromotions } from '@/pages/dashboard/promotions/hooks/promotion';
 import { useMemo, useState, useEffect, useCallback, useLayoutEffect } from 'react';
+import { useFetchShopVendorServices } from '@/pages/dashboard/shop-vendor-services/hooks';
 import { cmsPageSelectLabel } from '@/pages/dashboard/sections/utils/cms-page-select-label';
 
 import { paths } from 'src/routes/paths';
@@ -94,6 +97,28 @@ function resolveProductListImageUrl(img: string | null | undefined): string | nu
 }
 
 /** Parses `product_ids`, `products: [{id}]`, etc. */
+function shopVendorServiceSelectLabel(
+  item: ShopVendorServiceData,
+  t: (key: string, options?: Record<string, unknown>) => string
+): string {
+  const shopName = item.shop
+    ? formatTranslated(item.shop.name as Parameters<typeof formatTranslated>[0])
+    : t('form.shopFallbackLabel', { id: item.shop_id });
+  const serviceName = item.vendor_service
+    ? formatTranslated(item.vendor_service.name as Parameters<typeof formatTranslated>[0])
+    : t('form.shopVendorServiceFallbackLabel', { id: item.vendor_service_id });
+  return `${shopName} — ${serviceName}`;
+}
+
+function parseShopVendorServiceIds(raw: Record<string, unknown>): number[] {
+  const fromArray = parseIdArray(raw.shop_vendor_service_ids);
+  if (fromArray.length) return fromArray;
+  const single = raw.shop_vendor_service_id;
+  if (single == null || single === '') return [];
+  const n = Number(single);
+  return Number.isFinite(n) && n > 0 ? [n] : [];
+}
+
 function parseIdArray(v: unknown): number[] {
   if (v == null) return [];
   if (!Array.isArray(v)) return [];
@@ -139,6 +164,84 @@ function trimLocale(loc: { en: string; ar: string }): { en: string; ar: string }
   return { en: (loc.en ?? '').trim(), ar: (loc.ar ?? '').trim() };
 }
 
+type ShopListItem = { id: number; name: unknown };
+
+function extractShopListItems(
+  data: { items?: ShopListItem[] } | undefined
+): ShopListItem[] {
+  return data?.items ?? [];
+}
+
+function buildShopMultiSelectOptions(
+  items: ShopListItem[],
+  extraIds: number[],
+  fallbackLabel: (id: number) => string
+): MultiSelectOption[] {
+  const byId = new Map<number, MultiSelectOption>();
+  for (const s of items) {
+    byId.set(s.id, {
+      value: s.id,
+      label:
+        formatTranslated(s.name as Parameters<typeof formatTranslated>[0]) || fallbackLabel(s.id),
+    });
+  }
+  for (const sid of extraIds) {
+    if (byId.has(sid)) continue;
+    byId.set(sid, { value: sid, label: fallbackLabel(sid) });
+  }
+  return Array.from(byId.values());
+}
+
+/** Split combined shop targeting IDs into shops vs restaurants for the form. */
+function splitShopTargetingIds(
+  allIds: number[],
+  shopsRaw: unknown,
+  restaurantIdSet: Set<number>
+): { shop_ids: number[]; restaurant_ids: number[] } {
+  if (Array.isArray(shopsRaw) && shopsRaw.length > 0) {
+    const first = shopsRaw[0];
+    if (first && typeof first === 'object' && 'id' in first) {
+      const hasRestaurantFlag = shopsRaw.some(
+        (x) =>
+          x &&
+          typeof x === 'object' &&
+          ('is_restaurant' in x || 'isRestaurant' in x)
+      );
+      if (hasRestaurantFlag) {
+        const shop_ids: number[] = [];
+        const restaurant_ids: number[] = [];
+        for (const x of shopsRaw) {
+          if (!x || typeof x !== 'object' || !('id' in x)) continue;
+          const id = Number((x as { id: unknown }).id);
+          if (!Number.isFinite(id) || id <= 0) continue;
+          const row = x as { is_restaurant?: unknown; isRestaurant?: unknown };
+          const isRest = Boolean(row.is_restaurant ?? row.isRestaurant);
+          if (isRest) restaurant_ids.push(id);
+          else shop_ids.push(id);
+        }
+        const known = new Set([...shop_ids, ...restaurant_ids]);
+        for (const id of allIds) {
+          if (known.has(id)) continue;
+          if (restaurantIdSet.has(id)) restaurant_ids.push(id);
+          else shop_ids.push(id);
+        }
+        return {
+          shop_ids: [...new Set(shop_ids)],
+          restaurant_ids: [...new Set(restaurant_ids)],
+        };
+      }
+    }
+  }
+
+  const shop_ids: number[] = [];
+  const restaurant_ids: number[] = [];
+  for (const id of allIds) {
+    if (restaurantIdSet.has(id)) restaurant_ids.push(id);
+    else shop_ids.push(id);
+  }
+  return { shop_ids, restaurant_ids };
+}
+
 function buildPayload(
   data: PopupCampaignCreateFormValues | PopupCampaignUpdateFormValues
 ): PopupCampaignUpsertPayload {
@@ -171,9 +274,11 @@ function buildPayload(
     form_enabled: Boolean(data.form_enabled),
     form_fields: data.form_fields ?? [],
     product_ids: packIds(data.product_ids),
-    shop_ids: packIds(data.shop_ids),
+    shop_ids: packIds([...(data.shop_ids ?? []), ...(data.restaurant_ids ?? [])]),
     recipe_ids: packIds(data.recipe_ids),
     promotion_ids: packIds(data.promotion_ids),
+    basket_ids: packIds(data.basket_ids),
+    shop_vendor_service_ids: packIds(data.shop_vendor_service_ids),
   };
 }
 
@@ -188,8 +293,18 @@ function mapDetailToFormValues(d: PopupCampaignDetail): PopupCampaignUpdateFormV
     raw.product_ids ?? d.product_ids ?? raw.products
   );
   const shopIds = parseIdArray(raw.shop_ids ?? d.shop_ids ?? raw.shops);
+  const { shop_ids: splitShopIds, restaurant_ids: splitRestaurantIds } = splitShopTargetingIds(
+    shopIds,
+    raw.shops,
+    new Set<number>()
+  );
   const recipeIds = parseIdArray(raw.recipe_ids ?? d.recipe_ids ?? raw.recipes);
   const promotionIds = parseIdArray(raw.promotion_ids ?? d.promotion_ids ?? raw.promotions);
+  const basketIds = parseIdArray(raw.basket_ids ?? d.basket_ids ?? raw.baskets);
+  const shopVendorServiceIds = parseShopVendorServiceIds({
+    shop_vendor_service_ids: raw.shop_vendor_service_ids ?? d.shop_vendor_service_ids,
+    shop_vendor_service_id: raw.shop_vendor_service_id ?? d.shop_vendor_service_id,
+  });
   const typeStr = String(raw.type ?? raw.campaign_type ?? raw.popup_type ?? d.type ?? 'modal');
   const statusStr = String(
     raw.status ?? raw.campaign_status ?? d.status ?? 'draft'
@@ -222,9 +337,12 @@ function mapDetailToFormValues(d: PopupCampaignDetail): PopupCampaignUpdateFormV
     trigger_type: fromApiTrigger(String(d.trigger_type ?? 'on_load')),
     trigger_value: d.trigger_value != null ? Number(d.trigger_value) : null,
     product_ids: productIds,
-    shop_ids: shopIds,
+    shop_ids: splitShopIds,
+    restaurant_ids: splitRestaurantIds,
     recipe_ids: recipeIds,
     promotion_ids: promotionIds,
+    basket_ids: basketIds,
+    shop_vendor_service_ids: shopVendorServiceIds,
     media_file: null,
   };
 }
@@ -270,9 +388,17 @@ export default function CreatePage() {
     page: 1,
     limit: 500,
   });
-  const { data: shopsResponse, isLoading: isLoadingShops } = useFetchShops(1, 500);
+  const { data: shopsResponse, isLoading: isLoadingShops } = useFetchShops(1, 500, {
+    is_restaurant: 0,
+  });
+  const { data: restaurantsResponse, isLoading: isLoadingRestaurants } = useFetchShops(1, 500, {
+    is_restaurant: 1,
+  });
   const { data: recipesResponse, isLoading: isLoadingRecipes } = useFetchRecipes(1, 500);
   const { data: promotionsResponse, isLoading: isLoadingPromotions } = useFetchPromotions(1, 500);
+  const { data: basketsResponse, isLoading: isLoadingBaskets } = useFetchBaskets(1, 500);
+  const { data: shopVendorServicesResponse, isLoading: isLoadingShopVendorServices } =
+    useFetchShopVendorServices(1, 500);
   const createMutation = useCreatePopupCampaign();
   const updateMutation = useUpdatePopupCampaign();
 
@@ -333,30 +459,42 @@ export default function CreatePage() {
   }, [productsResponse?.data, t, detail]);
 
   const shopOptions: MultiSelectOption[] = useMemo(() => {
-    const shops =
-      (shopsResponse?.data as { items?: { id: number; name: unknown }[] } | undefined)?.items ?? [];
-    const byId = new Map<number, MultiSelectOption>();
-    for (const s of shops) {
-      byId.set(s.id, {
-        value: s.id,
-        label:
-          formatTranslated(s.name as Parameters<typeof formatTranslated>[0]) ||
-          t('form.shopFallbackLabel', { id: s.id }),
-      });
-    }
+    const shops = extractShopListItems(
+      shopsResponse?.data as { items?: ShopListItem[] } | undefined
+    );
+    const extraIds: number[] = [];
     if (detail) {
       const r = detail as unknown as Record<string, unknown>;
-      const extraIds = parseIdArray(r.shop_ids ?? r.shops);
-      for (const sid of extraIds) {
-        if (byId.has(sid)) continue;
-        byId.set(sid, {
-          value: sid,
-          label: t('form.shopFallbackLabel', { id: sid }),
-        });
-      }
+      const allIds = parseIdArray(r.shop_ids ?? r.shops);
+      const restaurantIdSet = new Set(
+        extractShopListItems(
+          restaurantsResponse?.data as { items?: ShopListItem[] } | undefined
+        ).map((s) => s.id)
+      );
+      const { shop_ids } = splitShopTargetingIds(allIds, r.shops, restaurantIdSet);
+      extraIds.push(...shop_ids);
     }
-    return Array.from(byId.values());
-  }, [shopsResponse?.data, t, detail]);
+    return buildShopMultiSelectOptions(shops, extraIds, (shopId) =>
+      t('form.shopFallbackLabel', { id: shopId })
+    );
+  }, [shopsResponse?.data, restaurantsResponse?.data, t, detail]);
+
+  const restaurantOptions: MultiSelectOption[] = useMemo(() => {
+    const restaurants = extractShopListItems(
+      restaurantsResponse?.data as { items?: ShopListItem[] } | undefined
+    );
+    const extraIds: number[] = [];
+    if (detail) {
+      const r = detail as unknown as Record<string, unknown>;
+      const allIds = parseIdArray(r.shop_ids ?? r.shops);
+      const restaurantIdSet = new Set(restaurants.map((s) => s.id));
+      const { restaurant_ids } = splitShopTargetingIds(allIds, r.shops, restaurantIdSet);
+      extraIds.push(...restaurant_ids);
+    }
+    return buildShopMultiSelectOptions(restaurants, extraIds, (shopId) =>
+      t('form.shopFallbackLabel', { id: shopId })
+    );
+  }, [restaurantsResponse?.data, t, detail]);
 
   const recipeOptions: MultiSelectOption[] = useMemo(() => {
     const items = recipesResponse?.data?.items ?? [];
@@ -411,6 +549,56 @@ export default function CreatePage() {
     }
     return Array.from(byId.values());
   }, [promotionsResponse?.data, t, detail]);
+
+  const basketOptions: MultiSelectOption[] = useMemo(() => {
+    const items = basketsResponse?.data?.items ?? [];
+    const byId = new Map<number, MultiSelectOption>();
+    for (const b of items) {
+      const label =
+        typeof b.name === 'string'
+          ? b.name
+          : formatTranslated(b.name as Parameters<typeof formatTranslated>[0]);
+      byId.set(b.id, {
+        value: b.id,
+        label: label || t('form.popupCampaignBasketFallback', { id: b.id }),
+      });
+    }
+    if (detail) {
+      const raw = detail as unknown as Record<string, unknown>;
+      const extraIds = parseIdArray(raw.basket_ids ?? raw.baskets);
+      for (const bid of extraIds) {
+        if (byId.has(bid)) continue;
+        byId.set(bid, {
+          value: bid,
+          label: t('form.popupCampaignBasketFallback', { id: bid }),
+        });
+      }
+    }
+    return Array.from(byId.values());
+  }, [basketsResponse?.data, t, detail]);
+
+  const shopVendorServiceOptions: MultiSelectOption[] = useMemo(() => {
+    const items = shopVendorServicesResponse?.data?.items ?? [];
+    const byId = new Map<number, MultiSelectOption>();
+    for (const item of items) {
+      byId.set(item.id, {
+        value: item.id,
+        label: shopVendorServiceSelectLabel(item, t),
+      });
+    }
+    if (detail) {
+      const raw = detail as unknown as Record<string, unknown>;
+      const extraIds = parseShopVendorServiceIds(raw);
+      for (const serviceId of extraIds) {
+        if (byId.has(serviceId)) continue;
+        byId.set(serviceId, {
+          value: serviceId,
+          label: t('form.shopVendorServiceFallbackLabel', { id: serviceId }),
+        });
+      }
+    }
+    return Array.from(byId.values());
+  }, [shopVendorServicesResponse?.data?.items, detail, t]);
 
   const typeOptions = useMemo(
     () =>
@@ -487,8 +675,11 @@ export default function CreatePage() {
     trigger_value: null,
     product_ids: [] as number[],
     shop_ids: [] as number[],
+    restaurant_ids: [] as number[],
     recipe_ids: [] as number[],
     promotion_ids: [] as number[],
+    basket_ids: [] as number[],
+    shop_vendor_service_ids: [] as number[],
   };
 
   const createDefaults: PopupCampaignCreateFormValues = {
@@ -545,10 +736,32 @@ export default function CreatePage() {
    */
   useLayoutEffect(() => {
     if (!isEditMode || !detail?.id) return;
+    if (isLoadingShops || isLoadingRestaurants) return;
+
     const next = mapDetailToFormValues(detail);
-    reset(next, { keepDefaultValues: false });
+    const raw = detail as unknown as Record<string, unknown>;
+    const allShopIds = parseIdArray(raw.shop_ids ?? detail.shop_ids ?? raw.shops);
+    const restaurantIdSet = new Set(
+      extractShopListItems(
+        restaurantsResponse?.data as { items?: ShopListItem[] } | undefined
+      ).map((s) => s.id)
+    );
+    const { shop_ids, restaurant_ids } = splitShopTargetingIds(
+      allShopIds,
+      raw.shops,
+      restaurantIdSet
+    );
+
+    reset({ ...next, shop_ids, restaurant_ids }, { keepDefaultValues: false });
     setFormFieldsInput((next.form_fields ?? []).join(', '));
-  }, [isEditMode, detail, reset]);
+  }, [
+    isEditMode,
+    detail,
+    reset,
+    isLoadingShops,
+    isLoadingRestaurants,
+    restaurantsResponse?.data,
+  ]);
 
   /** If the CMS only has one page, pre-select it so submit is not blocked on an easy-to-miss field. */
   useEffect(() => {
@@ -895,6 +1108,23 @@ export default function CreatePage() {
             </Box>
             <Box className="group">
               <Typography variant="subtitle2" className="mb-2 font-semibold">
+                {t('form.popupCampaignShopVendorService')}
+              </Typography>
+              <RHFMultiSelect
+                name="shop_vendor_service_ids"
+                options={shopVendorServiceOptions}
+                placeholder={
+                  isLoadingShopVendorServices
+                    ? t('form.popupCampaignSlugLoading')
+                    : t('form.popupCampaignShopVendorServicePlaceholder')
+                }
+                fullWidth
+                isDisabled={isLoadingShopVendorServices}
+                isSearchable
+              />
+            </Box>
+            <Box className="group">
+              <Typography variant="subtitle2" className="mb-2 font-semibold">
                 {t('form.popupCampaignTargetShops')}
               </Typography>
               <RHFMultiSelect
@@ -907,6 +1137,23 @@ export default function CreatePage() {
                 }
                 fullWidth
                 isDisabled={isLoadingShops}
+                isSearchable
+              />
+            </Box>
+            <Box className="group">
+              <Typography variant="subtitle2" className="mb-2 font-semibold">
+                {t('form.popupCampaignTargetRestaurants')}
+              </Typography>
+              <RHFMultiSelect
+                name="restaurant_ids"
+                options={restaurantOptions}
+                placeholder={
+                  isLoadingRestaurants
+                    ? t('form.popupCampaignSlugLoading')
+                    : t('form.popupCampaignTargetRestaurantsPlaceholder')
+                }
+                fullWidth
+                isDisabled={isLoadingRestaurants}
                 isSearchable
               />
             </Box>
@@ -941,6 +1188,23 @@ export default function CreatePage() {
                 }
                 fullWidth
                 isDisabled={isLoadingPromotions}
+                isSearchable
+              />
+            </Box>
+            <Box className="group">
+              <Typography variant="subtitle2" className="mb-2 font-semibold">
+                {t('form.popupCampaignTargetBaskets')}
+              </Typography>
+              <RHFMultiSelect
+                name="basket_ids"
+                options={basketOptions}
+                placeholder={
+                  isLoadingBaskets
+                    ? t('form.popupCampaignSlugLoading')
+                    : t('form.popupCampaignTargetBasketsPlaceholder')
+                }
+                fullWidth
+                isDisabled={isLoadingBaskets}
                 isSearchable
               />
             </Box>

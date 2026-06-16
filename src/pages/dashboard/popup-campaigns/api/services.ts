@@ -139,6 +139,10 @@ function buildPopupCampaignFormData(
   (fields.shop_ids ?? []).forEach((id) => fd.append('shop_ids[]', String(id)));
   (fields.recipe_ids ?? []).forEach((id) => fd.append('recipe_ids[]', String(id)));
   (fields.promotion_ids ?? []).forEach((id) => fd.append('promotion_ids[]', String(id)));
+  (fields.basket_ids ?? []).forEach((id) => fd.append('basket_ids[]', String(id)));
+  (fields.shop_vendor_service_ids ?? []).forEach((id) =>
+    fd.append('shop_vendor_service_ids[]', String(id))
+  );
 
   return fd;
 }

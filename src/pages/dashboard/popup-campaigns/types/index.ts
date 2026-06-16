@@ -63,6 +63,8 @@ export interface PopupCampaignListItem {
   shop_ids?: number[] | null;
   recipe_ids?: number[] | null;
   promotion_ids?: number[] | null;
+  basket_ids?: number[] | null;
+  shop_vendor_service_ids?: number[] | null;
   created_at?: string;
   updated_at?: string;
   [key: string]: unknown;
@@ -95,6 +97,8 @@ export interface PopupCampaignDetail {
   shop_ids?: number[] | null;
   recipe_ids?: number[] | null;
   promotion_ids?: number[] | null;
+  basket_ids?: number[] | null;
+  shop_vendor_service_ids?: number[] | null;
   created_at?: string;
   updated_at?: string;
   [key: string]: unknown;
@@ -148,4 +152,6 @@ export interface PopupCampaignUpsertPayload {
   shop_ids?: number[] | null;
   recipe_ids?: number[] | null;
   promotion_ids?: number[] | null;
+  basket_ids?: number[] | null;
+  shop_vendor_service_ids?: number[] | null;
 }

@@ -1,18 +1,21 @@
-import type { TFunction } from 'i18next';
 import type { Page, SectionItem, FilterConfig, PageSectionVariant } from '../types/page-section.types';
 
 import { axiosInstance } from '@/api';
 import { toast } from 'react-toastify';
 import { useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
-import { useMemo, useState, useEffect, useRef } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
+import { useRef, useMemo, useState, useEffect } from 'react';
 import { useFetchSectionDetails } from '@/pages/dashboard/sections/hooks/useSections';
 import { RHFInfiniteSelect } from '@/shared/components/hook-form/rhf-infinite-select';
 import { _PageSectionApi } from '@/pages/dashboard/sections/api/page-section.services';
 import { cmsPageSelectLabel } from '@/pages/dashboard/sections/utils/cms-page-select-label';
+import {
+  filterFieldLabel,
+  filterOptionLabel,
+} from '@/pages/dashboard/sections/utils/filter-field-label';
 import {
   PageSectionSchema,
   type PageSectionFormValues,
@@ -409,110 +412,144 @@ export default function CreatePage() {
         submitLabel={isEditMode ? t('form.updatePageSectionSubmit') : t('form.createPageSectionSubmit')}
         submittingLabel={isEditMode ? t('form.updatingPageSection') : t('form.creatingPageSection')}
       >
-        {/* ── Section: Configuration ── */}
-        <Box className="rounded-2xl border border-border/50 bg-card/50 shadow-sm">
-          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-violet-500/[0.06] via-violet-500/[0.02] to-transparent">
-            <Box className="h-8 w-8 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center shrink-0">
-              <Iconify icon="solar:widget-bold" className="text-violet-500" width={15} />
-            </Box>
-            <Typography variant="subtitle2" className="font-semibold text-foreground">
-              {t('form.pageSectionFormSectionLabel')} & {t('form.pageSectionFormPageLabel')}
-            </Typography>
-          </Box>
-          <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
-            <Box className="group">
-              <Box className="flex items-center gap-2 mb-2">
-                <Iconify icon="solar:widget-bold" className="text-violet-500" width={20} height={20} />
-                <Typography variant="subtitle2" className="font-semibold text-foreground">
-                  {t('form.pageSectionFormSectionLabel')}
-                </Typography>
+        {/* ── Section & Page (each with inline filters) ── */}
+        <Box className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          {/* Section card + content filters */}
+          <Box className="rounded-2xl border border-border/50 bg-card/50 shadow-sm">
+            <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-amber-500/[0.06] via-amber-500/[0.02] to-transparent">
+              <Box className="h-8 w-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
+                <Iconify icon="solar:widget-bold" className="text-amber-500" width={15} />
               </Box>
-              <RHFInfiniteSelect
-                name="section_id"
-                queryKey={['pageSection', 'sections', 'infinite']}
-                fetcher={sectionFetcher}
-                placeholder={t('form.selectSection')}
-                helperText={t('form.selectSectionHelper')}
-                initialLabel={
-                  sectionsData?.data?.items?.find(
-                    (s: SectionItem) =>
-                      s.id === Number((pageSectionData?.data as any)?.section_id ?? 0)
-                  )?.name
-                }
-              />
+              <Typography variant="subtitle2" className="font-semibold text-foreground">
+                {t('form.pageSectionFormSectionLabel')}
+              </Typography>
             </Box>
+            <Box className="p-6">
+              <Box className="group">
+                <Box className="flex items-center gap-2 mb-2">
+                  <Iconify icon="solar:widget-bold" className="text-amber-500" width={20} height={20} />
+                  <Typography variant="subtitle2" className="font-semibold text-foreground">
+                    {t('form.pageSectionFormSectionLabel')}
+                  </Typography>
+                </Box>
+                <RHFInfiniteSelect
+                  name="section_id"
+                  queryKey={['pageSection', 'sections', 'infinite']}
+                  fetcher={sectionFetcher}
+                  placeholder={t('form.selectSection')}
+                  helperText={t('form.selectSectionHelper')}
+                  initialLabel={
+                    sectionsData?.data?.items?.find(
+                      (s: SectionItem) =>
+                        s.id === Number((pageSectionData?.data as any)?.section_id ?? 0)
+                    )?.name
+                  }
+                />
+              </Box>
 
-            <Box className="group">
-              <Box className="flex items-center gap-2 mb-2">
-                <Iconify icon="solar:document-bold" className="text-violet-500" width={20} height={20} />
-                <Typography variant="subtitle2" className="font-semibold text-foreground">
-                  {t('form.pageSectionFormPageLabel')}
-                </Typography>
+              {sectionIdForDetails && Object.keys(sectionFilters).length > 0 && (
+                <Box className="mt-5 border-t border-border/40 pt-5 bg-muted/20 -mx-6 px-6 pb-1">
+                  <Box className="flex items-center gap-2 mb-3">
+                    <Iconify icon="solar:feed-bold" className="text-amber-500" width={18} />
+                    <Typography variant="subtitle2" className="font-semibold text-foreground">
+                      {t('form.pageSliderContentFiltersTitle')}
+                    </Typography>
+                  </Box>
+                  <FilterNoticeCallout text={t('form.pageSliderContentFiltersNotice')} />
+                  <Box className="grid grid-cols-1 gap-5">
+                    {Object.entries(sectionFilters).map(([filterKey, filterConfig]) => (
+                      <DynamicFilterField
+                        key={filterKey}
+                        filterKey={filterKey}
+                        filterConfig={filterConfig}
+                        value={filterValues[filterKey]}
+                        onChange={(value) => handleFilterChange(filterKey, value)}
+                      />
+                    ))}
+                  </Box>
+                </Box>
+              )}
+            </Box>
+          </Box>
+
+          {/* Page card + visibility filters */}
+          <Box className="rounded-2xl border border-border/50 bg-card/50 shadow-sm">
+            <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-indigo-500/[0.06] via-indigo-500/[0.02] to-transparent">
+              <Box className="h-8 w-8 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shrink-0">
+                <Iconify icon="solar:document-bold" className="text-indigo-500" width={15} />
               </Box>
-              <RHFInfiniteSelect
-                name="page_id"
-                queryKey={['pageSection', 'pages', 'infinite']}
-                fetcher={() => pageFetcher()}
-                placeholder={t('form.selectPage')}
-                helperText={t('form.selectPageHelper')}
-                initialLabel={cmsPageSelectLabel({
-                  title:
-                    (pageSectionData?.data as any)?.page_title ??
-                    (pageSectionData?.data as any)?.page?.title,
-                  slug: String((pageSectionData?.data as any)?.page?.slug ?? '').trim(),
-                  id: (() => {
-                    const raw =
-                      (pageSectionData?.data as any)?.page_id ??
-                      (pageSectionData?.data as any)?.page?.id;
-                    const n = typeof raw === 'number' ? raw : parseInt(String(raw ?? ''), 10);
-                    return Number.isFinite(n) ? n : undefined;
-                  })(),
-                })}
-              />
+              <Typography variant="subtitle2" className="font-semibold text-foreground">
+                {t('form.pageSectionFormPageLabel')}
+              </Typography>
+            </Box>
+            <Box className="p-6">
+              <Box className="group">
+                <Box className="flex items-center gap-2 mb-2">
+                  <Iconify icon="solar:document-bold" className="text-indigo-500" width={20} height={20} />
+                  <Typography variant="subtitle2" className="font-semibold text-foreground">
+                    {t('form.pageSectionFormPageLabel')}
+                  </Typography>
+                </Box>
+                <RHFInfiniteSelect
+                  name="page_id"
+                  queryKey={['pageSection', 'pages', 'infinite']}
+                  fetcher={() => pageFetcher()}
+                  placeholder={t('form.selectPage')}
+                  helperText={t('form.selectPageHelper')}
+                  initialLabel={cmsPageSelectLabel({
+                    title:
+                      (pageSectionData?.data as any)?.page_title ??
+                      (pageSectionData?.data as any)?.page?.title,
+                    slug: String((pageSectionData?.data as any)?.page?.slug ?? '').trim(),
+                    id: (() => {
+                      const raw =
+                        (pageSectionData?.data as any)?.page_id ??
+                        (pageSectionData?.data as any)?.page?.id;
+                      const n = typeof raw === 'number' ? raw : parseInt(String(raw ?? ''), 10);
+                      return Number.isFinite(n) ? n : undefined;
+                    })(),
+                  })}
+                />
+              </Box>
+
+              {pageIdForLookup && Object.keys(pageFilters).length > 0 && (
+                <Box className="mt-5 border-t border-border/40 pt-5 bg-muted/20 -mx-6 px-6 pb-1">
+                  <Box className="flex items-center justify-between gap-3 mb-3">
+                    <Box className="flex items-center gap-2 min-w-0">
+                      <Iconify icon="solar:eye-bold" className="text-indigo-500 shrink-0" width={18} />
+                      <Typography variant="subtitle2" className="font-semibold text-foreground">
+                        {t('form.pageSliderVisibilityFiltersTitle')}
+                      </Typography>
+                    </Box>
+                    <Button
+                      type="button"
+                      variant="outlined"
+                      size="small"
+                      className="shrink-0"
+                      onClick={handleResetVisibilityFilters}
+                    >
+                      <Iconify icon="solar:restart-bold" width={14} className="me-1.5" />
+                      {t('form.pageSliderResetVisibilityFilters')}
+                    </Button>
+                  </Box>
+                  <FilterNoticeCallout text={t('form.pageSliderVisibilityFiltersNotice')} />
+                  <Box className="grid grid-cols-1 gap-5">
+                    {Object.entries(pageFilters).map(([filterKey, filterConfig]) => (
+                      <DynamicFilterField
+                        key={`show_when_${filterKey}`}
+                        filterKey={filterKey}
+                        filterConfig={filterConfig}
+                        value={showWhenValues[filterKey]}
+                        onChange={(value) => handleShowWhenChange(filterKey, value)}
+                        allowNullOption={VISIBILITY_NULL_FILTER_KEYS.has(filterKey)}
+                      />
+                    ))}
+                  </Box>
+                </Box>
+              )}
             </Box>
           </Box>
         </Box>
-
-          {/* ── Node A: Visibility Filters (show_when) ── */}
-          {pageIdForLookup && Object.keys(pageFilters).length > 0 && (
-          <Box className="rounded-2xl border border-indigo-500/25 bg-card/50 shadow-sm border-s-4 border-s-indigo-500/60">
-            <Box className="flex items-center justify-between gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-indigo-500/[0.08] via-sky-500/[0.03] to-transparent">
-              <Box className="flex items-center gap-3 min-w-0">
-                <Box className="h-8 w-8 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shrink-0">
-                  <Iconify icon="solar:eye-bold" className="text-indigo-500" width={15} />
-                </Box>
-                <Typography variant="subtitle2" className="font-semibold text-foreground">
-                  {t('form.pageSliderVisibilityFiltersTitle')}
-                </Typography>
-              </Box>
-              <Button
-                type="button"
-                variant="outlined"
-                size="small"
-                className="shrink-0"
-                onClick={handleResetVisibilityFilters}
-              >
-                <Iconify icon="solar:restart-bold" width={14} className="me-1.5" />
-                {t('form.pageSliderResetVisibilityFilters')}
-              </Button>
-            </Box>
-            <Box className="p-6">
-              <FilterNoticeCallout text={t('form.pageSliderVisibilityFiltersNotice')} />
-              <Box className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                {Object.entries(pageFilters).map(([filterKey, filterConfig]) => (
-                  <DynamicFilterField
-                    key={`show_when_${filterKey}`}
-                    filterKey={filterKey}
-                    filterConfig={filterConfig}
-                    value={showWhenValues[filterKey]}
-                    onChange={(value) => handleShowWhenChange(filterKey, value)}
-                    allowNullOption={VISIBILITY_NULL_FILTER_KEYS.has(filterKey)}
-                  />
-                ))}
-              </Box>
-            </Box>
-          </Box>
-        )}
 
         {/* ── Section: Names ── */}
         <Box className="rounded-2xl border border-border/50 bg-card/50 shadow-sm">
@@ -654,46 +691,9 @@ export default function CreatePage() {
           </Box>
         </Box>
 
-        {/* ── Node B: Content Feed Filters (filters) ── */}
-        {sectionIdForDetails && Object.keys(sectionFilters).length > 0 && (
-          <Box className="rounded-2xl border border-amber-500/25 bg-card/50 shadow-sm border-s-4 border-s-amber-500/60">
-            <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-amber-500/[0.08] via-orange-500/[0.03] to-transparent">
-              <Box className="h-8 w-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
-                <Iconify icon="solar:feed-bold" className="text-amber-500" width={15} />
-              </Box>
-              <Typography variant="subtitle2" className="font-semibold text-foreground">
-                {t('form.pageSliderContentFiltersTitle')}
-              </Typography>
-            </Box>
-            <Box className="p-6">
-              <FilterNoticeCallout text={t('form.pageSliderContentFiltersNotice')} />
-              <Box className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                {Object.entries(sectionFilters).map(([filterKey, filterConfig]) => (
-                  <DynamicFilterField
-                    key={filterKey}
-                    filterKey={filterKey}
-                    filterConfig={filterConfig}
-                    value={filterValues[filterKey]}
-                    onChange={(value) => handleFilterChange(filterKey, value)}
-                  />
-                ))}
-              </Box>
-            </Box>
-          </Box>
-        )}
-
-      
       </CreateFormLayout>
     </>
   );
-}
-
-function formatFilterItemLabel(raw: string) {
-  return raw.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
-}
-
-function filterFieldLabel(t: TFunction, key: string) {
-  return t(`form.pageSectionFilterKeys.${key}`, { defaultValue: formatFilterItemLabel(key) });
 }
 
 function DynamicFilterField({
@@ -742,7 +742,7 @@ function DynamicFilterField({
         : []),
       ...filterConfig.items.map((item) => ({
         value: item,
-        label: filterFieldLabel(t, String(item)),
+        label: filterOptionLabel(t, String(item)),
       })),
     ];
 

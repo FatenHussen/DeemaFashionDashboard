@@ -41,6 +41,8 @@ export interface StepperFormLayoutProps<T extends Record<string, any>> {
   stepValidationFields?: string[][];
   /** Short hint under the step indicator (e.g. review before submit). */
   reviewHint?: string;
+  /** Optional content rendered above the stepper rail (inside the form context). */
+  beforeStepper?: ReactNode;
 
   // Button labels
   submitLabel?: string;
@@ -69,6 +71,7 @@ export function StepperFormLayout<T extends Record<string, any>>({
   defaultStep = 0,
   stepValidationFields,
   reviewHint,
+  beforeStepper,
   submitLabel,
   cancelLabel,
   submittingLabel,
@@ -263,15 +266,20 @@ export function StepperFormLayout<T extends Record<string, any>>({
           </Box>
         )}
 
-        {/* Stepper */}
-        <Box className="mb-6 sm:mb-8">
-          <Box
-            className={`rounded-2xl border border-border/60 bg-card/80 backdrop-blur-sm shadow-sm p-4 sm:p-6 ${
-              isFullWidth ? 'ring-1 ring-border/40' : ''
-            }`}
-          >
-            {/* Desktop stepper — from `lg` so tablets avoid a cramped 5-step rail */}
-            <Box className="hidden lg:flex items-center justify-between gap-2 min-w-0">
+        <Form methods={methods} onSubmit={onSubmit}>
+          {beforeStepper ? (
+            <Box className="mb-6 sm:mb-8">{beforeStepper}</Box>
+          ) : null}
+
+          {/* Stepper */}
+          <Box className="mb-6 sm:mb-8">
+            <Box
+              className={`rounded-2xl border border-border/60 bg-card/80 backdrop-blur-sm shadow-sm p-4 sm:p-6 ${
+                isFullWidth ? 'ring-1 ring-border/40' : ''
+              }`}
+            >
+              {/* Desktop stepper — from `lg` so tablets avoid a cramped 5-step rail */}
+              <Box className="hidden lg:flex items-center justify-between gap-2 min-w-0">
               {steps.map((step, index) => {
                 const isActive = index === activeStep;
                 const isCompleted = index < activeStep;
@@ -377,15 +385,14 @@ export function StepperFormLayout<T extends Record<string, any>>({
               </Box>
             </Box>
           </Box>
-        </Box>
+          </Box>
 
-        {/* Form Card */}
-        <Box
-          className={`rounded-2xl border border-border/60 bg-card/80 backdrop-blur-sm shadow-sm ${
-            isFullWidth ? 'shadow-xl shadow-primary/[0.04] ring-1 ring-primary/[0.05]' : ''
-          }`}
-        >
-          <Form methods={methods} onSubmit={onSubmit}>
+          {/* Form Card */}
+          <Box
+            className={`rounded-2xl border border-border/60 bg-card/80 backdrop-blur-sm shadow-sm ${
+              isFullWidth ? 'shadow-xl shadow-primary/[0.04] ring-1 ring-primary/[0.05]' : ''
+            }`}
+          >
             {/* Content */}
             <Box
               className={`min-h-[400px] p-4 sm:p-6 md:p-8 ${isFullWidth ? 'lg:p-10 xl:p-12' : ''}`}
@@ -470,8 +477,8 @@ export function StepperFormLayout<T extends Record<string, any>>({
                 </Box>
               </Box>
             </Box>
-          </Form>
-        </Box>
+          </Box>
+        </Form>
       </Box>
     </Box>
   );
