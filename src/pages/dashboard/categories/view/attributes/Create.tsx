@@ -1,18 +1,27 @@
+import type { CategoryData } from '@/pages/dashboard/categories/types/category.types';
+
 import { toast } from 'react-toastify';
-import { useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useQuery } from '@tanstack/react-query';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
+import { useMemo, useEffect, useCallback } from 'react';
 import { formatTranslated } from '@/utils/format-translated';
 import { useForm, useWatch, Controller, useFieldArray } from 'react-hook-form';
-import { useFetchCategories } from '@/pages/dashboard/categories/hooks/category';
 import { _CategoryApi } from '@/pages/dashboard/categories/api/category.services';
 import { RHFInfiniteSelect } from '@/shared/components/hook-form/rhf-infinite-select';
+import { MAX_CATEGORY_SUB_LEVELS } from '@/pages/dashboard/categories/utils/category-cascade-shared';
+import { CategoryLeafCascadeFields } from '@/pages/dashboard/categories/components/category-leaf-cascade-fields';
 import {
   CategoryAttributeSchema,
   type CategoryAttributeFormValues,
 } from '@/pages/dashboard/categories/validation/category-attribute.validation';
+import {
+  ancestorsChainFromFlat,
+  buildCategorySelectRows,
+  paginateSelectRowsLocal,
+} from '@/pages/dashboard/categories/utils/build-parent-picker-options';
 import {
   useCreateCategoryAttribute,
   useUpdateCategoryAttribute,
@@ -26,16 +35,11 @@ import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout
 
 // ----------------------------------------------------------------------
 
-const categoryFetcher = (page: number, limit: number) =>
-  _CategoryApi.getListCategoriesPaginated({ page, per_page: limit }).then((r) => ({
-    data: {
-      items: (r.data?.items ?? []).map((cat) => ({
-        id: cat.id,
-        label: typeof cat.name === 'object' ? formatTranslated(cat.name) : cat.name,
-      })),
-      pagination: r.data?.pagination ?? { current_page: 1, last_page: 1, per_page: limit, total: 0 },
-    },
-  }));
+function categoryListLabel(cat: Pick<CategoryData, 'name'>): string {
+  return typeof cat.name === 'object' && cat.name !== null
+    ? formatTranslated(cat.name as { en?: string; ar?: string })
+    : String(cat.name ?? '');
+}
 
 function hexForDisplay(value: string | undefined) {
   const raw = value?.trim().replace(/\s/g, '') ?? '';
@@ -58,10 +62,20 @@ export default function CreatePage() {
     [t]
   );
 
+  const {
+    data: flatForParent,
+    dataUpdatedAt: flatParentDataUpdatedAt,
+    isFetched: flatParentFetched,
+  } = useQuery({
+    queryKey: ['categories', 'flat-parent-picker'],
+    queryFn: () => _CategoryApi.getListCategoriesPaginated({ page: 1, per_page: 500 }),
+  });
+
+  const flatItems = flatForParent?.data?.items ?? [];
+
   // Hooks for fetching and mutations
   const { data: categoryAttributeData, isLoading: isLoadingAttribute } =
     useFetchCategoryAttributeById(id || '');
-  const { data: categoriesResponse } = useFetchCategories(1, 500); // For edit mode: resolve category_id from name
   const createCategoryAttributeMutation = useCreateCategoryAttribute();
   const updateCategoryAttributeMutation = useUpdateCategoryAttribute();
 
@@ -88,18 +102,52 @@ export default function CreatePage() {
     name: 'values',
   });
 
+  const hydrateLeafCategoryId = useMemo(() => {
+    if (!isEditMode || !categoryAttributeData?.data?.category || flatItems.length === 0) {
+      return null;
+    }
+    const target = categoryAttributeData.data.category.trim();
+    const found = flatItems.find((cat) => categoryListLabel(cat).trim() === target);
+    const cid = found?.id;
+    return cid != null && cid > 0 ? cid : null;
+  }, [isEditMode, categoryAttributeData?.data?.category, flatItems]);
+
+  const legacyCategoryCascade = useMemo(() => {
+    if (!flatParentFetched || flatItems.length === 0) return false;
+    if (hydrateLeafCategoryId == null || hydrateLeafCategoryId <= 0) return false;
+    const chain = ancestorsChainFromFlat(flatItems, hydrateLeafCategoryId);
+    return chain.length > MAX_CATEGORY_SUB_LEVELS + 1;
+  }, [flatParentFetched, flatItems, hydrateLeafCategoryId]);
+
+  const legacyFlatRows = useMemo(() => buildCategorySelectRows(flatItems), [flatItems]);
+
+  const legacyCategoryFetcher = useCallback(
+    (page: number, limit: number) => {
+      const rows = legacyFlatRows.map((r) => ({
+        id: r.id,
+        label: r.label,
+        depth: r.depth,
+        hasChildren: r.hasChildren,
+      }));
+      return Promise.resolve(paginateSelectRowsLocal(rows, page, limit));
+    },
+    [legacyFlatRows]
+  );
+
+  const syncLeafCategory = useCallback(
+    (leafId: number) => {
+      setValue('category_id', leafId, { shouldValidate: true, shouldDirty: true });
+    },
+    [setValue]
+  );
+
   // Fetch category attribute data if in edit mode
   useEffect(() => {
-    if (isEditMode && categoryAttributeData?.data && !isLoadingAttribute) {
+    if (isEditMode && categoryAttributeData?.data && !isLoadingAttribute && flatItems.length > 0) {
       const attribute = categoryAttributeData.data;
-      let categoryId = 0;
-      if (categoriesResponse?.data?.items?.length) {
-        const foundCategory = categoriesResponse.data.items.find((cat: any) => {
-          const catName = typeof cat.name === 'object' ? formatTranslated(cat.name) : cat.name;
-          return catName === attribute.category;
-        });
-        categoryId = foundCategory?.id ?? 0;
-      }
+      const target = attribute.category?.trim() ?? '';
+      const found = flatItems.find((cat) => categoryListLabel(cat).trim() === target);
+      const categoryId = found?.id ?? 0;
       reset({
         category_id: categoryId,
         name: attribute.name,
@@ -119,7 +167,7 @@ export default function CreatePage() {
     isEditMode,
     isLoadingAttribute,
     reset,
-    categoriesResponse?.data?.items,
+    flatItems,
   ]);
 
   useEffect(() => {
@@ -223,21 +271,51 @@ export default function CreatePage() {
             </Typography>
           </Box>
           <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
-            <Box className="group">
+            <Box className="group md:col-span-2">
               <Box className="flex items-center gap-2 mb-2">
                 <Iconify icon="solar:diagram-bold" className="text-violet-500" width={20} height={20} />
                 <Typography variant="subtitle2" className="font-semibold text-foreground">
                   {t('form.categoryLabel')}
                 </Typography>
               </Box>
-              <RHFInfiniteSelect
-                name="category_id"
-                queryKey={['categories', 'infinite', 'attribute-form']}
-                fetcher={categoryFetcher}
-                placeholder={t('form.selectCategory')}
-                helperText={t('form.attributeCategoryHelper')}
-                initialLabel={categoryAttributeData?.data?.category}
-              />
+              {legacyCategoryCascade ? (
+                <Box className="space-y-2">
+                  <Typography variant="caption" className="text-muted-foreground block">
+                    {t('form.attributeCategoryHelper')}
+                  </Typography>
+                  <RHFInfiniteSelect
+                    name="category_id"
+                    queryKey={[
+                      'categories',
+                      'infinite',
+                      'attribute-form',
+                      'legacy-flat',
+                      flatParentDataUpdatedAt ?? 0,
+                      id ?? '',
+                    ]}
+                    fetcher={legacyCategoryFetcher}
+                    placeholder={t('form.selectCategory')}
+                    helperText={t('form.categoryDeepParentHint')}
+                    initialLabel={categoryAttributeData?.data?.category}
+                  />
+                </Box>
+              ) : (
+                <>
+                  <Typography variant="caption" className="text-muted-foreground block mb-3">
+                    {t('form.attributeCategoryHelper')}
+                  </Typography>
+                  <CategoryLeafCascadeFields
+                    t={t}
+                    legacyMode={false}
+                    flatItems={flatItems}
+                    flatParentFetched={flatParentFetched}
+                    flatParentDataUpdatedAt={flatParentDataUpdatedAt ?? 0}
+                    hydrateLeafCategoryId={hydrateLeafCategoryId}
+                    hydrationKey={id ?? 'new-attribute'}
+                    onEffectiveLeafChange={syncLeafCategory}
+                  />
+                </>
+              )}
             </Box>
 
             <Box className="group">
@@ -352,68 +430,86 @@ export default function CreatePage() {
 
         {/* ── Section: Attribute Values ── */}
         {attributeType !== 'color' && (
-          <Box className="rounded-2xl border border-border/50 bg-card/50 shadow-sm">
-            <Box className="flex items-center justify-between px-6 py-4 border-b border-border/40 bg-gradient-to-r from-amber-500/[0.06] via-amber-500/[0.02] to-transparent">
-              <Box className="flex items-center gap-3">
-                <Box className="h-8 w-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
-                  <Iconify icon="solar:list-bold" className="text-amber-500" width={15} />
-                </Box>
-                <Typography variant="subtitle2" className="font-semibold text-foreground">
-                  {t('form.attributeValuesSection')}
-                </Typography>
-              </Box>
-              <Button
-                type="button"
-                variant="outlined"
-                size="small"
-                onClick={() => append({ name: { en: '', ar: '' } })}
-                className="flex items-center gap-2"
-              >
-                <Iconify icon="solar:add-circle-bold" width={18} height={18} />
-                {t('form.addAttributeValue')}
-              </Button>
-            </Box>
-            <Box className="p-6 flex flex-col gap-4">
-              {fields.map((field, index) => (
-                <Box
-                  key={field.id}
-                  className="rounded-xl border border-border/50 bg-background/60 overflow-hidden"
-                >
-                  <Box className="flex items-center justify-between px-4 py-3 border-b border-border/40 bg-muted/30">
-                    <Typography variant="body2" className="font-medium text-foreground">
-                      {t('form.attributeValueIndex', { n: index + 1 })}
+          <Box className="rounded-2xl border border-amber-500/25 bg-card/50 shadow-sm overflow-hidden">
+            <Box className="border-b border-border/40 bg-gradient-to-r from-amber-500/[0.08] via-amber-500/[0.03] to-transparent px-6 py-5">
+              <Box className="flex flex-col gap-4">
+                <Box className="flex items-center gap-3">
+                  <Box className="h-9 w-9 rounded-xl bg-amber-500/15 border border-amber-500/25 flex items-center justify-center shrink-0">
+                    <Iconify icon="solar:list-bold" className="text-amber-600" width={18} />
+                  </Box>
+                  <Box className="min-w-0 flex-1">
+                    <Typography variant="subtitle1" className="font-semibold text-foreground leading-snug">
+                      {t('form.attributeValuesSection')}
                     </Typography>
-                    {fields.length > 1 && (
+                    <Typography variant="caption" className="text-muted-foreground mt-1 block">
+                      {t('form.attributeValuesSectionHint')}
+                    </Typography>
+                  </Box>
+                </Box>
+                <Button
+                  type="button"
+                  variant="outlined"
+                  color="warning"
+                  size="small"
+                  onClick={() => append({ name: { en: '', ar: '' } })}
+                  className="w-full sm:w-auto sm:self-end inline-flex items-center justify-center gap-2"
+                >
+                  <Iconify icon="solar:add-circle-bold" width={18} height={18} />
+                  {t('form.addAttributeValue')}
+                </Button>
+              </Box>
+            </Box>
+            <Box className="p-6 space-y-4">
+              {fields.map((field, index) => {
+                const canRemove = fields.length > 1;
+                return (
+                  <Box
+                    key={field.id}
+                    className="p-4 rounded-xl border border-border/60 bg-muted/25 space-y-3"
+                  >
+                    <Box className="flex flex-wrap items-center justify-between gap-3">
+                      <Typography variant="subtitle2" className="font-semibold text-foreground">
+                        {t('form.attributeValueIndex', { n: index + 1 })}
+                      </Typography>
                       <Button
                         type="button"
-                        variant="text"
+                        variant="soft"
                         color="error"
                         size="small"
-                        onClick={() => remove(index)}
-                        className="flex items-center gap-1.5"
+                        disabled={!canRemove}
+                        title={
+                          canRemove ? t('form.removeAttributeValue') : t('form.attributeValueRemoveDisabledHint')
+                        }
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          if (!canRemove) return;
+                          remove(index);
+                        }}
+                        className="inline-flex shrink-0 items-center gap-1.5"
                       >
-                        <Iconify icon="solar:trash-bin-trash-bold" width={14} height={14} />
+                        <Iconify icon="solar:trash-bin-bold" width={16} />
                         {t('form.removeAttributeValue')}
                       </Button>
-                    )}
+                    </Box>
+                    <Box className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <RHFTextField
+                        name={`values.${index}.name.en`}
+                        placeholder={t('form.valueEn')}
+                        label={t('form.nameEn')}
+                        className="transition-all duration-200"
+                      />
+                      <RHFTextField
+                        name={`values.${index}.name.ar`}
+                        placeholder={t('form.valueAr')}
+                        label={t('form.nameAr')}
+                        className="transition-all duration-200"
+                        dir="rtl"
+                      />
+                    </Box>
                   </Box>
-                  <Box className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <RHFTextField
-                      name={`values.${index}.name.en`}
-                      placeholder={t('form.valueEn')}
-                      label={t('form.nameEn')}
-                      className="transition-all duration-200"
-                    />
-                    <RHFTextField
-                      name={`values.${index}.name.ar`}
-                      placeholder={t('form.valueAr')}
-                      label={t('form.nameAr')}
-                      className="transition-all duration-200"
-                      dir="rtl"
-                    />
-                  </Box>
-                </Box>
-              ))}
+                );
+              })}
             </Box>
           </Box>
         )}

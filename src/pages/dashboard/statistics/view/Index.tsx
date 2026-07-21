@@ -1,3 +1,5 @@
+import 'dayjs/locale/ar';
+
 import type { TFunction } from 'i18next';
 import type { DateFilter } from '../api/statistics.services';
 import type { DriverComparisonPoint } from '../types/statistics.types';
@@ -6,9 +8,10 @@ import dayjs from 'dayjs';
 import { m } from 'framer-motion';
 import { Button } from '@/shared/ui/button';
 import { useTranslation } from 'react-i18next';
-import { Box, Input, Typography } from '@/shared/ui';
 import { Iconify } from '@/shared/components/iconify';
+import { Box, Typography, DatePickerField } from '@/shared/ui';
 import { LoadingScreen } from '@/shared/components/loading-screen';
+import { normalizeIndicNumeralsToLatin } from '@/utils/numeral-locale';
 import { useMemo, useState, type ReactNode, type CSSProperties } from 'react';
 import {
   Pie,
@@ -118,6 +121,79 @@ function resolveLocalizedName(
   if (typeof value === 'string') return value.trim() || '-';
   if (!value) return '-';
   return value[lang] ?? value.en ?? value.ar ?? '-';
+}
+
+/** English weekday labels from API → `table.weekdays.*` i18n keys */
+const WEEKDAY_EN_TO_KEY: Record<string, string> = {
+  sunday: 'sunday',
+  sun: 'sunday',
+  monday: 'monday',
+  mon: 'monday',
+  tuesday: 'tuesday',
+  tue: 'tuesday',
+  tues: 'tuesday',
+  wednesday: 'wednesday',
+  wed: 'wednesday',
+  thursday: 'thursday',
+  thu: 'thursday',
+  thur: 'thursday',
+  thurs: 'thursday',
+  friday: 'friday',
+  fri: 'friday',
+  saturday: 'saturday',
+  sat: 'saturday',
+};
+
+function translateWeekdayLabel(label: string | undefined | null, t: TFunction): string {
+  if (!label?.trim()) return '';
+  const normalized = label.trim().toLowerCase().replace(/\.$/, '');
+  const key = WEEKDAY_EN_TO_KEY[normalized];
+  if (key) return t(`weekdays.${key}`);
+  return label.trim();
+}
+
+/** Match funnel/API stage strings (e.g. "Pending", "out_for_delivery") to `statistics.status*` keys */
+function normalizeOrderStageKey(stage: string): string {
+  return stage.trim().toLowerCase().replace(/\s+/g, '_').replace(/-/g, '_');
+}
+
+function translateOrderStageLabel(stage: string | undefined | null, t: TFunction): string {
+  if (!stage?.trim()) return '';
+  const key = normalizeOrderStageKey(stage);
+  const labelMap: Record<string, string> = {
+    pending: t('statistics.statusPending'),
+    preparing: t('statistics.statusPreparing'),
+    out_for_delivery: t('statistics.statusOutForDelivery'),
+    delivered: t('statistics.statusDelivered'),
+    cancelled: t('statistics.statusCancelled'),
+    returned: t('statistics.statusReturned'),
+    not_delivered: t('statistics.statusNotDelivered'),
+    paid: t('statistics.statusPaid'),
+    unpaid: t('statistics.statusUnpaid'),
+  };
+  return labelMap[key] ?? stage.trim();
+}
+
+function formatStatsDate(input: string | undefined | null, lang: 'ar' | 'en', template: string): string {
+  if (!input?.trim()) return '';
+  const trimmed = input.trim();
+  let parsed = dayjs(trimmed);
+  if (!parsed.isValid() && /^\d{4}-\d{2}$/.test(trimmed)) {
+    parsed = dayjs(`${trimmed}-01`);
+  }
+  if (!parsed.isValid()) return trimmed;
+  return normalizeIndicNumeralsToLatin(parsed.locale(lang).format(template));
+}
+
+/** Month axis from API (e.g. `YYYY-MM`, ISO date, or parsable month string) */
+function formatChartMonthLabel(monthRaw: string, lang: 'ar' | 'en'): string {
+  const trimmed = monthRaw.trim();
+  let parsed = dayjs(trimmed);
+  if (!parsed.isValid() && /^\d{4}-\d{2}$/.test(trimmed)) {
+    parsed = dayjs(`${trimmed}-01`);
+  }
+  if (!parsed.isValid()) return normalizeIndicNumeralsToLatin(trimmed);
+  return normalizeIndicNumeralsToLatin(parsed.locale(lang).format('MMM YYYY'));
 }
 
 
@@ -354,7 +430,7 @@ function formatTooltipPair(
       opts?.decimals !== undefined
         ? value.toLocaleString(undefined, {
             maximumFractionDigits: opts.decimals,
-            minimumFractionDigits: opts.decimals,
+            minimumFractionDigits: 0,
           })
         : value.toLocaleString();
     return [s, label];
@@ -458,13 +534,15 @@ export default function StatisticsPage() {
     const raw = revenueTrendData?.data?.data ?? [];
     return raw.map((d) => ({
       date: d.date,
-      label: d.day_name,
+      label: d.day_name ? translateWeekdayLabel(d.day_name, t) : '',
       /** Unique per day (avoids repeated “Sat” on the X axis) */
-      xAxisShort: d.date ? dayjs(d.date).format('D MMM') : d.day_name,
+      xAxisShort: d.date
+        ? formatStatsDate(d.date, lang, 'D MMM')
+        : translateWeekdayLabel(d.day_name, t) || d.day_name || '',
       revenue: d.revenue,
       orders: d.orders,
     }));
-  }, [revenueTrendData]);
+  }, [revenueTrendData, lang, t]);
 
   const revenueOrdersAxisTicks = useMemo(() => {
     if (revenueChartData.length === 0) return [0];
@@ -472,27 +550,14 @@ export default function StatisticsPage() {
     return buildIntegerYTicks(maxO, 6);
   }, [revenueChartData]);
 
-  const ordersPieData = useMemo(() => {
-    const labelMap: Record<string, string> = {
-      pending: t('statistics.statusPending'),
-      preparing: t('statistics.statusPreparing'),
-      out_for_delivery: t('statistics.statusOutForDelivery'),
-      delivered: t('statistics.statusDelivered'),
-      cancelled: t('statistics.statusCancelled'),
-      returned: t('statistics.statusReturned'),
-      not_delivered: t('statistics.statusNotDelivered'),
-      paid: t('statistics.statusPaid'),
-      unpaid: t('statistics.statusUnpaid'),
-    };
-    return Object.entries(ordersByStatus)
+  const ordersPieData = useMemo(() => Object.entries(ordersByStatus)
       .filter(([, v]) => (v as number) > 0)
       .map(([name, value]) => ({
         name:
-          labelMap[name] ??
+          translateOrderStageLabel(name, t) ||
           name.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
         value: value as number,
-      }));
-  }, [ordersByStatus, t]);
+      })), [ordersByStatus, t]);
 
   const categoriesPieData = useMemo(() => {
     const raw = topCategoriesData?.data?.data ?? [];
@@ -510,17 +575,50 @@ export default function StatisticsPage() {
     () => ordersByDayData?.data?.data ?? [],
     [ordersByDayData]
   );
+  const ordersByDayDisplayData = useMemo(
+    () =>
+      ordersByDayChartData.map((d) => ({
+        ...d,
+        day: translateWeekdayLabel(d.day, t),
+      })),
+    [ordersByDayChartData, t]
+  );
   const userGrowthChartData = useMemo(
     () => userGrowthData?.data?.data ?? [],
     [userGrowthData]
+  );
+  const userGrowthChartDataLocalized = useMemo(
+    () =>
+      userGrowthChartData.map((d) => ({
+        ...d,
+        month: formatChartMonthLabel(d.month, lang),
+      })),
+    [userGrowthChartData, lang]
   );
   const orderFunnelChartData = useMemo(
     () => orderFunnelData?.data?.data ?? [],
     [orderFunnelData]
   );
+  const orderFunnelChartDataLocalized = useMemo(
+    () =>
+      orderFunnelChartData.map((d) => ({
+        ...d,
+        stage: translateOrderStageLabel(d.stage, t),
+      })),
+    [orderFunnelChartData, t]
+  );
+
   const avgOrderValueChartData = useMemo(
     () => avgOrderValueData?.data?.data ?? [],
     [avgOrderValueData]
+  );
+  const avgOrderValueChartDataLocalized = useMemo(
+    () =>
+      avgOrderValueChartData.map((d) => ({
+        ...d,
+        month: formatChartMonthLabel(d.month, lang),
+      })),
+    [avgOrderValueChartData, lang]
   );
   /** Same driver order and color in all three charts; real units (not normalized %). */
   const driverComparisonRows = useMemo(() => {
@@ -532,7 +630,7 @@ export default function StatisticsPage() {
         /** Unique per row so Recharts category axis does not merge duplicate labels. */
         chartCategoryKey: `driver-${i}`,
         shortName:
-          d.driver_name.length > 22 ? `${d.driver_name.slice(0, 20)}…` : d.driver_name,
+          d.driver_name.length > 40 ? `${d.driver_name.slice(0, 38)}…` : d.driver_name,
       }));
   }, [driverComparisonData]);
   const stockLevelsChartData = useMemo(
@@ -550,8 +648,8 @@ export default function StatisticsPage() {
   );
 
   const orderFunnelWithData = useMemo(
-    () => orderFunnelChartData.filter((d) => d.count > 0),
-    [orderFunnelChartData]
+    () => orderFunnelChartDataLocalized.filter((d) => d.count > 0),
+    [orderFunnelChartDataLocalized]
   );
 
   const hasOrdersByDay = ordersByDayChartData.some((d) => d.count > 0);
@@ -566,25 +664,25 @@ export default function StatisticsPage() {
   const showKpi = counts != null;
 
   const peakVsAvg = useMemo(() => {
-    if (ordersByDayChartData.length === 0) {
+    if (ordersByDayDisplayData.length === 0) {
       return { peakPct: 0, peakDay: '', peakCount: 0, avg: 0 };
     }
     const avg =
-      ordersByDayChartData.reduce((s, d) => s + d.count, 0) / ordersByDayChartData.length;
-    const peak = ordersByDayChartData.reduce(
+      ordersByDayDisplayData.reduce((s, d) => s + d.count, 0) / ordersByDayDisplayData.length;
+    const peak = ordersByDayDisplayData.reduce(
       (a, d) => (d.count > a.count ? d : a),
-      ordersByDayChartData[0]
+      ordersByDayDisplayData[0]
     );
     const peakPct = avg > 0 ? Math.round(((peak.count - avg) / avg) * 100) : 0;
     return { peakPct, peakDay: peak.day, peakCount: peak.count, avg };
-  }, [ordersByDayChartData]);
+  }, [ordersByDayDisplayData]);
 
   const dateRangeLabel = useMemo(() => {
     if (!dateFrom && !dateTo) return t('statistics.periodAll');
-    const f = dateFrom ? dayjs(dateFrom).format('D MMM, YYYY') : '…';
-    const to = dateTo ? dayjs(dateTo).format('D MMM, YYYY') : '…';
+    const f = dateFrom ? formatStatsDate(dateFrom, lang, 'D MMM, YYYY') : '…';
+    const to = dateTo ? formatStatsDate(dateTo, lang, 'D MMM, YYYY') : '…';
     return `${f} — ${to}`;
-  }, [dateFrom, dateTo, t]);
+  }, [dateFrom, dateTo, lang, t]);
 
   const ordersPieTotal = useMemo(
     () => ordersPieData.reduce((s, d) => s + d.value, 0),
@@ -652,11 +750,10 @@ export default function StatisticsPage() {
                         >
                           {t('statistics.from')}
                         </Typography>
-                        <Input
-                          type="date"
+                        <DatePickerField
                           value={dateFrom}
-                          onChange={(e) => setDateFrom(e.target.value)}
-                          className="h-10 w-full min-w-0 border-0 bg-card text-sm shadow-sm sm:w-[156px]"
+                          onChange={setDateFrom}
+                          className="h-10 w-full min-w-0 border-0 bg-card text-sm shadow-sm sm:min-w-[140px] sm:w-[156px]"
                         />
                       </Box>
                       <Box className="flex min-w-0 flex-1 flex-col gap-1 sm:min-w-[140px]">
@@ -666,11 +763,10 @@ export default function StatisticsPage() {
                         >
                           {t('statistics.to')}
                         </Typography>
-                        <Input
-                          type="date"
+                        <DatePickerField
                           value={dateTo}
-                          onChange={(e) => setDateTo(e.target.value)}
-                          className="h-10 w-full min-w-0 border-0 bg-card text-sm shadow-sm sm:w-[156px]"
+                          onChange={setDateTo}
+                          className="h-10 w-full min-w-0 border-0 bg-card text-sm shadow-sm sm:min-w-[140px] sm:w-[156px]"
                         />
                       </Box>
                     </Box>
@@ -803,7 +899,7 @@ export default function StatisticsPage() {
                       />
                       <div className="flex min-h-0 flex-1 flex-col p-4 pt-3">
                         <OrdersByDayGaugeCard
-                          data={ordersByDayChartData}
+                          data={ordersByDayDisplayData}
                           t={t}
                           peakVsAvg={peakVsAvg}
                           className="rounded-xl border-0 p-4 shadow-md ring-1 ring-border/50"
@@ -1037,7 +1133,9 @@ export default function StatisticsPage() {
                           | { date?: string; label?: string }
                           | undefined;
                         if (row?.date) {
-                          return `${dayjs(row.date).format('D MMM YYYY')}${row.label ? ` · ${row.label}` : ''}`;
+                          const datePart = formatStatsDate(row.date, lang, 'D MMM YYYY');
+                          const dayPart = row.label ? ` · ${row.label}` : '';
+                          return `${datePart}${dayPart}`;
                         }
                         return String(label ?? row?.label ?? '');
                       }}
@@ -1153,7 +1251,7 @@ export default function StatisticsPage() {
                       <YAxis
                         dataKey="stage"
                         type="category"
-                        width={112}
+                        width={148}
                         tick={{
                           fontSize: 12,
                           fill: 'rgb(var(--foreground))',
@@ -1204,7 +1302,7 @@ export default function StatisticsPage() {
                 </Typography>
                 <Box className="h-[280px]" dir="ltr">
                   <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={avgOrderValueChartData} margin={CHART_MARGIN_WITH_TOP_LABELS}>
+                    <AreaChart data={avgOrderValueChartDataLocalized} margin={CHART_MARGIN_WITH_TOP_LABELS}>
                       <defs>
                         <linearGradient id="fillAvgOrder" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="0%" stopColor={GAUGE_PRIMARY.main} stopOpacity={0.38} />
@@ -1571,7 +1669,10 @@ export default function StatisticsPage() {
                 <Typography variant="h6" className="mb-4 font-bold text-foreground">
                   {t('statistics.salesHeatmap')}
                 </Typography>
-                <HeatmapGrid data={salesHeatmapChartData} />
+                <HeatmapGrid
+                  data={salesHeatmapChartData}
+                  translateDay={(d) => translateWeekdayLabel(d, t)}
+                />
               </Box>
           )}
             </m.div>
@@ -1591,7 +1692,7 @@ export default function StatisticsPage() {
                 <Box className="h-[300px] overflow-hidden rounded-xl bg-card/40 px-1 pt-2" dir="ltr">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart
-                      data={userGrowthChartData}
+                      data={userGrowthChartDataLocalized}
                       margin={{ top: 12, right: 12, left: 4, bottom: 4 }}
                     >
                       <defs>
@@ -1631,7 +1732,7 @@ export default function StatisticsPage() {
                               ? String(p.payload.value)
                               : String(p.payload ?? '');
                           const index = p.index ?? 0;
-                          const isLast = index === userGrowthChartData.length - 1;
+                          const isLast = index === userGrowthChartDataLocalized.length - 1;
                           return (
                             <text
                               x={x}
@@ -1693,23 +1794,23 @@ export default function StatisticsPage() {
 
           {/* Driver comparison (real units) & Stock Levels */}
           {(driverComparisonRows.length > 0 || hasStockLevels) && (
-          <m.div variants={STATS_MOTION.item} className="space-y-4">
+          <m.div variants={STATS_MOTION.item} className="w-full min-w-0 space-y-4">
             <StatsSectionHeading
               kicker={t('statistics.sectionOperationsKicker')}
               title={t('statistics.sectionOperationsTitle')}
             />
-          <Box className="grid gap-4 lg:grid-cols-2">
+          <Box className="grid w-full min-w-0 grid-cols-1 gap-4">
             {driverComparisonRows.length > 0 && (
-              <Box className={`${tableContainerClass} p-5`}>
+              <Box className={`${tableContainerClass} min-w-0 p-5`}>
                 <Typography variant="h6" className="font-bold text-foreground">
                   {t('statistics.driverPerformance')}
                 </Typography>
                 <Typography variant="caption" className="mb-3 mt-1 block max-w-2xl leading-relaxed text-muted-foreground">
                   {t('statistics.driverRadarFootnote')}
                 </Typography>
-                <div className="mb-4 flex flex-wrap gap-x-4 gap-y-2">
+                <div className="mb-5 flex flex-wrap gap-x-5 gap-y-2.5">
                   {driverComparisonRows.map((row, idx) => (
-                    <span key={row.driver_name} className="flex max-w-[200px] items-center gap-2 text-xs text-muted-foreground">
+                    <span key={row.driver_name} className="flex min-w-0 max-w-[min(100%,240px)] items-center gap-2 text-sm text-muted-foreground">
                       <span
                         className="h-2.5 w-2.5 shrink-0 rounded-full"
                         style={{ backgroundColor: CHART_COLORS[idx % CHART_COLORS.length] }}
@@ -1720,15 +1821,15 @@ export default function StatisticsPage() {
                     </span>
                   ))}
                 </div>
-                <DriverComparisonBars rows={driverComparisonRows} t={t} />
+                <DriverComparisonBars rows={driverComparisonRows} t={t} isRtl={i18n.dir() === 'rtl'} />
               </Box>
             )}
             {hasStockLevels && (
-              <Box className={`${tableContainerClass} p-5`}>
+              <Box className={`${tableContainerClass} min-w-0 p-5`}>
                 <Typography variant="h6" className="font-bold mb-4 text-foreground">
                   {t('statistics.productStockLevels')}
                 </Typography>
-                <Box className="grid grid-cols-3 gap-4">
+                <Box className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                   {stockLevelsChartData
                     .filter((item) => item.value > 0)
                     .map((item, idx) => {
@@ -1775,20 +1876,20 @@ type DriverComparisonRow = DriverComparisonPoint & {
 };
 
 /** SVG text must stay high-contrast; muted tokens are often too faint on light cards. */
-const DRIVER_CHART_AXIS_TICK = {
-  fontSize: 12,
-  fill: 'rgb(var(--foreground))',
-  fontWeight: 500,
-} as const;
+const DRIVER_CHART_TICK_FONT = 13;
 
 function DriverComparisonBars({
   rows,
   t,
+  isRtl = false,
 }: {
   rows: DriverComparisonRow[];
   t: (key: string) => string;
+  /** Mirrors horizontal bars so zero is on the end edge and categories align for Arabic RTL. */
+  isRtl?: boolean;
 }) {
-  const chartHeight = Math.max(160, rows.length * 40 + 72);
+  /** Taller rows + room for axis so labels do not collide with bars. */
+  const chartHeight = Math.max(240, rows.length * 52 + 104);
   const rowByCategory = useMemo(() => {
     const categoryMap = new Map<string, DriverComparisonRow>();
     rows.forEach((r) => categoryMap.set(r.chartCategoryKey, r));
@@ -1826,26 +1927,45 @@ function DriverComparisonBars({
     },
   ];
 
+  const chartMargins = isRtl
+    ? { top: 12, right: 8, left: 28, bottom: 32 }
+    : { top: 12, right: 28, left: 8, bottom: 32 };
+  /** Leading edge rounding when bars grow RTL (reversed numeric axis). */
+  const barRadius: [number, number, number, number] = isRtl ? [8, 0, 0, 8] : [0, 8, 8, 0];
+  const categoryAxisWidth = 168;
+  const xAxisTick = {
+    fontSize: DRIVER_CHART_TICK_FONT,
+    fill: 'rgb(var(--foreground))',
+    fontWeight: 500 as const,
+  };
+  const yAxisTick = {
+    fontSize: DRIVER_CHART_TICK_FONT,
+    fill: 'rgb(var(--foreground))',
+    fontWeight: 500 as const,
+    /** Pull labels slightly away from the plot so they do not touch bars. */
+    dx: isRtl ? -6 : 6,
+  };
+
   return (
-    <Box className="grid gap-6 lg:grid-cols-3">
+    <Box className="grid w-full min-w-0 grid-cols-1 gap-8">
       {metrics.map((metric) => (
-        <Box key={metric.key}>
-          <div className="mb-2">
-            <Typography variant="caption" className="block font-semibold text-foreground">
+        <Box key={metric.key} className="min-w-0 rounded-xl border border-border/50 bg-muted/20 px-3 py-4 sm:px-4">
+          <div className="mb-3">
+            <Typography variant="subtitle2" className="block font-semibold text-foreground">
               {metric.title}
             </Typography>
             {metric.hint ? (
-              <Typography variant="caption" className="mt-0.5 block text-muted-foreground">
+              <Typography variant="caption" className="mt-1 block text-muted-foreground">
                 {metric.hint}
               </Typography>
             ) : null}
           </div>
-          <Box className="w-full text-foreground" dir="ltr" style={{ height: chartHeight }}>
+          <Box className="w-full min-h-[200px] text-foreground" style={{ height: chartHeight }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={rows}
                 layout="vertical"
-                margin={{ top: 8, right: 12, left: 4, bottom: 8 }}
+                margin={chartMargins}
               >
                 <CartesianGrid
                   strokeDasharray="3 3"
@@ -1855,23 +1975,30 @@ function DriverComparisonBars({
                 />
                 <XAxis
                   type="number"
+                  reversed={isRtl}
                   domain={metric.domain ?? ['auto', 'auto']}
-                  tick={DRIVER_CHART_AXIS_TICK}
+                  tick={xAxisTick}
                   tickLine={false}
                   axisLine={{ stroke: 'rgb(var(--border))', strokeWidth: 1 }}
                   tickFormatter={metric.tickFormat}
+                  tickMargin={10}
                 />
                 <YAxis
                   type="category"
                   dataKey="chartCategoryKey"
-                  width={118}
-                  tick={DRIVER_CHART_AXIS_TICK}
+                  width={categoryAxisWidth}
+                  orientation={isRtl ? 'right' : 'left'}
+                  tick={yAxisTick}
                   tickLine={false}
                   axisLine={false}
                   tickFormatter={(key) => rowByCategory.get(String(key))?.shortName ?? ''}
+                  interval={0}
                 />
                 <Tooltip
-                  contentStyle={CHART_TOOLTIP_STYLE}
+                  contentStyle={{
+                    ...CHART_TOOLTIP_STYLE,
+                    ...(isRtl ? { direction: 'rtl' as const, textAlign: 'right' as const } : {}),
+                  }}
                   formatter={(value, _name, item) => {
                     const row = item?.payload as DriverComparisonRow | undefined;
                     const v = typeof value === 'number' ? value : Number(value);
@@ -1884,9 +2011,9 @@ function DriverComparisonBars({
                 <Bar
                   {...CHART_ANIM}
                   dataKey={metric.key}
-                  radius={[0, 6, 6, 0]}
-                  barSize={22}
-                  maxBarSize={28}
+                  radius={barRadius}
+                  barSize={28}
+                  maxBarSize={36}
                 >
                   {rows.map((_, i) => (
                     <Cell key={`${metric.key}-${i}`} fill={CHART_COLORS[i % CHART_COLORS.length]} />
@@ -1901,7 +2028,13 @@ function DriverComparisonBars({
   );
 }
 
-function HeatmapGrid({ data }: { data: { day: string; hour: string; value: number }[] }) {
+function HeatmapGrid({
+  data,
+  translateDay,
+}: {
+  data: { day: string; hour: string; value: number }[];
+  translateDay: (day: string) => string;
+}) {
   const days = useMemo(() => [...new Set(data.map((d) => d.day))], [data]);
   const hours = useMemo(() => [...new Set(data.map((d) => d.hour))].sort(), [data]);
   const maxVal = useMemo(() => Math.max(...data.map((d) => d.value), 1), [data]);
@@ -1925,7 +2058,7 @@ function HeatmapGrid({ data }: { data: { day: string; hour: string; value: numbe
         <tbody>
           {days.map((day) => (
             <tr key={day}>
-              <td className="p-1 font-medium text-muted-foreground">{day}</td>
+              <td className="p-1 font-medium text-muted-foreground">{translateDay(day)}</td>
               {hours.map((hour) => {
                 const v = getValue(day, hour);
                 const opacity = maxVal > 0 ? v / maxVal : 0;
@@ -1937,7 +2070,7 @@ function HeatmapGrid({ data }: { data: { day: string; hour: string; value: numbe
                         backgroundColor: `hsl(217 91% 60% / ${0.2 + opacity * 0.8})`,
                         color: opacity > 0.5 ? 'white' : 'rgb(var(--foreground))',
                       }}
-                      title={`${day} ${hour}: ${v}`}
+                      title={`${translateDay(day)} ${hour}: ${v}`}
                     >
                       {v > 0 ? v : ''}
                     </Box>

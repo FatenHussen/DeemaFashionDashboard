@@ -103,6 +103,7 @@ export const ShopSchema = zod.object({
   payment_methods: zod.array(zod.enum(['cash', 'online'])).default([]),
   pricing_tier: zod.enum(['cheap', 'medium', 'expensive']),
   is_recommended: zod.boolean(),
+  category_ids: zod.array(zod.coerce.number().min(1)).default([]),
 });
 
 export type ShopFormValues = zod.infer<typeof ShopSchema>;

@@ -1,7 +1,8 @@
 import type { RouteObject } from 'react-router';
 
-import { lazy } from 'react';
 import { Navigate } from 'react-router';
+
+import { lazyWithRetry } from 'src/utils/lazy-with-retry';
 
 import { CONFIG } from 'src/global-config';
 
@@ -10,7 +11,7 @@ import { dashboardRoutes } from './dashboard';
 
 // ----------------------------------------------------------------------
 
-const Page404 = lazy(() => import('src/pages/error/404'));
+const Page404 = lazyWithRetry(() => import('src/pages/error/404'));
 
 export const routesSection: RouteObject[] = [
   {

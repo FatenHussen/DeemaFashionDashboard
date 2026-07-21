@@ -27,11 +27,6 @@ export default function PointRuleDetailsPage() {
   const { data: response, isLoading, error } = useFetchPointRuleById(id || '');
   const item = response?.data;
 
-  const typeLabel =
-    item?.type === 'percentage'
-      ? t('form.pointRuleTypePercentage')
-      : t('form.pointRuleTypeFixed');
-
   if (isLoading) return <LoadingScreen />;
 
   if (error || !item) {
@@ -123,14 +118,6 @@ export default function PointRuleDetailsPage() {
                   </Typography>
                   <Typography variant="body1" className="font-medium font-mono">
                     {item.code}
-                  </Typography>
-                </Box>
-                <Box>
-                  <Typography variant="caption" className="text-muted-foreground">
-                    {t('columns.type')}
-                  </Typography>
-                  <Typography variant="body1" className="font-medium capitalize">
-                    {typeLabel}
                   </Typography>
                 </Box>
                 <Box>

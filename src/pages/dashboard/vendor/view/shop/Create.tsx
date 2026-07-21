@@ -1,17 +1,19 @@
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
+import { useQuery } from '@tanstack/react-query';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
 import { MultiSelect } from '@/shared/ui/multi-select';
 import { compressImage } from '@/utils/compress-image';
 import { useMemo, useEffect, type ReactNode } from 'react';
 import { formatTranslated } from '@/utils/format-translated';
 import { MapPicker } from '@/shared/components/map/map-picker';
+import { useParams, useNavigate, useLocation } from 'react-router';
 import { useForm, Controller, type Resolver } from 'react-hook-form';
 import { _AreaApi } from '@/pages/dashboard/locations/api/area.services';
 import { useFetchServices } from '@/pages/dashboard/vendor/hooks/service';
 import { _VendorApi } from '@/pages/dashboard/vendor/api/vendor.services';
+import { _CategoryApi } from '@/pages/dashboard/categories/api/category.services';
 import {
   ShopSchema,
   type ShopFormValues,
@@ -21,6 +23,7 @@ import {
   useUpdateShop,
   useFetchShopById,
 } from '@/pages/dashboard/vendor/hooks/shop';
+import { CategoryHierarchyCheckboxTree } from '@/pages/dashboard/categories/components/category-hierarchy-checkbox-tree';
 import {
   type ShopData,
   type DaySchedule,
@@ -218,6 +221,10 @@ function buildShopFormValuesFromApi(shop: ShopData): ShopFormValues {
     payment_methods: paymentMethodsFromShop(shop),
     pricing_tier: normalizeShopPriceLevelFromApi(shop),
     is_recommended: Boolean(shop.is_recommended ?? shop.recommended),
+    category_ids:
+      shop.category_ids?.length
+        ? shop.category_ids
+        : shop.categories?.map((c) => c.id).filter((id) => Number.isFinite(id) && id > 0) ?? [],
   };
 }
 
@@ -230,6 +237,7 @@ const SHOP_STEP_VALIDATION_FIELDS: string[][] = [
   [
     'area_id',
     'service_ids',
+    'category_ids',
     'is_active',
     'shop_type',
     'payment_methods',
@@ -242,7 +250,15 @@ export default function CreatePage() {
   const { t } = useTranslation('table');
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const isEditMode = !!id;
+  const isServiceProviderMode = pathname.startsWith('/service-providers');
+  const isRestaurantMode = pathname.startsWith('/restaurants');
+  const backListPath = isServiceProviderMode
+    ? '/service-providers'
+    : isRestaurantMode
+      ? '/restaurants'
+      : '/shop';
 
   // Hooks for fetching and mutations
   const { data: shopData, isLoading: isLoadingShop } = useFetchShopById(id || '');
@@ -254,6 +270,20 @@ export default function CreatePage() {
   const serviceOptions = services.map((s: any) => ({
     value: s.id,
     label: formatTranslated(s.name),
+  }));
+
+  const { data: categoryRows = [], isLoading: isLoadingCategories } = useQuery({
+    queryKey: ['categories', 'flat', 'shop-form', isRestaurantMode ? 'restaurant' : 'all'],
+    queryFn: () =>
+      _CategoryApi.getListAllCategoriesFlat({
+        per_page: 500,
+        is_active: true,
+        ...(isRestaurantMode ? { is_restaurant: true } : {}),
+      }),
+  });
+  const categoryOptions = categoryRows.map((c) => ({
+    value: c.id,
+    label: formatTranslated(c.name),
   }));
 
   const paymentMethodOptions = (['cash', 'online'] as const).map((key) => ({
@@ -292,10 +322,15 @@ export default function CreatePage() {
     area_id: 0,
     service_ids: [],
     badges: [],
-    shop_type: 'store',
+    shop_type: isServiceProviderMode
+      ? 'service_provider'
+      : isRestaurantMode
+        ? 'restaurant'
+        : 'store',
     payment_methods: [],
     pricing_tier: 'medium',
     is_recommended: false,
+    category_ids: [],
   };
 
   const editFormValues = useMemo(() => {
@@ -309,6 +344,16 @@ export default function CreatePage() {
   });
 
   const { handleSubmit, control, watch, reset } = methods;
+
+  useEffect(() => {
+    if (isServiceProviderMode) {
+      methods.setValue('shop_type', 'service_provider');
+    } else if (isRestaurantMode) {
+      methods.setValue('shop_type', 'restaurant');
+    } else {
+      methods.setValue('shop_type', 'store');
+    }
+  }, [isServiceProviderMode, isRestaurantMode, methods]);
 
   /** RHF `values` is unreliable when omitted on first mount then set after fetch — explicit `reset` applies API data to inputs. */
   useEffect(() => {
@@ -372,16 +417,23 @@ export default function CreatePage() {
         payment_methods: data.payment_methods ?? [],
         pricing_tier: data.pricing_tier,
         is_recommended: data.is_recommended,
+        category_ids: (data.category_ids ?? []).filter((categoryId) => categoryId > 0),
       };
 
       if (isEditMode && id) {
         await updateShopMutation.mutateAsync({ id, data: payload as any });
         toast.success(t('form.shopUpdatedSuccess'));
-        navigate('/shop');
+        navigate(backListPath);
       } else {
         await createShopMutation.mutateAsync(payload);
-        toast.success(t('form.shopCreatedSuccess'));
-        navigate('/shop');
+        toast.success(
+          isServiceProviderMode
+            ? t('form.serviceProviderCreatedSuccess')
+            : isRestaurantMode
+              ? t('form.restaurantCreatedSuccess')
+              : t('form.shopCreatedSuccess')
+        );
+        navigate(backListPath);
       }
     } catch (error: any) {
       console.error('Error saving shop:', error);
@@ -389,7 +441,7 @@ export default function CreatePage() {
   };
 
   const handleCancel = () => {
-    navigate('/shop');
+    navigate(backListPath);
   };
 
   // Working Hours Component
@@ -477,6 +529,42 @@ export default function CreatePage() {
     );
   };
 
+  const stepValidationFields = useMemo(() => {
+    if (!isRestaurantMode) return SHOP_STEP_VALIDATION_FIELDS;
+    return SHOP_STEP_VALIDATION_FIELDS.map((fields, index) =>
+      index === 4 ? fields.filter((field) => field !== 'category_ids') : fields
+    );
+  }, [isRestaurantMode]);
+
+  const restaurantCategoriesBeforeStepper = isRestaurantMode ? (
+    <ShopStepCanvas>
+      <Box className="group">
+        <Box className="flex items-center gap-2.5 mb-4">
+          <Box className="w-7 h-7 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
+            <Iconify icon="solar:folder-bold" className="text-primary" width={16} height={16} />
+          </Box>
+          <Typography variant="subtitle2" className="font-semibold text-foreground">
+            {t('form.restaurantCategoriesSection')}
+          </Typography>
+        </Box>
+        <Controller
+          name="category_ids"
+          control={control}
+          render={({ field, fieldState: { error } }) => (
+            <CategoryHierarchyCheckboxTree
+              categories={categoryRows}
+              value={field.value ?? []}
+              onChange={field.onChange}
+              isLoading={isLoadingCategories}
+              disabled={isLoadingCategories || categoryRows.length === 0}
+              error={error?.message ? String(error.message) : undefined}
+            />
+          )}
+        />
+      </Box>
+    </ShopStepCanvas>
+  ) : undefined;
+
   // Define steps for the stepper
   const steps = [
     {
@@ -524,13 +612,21 @@ export default function CreatePage() {
                   />
                 </Box>
 <Typography variant="subtitle2" className="font-semibold text-foreground">
-                {t('form.storeNameAr')}
+                {isRestaurantMode ? t('form.restaurantVendorNameAr') : t('form.storeNameAr')}
                 </Typography>
               </Box>
               <RHFTextField
                 name="name.ar"
-                placeholder={t('form.storeNameAr')}
-                helperText={t('form.shopNameArHelper')}
+                placeholder={
+                  isRestaurantMode
+                    ? t('form.restaurantVendorNameArPlaceholder')
+                    : t('form.storeNameAr')
+                }
+                helperText={
+                  isRestaurantMode
+                    ? t('form.restaurantVendorNameArHelper')
+                    : t('form.shopNameArHelper')
+                }
                 className="transition-all duration-200"
               />
             </Box>
@@ -546,13 +642,21 @@ export default function CreatePage() {
                   />
                 </Box>
 <Typography variant="subtitle2" className="font-semibold text-foreground">
-                {t('form.storeNameEn')}
+                {isRestaurantMode ? t('form.restaurantVendorNameEn') : t('form.storeNameEn')}
                 </Typography>
               </Box>
               <RHFTextField
                 name="name.en"
-                placeholder={t('form.storeNameEn')}
-                helperText={t('form.shopNameEnHelper')}
+                placeholder={
+                  isRestaurantMode
+                    ? t('form.restaurantVendorNameEnPlaceholder')
+                    : t('form.storeNameEn')
+                }
+                helperText={
+                  isRestaurantMode
+                    ? t('form.restaurantVendorNameEnHelper')
+                    : t('form.shopNameEnHelper')
+                }
                 className="transition-all duration-200"
               />
             </Box>
@@ -908,16 +1012,25 @@ export default function CreatePage() {
                   {t('form.shopClassificationSection')}
                 </Typography>
               </Box>
-              <RHFSelect
-                name="shop_type"
-                options={[
-                  { value: 'restaurant', label: t('form.shopTypeRestaurant') },
-                  { value: 'service_provider', label: t('form.shopTypeServiceProvider') },
-                  { value: 'store', label: t('form.shopTypeStore') },
-                ]}
-                placeholder={t('form.shopTypePlaceholder')}
-                helperText={t('form.shopTypeHelper')}
-              />
+              {isServiceProviderMode ? (
+                <Box className="p-4 rounded-lg border border-border/60 bg-card/30">
+                  <Typography variant="body2" className="font-medium text-foreground">
+                    {t('form.shopTypeServiceProvider')}
+                  </Typography>
+                </Box>
+              ) : isRestaurantMode ? (
+                <Box className="p-4 rounded-lg border border-border/60 bg-card/30">
+                  <Typography variant="body2" className="font-medium text-foreground">
+                    {t('form.shopTypeRestaurant')}
+                  </Typography>
+                </Box>
+              ) : (
+                <Box className="p-4 rounded-lg border border-border/60 bg-card/30">
+                  <Typography variant="body2" className="font-medium text-foreground">
+                    {t('form.shopTypeStore')}
+                  </Typography>
+                </Box>
+              )}
             </Box>
 
             <Box className="group">
@@ -1066,6 +1179,55 @@ export default function CreatePage() {
             </Box>
           </Box>
 
+          {!isRestaurantMode ? (
+          <Box className="group pt-2">
+            <Box className="flex items-center gap-2.5 mb-3">
+              <Box className="w-7 h-7 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
+                <Iconify
+                  icon="solar:folder-bold"
+                  className="text-primary"
+                  width={16}
+                  height={16}
+                />
+              </Box>
+              <Typography variant="subtitle2" className="font-semibold text-foreground">
+                {t('form.shopCategoriesSection')}
+              </Typography>
+            </Box>
+            <Controller
+              name="category_ids"
+              control={control}
+              render={({ field, fieldState: { error } }) => (
+                <div className="w-full">
+                  <MultiSelect
+                    options={categoryOptions}
+                    value={field.value ?? []}
+                    onChange={(ids) =>
+                      field.onChange(
+                        (ids as (string | number)[])
+                          .map((cid) => Number(cid))
+                          .filter((n) => Number.isFinite(n) && n > 0)
+                      )
+                    }
+                    placeholder={
+                      isLoadingCategories ? t('loading') : t('form.selectShopCategories')
+                    }
+                    isDisabled={isLoadingCategories || categoryOptions.length === 0}
+                  />
+                  <Typography variant="caption" className="text-muted-foreground mt-1 block">
+                    {t('form.shopCategoriesHelper')}
+                  </Typography>
+                  {error?.message && (
+                    <Typography variant="caption" className="text-destructive mt-1 block">
+                      {error.message}
+                    </Typography>
+                  )}
+                </div>
+              )}
+            />
+          </Box>
+          ) : null}
+
           {/* Active Status */}
           <Box className="group pt-2">
             <Box className="flex items-center gap-2.5 mb-3">
@@ -1109,8 +1271,14 @@ export default function CreatePage() {
     <>
       <title>
         {isEditMode
-          ? t('form.shopEditDocumentTitle', { appName: CONFIG.appName })
-          : t('form.shopCreateDocumentTitle', { appName: CONFIG.appName })}
+          ? isRestaurantMode
+            ? t('form.restaurantEditDocumentTitle', { appName: CONFIG.appName })
+            : t('form.shopEditDocumentTitle', { appName: CONFIG.appName })
+          : isServiceProviderMode
+            ? t('form.serviceProviderCreateDocumentTitle', { appName: CONFIG.appName })
+            : isRestaurantMode
+              ? t('form.restaurantCreateDocumentTitle', { appName: CONFIG.appName })
+              : t('form.shopCreateDocumentTitle', { appName: CONFIG.appName })}
       </title>
 
       <StepperFormLayout
@@ -1137,12 +1305,42 @@ export default function CreatePage() {
         onCancel={handleCancel}
         isSubmitting={isSubmitting}
         errorMessage={errorMessage}
-        title={isEditMode ? t('form.editShop') : t('form.createShop')}
-        description={isEditMode ? t('form.editShopDesc') : t('form.createShopDesc')}
+        title={
+          isEditMode
+            ? isRestaurantMode
+              ? t('form.editRestaurant')
+              : t('form.editShop')
+            : isServiceProviderMode
+              ? t('form.createServiceProvider')
+              : isRestaurantMode
+                ? t('form.createRestaurant')
+                : t('form.createShop')
+        }
+        description={
+          isEditMode
+            ? isRestaurantMode
+              ? t('form.editRestaurantDesc')
+              : t('form.editShopDesc')
+            : isServiceProviderMode
+              ? t('form.createServiceProviderDesc')
+              : isRestaurantMode
+                ? t('form.createRestaurantDesc')
+                : t('form.createShopDesc')
+        }
         icon={
           <Box className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/35 via-primary/15 to-transparent shadow-lg shadow-primary/15 ring-2 ring-primary/25">
             <Iconify
-              icon={isEditMode ? 'solar:shop-2-bold' : 'solar:shop-bold'}
+            icon={
+              isEditMode
+                ? isRestaurantMode
+                  ? 'solar:chef-hat-bold'
+                  : 'solar:shop-2-bold'
+                : isServiceProviderMode
+                  ? 'solar:hand-stars-bold'
+                  : isRestaurantMode
+                    ? 'solar:chef-hat-bold'
+                    : 'solar:shop-bold'
+            } 
               className="text-primary"
               width={30}
               height={30}
@@ -1151,13 +1349,40 @@ export default function CreatePage() {
         }
         isEditMode={isEditMode}
         isLoading={isLoadingShop}
-        loadingText={t('form.loadingShop')}
+        loadingText={
+          isServiceProviderMode
+            ? t('form.loadingServiceProvider')
+            : isRestaurantMode
+              ? t('form.loadingRestaurant')
+              : t('form.loadingShop')
+        }
         maxWidth="full"
         steps={steps}
-        stepValidationFields={SHOP_STEP_VALIDATION_FIELDS}
+        stepValidationFields={stepValidationFields}
+        beforeStepper={restaurantCategoriesBeforeStepper}
         reviewHint={t('reviewBeforeSubmit')}
-        submitLabel={isEditMode ? t('form.updateShopSubmit') : t('form.createShopSubmit')}
-        submittingLabel={isEditMode ? t('form.updatingShop') : t('form.creatingShop')}
+        submitLabel={
+          isEditMode
+            ? isRestaurantMode
+              ? t('form.updateRestaurantSubmit')
+              : t('form.updateShopSubmit')
+            : isServiceProviderMode
+              ? t('form.createServiceProviderSubmit')
+              : isRestaurantMode
+                ? t('form.createRestaurantSubmit')
+                : t('form.createShopSubmit')
+        }
+        submittingLabel={
+          isEditMode
+            ? isRestaurantMode
+              ? t('form.updatingRestaurant')
+              : t('form.updatingShop')
+            : isServiceProviderMode
+              ? t('form.creatingServiceProvider')
+              : isRestaurantMode
+                ? t('form.creatingRestaurant')
+                : t('form.creatingShop')
+        }
       />
     </>
   );

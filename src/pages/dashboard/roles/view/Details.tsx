@@ -4,7 +4,7 @@ import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
 import { useFetchRoleById } from '@/pages/dashboard/roles/hooks/role';
 import {
-  translatePermissionName,
+  translatePermissionAction,
   translatePermissionResource,
 } from '@/pages/dashboard/roles/utils/permission-label';
 
@@ -49,7 +49,7 @@ function actionStyle(name: string): { chip: string; icon: string } {
 }
 
 export default function DetailsPage() {
-  const { t } = useTranslation('table');
+  const { t } = useTranslation(['table', 'common']);
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: roleResponse, isLoading, error } = useFetchRoleById(id || '');
@@ -285,7 +285,7 @@ export default function DetailsPage() {
                                 className={`inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-xs font-medium ${a.chip}`}
                               >
                                 <Iconify icon={a.icon} width={12} />
-                                {translatePermissionName(permission.name, t)}
+                                {translatePermissionAction(permission.name, t)}
                               </span>
                             );
                           })}

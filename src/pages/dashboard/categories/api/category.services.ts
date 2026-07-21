@@ -1,4 +1,5 @@
 import type {
+  CategoryData,
   CategoryListResponse,
   CategoryDetailResponse,
   CategoryCreateUpdatePayload,
@@ -64,6 +65,46 @@ export const _CategoryApi = {
     const response = await axiosInstance.get<CategoryListResponse>(url);
     return response.data;
   },
+
+  /**
+   * Fetches every page of the admin category list and merges rows (deduped by id).
+   * Needed for hierarchical pickers when totals exceed one page or parents/children span pages.
+   */
+  getListAllCategoriesFlat: async (params?: {
+    per_page?: number;
+    parent_id?: number | null;
+    category_id?: number;
+    sort_field?: string;
+    sort_order?: 'asc' | 'desc';
+    search?: string;
+    name?: string;
+    is_active?: 0 | 1 | boolean;
+    is_restaurant?: 0 | 1 | boolean;
+  }): Promise<CategoryData[]> => {
+    const perPage = params?.per_page ?? 500;
+    const first = await _CategoryApi.getListCategoriesPaginated({
+      ...params,
+      page: 1,
+      per_page: perPage,
+    });
+    const byId = new Map<number, CategoryData>();
+    for (const c of first.data?.items ?? []) {
+      byId.set(c.id, c);
+    }
+    const lastPage = Math.max(1, first.data?.pagination?.last_page ?? 1);
+    for (let p = 2; p <= lastPage; p++) {
+      const r = await _CategoryApi.getListCategoriesPaginated({
+        ...params,
+        page: p,
+        per_page: perPage,
+      });
+      for (const c of r.data?.items ?? []) {
+        byId.set(c.id, c);
+      }
+    }
+    return Array.from(byId.values());
+  },
+
   getCategoryById: async (id: number | string): Promise<CategoryDetailResponse> => {
     const response = await axiosInstance.get<CategoryDetailResponse>(
       apiRoutes.category.details(id)

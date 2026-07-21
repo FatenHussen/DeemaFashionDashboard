@@ -37,6 +37,7 @@ export interface ProductData {
   approval_status_label?: string | null;
   /** Shelf life / expiry (ISO or YYYY-MM-DD from API) */
   expiry_date?: string | null;
+  is_restaurant?: boolean;
 }
 
 /** Per-currency breakdown from product detail API (`price_currencies`, `cost_price_currencies`, etc.) */
@@ -50,6 +51,8 @@ export interface ProductDetailCurrencyAmount {
 /** Product as returned in the SINGLE/DETAIL response (bilingual fields + relations) */
 export interface ProductDetailData {
   id: number;
+  /** Optional merchandising / ERP reference */
+  product_number?: string | null;
   category_id: number;
   brand_id: number | null;
   vendor_id?: number | null;
@@ -85,6 +88,9 @@ export interface ProductDetailData {
   cost_price_formatted?: string | null;
   cost_price_currencies?: Record<string, ProductDetailCurrencyAmount> | null;
   quantity: number | null;
+  /** Aggregated sellable stock when API provides it (may differ from `quantity`). */
+  stock?: number | null;
+  max_purchase_quantity?: number | null;
   unit?: string | { id?: number; name?: string | { en: string; ar: string } } | null;
   warranty_period?: number | null;
   sku: string | null;
@@ -98,6 +104,7 @@ export interface ProductDetailData {
   bought_with: number[] | Array<{ id: number; name?: string }>;
   is_instant_delivery: boolean | number;
   is_visible?: boolean | number;
+  is_restaurant?: boolean;
   thumbnail?: string | null;
   category: { id: number; name: string; is_restaurant?: boolean };
   brand: { id: number; name: string } | null;
@@ -115,18 +122,25 @@ export interface ProductDetailData {
   seo_image?: string | null;
   variants: Array<{
     id: number;
+    name?: string | { en: string; ar: string };
     sku?: string | null;
     model?: string | null;
     barcode?: string | null;
+    is_trend?: boolean | number;
+    is_active?: boolean | number;
     attributes: Array<{ attribute: string; value: string; type: string }>;
     shops: Array<{
       id?: number;
       shop_id: number;
       shop_name: string;
       price: number;
+      price_currencies?: Record<string, ProductDetailCurrencyAmount> | null;
       discount?: number | null;
+      discount_currencies?: Record<string, ProductDetailCurrencyAmount> | null;
       price_after_discount?: number | null;
+      price_after_discount_currencies?: Record<string, ProductDetailCurrencyAmount> | null;
       cost_price?: number | null;
+      cost_price_currencies?: Record<string, ProductDetailCurrencyAmount> | null;
       quantity: number;
     }>;
     images: Array<{ id: number; url: string }>;
@@ -140,12 +154,22 @@ export interface ProductDetailData {
   }>;
   extra_details: Array<{
     id: number;
+    category?: { id: number; name: string };
     key: { en: string; ar: string };
     value: { en: string; ar: string };
     price?: number | null;
+    price_currencies?: Record<string, ProductDetailCurrencyAmount> | null;
+    quantity?: number | null;
+    product_extra_detail_id?: number | null;
   }>;
   images: Array<{ id: number; url: string }>;
-  badges?: Array<{ id: number; position?: string; postion?: string }>;
+  badges?: Array<{
+    id: number;
+    name?: string | { en: string; ar: string } | null;
+    icon?: string | null;
+    position?: string;
+    postion?: string;
+  }>;
   icons?: Array<{ id: number; name?: string; icon?: string }>;
   rating?: number;
   rating_count?: number;
@@ -181,7 +205,7 @@ export interface ProductCreateUpdatePayload {
   /** Sent in multipart body on update so the backend always receives the product id (not only in the URL). */
   id?: number;
   category_id: number;
-  brand_id?: number;
+  brand_id?: number | null;
   vendor_id?: number;
   name: { en: string; ar: string };
   description: { en: string; ar: string };
@@ -225,6 +249,10 @@ export interface ProductCreateUpdatePayload {
     stock?: number;
     max_purchase_quantity?: number;
     delivery_time?: string;
+    /** 0 | 1 for multipart */
+    is_trend?: number;
+    /** 0 | 1 for multipart */
+    is_active?: number;
   }>;
 
   category_details?: Array<{
@@ -235,9 +263,11 @@ export interface ProductCreateUpdatePayload {
 
   extra_details?: Array<{
     id?: number;
-    detail_key: { en: string; ar: string };
-    detail_value: { en: string; ar: string };
-    price?: number;
+    /** Preset row from `/admin/product-extra-details` */
+    product_extra_detail_id: number;
+    /** Omitted or empty in UI defaults to 1 */
+    quantity?: number;
+    price: number;
   }>;
 
   bought_with?: number[];

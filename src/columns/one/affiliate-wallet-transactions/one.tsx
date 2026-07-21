@@ -4,6 +4,7 @@ import type { AffiliateWalletTransactionItem } from '@/pages/dashboard/affiliate
 
 import { z } from 'zod';
 import { Link } from 'react-router';
+import { formatDecimal } from '@/utils/format-currency';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 import { normalizeAffiliateId } from '@/pages/dashboard/affiliate-wallet-transactions/utils/affiliate-display';
@@ -105,7 +106,7 @@ export const affiliateWalletTransactionColumns = (
     accessorKey: 'amount',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.amount')} />,
     cell: ({ row }) => (
-      <span className="font-semibold text-foreground">{row.original.amount?.toLocaleString()}</span>
+      <span className="font-semibold text-foreground">{formatDecimal(row.original.amount)}</span>
     ),
   },
   {

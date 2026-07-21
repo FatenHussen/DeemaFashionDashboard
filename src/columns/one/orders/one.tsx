@@ -4,6 +4,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 
 import { z } from 'zod';
 import { Iconify } from '@/shared/components/iconify';
+import { formatDecimal } from '@/utils/format-currency';
 import { TableTonedStatusPill } from '@/shared/components/table-status-badges';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 import {
@@ -58,6 +59,20 @@ const ORDER_STATUS_BADGE: Record<
     icon: 'solar:close-circle-bold',
     className: 'border-slate-700 bg-slate-600',
   },
+  cancelled_by_admin: {
+
+    icon: 'solar:shield-cross-bold',
+    className: 'border-rose-800 bg-rose-600',
+  },
+  faild_deliver: {
+    icon: 'solar:danger-triangle-bold',
+
+    className: 'border-orange-800 bg-orange-600',
+  },
+  returned_by_user: {
+    icon: 'solar:undo-left-bold',
+    className: 'border-cyan-800 bg-cyan-600',
+  },
 };
 
 function getOrderStatusLabel(status: OrderStatus, t: TFunction<'table'>): string {
@@ -67,6 +82,9 @@ function getOrderStatusLabel(status: OrderStatus, t: TFunction<'table'>): string
     out_delivery: t('statusOutDelivery'),
     delivered: t('statusDelivered'),
     cancelled: t('statusCancelled'),
+    cancelled_by_admin: t('statusCancelledByAdmin'),
+    faild_deliver: t('statusFaildDeliver'),
+    returned_by_user: t('statusReturnedByUser'),
   };
 
   return labels[status] ?? status.replace(/_/g, ' ');
@@ -78,6 +96,13 @@ function toNum(v: unknown): number {
   const n = Number(v);
   return Number.isFinite(n) ? n : 0;
 }
+
+const ORDER_CANCELLED_STATES: OrderStatus[] = [
+  'cancelled',
+  'cancelled_by_admin',
+  'faild_deliver',
+  'returned_by_user',
+];
 
 /** Total discount from list/detail payload (basket + coupon + subscription). */
 function sumOrderDiscounts(row: OrderFormValues): number {
@@ -163,7 +188,7 @@ export const orderColumns = (
       const v = priceAfterDiscountValue(row.original);
       return (
         <span className="text-sm">
-          {v != null && Number.isFinite(v) ? String(v) : '-'}
+          {v != null && Number.isFinite(v) ? formatDecimal(v) : '-'}
         </span>
       );
     },
@@ -245,9 +270,10 @@ export const orderColumns = (
         permissions.update &&
         st !== 'delivered' &&
         st !== 'out_delivery' &&
-        st !== 'cancelled';
+        !ORDER_CANCELLED_STATES.includes(st);
       const canRejectOrder =
-        permissions.update && st !== 'delivered' && st !== 'cancelled';
+        permissions.update && st !== 'delivered' && !ORDER_CANCELLED_STATES.includes(st);
+
 
       return (
         <div className="flex items-center justify-end">
@@ -298,7 +324,7 @@ export const orderColumns = (
                     className="gap-2 text-destructive focus:text-destructive"
                   >
                     <Iconify icon="solar:close-circle-bold" width={18} />
-                    {t('rejectOrder')}
+                    {t('cancelOrder')}
                   </DropdownMenuItem>
                 </>
               ) : null}

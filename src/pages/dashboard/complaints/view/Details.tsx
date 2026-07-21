@@ -5,8 +5,8 @@ import { Button } from '@/shared/ui/button';
 import { useTranslation } from 'react-i18next';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
+import { Link, useParams, useNavigate } from 'react-router';
 import { useUpdateComplaint, useFetchComplaintById } from '@/pages/dashboard/complaints/hooks/complaint';
 import {
   ComplaintUpdateSchema,
@@ -42,6 +42,9 @@ function FieldBox({ label, children, className }: FieldBoxProps) {
     </Box>
   );
 }
+
+const detailLinkClass =
+  'font-semibold text-primary underline-offset-4 transition-colors hover:text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:ring-offset-2 rounded-sm';
 
 export default function DetailsPage() {
   const { t } = useTranslation('table');
@@ -96,6 +99,10 @@ export default function DetailsPage() {
   const isNew = complaint.status === 'new';
   const typeLabel = translateComplaintType(complaint.type, t);
   const statusLabel = translateComplaintStatus(complaint.status, t);
+
+  const orderDetailId = complaint.order?.id ?? complaint.order_id;
+  const orderDetailsPath = `/orders/details/${orderDetailId}`;
+  const userDetailsPath = `/users/details/${complaint.user.id}`;
 
   const onSubmit = async (data: ComplaintUpdateFormValues) => {
     try {
@@ -171,21 +178,28 @@ export default function DetailsPage() {
                     {t('form.complaintDetailSubtitle', { orderId: complaint.order_id, type: typeLabel })}
                   </Typography>
                   <Typography variant="body2" className="mt-1 truncate text-muted-foreground">
-                    {complaint.user?.name} · {complaint.user?.email}
+                    <Link to={userDetailsPath} className={detailLinkClass}>
+                      {complaint.user?.name} · {complaint.user?.email}
+                    </Link>
                   </Typography>
                 </Box>
               </Box>
 
               <Box className="flex shrink-0 flex-wrap gap-2 sm:flex-col sm:items-end">
-                <Box className="inline-flex items-center gap-2 rounded-xl border border-border/60 bg-background/60 px-3 py-2 backdrop-blur-sm">
+                <Link
+                  to={orderDetailsPath}
+                  className="inline-flex items-center gap-2 rounded-xl border border-border/60 bg-background/60 px-3 py-2 backdrop-blur-sm transition-colors hover:border-primary/35 hover:bg-background/80"
+                >
                   <Iconify icon="solar:bag-5-bold" width={18} className="text-primary" />
                   <Box>
                     <Typography variant="caption" className="block leading-none text-muted-foreground">
                       {t('columns.orderRef')}
                     </Typography>
-                    <Typography variant="body2" className="font-semibold">#{complaint.order_id}</Typography>
+                    <Typography variant="body2" className="font-semibold text-primary">
+                      #{complaint.order_id}
+                    </Typography>
                   </Box>
-                </Box>
+                </Link>
                 <Box className="inline-flex items-center gap-2 rounded-xl border border-border/60 bg-background/60 px-3 py-2 backdrop-blur-sm">
                   <Iconify icon="solar:tag-bold" width={18} className="text-primary" />
                   <Box>
@@ -219,7 +233,11 @@ export default function DetailsPage() {
               {
                 icon: 'solar:bag-5-bold',
                 label: t('columns.orderRef'),
-                value: `#${complaint.order_id}`,
+                value: (
+                  <Link to={orderDetailsPath} className={detailLinkClass}>
+                    #{complaint.order_id}
+                  </Link>
+                ),
                 accent: 'from-sky-500/15 to-transparent border-sky-500/20',
               },
               {
@@ -231,7 +249,11 @@ export default function DetailsPage() {
               {
                 icon: 'solar:user-bold',
                 label: t('columns.user'),
-                value: complaint.user?.name ?? '—',
+                value: (
+                  <Link to={userDetailsPath} className={detailLinkClass}>
+                    {complaint.user?.name ?? '—'}
+                  </Link>
+                ),
                 accent: 'from-primary/15 to-transparent border-primary/25',
               },
             ].map((stat) => (
@@ -269,9 +291,11 @@ export default function DetailsPage() {
                 <Box className="p-5">
                   <Box className="grid gap-4 sm:grid-cols-2">
                     <FieldBox label={t('columns.orderRef')}>
-                      <Typography variant="body1" className="font-medium">
-                        #{complaint.order_id}
-                      </Typography>
+                      <Link to={orderDetailsPath} className={detailLinkClass}>
+                        <Typography variant="body1" component="span" className="font-semibold">
+                          #{complaint.order_id}
+                        </Typography>
+                      </Link>
                     </FieldBox>
                     <FieldBox label={t('columns.type')}>
                       <Typography variant="body1" className="font-medium">
@@ -286,15 +310,21 @@ export default function DetailsPage() {
                       </Box>
                     </FieldBox>
                     <FieldBox label={t('columns.user')}>
-                      <Typography variant="body1" className="font-medium">
-                        {complaint.user?.name ?? '—'}
-                      </Typography>
+                      <Link to={userDetailsPath} className={detailLinkClass}>
+                        <Typography variant="body1" component="span" className="font-semibold">
+                          {complaint.user?.name ?? '—'}
+                        </Typography>
+                      </Link>
                       <Typography variant="body2" className="mt-0.5 text-muted-foreground">
-                        {complaint.user?.email}
+                        <Link to={userDetailsPath} className={detailLinkClass}>
+                          {complaint.user?.email}
+                        </Link>
                       </Typography>
                       {complaint.user?.phone && (
                         <Typography variant="body2" className="text-muted-foreground">
-                          {complaint.user.phone}
+                          <Link to={userDetailsPath} className={detailLinkClass}>
+                            {complaint.user.phone}
+                          </Link>
                         </Typography>
                       )}
                     </FieldBox>
@@ -421,6 +451,13 @@ export default function DetailsPage() {
                     </Box>
                   </Box>
                   <Box className="space-y-3 p-5 text-sm">
+                    <Link
+                      to={orderDetailsPath}
+                      className={`${detailLinkClass} flex items-center gap-2 text-sm font-semibold`}
+                    >
+                      <Iconify icon="solar:eye-bold" width={18} className="shrink-0" />
+                      {t('viewDetails')}
+                    </Link>
                     <Box className="flex justify-between gap-2">
                       <span className="text-muted-foreground">{t('columns.status')}</span>
                       <span className="font-medium">
@@ -428,12 +465,12 @@ export default function DetailsPage() {
                       </span>
                     </Box>
                     <Box className="flex justify-between gap-2">
-                      <span className="text-muted-foreground">{t('columns.total')}</span>
-                      <span className="font-medium">{complaint.order.total}</span>
+                      <span className="text-muted-foreground">{t('form.complaintOrderSubtotal')}</span>
+                      <span className="font-medium">{complaint.order.subtotal}</span>
                     </Box>
                     <Box className="flex justify-between gap-2">
-                      <span className="text-muted-foreground">{t('columns.subtotal')}</span>
-                      <span className="font-medium">{complaint.order.subtotal}</span>
+                      <span className="text-muted-foreground">{t('form.complaintOrderTotal')}</span>
+                      <span className="font-medium">{complaint.order.total}</span>
                     </Box>
                     <Box className="flex justify-between gap-2 border-t border-border/40 pt-3">
                       <span className="text-muted-foreground">{t('columns.created')}</span>

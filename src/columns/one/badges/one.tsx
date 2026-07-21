@@ -20,6 +20,7 @@ export interface BadgeTableItem {
   color: string | null;
   position: 'top' | 'bottom';
   image?: string | null;
+  is_active?: boolean;
 }
 
 export const badgeColumns = (

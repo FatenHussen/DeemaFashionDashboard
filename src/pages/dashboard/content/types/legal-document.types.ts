@@ -6,6 +6,7 @@ export interface LegalDocumentItem {
   title: string;
   content: string;
   created_at: string;
+  updated_at?: string;
 }
 
 export interface LegalDocumentListResponse {
@@ -35,6 +36,7 @@ export interface LegalDocumentDetails {
   title: LegalDocumentMultilingual;
   content: LegalDocumentMultilingual;
   created_at: string;
+  updated_at: string;
 }
 
 export interface LegalDocumentDetailsResponse {
@@ -45,7 +47,23 @@ export interface LegalDocumentDetailsResponse {
 
 // ── Update payload  PATCH /admin/legal-documents/:id ──────────────────
 
-export interface LegalDocumentUpdatePayload {
+export interface LegalDocumentCreatePayload {
+  key: string;
   title: LegalDocumentMultilingual;
   content: LegalDocumentMultilingual;
+}
+
+export interface LegalDocumentUpdatePayload {
+  key?: string;
+  title?: Partial<Record<'en' | 'ar', string | null>>;
+  content?: Partial<Record<'en' | 'ar', string | null>>;
+}
+
+export interface LegalDocumentListParams {
+  page?: number;
+  per_page?: number;
+  search?: string;
+  key?: string;
+  sort_field?: 'id' | 'key' | 'created_at' | 'updated_at';
+  sort_order?: 'asc' | 'desc';
 }

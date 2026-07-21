@@ -3,6 +3,7 @@ import type { AdminToggleEntityType } from '@/api/admin-toggle-status.types';
 
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
+import { readRecordActiveFlag } from '@/utils/parse-record-is-active';
 import { useAdminToggleStatus } from '@/hooks/use-admin-toggle-status';
 
 import { DataTableColumnHeader } from './data-table-column-header';
@@ -84,9 +85,12 @@ function resolveIsActive(
 ): boolean {
   if (getIsActive) return getIsActive(original) ?? false;
   if (!original || typeof original !== 'object') return false;
-  const v = (original as Record<string, unknown>).is_active;
-  if (typeof v === 'boolean') return v;
-  if (v === 1 || v === '1') return true;
+  const record = original as Record<string, unknown>;
+  const parsed = readRecordActiveFlag(record);
+  if (parsed !== undefined) return parsed;
+  const legacy = record.is_active;
+  if (typeof legacy === 'boolean') return legacy;
+  if (legacy === 1 || legacy === '1') return true;
   return false;
 }
 

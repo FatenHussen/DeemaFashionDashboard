@@ -5,8 +5,18 @@ import { Outlet, RouterProvider, createBrowserRouter } from 'react-router';
 import App from './app';
 import { routesSection } from './routes/sections';
 import { ErrorBoundary } from './routes/components';
+import { isChunkLoadError, clearChunkReloadFlag, reloadOnChunkLoadError } from './utils/lazy-with-retry';
 
 // ----------------------------------------------------------------------
+
+clearChunkReloadFlag();
+
+window.addEventListener('unhandledrejection', (event) => {
+  if (isChunkLoadError(event.reason)) {
+    event.preventDefault();
+    reloadOnChunkLoadError();
+  }
+});
 
 const router = createBrowserRouter([
   {

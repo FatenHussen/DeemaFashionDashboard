@@ -1,3 +1,5 @@
+import type { PopupCampaignUpsertPayload } from '../types';
+
 import { queryKeys } from '@/api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
@@ -35,7 +37,13 @@ export const useFetchPopupCampaignById = (id: number | string | undefined, enabl
 export const useCreatePopupCampaign = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (formData: FormData) => _PopupCampaignApi.create(formData),
+    mutationFn: ({
+      fields,
+      mediaFile,
+    }: {
+      fields: PopupCampaignUpsertPayload;
+      mediaFile: File;
+    }) => _PopupCampaignApi.create(fields, mediaFile),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['popupCampaign', 'list'] });
     },
@@ -45,8 +53,15 @@ export const useCreatePopupCampaign = () => {
 export const useUpdatePopupCampaign = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, formData }: { id: number | string; formData: FormData }) =>
-      _PopupCampaignApi.update(id, formData),
+    mutationFn: ({
+      id,
+      fields,
+      mediaFile,
+    }: {
+      id: number | string;
+      fields: PopupCampaignUpsertPayload;
+      mediaFile?: File | null;
+    }) => _PopupCampaignApi.update(id, fields, mediaFile),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['popupCampaign', 'list'] });
       queryClient.invalidateQueries({ queryKey: queryKeys.popupCampaign.details(variables.id) });

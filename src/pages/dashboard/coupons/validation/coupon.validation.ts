@@ -26,6 +26,9 @@ export function couponLocalDateTimeToISO(s: string): string {
   return d ? d.toISOString() : s;
 }
 
+export const COUPON_SCOPE_OPTIONS = ['general', 'product', 'vendor', 'shop'] as const;
+export type CouponScope = (typeof COUPON_SCOPE_OPTIONS)[number];
+
 const couponFormBase = z.object({
   name: z.object({
     en: z.string().min(1, t('coupon.nameEnRequired')),
@@ -39,7 +42,7 @@ const couponFormBase = z.object({
   end_at: z.string().min(1, t('coupon.endDateRequired')),
   max_uses: z.coerce.number().min(1, t('coupon.maxUsesMin')),
   is_active: z.boolean(),
-  coupon_type: z.enum(['general', 'product', 'vendor', 'shop']),
+  coupon_types: z.array(z.enum(COUPON_SCOPE_OPTIONS)).default([]),
   governorate_id: z.number().optional().or(z.null()),
   city_id: z.number().optional().or(z.null()),
   product_ids: z.array(z.number()).optional(),
@@ -54,21 +57,40 @@ function scopeRefine(data: CouponFormValues, ctx: z.RefinementCtx) {
   const hasAffiliate = data.affiliate_id != null && Number(data.affiliate_id) > 0;
   if (hasAffiliate) return;
 
-  if (data.coupon_type === 'product' && (!data.product_ids || data.product_ids.length === 0)) {
+  const types = data.coupon_types ?? [];
+
+  if (types.length === 0) {
+    ctx.addIssue({
+      code: 'custom',
+      message: t('coupon.selectAtLeastOneScope'),
+      path: ['coupon_types'],
+    });
+    return;
+  }
+
+  if (types.includes('general') && types.length > 1) {
+    ctx.addIssue({
+      code: 'custom',
+      message: t('coupon.generalScopeExclusive'),
+      path: ['coupon_types'],
+    });
+  }
+
+  if (types.includes('product') && (!data.product_ids || data.product_ids.length === 0)) {
     ctx.addIssue({
       code: 'custom',
       message: t('coupon.selectAtLeastOneProduct'),
       path: ['product_ids'],
     });
   }
-  if (data.coupon_type === 'vendor' && (!data.vendor_ids || data.vendor_ids.length === 0)) {
+  if (types.includes('vendor') && (!data.vendor_ids || data.vendor_ids.length === 0)) {
     ctx.addIssue({
       code: 'custom',
       message: t('coupon.selectAtLeastOneVendor'),
       path: ['vendor_ids'],
     });
   }
-  if (data.coupon_type === 'shop' && (!data.shop_ids || data.shop_ids.length === 0)) {
+  if (types.includes('shop') && (!data.shop_ids || data.shop_ids.length === 0)) {
     ctx.addIssue({
       code: 'custom',
       message: t('coupon.selectAtLeastOneShop'),

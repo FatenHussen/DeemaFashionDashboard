@@ -20,7 +20,11 @@ import { stripBilingualDescriptionForForm } from '@/utils/optional-bilingual-api
 import { RecipeSchema, type RecipeFormValues } from '@/pages/dashboard/recipes/validation/recipe.validation';
 import { useCreateRecipe, useUpdateRecipe, useFetchRecipeById } from '@/pages/dashboard/recipes/hooks/recipe';
 import { resolveStorageImageUrl, shopVariantOptionImage, shopVariantOptionColorHex } from '@/utils/shop-variant-image';
-import { buildCategorySelectRows, paginateSelectRowsLocal } from '@/pages/dashboard/categories/utils/build-parent-picker-options';
+import {
+  buildCategorySelectRows,
+  collectSelfAndDescendantIds,
+  paginateSelectRowsLocal,
+} from '@/pages/dashboard/categories/utils/build-parent-picker-options';
 
 import { CONFIG } from 'src/global-config';
 import { Box, Switch, Typography } from 'src/shared/ui';
@@ -564,10 +568,12 @@ export default function CreatePage() {
             </Box>
             <Box>
               <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground text-sm">{t('columns.servings')}</Typography>
-              <Typography variant="caption" className="mb-1 block text-muted-foreground">
-                {t('form.recipeServesFieldHelp')}
-              </Typography>
-              <RHFTextField name="serves" placeholder={t('form.servesPlaceholder')} fullWidth />
+              <RHFTextField
+                name="serves"
+                placeholder={t('form.servesPlaceholder')}
+                helperText={t('form.recipeServesFieldHelp')}
+                fullWidth
+              />
             </Box>
             <Box>
               <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground text-sm">{t('columns.prepTime')}</Typography>
@@ -720,15 +726,31 @@ export default function CreatePage() {
                             });
                           }}
                           queryKey={['shopProductVariant', 'recipe-item', index, sel.shopId, sel.categoryId]}
-                          fetcher={(page) =>
-                            _ShopProductVariantApi.getList({
+                          fetcher={(page) => {
+                            const treeItems = (recipeCategoriesTreeResp?.data?.items ?? []) as CategoryData[];
+                            const base = {
                               page,
                               per_page: 10,
                               shop_id: sel.shopId || undefined,
-                              category_id: sel.categoryId || undefined,
-                              include_pricing_in_label: false,
-                            })
-                          }
+                              include_pricing_in_label: false as const,
+                            };
+                            if (!sel.categoryId) {
+                              return _ShopProductVariantApi.getList(base);
+                            }
+                            const expanded = Array.from(
+                              collectSelfAndDescendantIds(treeItems, sel.categoryId)
+                            );
+                            if (expanded.length > 1) {
+                              return _ShopProductVariantApi.getList({
+                                ...base,
+                                category_ids: expanded,
+                              });
+                            }
+                            return _ShopProductVariantApi.getList({
+                              ...base,
+                              category_id: sel.categoryId,
+                            });
+                          }}
                           placeholder={
                             sel.shopId ? t('form.recipeSelectProductVariant') : t('form.recipeSelectShopFirst')
                           }

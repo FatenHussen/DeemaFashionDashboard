@@ -8,6 +8,9 @@ import { mergeClasses } from 'minimal-shared/utils';
 import { iconifyClasses } from './classes';
 import { allIconNames, registerIcons } from './register-icons';
 
+/** Avoid spamming console: each unregistered icon name warns at most once (dev only). */
+const warnedUnregisteredIcons = new Set<string>();
+
 // ----------------------------------------------------------------------
 
 export type IconifyProps = Omit<IconProps, 'icon'> & {
@@ -20,7 +23,12 @@ export type IconifyProps = Omit<IconProps, 'icon'> & {
 export function Iconify({ className, icon, width = 20, height, ...other }: IconifyProps) {
   const uniqueId = useId();
 
-  if (!allIconNames.includes(icon as IconifyName)) {
+  if (
+    import.meta.env.DEV &&
+    !allIconNames.includes(icon as IconifyName) &&
+    !warnedUnregisteredIcons.has(icon)
+  ) {
+    warnedUnregisteredIcons.add(icon);
     console.warn(
       [
         `Icon "${icon}" is currently loaded online, which may cause flickering effects.`,

@@ -1,5 +1,3 @@
-import type { CategoryData } from '@/pages/dashboard/categories/types/category.types';
-
 import { toast } from 'react-toastify';
 import { Button } from '@/shared/ui/button';
 import { useTranslation } from 'react-i18next';
@@ -17,7 +15,10 @@ import { InfiniteScrollSelect } from '@/shared/components/infinite-scroll-select
 import { _CategoryApi } from '@/pages/dashboard/categories/api/category.services';
 import { _ShopProductVariantApi } from '@/shared/api/shop-product-variant.services';
 import { TinyMCEEditorField } from '@/shared/components/tinymce-editor/tinymce-editor';
-import { buildParentPickerOptions } from '@/pages/dashboard/categories/utils/build-parent-picker-options';
+import {
+  useFetchCategories,
+  useFetchCategoryById,
+} from '@/pages/dashboard/categories/hooks/category';
 import { resolveStorageImageUrl, shopVariantOptionImage, shopVariantOptionColorHex } from '@/utils/shop-variant-image';
 import {
   ScheduledBasketSchema,
@@ -36,11 +37,25 @@ import {
 } from '@/pages/dashboard/baskets/types/scheduled-basket.types';
 
 import { CONFIG } from 'src/global-config';
+import { Label } from 'src/shared/components/label';
 import { Box, Input, Switch, Typography } from 'src/shared/ui';
 import { LoadingScreen } from 'src/shared/components/loading-screen';
 import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
 import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
 import { RHFBadgeSelector } from 'src/shared/components/hook-form/rhf-badge-selector';
+
+// ----------------------------------------------------------------------
+
+const mainCategoryFetcher = (page: number, limit: number) =>
+  _CategoryApi.getListCategoriesPaginated({ page, per_page: limit, parent_id: 0 }).then((r) => ({
+    data: {
+      items: r.data.items.map((cat) => ({
+        id: cat.id,
+        label: formatTranslated(cat.name as Parameters<typeof formatTranslated>[0]),
+      })),
+      pagination: r.data.pagination,
+    },
+  }));
 
 // ----------------------------------------------------------------------
 
@@ -187,7 +202,7 @@ export default function CreatePage() {
     defaultValues,
   });
 
-  const { handleSubmit, reset, control, watch, getValues, setValue } = methods;
+  const { handleSubmit, reset, control, watch, getValues, setValue, formState: { errors } } = methods;
   const { fields, append, remove } = useFieldArray({ control, name: 'items' });
   const {
     fields: scheduleFields,
@@ -198,6 +213,7 @@ export default function CreatePage() {
   const imageValue = watch('image');
   const extraImageFiles = watch('images') ?? [];
   const categoryIds = watch('category_ids') ?? [];
+  const [mainCategoryId, setMainCategoryId] = useState(0);
   const mainBasketDiscountType = watch('discount_type');
 
   const scheduledSource = scheduledBasketResponse?.data ?? scheduledBasketFromState;
@@ -229,30 +245,96 @@ export default function CreatePage() {
     };
   }, [extraSig]);
 
-  const { data: categoriesListResponse } = useQuery({
-    queryKey: ['categories', 'scheduled-basket-form-options'],
-    queryFn: () => _CategoryApi.getListCategoriesPaginated({ page: 1, per_page: 500 }),
-  });
+  const basketLeafCategoryId = useMemo(() => {
+    if (!isEditMode || !scheduledSource) return 0;
+    const src = scheduledSource;
+    const raw =
+      src.category_ids?.length ? src.category_ids : src.categories?.map((c) => c.id) ?? [];
+    const legacy =
+      typeof src.category === 'object' && src.category && 'id' in src.category
+        ? [src.category.id]
+        : [];
+    const ids = raw.length ? raw : legacy;
+    if (!ids.length) return 0;
+    const n = ids.length > 1 ? ids[ids.length - 1] : ids[0];
+    return Number(n) || 0;
+  }, [isEditMode, scheduledSource]);
 
-  const categorySelectOptions = useMemo(() => {
-    const items = (categoriesListResponse?.data?.items ?? []) as CategoryData[];
-    const hierarchical = buildParentPickerOptions(items).map((r) => ({
-      value: r.id,
-      label: r.label,
-      depth: r.depth,
-      hasChildren: r.hasChildren,
-    }));
-    const src = scheduledBasketResponse?.data ?? scheduledBasketFromState;
-    const fromApi = (src?.categories ?? []).map((c) => ({
-      value: c.id,
-      label: formatTranslated(c.name as Parameters<typeof formatTranslated>[0]),
-      depth: 0,
-      hasChildren: false,
-    }));
-    const inTree = new Set(hierarchical.map((o) => Number(o.value)));
-    const extra = fromApi.filter((o) => !inTree.has(Number(o.value)));
-    return [...extra, ...hierarchical];
-  }, [categoriesListResponse?.data?.items, scheduledBasketResponse?.data?.categories, scheduledBasketFromState?.categories]);
+  const { data: basketLeafCategoryResp } = useFetchCategoryById(
+    basketLeafCategoryId > 0 ? basketLeafCategoryId : ''
+  );
+
+  useEffect(() => {
+    setMainCategoryId(0);
+  }, [id]);
+
+  useEffect(() => {
+    if (!isEditMode || basketLeafCategoryId <= 0) return;
+    const d = basketLeafCategoryResp?.data;
+    if (!d || Number(d.id) !== basketLeafCategoryId) return;
+    const pid = d.parent_id != null && Number(d.parent_id) > 0 ? Number(d.parent_id) : null;
+    setMainCategoryId(pid ?? Number(d.id));
+  }, [isEditMode, basketLeafCategoryId, basketLeafCategoryResp?.data]);
+
+  const { data: subcategoriesListResp, isLoading: isLoadingSubCats } = useFetchCategories(
+    1,
+    10,
+    mainCategoryId > 0 ? { parent_id: mainCategoryId } : undefined,
+    { enabled: mainCategoryId > 0 }
+  );
+
+  const hasChildCategories = useMemo(() => {
+    if (mainCategoryId <= 0) return false;
+    const items = subcategoriesListResp?.data?.items ?? [];
+    const total = subcategoriesListResp?.data?.pagination?.total;
+    if (typeof total === 'number') return total > 0;
+    return items.length > 0;
+  }, [mainCategoryId, subcategoriesListResp]);
+
+  const childCategoryFetcher = useMemo(
+    () => (page: number, limit: number) =>
+      _CategoryApi.getListCategoriesPaginated({
+        page,
+        per_page: limit,
+        parent_id: mainCategoryId,
+      }).then((r) => ({
+        data: {
+          items: r.data.items.map((cat) => ({
+            id: cat.id,
+            label: formatTranslated(cat.name as Parameters<typeof formatTranslated>[0]),
+          })),
+          pagination: r.data.pagination,
+        },
+      })),
+    [mainCategoryId]
+  );
+
+  const mainCategoryInitialLabel = useMemo(() => {
+    if (!isEditMode || basketLeafCategoryId <= 0 || !basketLeafCategoryResp?.data) return undefined;
+    const d = basketLeafCategoryResp.data;
+    if (Number(d.id) !== basketLeafCategoryId) return undefined;
+    const pid = d.parent_id != null && Number(d.parent_id) > 0 ? Number(d.parent_id) : null;
+    if (pid && d.parent) {
+      return typeof d.parent.name === 'string'
+        ? d.parent.name
+        : formatTranslated(d.parent.name as Parameters<typeof formatTranslated>[0]);
+    }
+    return formatTranslated(d.name as Parameters<typeof formatTranslated>[0]);
+  }, [isEditMode, basketLeafCategoryId, basketLeafCategoryResp?.data]);
+
+  const leafCategoryInitialLabel = useMemo(() => {
+    if (!isEditMode || !scheduledSource || basketLeafCategoryId <= 0) return undefined;
+    const cat = scheduledSource.categories?.find((c) => Number(c.id) === basketLeafCategoryId);
+    if (!cat?.name) return undefined;
+    return formatTranslated(cat.name as Parameters<typeof formatTranslated>[0]);
+  }, [isEditMode, scheduledSource, basketLeafCategoryId]);
+
+  useEffect(() => {
+    if (mainCategoryId <= 0 || isLoadingSubCats) return;
+    if (!hasChildCategories) {
+      setValue('category_ids', [mainCategoryId], { shouldValidate: true });
+    }
+  }, [mainCategoryId, hasChildCategories, isLoadingSubCats, setValue]);
 
   const { data: shopVariantListResponse } = useQuery({
     queryKey: ['shopProductVariant', 'scheduled-basket', 'multi-options', categoryIds.join(',')],
@@ -319,8 +401,11 @@ export default function CreatePage() {
         typeof source.category === 'object' && source.category && 'id' in source.category
           ? source.category.id
           : undefined;
-      const category_ids =
+      const rawIds =
         idsFromPivot.length > 0 ? idsFromPivot : legacyId != null ? [legacyId] : [];
+      const leafNum =
+        rawIds.length > 1 ? Number(rawIds[rawIds.length - 1]) : rawIds[0] != null ? Number(rawIds[0]) : 0;
+      const category_ids = leafNum > 0 ? [leafNum] : [];
 
       reset({
         category_ids,
@@ -434,45 +519,76 @@ export default function CreatePage() {
             </Typography>
           </Box>
           <Box className="p-6 flex flex-col gap-5">
-            <Box className="group">
-              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5">
-                <Iconify icon="solar:folder-bold" className="text-violet-500" width={16} />
-                {t('form.categoryLabel')}
-              </Typography>
-              <Controller
-                name="category_ids"
-                control={control}
-                render={({ field, fieldState: { error } }) => {
-                  const ids = Array.isArray(field.value) ? field.value.map(Number).filter((n) => n > 0) : [];
-                  return (
-                    <div>
-                      <MultiSelect
-                        options={categorySelectOptions}
-                        value={ids}
-                        onChange={(vals) => {
-                          field.onChange((vals as (string | number)[]).map((x) => Number(x)));
-                          setValue('items', [
-                            {
-                              shop_product_variant_id: 0,
-                              quantity: 1,
-                              shop_product_variant_ids: [],
-                              is_required: false,
-                              is_extra: false,
-                              min_quantity: 0,
-                              max_quantity: 0,
-                            },
-                          ]);
-                        }}
-                        placeholder={t('form.selectCategory')}
-                        noOptionsMessage={t('noOptionsFound')}
-                        fullWidth
-                        error={!!error}
-                        helperText={error?.message}
-                      />
-                    </div>
-                  );
-                }}
-              />
+            <Box className="group space-y-4">
+              <Box className="group">
+                <Box className="flex items-center gap-2 mb-2">
+                  <Iconify icon="solar:folder-bold" className="text-violet-500" width={16} />
+                  <Typography variant="subtitle2" className="font-semibold text-foreground">
+                    {t('form.productMainCategory')}
+                  </Typography>
+                </Box>
+                <InfiniteScrollSelect
+                  value={mainCategoryId}
+                  onChange={(val) => {
+                    setMainCategoryId(val);
+                    setValue('category_ids', []);
+                    setValue('items', [
+                      {
+                        shop_product_variant_id: 0,
+                        quantity: 1,
+                        shop_product_variant_ids: [],
+                        is_required: false,
+                        is_extra: false,
+                        min_quantity: 0,
+                        max_quantity: 0,
+                      },
+                    ]);
+                  }}
+                  queryKey={['categories', 'infinite', 'scheduled-basket-form', 'roots']}
+                  fetcher={mainCategoryFetcher}
+                  placeholder={t('form.selectMainCategory')}
+                  initialLabel={mainCategoryInitialLabel}
+                />
+              </Box>
+              {hasChildCategories ? (
+                <Box className="group">
+                  <Label className="text-sm font-medium mb-1 block text-foreground">
+                    {t('form.productSubcategory')}
+                  </Label>
+                  <InfiniteScrollSelect
+                    value={categoryIds[0] ?? 0}
+                    onChange={(leafId) => {
+                      const n = Number(leafId) || 0;
+                      setValue('category_ids', n > 0 ? [n] : [], { shouldValidate: true });
+                      setValue('items', [
+                        {
+                          shop_product_variant_id: 0,
+                          quantity: 1,
+                          shop_product_variant_ids: [],
+                          is_required: false,
+                          is_extra: false,
+                          min_quantity: 0,
+                          max_quantity: 0,
+                        },
+                      ]);
+                    }}
+                    queryKey={['categories', 'infinite', 'scheduled-basket-form', 'children', mainCategoryId]}
+                    fetcher={childCategoryFetcher}
+                    placeholder={t('form.selectSubcategory')}
+                    initialLabel={leafCategoryInitialLabel}
+                    disabled={!mainCategoryId}
+                  />
+                </Box>
+              ) : mainCategoryId > 0 && !isLoadingSubCats ? (
+                <Typography variant="caption" className="text-muted-foreground block">
+                  {t('form.productCategoryUsesMainOnly')}
+                </Typography>
+              ) : null}
+              {errors.category_ids?.message ? (
+                <Typography variant="caption" className="text-destructive block">
+                  {String(errors.category_ids.message)}
+                </Typography>
+              ) : null}
             </Box>
             <Box className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <Box className="group">

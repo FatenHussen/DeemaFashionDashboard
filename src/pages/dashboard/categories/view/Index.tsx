@@ -5,6 +5,7 @@ import type { CategoryData } from '@/pages/dashboard/categories/types/category.t
 import { toast } from 'react-toastify';
 import { Button } from '@/shared/ui/button';
 import { useTranslation } from 'react-i18next';
+import { useSearchParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { Iconify } from '@/shared/components/iconify';
 import { formatTranslated } from '@/utils/format-translated';
@@ -33,6 +34,7 @@ import { CONFIG } from 'src/global-config';
 const MAX_CATEGORY_DEPTH = 5;
 
 type SortField = '' | 'id' | 'order' | 'name' | 'created_at' | 'children_count';
+type CategoryTab = 'normal' | 'restaurant';
 
 function FilterGroup({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -50,6 +52,11 @@ const sortSelectClass =
 
 export default function Page() {
   const { t } = useTranslation('table');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab: CategoryTab =
+    searchParams.get('tab') === 'restaurant' ? 'restaurant' : 'normal';
+  const isRestaurantTab = activeTab === 'restaurant';
+
   const [trail, setTrail] = useState<{ id: number; name: string }[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -59,14 +66,19 @@ export default function Page() {
 
   const [search, setSearch] = useState<string>('');
   const [isActiveFilter, setIsActiveFilter] = useState<'' | '1' | '0'>('');
-  const [isRestaurantFilter, setIsRestaurantFilter] = useState<'' | '1' | '0'>('');
   const [isSortOpen, setIsSortOpen] = useState(false);
 
   const parentId = trail.length === 0 ? 0 : trail[trail.length - 1].id;
+  const tabRestaurantFilter = isRestaurantTab ? 1 : 0;
 
   const { data: flatCategoriesResp } = useQuery({
-    queryKey: ['categories', 'flat-parent-select'],
-    queryFn: () => _CategoryApi.getListCategoriesPaginated({ page: 1, per_page: 500 }),
+    queryKey: ['categories', 'flat-parent-select', activeTab],
+    queryFn: () =>
+      _CategoryApi.getListCategoriesPaginated({
+        page: 1,
+        per_page: 500,
+        is_restaurant: tabRestaurantFilter,
+      }),
   });
   const flatCategories = flatCategoriesResp?.data?.items ?? [];
 
@@ -75,20 +87,38 @@ export default function Page() {
     [flatCategoriesResp?.data?.items]
   );
 
+  const handleTabChange = useCallback(
+    (tab: CategoryTab) => {
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        if (tab === 'normal') {
+          next.delete('tab');
+        } else {
+          next.set('tab', tab);
+        }
+        return next;
+      });
+      setTrail([]);
+      setCurrentPage(1);
+      setIsActiveFilter('');
+      setSortField('');
+      setSortOrder('asc');
+    },
+    [setSearchParams]
+  );
+
   useEffect(() => {
     setCurrentPage(1);
-  }, [sortField, sortOrder, trail, search, isActiveFilter, isRestaurantFilter]);
+  }, [sortField, sortOrder, trail, search, isActiveFilter, activeTab]);
 
   const { data: categoriesResponse, isLoading, isError, error } = useFetchCategories(
     currentPage,
     pageSize,
     {
       parent_id: parentId,
+      is_restaurant: tabRestaurantFilter,
       ...(search.trim() ? { search: search.trim() } : {}),
       ...(isActiveFilter === '' ? {} : { is_active: isActiveFilter === '1' }),
-      ...(isRestaurantFilter === '' ? {} : { is_restaurant: isRestaurantFilter === '1' }),
-      // Default to `order asc` so the saved drag-and-drop order is reflected
-      // when the user hasn't picked an explicit sort.
       ...(sortField
         ? { sort_field: sortField, sort_order: sortOrder }
         : { sort_field: 'order', sort_order: 'asc' as const }),
@@ -97,16 +127,14 @@ export default function Page() {
   const deleteCategoryMutation = useDeleteCategory(currentPage, pageSize);
   const sortCategoriesMutation = useSortCategories();
 
-  // Fetch ALL siblings under the current parent (sorted by `order` asc) for the
-  // drag-and-drop dialog. We deliberately do not paginate here so the saved
-  // `ordered_ids` array stays consistent with what the backend expects.
   const { data: sortItemsResp, isFetching: isSortItemsLoading } = useQuery({
-    queryKey: ['categories', 'sort-items', parentId],
+    queryKey: ['categories', 'sort-items', parentId, activeTab],
     queryFn: () =>
       _CategoryApi.getListCategoriesPaginated({
         page: 1,
         per_page: 500,
         parent_id: parentId,
+        is_restaurant: tabRestaurantFilter,
         sort_field: 'order',
         sort_order: 'asc',
       }),
@@ -210,14 +238,10 @@ export default function Page() {
 
   const hasPermission = (action: string, resource: string) => can(`${resource}.${action}`);
 
-  const activeFilterCount =
-    (isActiveFilter ? 1 : 0) +
-    (isRestaurantFilter ? 1 : 0) +
-    (sortField ? 1 : 0);
+  const activeFilterCount = (isActiveFilter ? 1 : 0) + (sortField ? 1 : 0);
 
   const onFilterReset = () => {
     setIsActiveFilter('');
-    setIsRestaurantFilter('');
     setSortField('');
     setSortOrder('asc');
     setTrail([]);
@@ -266,18 +290,6 @@ export default function Page() {
         </select>
       </FilterGroup>
 
-      <FilterGroup label={t('columns.type')}>
-        <select
-          className={sortSelectClass}
-          value={isRestaurantFilter}
-          onChange={(e) => setIsRestaurantFilter(e.target.value as '' | '1' | '0')}
-        >
-          <option value="">{t('all')}</option>
-          <option value="1">{t('yes')}</option>
-          <option value="0">{t('no')}</option>
-        </select>
-      </FilterGroup>
-
       <FilterGroup label={t('columns.parent')}>
         <select
           className={sortSelectClass}
@@ -314,6 +326,8 @@ export default function Page() {
     </>
   );
 
+  const createPath = `/categories/create?type=${activeTab}`;
+
   return (
     <>
       <title>{t('form.categoriesIndexDocumentTitle', { appName: CONFIG.appName })}</title>
@@ -323,6 +337,85 @@ export default function Page() {
           {getApiErrorMessage(error, t('form.categoriesLoadErrorFallback'))}
         </div>
       ) : null}
+
+      <div className="mx-auto w-full max-w-[1650px] space-y-4 px-3 pb-1 pt-2 sm:space-y-5 sm:px-5 md:px-7">
+        <section className="overflow-hidden rounded-2xl border border-border/60 bg-linear-to-b from-card via-card to-muted/20 shadow-sm">
+          <div className="flex flex-col gap-4 px-3 py-3 sm:px-5 sm:py-4 md:px-6">
+            <div className="flex min-w-0 items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-wide text-primary/80">
+                  {CONFIG.appName}
+                </p>
+                <h1 className="mt-1 truncate text-lg font-bold text-foreground sm:text-xl">
+                  {t('form.categoriesIndexDocumentTitle', { appName: CONFIG.appName })}
+                </h1>
+              </div>
+              <div className="hidden h-9 items-center rounded-full border border-primary/20 bg-primary/8 px-3 text-xs font-semibold text-primary sm:inline-flex">
+                {isRestaurantTab ? t('categoryRestaurantTab') : t('categoryNormalTab')}
+              </div>
+            </div>
+
+            <div className="relative w-full max-w-xl">
+              <div
+                role="tablist"
+                aria-label={t('form.categoriesIndexDocumentTitle', { appName: CONFIG.appName })}
+                className="relative grid w-full grid-cols-2 items-stretch gap-1 rounded-2xl border border-primary/20 bg-card/95 p-1.5 shadow-sm ring-1 ring-border/40 sm:p-2"
+              >
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={activeTab === 'normal'}
+                  onClick={() => handleTabChange('normal')}
+                  className={[
+                    'group relative flex min-h-[2.85rem] flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200 sm:min-h-[3rem] sm:px-5 sm:py-3.5',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-card',
+                    activeTab === 'normal'
+                      ? 'bg-primary text-primary-foreground shadow-sm'
+                      : 'text-muted-foreground hover:bg-primary/[0.06] hover:text-foreground',
+                  ].join(' ')}
+                >
+                  <Iconify
+                    icon="solar:shop-2-bold"
+                    className={[
+                      'h-[18px] w-[18px] shrink-0 transition-transform',
+                      activeTab === 'normal'
+                        ? 'text-primary-foreground'
+                        : 'text-primary/80 group-hover:scale-110',
+                    ].join(' ')}
+                  />
+                  <span className="truncate text-center sm:text-base">{t('categoryNormalTab')}</span>
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={activeTab === 'restaurant'}
+                  onClick={() => handleTabChange('restaurant')}
+                  className={[
+                    'group relative flex min-h-[2.85rem] flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200 sm:min-h-[3rem] sm:px-5 sm:py-3.5',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-card',
+                    activeTab === 'restaurant'
+                      ? 'bg-primary text-primary-foreground shadow-sm'
+                      : 'text-muted-foreground hover:bg-primary/[0.06] hover:text-foreground',
+                  ].join(' ')}
+                >
+                  <Iconify
+                    icon="solar:shop-bold"
+                    className={[
+                      'h-[18px] w-[18px] shrink-0 transition-transform',
+                      activeTab === 'restaurant'
+                        ? 'text-primary-foreground'
+                        : 'text-orange-500/80 group-hover:scale-110',
+                    ].join(' ')}
+                  />
+                  <span className="truncate text-center sm:text-base">
+                    {t('categoryRestaurantTab')}
+                  </span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
 
       <DataTable
         tableTop={
@@ -348,7 +441,9 @@ export default function Page() {
             ) : null}
           </div>
         }
-        tableName={t('tableNames.category')}
+        tableName={
+          isRestaurantTab ? t('categoryRestaurantTab') : t('categoryNormalTab')
+        }
         columns={categoryColumns(
           {
             update: hasPermission('update', 'category'),
@@ -364,10 +459,12 @@ export default function Page() {
           {
             onSubcategoriesClick: tryDrillIntoCategory,
             hideParentColumn: trail.length === 0,
+            hideTypeColumn: true,
+            categoryTab: activeTab,
           }
         )}
         data={categoryData}
-        createPath="/categories/create"
+        createPath={createPath}
         hasDetails={false}
         onRowClick={tryDrillIntoCategory}
         filterSidebar={filterSidebar}

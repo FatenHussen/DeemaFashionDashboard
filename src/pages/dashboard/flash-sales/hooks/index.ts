@@ -20,13 +20,6 @@ export const useFetchFlashSales = (
       }),
   });
 
-export const useFetchFlashSaleById = (id: number | string | undefined, enabled = true) =>
-  useQuery({
-    queryKey: queryKeys.flashSale.details(id ?? ''),
-    queryFn: () => _FlashSaleApi.getById(id!),
-    enabled: Boolean(enabled && id != null && String(id).length > 0),
-  });
-
 export const useCreateFlashSale = () => {
   const queryClient = useQueryClient();
   return useMutation({
@@ -42,9 +35,8 @@ export const useUpdateFlashSale = () => {
   return useMutation({
     mutationFn: ({ id, payload }: { id: number | string; payload: FlashSaleWritePayload }) =>
       _FlashSaleApi.update(id, payload),
-    onSuccess: (_data, { id }) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['flashSale', 'list'] });
-      queryClient.invalidateQueries({ queryKey: queryKeys.flashSale.details(id) });
     },
   });
 };

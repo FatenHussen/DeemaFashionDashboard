@@ -1,11 +1,16 @@
 /**
  * Popup campaign admin API client.
  *
- * Create/update use `multipart/form-data`: Laravel expects nested keys `title[en]`, `title[ar]`, same for
- * headline/subheadline/description; new uploads use the file field `media_path` (validated as file on the API).
- * Omit `media_path` when keeping existing media on update.
+ * Create/update use multipart/form-data: localized fields use bracket notation (`title[en]`, …),
+ * arrays use `[]` suffix, and media must be sent as an uploaded file under `media_path`.
  */
-import type { PopupCampaignDetail, PopupCampaignListResponse, PopupCampaignDetailResponse } from '../types';
+import type {
+  PopupCampaignDetail,
+  PopupCampaignListResponse,
+  PopupCampaignDetailResponse,
+  PopupCampaignUpsertPayload,
+  LocalizedString,
+} from '../types';
 
 import { apiRoutes, axiosInstance } from '@/api';
 
@@ -78,6 +83,78 @@ function normalizeListPayload(body: any): PopupCampaignListResponse['data'] {
   return { items, pagination };
 }
 
+function appendLocalized(fd: FormData, key: string, loc: LocalizedString) {
+  fd.append(`${key}[en]`, loc.en ?? '');
+  fd.append(`${key}[ar]`, loc.ar ?? '');
+}
+
+function appendOptionalLocalized(fd: FormData, key: string, loc: LocalizedString | null | undefined) {
+  const en = loc?.en ?? '';
+  const ar = loc?.ar ?? '';
+  fd.append(`${key}[en]`, en);
+  fd.append(`${key}[ar]`, ar);
+}
+
+function buildPopupCampaignFormData(
+  fields: PopupCampaignUpsertPayload,
+  mediaFile?: File | null
+): FormData {
+  const fd = new FormData();
+
+  appendLocalized(fd, 'title', fields.title);
+  fd.append('slug', fields.slug);
+  fd.append('type', fields.type);
+  fd.append('status', fields.status);
+  fd.append('priority', String(fields.priority));
+
+  appendLocalized(fd, 'headline', fields.headline);
+  appendOptionalLocalized(fd, 'subheadline', fields.subheadline ?? null);
+  appendOptionalLocalized(fd, 'description', fields.description ?? null);
+
+  fd.append('button_text', fields.button_text);
+  if (fields.button_url != null && String(fields.button_url).trim() !== '') {
+    fd.append('button_url', String(fields.button_url).trim());
+  }
+  if (fields.secondary_button_text != null && String(fields.secondary_button_text).trim() !== '') {
+    fd.append('secondary_button_text', String(fields.secondary_button_text).trim());
+  }
+
+  fd.append('media_type', fields.media_type);
+  if (mediaFile instanceof File) {
+    fd.append('media_path', mediaFile);
+  }
+
+  (fields.show_on_pages ?? []).forEach((p) => fd.append('show_on_pages[]', p));
+
+  fd.append('audience_type', fields.audience_type);
+  fd.append('trigger_type', fields.trigger_type);
+  if (fields.trigger_value != null && Number.isFinite(Number(fields.trigger_value))) {
+    fd.append('trigger_value', String(fields.trigger_value));
+  }
+
+  fd.append('form_enabled', fields.form_enabled ? '1' : '0');
+  (fields.form_fields ?? []).forEach((f) => fd.append('form_fields[]', f));
+
+  (fields.product_ids ?? []).forEach((id) => fd.append('product_ids[]', String(id)));
+  (fields.shop_ids ?? []).forEach((id) => fd.append('shop_ids[]', String(id)));
+  (fields.recipe_ids ?? []).forEach((id) => fd.append('recipe_ids[]', String(id)));
+  (fields.promotion_ids ?? []).forEach((id) => fd.append('promotion_ids[]', String(id)));
+  (fields.basket_ids ?? []).forEach((id) => fd.append('basket_ids[]', String(id)));
+  (fields.shop_vendor_service_ids ?? []).forEach((id) =>
+    fd.append('shop_vendor_service_ids[]', String(id))
+  );
+
+  return fd;
+}
+
+function throwIfEnvelopeFailed(body: { status?: boolean; message?: string } | null | undefined) {
+  if (body && body.status === false) {
+    throw new Error(
+      typeof body.message === 'string' && body.message.trim() ? body.message : 'Request failed'
+    );
+  }
+}
+
 export const _PopupCampaignApi = {
   getList: async (params?: {
     page?: number;
@@ -111,34 +188,48 @@ export const _PopupCampaignApi = {
     };
   },
 
-  create: async (formData: FormData): Promise<PopupCampaignDetailResponse> => {
-    // Do not set Content-Type manually — axios must send multipart boundary or Laravel may not parse fields/files.
+  create: async (
+    fields: PopupCampaignUpsertPayload,
+    mediaFile: File
+  ): Promise<PopupCampaignDetailResponse> => {
+    const fd = buildPopupCampaignFormData(fields, mediaFile);
     const response = await axiosInstance.post<PopupCampaignDetailResponse>(
       apiRoutes.popupCampaign.create,
-      formData,
-      { maxBodyLength: Infinity, maxContentLength: Infinity }
+      fd,
+      {
+        maxBodyLength: Infinity,
+        maxContentLength: Infinity,
+      }
     );
-    const body = response.data as PopupCampaignDetailResponse & { status?: boolean; message?: string };
-    if (body && body.status === false) {
-      throw new Error(typeof body.message === 'string' && body.message.trim() ? body.message : 'Request failed');
-    }
+    const body = response.data as PopupCampaignDetailResponse & {
+      status?: boolean;
+      message?: string;
+    };
+    throwIfEnvelopeFailed(body);
     return response.data;
   },
 
   update: async (
     id: number | string,
-    formData: FormData
+    fields: PopupCampaignUpsertPayload,
+    mediaFile?: File | null
   ): Promise<PopupCampaignDetailResponse> => {
-    // Same as create: let axios set multipart boundary (manual Content-Type breaks parsing).
-    const response = await axiosInstance.put<PopupCampaignDetailResponse>(
+    const fd = buildPopupCampaignFormData(fields, mediaFile);
+    // PHP often does not populate multipart bodies on PUT; spoof POST like other admin resources.
+    fd.append('_method', 'PUT');
+    const response = await axiosInstance.post<PopupCampaignDetailResponse>(
       apiRoutes.popupCampaign.update(id),
-      formData,
-      { maxBodyLength: Infinity, maxContentLength: Infinity }
+      fd,
+      {
+        maxBodyLength: Infinity,
+        maxContentLength: Infinity,
+      }
     );
-    const body = response.data as PopupCampaignDetailResponse & { status?: boolean; message?: string };
-    if (body && body.status === false) {
-      throw new Error(typeof body.message === 'string' && body.message.trim() ? body.message : 'Request failed');
-    }
+    const body = response.data as PopupCampaignDetailResponse & {
+      status?: boolean;
+      message?: string;
+    };
+    throwIfEnvelopeFailed(body);
     return response.data;
   },
 

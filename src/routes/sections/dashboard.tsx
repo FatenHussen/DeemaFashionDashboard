@@ -1,9 +1,16 @@
 import type { RouteObject } from 'react-router';
 
+import { Suspense } from 'react';
 import { Outlet } from 'react-router';
-import { lazy, Suspense } from 'react';
 import { RequirePermission } from '@/auth/components/require-permission';
 import { FLASH_SALE_PERMISSION } from '@/pages/dashboard/flash-sales/permissions';
+import {
+  CONTACT_METHOD_VIEW_ANY,
+  CONTACT_METHOD_UPDATE_ANY,
+  CONTACT_METHOD_CREATE_ANY,
+} from '@/pages/dashboard/contact-methods/permissions';
+
+import { lazyWithRetry } from 'src/utils/lazy-with-retry';
 
 import { CONFIG } from 'src/global-config';
 import { AuthGuard } from 'src/pages/auth/guard';
@@ -14,381 +21,404 @@ import { usePathname } from '../hooks';
 
 // ----------------------------------------------------------------------
 
-const IndexPage = lazy(() => import('@/pages/dashboard/admin/view/Index'));
-const CreatePage = lazy(() => import('@/pages/dashboard/admin/view/Create'));
-const AdminDetailsPage = lazy(() => import('@/pages/dashboard/admin/view/Details'));
+const IndexPage = lazyWithRetry(() => import('@/pages/dashboard/admin/view/Index'));
+const CreatePage = lazyWithRetry(() => import('@/pages/dashboard/admin/view/Create'));
+const AdminDetailsPage = lazyWithRetry(() => import('@/pages/dashboard/admin/view/Details'));
 
-const VendorIndexPage = lazy(() => import('@/pages/dashboard/vendor/view/vendor/Index'));
-const VendorCreatePage = lazy(() => import('@/pages/dashboard/vendor/view/vendor/Create'));
+const VendorIndexPage = lazyWithRetry(() => import('@/pages/dashboard/vendor/view/vendor/Index'));
+const VendorCreatePage = lazyWithRetry(() => import('@/pages/dashboard/vendor/view/vendor/Create'));
 
-const ShopIndexPage = lazy(() => import('@/pages/dashboard/vendor/view/shop/Index'));
-const ShopCreatePage = lazy(() => import('@/pages/dashboard/vendor/view/shop/Create'));
-const ShopDetailsPage = lazy(() => import('@/pages/dashboard/vendor/view/shop/Details'));
+const ShopIndexPage = lazyWithRetry(() => import('@/pages/dashboard/vendor/view/shop/Index'));
+const ShopCreatePage = lazyWithRetry(() => import('@/pages/dashboard/vendor/view/shop/Create'));
+const ShopDetailsPage = lazyWithRetry(() => import('@/pages/dashboard/vendor/view/shop/Details'));
+const ServiceProviderIndexPage = lazyWithRetry(
+  () => import('@/pages/dashboard/vendor/view/service-provider/Index')
+);
+const ServiceProviderDetailsPage = lazyWithRetry(
+  () => import('@/pages/dashboard/vendor/view/service-provider/Details')
+);
 
-const ProfilePage = lazy(() => import('@/pages/dashboard/profile/view/Profile'));
+const ProfilePage = lazyWithRetry(() => import('@/pages/dashboard/profile/view/Profile'));
 
-const RoleIndexPage = lazy(() => import('@/pages/dashboard/roles/view/Index'));
-const RoleCreatePage = lazy(() => import('@/pages/dashboard/roles/view/Create'));
-const RoleDetailsPage = lazy(() => import('@/pages/dashboard/roles/view/Details'));
+const RoleIndexPage = lazyWithRetry(() => import('@/pages/dashboard/roles/view/Index'));
+const RoleCreatePage = lazyWithRetry(() => import('@/pages/dashboard/roles/view/Create'));
+const RoleDetailsPage = lazyWithRetry(() => import('@/pages/dashboard/roles/view/Details'));
 
-const DriverIndexPage = lazy(() => import('@/pages/dashboard/driver/view/Index'));
-const DriverCreatePage = lazy(() => import('@/pages/dashboard/driver/view/Create'));
-const DriverDetailsPage = lazy(() => import('@/pages/dashboard/driver/view/Details'));
+const DriverIndexPage = lazyWithRetry(() => import('@/pages/dashboard/driver/view/Index'));
+const DriverCreatePage = lazyWithRetry(() => import('@/pages/dashboard/driver/view/Create'));
+const DriverDetailsPage = lazyWithRetry(() => import('@/pages/dashboard/driver/view/Details'));
 
-const BrandIndexPage = lazy(() => import('@/pages/dashboard/products/view/brand/Index'));
-const BrandCreatePage = lazy(() => import('@/pages/dashboard/products/view/brand/Create'));
-const BrandDetailsPage = lazy(() => import('@/pages/dashboard/products/view/brand/Details'));
+const BrandIndexPage = lazyWithRetry(() => import('@/pages/dashboard/products/view/brand/Index'));
+const BrandCreatePage = lazyWithRetry(() => import('@/pages/dashboard/products/view/brand/Create'));
+const BrandDetailsPage = lazyWithRetry(() => import('@/pages/dashboard/products/view/brand/Details'));
 
-const UnitIndexPage = lazy(() => import('@/pages/dashboard/units/view/Index'));
-const UnitCreatePage = lazy(() => import('@/pages/dashboard/units/view/Create'));
+const UnitIndexPage = lazyWithRetry(() => import('@/pages/dashboard/units/view/Index'));
+const UnitCreatePage = lazyWithRetry(() => import('@/pages/dashboard/units/view/Create'));
 
-const ProductIndexPage = lazy(() => import('@/pages/dashboard/products/view/product/Index'));
-const ProductCreatePage = lazy(() => import('@/pages/dashboard/products/view/product/Create'));
-const ProductDetailsPage = lazy(() => import('@/pages/dashboard/products/view/product/Details'));
+const ProductIndexPage = lazyWithRetry(() => import('@/pages/dashboard/products/view/product/Index'));
+const ProductCreatePage = lazyWithRetry(() => import('@/pages/dashboard/products/view/product/Create'));
+const ProductDetailsPage = lazyWithRetry(() => import('@/pages/dashboard/products/view/product/Details'));
 
-const GovernorateIndexPage = lazy(() => import('@/pages/dashboard/locations/view/Index'));
-const GovernorateCreatePage = lazy(() => import('@/pages/dashboard/locations/view/Create'));
+const GovernorateIndexPage = lazyWithRetry(() => import('@/pages/dashboard/locations/view/Index'));
+const GovernorateCreatePage = lazyWithRetry(() => import('@/pages/dashboard/locations/view/Create'));
 
-const CityIndexPage = lazy(() => import('@/pages/dashboard/locations/view/city/Index'));
-const CityCreatePage = lazy(() => import('@/pages/dashboard/locations/view/city/Create'));
+const CityIndexPage = lazyWithRetry(() => import('@/pages/dashboard/locations/view/city/Index'));
+const CityCreatePage = lazyWithRetry(() => import('@/pages/dashboard/locations/view/city/Create'));
 
-const AreaIndexPage = lazy(() => import('@/pages/dashboard/locations/view/area/Index'));
-const AreaCreatePage = lazy(() => import('@/pages/dashboard/locations/view/area/Create'));
-const AreaDetailsPage = lazy(() => import('@/pages/dashboard/locations/view/area/Details'));
+const AreaIndexPage = lazyWithRetry(() => import('@/pages/dashboard/locations/view/area/Index'));
+const AreaCreatePage = lazyWithRetry(() => import('@/pages/dashboard/locations/view/area/Create'));
+const AreaDetailsPage = lazyWithRetry(() => import('@/pages/dashboard/locations/view/area/Details'));
 
-const CategoryIndexPage = lazy(() => import('@/pages/dashboard/categories/view/Index'));
-const CategorySubcategoriesPage = lazy(() => import('@/pages/dashboard/categories/view/Subcategories'));
-const CategoryCreatePage = lazy(() => import('@/pages/dashboard/categories/view/Create'));
+const CategoryIndexPage = lazyWithRetry(() => import('@/pages/dashboard/categories/view/Index'));
+const CategorySubcategoriesPage = lazyWithRetry(() => import('@/pages/dashboard/categories/view/Subcategories'));
+const CategoryCreatePage = lazyWithRetry(() => import('@/pages/dashboard/categories/view/Create'));
 
-const CategoryAttributeIndexPage = lazy(
+const CategoryAttributeIndexPage = lazyWithRetry(
   () => import('@/pages/dashboard/categories/view/attributes/Index')
 );
-const CategoryAttributeCreatePage = lazy(
+const CategoryAttributeCreatePage = lazyWithRetry(
   () => import('@/pages/dashboard/categories/view/attributes/Create')
 );
 
-const CategoryDetailIndexPage = lazy(
+const CategoryDetailIndexPage = lazyWithRetry(
   () => import('@/pages/dashboard/categories/view/details/Index')
 );
-const CategoryDetailCreatePage = lazy(
+const CategoryDetailCreatePage = lazyWithRetry(
   () => import('@/pages/dashboard/categories/view/details/Create')
 );
 
-const ServiceIndexPage = lazy(() => import('@/pages/dashboard/vendor/view/service/Index'));
-const ServiceCreatePage = lazy(() => import('@/pages/dashboard/vendor/view/service/Create'));
+const ProductExtraDetailIndexPage = lazyWithRetry(
+  () => import('@/pages/dashboard/categories/view/extra-details/Index')
+);
+const ProductExtraDetailCreatePage = lazyWithRetry(
+  () => import('@/pages/dashboard/categories/view/extra-details/Create')
+);
 
-// const LanguageIndexPage = lazy(() => import('@/pages/dashboard/languages/view/Index'));
-// const LanguageCreatePage = lazy(() => import('@/pages/dashboard/languages/view/Create'));
-// const TranslationManagerPage = lazy(
+const ServiceIndexPage = lazyWithRetry(() => import('@/pages/dashboard/vendor/view/service/Index'));
+const ServiceCreatePage = lazyWithRetry(() => import('@/pages/dashboard/vendor/view/service/Create'));
+
+// const LanguageIndexPage = lazyWithRetry(() => import('@/pages/dashboard/languages/view/Index'));
+// const LanguageCreatePage = lazyWithRetry(() => import('@/pages/dashboard/languages/view/Create'));
+// const TranslationManagerPage = lazyWithRetry(
 //   () => import('@/pages/dashboard/languages/view/TranslationManager')
 // );
 
-const SectionIndexPage = lazy(() => import('@/pages/dashboard/sections/view/Index'));
-const SectionCreatePage = lazy(() => import('@/pages/dashboard/sections/view/Create'));
-const SectionDetailsPage = lazy(() => import('@/pages/dashboard/sections/view/Details'));
+const SectionIndexPage = lazyWithRetry(() => import('@/pages/dashboard/sections/view/Index'));
+const SectionCreatePage = lazyWithRetry(() => import('@/pages/dashboard/sections/view/Create'));
+const SectionDetailsPage = lazyWithRetry(() => import('@/pages/dashboard/sections/view/Details'));
 
-const PageSectionIndexPage = lazy(() => import('@/pages/dashboard/sections/view/PageSections'));
-const PageSectionCreatePage = lazy(
+const PageSectionIndexPage = lazyWithRetry(() => import('@/pages/dashboard/sections/view/PageSections'));
+const PageSectionCreatePage = lazyWithRetry(
   () => import('@/pages/dashboard/sections/view/PageSectionCreate')
 );
-const PageSectionDetailsPage = lazy(
+const PageSectionDetailsPage = lazyWithRetry(
   () => import('@/pages/dashboard/sections/view/PageSectionDetails')
 );
 
-const BannerIndexPage = lazy(() => import('@/pages/dashboard/banners/view/Index'));
-const BannerCreatePage = lazy(() => import('@/pages/dashboard/banners/view/Create'));
+const PagesIndexPage = lazyWithRetry(() => import('@/pages/dashboard/sections/view/Pages'));
+const PageDetailsPage = lazyWithRetry(() => import('@/pages/dashboard/sections/view/PageDetails'));
 
-const CouponIndexPage = lazy(() => import('@/pages/dashboard/coupons/view/Index'));
-const CouponCreatePage = lazy(() => import('@/pages/dashboard/coupons/view/Create'));
-const CouponDetailsPage = lazy(() => import('@/pages/dashboard/coupons/view/Details'));
+const BannerIndexPage = lazyWithRetry(() => import('@/pages/dashboard/banners/view/Index'));
+const BannerCreatePage = lazyWithRetry(() => import('@/pages/dashboard/banners/view/Create'));
 
-const ComplaintIndexPage = lazy(() => import('@/pages/dashboard/complaints/view/Index'));
-const ComplaintDetailsPage = lazy(() => import('@/pages/dashboard/complaints/view/Details'));
+const CouponIndexPage = lazyWithRetry(() => import('@/pages/dashboard/coupons/view/Index'));
+const CouponCreatePage = lazyWithRetry(() => import('@/pages/dashboard/coupons/view/Create'));
+const CouponDetailsPage = lazyWithRetry(() => import('@/pages/dashboard/coupons/view/Details'));
 
-const UserIndexPage = lazy(() => import('@/pages/dashboard/users/view/Index'));
-const UserCreatePage = lazy(() => import('@/pages/dashboard/users/view/Create'));
-const UserUpdatePage = lazy(() => import('@/pages/dashboard/users/view/Update'));
-const UserDetailsPage = lazy(() => import('@/pages/dashboard/users/view/Details'));
+const ComplaintIndexPage = lazyWithRetry(() => import('@/pages/dashboard/complaints/view/Index'));
+const ComplaintDetailsPage = lazyWithRetry(() => import('@/pages/dashboard/complaints/view/Details'));
 
-const AffiliateIndexPage = lazy(() => import('@/pages/dashboard/affiliates/view/Index'));
+const UserIndexPage = lazyWithRetry(() => import('@/pages/dashboard/users/view/Index'));
+const UserCreatePage = lazyWithRetry(() => import('@/pages/dashboard/users/view/Create'));
+const UserUpdatePage = lazyWithRetry(() => import('@/pages/dashboard/users/view/Update'));
+const UserDetailsPage = lazyWithRetry(() => import('@/pages/dashboard/users/view/Details'));
+
+const AffiliateIndexPage = lazyWithRetry(() => import('@/pages/dashboard/affiliates/view/Index'));
 
 // Orders
-const OrderIndexPage = lazy(() => import('@/pages/dashboard/orders/view/Index'));
-const OrderDetailsPage = lazy(() => import('@/pages/dashboard/orders/view/Details'));
+const OrderIndexPage = lazyWithRetry(() => import('@/pages/dashboard/orders/view/Index'));
+const OrderDetailsPage = lazyWithRetry(() => import('@/pages/dashboard/orders/view/Details'));
 
 // Baskets
-const BasketIndexPage = lazy(() => import('@/pages/dashboard/baskets/view/basket/Index'));
-const BasketCreatePage = lazy(() => import('@/pages/dashboard/baskets/view/basket/Create'));
-const BasketDetailsPage = lazy(() => import('@/pages/dashboard/baskets/view/basket/Details'));
+const BasketIndexPage = lazyWithRetry(() => import('@/pages/dashboard/baskets/view/basket/Index'));
+const BasketCreatePage = lazyWithRetry(() => import('@/pages/dashboard/baskets/view/basket/Create'));
+const BasketDetailsPage = lazyWithRetry(() => import('@/pages/dashboard/baskets/view/basket/Details'));
 
 // Scheduled Baskets
-const ScheduledBasketIndexPage = lazy(
+const ScheduledBasketIndexPage = lazyWithRetry(
   () => import('@/pages/dashboard/baskets/view/scheduled/Index')
 );
-const ScheduledBasketCreatePage = lazy(
+const ScheduledBasketCreatePage = lazyWithRetry(
   () => import('@/pages/dashboard/baskets/view/scheduled/Create')
 );
-const ScheduledBasketDetailsPage = lazy(
+const ScheduledBasketDetailsPage = lazyWithRetry(
   () => import('@/pages/dashboard/baskets/view/scheduled/Details')
 );
 
 // Packages
-const PackageIndexPage = lazy(() => import('@/pages/dashboard/packages/view/Index'));
-const PackageCreatePage = lazy(() => import('@/pages/dashboard/packages/view/Create'));
-const PackageDetailsPage = lazy(() => import('@/pages/dashboard/packages/view/Details'));
+const PackageIndexPage = lazyWithRetry(() => import('@/pages/dashboard/packages/view/Index'));
+const PackageCreatePage = lazyWithRetry(() => import('@/pages/dashboard/packages/view/Create'));
+const PackageDetailsPage = lazyWithRetry(() => import('@/pages/dashboard/packages/view/Details'));
 
 // Subscriptions (read-only: list + details)
-const SubscriptionIndexPage = lazy(() => import('@/pages/dashboard/subscriptions/view/Index'));
-const SubscriptionDetailsPage = lazy(() => import('@/pages/dashboard/subscriptions/view/Details'));
+const SubscriptionIndexPage = lazyWithRetry(() => import('@/pages/dashboard/subscriptions/view/Index'));
+const SubscriptionDetailsPage = lazyWithRetry(() => import('@/pages/dashboard/subscriptions/view/Details'));
 
 // Gifts
-const GiftIndexPage = lazy(() => import('@/pages/dashboard/gifts/view/Index'));
-const GiftCreatePage = lazy(() => import('@/pages/dashboard/gifts/view/Create'));
-const GiftDetailsPage = lazy(() => import('@/pages/dashboard/gifts/view/Details'));
+const GiftIndexPage = lazyWithRetry(() => import('@/pages/dashboard/gifts/view/Index'));
+const GiftCreatePage = lazyWithRetry(() => import('@/pages/dashboard/gifts/view/Create'));
+const GiftDetailsPage = lazyWithRetry(() => import('@/pages/dashboard/gifts/view/Details'));
 
 // User Gifts
-const UserGiftIndexPage = lazy(() => import('@/pages/dashboard/user-gifts/view/Index'));
-const UserGiftCreatePage = lazy(() => import('@/pages/dashboard/user-gifts/view/Create'));
-const UserGiftDetailsPage = lazy(() => import('@/pages/dashboard/user-gifts/view/Details'));
+const UserGiftIndexPage = lazyWithRetry(() => import('@/pages/dashboard/user-gifts/view/Index'));
+const UserGiftCreatePage = lazyWithRetry(() => import('@/pages/dashboard/user-gifts/view/Create'));
+const UserGiftDetailsPage = lazyWithRetry(() => import('@/pages/dashboard/user-gifts/view/Details'));
 
 // Point Exchanges
-const PointExchangeIndexPage = lazy(() => import('@/pages/dashboard/point-exchanges/view/Index'));
-const PointExchangeDetailsPage = lazy(
+const PointExchangeIndexPage = lazyWithRetry(() => import('@/pages/dashboard/point-exchanges/view/Index'));
+const PointExchangeDetailsPage = lazyWithRetry(
   () => import('@/pages/dashboard/point-exchanges/view/Details')
 );
 
 // User Points
-const UserPointsIndexPage = lazy(() => import('@/pages/dashboard/user-points/view/Index'));
-const UserPointsDetailsPage = lazy(() => import('@/pages/dashboard/user-points/view/Details'));
+const UserPointsIndexPage = lazyWithRetry(() => import('@/pages/dashboard/user-points/view/Index'));
+const UserPointsDetailsPage = lazyWithRetry(() => import('@/pages/dashboard/user-points/view/Details'));
 
 // Currencies
-const CurrencyIndexPage = lazy(() => import('@/pages/dashboard/currencies/view/Index'));
-const CurrencyCreatePage = lazy(() => import('@/pages/dashboard/currencies/view/Create'));
-const CurrencyDetailsPage = lazy(() => import('@/pages/dashboard/currencies/view/Details'));
+const CurrencyIndexPage = lazyWithRetry(() => import('@/pages/dashboard/currencies/view/Index'));
+const CurrencyCreatePage = lazyWithRetry(() => import('@/pages/dashboard/currencies/view/Create'));
+const CurrencyDetailsPage = lazyWithRetry(() => import('@/pages/dashboard/currencies/view/Details'));
 
-const DeliveryDistanceRangeIndexPage = lazy(
+const DeliveryDistanceRangeIndexPage = lazyWithRetry(
   () => import('@/pages/dashboard/delivery-distance-ranges/view/Index')
 );
-const DeliveryDistanceRangeCreatePage = lazy(
+const DeliveryDistanceRangeCreatePage = lazyWithRetry(
   () => import('@/pages/dashboard/delivery-distance-ranges/view/Create')
 );
-const DeliveryDistanceRangeDetailsPage = lazy(
+const DeliveryDistanceRangeDetailsPage = lazyWithRetry(
   () => import('@/pages/dashboard/delivery-distance-ranges/view/Details')
 );
 
 // Recipes
-const RecipeIndexPage = lazy(() => import('@/pages/dashboard/recipes/view/Index'));
-const RecipeCreatePage = lazy(() => import('@/pages/dashboard/recipes/view/Create'));
-const RecipeDetailsPage = lazy(() => import('@/pages/dashboard/recipes/view/Details'));
+const RecipeIndexPage = lazyWithRetry(() => import('@/pages/dashboard/recipes/view/Index'));
+const RecipeCreatePage = lazyWithRetry(() => import('@/pages/dashboard/recipes/view/Create'));
+const RecipeDetailsPage = lazyWithRetry(() => import('@/pages/dashboard/recipes/view/Details'));
 
 // Legal Documents
-const LegalDocumentIndexPage = lazy(() => import('@/pages/dashboard/content/view/legal-document/Index'));
-const LegalDocumentEditPage = lazy(() => import('@/pages/dashboard/content/view/legal-document/Edit'));
+const LegalDocumentIndexPage = lazyWithRetry(() => import('@/pages/dashboard/content/view/legal-document/Index'));
+const LegalDocumentCreatePage = lazyWithRetry(() => import('@/pages/dashboard/content/view/legal-document/Create'));
+const LegalDocumentEditPage = lazyWithRetry(() => import('@/pages/dashboard/content/view/legal-document/Edit'));
 
 // FAQs
-const FaqIndexPage = lazy(() => import('@/pages/dashboard/content/view/faq/Index'));
-const FaqCreatePage = lazy(() => import('@/pages/dashboard/content/view/faq/Create'));
+const FaqIndexPage = lazyWithRetry(() => import('@/pages/dashboard/content/view/faq/Index'));
+const FaqCreatePage = lazyWithRetry(() => import('@/pages/dashboard/content/view/faq/Create'));
+
+const ContactMethodIndexPage = lazyWithRetry(() => import('@/pages/dashboard/contact-methods/view/Index'));
+const ContactMethodCreatePage = lazyWithRetry(() => import('@/pages/dashboard/contact-methods/view/Create'));
 
 // Vendor Subscriptions
-const VendorSubscriptionIndexPage = lazy(
+const VendorSubscriptionIndexPage = lazyWithRetry(
   () => import('@/pages/dashboard/vendor/view/subscription/Index')
 );
-const VendorSubscriptionDetailsPage = lazy(
+const VendorSubscriptionDetailsPage = lazyWithRetry(
   () => import('@/pages/dashboard/vendor/view/subscription/Details')
 );
-const VendorSubscriptionCreatePage = lazy(
+const VendorSubscriptionCreatePage = lazyWithRetry(
   () => import('@/pages/dashboard/vendor/view/subscription/Create')
 );
 
 // Admin Notifications
-const AdminNotificationIndexPage = lazy(
+const AdminNotificationIndexPage = lazyWithRetry(
   () => import('@/pages/dashboard/admin-notifications/view/Index')
 );
-const AdminNotificationCreatePage = lazy(
+const AdminNotificationCreatePage = lazyWithRetry(
   () => import('@/pages/dashboard/admin-notifications/view/Create')
 );
 
 // Vendor Packages
-const VendorPackageIndexPage = lazy(
+const VendorPackageIndexPage = lazyWithRetry(
   () => import('@/pages/dashboard/vendor/view/package/Index')
 );
-const VendorPackageCreatePage = lazy(
+const VendorPackageCreatePage = lazyWithRetry(
   () => import('@/pages/dashboard/vendor/view/package/Create')
 );
-const VendorPackageDetailsPage = lazy(
+const VendorPackageDetailsPage = lazyWithRetry(
   () => import('@/pages/dashboard/vendor/view/package/Details')
 );
 
 // Vendor Users
-const VendorUserIndexPage = lazy(
+const VendorUserIndexPage = lazyWithRetry(
   () => import('@/pages/dashboard/vendor/view/vendor-user/Index')
 );
-const VendorUserCreatePage = lazy(
+const VendorUserCreatePage = lazyWithRetry(
   () => import('@/pages/dashboard/vendor/view/vendor-user/Create')
 );
-const VendorUserDetailsPage = lazy(
+const VendorUserDetailsPage = lazyWithRetry(
   () => import('@/pages/dashboard/vendor/view/vendor-user/Details')
 );
 
 // Seller Registrations
-const SellerRegistrationIndexPage = lazy(
+const SellerRegistrationIndexPage = lazyWithRetry(
   () => import('@/pages/dashboard/vendor/view/seller-registration/Index')
 );
-const SellerRegistrationDetailsPage = lazy(
+const SellerRegistrationDetailsPage = lazyWithRetry(
   () => import('@/pages/dashboard/vendor/view/seller-registration/Details')
 );
 
 // Statistics
-const StatisticsPage = lazy(() => import('@/pages/dashboard/statistics/view/Index'));
+const StatisticsPage = lazyWithRetry(() => import('@/pages/dashboard/statistics/view/Index'));
 
 // Reports
-const ReportsIndexPage = lazy(() => import('@/pages/dashboard/reports/view/Index'));
-const SalesReportPage = lazy(() => import('@/pages/dashboard/reports/view/SalesReport'));
-const ProductMovementReportPage = lazy(
+const ReportsIndexPage = lazyWithRetry(() => import('@/pages/dashboard/reports/view/Index'));
+const SalesReportPage = lazyWithRetry(() => import('@/pages/dashboard/reports/view/SalesReport'));
+const ProductMovementReportPage = lazyWithRetry(
   () => import('@/pages/dashboard/reports/view/ProductMovementReport')
 );
-const VendorPerformanceReportPage = lazy(
+const VendorPerformanceReportPage = lazyWithRetry(
   () => import('@/pages/dashboard/reports/view/VendorPerformanceReport')
 );
-const DriverPerformanceReportPage = lazy(
+const DriverPerformanceReportPage = lazyWithRetry(
   () => import('@/pages/dashboard/reports/view/DriverPerformanceReport')
 );
-const SalesByLocationReportPage = lazy(
+const SalesByLocationReportPage = lazyWithRetry(
   () => import('@/pages/dashboard/reports/view/SalesByLocationReport')
 );
-const SalesByCategoryReportPage = lazy(
+const SalesByCategoryReportPage = lazyWithRetry(
   () => import('@/pages/dashboard/reports/view/SalesByCategoryReport')
 );
 
 // Settings
-const SettingsIndexPage = lazy(() => import('@/pages/dashboard/settings/view/Index'));
+const SettingsIndexPage = lazyWithRetry(() => import('@/pages/dashboard/settings/view/Index'));
 
 // Badges
-const BadgeIndexPage = lazy(() => import('@/pages/dashboard/badges/view/Index'));
-const BadgeCreatePage = lazy(() => import('@/pages/dashboard/badges/view/Create'));
+const BadgeIndexPage = lazyWithRetry(() => import('@/pages/dashboard/badges/view/Index'));
+const BadgeCreatePage = lazyWithRetry(() => import('@/pages/dashboard/badges/view/Create'));
 
 // Activity Logs
-const ActivityLogIndexPage = lazy(() => import('@/pages/dashboard/activity-logs/view/Index'));
+const ActivityLogIndexPage = lazyWithRetry(() => import('@/pages/dashboard/activity-logs/view/Index'));
 
 // Affiliate Withdraw Requests
-const AffiliateWithdrawIndexPage = lazy(
+const AffiliateWithdrawIndexPage = lazyWithRetry(
   () => import('@/pages/dashboard/affiliate-withdraw-requests/view/Index')
 );
-const AffiliateWithdrawDetailsPage = lazy(
+const AffiliateWithdrawDetailsPage = lazyWithRetry(
   () => import('@/pages/dashboard/affiliate-withdraw-requests/view/Details')
 );
 
 // Affiliate wallet transactions (read-only ledger)
-const AffiliateWalletTransactionIndexPage = lazy(
+const AffiliateWalletTransactionIndexPage = lazyWithRetry(
   () => import('@/pages/dashboard/affiliate-wallet-transactions/view/Index')
 );
-const AffiliateWalletTransactionDetailsPage = lazy(
+const AffiliateWalletTransactionDetailsPage = lazyWithRetry(
   () => import('@/pages/dashboard/affiliate-wallet-transactions/view/Details')
 );
 
 // Driver wallet transactions (read-only ledger)
-const DriverWalletTransactionIndexPage = lazy(
+const DriverWalletTransactionIndexPage = lazyWithRetry(
   () => import('@/pages/dashboard/driver-wallet-transactions/view/Index')
 );
-const DriverWalletTransactionDetailsPage = lazy(
+const DriverWalletTransactionDetailsPage = lazyWithRetry(
   () => import('@/pages/dashboard/driver-wallet-transactions/view/Details')
+);
+const DriverOrdersPage = lazyWithRetry(
+  () => import('@/pages/dashboard/driver-wallet-transactions/view/DriverOrders')
 );
 
 // Icons
-const IconIndexPage = lazy(() => import('@/pages/dashboard/icons/view/Index'));
-const IconCreatePage = lazy(() => import('@/pages/dashboard/icons/view/Create'));
+const IconIndexPage = lazyWithRetry(() => import('@/pages/dashboard/icons/view/Index'));
+const IconCreatePage = lazyWithRetry(() => import('@/pages/dashboard/icons/view/Create'));
 
 // Colors
-const ColorIndexPage = lazy(() => import('@/pages/dashboard/colors/view/Index'));
-const ColorCreatePage = lazy(() => import('@/pages/dashboard/colors/view/Create'));
+const ColorIndexPage = lazyWithRetry(() => import('@/pages/dashboard/colors/view/Index'));
+const ColorCreatePage = lazyWithRetry(() => import('@/pages/dashboard/colors/view/Create'));
 
 // Promotions
-const PromotionIndexPage = lazy(() => import('@/pages/dashboard/promotions/view/Index'));
-const PromotionCreatePage = lazy(() => import('@/pages/dashboard/promotions/view/Create'));
-const PromotionDetailsPage = lazy(() => import('@/pages/dashboard/promotions/view/Details'));
+const PromotionIndexPage = lazyWithRetry(() => import('@/pages/dashboard/promotions/view/Index'));
+const PromotionCreatePage = lazyWithRetry(() => import('@/pages/dashboard/promotions/view/Create'));
+const PromotionDetailsPage = lazyWithRetry(() => import('@/pages/dashboard/promotions/view/Details'));
 
 // Countries
-const CountryIndexPage = lazy(() => import('@/pages/dashboard/countries/view/Index'));
-const CountryCreatePage = lazy(() => import('@/pages/dashboard/countries/view/Create'));
+const CountryIndexPage = lazyWithRetry(() => import('@/pages/dashboard/countries/view/Index'));
+const CountryCreatePage = lazyWithRetry(() => import('@/pages/dashboard/countries/view/Create'));
 
 // Sale countries (markets)
-const SaleCountryIndexPage = lazy(() => import('@/pages/dashboard/sale-countries/view/Index'));
-const SaleCountryCreatePage = lazy(() => import('@/pages/dashboard/sale-countries/view/Create'));
+const SaleCountryIndexPage = lazyWithRetry(() => import('@/pages/dashboard/sale-countries/view/Index'));
+const SaleCountryCreatePage = lazyWithRetry(() => import('@/pages/dashboard/sale-countries/view/Create'));
 
 // Promotion Requests
-const PromotionRequestIndexPage = lazy(() => import('@/pages/dashboard/promotion-requests/view/Index'));
-const PromotionRequestDetailsPage = lazy(() => import('@/pages/dashboard/promotion-requests/view/Details'));
+const PromotionRequestIndexPage = lazyWithRetry(() => import('@/pages/dashboard/promotion-requests/view/Index'));
+const PromotionRequestDetailsPage = lazyWithRetry(() => import('@/pages/dashboard/promotion-requests/view/Details'));
 
 // Point Rules
-const PointRuleIndexPage = lazy(() => import('@/pages/dashboard/point-rules/view/Index'));
-const PointRuleDetailsPage = lazy(() => import('@/pages/dashboard/point-rules/view/Details'));
-const PointRuleCreatePage = lazy(() => import('@/pages/dashboard/point-rules/view/Create'));
+const PointRuleIndexPage = lazyWithRetry(() => import('@/pages/dashboard/point-rules/view/Index'));
+const PointRuleDetailsPage = lazyWithRetry(() => import('@/pages/dashboard/point-rules/view/Details'));
+const PointRuleCreatePage = lazyWithRetry(() => import('@/pages/dashboard/point-rules/view/Create'));
 
 // Schedules
-const ScheduleIndexPage = lazy(() => import('@/pages/dashboard/schedules/view/Index'));
-const ScheduleCreatePage = lazy(() => import('@/pages/dashboard/schedules/view/Create'));
+const ScheduleIndexPage = lazyWithRetry(() => import('@/pages/dashboard/schedules/view/Index'));
+const ScheduleCreatePage = lazyWithRetry(() => import('@/pages/dashboard/schedules/view/Create'));
 
 // User Basket Schedules
-const UserBasketScheduleIndexPage = lazy(() => import('@/pages/dashboard/user-basket-schedules/view/Index'));
-const UserBasketScheduleDetailsPage = lazy(
+const UserBasketScheduleIndexPage = lazyWithRetry(() => import('@/pages/dashboard/user-basket-schedules/view/Index'));
+const UserBasketScheduleDetailsPage = lazyWithRetry(
   () => import('@/pages/dashboard/user-basket-schedules/view/Details')
 );
 
 // Vendor Service Types
-const VendorServiceTypeIndexPage = lazy(
+const VendorServiceTypeIndexPage = lazyWithRetry(
   () => import('@/pages/dashboard/vendor-service-types/view/Index')
 );
-const VendorServiceTypeCreatePage = lazy(
+const VendorServiceTypeCreatePage = lazyWithRetry(
   () => import('@/pages/dashboard/vendor-service-types/view/Create')
 );
 
 // Vendor Services
-const VendorServiceIndexPage = lazy(
+const VendorServiceIndexPage = lazyWithRetry(
   () => import('@/pages/dashboard/vendor-services/view/Index')
 );
-const VendorServiceCreatePage = lazy(
+const VendorServiceCreatePage = lazyWithRetry(
   () => import('@/pages/dashboard/vendor-services/view/Create')
 );
 
 // Shop Vendor Services
-const ShopVendorServiceIndexPage = lazy(
+const ShopVendorServiceIndexPage = lazyWithRetry(
   () => import('@/pages/dashboard/shop-vendor-services/view/Index')
 );
-const ShopVendorServiceCreatePage = lazy(
+const ShopVendorServiceCreatePage = lazyWithRetry(
   () => import('@/pages/dashboard/shop-vendor-services/view/Create')
 );
 
 // Service Orders
-const ServiceOrderIndexPage = lazy(
+const ServiceOrderIndexPage = lazyWithRetry(
   () => import('@/pages/dashboard/service-orders/view/Index')
 );
 
 // Quick Actions
-const QuickActionIndexPage = lazy(() => import('@/pages/dashboard/quick-actions/view/Index'));
-const QuickActionCreatePage = lazy(() => import('@/pages/dashboard/quick-actions/view/Create'));
+const QuickActionIndexPage = lazyWithRetry(() => import('@/pages/dashboard/quick-actions/view/Index'));
+const QuickActionCreatePage = lazyWithRetry(() => import('@/pages/dashboard/quick-actions/view/Create'));
 
 // Popup Campaigns
-const PopupCampaignIndexPage = lazy(() => import('@/pages/dashboard/popup-campaigns/view/Index'));
-const PopupCampaignCreatePage = lazy(() => import('@/pages/dashboard/popup-campaigns/view/Create'));
+const PopupCampaignIndexPage = lazyWithRetry(() => import('@/pages/dashboard/popup-campaigns/view/Index'));
+const PopupCampaignCreatePage = lazyWithRetry(() => import('@/pages/dashboard/popup-campaigns/view/Create'));
 
-const FlashSaleIndexPage = lazy(() => import('@/pages/dashboard/flash-sales/view/Index'));
-const FlashSaleCreatePage = lazy(() => import('@/pages/dashboard/flash-sales/view/Create'));
+const FlashSaleIndexPage = lazyWithRetry(() => import('@/pages/dashboard/flash-sales/view/Index'));
+const FlashSaleCreatePage = lazyWithRetry(() => import('@/pages/dashboard/flash-sales/view/Create'));
 
 // Inventory
-const InventoryIndexPage = lazy(() => import('@/pages/dashboard/inventory/view/Index'));
+const InventoryIndexPage = lazyWithRetry(() => import('@/pages/dashboard/inventory/view/Index'));
 
 // Vendor Accounting
-const VendorAccountingIndexPage = lazy(
+const VendorAccountingIndexPage = lazyWithRetry(
   () => import('@/pages/dashboard/vendor-accounting/view/Index')
 );
-const VendorStatementPage = lazy(
+const VendorStatementPage = lazyWithRetry(
   () => import('@/pages/dashboard/vendor-accounting/view/VendorStatement')
 );
-const VendorWithdrawRequestsPage = lazy(
+const VendorWithdrawRequestsPage = lazyWithRetry(
   () => import('@/pages/dashboard/vendor-withdraw-requests/view/Index')
 );
 
-const Page403 = lazy(() => import('src/pages/error/403'));
+const Page403 = lazyWithRetry(() => import('src/pages/error/403'));
 
 // ----------------------------------------------------------------------
 
@@ -509,6 +539,82 @@ export const dashboardRoutes: RouteObject[] = [
         element: (
           <RequirePermission permission="shop.view">
             <ShopDetailsPage />
+          </RequirePermission>
+        ),
+      },
+    ],
+  },
+  {
+    path: 'restaurants',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: (
+          <RequirePermission permission="shop.view">
+            <ShopIndexPage />
+          </RequirePermission>
+        ),
+        index: true,
+      },
+      {
+        path: 'create',
+        element: (
+          <RequirePermission permission="shop.create">
+            <ShopCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'update/:id',
+        element: (
+          <RequirePermission permission="shop.update">
+            <ShopCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'details/:id',
+        element: (
+          <RequirePermission permission="shop.view">
+            <ShopDetailsPage />
+          </RequirePermission>
+        ),
+      },
+    ],
+  },
+  {
+    path: 'service-providers',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: (
+          <RequirePermission permission="shop.view">
+            <ServiceProviderIndexPage />
+          </RequirePermission>
+        ),
+        index: true,
+      },
+      {
+        path: 'create',
+        element: (
+          <RequirePermission permission="shop.create">
+            <ShopCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'update/:id',
+        element: (
+          <RequirePermission permission="shop.update">
+            <ShopCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'details/:id',
+        element: (
+          <RequirePermission permission="shop.view">
+            <ServiceProviderDetailsPage />
           </RequirePermission>
         ),
       },
@@ -898,6 +1004,42 @@ export const dashboardRoutes: RouteObject[] = [
     ],
   },
   {
+    path: 'categories/extra-details',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: (
+          <RequirePermission
+            permissionAny={['productextradetail.view', 'categorydetail.view']}
+          >
+            <ProductExtraDetailIndexPage />
+          </RequirePermission>
+        ),
+        index: true,
+      },
+      {
+        path: 'create',
+        element: (
+          <RequirePermission
+            permissionAny={['productextradetail.create', 'categorydetail.create']}
+          >
+            <ProductExtraDetailCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'update/:id',
+        element: (
+          <RequirePermission
+            permissionAny={['productextradetail.update', 'categorydetail.update']}
+          >
+            <ProductExtraDetailCreatePage />
+          </RequirePermission>
+        ),
+      },
+    ],
+  },
+  {
     path: 'services',
     element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
     children: [
@@ -998,6 +1140,22 @@ export const dashboardRoutes: RouteObject[] = [
         element: (
           <RequirePermission permission="section.view">
             <SectionDetailsPage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'pages',
+        element: (
+          <RequirePermission permission="pagesection.view">
+            <PagesIndexPage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'pages/details/:id',
+        element: (
+          <RequirePermission permission="pagesection.view">
+            <PageDetailsPage />
           </RequirePermission>
         ),
       },
@@ -1574,6 +1732,14 @@ export const dashboardRoutes: RouteObject[] = [
         index: true,
       },
       {
+        path: 'create',
+        element: (
+          <RequirePermission permission="legaldocument.create">
+            <LegalDocumentCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
         path: 'update/:id',
         element: (
           <RequirePermission permission="legaldocument.update">
@@ -1608,6 +1774,36 @@ export const dashboardRoutes: RouteObject[] = [
         element: (
           <RequirePermission permission="faq.update">
             <FaqCreatePage />
+          </RequirePermission>
+        ),
+      },
+    ],
+  },
+  {
+    path: 'contact-methods',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: (
+          <RequirePermission permissionAny={[...CONTACT_METHOD_VIEW_ANY]}>
+            <ContactMethodIndexPage />
+          </RequirePermission>
+        ),
+        index: true,
+      },
+      {
+        path: 'create',
+        element: (
+          <RequirePermission permissionAny={[...CONTACT_METHOD_CREATE_ANY]}>
+            <ContactMethodCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'update/:id',
+        element: (
+          <RequirePermission permissionAny={[...CONTACT_METHOD_UPDATE_ANY]}>
+            <ContactMethodCreatePage />
           </RequirePermission>
         ),
       },
@@ -1923,6 +2119,14 @@ export const dashboardRoutes: RouteObject[] = [
         element: (
           <RequirePermission permission="driverwallettransaction.view">
             <DriverWalletTransactionDetailsPage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'driver/:driverId/orders',
+        element: (
+          <RequirePermission permission="driverwallettransaction.view">
+            <DriverOrdersPage />
           </RequirePermission>
         ),
       },

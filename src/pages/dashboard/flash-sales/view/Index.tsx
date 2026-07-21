@@ -31,7 +31,9 @@ export default function Page() {
   const { data: response, isLoading } = useFetchFlashSales(currentPage, pageSize, params);
 
   const onEditNavigate = (row: FlashSaleRow) => {
-    navigate(paths.dashboard.flashSales.update(row.id));
+    navigate(paths.dashboard.flashSales.update(row.id), {
+      state: { flashSale: row },
+    });
   };
 
   const items: FlashSaleRow[] = response?.data?.items || [];

@@ -18,7 +18,10 @@ const PromotionSchema = z.object({
 const typeColors: Record<string, string> = {
   simple_discount: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
   spend_x_discount: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
-  buy_x_get_y: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
+  spend_x_get_gift: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+  spend_x_get_points: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+  free_shipping: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400',
+  spend_x_get_free_shipping: 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400',
 };
 
 export const promotionColumns = (
@@ -35,7 +38,10 @@ export const promotionColumns = (
   const typeLabels: Record<string, string> = {
     simple_discount: t('promotionTypes.simpleDiscount'),
     spend_x_discount: t('promotionTypes.spendXDiscount'),
-    buy_x_get_y: t('promotionTypes.buyXGetY'),
+    spend_x_get_gift: t('promotionTypes.spendXGetGift'),
+    spend_x_get_points: t('promotionTypes.spendXGetPoints'),
+    free_shipping: t('promotionTypes.freeShipping'),
+    spend_x_get_free_shipping: t('promotionTypes.spendXGetFreeShipping'),
   };
 
   return [

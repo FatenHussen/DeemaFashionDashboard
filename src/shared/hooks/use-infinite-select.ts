@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useInfiniteQuery } from '@tanstack/react-query';
 
 // ----------------------------------------------------------------------
@@ -40,6 +41,7 @@ export function useInfiniteSelect(
 ) {
   const query = useInfiniteQuery({
     queryKey,
+    staleTime: 0,
     queryFn: ({ pageParam }) => fetcher(pageParam as number, pageSize),
     initialPageParam: 1,
     getNextPageParam: (lastPage) => {
@@ -50,8 +52,11 @@ export function useInfiniteSelect(
     },
   });
 
-  const allItems: InfiniteSelectOption[] =
-    query.data?.pages.flatMap((p) => p?.data?.items ?? []) ?? [];
+  /** Stabilize reference when `query.data` is unchanged — avoids effect loops in consumers. */
+  const allItems: InfiniteSelectOption[] = useMemo(
+    () => query.data?.pages.flatMap((p) => p?.data?.items ?? []) ?? [],
+    [query.data]
+  );
 
   return {
     ...query,

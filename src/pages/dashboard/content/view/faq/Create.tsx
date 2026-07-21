@@ -8,6 +8,7 @@ import { Iconify } from '@/shared/components/iconify';
 import { useParams, useNavigate } from 'react-router';
 import { FAQ_TYPES } from '@/pages/dashboard/content/types/faq.types';
 import { faqTypeLabel } from '@/pages/dashboard/content/utils/faq-type-label';
+import { TinyMCEEditorField } from '@/shared/components/tinymce-editor/tinymce-editor';
 import { FaqSchema, type FaqFormValues } from '@/pages/dashboard/content/validation/faq.validation';
 import {
   useCreateFaq,
@@ -161,24 +162,54 @@ export default function CreatePage() {
                 {t('columns.answer')}
               </Typography>
             </Box>
-            <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
-              <Box>
-                <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.labelEnglishShort')} <span className="text-destructive">*</span></Typography>
-                <Controller name="answer.en" control={control} render={({ field, fieldState: { error: fieldError } }) => (
-                  <Box>
-                    <textarea {...field} rows={5} placeholder={t('form.enterAnswerEn')} className={`w-full resize-y rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary ${fieldError ? 'border-destructive' : 'border-input'}`} />
-                    {fieldError && <p className="mt-1 text-xs text-destructive">{fieldError.message}</p>}
-                  </Box>
-                )} />
+            <Box className="grid grid-cols-1 gap-8 p-6 md:grid-cols-2 md:gap-6">
+              <Box className="group min-w-0">
+                <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
+                  {t('form.labelEnglishShort')} <span className="text-destructive">*</span>
+                </Typography>
+                <Controller
+                  name="answer.en"
+                  control={control}
+                  render={({ field, fieldState: { error: fieldError } }) => (
+                    <Box>
+                      <TinyMCEEditorField
+                        value={field.value ?? ''}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        placeholder={t('form.enterAnswerEn')}
+                        dir="ltr"
+                        menubar
+                        toolsMenuWordCount
+                        height={320}
+                      />
+                      {fieldError && <p className="mt-1 text-xs text-destructive">{fieldError.message}</p>}
+                    </Box>
+                  )}
+                />
               </Box>
-              <Box>
-                <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.labelArabicShort')} <span className="text-destructive">*</span></Typography>
-                <Controller name="answer.ar" control={control} render={({ field, fieldState: { error: fieldError } }) => (
-                  <Box>
-                    <textarea {...field} rows={5} dir="rtl" placeholder={t('form.faqAnswerArPlaceholder')} className={`w-full resize-y rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary ${fieldError ? 'border-destructive' : 'border-input'}`} />
-                    {fieldError && <p className="mt-1 text-xs text-destructive">{fieldError.message}</p>}
-                  </Box>
-                )} />
+              <Box className="group min-w-0">
+                <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
+                  {t('form.labelArabicShort')} <span className="text-destructive">*</span>
+                </Typography>
+                <Controller
+                  name="answer.ar"
+                  control={control}
+                  render={({ field, fieldState: { error: fieldError } }) => (
+                    <Box>
+                      <TinyMCEEditorField
+                        value={field.value ?? ''}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        placeholder={t('form.faqAnswerArPlaceholder')}
+                        dir="rtl"
+                        menubar
+                        toolsMenuWordCount
+                        height={320}
+                      />
+                      {fieldError && <p className="mt-1 text-xs text-destructive">{fieldError.message}</p>}
+                    </Box>
+                  )}
+                />
               </Box>
             </Box>
           </Box>

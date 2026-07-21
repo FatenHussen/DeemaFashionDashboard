@@ -1,8 +1,11 @@
+import 'dayjs/locale/ar';
+
 import type { Dayjs, OpUnitType } from 'dayjs';
 
 import dayjs from 'dayjs';
 import duration from 'dayjs/plugin/duration';
 import relativeTime from 'dayjs/plugin/relativeTime';
+import { normalizeIndicNumeralsToLatin } from '@/utils/numeral-locale';
 
 // ----------------------------------------------------------------------
 
@@ -55,7 +58,7 @@ const isValidDate = (date: DatePickerFormat) =>
 // ----------------------------------------------------------------------
 
 export function today(template?: string): string {
-  return dayjs(new Date()).startOf('day').format(template);
+  return normalizeIndicNumeralsToLatin(dayjs(new Date()).startOf('day').format(template));
 }
 
 // ----------------------------------------------------------------------
@@ -68,7 +71,7 @@ export function fDateTime(date: DatePickerFormat, template?: string): string {
     return 'Invalid date';
   }
 
-  return dayjs(date).format(template ?? formatPatterns.dateTime);
+  return normalizeIndicNumeralsToLatin(dayjs(date).format(template ?? formatPatterns.dateTime));
 }
 
 // ----------------------------------------------------------------------
@@ -81,7 +84,31 @@ export function fDate(date: DatePickerFormat, template?: string): string {
     return 'Invalid date';
   }
 
-  return dayjs(date).format(template ?? formatPatterns.date);
+  return normalizeIndicNumeralsToLatin(dayjs(date).format(template ?? formatPatterns.date));
+}
+
+export type UiLang = 'ar' | 'en';
+
+/** Date string for display; month names follow UI language (ar / en). */
+export function fDateLocalized(date: DatePickerFormat, lang: UiLang, template?: string): string {
+  if (!isValidDate(date)) {
+    return '';
+  }
+
+  return normalizeIndicNumeralsToLatin(
+    dayjs(date).locale(lang).format(template ?? formatPatterns.date)
+  );
+}
+
+/** Date + time for display; follows UI language (ar / en). */
+export function fDateTimeLocalized(date: DatePickerFormat, lang: UiLang, template?: string): string {
+  if (!isValidDate(date)) {
+    return '';
+  }
+
+  return normalizeIndicNumeralsToLatin(
+    dayjs(date).locale(lang).format(template ?? formatPatterns.dateTime)
+  );
 }
 
 // ----------------------------------------------------------------------
@@ -94,7 +121,7 @@ export function fTime(date: DatePickerFormat, template?: string): string {
     return 'Invalid date';
   }
 
-  return dayjs(date).format(template ?? formatPatterns.time);
+  return normalizeIndicNumeralsToLatin(dayjs(date).format(template ?? formatPatterns.time));
 }
 
 // ----------------------------------------------------------------------
@@ -120,7 +147,7 @@ export function fToNow(date: DatePickerFormat): string {
     return 'Invalid date';
   }
 
-  return dayjs(date).toNow(true);
+  return normalizeIndicNumeralsToLatin(dayjs(date).toNow(true));
 }
 
 // ----------------------------------------------------------------------

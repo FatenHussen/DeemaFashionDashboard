@@ -1,6 +1,7 @@
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
 import { useState, useEffect, type ReactNode } from 'react';
+import { formatTranslated } from '@/utils/format-translated';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { FAQ_TYPES } from '@/pages/dashboard/content/types/faq.types';
 import { faqColumns, type FaqFormValues } from '@/columns/one/faqs/one';
@@ -95,6 +96,24 @@ export default function Page() {
 
       <DataTable
         tableName={t("tableNames.faq")}
+        expandedRowRender={(row) => (
+          <div className="space-y-4 text-start">
+            <div>
+              <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                {t('columns.question')}
+              </p>
+              <p className="whitespace-pre-wrap text-sm text-foreground">{row.question}</p>
+            </div>
+            <div>
+              <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                {t('columns.answer')}
+              </p>
+              <p className="whitespace-pre-wrap text-sm text-muted-foreground">
+                {formatTranslated(row.answer)}
+              </p>
+            </div>
+          </div>
+        )}
         columns={faqColumns(
           t,
           handleDeleteRequest,

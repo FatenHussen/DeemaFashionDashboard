@@ -3,6 +3,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 import type { AffiliateWithdrawItem } from '@/pages/dashboard/affiliate-withdraw-requests/types/affiliate-withdraw.types';
 
 import { z } from 'zod';
+import { formatDecimal } from '@/utils/format-currency';
 import { TableTonedStatusPill } from '@/shared/components/table-status-badges';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
@@ -38,7 +39,7 @@ export const affiliateWithdrawColumns = (
     accessorKey: 'amount',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.total')} />,
     cell: ({ row }) => (
-      <span className="font-semibold text-foreground">{row.original.amount?.toLocaleString()}</span>
+      <span className="font-semibold text-foreground">{formatDecimal(row.original.amount)}</span>
     ),
   },
   {

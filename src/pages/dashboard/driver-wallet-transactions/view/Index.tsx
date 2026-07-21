@@ -1,6 +1,13 @@
+import type { ColumnDef } from '@tanstack/react-table';
+import type { DriverData } from '@/pages/dashboard/driver/types/driver.types';
+
 import { useTranslation } from 'react-i18next';
+import { Iconify } from '@/shared/components/iconify';
+import { useNavigate, useSearchParams } from 'react-router';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { useMemo, useState, useEffect, type ReactNode } from 'react';
+import { useFetchDrivers } from '@/pages/dashboard/driver/hooks/driver';
+import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 import { driverWalletTransactionColumns } from '@/columns/one/driver-wallet-transactions/one';
 import { useFetchDriverWalletTransactions } from '@/pages/dashboard/driver-wallet-transactions/hooks/driver-wallet-transaction';
 
@@ -13,17 +20,27 @@ const DEFAULT_SORT_ORDER = 'desc' as const;
 
 export default function Page() {
   const { t } = useTranslation('table');
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const selectedDriverId = searchParams.get('driver_id')?.trim() ?? '';
+  const selectedDriverName = searchParams.get('driver_name')?.trim() ?? '';
+  const isTransactionsView = Boolean(selectedDriverId);
+
+  const [driversCurrentPage, setDriversCurrentPage] = useState(1);
+  const [driversPageSize, setDriversPageSize] = useState(10);
+  const [driversSearch, setDriversSearch] = useState<string>('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [isActiveFilter, setIsActiveFilter] = useState('');
+
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-
-  const [search, setSearch] = useState<string>('');
+  const [txSearch, setTxSearch] = useState<string>('');
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [search]);
+  }, [txSearch, selectedDriverId]);
 
   const [type, setType] = useState<'paid_by_user' | 'paid_by_system' | ''>('');
-  const [driverId, setDriverId] = useState('');
   const [orderId, setOrderId] = useState('');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
@@ -34,13 +51,20 @@ export default function Page() {
   >(DEFAULT_SORT_FIELD);
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>(DEFAULT_SORT_ORDER);
 
-  const filters = useMemo(() => {
+  const driverListFilters = useMemo(() => {
+    const f: { status?: string; is_active?: number; search?: string } = {};
+    if (statusFilter) f.status = statusFilter;
+    if (isActiveFilter !== '') f.is_active = parseInt(isActiveFilter, 10);
+    if (driversSearch.trim()) f.search = driversSearch.trim();
+    return Object.keys(f).length ? f : undefined;
+  }, [statusFilter, isActiveFilter, driversSearch]);
+
+  const txFilters = useMemo(() => {
     const oid = orderId.trim() ? Number(orderId) : NaN;
-    const did = driverId.trim() ? driverId.trim() : '';
     return {
-      ...(search.trim() ? { search: search.trim() } : {}),
+      ...(txSearch.trim() ? { search: txSearch.trim() } : {}),
       ...(type ? { type } : {}),
-      ...(did ? { driver_id: did } : {}),
+      ...(selectedDriverId ? { driver_id: selectedDriverId } : {}),
       ...(!Number.isNaN(oid) ? { order_id: oid } : {}),
       ...(from ? { from } : {}),
       ...(to ? { to } : {}),
@@ -50,9 +74,9 @@ export default function Page() {
       sort_order: sortOrder,
     };
   }, [
-    search,
+    txSearch,
     type,
-    driverId,
+    selectedDriverId,
     orderId,
     from,
     to,
@@ -62,10 +86,16 @@ export default function Page() {
     sortOrder,
   ]);
 
-  const { data: response, isLoading } = useFetchDriverWalletTransactions(
+  const { data: transactionsResponse, isLoading: isTransactionsLoading } = useFetchDriverWalletTransactions(
     currentPage,
     pageSize,
-    filters
+    txFilters
+  );
+
+  const { data: driversResponse, isLoading: isDriversLoading } = useFetchDrivers(
+    driversCurrentPage,
+    driversPageSize,
+    driverListFilters
   );
 
   const handlePageChange = (page: number) => setCurrentPage(page);
@@ -74,24 +104,149 @@ export default function Page() {
     setCurrentPage(1);
   };
 
-  const items = response?.data?.items ?? [];
-  const apiPagination = response?.data?.pagination;
-  const pagination = apiPagination
+  const txItems = transactionsResponse?.data?.items ?? [];
+  const txApiPagination = transactionsResponse?.data?.pagination;
+  const txPagination = txApiPagination
     ? {
-        current_page: apiPagination.current_page,
-        last_page: apiPagination.last_page,
-        per_page: apiPagination.per_page,
-        total: apiPagination.total,
-        from: (apiPagination.current_page - 1) * apiPagination.per_page + 1,
-        to: Math.min(apiPagination.current_page * apiPagination.per_page, apiPagination.total),
+        current_page: txApiPagination.current_page,
+        last_page: txApiPagination.last_page,
+        per_page: txApiPagination.per_page,
+        total: txApiPagination.total,
+        from: (txApiPagination.current_page - 1) * txApiPagination.per_page + 1,
+        to: Math.min(txApiPagination.current_page * txApiPagination.per_page, txApiPagination.total),
       }
     : { current_page: 1, last_page: 1, per_page: 10, total: 0, from: 0, to: 0 };
 
-  const activeFilterCount =
-    [type, driverId.trim(), orderId.trim(), from, to, minAmount, maxAmount].filter(Boolean).length +
+  const txActiveFilterCount =
+    [type, orderId.trim(), from, to, minAmount, maxAmount].filter(Boolean).length +
     (sortField !== DEFAULT_SORT_FIELD || sortOrder !== DEFAULT_SORT_ORDER ? 1 : 0);
 
-  const sidebarContent = (
+  const driverItems = driversResponse?.data?.items ?? [];
+  const driverApiPagination = driversResponse?.data?.pagination;
+  const driverPagination = driverApiPagination
+    ? {
+        current_page: driverApiPagination.current_page,
+        last_page: driverApiPagination.last_page,
+        per_page: driverApiPagination.per_page,
+        total: driverApiPagination.total,
+        from: (driverApiPagination.current_page - 1) * driverApiPagination.per_page + 1,
+        to: Math.min(driverApiPagination.current_page * driverApiPagination.per_page, driverApiPagination.total),
+      }
+    : { current_page: 1, last_page: 1, per_page: 10, total: 0, from: 0, to: 0 };
+
+  const driversActiveFilterCount =
+    (statusFilter ? 1 : 0) + (isActiveFilter !== '' ? 1 : 0);
+
+  const driversSidebarContent = (
+    <div className="flex flex-col gap-5">
+      <FilterGroup label={t('columns.status')}>
+        <select
+          value={statusFilter}
+          onChange={(e) => {
+            setStatusFilter(e.target.value);
+            setDriversCurrentPage(1);
+          }}
+          className="w-full h-10 rounded-xl border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+        >
+          <option value="">{t('all')}</option>
+          <option value="available">{t('driverAvailAvailable')}</option>
+          <option value="busy">{t('driverAvailBusy')}</option>
+          <option value="inactive">{t('driverAvailInactive')}</option>
+        </select>
+      </FilterGroup>
+      <FilterGroup label={t('columns.active')}>
+        <select
+          value={isActiveFilter}
+          onChange={(e) => {
+            setIsActiveFilter(e.target.value);
+            setDriversCurrentPage(1);
+          }}
+          className="w-full h-10 rounded-xl border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+        >
+          <option value="">{t('all')}</option>
+          <option value="1">{t('yes')}</option>
+          <option value="0">{t('no')}</option>
+        </select>
+      </FilterGroup>
+    </div>
+  );
+
+  const driversColumns: ColumnDef<DriverData>[] = [
+    {
+      id: 'name',
+      accessorKey: 'name',
+      header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.name')} />,
+      cell: ({ row }) => (
+        <div className="flex items-center gap-2 min-w-0">
+          <Iconify icon="solar:user-rounded-bold" className="text-muted-foreground flex-shrink-0" width={16} height={16} />
+          <span className="text-sm text-foreground font-medium truncate">{row.original.name || '-'}</span>
+        </div>
+      ),
+    },
+    {
+      id: 'phone',
+      accessorKey: 'phone',
+      header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.phone')} />,
+      cell: ({ row }) => row.original.phone || '-',
+    },
+    {
+      id: 'status',
+      accessorKey: 'status',
+      header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.status')} />,
+      cell: ({ row }) => {
+        const status = String(row.original.status || '').toLowerCase();
+        if (status === 'available') return t('driverAvailAvailable');
+        if (status === 'busy') return t('driverAvailBusy');
+        if (status === 'inactive') return t('driverAvailInactive');
+        return row.original.status || '-';
+      },
+    },
+    {
+      id: 'is_active',
+      accessorKey: 'is_active',
+      header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.active')} />,
+      cell: ({ row }) => (row.original.is_active ? t('yes') : t('no')),
+    },
+    {
+      id: 'wallet_transactions',
+      header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.action')} />,
+      cell: ({ row }) => (
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setSearchParams({
+                driver_id: String(row.original.id),
+                driver_name: row.original.name || '',
+              });
+            }}
+            className="inline-flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/15"
+          >
+            <Iconify icon="solar:wallet-money-bold" width={14} height={14} />
+            {t('form.viewDriverWalletTransactions')}
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(
+                `/driver-wallet-transactions/driver/${row.original.id}/orders?driver_name=${encodeURIComponent(
+                  row.original.name || ''
+                )}`
+              );
+            }}
+            className="inline-flex items-center gap-2 rounded-lg border border-violet-300/300 bg-violet-500/0 px-3 py-1.5 text-xs font-semibold text-dark-600 hover:bg-white-500/15 dark:text-violet-300"
+          > 
+            <Iconify icon="solar:bag-5-bold" width={14} height={14} />
+            {t('form.viewDriverOrders')}
+          </button>
+        </div>
+      ),
+    },
+  ];
+
+  const txSidebarContent = (
     <>
       <FilterGroup label={t('form.driverWalletTxFilterType')}>
         <select
@@ -106,20 +261,6 @@ export default function Page() {
           <option value="paid_by_user">{t('form.driverWalletTxType_paid_by_user')}</option>
           <option value="paid_by_system">{t('form.driverWalletTxType_paid_by_system')}</option>
         </select>
-      </FilterGroup>
-
-      <FilterGroup label={t('form.driverWalletTxFilterDriverId')}>
-        <input
-          type="text"
-          inputMode="numeric"
-          value={driverId}
-          onChange={(e) => {
-            setDriverId(e.target.value.replace(/\D/g, ''));
-            setCurrentPage(1);
-          }}
-          placeholder={t('form.driverWalletTxDriverIdPlaceholder')}
-          className="w-full h-10 rounded-xl border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-        />
       </FilterGroup>
 
       <FilterGroup label={t('form.driverWalletTxFilterOrderId')}>
@@ -142,7 +283,7 @@ export default function Page() {
           value={from}
           onChange={(e) => {
             setFrom(e.target.value);
-            setCurrentPage(1);
+            setCurrentPage(1); 
           }}
           className="w-full h-10 rounded-xl border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
         />
@@ -223,50 +364,102 @@ export default function Page() {
   return (
     <>
       <title>{t('form.driverWalletTxIndexDocumentTitle', { appName: CONFIG.appName })}</title>
-      <DataTable
-        tableName={t('tableNames.driverWalletTransaction')}
-        columns={driverWalletTransactionColumns(t)}
-        data={items}
-        hasDetails
-        rowClickToDetails
-        detailsLink={paths.dashboard.driverWalletTransactions}
-        filterSidebar={sidebarContent}
-        activeFilterCount={activeFilterCount}
-        onFilterReset={() => {
-          setSearch('');
-          setType('');
-          setDriverId('');
-          setOrderId('');
-          setFrom('');
-          setTo('');
-          setMinAmount('');
-          setMaxAmount('');
-          setSortField(DEFAULT_SORT_FIELD);
-          setSortOrder(DEFAULT_SORT_ORDER);
-          setCurrentPage(1);
-        }}
-        permissions={{ create: false, update: false, delete: false }}
-        isLoading={isLoading}
-        columnTranslations={{
-          id: t('columns.id'),
-          driver_id: t('form.driverWalletTxDriverId'),
-          driver: t('columns.driver'),
-          type: t('columns.type'),
-          amount: t('columns.amount'),
-          delivery_fee: t('form.driverWalletTxDeliveryFee'),
-          rate_percent: t('form.driverWalletTxRatePercent'),
-          order_id: t('columns.order'),
-          created_at: t('columns.createdAt'),
-          actions: t('columns.action'),
-        }}
-        pagination={pagination}
-        currentPage={currentPage}
-        pageSize={pageSize}
-        onPageChange={handlePageChange}
-        onPageSizeChange={handlePageSizeChange}
-        onSearchChange={setSearch}
-        searchPlaceholder={t('form.driverWalletTxSearchPlaceholder')}
-      />
+      {isTransactionsView ? (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between rounded-xl border border-border/60 bg-muted/20 px-4 py-3">
+            <div className="min-w-0">
+              <p className="text-xs text-muted-foreground">{t('columns.driver')}</p>
+              <p className="truncate text-sm font-semibold">
+                {selectedDriverName || `${t('columns.driver')} #${selectedDriverId}`}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setSearchParams({})}
+              className="inline-flex items-center gap-2 rounded-lg border border-border/70 bg-background px-3 py-1.5 text-xs font-semibold hover:bg-muted/40"
+            >
+              <Iconify icon="solar:arrow-left-bold" width={14} height={14} />
+              {t('form.backToDriversList')}
+            </button>
+          </div>
+
+          <DataTable
+            tableName={t('tableNames.driverWalletTransaction')}
+            columns={driverWalletTransactionColumns(t)}
+            data={txItems}
+            hasDetails
+            rowClickToDetails
+            detailsLink={paths.dashboard.driverWalletTransactions}
+            filterSidebar={txSidebarContent}
+            activeFilterCount={txActiveFilterCount}
+            onFilterReset={() => {
+              setTxSearch('');
+              setType('');
+              setOrderId('');
+              setFrom('');
+              setTo('');
+              setMinAmount('');
+              setMaxAmount('');
+              setSortField(DEFAULT_SORT_FIELD);
+              setSortOrder(DEFAULT_SORT_ORDER);
+              setCurrentPage(1);
+            }}
+            permissions={{ create: false, update: false, delete: false }}
+            isLoading={isTransactionsLoading}
+            columnTranslations={{
+              id: t('columns.id'),
+              driver_id: t('form.driverWalletTxDriverId'),
+              driver: t('columns.driver'),
+              type: t('columns.type'),
+              amount: t('columns.amount'),
+              delivery_fee: t('form.driverWalletTxDeliveryFee'),
+              rate_percent: t('form.driverWalletTxRatePercent'),
+              order_id: t('columns.order'),
+              created_at: t('columns.createdAt'),
+              actions: t('columns.action'),
+            }}
+            pagination={txPagination}
+            currentPage={currentPage}
+            pageSize={pageSize}
+            onPageChange={handlePageChange}
+            onPageSizeChange={handlePageSizeChange}
+            onSearchChange={setTxSearch}
+            searchPlaceholder={t('form.driverWalletTxSearchPlaceholder')}
+          />
+        </div>
+      ) : (
+        <DataTable
+          tableName={t('tableNames.driver')}
+          columns={driversColumns}
+          data={driverItems}
+          filterSidebar={driversSidebarContent}
+          activeFilterCount={driversActiveFilterCount}
+          onFilterReset={() => {
+            setStatusFilter('');
+            setIsActiveFilter('');
+            setDriversCurrentPage(1);
+          }}
+          permissions={{ create: false, update: false, delete: false }}
+          isLoading={isDriversLoading}
+          columnTranslations={{
+            name: t('columns.name'),
+            phone: t('columns.phone'),
+            status: t('columns.status'),
+            is_active: t('columns.active'),
+            wallet_transactions: t('columns.action'),
+          }}
+          pagination={driverPagination}
+          currentPage={driversCurrentPage}
+          pageSize={driversPageSize}
+          onPageChange={setDriversCurrentPage}
+          onPageSizeChange={(size) => {
+            setDriversPageSize(size);
+            setDriversCurrentPage(1);
+          }}
+          onSearchChange={setDriversSearch}
+          searchPlaceholder={t('search')}
+        />
+      )}
     </>
   );
 }

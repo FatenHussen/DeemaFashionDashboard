@@ -3,9 +3,9 @@ import type { DaySchedule } from '@/pages/dashboard/vendor/types/shop.types';
 
 import { Button } from '@/shared/ui/button';
 import { useTranslation } from 'react-i18next';
-import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
 import { formatTranslated } from '@/utils/format-translated';
+import { useParams, useNavigate, useLocation } from 'react-router';
 import { useFetchShopById } from '@/pages/dashboard/vendor/hooks/shop';
 import {
   paymentMethodsFromShop,
@@ -120,6 +120,9 @@ export default function DetailsPage() {
   const { t } = useTranslation('table');
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const isRestaurantRoute = pathname.startsWith('/restaurants');
+  const basePath = isRestaurantRoute ? '/restaurants' : '/shop';
   const { data: response, isLoading, error } = useFetchShopById(id || '');
   const item = response?.data;
 
@@ -137,8 +140,8 @@ export default function DetailsPage() {
           <Typography variant="body2" className="mb-6 text-muted-foreground">
             {error instanceof Error ? error.message : t('shopDetails.errorBody')}
           </Typography>
-          <Button variant="outlined" onClick={() => navigate('/shop')}>
-            {t('shopDetails.backToList')}
+          <Button variant="outlined" onClick={() => navigate(basePath)}>
+            {isRestaurantRoute ? t('shopDetails.backToRestaurants') : t('shopDetails.backToList')}
           </Button>
         </Box>
       </Box>
@@ -148,8 +151,7 @@ export default function DetailsPage() {
   const shopType = normalizeShopTypeFromApi(item);
   const priceLevel = normalizeShopPriceLevelFromApi(item);
   const paymentKeys = paymentMethodsFromShop(item);
-  const isRecommended = Boolean(item.is_recommended ?? item.recommended);
-
+  
   const shopTypeLabel =
     shopType === 'restaurant'
       ? t('shopTypeFilterRestaurant')
@@ -182,7 +184,11 @@ export default function DetailsPage() {
 
   return (
     <>
-      <title>{t('form.shopDetailsDocumentTitle', { appName: CONFIG.appName })}</title>
+      <title>
+        {isRestaurantRoute
+          ? t('form.restaurantDetailsDocumentTitle', { appName: CONFIG.appName })
+          : t('form.shopDetailsDocumentTitle', { appName: CONFIG.appName })}
+      </title>
 
       <Box className="relative min-h-screen overflow-hidden bg-background">
         {/* ambient */}
@@ -196,13 +202,13 @@ export default function DetailsPage() {
         <Box className="relative z-[1] mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
           <Button
             variant="text"
-            onClick={() => navigate('/shop')}
+            onClick={() => navigate(basePath)}
             className="group mb-6 -ml-2 gap-2 text-muted-foreground hover:text-foreground"
           >
             <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-border/60 bg-card/80 transition group-hover:border-primary/40 group-hover:bg-primary/5">
               <Iconify icon="solar:arrow-left-bold" width={18} />
             </span>
-            {t('shopDetails.backToList')}
+            {isRestaurantRoute ? t('shopDetails.backToRestaurants') : t('shopDetails.backToList')}
           </Button>
 
           {/* Hero */}
@@ -310,7 +316,7 @@ export default function DetailsPage() {
               <div className="flex w-full shrink-0 sm:w-auto sm:items-start sm:justify-end">
                 <Button
                   variant="contained"
-                  onClick={() => navigate(`/shop/update/${id}`)}
+                  onClick={() => navigate(`${basePath}/update/${id}`)}
                   className="h-12 w-full gap-2 rounded-xl px-8 shadow-lg shadow-primary/25 sm:w-auto"
                 >
                   <Iconify icon="solar:pen-bold" width={18} /> {t('edit')}
@@ -409,6 +415,26 @@ export default function DetailsPage() {
                               className="inline-flex rounded-lg border border-primary/20 bg-primary/5 px-2.5 py-1 text-xs font-semibold text-primary"
                             >
                               {formatTranslated(s.name) || `#${s.id}`}
+                            </span>
+                          ))}
+                        </div>
+                      }
+                    />
+                  </div>
+                )}
+                {item.categories && item.categories.length > 0 && (
+                  <div className="sm:col-span-2 lg:col-span-3">
+                    <InfoTile
+                      icon="solar:folder-bold"
+                      label={t('form.shopCategoriesSection')}
+                      value={
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {item.categories.map((c) => (
+                            <span
+                              key={c.id}
+                              className="inline-flex rounded-lg border border-violet-500/20 bg-violet-500/5 px-2.5 py-1 text-xs font-semibold text-violet-700 dark:text-violet-300"
+                            >
+                              {formatTranslated(c.name) || `#${c.id}`}
                             </span>
                           ))}
                         </div>

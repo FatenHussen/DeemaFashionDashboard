@@ -1,4 +1,5 @@
 import { toast } from 'react-toastify';
+import { useLocation } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { Iconify } from '@/shared/components/iconify';
 import { useState, useEffect, type ReactNode } from 'react';
@@ -19,20 +20,17 @@ const SHOP_STATUS_FILTERS: { key: string; label: string; icon: string }[] = [
   { key: 'inactive', label: 'shopStatusFilterInactive', icon: 'solar:moon-sleep-bold' },
 ];
 
-const SHOP_TYPE_FILTERS: { key: string; label: string; icon: string }[] = [
-  { key: 'all', label: 'all', icon: 'solar:list-bold' },
-  { key: 'restaurant', label: 'shopTypeFilterRestaurant', icon: 'solar:chef-hat-bold' },
-  { key: 'service_provider', label: 'shopTypeFilterServiceProvider', icon: 'solar:hand-stars-bold' },
-  { key: 'store', label: 'shopTypeFilterStore', icon: 'solar:shop-bold' },
-];
-
 export default function Page() {
   const { t } = useTranslation('table');
+  const { pathname } = useLocation();
+  const isRestaurantRoute = pathname.startsWith('/restaurants');
+  const basePath = isRestaurantRoute ? '/restaurants' : '/shop';
+  const forcedShopType = isRestaurantRoute ? 'restaurant' : 'store';
+
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [shopStatusFilter, setShopStatusFilter] = useState('');
-  const [shopTypeFilter, setShopTypeFilter] = useState('');
   const [search, setSearch] = useState<string>('');
 
   useEffect(() => {
@@ -42,7 +40,7 @@ export default function Page() {
   // Fetch shops using the hook
   const { data: shopsResponse, isLoading, error } = useFetchShops(currentPage, pageSize, {
     ...(shopStatusFilter ? { shop_status: shopStatusFilter } : {}),
-    ...(shopTypeFilter ? { shop_type: shopTypeFilter } : {}),
+    shop_type: forcedShopType,
     ...(search.trim() ? { search: search.trim() } : {}),
   });
   const deleteShopMutation = useDeleteShop();
@@ -132,45 +130,23 @@ export default function Page() {
         </div>
       </FilterGroup>
 
-      <FilterGroup label={t('shopTypeFilterLabel')}>
-        <div className="flex flex-col gap-2">
-          {SHOP_TYPE_FILTERS.map(({ key, label, icon }) => {
-            const active = (key === 'all' && !shopTypeFilter) || shopTypeFilter === key;
-            return (
-              <button
-                key={key}
-                type="button"
-                onClick={() => {
-                  setShopTypeFilter(key === 'all' ? '' : key);
-                  setCurrentPage(1);
-                }}
-                className={`inline-flex w-full items-center gap-2 rounded-lg border px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
-                  active
-                    ? 'border-primary/30 bg-primary text-primary-foreground shadow-sm'
-                    : 'border-border/60 bg-background text-muted-foreground hover:border-primary/25 hover:bg-primary/5 hover:text-foreground'
-                }`}
-              >
-                <Iconify icon={icon} width={16} height={16} className="shrink-0" />
-                <span>{t(label)}</span>
-              </button>
-            );
-          })}
-        </div>
-      </FilterGroup>
     </div>
   );
 
   return (
     <>
-      <title>{t('form.shopsIndexDocumentTitle', { appName: CONFIG.appName })}</title>
+      <title>
+        {isRestaurantRoute
+          ? t('form.restaurantsIndexDocumentTitle', { appName: CONFIG.appName })
+          : t('form.shopsIndexDocumentTitle', { appName: CONFIG.appName })}
+      </title>
 
       <DataTable
-        tableName={t("tableNames.shop")}
+        tableName={isRestaurantRoute ? t('tableNames.restaurants') : t('tableNames.shop')}
         filterSidebar={sidebarContent}
-        activeFilterCount={(shopStatusFilter ? 1 : 0) + (shopTypeFilter ? 1 : 0)}
+        activeFilterCount={shopStatusFilter ? 1 : 0}
         onFilterReset={() => {
           setShopStatusFilter('');
-          setShopTypeFilter('');
           setCurrentPage(1);
         }}
         columns={shopColumns(
@@ -184,12 +160,17 @@ export default function Page() {
           deletingId !== null,
           onDeleteConfirm,
           onDeleteCancel,
-          deletingId
+          deletingId,
+          {
+            viewDetailsBase: `${basePath}/details`,
+            editItemBase: `${basePath}/update`,
+          },
+          { hideShopTypeColumn: true }
         )}
         data={shopData}
-        createPath="/shop/create"
+        createPath={`${basePath}/create`}
         hasDetails
-        detailsLink="/shop/details"
+        detailsLink={`${basePath}/details`}
         permissions={{
           create: hasPermission('create', 'shop'),
           update: hasPermission('update', 'shop'),
@@ -200,7 +181,6 @@ export default function Page() {
           id: t('columns.id'),
           name: t('columns.name'),
           vendor: t('columns.vendor'),
-          shop_type: t('columns.shopType'),
           rating: t('columns.rating'),
           is_open_now: t('columns.openNow'),
           status: t('columns.status'),

@@ -52,6 +52,9 @@ const buildFormDataPayload = (data: ShopCreateUpdatePayload): FormData => {
   });
   formData.append('pricing_tier', data.pricing_tier);
   formData.append('is_recommended', data.is_recommended ? '1' : '0');
+  (data.category_ids ?? []).forEach((cid) => {
+    formData.append('category_ids[]', String(cid));
+  });
   return formData;
 };
 
@@ -64,8 +67,25 @@ export const _ShopApi = {
     /** Admin / user listing: filter by shop classification */
     shop_type?: string;
     search?: string;
+    category_id?: number;
+    is_restaurant?: 0 | 1 | boolean;
   }): Promise<ShopListResponse> => {
-    const response = await axiosInstance.get<ShopListResponse>(apiRoutes.shop.list, { params });
+    const queryParams: Record<string, string | number> = {};
+    if (params?.page != null) queryParams.page = params.page;
+    if (params?.per_page != null) queryParams.per_page = params.per_page;
+    if (params?.vendor_id != null) queryParams.vendor_id = params.vendor_id;
+    if (params?.shop_status) queryParams.shop_status = params.shop_status;
+    if (params?.shop_type) queryParams.shop_type = params.shop_type;
+    if (params?.search) queryParams.search = params.search;
+    if (params?.category_id != null) queryParams.category_id = params.category_id;
+    if (params?.is_restaurant === true || params?.is_restaurant === 1) {
+      queryParams.is_restaurant = '1';
+    } else if (params?.is_restaurant === false || params?.is_restaurant === 0) {
+      queryParams.is_restaurant = '0';
+    }
+    const response = await axiosInstance.get<ShopListResponse>(apiRoutes.shop.list, {
+      params: queryParams,
+    });
     return response.data;
   },
   createShop: async (data: ShopCreateUpdatePayload): Promise<any> => {

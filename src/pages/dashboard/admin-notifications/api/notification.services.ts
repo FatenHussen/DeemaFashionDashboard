@@ -40,7 +40,6 @@ export const _AdminNotificationApi = {
       body,
       types,
       channels,
-      target_page,
       emoji,
       media,
       driver_ids,
@@ -56,7 +55,6 @@ export const _AdminNotificationApi = {
         body,
         channels: [...channels],
       };
-      if (target_page) json.target_page = target_page;
       if (emoji) json.emoji = emoji;
       if (isAll) {
         json.type = 'all';
@@ -80,7 +78,6 @@ export const _AdminNotificationApi = {
     formData.append('title', title);
     formData.append('body', body);
     channels.forEach((ch, i) => formData.append(`channels[${i}]`, ch));
-    if (target_page) formData.append('target_page', target_page);
     if (emoji) formData.append('emoji', emoji);
     if (useMultipart) formData.append('media', media);
 

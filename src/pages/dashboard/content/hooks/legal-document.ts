@@ -1,4 +1,8 @@
-import type { LegalDocumentUpdatePayload } from '../types/legal-document.types';
+import type {
+  LegalDocumentCreatePayload,
+  LegalDocumentListParams,
+  LegalDocumentUpdatePayload,
+} from '../types/legal-document.types';
 
 import { queryKeys } from '@/api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -8,11 +12,20 @@ import { _LegalDocumentApi } from '../api/legal-document.services';
 export const useFetchLegalDocuments = (
   page: number = 1,
   perPage: number = 10,
-  params?: { search?: string }
+  params?: Omit<LegalDocumentListParams, 'page' | 'per_page'>
 ) =>
   useQuery({
-    queryKey: queryKeys.legalDocument.list({ page, per_page: perPage, ...params }),
-    queryFn: () => _LegalDocumentApi.getList({ page, per_page: perPage, ...params }),
+    queryKey: queryKeys.legalDocument.list({
+      page,
+      per_page: perPage,
+      ...params,
+    }),
+    queryFn: () =>
+      _LegalDocumentApi.getList({
+        page,
+        per_page: perPage,
+        ...params,
+      }),
   });
 
 export const useFetchLegalDocumentById = (id: number | string) =>
@@ -33,6 +46,28 @@ export const useUpdateLegalDocument = () => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.legalDocument.details(variables.id),
       });
+    },
+  });
+};
+
+export const useCreateLegalDocument = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: LegalDocumentCreatePayload) => _LegalDocumentApi.create(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['legalDocument', 'list'] });
+    },
+  });
+};
+
+export const useDeleteLegalDocument = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: number | string) => _LegalDocumentApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['legalDocument', 'list'] });
     },
   });
 };

@@ -24,7 +24,7 @@ export function DashboardQuickNav() {
   ] as const;
 
   return (
-    <Box className="sticky top-0 z-20 shrink-0 border-b border-border/50 bg-card/95 px-3 py-2 shadow-sm backdrop-blur-md sm:px-4 md:px-6">
+    <Box className="sticky top-[var(--layout-header-mobile-height)] z-20 shrink-0 border-b border-border/50 bg-card/95 px-3 py-2 shadow-sm backdrop-blur-md md:top-[var(--layout-header-desktop-height)] sm:px-4 md:px-6">
       <nav
         className="mx-auto flex max-w-[1600px] flex-wrap items-center gap-1 sm:gap-2"
         aria-label={t('quickNavAria')}

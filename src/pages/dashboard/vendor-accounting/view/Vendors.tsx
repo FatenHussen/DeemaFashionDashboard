@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router';
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Iconify } from '@/shared/components/iconify';
+import { formatDecimal } from '@/utils/format-currency';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 
@@ -16,11 +17,6 @@ import { CONFIG } from 'src/global-config';
 import { useFetchVendorAccounting } from '../hooks';
 
 // ----------------------------------------------------------------------
-
-function formatCurrency(value: number | undefined | null) {
-  if (value === null || value === undefined) return '—';
-  return value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
 
 function getVendorName(name: Record<string, string> | undefined) {
   if (!name) return '—';
@@ -164,7 +160,7 @@ export default function VendorAccountingVendorsPage() {
       ),
       cell: ({ row }) => (
         <span className="text-sm font-medium text-foreground">
-          {formatCurrency(row.original.wallet.gross_sales)}
+          {formatDecimal(row.original.wallet.gross_sales)}
         </span>
       ),
     },
@@ -176,7 +172,7 @@ export default function VendorAccountingVendorsPage() {
       ),
       cell: ({ row }) => (
         <span className="text-sm font-medium text-cyan-600 dark:text-cyan-400">
-          {formatCurrency(row.original.wallet.net_due)}
+          {formatDecimal(row.original.wallet.net_due)}
         </span>
       ),
     },
@@ -188,7 +184,7 @@ export default function VendorAccountingVendorsPage() {
       ),
       cell: ({ row }) => (
         <span className="text-sm font-medium text-teal-600 dark:text-teal-400">
-          {formatCurrency(row.original.wallet.paid)}
+          {formatDecimal(row.original.wallet.paid)}
         </span>
       ),
     },
@@ -206,7 +202,7 @@ export default function VendorAccountingVendorsPage() {
               val > 0 ? 'text-indigo-600 dark:text-indigo-400' : 'text-muted-foreground'
             }`}
           >
-            {formatCurrency(val)}
+            {formatDecimal(val)}
           </span>
         );
       },

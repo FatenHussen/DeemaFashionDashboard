@@ -4,6 +4,7 @@ export * from './link';
 export * from './alert';
 export * from './badge';
 export * from './input';
+export * from './date-picker-field';
 export * from './modal';
 export * from './table';
 export * from './button';

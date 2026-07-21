@@ -1,9 +1,9 @@
 import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useMemo, useState, useEffect } from 'react';
-import { Box, Button, Typography } from '@/shared/ui';
 import { Iconify } from '@/shared/components/iconify';
 import { LoadingScreen } from '@/shared/components/loading-screen';
+import { Box, Button, Typography, DatePickerField } from '@/shared/ui';
 import { useFetchVendors } from '@/pages/dashboard/vendor/hooks/vendor';
 
 import { paths } from 'src/routes/paths';
@@ -12,6 +12,7 @@ import { CONFIG } from 'src/global-config';
 
 import { _ReportApi } from '../api/report.services';
 import { useFetchVendorPerformanceReport } from '../hooks/report';
+import { ReportPeriodBanner } from '../components/report-period-banner';
 import { ReportExportButtons } from '../components/report-export-buttons';
 
 // ----------------------------------------------------------------------
@@ -56,14 +57,21 @@ export default function VendorPerformanceReportPage() {
         ? [
             {
               label: t('reports.vendorKpiTotalSales'),
-              value: reportData.total_sales != null ? Number(reportData.total_sales).toFixed(2) : '-',
+              value:
+                reportData.total_sales != null
+                  ? Number(reportData.total_sales).toLocaleString(undefined, {
+                      maximumFractionDigits: 2,
+                    })
+                  : '-',
             },
             { label: t('reports.vendorKpiTotalOrders'), value: reportData.total_orders ?? '-' },
             {
               label: t('reports.vendorKpiAvgOrderValue'),
               value:
                 reportData.average_order_value != null
-                  ? Number(reportData.average_order_value).toFixed(2)
+                  ? Number(reportData.average_order_value).toLocaleString(undefined, {
+                      maximumFractionDigits: 2,
+                    })
                   : '-',
             },
             { label: t('reports.vendorKpiTotalShops'), value: reportData.total_shops ?? '-' },
@@ -145,18 +153,16 @@ export default function VendorPerformanceReportPage() {
             })}
           </select>
 
-          <input
-            type="date"
+          <DatePickerField
             value={fromDate}
-            onChange={(e) => setFromDate(e.target.value)}
-            className="h-9 rounded-lg border border-input bg-background px-3 text-sm"
+            onChange={setFromDate}
+            className="h-9 min-w-[140px] rounded-lg border border-input bg-background px-3 text-sm w-auto max-sm:flex-1"
           />
 
-          <input
-            type="date"
+          <DatePickerField
             value={toDate}
-            onChange={(e) => setToDate(e.target.value)}
-            className="h-9 rounded-lg border border-input bg-background px-3 text-sm"
+            onChange={setToDate}
+            className="h-9 min-w-[140px] rounded-lg border border-input bg-background px-3 text-sm w-auto max-sm:flex-1"
           />
 
           <Button variant="outlined" size="small" onClick={handleApply} disabled={!vendorId}>
@@ -172,6 +178,7 @@ export default function VendorPerformanceReportPage() {
       </div>
 
       <div className="w-full space-y-4 transition-opacity duration-500 p-6">
+        <ReportPeriodBanner appliedFrom={appliedFrom} appliedTo={appliedTo} lang={lang} />
         {reportData && appliedVendorId && (
           <Box className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {kpiItems.map(({ label, value }) => (

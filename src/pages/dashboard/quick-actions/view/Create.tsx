@@ -8,6 +8,7 @@ import { Iconify } from '@/shared/components/iconify';
 import { useParams, useNavigate } from 'react-router';
 import { compressImage } from '@/utils/compress-image';
 import { _PageSectionApi } from '@/pages/dashboard/sections/api/page-section.services';
+import { cmsPageSelectLabel } from '@/pages/dashboard/sections/utils/cms-page-select-label';
 
 import { paths } from 'src/routes/paths';
 
@@ -36,6 +37,8 @@ function buildCreateFormData(data: QuickActionCreateFormValues): FormData {
   const fd = new FormData();
   fd.append('title[en]', data.title.en);
   fd.append('title[ar]', data.title.ar);
+  fd.append('button_text[en]', data.button_text.en);
+  fd.append('button_text[ar]', data.button_text.ar);
   fd.append('page_id', data.page_id);
   fd.append('icon', data.icon as File);
   if (data.order !== undefined && data.order !== null) {
@@ -49,6 +52,8 @@ function buildUpdateFormData(data: QuickActionUpdateFormValues): FormData {
   const fd = new FormData();
   fd.append('title[en]', data.title.en);
   fd.append('title[ar]', data.title.ar);
+  fd.append('button_text[en]', data.button_text.en);
+  fd.append('button_text[ar]', data.button_text.ar);
   fd.append('page_id', data.page_id);
   if (data.icon instanceof File) {
     fd.append('icon', data.icon);
@@ -79,11 +84,12 @@ export default function CreatePage() {
   const pageOptions =
     (pagesRes?.data ?? []).map((p) => ({
       value: String(p.id),
-      label: typeof p.title === 'string' ? p.title : String(p.id),
+      label: cmsPageSelectLabel(p),
     })) || [];
 
   const createDefaults: QuickActionCreateFormValues = {
     title: { en: '', ar: '' },
+    button_text: { en: '', ar: '' },
     page_id: '',
     icon: null,
     order: 0,
@@ -92,6 +98,7 @@ export default function CreatePage() {
 
   const updateDefaults: QuickActionUpdateFormValues = {
     title: { en: '', ar: '' },
+    button_text: { en: '', ar: '' },
     page_id: '',
     icon: null,
     order: 0,
@@ -112,10 +119,15 @@ export default function CreatePage() {
     if (!isEditMode || !detailResponse?.data) return;
     const d = detailResponse.data;
     const title = d.title;
+    const bt = d.button_text;
     reset({
       title: {
         en: title?.en ?? '',
         ar: title?.ar ?? '',
+      },
+      button_text: {
+        en: typeof bt?.en === 'string' ? bt.en : '',
+        ar: typeof bt?.ar === 'string' ? bt.ar : '',
       },
       page_id: String(d.page_id),
       icon: null,
@@ -226,6 +238,43 @@ export default function CreatePage() {
           </Box>
         </Box>
 
+        {/* ── Section: Button text ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-sky-500/[0.06] via-sky-500/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:cursor-bold" className="text-sky-600 dark:text-sky-400" width={15} />
+            </Box>
+            <Typography variant="subtitle2" className="font-semibold text-foreground">
+              {t('form.quickActionFormButtonTextSectionHeading')}
+            </Typography>
+          </Box>
+          <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+            <Box className="group">
+              <Box className="flex items-center gap-2 mb-2">
+                <Iconify icon="solar:cursor-bold" className="text-sky-600 dark:text-sky-400" width={20} height={20} />
+                <Typography variant="subtitle2" className="font-semibold text-foreground">
+                  {t('form.quickActionFormButtonTextEnglishLabel')}
+                </Typography>
+              </Box>
+              <RHFTextField name="button_text.en" placeholder={t('form.quickActionFormButtonTextEnPlaceholder')} />
+            </Box>
+
+            <Box className="group">
+              <Box className="flex items-center gap-2 mb-2">
+                <Iconify icon="solar:cursor-bold" className="text-sky-600 dark:text-sky-400" width={20} height={20} />
+                <Typography variant="subtitle2" className="font-semibold text-foreground">
+                  {t('form.quickActionFormButtonTextArabicLabel')}
+                </Typography>
+              </Box>
+              <RHFTextField
+                name="button_text.ar"
+                placeholder={t('form.quickActionFormButtonTextArPlaceholder')}
+                dir="rtl"
+              />
+            </Box>
+          </Box>
+        </Box>
+
         {/* ── Section: Page & Order ── */}
         <Box className="rounded-2xl border border-border/50 bg-card/50 shadow-sm">
           <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-violet-500/[0.06] via-violet-500/[0.02] to-transparent">
@@ -233,7 +282,7 @@ export default function CreatePage() {
               <Iconify icon="solar:document-text-bold" className="text-violet-500" width={15} />
             </Box>
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              {t('form.quickActionFormPageLabel')} & {t('form.quickActionFormOrderLabel')}
+              {t('form.pageSectionFormPageLabel')} & {t('form.quickActionFormOrderLabel')}
             </Typography>
           </Box>
           <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -241,16 +290,16 @@ export default function CreatePage() {
               <Box className="flex items-center gap-2 mb-2">
                 <Iconify icon="solar:document-text-bold" className="text-violet-500" width={20} height={20} />
                 <Typography variant="subtitle2" className="font-semibold text-foreground">
-                  {t('form.quickActionFormPageLabel')}
+                  {t('form.pageSectionFormPageLabel')}
                 </Typography>
               </Box>
               <Typography variant="caption" className="text-muted-foreground mb-2 block leading-relaxed">
-                {t('form.quickActionPageSourceHelper')}
+                {t('form.selectPageHelper')}
               </Typography>
               <RHFSelect
                 name="page_id"
                 options={pageOptions}
-                placeholder={t('form.quickActionFormPagePlaceholder')}
+                placeholder={t('form.selectPage')}
               />
             </Box>
 
@@ -266,22 +315,22 @@ export default function CreatePage() {
           </Box>
         </Box>
 
-        {/* ── Section: Icon & Status ── */}
+        {/* ── Section: Background image & Status ── */}
         <Box className="rounded-2xl border border-border/50 bg-card/50 shadow-sm">
           <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-amber-500/[0.06] via-amber-500/[0.02] to-transparent">
             <Box className="h-8 w-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
-              <Iconify icon="solar:gallery-add-bold" className="text-amber-500" width={15} />
+              <Iconify icon="solar:wallpaper-bold" className="text-amber-500" width={15} />
             </Box>
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              {t('form.quickActionFormIconLabel')} & {t('columns.status')}
+              {t('form.quickActionFormBackgroundImageLabel')} & {t('columns.status')}
             </Typography>
           </Box>
           <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
             <Box className="group">
               <Box className="flex items-center gap-2 mb-2">
-                <Iconify icon="solar:gallery-add-bold" className="text-amber-500" width={20} height={20} />
+                <Iconify icon="solar:wallpaper-bold" className="text-amber-500" width={20} height={20} />
                 <Typography variant="subtitle2" className="font-semibold text-foreground">
-                  {t('form.quickActionFormIconLabel')}
+                  {t('form.quickActionFormBackgroundImageLabel')}
                 </Typography>
               </Box>
               <Controller
@@ -300,7 +349,9 @@ export default function CreatePage() {
                       error={!!error}
                       helperText={
                         error?.message ||
-                        (isEditMode ? t('form.quickActionFormIconHelperEdit') : t('form.quickActionFormIconHelper'))
+                        (isEditMode
+                          ? t('form.quickActionFormBackgroundImageHelperEdit')
+                          : t('form.quickActionFormBackgroundImageHelper'))
                       }
                       fullWidth
                       className="transition-all duration-200"

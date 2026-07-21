@@ -10,17 +10,27 @@ export const useFetchOrders = (
   perPage: number = 10,
   status?: string,
   search?: string,
+  driverId?: number,
   sortField?: string,
   sortOrder?: 'asc' | 'desc'
 ) =>
   useQuery({
-    queryKey: queryKeys.order.list({ page, per_page: perPage, status, search }),
+    queryKey: queryKeys.order.list({
+      page,
+      per_page: perPage,
+      status,
+      search,
+      driver_id: driverId,
+      sort_field: sortField,
+      sort_order: sortOrder,
+    }),
     queryFn: () =>
       _OrderApi.getListOrders({
         page,
         per_page: perPage,
         status,
         search,
+        driver_id: driverId,
         sort_field: sortField,
         sort_order: sortOrder,
       }),

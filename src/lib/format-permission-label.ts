@@ -13,7 +13,10 @@ const RESOURCE_WORDS = [
   'promotionrequest',
   'categoryattribute',
   'categorydetail',
+  'productextradetail',
+  'product_extra_detail',
   'legaldocument',
+  'contactmethod',
   'activitylog',
   'pointexchange',
   'pointwallet',
@@ -141,15 +144,15 @@ export function formatPermissionLabel(rawKey: string, t: TFunction): string {
   const resource = parts.slice(0, -1).join('.');
   const rk = resourceI18nKey(resource);
 
-  const actionLabel = t(`permAction.${action}`, {
+  const actionLabel = t(`common:permAction.${action}`, {
     defaultValue: capitalize(action),
   });
 
-  const resourceLabel = t(`permResource.${rk}`, {
+  const resourceLabel = t(`common:permResource.${rk}`, {
     defaultValue: humanizeUnknownResourceSlug(resource),
   });
 
-  return t('permLabelFormat', {
+  return t('common:permLabelFormat', {
     action: actionLabel,
     resource: resourceLabel,
     defaultValue: `${actionLabel} · ${resourceLabel}`,

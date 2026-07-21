@@ -1,4 +1,5 @@
 import type { MultiSelectOption } from '@/shared/ui/multi-select';
+import type { FlashSaleListItem } from '@/pages/dashboard/flash-sales/types';
 import type { ProductData } from '@/pages/dashboard/products/types/product.types';
 
 import { toast } from 'react-toastify';
@@ -7,8 +8,8 @@ import { useTranslation } from 'react-i18next';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Iconify } from '@/shared/components/iconify';
-import { useParams, useNavigate } from 'react-router';
 import { formatTranslated } from '@/utils/format-translated';
+import { useParams, useNavigate, useLocation } from 'react-router';
 import { _VendorApi } from '@/pages/dashboard/vendor/api/vendor.services';
 import { useFetchProducts } from '@/pages/dashboard/products/hooks/product';
 import { _CategoryApi } from '@/pages/dashboard/categories/api/category.services';
@@ -18,19 +19,17 @@ import { paths } from 'src/routes/paths';
 
 import { CONFIG } from 'src/global-config';
 import { Box, Switch, Typography } from 'src/shared/ui';
-import { LoadingScreen } from 'src/shared/components/loading-screen';
 import { RHFSelect } from 'src/shared/components/hook-form/rhf-select';
 import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
 import { RHFMultiSelect } from 'src/shared/components/hook-form/rhf-multi-select';
 import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
 
-import { useCreateFlashSale, useUpdateFlashSale, useFetchFlashSaleById } from '../hooks';
+import { useCreateFlashSale, useUpdateFlashSale } from '../hooks';
 import {
   FlashSaleCreateSchema,
   buildFlashSalePayload,
   apiDateToDatetimeLocal,
   type FlashSaleFormValues,
-  normalizeFlashSaleDiscountType,
 } from '../validation';
 
 // ----------------------------------------------------------------------
@@ -53,14 +52,10 @@ export default function CreatePage() {
   const { t } = useTranslation('table');
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const isEditMode = !!id;
-
-  const {
-    data: detailRes,
-    isLoading: isLoadingDetail,
-    isError: isDetailError,
-  } = useFetchFlashSaleById(id, Boolean(isEditMode && id));
-  const detail = detailRes?.data;
+  const detailFromState = (location.state as { flashSale?: FlashSaleListItem } | null)?.flashSale;
+  const detail = isEditMode ? detailFromState : undefined;
 
   const { data: productsResponse } = useFetchProducts({ page: 1, limit: 500 });
   const createMutation = useCreateFlashSale();
@@ -84,7 +79,7 @@ export default function CreatePage() {
       });
     }
 
-    const selectedIds = isEditMode ? detail?.product_ids ?? [] : [];
+    const selectedIds = isEditMode ? [] : [];
     for (const productId of selectedIds) {
       if (!byId.has(productId)) {
         byId.set(productId, {
@@ -96,7 +91,7 @@ export default function CreatePage() {
     }
 
     return Array.from(byId.values());
-  }, [productsResponse?.data, t, isEditMode, detail?.product_ids]);
+  }, [productsResponse?.data, t, isEditMode]);
 
   const categoryFetcher = (page: number, limit: number) =>
     _CategoryApi.getListCategoriesPaginated({ page, per_page: limit }).then((r) => {
@@ -152,17 +147,15 @@ export default function CreatePage() {
       name: detail.name ?? '',
       end_date_local: apiDateToDatetimeLocal(detail.end_date),
       is_active: Boolean(detail.is_active),
-      discount_type: normalizeFlashSaleDiscountType(detail.discount_type),
+      discount_type: detail.discount_type,
       discount: detail.discount,
-      product_ids: detail.product_ids ?? [],
+      product_ids: [],
       category_id: 0,
       vendor_id: 0,
     });
   }, [isEditMode, detail, reset]);
 
-  if (isEditMode && id && isLoadingDetail) return <LoadingScreen />;
-
-  if (isEditMode && id && !isLoadingDetail && (isDetailError || !detail?.id)) {
+  if (isEditMode && id && !detail?.id) {
     return (
       <>
         <title>{t('form.flashSaleFormTitleEdit')} | {CONFIG.appName}</title>
@@ -171,7 +164,7 @@ export default function CreatePage() {
             {t('form.flashSaleEditNotFound')}
           </Typography>
           <Typography variant="body2" className="text-muted-foreground mb-4">
-            {t('form.flashSaleEditNotFoundHint')}
+            {t('form.flashSaleEditScopeHint')}
           </Typography>
           <button
             type="button"

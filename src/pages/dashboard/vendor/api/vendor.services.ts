@@ -11,6 +11,7 @@ export const _VendorApi = {
     page?: number;
     limit?: number;
     search?: string;
+    is_restaurant?: 0 | 1 | boolean;
   }): Promise<VendorListResponse> => {
     const response = await axiosInstance.get<VendorListResponse>(apiRoutes.vendor.list, {
       params,

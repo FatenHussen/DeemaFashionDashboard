@@ -1,5 +1,12 @@
-export type PromotionType = 'simple_discount' | 'spend_x_discount' | 'buy_x_get_y';
+export type PromotionType =
+  | 'simple_discount'
+  | 'spend_x_discount'
+  | 'spend_x_get_gift'
+  | 'spend_x_get_points'
+  | 'free_shipping'
+  | 'spend_x_get_free_shipping';
 export type DiscountType = 'percentage' | 'fixed';
+export type PromotionPosition = 'top' | 'bottom';
 
 export interface PromotionListItem {
   id: number;
@@ -24,6 +31,15 @@ export interface PromotionDetailItem {
   discount_value: number | null;
   discount_type: DiscountType | null;
   gift_product_ids: number[];
+  product_ids?: number[];
+  shop_ids?: number[];
+  restaurant_ids?: number[];
+  recipe_ids?: number[];
+  shop_vendor_service_ids?: number[] | null;
+  /** CMS page slugs where this promotion is shown */
+  page_slugs?: string[] | null;
+  /** Vertical placement on the page */
+  position?: PromotionPosition | null;
 }
 
 export interface PromotionListResponse {
@@ -58,8 +74,14 @@ export interface PromotionCreatePayload {
   get_quantity?: number;
   discount_value?: number;
   discount_type?: DiscountType;
+  gift_product_ids?: number[];
+  product_ids?: number[];
+  shop_ids?: number[];
+  restaurant_ids?: number[];
+  recipe_ids?: number[];
+  shop_vendor_service_ids?: number[] | null;
+  page_slugs?: string[];
+  position?: PromotionPosition;
 }
 
-export interface PromotionUpdatePayload extends PromotionCreatePayload {
-  gift_product_ids?: number[];
-}
+export type PromotionUpdatePayload = PromotionCreatePayload;

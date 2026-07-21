@@ -16,7 +16,6 @@ export const NotificationSchema = z
     channels: z
       .array(z.enum(NOTIFICATION_CHANNELS))
       .min(1, t('notification.channelsRequired')),
-    target_page: z.string().optional(),
     emoji: z.string().max(10, t('notification.emojiTooLong')).optional(),
     media: z
       .custom<File>((v) => v instanceof File)

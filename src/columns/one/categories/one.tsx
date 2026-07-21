@@ -62,11 +62,19 @@ export const categoryColumns = (
     onSubcategoriesClick?: (row: CategoryFormValues) => void;
     /** Hide parent column when listing root categories only. */
     hideParentColumn?: boolean;
+    /** Hide type column when tabs already separate normal vs restaurant. */
+    hideTypeColumn?: boolean;
+    /** Active list tab — used for edit/update query params. */
+    categoryTab?: 'normal' | 'restaurant';
   }
 ): ColumnDef<CategoryFormValues>[] => {
   const subcategoriesPath = options?.subcategoriesPath;
   const onSubcategoriesClick = options?.onSubcategoriesClick;
   const hideParentColumn = options?.hideParentColumn;
+  const hideTypeColumn = options?.hideTypeColumn;
+  const categoryTypeQuery = options?.categoryTab ?? 'normal';
+  const editPath = (rowId: number) =>
+    `/categories/update/${rowId}?type=${categoryTypeQuery}`;
 
   const parentColumn: ColumnDef<CategoryFormValues> = {
     id: 'parent',
@@ -172,29 +180,49 @@ export const categoryColumns = (
       </div>
     ),
   },
-  {
-    id: 'is_restaurant',
-    accessorKey: 'is_restaurant',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.type')} />,
-    cell: ({ row }) => {
-      const isRestaurant = row.original.is_restaurant;
-      return (
-        <div className="flex items-center gap-2">
-          {isRestaurant ? (
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-orange-500/10 border border-orange-500/20 w-fit">
-              <Iconify icon="solar:shop-bold" className="text-orange-500 shrink-0" width={13} height={13} />
-              <span className="text-xs font-semibold text-orange-500">{t('columns.restaurant')}</span>
-            </div>
-          ) : (
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-muted border border-border w-fit">
-              <Iconify icon="solar:shop-2-bold" className="text-muted-foreground shrink-0" width={13} height={13} />
-              <span className="text-xs font-semibold text-muted-foreground">{t('columns.normal')}</span>
-            </div>
-          )}
-        </div>
-      );
-    },
-  },
+  ...(hideTypeColumn
+    ? []
+    : [
+        {
+          id: 'is_restaurant',
+          accessorKey: 'is_restaurant',
+          header: ({ column }) => (
+            <DataTableColumnHeader column={column} title={t('columns.type')} />
+          ),
+          cell: ({ row }) => {
+            const isRestaurant = row.original.is_restaurant;
+            return (
+              <div className="flex items-center gap-2">
+                {isRestaurant ? (
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-orange-500/10 border border-orange-500/20 w-fit">
+                    <Iconify
+                      icon="solar:shop-bold"
+                      className="text-orange-500 shrink-0"
+                      width={13}
+                      height={13}
+                    />
+                    <span className="text-xs font-semibold text-orange-500">
+                      {t('columns.restaurant')}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-muted border border-border w-fit">
+                    <Iconify
+                      icon="solar:shop-2-bold"
+                      className="text-muted-foreground shrink-0"
+                      width={13}
+                      height={13}
+                    />
+                    <span className="text-xs font-semibold text-muted-foreground">
+                      {t('columns.normal')}
+                    </span>
+                  </div>
+                )}
+              </div>
+            );
+          },
+        } as ColumnDef<CategoryFormValues>,
+      ]),
   {
     id: 'created_at',
     accessorKey: 'created_at',
@@ -228,8 +256,8 @@ export const categoryColumns = (
             ? (r) => onSubcategoriesClick(r.original as CategoryFormValues)
             : undefined
         }
-        viewDetails={`/categories/update/${row.original.id}`}
-        editItem={`/categories/update/${row.original.id}`}
+        viewDetails={editPath(row.original.id)}
+        editItem={editPath(row.original.id)}
         onDelete={onDelete}
         isDeleting={isDeleting}
         isDeleteDialogOpen={isDeleteDialogOpen}

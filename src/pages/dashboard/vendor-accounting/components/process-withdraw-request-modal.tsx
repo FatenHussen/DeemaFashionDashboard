@@ -102,7 +102,7 @@ export function ProcessWithdrawRequestModal({
               <p className="text-xs text-muted-foreground">
                 {t('vendorAccounting.requestId')} #{effectiveRequest.id} •{' '}
                 {effectiveRequest.amount.toLocaleString(undefined, {
-                  minimumFractionDigits: 2,
+                  minimumFractionDigits: 0,
                   maximumFractionDigits: 2,
                 })}
               </p>

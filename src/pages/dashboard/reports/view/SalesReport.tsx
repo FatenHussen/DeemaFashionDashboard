@@ -1,11 +1,11 @@
-import dayjs from 'dayjs';
 import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useMemo, useState, useEffect } from 'react';
-import { Box, Button, Typography } from '@/shared/ui';
 import { Iconify } from '@/shared/components/iconify';
 import { formatCurrency } from '@/utils/format-currency';
+import { fDateTimeLocalized } from '@/utils/format-time';
 import { LoadingScreen } from '@/shared/components/loading-screen';
+import { Box, Button, Typography, DatePickerField } from '@/shared/ui';
 
 import { paths } from 'src/routes/paths';
 
@@ -13,6 +13,7 @@ import { CONFIG } from 'src/global-config';
 
 import { _ReportApi } from '../api/report.services';
 import { useFetchSalesReport } from '../hooks/report';
+import { ReportPeriodBanner } from '../components/report-period-banner';
 import { ReportExportButtons } from '../components/report-export-buttons';
 
 // ----------------------------------------------------------------------
@@ -20,6 +21,7 @@ import { ReportExportButtons } from '../components/report-export-buttons';
 export default function SalesReportPage() {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation('table');
+  const lang = (i18n.language || 'en').startsWith('ar') ? 'ar' : 'en';
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [appliedFrom, setAppliedFrom] = useState('');
@@ -96,16 +98,6 @@ export default function SalesReportPage() {
     ];
   }, [reportData, t, i18n.language]);
 
-  const rangeLabel = useMemo(() => {
-    const fmt = (d?: string) => (d ? dayjs(d).format('YYYY-MM-DD') : '');
-    if (appliedFrom && appliedTo) {
-      return t('reports.rangeBoth', { from: fmt(appliedFrom), to: fmt(appliedTo) });
-    }
-    if (appliedFrom) return t('reports.rangeFromOnly', { from: fmt(appliedFrom) });
-    if (appliedTo) return t('reports.rangeToOnly', { to: fmt(appliedTo) });
-    return t('reports.rangeAll');
-  }, [appliedFrom, appliedTo, t, i18n.language]);
-
   if (isLoading && !reportData) return <LoadingScreen />;
 
   const tableContainerClass =
@@ -138,17 +130,15 @@ export default function SalesReportPage() {
           </Box>
         </Box>
         <Box className="flex flex-wrap items-center gap-2">
-          <input
-            type="date"
+          <DatePickerField
             value={fromDate}
-            onChange={(e) => setFromDate(e.target.value)}
-            className="h-9 rounded-lg border border-input bg-background px-3 text-sm"
+            onChange={setFromDate}
+            className="h-9 min-w-[140px] rounded-lg border border-input bg-background px-3 text-sm w-auto max-sm:flex-1"
           />
-          <input
-            type="date"
+          <DatePickerField
             value={toDate}
-            onChange={(e) => setToDate(e.target.value)}
-            className="h-9 rounded-lg border border-input bg-background px-3 text-sm"
+            onChange={setToDate}
+            className="h-9 min-w-[140px] rounded-lg border border-input bg-background px-3 text-sm w-auto max-sm:flex-1"
           />
           <Button variant="outlined" size="small" onClick={handleApply}>
             {t('reports.apply')}
@@ -160,22 +150,9 @@ export default function SalesReportPage() {
       </div>
 
       <div className="w-full space-y-4 transition-opacity duration-500 p-6">
+        <ReportPeriodBanner appliedFrom={appliedFrom} appliedTo={appliedTo} lang={lang} />
         {reportData && (
           <>
-            <Box className="rounded-xl border-2 border-primary/30 bg-gradient-to-br from-primary/[0.06] via-card to-card px-5 py-4 shadow-sm">
-              <Box className="flex flex-wrap items-center justify-between gap-3">
-                <Box className="flex items-center gap-2">
-                  <Iconify icon="solar:calendar-bold" className="text-primary" width={18} />
-                  <Typography variant="subtitle2" className="font-semibold text-foreground">
-                    {t('reports.reportPeriod')}
-                  </Typography>
-                </Box>
-                <Typography variant="body2" className="font-semibold text-foreground tabular-nums">
-                  {rangeLabel}
-                </Typography>
-              </Box>
-            </Box>
-
             <Box className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {kpiItems.map(({ label, value, tone }) => {
                 const toneClass =
@@ -239,7 +216,7 @@ export default function SalesReportPage() {
                           <td className="text-end py-3 px-5">{order.delivery_price}</td>
                           <td className="py-3 px-5">
                             {order.delivered_at
-                              ? dayjs(order.delivered_at).format('YYYY-MM-DD HH:mm')
+                              ? fDateTimeLocalized(order.delivered_at, lang) || '-'
                               : '-'}
                           </td>
                         </tr>

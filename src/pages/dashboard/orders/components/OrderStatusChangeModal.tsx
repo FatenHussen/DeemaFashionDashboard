@@ -17,6 +17,11 @@ const STATUS_ICONS: Record<OrderStatus, string> = {
   out_delivery: 'solar:delivery-bold',
   delivered: 'solar:check-circle-bold',
   cancelled: 'solar:close-circle-bold',
+
+  cancelled_by_admin: 'solar:shield-cross-bold',
+  faild_deliver: 'solar:danger-triangle-bold',
+
+  returned_by_user: 'solar:undo-left-bold',
 };
 
 type Props = {

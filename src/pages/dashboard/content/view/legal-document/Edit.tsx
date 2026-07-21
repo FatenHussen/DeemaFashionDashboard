@@ -132,10 +132,10 @@ export default function EditPage() {
           isSubmitting={updateMutation.isPending}
           errorMessage={updateMutation.error?.message || null}
           title={t('form.editLegalDocument')}
-          description={t('form.updateTitleContent')}
+          description={t('form.editLegalDocumentDesc')}
           isEditMode
-          submitLabel={t('form.saveChanges')}
-          submittingLabel={t('form.savingLegalDocumentSubmit')}
+          submitLabel={t('form.updateLegalDocumentSubmit')}
+          submittingLabel={t('form.updatingLegalDocumentSubmit')}
         >
           {/* ── Section: Title ── */}
           <Box className="rounded-2xl border border-border/50 bg-card/50 shadow-sm">

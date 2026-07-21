@@ -25,6 +25,7 @@ import {
 import {
   CouponCreateSchema,
   CouponUpdateSchema,
+  type CouponScope,
   type CouponFormValues,
   couponLocalDateTimeToISO,
 } from '@/pages/dashboard/coupons/validation/coupon.validation';
@@ -199,7 +200,7 @@ export default function CreatePage() {
     end_at: '',
     max_uses: 1,
     is_active: true,
-    coupon_type: 'general',
+    coupon_types: ['general'],
     governorate_id: null,
     city_id: null,
     product_ids: [],
@@ -218,30 +219,27 @@ export default function CreatePage() {
   });
 
   const { handleSubmit, reset, control, watch, setValue } = methods;
-  const couponType = watch('coupon_type');
+  const couponTypes = watch('coupon_types') ?? [];
+  const couponTypesError = methods.formState.errors.coupon_types?.message as string | undefined;
   const affiliateId = watch('affiliate_id');
   const hasAffiliateId = !!affiliateId && affiliateId > 0;
+  const isScopeProduct = couponTypes.includes('product');
+  const isScopeVendor = couponTypes.includes('vendor');
+  const isScopeShop = couponTypes.includes('shop');
 
-  const loadedAffiliateId = useMemo(() => {
-    const s = couponResponse?.data ?? couponFromState;
-    if (!s) return undefined;
-    return (s as { affiliate_id?: number | null }).affiliate_id ?? undefined;
-  }, [couponResponse?.data, couponFromState]);
-  const lockAffiliateSelect =
-    isEditMode && loadedAffiliateId != null && loadedAffiliateId > 0;
-
-  // Determine coupon type from API response
-  const inferCouponType = (data: CouponDetailsData): 'general' | 'product' | 'vendor' | 'shop' => {
-    if (data.products && data.products.length > 0) return 'product';
-    if (data.vendors && data.vendors.length > 0) return 'vendor';
-    if (data.shops && data.shops.length > 0) return 'shop';
-    return 'general';
+  // Determine coupon scopes from API response (supports multiple)
+  const inferCouponTypes = (data: CouponDetailsData): Array<'general' | 'product' | 'vendor' | 'shop'> => {
+    const types: Array<'general' | 'product' | 'vendor' | 'shop'> = [];
+    if (data.products && data.products.length > 0) types.push('product');
+    if (data.vendors && data.vendors.length > 0) types.push('vendor');
+    if (data.shops && data.shops.length > 0) types.push('shop');
+    return types.length ? types : ['general'];
   };
 
   useEffect(() => {
     const source = isEditMode ? (couponResponse?.data ?? couponFromState) : null;
     if (source) {
-      const type = inferCouponType(source);
+      const types = inferCouponTypes(source);
       const discount = source.discount;
       reset({
         name:
@@ -256,7 +254,7 @@ export default function CreatePage() {
         end_at: source.end_at ? toISODateTimeLocal(source.end_at) : '',
         max_uses: Math.max(1, source.max_uses ?? 1),
         is_active: Boolean(source.is_active),
-        coupon_type: type,
+        coupon_types: types,
         governorate_id: source.governorate_id ?? null,
         city_id: source.city_id ?? null,
         product_ids: source.products?.map((p) => p.id) || [],
@@ -286,13 +284,15 @@ export default function CreatePage() {
         city_id: data.city_id || null,
       };
 
-      if (data.coupon_type === 'product' && data.product_ids?.length) {
+      const types = data.coupon_types ?? [];
+
+      if (types.includes('product') && data.product_ids?.length) {
         payload.products = data.product_ids.map((pid) => ({ id: pid }));
       }
-      if (data.coupon_type === 'vendor' && data.vendor_ids?.length) {
+      if (types.includes('vendor') && data.vendor_ids?.length) {
         payload.vendors = data.vendor_ids.map((vid) => ({ id: vid }));
       }
-      if (data.coupon_type === 'shop' && data.shop_ids?.length) {
+      if (types.includes('shop') && data.shop_ids?.length) {
         payload.shops = data.shop_ids.map((sid) => ({ id: sid }));
       }
 
@@ -440,31 +440,87 @@ export default function CreatePage() {
                 fetcher={() => marketersFetcher()}
                 placeholder={t('form.leaveEmptyNonAffiliate')}
                 helperText={hasAffiliateId ? t('form.couponAffiliateScopeHelper') : undefined}
-                disabled={lockAffiliateSelect}
                 onValueChange={(val) => {
                   if (val === 0) { methods.setValue('affiliate_id', undefined as any); }
-                  else if (val > 0) { methods.setValue('coupon_type', 'general'); methods.setValue('product_ids', []); methods.setValue('vendor_ids', []); methods.setValue('shop_ids', []); }
+                  else if (val > 0) { methods.setValue('coupon_types', ['general']); methods.setValue('product_ids', []); methods.setValue('vendor_ids', []); methods.setValue('shop_ids', []); }
                 }}
               />
             </Box>
             <Box>
               <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.couponTypeLabel')}</Typography>
               <Controller
-                name="coupon_type"
+                name="coupon_types"
                 control={control}
-                render={({ field }) => (
-                  <div className="flex flex-wrap gap-4">
-                    {([{ value: 'general', label: t('form.couponTypeGeneral') }, { value: 'product', label: t('form.couponTypeProducts') }, { value: 'vendor', label: t('form.couponTypeVendors') }, { value: 'shop', label: t('form.couponTypeShops') }] as const).map((opt) => (
-                      <label key={opt.value} className={`flex items-center gap-2 ${isEditMode || hasAffiliateId ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}>
-                        <input type="radio" checked={field.value === opt.value} onChange={() => field.onChange(opt.value)} disabled={isEditMode || hasAffiliateId} className="accent-primary disabled:cursor-not-allowed" />
-                        <span className="text-sm">{opt.label}</span>
-                      </label>
-                    ))}
-                  </div>
-                )}
+                render={({ field }) => {
+                  const value: CouponScope[] = (field.value as CouponScope[] | undefined) ?? [];
+                  const disabled = hasAffiliateId;
+                  const toggle = (opt: CouponScope) => {
+                    if (disabled) return;
+                    let next: CouponScope[];
+                    if (value.includes(opt)) {
+                      next = value.filter((v) => v !== opt);
+                    } else if (opt === 'general') {
+                      next = ['general'];
+                    } else {
+                      next = [...value.filter((v) => v !== 'general'), opt];
+                    }
+                    if (next.length === 0) next = ['general'];
+                    if (!next.includes('product')) methods.setValue('product_ids', []);
+                    if (!next.includes('vendor')) methods.setValue('vendor_ids', []);
+                    if (!next.includes('shop')) methods.setValue('shop_ids', []);
+                    field.onChange(next);
+                  };
+                  const options: { value: CouponScope; label: string }[] = [
+                    { value: 'general', label: t('form.couponTypeGeneral') },
+                    { value: 'product', label: t('form.couponTypeProducts') },
+                    { value: 'vendor', label: t('form.couponTypeVendors') },
+                    { value: 'shop', label: t('form.couponTypeShops') },
+                  ];
+                  return (
+                    <Box>
+                      <div className="flex flex-wrap gap-2">
+                        {options.map((opt) => {
+                          const isChecked = value.includes(opt.value);
+                          return (
+                            <button
+                              key={opt.value}
+                              type="button"
+                              onClick={() => toggle(opt.value)}
+                              disabled={disabled}
+                              className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-sm transition-colors ${
+                                disabled
+                                  ? 'cursor-not-allowed opacity-60 border-border/60 bg-background/40'
+                                  : isChecked
+                                    ? 'border-primary bg-primary/10 text-foreground'
+                                    : 'border-border/60 bg-background/60 hover:border-primary/50 hover:bg-primary/[0.04]'
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                readOnly
+                                checked={isChecked}
+                                disabled={disabled}
+                                className="accent-primary pointer-events-none disabled:cursor-not-allowed"
+                              />
+                              <span>{opt.label}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <Typography variant="caption" className="mt-2 block text-muted-foreground">
+                        {t('form.couponTypeMultipleHelper')}
+                      </Typography>
+                      {couponTypesError && (
+                        <Typography variant="caption" className="mt-1 block text-destructive">
+                          {couponTypesError}
+                        </Typography>
+                      )}
+                    </Box>
+                  );
+                }}
               />
             </Box>
-            {couponType === 'product' && (
+            {isScopeProduct && (
               <Box>
                 <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5"><Iconify icon="solar:cart-large-2-bold" className="text-sky-500" width={16} />{t('form.couponTypeProducts')}</Typography>
                 <RHFMultiSelect
@@ -478,13 +534,13 @@ export default function CreatePage() {
                 />
               </Box>
             )}
-            {couponType === 'vendor' && (
+            {isScopeVendor && (
               <Box>
                 <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5"><Iconify icon="solar:users-group-rounded-bold" className="text-sky-500" width={16} />{t('form.couponTypeVendors')}</Typography>
                 <RHFMultiSelect name="vendor_ids" options={vendorOptions} label={t('form.selectVendors')} placeholder={hasAffiliateId ? t('form.couponManagedByAffiliate') : t('form.couponSearchSelectVendors')} fullWidth isDisabled={hasAffiliateId} />
               </Box>
             )}
-            {couponType === 'shop' && (
+            {isScopeShop && (
               <Box>
                 <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5"><Iconify icon="solar:shop-bold" className="text-sky-500" width={16} />{t('form.couponTypeShops')}</Typography>
                 <RHFMultiSelect name="shop_ids" options={shopOptions} label={t('form.selectShops')} placeholder={hasAffiliateId ? t('form.couponManagedByAffiliate') : t('form.couponSearchSelectShops')} fullWidth isDisabled={hasAffiliateId} />

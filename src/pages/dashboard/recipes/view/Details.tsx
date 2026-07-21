@@ -7,6 +7,7 @@ import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
 import { formatTranslated } from '@/utils/format-translated';
 import { usePermissions } from '@/auth/hooks/use-permissions';
+import { formatDecimal, formatMoneyLine } from '@/utils/format-currency';
 import { useFetchRecipeById } from '@/pages/dashboard/recipes/hooks/recipe';
 
 import { CONFIG } from 'src/global-config';
@@ -301,7 +302,7 @@ export default function DetailsPage() {
                 </Box>
                 <Box>
                   <Typography variant="caption" className="text-muted-foreground">
-                    {t('columns.discount')}
+                    {t('form.recipeDiscountLabel')}
                   </Typography>
                   <Typography variant="body1" className="font-medium">
                     {item.discount != null && item.discount !== '' ? String(item.discount) : '—'}
@@ -430,17 +431,21 @@ export default function DetailsPage() {
                           </Typography>
                           <Typography variant="caption" className="mt-1 block text-muted-foreground">
                             {t('form.priceLabel')}:{' '}
-                            {recipeItem.main_item?.price != null ? String(recipeItem.main_item.price) : '—'} ·{' '}
-                            {t('columns.discount')}: {recipeItem.main_item?.discount ?? '—'} ·{' '}
-                            {t('columns.priceAfterDiscount')}: {recipeItem.main_item?.price_after_discount ?? '—'}
+                            {recipeItem.main_item?.price != null
+                              ? formatDecimal(recipeItem.main_item.price)
+                              : '—'}{' '}
+                            · {t('form.recipeDiscountLabel')}: {recipeItem.main_item?.discount ?? '—'} ·{' '}
+                            {t('columns.priceAfterDiscount')}:{' '}
+                            {recipeItem.main_item?.price_after_discount != null
+                              ? formatDecimal(recipeItem.main_item.price_after_discount)
+                              : '—'}
                           </Typography>
                         </Box>
                         <Typography variant="body2" className="font-medium">
-                          {recipeItem.main_item?.price_formatted != null
-                            ? recipeItem.main_item.price_formatted
-                            : recipeItem.main_item?.price != null
-                              ? String(recipeItem.main_item.price)
-                              : '—'}
+                          {formatMoneyLine(
+                            recipeItem.main_item?.price_formatted,
+                            recipeItem.main_item?.price
+                          )}
                         </Typography>
                       </Box>
                       <Typography variant="caption" className="mt-2 block text-muted-foreground">
@@ -479,7 +484,7 @@ export default function DetailsPage() {
                                     {t('form.priceLabel')}: {alt.price_formatted ?? alt.price}
                                   </Typography>
                                   <Typography variant="caption" component="div" className="text-xs">
-                                    {t('columns.discount')}: {alt.discount ?? '—'} · {t('columns.priceAfterDiscount')}:{' '}
+                                    {t('form.recipeDiscountLabel')}: {alt.discount ?? '—'} · {t('columns.priceAfterDiscount')}:{' '}
                                     {alt.price_after_discount ?? '—'}
                                   </Typography>
                                 </Box>

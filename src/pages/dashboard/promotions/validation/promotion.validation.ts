@@ -16,7 +16,14 @@ export const PromotionSchema = z
       en: z.string().min(1, t('promotion.descriptionEnRequired')),
       ar: z.string().min(1, t('promotion.descriptionArRequired')),
     }),
-    type: z.enum(['simple_discount', 'spend_x_discount', 'buy_x_get_y']),
+    type: z.enum([
+      'simple_discount',
+      'spend_x_discount',
+      'spend_x_get_gift',
+      'spend_x_get_points',
+      'free_shipping',
+      'spend_x_get_free_shipping',
+    ]),
     is_active: z.boolean().optional(),
     starts_at: z.string().optional(),
     ends_at: z.string().optional(),
@@ -25,6 +32,14 @@ export const PromotionSchema = z
     get_quantity: z.number().optional().nullable(),
     discount_value: z.number().optional().nullable(),
     discount_type: z.enum(['percentage', 'fixed']).optional().nullable(),
+    gift_product_ids: z.array(z.number()).optional().default([]),
+    product_ids: z.array(z.number()).optional().default([]),
+    shop_ids: z.array(z.number()).optional().default([]),
+    restaurant_ids: z.array(z.number()).optional().default([]),
+    recipe_ids: z.array(z.number()).optional().default([]),
+    shop_vendor_service_ids: z.array(z.coerce.number().int().positive()).optional().default([]),
+    page_slugs: z.array(z.string()).optional().default([]),
+    position: z.enum(['top', 'bottom']).optional().default('top'),
   })
   .superRefine((data, ctx) => {
     const usesDiscount = data.type === 'simple_discount' || data.type === 'spend_x_discount';

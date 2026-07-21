@@ -15,4 +15,9 @@ export const LegalDocumentSchema = z.object({
   }),
 });
 
+export const LegalDocumentCreateSchema = LegalDocumentSchema.extend({
+  key: z.string().min(1, t('required')),
+});
+
 export type LegalDocumentFormValues = z.infer<typeof LegalDocumentSchema>;
+export type LegalDocumentCreateFormValues = z.infer<typeof LegalDocumentCreateSchema>;

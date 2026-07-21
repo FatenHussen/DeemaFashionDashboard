@@ -33,6 +33,13 @@ interface InfiniteScrollSelectProps {
   getOptionColorHex?: (item: InfiniteSelectOption & Record<string, unknown>) => string | null | undefined;
   /** Items per page — defaults to 10 */
   pageSize?: number;
+  /** When true, shows a clear control to reset value to 0 */
+  clearable?: boolean;
+  /** Pinned first-row option that selects a null / no-filter state */
+  nullOptionLabel?: string;
+  /** When true, the trigger shows `nullOptionLabel` instead of a fetched item */
+  isNullValue?: boolean;
+  onSelectNull?: () => void;
 }
 
 /**
@@ -53,6 +60,10 @@ export function InfiniteScrollSelect({
   getOptionImage,
   getOptionColorHex,
   pageSize = 10,
+  clearable = false,
+  nullOptionLabel,
+  isNullValue = false,
+  onSelectNull,
 }: InfiniteScrollSelectProps) {
   const { t } = useTranslation('table');
   const placeholder = placeholderProp ?? t('select');
@@ -113,11 +124,13 @@ export function InfiniteScrollSelect({
   );
   // Use initialLabel as fallback when item hasn't been fetched yet (edit mode)
   // formatTranslated handles label as string or { ar, en } object
-  const displayLabel = selectedOption
-    ? formatTranslated((selectedOption as any).label)
-    : value > 0 && initialLabel
-      ? initialLabel
-      : null;
+  const displayLabel = isNullValue && nullOptionLabel
+    ? nullOptionLabel
+    : selectedOption
+      ? formatTranslated((selectedOption as any).label)
+      : value > 0 && initialLabel
+        ? initialLabel
+        : null;
 
   const selectedImageSrc =
     getOptionImage && value > 0
@@ -188,11 +201,34 @@ export function InfiniteScrollSelect({
             {displayLabel ?? placeholder}
           </span>
         )}
-        <Iconify
-          icon="solar:alt-arrow-down-bold"
-          width={14}
-          className={`shrink-0 text-muted-foreground transition-transform ${isOpen ? 'rotate-180' : ''}`}
-        />
+        <span className="flex shrink-0 items-center gap-1">
+          {clearable && value > 0 && !disabled ? (
+            <span
+              role="button"
+              tabIndex={0}
+              aria-label={t('clearSelection')}
+              className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition hover:bg-muted hover:text-foreground"
+              onClick={(e) => {
+                e.stopPropagation();
+                onChange(0);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onChange(0);
+                }
+              }}
+            >
+              <Iconify icon="solar:close-circle-bold" width={14} />
+            </span>
+          ) : null}
+          <Iconify
+            icon="solar:alt-arrow-down-bold"
+            width={14}
+            className={`shrink-0 text-muted-foreground transition-transform ${isOpen ? 'rotate-180' : ''}`}
+          />
+        </span>
       </button>
 
       {/* Dropdown - rendered in portal to avoid overflow clipping */}
@@ -228,6 +264,20 @@ export function InfiniteScrollSelect({
 
             {/* Options list */}
             <div ref={listContainerRef} className="max-h-52 overflow-y-auto">
+              {nullOptionLabel && onSelectNull ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onSelectNull();
+                    handleClose();
+                  }}
+                  className={`flex w-full items-center gap-2 border-b border-border/40 px-3 py-2 text-sm text-start hover:bg-muted transition-colors ${
+                    isNullValue ? 'bg-primary/10 text-primary font-medium' : 'text-muted-foreground'
+                  }`}
+                >
+                  {nullOptionLabel}
+                </button>
+              ) : null}
               {isLoading ? (
                 <div className="flex items-center justify-center gap-2 py-4 text-sm text-muted-foreground">
                   <Iconify icon="svg-spinners:ring-resize" width={16} />

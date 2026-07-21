@@ -19,6 +19,9 @@ coverage
 _static
 out
 dist
+dist *
+dist*.zip
+dist.zip*
 build
 
 # environment variables

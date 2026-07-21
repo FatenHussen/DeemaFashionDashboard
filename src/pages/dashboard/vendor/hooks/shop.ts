@@ -12,6 +12,8 @@ export type UseFetchShopsOptions = {
   shop_status?: string;
   /** API: `shop_type` — restaurant, service_provider, store */
   shop_type?: string;
+  /** API: `is_restaurant` — `0` shops, `1` restaurants */
+  is_restaurant?: 0 | 1 | boolean;
   search?: string;
   enabled?: boolean;
 };
@@ -24,6 +26,7 @@ export const useFetchShops = (
   const vendorId = opts?.vendorId;
   const shopStatus = opts?.shop_status;
   const shopType = opts?.shop_type;
+  const isRestaurant = opts?.is_restaurant;
   const search = opts?.search;
   const enabled = opts?.enabled ?? true;
   const listParams = {
@@ -32,6 +35,11 @@ export const useFetchShops = (
     ...(vendorId != null && vendorId > 0 ? { vendor_id: vendorId } : {}),
     ...(shopStatus ? { shop_status: shopStatus } : {}),
     ...(shopType ? { shop_type: shopType } : {}),
+    ...(isRestaurant === true || isRestaurant === 1
+      ? { is_restaurant: 1 as const }
+      : isRestaurant === false || isRestaurant === 0
+        ? { is_restaurant: 0 as const }
+        : {}),
     ...(search ? { search } : {}),
   };
   return useQuery({
@@ -43,6 +51,11 @@ export const useFetchShops = (
         ...(vendorId != null && vendorId > 0 ? { vendor_id: vendorId } : {}),
         ...(shopStatus ? { shop_status: shopStatus } : {}),
         ...(shopType ? { shop_type: shopType } : {}),
+        ...(isRestaurant === true || isRestaurant === 1
+          ? { is_restaurant: 1 }
+          : isRestaurant === false || isRestaurant === 0
+            ? { is_restaurant: 0 }
+            : {}),
         ...(search ? { search } : {}),
       }),
     enabled,

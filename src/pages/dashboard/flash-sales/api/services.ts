@@ -63,25 +63,6 @@ export const _FlashSaleApi = {
     };
   },
 
-  getById: async (id: number | string): Promise<FlashSaleMutationResponse> => {
-    const response = await axiosInstance.get(apiRoutes.flashSale.details(id));
-    const body = response.data as {
-      status?: boolean;
-      message?: string;
-      data?: Record<string, unknown>;
-    };
-    const raw = body?.data;
-    const data: FlashSaleModel =
-      raw != null && typeof raw === 'object'
-        ? normalizeFlashSaleRecord(raw as Record<string, unknown>)
-        : ({} as FlashSaleModel);
-    return {
-      status: Boolean(body.status),
-      message: body.message,
-      data,
-    };
-  },
-
   create: async (payload: FlashSaleWritePayload): Promise<FlashSaleMutationResponse> => {
     const response = await axiosInstance.post(
       apiRoutes.flashSale.create,

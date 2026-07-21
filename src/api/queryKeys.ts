@@ -21,6 +21,7 @@ export const queryKeys = {
       vendor_id?: number;
       shop_status?: string;
       shop_type?: string;
+      is_restaurant?: 0 | 1 | boolean;
     }) => ['shop', 'list', params] as const,
     details: (id: number | string) => ['shop', 'details', id] as const,
   },
@@ -108,6 +109,11 @@ export const queryKeys = {
       ['categorydetail', 'list', params] as const,
     details: (id: number | string) => ['categorydetail', 'details', id] as const,
   },
+  productExtraDetail: {
+    list: (params?: Record<string, unknown>) =>
+      ['productextradetail', 'list', params] as const,
+    details: (id: number | string) => ['productextradetail', 'details', id] as const,
+  },
   // Service query keys
   service: {
     list: (params?: { page?: number; limit?: number }) => ['service', 'list', params] as const,
@@ -158,10 +164,20 @@ export const queryKeys = {
     list: (params?: { page?: number; limit?: number; search?: string }) => ['pageSection', 'list', params] as const,
     details: (id: number | string) => ['pageSection', 'details', id] as const,
     pages: () => ['pageSection', 'pages'] as const,
+    pagePreview: (id: number | string, paramsKey?: string) =>
+      ['pageSection', 'pagePreview', id, paramsKey ?? ''] as const,
   },
   // Order query keys
   order: {
-    list: (params?: { page?: number; per_page?: number; status?: string; search?: string }) =>
+    list: (params?: {
+      page?: number;
+      per_page?: number;
+      status?: string;
+      search?: string;
+      driver_id?: number;
+      sort_field?: string;
+      sort_order?: 'asc' | 'desc';
+    }) =>
       ['order', 'list', params] as const,
     details: (id: number | string) => ['order', 'details', id] as const,
     toAssign: (params: {
@@ -211,7 +227,12 @@ export const queryKeys = {
   },
   // Gift query keys
   gift: {
-    list: (params?: { page?: number; per_page?: number }) => ['gift', 'list', params] as const,
+    list: (params?: {
+      page?: number;
+      per_page?: number;
+      search?: string;
+      category_id?: number;
+    }) => ['gift', 'list', params] as const,
     details: (id: number | string) => ['gift', 'details', id] as const,
   },
   // User Gift query keys
@@ -253,7 +274,14 @@ export const queryKeys = {
   },
   // Legal Document query keys
   legalDocument: {
-    list: (params?: { page?: number; per_page?: number }) =>
+    list: (params?: {
+      page?: number;
+      per_page?: number;
+      search?: string;
+      key?: string;
+      sort_field?: 'id' | 'key' | 'created_at' | 'updated_at';
+      sort_order?: 'asc' | 'desc';
+    }) =>
       ['legalDocument', 'list', params] as const,
     details: (id: number | string) => ['legalDocument', 'details', id] as const,
   },
@@ -262,6 +290,10 @@ export const queryKeys = {
     list: (params?: { page?: number; per_page?: number; type?: string }) =>
       ['faq', 'list', params] as const,
     details: (id: number | string) => ['faq', 'details', id] as const,
+  },
+  contactMethod: {
+    list: (params?: Record<string, unknown>) => ['contactMethod', 'list', params] as const,
+    details: (id: number | string) => ['contactMethod', 'details', id] as const,
   },
   // Vendor Subscription query keys
   vendorSubscription: {

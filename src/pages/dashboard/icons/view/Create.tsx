@@ -149,7 +149,7 @@ export default function CreatePage() {
               {t('form.nameEn')} / {t('form.nameAr')} & {t('form.imageLabel')}
             </Typography>
           </Box>
-          <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+          <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5" dir="ltr">
             <Box>
               <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.nameEn')}</Typography>
               <RHFTextField name="name.en" placeholder={t('form.iconNameEnPlaceholder')} helperText={t('form.iconNameEnHelper')} />
@@ -180,7 +180,7 @@ export default function CreatePage() {
               {t('form.descriptionEn')} / {t('form.descriptionAr')}
             </Typography>
           </Box>
-          <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+          <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5" dir="ltr">
             <Box>
               <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.descriptionEn')} {t('form.descriptionOptionalSuffix')}</Typography>
               <RHFTextField name="description.en" placeholder={t('form.descriptionEnPlaceholder')} />
@@ -202,7 +202,7 @@ export default function CreatePage() {
               {t('form.iconFullDescSection')}
             </Typography>
           </Box>
-          <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+          <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5" dir="ltr">
             <Box>
               <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.iconFullDescEn')}</Typography>
               <Controller name="full_description.en" control={control} render={({ field, fieldState: { error } }) => (
@@ -213,7 +213,9 @@ export default function CreatePage() {
               )} />
             </Box>
             <Box>
-              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.iconFullDescAr')}</Typography>
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground" dir="rtl">
+                {t('form.iconFullDescAr')}
+              </Typography>
               <Controller name="full_description.ar" control={control} render={({ field, fieldState: { error } }) => (
                 <div>
                   <TinyMCEEditorField value={field.value ?? ''} onChange={field.onChange} onBlur={field.onBlur} placeholder={t('form.iconFullDescArPlaceholder')} dir="rtl" menubar toolsMenuWordCount height={320} />
