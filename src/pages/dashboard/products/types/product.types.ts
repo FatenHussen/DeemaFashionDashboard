@@ -129,19 +129,22 @@ export interface ProductDetailData {
     is_trend?: boolean | number;
     is_active?: boolean | number;
     attributes: Array<{ attribute: string; value: string; type: string }>;
+    /** Sale price/stock now live on the variant itself — shared across every shop. */
+    price: number;
+    price_currencies?: Record<string, ProductDetailCurrencyAmount> | null;
+    /** Read-only: computed from the product's own discount (spec §9), not independently settable. */
+    discount?: number | null;
+    discount_currencies?: Record<string, ProductDetailCurrencyAmount> | null;
+    price_after_discount?: number | null;
+    price_after_discount_currencies?: Record<string, ProductDetailCurrencyAmount> | null;
+    quantity: number;
     shops: Array<{
       id?: number;
       shop_id: number;
       shop_name: string;
-      price: number;
-      price_currencies?: Record<string, ProductDetailCurrencyAmount> | null;
-      discount?: number | null;
-      discount_currencies?: Record<string, ProductDetailCurrencyAmount> | null;
-      price_after_discount?: number | null;
-      price_after_discount_currencies?: Record<string, ProductDetailCurrencyAmount> | null;
+      /** Branch purchase cost only — not a sale price; sale price lives on the variant above. */
       cost_price?: number | null;
       cost_price_currencies?: Record<string, ProductDetailCurrencyAmount> | null;
-      quantity: number;
     }>;
     images: Array<{ id: number; url: string }>;
   }>;
@@ -246,6 +249,10 @@ export interface ProductCreateUpdatePayload {
     model?: string;
     barcode?: string;
     name?: { en: string; ar: string };
+    /** Sale price for this SKU, shared across every shop. */
+    price?: number;
+    /** Stock for this SKU, shared across every shop. */
+    quantity?: number;
     stock?: number;
     max_purchase_quantity?: number;
     delivery_time?: string;
@@ -276,10 +283,8 @@ export interface ProductCreateUpdatePayload {
     id?: number;
     shop_id: number;
     variant_index: number;
-    price: number;
+    /** Branch purchase cost only — not a sale price. */
     cost_price?: number;
-    discount?: number;
-    quantity: number;
   }>;
 
   badges?: number[];
@@ -313,15 +318,17 @@ export interface AdminProductVariantListItem {
   }>;
   is_trend?: boolean | number;
   is_active?: boolean;
+  /** Sale price/stock now live on the variant itself — shared across every shop. */
+  price: number;
+  discount?: number | null;
+  discount_type?: string | null;
+  price_after_discount?: number | null;
+  quantity: number;
   shop_variants: Array<{
     id: number;
     shop: { id: number; name: string };
-    price: number;
-    discount?: number | null;
-    discount_type?: string | null;
-    price_after_discount?: number | null;
+    /** Branch purchase cost only — not a sale price. */
     cost_price?: number;
-    quantity: number;
   }>;
   created_at?: string;
 }

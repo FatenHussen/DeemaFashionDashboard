@@ -12,6 +12,9 @@ import { CSS } from '@dnd-kit/utilities';
 import { Button } from '@/shared/ui/button';
 import { useTranslation } from 'react-i18next';
 import { Iconify } from '@/shared/components/iconify';
+import { useQueryClient } from '@tanstack/react-query';
+import { usePermissions } from '@/auth/hooks/use-permissions';
+import { Dialog, DialogContent } from '@/shared/ui/dialogTable';
 import { useParams, useNavigate, useSearchParams } from 'react-router';
 import { useRef, useMemo, useState, useEffect, useCallback } from 'react';
 import { sectionTypeLabel } from '@/pages/dashboard/sections/utils/section-type-label';
@@ -20,15 +23,16 @@ import { useSensor, DndContext, useSensors, PointerSensor, closestCenter } from 
 import { PagePreviewFilters } from '@/pages/dashboard/sections/components/page-preview-filters';
 import { arrayMove , useSortable, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import {
-  useFetchPages,
-  useFetchPagePreview,
-  useReorderPageSections,
-} from '@/pages/dashboard/sections/hooks/usePageSections';
-import {
   filtersToSearchParams,
   parsePagePreviewParams,
   buildPagePreviewFilters,
 } from '@/pages/dashboard/sections/utils/page-preview-params';
+import {
+  useFetchPages,
+  useFetchPagePreview,
+  useDeletePageSection,
+  useReorderPageSections,
+} from '@/pages/dashboard/sections/hooks/usePageSections';
 
 import { CONFIG } from 'src/global-config';
 import { Box, Typography } from 'src/shared/ui';
@@ -164,12 +168,16 @@ function SortablePreviewSection({
   index,
   expanded,
   onToggle,
+  onEdit,
+  onDelete,
   t,
 }: {
   section: PagePreviewSection;
   index: number;
   expanded: boolean;
   onToggle: () => void;
+  onEdit?: () => void;
+  onDelete?: () => void;
   t: TFunction<'table'>;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -243,16 +251,38 @@ function SortablePreviewSection({
             </div>
           </button>
 
-          <button
-            type="button"
-            onClick={onToggle}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border/60 bg-background/80 text-muted-foreground transition-colors hover:text-foreground"
-          >
-            <Iconify
-              icon={expanded ? 'solar:alt-arrow-up-bold' : 'solar:alt-arrow-down-bold'}
-              width={18}
-            />
-          </button>
+          <div className="flex shrink-0 items-center gap-1.5">
+            {onEdit && (
+              <button
+                type="button"
+                onClick={onEdit}
+                className="flex h-9 w-9 items-center justify-center rounded-xl border border-border/60 bg-background/80 text-muted-foreground transition-colors hover:border-primary/30 hover:text-primary"
+                aria-label={t('edit')}
+              >
+                <Iconify icon="solar:pen-bold" width={16} />
+              </button>
+            )}
+            {onDelete && (
+              <button
+                type="button"
+                onClick={onDelete}
+                className="flex h-9 w-9 items-center justify-center rounded-xl border border-border/60 bg-background/80 text-muted-foreground transition-colors hover:border-destructive/40 hover:text-destructive"
+                aria-label={t('delete')}
+              >
+                <Iconify icon="solar:trash-bin-trash-bold" width={16} />
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onToggle}
+              className="flex h-9 w-9 items-center justify-center rounded-xl border border-border/60 bg-background/80 text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <Iconify
+                icon={expanded ? 'solar:alt-arrow-up-bold' : 'solar:alt-arrow-down-bold'}
+                width={18}
+              />
+            </button>
+          </div>
         </div>
 
         {!expanded && previewItems.length > 0 && (
@@ -371,10 +401,14 @@ export default function PageDetails() {
     activeFilters
   );
   const reorderMutation = useReorderPageSections();
+  const deleteSectionMutation = useDeletePageSection();
+  const queryClient = useQueryClient();
+  const { can } = usePermissions();
 
   const [orderedSections, setOrderedSections] = useState<PagePreviewSection[]>([]);
   const [baselineIds, setBaselineIds] = useState<number[]>([]);
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
+  const [deletingSectionId, setDeletingSectionId] = useState<number | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
@@ -450,6 +484,28 @@ export default function PageDetails() {
       else next.add(sectionId);
       return next;
     });
+  };
+
+  const handleAddSection = () => {
+    navigate(`/sections/pages/${numericId}/sections/create`);
+  };
+
+  const handleEditSection = (sectionId: number) => {
+    navigate(`/sections/page-sections/update/${sectionId}`);
+  };
+
+  const handleDeleteSectionConfirm = async () => {
+    if (!deletingSectionId) return;
+    try {
+      await deleteSectionMutation.mutateAsync(deletingSectionId);
+      queryClient.invalidateQueries({ queryKey: ['pageSection', 'pagePreview'] });
+      queryClient.invalidateQueries({ queryKey: ['pageBuilder'] });
+      toast.success(t('deleteSuccess'));
+      setDeletingSectionId(null);
+    } catch (err) {
+      console.error('Failed to delete page section:', err);
+      toast.error(t('form.pageBuilderSectionDeleteFailed'));
+    }
   };
 
   useEffect(() => {
@@ -575,6 +631,14 @@ export default function PageDetails() {
                 </div>
               </div>
             </div>
+            {can('pagesection.create') && (
+              <div className="mt-5 flex justify-end">
+                <Button variant="contained" onClick={handleAddSection} className="gap-2">
+                  <Iconify icon="solar:widget-add-bold" width={18} />
+                  {t('form.pageBuilderAddSectionButton')}
+                </Button>
+              </div>
+            )}
           </div>
 
           {pageFilterSchema && Object.keys(pageFilterSchema).length > 0 && (
@@ -609,6 +673,14 @@ export default function PageDetails() {
                       index={index}
                       expanded={expandedIds.has(section.id)}
                       onToggle={() => toggleExpanded(section.id)}
+                      onEdit={
+                        can('pagesection.update') ? () => handleEditSection(section.id) : undefined
+                      }
+                      onDelete={
+                        can('pagesection.delete')
+                          ? () => setDeletingSectionId(section.id)
+                          : undefined
+                      }
                       t={t}
                     />
                   ))}
@@ -625,9 +697,45 @@ export default function PageDetails() {
               <Typography variant="body1" className="text-muted-foreground">
                 {t('form.pagePreviewNoSections')}
               </Typography>
+              {can('pagesection.create') && (
+                <Button variant="contained" onClick={handleAddSection} className="mt-4 gap-2">
+                  <Iconify icon="solar:widget-add-bold" width={18} />
+                  {t('form.pageBuilderAddSectionButton')}
+                </Button>
+              )}
             </div>
           )}
         </Box>
+
+        {/* Delete section confirmation */}
+        {deletingSectionId !== null && (
+          <Dialog
+            open={deletingSectionId !== null}
+            onOpenChange={(open) => !open && setDeletingSectionId(null)}
+          >
+            <DialogContent className="bg-background text-foreground p-6 rounded-lg shadow-lg z-[9999]">
+              <h2 className="text-lg font-bold">{t('confirmDelete')}</h2>
+              <p>{t('areYouSure')}</p>
+              <div className="flex justify-end space-x-2 mt-4">
+                <Button
+                  variant="outlined"
+                  onClick={() => setDeletingSectionId(null)}
+                  disabled={deleteSectionMutation.isPending}
+                >
+                  {t('cancel')}
+                </Button>
+                <Button
+                  variant="contained"
+                  color="error"
+                  onClick={handleDeleteSectionConfirm}
+                  disabled={deleteSectionMutation.isPending}
+                >
+                  {deleteSectionMutation.isPending ? t('deleting') : t('delete')}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
 
         {/* Sticky save bar */}
         {isDirty && (

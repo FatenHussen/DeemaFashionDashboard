@@ -159,6 +159,12 @@ export const queryKeys = {
     list: (params?: { page?: number; per_page?: number }) => ['banner', 'list', params] as const,
     details: (id: number | string) => ['banner', 'details', id] as const,
   },
+  // Page Builder query keys (unified CMS page CRUD)
+  pageBuilder: {
+    list: (params?: { page?: number; per_page?: number; search?: string }) =>
+      ['pageBuilder', 'list', params] as const,
+    details: (id: number | string) => ['pageBuilder', 'details', id] as const,
+  },
   // Page Section query keys
   pageSection: {
     list: (params?: { page?: number; limit?: number; search?: string }) => ['pageSection', 'list', params] as const,

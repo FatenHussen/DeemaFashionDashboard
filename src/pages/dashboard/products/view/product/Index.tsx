@@ -103,6 +103,7 @@ export default function Page() {
       _CategoryAttributeApi.getListCategoryAttributes({
         page: 1,
         per_page: 500,
+        // The API resolves any category_id (root or subcategory) to its root's attributes.
         ...(categoryFilter ? { category_id: Number(categoryFilter) } : {}),
       }),
   });

@@ -1,3 +1,8 @@
+import type {
+  VariantDeleteImpact,
+  VariantDeleteImpactResponse,
+} from '@/pages/dashboard/products/types/variant-delete-impact.types';
+
 import { apiRoutes, axiosInstance } from '@/api';
 
 // ----------------------------------------------------------------------
@@ -5,10 +10,15 @@ import { apiRoutes, axiosInstance } from '@/api';
 export interface ShopProductVariantItem {
   id: number;
   label: string;
-  /** From API — display as-is (backend may compute discount / price_after_discount). */
-  price?: number;
-  discount?: number | null;
-  price_after_discount?: number | null;
+  /** Sale price/stock now live on the variant, shared across every shop. */
+  variant?: {
+    id?: number;
+    price?: number;
+    quantity?: number;
+    discount?: number | null;
+    price_after_discount?: number | null;
+  };
+  /** Branch purchase cost only — not a sale price; sale price lives on `variant.price` above. */
   cost_price?: number | null;
   /** Present on list/detail payloads from API */
   variant_image?: string | null;
@@ -43,9 +53,10 @@ function formatShopProductVariantListLabel(
   const base = typeof item.label === 'string' ? item.label : String(item.label ?? '');
   if (!includePricing) return base;
   const bits: string[] = [];
-  if (item.price != null) bits.push(String(item.price));
-  if (item.discount != null) bits.push(String(item.discount));
-  if (item.price_after_discount != null) bits.push(String(item.price_after_discount));
+  const variant = item.variant;
+  if (variant?.price != null) bits.push(String(variant.price));
+  if (variant?.discount != null) bits.push(String(variant.discount));
+  if (variant?.price_after_discount != null) bits.push(String(variant.price_after_discount));
   return bits.length ? `${base} — ${bits.join(' · ')}` : base;
 }
 
@@ -64,11 +75,8 @@ const emptyResponse = (page: number, perPage: number): ShopProductVariantListRes
 });
 
 export interface ShopProductVariantUpdatePayload {
-  price?: number;
+  /** Branch purchase cost only — price/quantity are edited on the variant itself, not per shop. */
   cost_price?: number;
-  quantity?: number;
-  discount?: number;
-  discount_type?: 'percentage' | 'fixed';
 }
 
 export const _ShopProductVariantApi = {
@@ -77,9 +85,26 @@ export const _ShopProductVariantApi = {
     return response.data;
   },
 
-  delete: async (id: number | string): Promise<any> => {
-    const response = await axiosInstance.delete(apiRoutes.shopProductVariant.delete(id));
+  /**
+   * Soft-deletes the shop link. Without `confirm`, the API answers `409`
+   * (rejected as `ConfirmationRequiredError`) whenever linked data exists.
+   */
+  delete: async (id: number | string, options?: { confirm?: boolean }): Promise<any> => {
+    const response = await axiosInstance.delete(apiRoutes.shopProductVariant.delete(id), {
+      params: options?.confirm ? { confirm: true } : undefined,
+      // `useVariantDeleteFlow` owns every message for this call, including the 409 handshake.
+      skipErrorToast: true,
+    });
     return response.data;
+  },
+
+  /** Preview of what the delete would touch. Deletes nothing. */
+  getDeleteImpact: async (id: number | string): Promise<VariantDeleteImpact | null> => {
+    const response = await axiosInstance.get<VariantDeleteImpactResponse>(
+      apiRoutes.shopProductVariant.deleteImpact(id),
+      { skipErrorToast: true }
+    );
+    return response.data?.data ?? null;
   },
 
   getList: async (params?: {

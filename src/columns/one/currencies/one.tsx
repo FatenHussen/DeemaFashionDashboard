@@ -58,7 +58,7 @@ export const currencyColumns = (
     id: 'exchange_rate',
     accessorKey: 'exchange_rate',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.rate')} />,
-    cell: ({ row }) => <span className="text-sm font-mono">{row.original.exchange_rate}</span>,
+    cell: ({ row }) => <span className="text-sm font-mono">{Number(row.original.exchange_rate)}</span>,
   },
   {
     id: 'is_default',

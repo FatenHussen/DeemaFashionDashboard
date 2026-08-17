@@ -13,14 +13,10 @@ import { Iconify } from '@/shared/components/iconify';
 import { formatTranslated } from '@/utils/format-translated';
 import { _ProductApi } from '@/pages/dashboard/products/api/product.services';
 import { useFetchCurrencies } from '@/pages/dashboard/currencies/hooks/currency';
-import { useUpdateShopProductVariant } from '@/pages/dashboard/products/hooks/product-variant';
 import {
-  parseDiscountValue,
-  validateShopVariantDiscount,
-  calculatePriceAfterDiscountSyp,
-  normalizeShopVariantDiscountType,
-  type ShopVariantDiscountType,
-} from '@/pages/dashboard/products/utils/shop-variant-discount';
+  useUpdateProductVariant,
+  useUpdateShopProductVariant,
+} from '@/pages/dashboard/products/hooks/product-variant';
 
 import { CONFIG } from 'src/global-config';
 
@@ -33,15 +29,19 @@ function parseCurrencyRate(c: CurrencyData): number {
   return r > 0 ? r : 1;
 }
 
-/** `exchange_rate` = units of local currency per 1 USD → USD = local / rate. */
+/**
+ * `exchange_rate` = units of local currency per 1 USD → USD = local / rate.
+ * USD keeps 6 decimal places (not 2) because rates like 13000 SYP/USD make a cent
+ * worth ~130 SYP — rounding to cents here would collapse small local amounts to 0.
+ */
 function localAmountToUsd(local: number, exchangeRate: number): number {
   const r = exchangeRate > 0 ? exchangeRate : 1;
-  return local / r;
+  return Math.round((local / r) * 1e6) / 1e6;
 }
 
 function usdToLocalAmount(usd: number, exchangeRate: number): number {
   const r = exchangeRate > 0 ? exchangeRate : 1;
-  return usd * r;
+  return Math.round((usd * r) * 100) / 100;
 }
 
 function resolveVariantImageUrl(url: string | null | undefined): string | null {
@@ -50,13 +50,6 @@ function resolveVariantImageUrl(url: string | null | undefined): string | null {
   if (s.startsWith('http://') || s.startsWith('https://')) return s;
   return `${CONFIG.serverUrl}/${s.replace(/^\//, '')}`;
 }
-
-function formatShopVariantDiscountValue(discount: number | null | undefined): string {
-  return discount != null ? String(discount) : '';
-}
-
-const selectInputClass =
-  'h-9 w-full min-w-0 rounded-md border border-input bg-background px-3 py-1 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring';
 
 type Props = {
   open: boolean;
@@ -77,89 +70,48 @@ type Props = {
   };
 };
 
-/** Shop offer edits: `PUT /admin/shop-product-variants/:id` (see `_ShopProductVariantApi.update`). */
-function ShopVariantRowEditor({
-  shopVariant,
+/**
+ * Sale price/stock edits: `PUT /admin/product-variants/:id` (see `_ProductVariantApi.update`).
+ * Discount/price-after-discount are read-only here — computed server-side from the product's discount.
+ */
+function VariantPriceEditor({
+  variant,
   canEdit,
   onSuccess,
   labels,
   dualPriceReady,
   sypRate,
-  sypSymbol,
 }: {
-  shopVariant: AdminProductVariantListItem['shop_variants'][number];
+  variant: AdminProductVariantListItem;
   canEdit: boolean;
   onSuccess: () => void;
   labels: {
     save: string;
     price: string;
-    cost: string;
     priceAfterDiscount: string;
     stock: string;
-    discountType: string;
-    discountPercentage: string;
-    discountAmount: string;
-    discountValue: string;
   };
   dualPriceReady: boolean;
   sypRate: number;
-  sypSymbol?: string;
 }) {
   const { t } = useTranslation('table');
-  const { mutate, isPending } = useUpdateShopProductVariant();
-  const [price, setPrice] = useState(String(shopVariant.price));
-  const [costPrice, setCostPrice] = useState(
-    shopVariant.cost_price != null ? String(shopVariant.cost_price) : ''
-  );
-  const [quantity, setQuantity] = useState(String(shopVariant.quantity));
-  const [discountType, setDiscountType] = useState<ShopVariantDiscountType>(() =>
-    normalizeShopVariantDiscountType(shopVariant.discount_type)
-  );
-  const [discountValue, setDiscountValue] = useState(() =>
-    formatShopVariantDiscountValue(shopVariant.discount)
-  );
+  const { mutate, isPending } = useUpdateProductVariant();
+  const [price, setPrice] = useState(String(variant.price));
+  const [quantity, setQuantity] = useState(String(variant.quantity));
 
   useEffect(() => {
-    setPrice(String(shopVariant.price));
-    setCostPrice(shopVariant.cost_price != null ? String(shopVariant.cost_price) : '');
-    setQuantity(String(shopVariant.quantity));
-    setDiscountType(normalizeShopVariantDiscountType(shopVariant.discount_type));
-    setDiscountValue(formatShopVariantDiscountValue(shopVariant.discount));
-  }, [shopVariant]);
+    setPrice(String(variant.price));
+    setQuantity(String(variant.quantity));
+  }, [variant]);
 
-  const initialDiscountType = normalizeShopVariantDiscountType(shopVariant.discount_type);
-  const initialDiscountValue = formatShopVariantDiscountValue(shopVariant.discount);
-
-  const dirty =
-    price !== String(shopVariant.price) ||
-    costPrice !==
-      (shopVariant.cost_price != null ? String(shopVariant.cost_price) : '') ||
-    quantity !== String(shopVariant.quantity) ||
-    discountType !== initialDiscountType ||
-    discountValue !== initialDiscountValue;
+  const dirty = price !== String(variant.price) || quantity !== String(variant.quantity);
 
   const usdNum = parseFloat(price) || 0;
   const sypNum = dualPriceReady ? usdToLocalAmount(usdNum, sypRate) : usdNum;
-  const discountValueNum = parseDiscountValue(discountValue);
-
-  const calculatedPriceAfterDiscount = useMemo(
-    () =>
-      calculatePriceAfterDiscountSyp({
-        sypPrice: sypNum,
-        discountType,
-        discountValue: Number.isNaN(discountValueNum) ? 0 : discountValueNum,
-      }),
-    [sypNum, discountType, discountValueNum]
-  );
-
-  const discountSuffix =
-    discountType === 'percentage' ? '%' : sypSymbol?.trim() || 'SYP';
 
   const handleSave = () => {
     const p = parseFloat(price);
     const q = parseInt(quantity, 10);
-    const c = costPrice.trim() === '' ? undefined : parseFloat(costPrice);
-    const parsedDiscount = parseDiscountValue(discountValue);
 
     if (Number.isNaN(p) || p < 0) {
       toast.error(t('productVariantsModalInvalidPrice'));
@@ -169,35 +121,12 @@ function ShopVariantRowEditor({
       toast.error(t('productVariantsModalInvalidQuantity'));
       return;
     }
-    if (c !== undefined && (Number.isNaN(c) || c < 0)) {
-      toast.error(t('productVariantsModalInvalidCost'));
-      return;
-    }
-
-    const discountValidation = validateShopVariantDiscount({
-      discountType,
-      discountValue: parsedDiscount,
-      sypPrice: sypNum,
-    });
-    if (!discountValidation.valid) {
-      toast.error(t(discountValidation.errorKey));
-      return;
-    }
 
     mutate(
-      {
-        id: shopVariant.id,
-        data: {
-          price: p,
-          quantity: q,
-          discount_type: discountType,
-          discount: parsedDiscount,
-          ...(c !== undefined ? { cost_price: c } : {}),
-        },
-      },
+      { id: variant.id, data: { price: p, quantity: q } },
       {
         onSuccess: () => {
-          toast.success(t('productVariantsShopUpdated'));
+          toast.success(t('productVariantsVariantUpdated'));
           onSuccess();
         },
         onError: (e: unknown) => {
@@ -207,59 +136,32 @@ function ShopVariantRowEditor({
     );
   };
 
-  const shopName =
-    typeof shopVariant.shop?.name === 'string'
-      ? shopVariant.shop.name
-      : formatTranslated(shopVariant.shop?.name as Parameters<typeof formatTranslated>[0]);
-
-  const discountTypeLabel =
-    initialDiscountType === 'fixed' ? labels.discountAmount : labels.discountPercentage;
-
   const fieldShell = 'flex min-w-0 flex-col gap-1';
   const labelClass = 'text-xs leading-snug text-muted-foreground';
 
   if (!canEdit) {
-    const usdP = Number(shopVariant.price) || 0;
+    const usdP = Number(variant.price) || 0;
     const sypP = dualPriceReady ? usdToLocalAmount(usdP, sypRate) : null;
-    const readOnlyDiscountValue = parseDiscountValue(initialDiscountValue);
-    const readOnlyPriceAfterDiscount = calculatePriceAfterDiscountSyp({
-      sypPrice: sypP ?? usdP,
-      discountType: initialDiscountType,
-      discountValue: Number.isNaN(readOnlyDiscountValue) ? 0 : readOnlyDiscountValue,
-    });
 
     return (
-      <div className="grid grid-cols-1 gap-2 rounded-md border border-border/60 bg-muted/20 px-3 py-2 text-sm sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        <div className="font-medium text-foreground sm:col-span-2 xl:col-span-4">{shopName}</div>
+      <div className="grid grid-cols-1 gap-2 rounded-md border border-border/60 bg-muted/20 px-3 py-2 text-sm sm:grid-cols-2 lg:grid-cols-3">
         <div>
-          <span className="text-muted-foreground">{t('form.productPriceUsdLabel')}: </span>
-          {shopVariant.price}
+          <span className="text-muted-foreground">{t('form.variantPriceUsdLabel')}: </span>
+          {variant.price}
           {sypP != null ? (
             <>
-              <span className="text-muted-foreground"> · {t('form.productPriceSypLabel')}: </span>
+              <span className="text-muted-foreground"> · {t('form.variantPriceSypLabel')}: </span>
               {sypP}
             </>
           ) : null}
         </div>
         <div>
-          <span className="text-muted-foreground">{labels.discountType}: </span>
-          {discountTypeLabel}
-        </div>
-        <div>
-          <span className="text-muted-foreground">{labels.discountValue}: </span>
-          {initialDiscountValue !== '' ? initialDiscountValue : '—'}
-        </div>
-        <div>
-          <span className="text-muted-foreground">{labels.cost}: </span>
-          {shopVariant.cost_price ?? '—'}
-        </div>
-        <div>
           <span className="text-muted-foreground">{labels.priceAfterDiscount}: </span>
-          {readOnlyPriceAfterDiscount}
+          {variant.price_after_discount ?? '—'}
         </div>
         <div>
           <span className="text-muted-foreground">{labels.stock}: </span>
-          {shopVariant.quantity}
+          {variant.quantity}
         </div>
       </div>
     );
@@ -267,12 +169,11 @@ function ShopVariantRowEditor({
 
   return (
     <div className="space-y-3 rounded-md border border-border/60 bg-muted/10 px-3 py-3">
-      <div className="text-sm font-medium text-foreground">{shopName}</div>
-      <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2 lg:grid-cols-4">
         {dualPriceReady ? (
           <>
             <div className={fieldShell}>
-              <span className={labelClass}>{t('form.productPriceUsdLabel')}</span>
+              <span className={labelClass}>{t('form.variantPriceUsdLabel')}</span>
               <Input
                 type="number"
                 step="any"
@@ -283,7 +184,7 @@ function ShopVariantRowEditor({
               />
             </div>
             <div className={fieldShell}>
-              <span className={labelClass}>{t('form.productPriceSypLabel')}</span>
+              <span className={labelClass}>{t('form.variantPriceSypLabel')}</span>
               <Input
                 type="number"
                 step="any"
@@ -312,50 +213,12 @@ function ShopVariantRowEditor({
           </div>
         )}
         <div className={fieldShell}>
-          <span className={labelClass}>{labels.discountType}</span>
-          <select
-            value={discountType}
-            onChange={(e) => setDiscountType(normalizeShopVariantDiscountType(e.target.value))}
-            className={selectInputClass}
-          >
-            <option value="percentage">{labels.discountPercentage}</option>
-            <option value="fixed">{labels.discountAmount}</option>
-          </select>
-        </div>
-        <div className={fieldShell}>
-          <span className={labelClass}>{labels.discountValue}</span>
-          <Input
-            type="number"
-            step="any"
-            min={0}
-            max={discountType === 'percentage' ? 100 : sypNum > 0 ? sypNum : undefined}
-            value={discountValue}
-            onChange={(e) => setDiscountValue(e.target.value)}
-            placeholder={discountType === 'percentage' ? '0' : '0'}
-            endAdornment={
-              <span className="text-xs text-muted-foreground tabular-nums">{discountSuffix}</span>
-            }
-            className="h-9 w-full min-w-0"
-          />
-        </div>
-        <div className={fieldShell}>
-          <span className={labelClass}>{labels.cost}</span>
-          <Input
-            type="number"
-            step="0.01"
-            min={0}
-            value={costPrice}
-            onChange={(e) => setCostPrice(e.target.value)}
-            className="h-9 w-full min-w-0"
-          />
-        </div>
-        <div className={fieldShell}>
           <span className={labelClass}>{labels.priceAfterDiscount}</span>
           <Input
             type="number"
             readOnly
             disabled
-            value={calculatedPriceAfterDiscount}
+            value={variant.price_after_discount ?? ''}
             className="h-9 w-full min-w-0 bg-muted/40"
           />
         </div>
@@ -370,6 +233,7 @@ function ShopVariantRowEditor({
           />
         </div>
       </div>
+      <p className="text-xs text-muted-foreground/80">{t('form.variantPriceQuantityHint')}</p>
       <div className="flex justify-end border-t border-border/50 pt-3">
         <Button
           type="button"
@@ -382,6 +246,100 @@ function ShopVariantRowEditor({
           {isPending ? <Iconify icon="svg-spinners:ring-resize" width={18} /> : labels.save}
         </Button>
       </div>
+    </div>
+  );
+}
+
+/** Branch availability edits: `PUT /admin/shop-product-variants/:id` — purchase cost only. */
+function ShopVariantRowEditor({
+  shopVariant,
+  canEdit,
+  onSuccess,
+  labels,
+}: {
+  shopVariant: AdminProductVariantListItem['shop_variants'][number];
+  canEdit: boolean;
+  onSuccess: () => void;
+  labels: {
+    save: string;
+    cost: string;
+  };
+}) {
+  const { t } = useTranslation('table');
+  const { mutate, isPending } = useUpdateShopProductVariant();
+  const [costPrice, setCostPrice] = useState(
+    shopVariant.cost_price != null ? String(shopVariant.cost_price) : ''
+  );
+
+  useEffect(() => {
+    setCostPrice(shopVariant.cost_price != null ? String(shopVariant.cost_price) : '');
+  }, [shopVariant]);
+
+  const initialCostPrice = shopVariant.cost_price != null ? String(shopVariant.cost_price) : '';
+  const dirty = costPrice !== initialCostPrice;
+
+  const handleSave = () => {
+    const c = costPrice.trim() === '' ? undefined : parseFloat(costPrice);
+    if (c !== undefined && (Number.isNaN(c) || c < 0)) {
+      toast.error(t('productVariantsModalInvalidCost'));
+      return;
+    }
+
+    mutate(
+      { id: shopVariant.id, data: { cost_price: c } },
+      {
+        onSuccess: () => {
+          toast.success(t('productVariantsShopUpdated'));
+          onSuccess();
+        },
+        onError: (e: unknown) => {
+          toast.error(e instanceof Error ? e.message : String(e));
+        },
+      }
+    );
+  };
+
+  const shopName =
+    typeof shopVariant.shop?.name === 'string'
+      ? shopVariant.shop.name
+      : formatTranslated(shopVariant.shop?.name as Parameters<typeof formatTranslated>[0]);
+
+  if (!canEdit) {
+    return (
+      <div className="grid grid-cols-1 gap-2 rounded-md border border-border/60 bg-muted/20 px-3 py-2 text-sm sm:grid-cols-2">
+        <div className="font-medium text-foreground">{shopName}</div>
+        <div>
+          <span className="text-muted-foreground">{labels.cost}: </span>
+          {shopVariant.cost_price ?? '—'}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-wrap items-end gap-3 rounded-md border border-border/60 bg-muted/10 px-3 py-3">
+      <div className="min-w-[120px] text-sm font-medium text-foreground">{shopName}</div>
+      <div className="flex min-w-0 flex-col gap-1">
+        <span className="text-xs leading-snug text-muted-foreground">{labels.cost}</span>
+        <Input
+          type="number"
+          step="0.01"
+          min={0}
+          value={costPrice}
+          onChange={(e) => setCostPrice(e.target.value)}
+          className="h-9 w-full min-w-0"
+        />
+      </div>
+      <Button
+        type="button"
+        size="small"
+        variant="contained"
+        disabled={!dirty || isPending}
+        onClick={handleSave}
+        className="h-9 shrink-0"
+      >
+        {isPending ? <Iconify icon="svg-spinners:ring-resize" width={18} /> : labels.save}
+      </Button>
     </div>
   );
 }
@@ -515,14 +473,10 @@ export function ProductVariantsPriceModal({
 
   const labels = {
     save: t('save'),
-    price: t('columns.price'),
+    price: t('form.variantPriceLabel'),
     cost: t('productVariantsModalCost'),
-    stock: t('columns.stock'),
+    stock: t('form.variantQuantityLabel'),
     priceAfterDiscount: t('columns.priceAfterDiscount'),
-    discountType: t('productVariantsDiscountModeLabel'),
-    discountPercentage: t('productVariantsDiscountModePercentage'),
-    discountAmount: t('productVariantsDiscountModeAmount'),
-    discountValue: t('productVariantsDiscountValueLabel'),
   };
 
   const title =
@@ -735,6 +689,14 @@ export function ProductVariantsPriceModal({
                     </div>
                   </div>
                   <div className="space-y-2">
+                    <VariantPriceEditor
+                      variant={variant}
+                      canEdit={canEditShopPrices}
+                      onSuccess={() => refetch()}
+                      labels={labels}
+                      dualPriceReady={productDualPriceReady}
+                      sypRate={sypRate}
+                    />
                     {(variant.shop_variants ?? []).length === 0 ? (
                       <p className="text-sm text-muted-foreground">{t('productVariantsModalNoShops')}</p>
                     ) : (
@@ -745,9 +707,6 @@ export function ProductVariantsPriceModal({
                           canEdit={canEditShopPrices}
                           onSuccess={() => refetch()}
                           labels={labels}
-                          dualPriceReady={productDualPriceReady}
-                          sypRate={sypRate}
-                          sypSymbol={sypCurrency?.symbol}
                         />
                       ))
                     )}

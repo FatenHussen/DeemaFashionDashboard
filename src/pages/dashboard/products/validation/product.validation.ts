@@ -116,6 +116,8 @@ export const ProductSchema = zod
       .array(
         zod.object({
           id: zod.coerce.number().optional(),
+          /** UI-only: which category attribute this card represents (not sent to the API). */
+          category_attribute_id: zod.coerce.number().optional(),
           attributes_values_ids: zod.array(zod.coerce.number()),
           images: zod.preprocess(
             (val) =>
@@ -127,6 +129,14 @@ export const ProductSchema = zod
           model: zod.string().optional(),
           barcode: zod.string().optional(),
           name: zod.object({ en: zod.string(), ar: zod.string() }).optional(),
+          price: zod.preprocess(
+            (v) => (v === '' || v === null || v === undefined ? undefined : v),
+            zod.coerce.number().min(0, { message: t('product.pricePositive') }).optional()
+          ),
+          quantity: zod.preprocess(
+            (v) => (v === '' || v === null || v === undefined ? undefined : v),
+            zod.coerce.number().min(0, { message: t('product.quantityPositive') }).optional()
+          ),
           stock: zod.preprocess(
             (v) => (v === '' || v === null || v === undefined ? undefined : v),
             zod.coerce.number().min(0).optional()
@@ -225,24 +235,9 @@ export const ProductSchema = zod
           id: zod.coerce.number().optional(),
           shop_id: zod.coerce.number(),
           variant_index: zod.coerce.number(),
-          price: zod.preprocess(
-            (v) => (v === '' || v === null || v === undefined ? undefined : v),
-            zod.coerce.number().min(0, { message: t('product.pricePositive') })
-          ),
           cost_price: zod.preprocess(
             (v) => (v === '' || v === null || v === undefined ? undefined : v),
             zod.coerce.number().min(0).optional()
-          ),
-          discount: zod.preprocess(
-            (v) => (v === '' || v === null || v === undefined ? undefined : v),
-            zod.coerce.number().min(0).optional()
-          ),
-          quantity: zod.preprocess(
-            (v) => (v === '' || v === null || v === undefined ? undefined : v),
-            zod.coerce.number({
-              invalid_type_error: t('product.quantityPositive'),
-              required_error: t('product.quantityPositive'),
-            }).min(0, { message: t('product.quantityPositive') })
           ),
         })
       )

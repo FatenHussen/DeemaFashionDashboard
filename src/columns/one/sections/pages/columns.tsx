@@ -1,9 +1,16 @@
 import type { TFunction } from 'i18next';
 import type { ColumnDef } from '@tanstack/react-table';
-import type { Page } from '@/pages/dashboard/sections/types/page-section.types';
+import type { PageBuilderListItem } from '@/pages/dashboard/sections/types/page-builder.types';
 
+import { z } from 'zod';
+import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 import { cmsPageSelectLabel } from '@/pages/dashboard/sections/utils/cms-page-select-label';
+
+const PageRowSchema = z.object({
+  id: z.number(),
+  slug: z.string().optional().nullable(),
+});
 
 function filtersKeyCount(filters: unknown): number {
   if (filters == null) return 0;
@@ -12,7 +19,18 @@ function filtersKeyCount(filters: unknown): number {
   return 0;
 }
 
-export const pagesColumns = (t: TFunction<'table'>): ColumnDef<Page>[] => [
+export const pagesColumns = (
+  t: TFunction<'table'>,
+  rowActions?: {
+    permissions: { update: boolean; delete: boolean };
+    onDelete: (id: number) => void;
+    isDeleting?: boolean;
+    isDeleteDialogOpen?: boolean;
+    onDeleteConfirm?: () => void;
+    onDeleteCancel?: () => void;
+    deletingId?: number | null;
+  }
+): ColumnDef<PageBuilderListItem>[] => [
   {
     id: 'id',
     accessorKey: 'id',
@@ -44,6 +62,29 @@ export const pagesColumns = (t: TFunction<'table'>): ColumnDef<Page>[] => [
     cell: ({ row }) => (
       <code className="text-xs font-mono text-muted-foreground">{row.original.slug ?? '—'}</code>
     ),
+  },
+  {
+    id: 'sections_count',
+    accessorKey: 'sections_count',
+    meta: {
+      headerClassName: 'whitespace-nowrap',
+      cellClassName: 'whitespace-nowrap',
+    },
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title={t('columns.sectionsCount')} />
+    ),
+    cell: ({ row }) => {
+      const n = row.original.sections_count;
+      return (
+        <span
+          className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
+            n != null && n > 0 ? 'bg-muted text-foreground' : 'text-muted-foreground'
+          }`}
+        >
+          {n ?? '—'}
+        </span>
+      );
+    },
   },
   {
     id: 'filters',
@@ -80,4 +121,29 @@ export const pagesColumns = (t: TFunction<'table'>): ColumnDef<Page>[] => [
       </span>
     ),
   },
+  ...(rowActions
+    ? [
+        {
+          id: 'actions',
+          cell: ({ row }) => {
+            const id = row.original.id;
+            return (
+              <DataTableRowActions
+                schema={PageRowSchema}
+                row={row as any}
+                viewDetails={`/sections/pages/details/${id}`}
+                editItem={`/sections/pages/update/${id}`}
+                permissions={rowActions.permissions}
+                onDelete={rowActions.onDelete}
+                isDeleting={rowActions.isDeleting}
+                isDeleteDialogOpen={rowActions.isDeleteDialogOpen}
+                onDeleteConfirm={rowActions.onDeleteConfirm}
+                onDeleteCancel={rowActions.onDeleteCancel}
+                deletingId={rowActions.deletingId}
+              />
+            );
+          },
+        } as ColumnDef<PageBuilderListItem>,
+      ]
+    : []),
 ];

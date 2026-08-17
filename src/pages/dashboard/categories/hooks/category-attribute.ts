@@ -33,6 +33,30 @@ export const useFetchCategoryAttributeById = (id: number | string) =>
     enabled: !!id,
   });
 
+/** Preview of what deleting this attribute would affect — fetched right before showing the delete dialog. */
+export const useFetchCategoryAttributeDeleteImpact = (id: number | string | null) =>
+  useQuery({
+    queryKey: ['categoryattribute', 'delete-impact', id],
+    queryFn: () => _CategoryAttributeApi.getDeleteImpact(id as number | string),
+    enabled: id != null,
+    // The user is waiting on a modal; a retry only delays the fallback confirm.
+    retry: false,
+  });
+
+/** Paginated product variants using this attribute — the delete dialog's "linked items" tab. */
+export const useFetchCategoryAttributeLinkedItems = (
+  id: number | string | null,
+  page: number,
+  perPage = 10
+) =>
+  useQuery({
+    queryKey: ['categoryattribute', 'linked-items', id, page, perPage],
+    queryFn: () =>
+      _CategoryAttributeApi.getLinkedItems(id as number | string, { page, per_page: perPage }),
+    enabled: id != null,
+    retry: false,
+  });
+
 export const useCreateCategoryAttribute = () => {
   const queryClient = useQueryClient();
 
@@ -83,8 +107,9 @@ export const useDeleteCategoryAttribute = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: number | string) => _CategoryAttributeApi.deleteCategoryAttribute(id),
-    onSuccess: (_, id) => {
+    mutationFn: ({ id, confirm }: { id: number | string; confirm?: boolean }) =>
+      _CategoryAttributeApi.deleteCategoryAttribute(id, { confirm }),
+    onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({
         queryKey: ['categoryattribute', 'list'],
         refetchType: 'active',

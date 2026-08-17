@@ -1,7 +1,9 @@
 import type {
   CategoryAttributeListResponse,
   CategoryAttributeDetailResponse,
+  CategoryAttributeLinkedItemsResponse,
   CategoryAttributeCreateUpdatePayload,
+  CategoryAttributeDeleteImpactResponse,
 } from '../types/category-attribute.types';
 
 import { apiRoutes, axiosInstance } from '@/api';
@@ -95,8 +97,39 @@ export const _CategoryAttributeApi = {
     const response = await axiosInstance.put(apiRoutes.categoryAttribute.update(id), data);
     return response.data;
   },
-  deleteCategoryAttribute: async (id: number | string): Promise<any> => {
-    const response = await axiosInstance.delete(apiRoutes.categoryAttribute.delete(id));
+  deleteCategoryAttribute: async (
+    id: number | string,
+    options?: { confirm?: boolean }
+  ): Promise<any> => {
+    const response = await axiosInstance.delete(apiRoutes.categoryAttribute.delete(id), {
+      params: options?.confirm ? { confirm: true } : undefined,
+    });
+    return response.data;
+  },
+  /**
+   * Preview of what the delete would affect. Best-effort: the dialog falls back to a plain
+   * "are you sure?" when this is unavailable, so a failure here is not worth a toast.
+   */
+  getDeleteImpact: async (id: number | string): Promise<CategoryAttributeDeleteImpactResponse> => {
+    const response = await axiosInstance.get<CategoryAttributeDeleteImpactResponse>(
+      apiRoutes.categoryAttribute.deleteImpact(id),
+      { skipErrorToast: true }
+    );
+    return response.data;
+  },
+  getLinkedItems: async (
+    id: number | string,
+    params: { page?: number; per_page?: number } = {}
+  ): Promise<CategoryAttributeLinkedItemsResponse> => {
+    const searchParams = new URLSearchParams();
+    appendIf(searchParams, 'page', params.page ?? 1);
+    appendIf(searchParams, 'per_page', params.per_page ?? 10);
+    const query = searchParams.toString();
+    const response = await axiosInstance.get<CategoryAttributeLinkedItemsResponse>(
+      `${apiRoutes.categoryAttribute.linkedItems(id)}?${query}`,
+      // Same as the impact preview: the tab renders its own empty state on failure.
+      { skipErrorToast: true }
+    );
     return response.data;
   },
 };

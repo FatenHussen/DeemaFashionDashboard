@@ -12,6 +12,8 @@ export interface CategoryData {
   icon: string | null;
   parent_id: number | null;
   parent: ParentCategory | null;
+  /** true when parent_id === null — root/main category. */
+  is_root?: boolean;
   order: number | null;
   is_active: boolean;
   is_restaurant: boolean;

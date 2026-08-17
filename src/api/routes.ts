@@ -116,6 +116,10 @@ export const apiRoutes = {
     update: (id: number | string) => `${ROOTS.ADMIN}/category-attributes/${id}`,
     delete: (id: number | string) => `${ROOTS.ADMIN}/category-attributes/${id}`,
     details: (id: number | string) => `${ROOTS.ADMIN}/category-attributes/${id}`,
+    /** Preview of what a delete would affect (values/variants/products/orders). */
+    deleteImpact: (id: number | string) => `${ROOTS.ADMIN}/category-attributes/${id}/delete-impact`,
+    /** Paginated product variants currently using this attribute's values. */
+    linkedItems: (id: number | string) => `${ROOTS.ADMIN}/category-attributes/${id}/linked-items`,
   },
   // Category Details routes
   categoryDetail: {
@@ -165,6 +169,19 @@ export const apiRoutes = {
     update: (id: number | string) => `${ROOTS.ADMIN}/banners/${id}`,
     delete: (id: number | string) => `${ROOTS.ADMIN}/banners/${id}`,
     details: (id: number | string) => `${ROOTS.ADMIN}/banners/${id}`,
+  },
+  /**
+   * Page Builder routes (unified CMS page CRUD + one-call section creation).
+   * Requires `page.*` permissions; `addSection` requires `pagesection.create`.
+   */
+  pageBuilder: {
+    list: `${ROOTS.ADMIN}/pages`,
+    create: `${ROOTS.ADMIN}/pages`,
+    details: (id: number | string) => `${ROOTS.ADMIN}/pages/${id}`,
+    update: (id: number | string) => `${ROOTS.ADMIN}/pages/${id}`,
+    delete: (id: number | string) => `${ROOTS.ADMIN}/pages/${id}`,
+    /** Creates a Section and links it to the page in one transaction. */
+    addSection: (pageId: number | string) => `${ROOTS.ADMIN}/pages/${pageId}/sections`,
   },
   // Page Section routes
   pageSection: {
@@ -322,16 +339,24 @@ export const apiRoutes = {
     delete: (id: number | string) => `${ROOTS.ADMIN}/recipes/${id}`,
     details: (id: number | string) => `${ROOTS.ADMIN}/recipes/${id}`,
   },
-  // Product Variant routes (individual update/delete)
+  /**
+   * Product Variant routes (individual update/delete).
+   * Delete is soft and always allowed, but needs `?confirm=true` when linked data
+   * exists — otherwise the API answers `409` with the impact payload.
+   * `deleteImpact` returns that same payload without deleting anything.
+   */
   productVariant: {
     update: (id: number | string) => `${ROOTS.ADMIN}/product-variants/${id}`,
     delete: (id: number | string) => `${ROOTS.ADMIN}/product-variants/${id}`,
+    deleteImpact: (id: number | string) => `${ROOTS.ADMIN}/product-variants/${id}/delete-impact`,
   },
-  // Shop Product Variant routes (shared - used in selects)
+  // Shop Product Variant routes (shared - used in selects). Same confirm flow as `productVariant`.
   shopProductVariant: {
     list: `${ROOTS.ADMIN}/shop-product-variants`,
     update: (id: number | string) => `${ROOTS.ADMIN}/shop-product-variants/${id}`,
     delete: (id: number | string) => `${ROOTS.ADMIN}/shop-product-variants/${id}`,
+    deleteImpact: (id: number | string) =>
+      `${ROOTS.ADMIN}/shop-product-variants/${id}/delete-impact`,
   },
   // Legal Document routes
   legalDocument: {

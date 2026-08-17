@@ -8,12 +8,30 @@ import { CONFIG } from 'src/global-config';
 import { getActiveLanguageCode } from 'src/lib/language-code';
 import { JWT_STORAGE_KEY } from 'src/pages/auth/context/jwt/constant';
 
+import { ConfirmationRequiredError } from './errors';
+
+// ----------------------------------------------------------------------
+
+declare module 'axios' {
+  export interface AxiosRequestConfig {
+    /**
+     * Suppress the global error toast for this request. Use when the caller renders the
+     * failure itself (inline message, fallback UI) so the user isn't told twice.
+     */
+    skipErrorToast?: boolean;
+  }
+}
+
 // ----------------------------------------------------------------------
 
 const LOGIN_PATH = paths.auth.jwt.signIn;
 
+/** Fail fast instead of hanging when the API host is unreachable. */
+const REQUEST_TIMEOUT = 30_000;
+
 const axiosInstance = axios.create({
   baseURL: CONFIG.serverUrl,
+  timeout: REQUEST_TIMEOUT,
 });
 
 // If a token already exists (e.g., after refresh), set it on defaults
@@ -69,6 +87,22 @@ function formatApiValidationErrors(errors: unknown): string | null {
 axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
+    // Request was aborted on purpose (component unmount, react-query cancel):
+    // not a failure, so no toast.
+    if (axios.isCancel(error)) {
+      return Promise.reject(error);
+    }
+
+    // No response at all -> the request never completed a round trip: host down,
+    // DNS/TLS failure, blocked CORS preflight, or timeout. Axios reports these as
+    // the raw, untranslated string "Network Error", which means nothing to a user.
+    if (!error?.response) {
+      const isTimeout = error?.code === 'ECONNABORTED' || error?.code === 'ETIMEDOUT';
+      const message = i18n.t(isTimeout ? 'timeoutError' : 'networkError', { ns: 'common' });
+      toast.error(message);
+      return Promise.reject(Object.assign(new Error(message), { cause: error }));
+    }
+
     const status = error?.response?.status;
     const data = error?.response?.data;
     const validationMessage = formatApiValidationErrors(data?.errors);
@@ -86,7 +120,18 @@ axiosInstance.interceptors.response.use(
       return Promise.reject(new Error(message));
     }
 
-    toast.error(message);
+    const skipToast = Boolean(error?.config?.skipErrorToast);
+    if (!skipToast) {
+      toast.error(message);
+    }
+
+    // 409 + `requires_confirmation`: nothing failed and nothing changed — the backend is asking
+    // the user to acknowledge the listed impact and repeat the call with `confirm=true`. Carry
+    // the impact through so a caller opted into the flow (`skipErrorToast`) can render it.
+    if (status === 409 && data?.requires_confirmation) {
+      return Promise.reject(new ConfirmationRequiredError(message, data?.data ?? null));
+    }
+
     return Promise.reject(new Error(message));
   }
 );

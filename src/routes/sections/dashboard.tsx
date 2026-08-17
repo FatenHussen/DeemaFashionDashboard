@@ -117,6 +117,10 @@ const PageSectionDetailsPage = lazyWithRetry(
 
 const PagesIndexPage = lazyWithRetry(() => import('@/pages/dashboard/sections/view/Pages'));
 const PageDetailsPage = lazyWithRetry(() => import('@/pages/dashboard/sections/view/PageDetails'));
+const PageCreatePage = lazyWithRetry(() => import('@/pages/dashboard/sections/view/PageCreate'));
+const PageAddSectionPage = lazyWithRetry(
+  () => import('@/pages/dashboard/sections/view/PageAddSection')
+);
 
 const BannerIndexPage = lazyWithRetry(() => import('@/pages/dashboard/banners/view/Index'));
 const BannerCreatePage = lazyWithRetry(() => import('@/pages/dashboard/banners/view/Create'));
@@ -1152,10 +1156,34 @@ export const dashboardRoutes: RouteObject[] = [
         ),
       },
       {
+        path: 'pages/create',
+        element: (
+          <RequirePermission permission="page.create">
+            <PageCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'pages/update/:id',
+        element: (
+          <RequirePermission permission="page.update">
+            <PageCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
         path: 'pages/details/:id',
         element: (
           <RequirePermission permission="pagesection.view">
             <PageDetailsPage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'pages/:pageId/sections/create',
+        element: (
+          <RequirePermission permission="pagesection.create">
+            <PageAddSectionPage />
           </RequirePermission>
         ),
       },

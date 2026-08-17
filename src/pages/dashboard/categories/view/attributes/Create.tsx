@@ -11,17 +11,11 @@ import { formatTranslated } from '@/utils/format-translated';
 import { useForm, useWatch, Controller, useFieldArray } from 'react-hook-form';
 import { _CategoryApi } from '@/pages/dashboard/categories/api/category.services';
 import { RHFInfiniteSelect } from '@/shared/components/hook-form/rhf-infinite-select';
-import { MAX_CATEGORY_SUB_LEVELS } from '@/pages/dashboard/categories/utils/category-cascade-shared';
-import { CategoryLeafCascadeFields } from '@/pages/dashboard/categories/components/category-leaf-cascade-fields';
+import { paginateSelectRowsLocal } from '@/pages/dashboard/categories/utils/build-parent-picker-options';
 import {
   CategoryAttributeSchema,
   type CategoryAttributeFormValues,
 } from '@/pages/dashboard/categories/validation/category-attribute.validation';
-import {
-  ancestorsChainFromFlat,
-  buildCategorySelectRows,
-  paginateSelectRowsLocal,
-} from '@/pages/dashboard/categories/utils/build-parent-picker-options';
 import {
   useCreateCategoryAttribute,
   useUpdateCategoryAttribute,
@@ -62,11 +56,7 @@ export default function CreatePage() {
     [t]
   );
 
-  const {
-    data: flatForParent,
-    dataUpdatedAt: flatParentDataUpdatedAt,
-    isFetched: flatParentFetched,
-  } = useQuery({
+  const { data: flatForParent, dataUpdatedAt: flatParentDataUpdatedAt } = useQuery({
     queryKey: ['categories', 'flat-parent-picker'],
     queryFn: () => _CategoryApi.getListCategoriesPaginated({ page: 1, per_page: 500 }),
   });
@@ -102,52 +92,27 @@ export default function CreatePage() {
     name: 'values',
   });
 
-  const hydrateLeafCategoryId = useMemo(() => {
-    if (!isEditMode || !categoryAttributeData?.data?.category || flatItems.length === 0) {
-      return null;
-    }
-    const target = categoryAttributeData.data.category.trim();
-    const found = flatItems.find((cat) => categoryListLabel(cat).trim() === target);
-    const cid = found?.id;
-    return cid != null && cid > 0 ? cid : null;
-  }, [isEditMode, categoryAttributeData?.data?.category, flatItems]);
-
-  const legacyCategoryCascade = useMemo(() => {
-    if (!flatParentFetched || flatItems.length === 0) return false;
-    if (hydrateLeafCategoryId == null || hydrateLeafCategoryId <= 0) return false;
-    const chain = ancestorsChainFromFlat(flatItems, hydrateLeafCategoryId);
-    return chain.length > MAX_CATEGORY_SUB_LEVELS + 1;
-  }, [flatParentFetched, flatItems, hydrateLeafCategoryId]);
-
-  const legacyFlatRows = useMemo(() => buildCategorySelectRows(flatItems), [flatItems]);
-
-  const legacyCategoryFetcher = useCallback(
+  const rootCategoryFetcher = useCallback(
     (page: number, limit: number) => {
-      const rows = legacyFlatRows.map((r) => ({
-        id: r.id,
-        label: r.label,
-        depth: r.depth,
-        hasChildren: r.hasChildren,
-      }));
+      const rows = flatItems
+        .filter((cat) => cat.is_root === true || cat.parent_id == null)
+        .map((cat) => ({ id: cat.id, label: categoryListLabel(cat) }));
       return Promise.resolve(paginateSelectRowsLocal(rows, page, limit));
     },
-    [legacyFlatRows]
-  );
-
-  const syncLeafCategory = useCallback(
-    (leafId: number) => {
-      setValue('category_id', leafId, { shouldValidate: true, shouldDirty: true });
-    },
-    [setValue]
+    [flatItems]
   );
 
   // Fetch category attribute data if in edit mode
   useEffect(() => {
     if (isEditMode && categoryAttributeData?.data && !isLoadingAttribute && flatItems.length > 0) {
       const attribute = categoryAttributeData.data;
-      const target = attribute.category?.trim() ?? '';
-      const found = flatItems.find((cat) => categoryListLabel(cat).trim() === target);
-      const categoryId = found?.id ?? 0;
+      const directId = attribute.category_id ?? attribute.root_category_id;
+      let categoryId = directId != null && directId > 0 ? directId : 0;
+      if (!categoryId) {
+        const target = attribute.category?.trim() ?? '';
+        const found = flatItems.find((cat) => categoryListLabel(cat).trim() === target);
+        categoryId = found?.id ?? 0;
+      }
       reset({
         category_id: categoryId,
         name: attribute.name,
@@ -278,44 +243,22 @@ export default function CreatePage() {
                   {t('form.categoryLabel')}
                 </Typography>
               </Box>
-              {legacyCategoryCascade ? (
-                <Box className="space-y-2">
-                  <Typography variant="caption" className="text-muted-foreground block">
-                    {t('form.attributeCategoryHelper')}
-                  </Typography>
-                  <RHFInfiniteSelect
-                    name="category_id"
-                    queryKey={[
-                      'categories',
-                      'infinite',
-                      'attribute-form',
-                      'legacy-flat',
-                      flatParentDataUpdatedAt ?? 0,
-                      id ?? '',
-                    ]}
-                    fetcher={legacyCategoryFetcher}
-                    placeholder={t('form.selectCategory')}
-                    helperText={t('form.categoryDeepParentHint')}
-                    initialLabel={categoryAttributeData?.data?.category}
-                  />
-                </Box>
-              ) : (
-                <>
-                  <Typography variant="caption" className="text-muted-foreground block mb-3">
-                    {t('form.attributeCategoryHelper')}
-                  </Typography>
-                  <CategoryLeafCascadeFields
-                    t={t}
-                    legacyMode={false}
-                    flatItems={flatItems}
-                    flatParentFetched={flatParentFetched}
-                    flatParentDataUpdatedAt={flatParentDataUpdatedAt ?? 0}
-                    hydrateLeafCategoryId={hydrateLeafCategoryId}
-                    hydrationKey={id ?? 'new-attribute'}
-                    onEffectiveLeafChange={syncLeafCategory}
-                  />
-                </>
-              )}
+              <Typography variant="caption" className="text-muted-foreground block mb-3">
+                {t('form.attributeCategoryHelper')}
+              </Typography>
+              <RHFInfiniteSelect
+                name="category_id"
+                queryKey={[
+                  'categories',
+                  'infinite',
+                  'attribute-form',
+                  'roots',
+                  flatParentDataUpdatedAt ?? 0,
+                ]}
+                fetcher={rootCategoryFetcher}
+                placeholder={t('form.selectMainCategory')}
+                initialLabel={categoryAttributeData?.data?.category}
+              />
             </Box>
 
             <Box className="group">

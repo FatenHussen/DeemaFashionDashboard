@@ -17,10 +17,15 @@ export const useUpdateProductVariant = () => {
   });
 };
 
+/**
+ * Deletes a product variant. `confirm` acknowledges the impact the API reported in its
+ * `409` — without it a variant with linked data is not deleted (see `useVariantDeleteFlow`).
+ */
 export const useDeleteProductVariant = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: number | string) => _ProductVariantApi.delete(id),
+    mutationFn: ({ id, confirm }: { id: number | string; confirm?: boolean }) =>
+      _ProductVariantApi.delete(id, { confirm }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['product', 'list'] });
     },
@@ -40,10 +45,12 @@ export const useUpdateShopProductVariant = () => {
   });
 };
 
+/** Deletes a shop link. Same `confirm` contract as `useDeleteProductVariant`. */
 export const useDeleteShopProductVariant = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: number | string) => _ShopProductVariantApi.delete(id),
+    mutationFn: ({ id, confirm }: { id: number | string; confirm?: boolean }) =>
+      _ShopProductVariantApi.delete(id, { confirm }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['product', 'list'] });
       queryClient.invalidateQueries({ queryKey: ['shopProductVariant', 'list'] });

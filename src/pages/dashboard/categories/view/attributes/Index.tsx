@@ -1,6 +1,5 @@
 import type { CategoryData } from '@/pages/dashboard/categories/types/category.types';
 
-import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState, useEffect } from 'react';
@@ -8,14 +7,12 @@ import { DataTable } from '@/shared/ui/table-data/table-data';
 import { usePermissions } from '@/auth/hooks/use-permissions';
 import { getApiErrorMessage } from '@/lib/get-api-error-message';
 import { _CategoryApi } from '@/pages/dashboard/categories/api/category.services';
+import { useFetchCategoryAttributes } from '@/pages/dashboard/categories/hooks/category-attribute';
+import { CategoryAttributeDeleteDialog } from '@/pages/dashboard/categories/components/category-attribute-delete-dialog';
 import {
   categoryAttributeColumns,
   type CategoryAttributeFormValues,
 } from '@/columns/one/categories/category-attribute';
-import {
-  useFetchCategoryAttributes,
-  useDeleteCategoryAttribute,
-} from '@/pages/dashboard/categories/hooks/category-attribute';
 import {
   buildCategorySelectRows,
   nativeSelectCategoryLabel,
@@ -63,7 +60,10 @@ export default function Page() {
     queryFn: () => _CategoryApi.getListCategoriesPaginated({ page: 1, per_page: 500 }),
   });
   const filterCategoryOptions = useMemo(
-    () => buildCategorySelectRows((categoriesResp?.data?.items ?? []) as CategoryData[]),
+    () =>
+      buildCategorySelectRows((categoriesResp?.data?.items ?? []) as CategoryData[]).filter(
+        (c) => c.depth === 0
+      ),
     [categoriesResp?.data?.items]
   );
 
@@ -82,8 +82,6 @@ export default function Page() {
     ...(dateFrom ? { date_from: dateFrom } : {}),
     ...(dateTo ? { date_to: dateTo } : {}),
   });
-  const deleteCategoryAttributeMutation = useDeleteCategoryAttribute();
-
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
   };
@@ -97,19 +95,7 @@ export default function Page() {
     setDeletingId(id);
   };
 
-  const onDeleteConfirm = async () => {
-    if (deletingId) {
-      try {
-        await deleteCategoryAttributeMutation.mutateAsync(deletingId);
-        toast.success(t('deleteSuccess'));
-        setDeletingId(null);
-      } catch {
-        return;
-      }
-    }
-  };
-
-  const onDeleteCancel = () => {
+  const onDeleteDialogClose = () => {
     setDeletingId(null);
   };
 
@@ -172,12 +158,7 @@ export default function Page() {
             delete: hasPermission('delete', 'categoryattribute'),
           },
           t,
-          onDelete,
-          deleteCategoryAttributeMutation.isPending,
-          deletingId !== null,
-          onDeleteConfirm,
-          onDeleteCancel,
-          deletingId
+          onDelete
         )}
         data={categoryAttributeData}
         createPath="/categories/attributes/create"
@@ -272,6 +253,14 @@ export default function Page() {
         onPageSizeChange={handlePageSizeChange}
         onSearchChange={setSearch}
       />
+
+      {deletingId != null && (
+        <CategoryAttributeDeleteDialog
+          id={deletingId}
+          onCancel={onDeleteDialogClose}
+          onDeleted={onDeleteDialogClose}
+        />
+      )}
     </>
   );
 }

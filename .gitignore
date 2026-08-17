@@ -36,5 +36,6 @@ build
 .vercel
 .netlify
 .vscode
+.claude
 tsconfig.tsbuildinfo
 .ncurc.js

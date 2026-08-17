@@ -153,6 +153,12 @@ const buildProductFormData = (data: ProductCreateUpdatePayload): FormData => {
       if (variant.name?.ar !== undefined) {
         formData.append(`variants[${vIndex}][name][ar]`, variant.name.ar);
       }
+      if (variant.price !== undefined) {
+        formData.append(`variants[${vIndex}][price]`, String(variant.price));
+      }
+      if (variant.quantity !== undefined) {
+        formData.append(`variants[${vIndex}][quantity]`, String(variant.quantity));
+      }
       if (variant.stock !== undefined) {
         formData.append(`variants[${vIndex}][stock]`, String(variant.stock));
       }
@@ -216,11 +222,9 @@ const buildProductFormData = (data: ProductCreateUpdatePayload): FormData => {
         `shop_variants[${index}][variant_index]`,
         shopVariant.variant_index.toString()
       );
-      formData.append(`shop_variants[${index}][price]`, shopVariant.price.toString());
       if (shopVariant.cost_price !== undefined && shopVariant.cost_price !== null) {
         formData.append(`shop_variants[${index}][cost_price]`, String(shopVariant.cost_price));
       }
-      formData.append(`shop_variants[${index}][quantity]`, shopVariant.quantity.toString());
     });
   }
 
@@ -434,6 +438,12 @@ export const _ProductApi = {
       if (variant.name?.ar !== undefined) {
         formData.append(`variants[${vIndex}][name][ar]`, variant.name.ar);
       }
+      if (variant.price !== undefined) {
+        formData.append(`variants[${vIndex}][price]`, String(variant.price));
+      }
+      if (variant.quantity !== undefined) {
+        formData.append(`variants[${vIndex}][quantity]`, String(variant.quantity));
+      }
     });
 
     shopVariants.forEach((sv, index) => {
@@ -442,13 +452,8 @@ export const _ProductApi = {
       }
       formData.append(`shop_variants[${index}][shop_id]`, String(sv.shop_id));
       formData.append(`shop_variants[${index}][variant_index]`, String(sv.variant_index));
-      formData.append(`shop_variants[${index}][price]`, String(sv.price));
-      formData.append(`shop_variants[${index}][quantity]`, String(sv.quantity));
       if (sv.cost_price != null) {
         formData.append(`shop_variants[${index}][cost_price]`, String(sv.cost_price));
-      }
-      if (sv.discount != null) {
-        formData.append(`shop_variants[${index}][discount]`, String(sv.discount));
       }
     });
 

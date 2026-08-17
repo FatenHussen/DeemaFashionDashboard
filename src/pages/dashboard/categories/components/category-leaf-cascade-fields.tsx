@@ -38,6 +38,10 @@ export type CategoryLeafCascadeFieldsProps = {
   /** e.g. route id or attribute id — resets internal hydrate bookkeeping */
   hydrationKey: string;
   onEffectiveLeafChange: (leafId: number) => void;
+  /** Restrict every level (root + subs) to this `is_restaurant` value. Omit for no filter. */
+  isRestaurant?: 0 | 1;
+  /** Notified whenever the root (main) selection changes, incl. hydration. */
+  onMainCategoryChange?: (mainCategoryId: number) => void;
 };
 
 export function CategoryLeafCascadeFields({
@@ -50,6 +54,8 @@ export function CategoryLeafCascadeFields({
   hydrateLeafCategoryId,
   hydrationKey,
   onEffectiveLeafChange,
+  isRestaurant,
+  onMainCategoryChange,
 }: CategoryLeafCascadeFieldsProps) {
   const [mainCategoryId, setMainCategoryId] = useState(0);
   const [subSelections, setSubSelections] = useState<number[]>([]);
@@ -62,6 +68,7 @@ export function CategoryLeafCascadeFields({
         page: 1,
         per_page: 500,
         parent_id: null,
+        is_restaurant: isRestaurant,
       });
       const roots = r.data.items
         .filter((cat) => !excludedIds.has(cat.id))
@@ -71,7 +78,7 @@ export function CategoryLeafCascadeFields({
         }));
       return paginateSelectRowsLocal(roots, page, limit);
     },
-    [excludedIds]
+    [excludedIds, isRestaurant]
   );
 
   const subCascadeFetchers = useMemo(
@@ -93,6 +100,7 @@ export function CategoryLeafCascadeFields({
             page: 1,
             per_page: 500,
             parent_id: parentId,
+            is_restaurant: isRestaurant,
           });
           const rows = r.data.items
             .filter((cat) => !excludedIds.has(cat.id))
@@ -102,7 +110,7 @@ export function CategoryLeafCascadeFields({
             }));
           return paginateSelectRowsLocal([directRow, ...rows], page, limit);
         }),
-    [mainCategoryId, subSelections, excludedIds, t]
+    [mainCategoryId, subSelections, excludedIds, t, isRestaurant]
   );
 
   const subChildrenProbes = useQueries({
@@ -110,12 +118,13 @@ export function CategoryLeafCascadeFields({
       const parentId =
         level === 0 ? mainCategoryId : subSelections[level - 1] ?? 0;
       return {
-        queryKey: ['categories', 'children-probe', 'leaf-cascade', level, parentId],
+        queryKey: ['categories', 'children-probe', 'leaf-cascade', level, parentId, isRestaurant ?? 'any'],
         queryFn: () =>
           _CategoryApi.getListCategoriesPaginated({
             page: 1,
             per_page: 1,
             parent_id: parentId,
+            is_restaurant: isRestaurant,
           }),
         enabled: !legacyMode && parentId > 0,
       };
@@ -198,6 +207,14 @@ export function CategoryLeafCascadeFields({
     onLeafRef.current(leafCategoryIdFromCascade(mainCategoryId, subSelections));
   }, [legacyMode, cascadeHydrated, mainCategoryId, subSelections]);
 
+  const onMainRef = useRef(onMainCategoryChange);
+  onMainRef.current = onMainCategoryChange;
+
+  useEffect(() => {
+    if (legacyMode || !cascadeHydrated) return;
+    onMainRef.current?.(mainCategoryId);
+  }, [legacyMode, cascadeHydrated, mainCategoryId]);
+
   const cascadeEditLabels = useMemo(() => {
     if (
       hydrateLeafCategoryId == null ||
@@ -247,6 +264,7 @@ export function CategoryLeafCascadeFields({
             flatParentDataUpdatedAt ?? 0,
             hydrationKey,
             excludedIds.size,
+            isRestaurant ?? 'any',
           ]}
           fetcher={rootCascadeFetcher}
           placeholder={t('form.selectMainCategory')}
@@ -286,6 +304,7 @@ export function CategoryLeafCascadeFields({
                 parentId,
                 hydrationKey,
                 excludedIds.size,
+                isRestaurant ?? 'any',
               ]}
               fetcher={fetcher}
               placeholder={t('form.productSubcategory')}

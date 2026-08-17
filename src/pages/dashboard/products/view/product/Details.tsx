@@ -12,14 +12,15 @@ import { Iconify } from '@/shared/components/iconify';
 import { compressImages } from '@/utils/compress-image';
 import { useRef, useMemo, useState, useEffect } from 'react';
 import { formatTranslated } from '@/utils/format-translated';
+import { getApiErrorMessage } from '@/lib/get-api-error-message';
 import { useFetchProductById } from '@/pages/dashboard/products/hooks/product';
 import { useFetchCurrencies } from '@/pages/dashboard/currencies/hooks/currency';
+import { useVariantDeleteFlow } from '@/pages/dashboard/products/hooks/use-variant-delete-flow';
+import { VariantDeleteImpactDialog } from '@/pages/dashboard/products/components/VariantDeleteImpactDialog';
 import { formatDecimal, normalizeFormattedMoneyText, formatApiCurrencyAmountForLanguage } from '@/utils/format-currency';
 import {
   useUpdateProductVariant,
-  useDeleteProductVariant,
   useUpdateShopProductVariant,
-  useDeleteShopProductVariant,
 } from '@/pages/dashboard/products/hooks/product-variant';
 
 import { paths } from 'src/routes/paths';
@@ -235,12 +236,39 @@ function EditVariantModal({
 }: EditVariantModalProps) {
   const { t } = useTranslation('table');
   const { mutate: updateVariant, isPending } = useUpdateProductVariant();
+  const { data: currenciesResponse } = useFetchCurrencies(1, 100);
+
+  const activeCurrencies = useMemo(() => {
+    const raw = currenciesResponse?.data?.items ?? [];
+    return raw.filter((c) => {
+      const active = c.is_active as boolean | number | undefined;
+      return active === true || active === 1;
+    });
+  }, [currenciesResponse]);
+
+  const usdCurrency = useMemo(
+    () =>
+      activeCurrencies.find((c) => String(c.code).toUpperCase() === 'USD') ??
+      activeCurrencies.find((c) => c.is_default) ??
+      activeCurrencies[0],
+    [activeCurrencies]
+  );
+
+  const sypCurrency = useMemo(
+    () => activeCurrencies.find((c) => String(c.code).toUpperCase() === 'SYP'),
+    [activeCurrencies]
+  );
+
+  const dualPriceReady = Boolean(usdCurrency && sypCurrency);
+  const sypRate = sypCurrency ? parseShopVariantCurrencyRate(sypCurrency) : 1;
 
   const [isTrend, setIsTrend] = useState<number>(variant?.is_trend ?? 0);
   const [isActive, setIsActive] = useState<number>(variant?.is_active ?? 1);
   const [sku, setSku] = useState<string>(variant?.sku ?? '');
   const [model, setModel] = useState<string>(variant?.model ?? '');
   const [barcode, setBarcode] = useState<string>(variant?.barcode ?? '');
+  const [price, setPrice] = useState<string>('');
+  const [quantity, setQuantity] = useState<string>('');
   const [nameEn, setNameEn] = useState<string>('');
   const [nameAr, setNameAr] = useState<string>('');
   const [newImages, setNewImages] = useState<File[]>([]);
@@ -253,6 +281,8 @@ function EditVariantModal({
       setSku(variant.sku != null ? String(variant.sku) : '');
       setModel(variant.model != null ? String(variant.model) : '');
       setBarcode(variant.barcode != null ? String(variant.barcode) : '');
+      setPrice(variant.price != null ? String(variant.price) : '');
+      setQuantity(variant.quantity != null ? String(variant.quantity) : '');
       const rawName = variant.name as unknown;
       if (rawName && typeof rawName === 'object') {
         const obj = rawName as { en?: unknown; ar?: unknown };
@@ -295,6 +325,8 @@ function EditVariantModal({
           sku,
           ...(isRestaurant ? { model: '', barcode: '' } : { model, barcode }),
           name: { en: nameEn, ar: nameAr },
+          price: price !== '' ? Number(price) : undefined,
+          quantity: quantity !== '' ? Number(quantity) : undefined,
         },
       },
       {
@@ -431,6 +463,82 @@ function EditVariantModal({
               </Box>
             </>
           )}
+          {dualPriceReady ? (
+            <>
+              <Box>
+                <Typography variant="body2" className="text-muted-foreground mb-1 font-medium">
+                  {t('form.variantPriceUsdLabel')}
+                  {usdCurrency?.symbol ? (
+                    <span className="ms-1 opacity-80">({usdCurrency.symbol})</span>
+                  ) : null}
+                </Typography>
+                <input
+                  type="number"
+                  step="any"
+                  min={0}
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                />
+              </Box>
+              <Box>
+                <Typography variant="body2" className="text-muted-foreground mb-1 font-medium">
+                  {t('form.variantPriceSypLabel')}
+                  {sypCurrency?.symbol ? (
+                    <span className="ms-1 opacity-80">({sypCurrency.symbol})</span>
+                  ) : null}
+                </Typography>
+                <input
+                  type="number"
+                  step="any"
+                  min={0}
+                  value={(() => {
+                    const u = parseFloat(price) || 0;
+                    const syp = shopVariantUsdToLocal(u, sypRate);
+                    return u === 0 && syp === 0 ? '' : syp;
+                  })()}
+                  onChange={(e) => {
+                    const raw = e.target.value;
+                    const v = raw === '' ? 0 : parseFloat(raw);
+                    setPrice(
+                      String(shopVariantLocalToUsd(Number.isFinite(v) ? v : 0, sypRate))
+                    );
+                  }}
+                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                />
+              </Box>
+            </>
+          ) : (
+            <Box>
+              <Typography variant="body2" className="text-muted-foreground mb-1 font-medium">
+                {t('form.variantPriceLabel')}
+              </Typography>
+              <input
+                type="number"
+                step="0.01"
+                min={0}
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+              />
+            </Box>
+          )}
+          <Box>
+            <Typography variant="body2" className="text-muted-foreground mb-1 font-medium">
+              {t('form.variantQuantityLabel')}
+            </Typography>
+            <input
+              type="number"
+              step="1"
+              min={0}
+              value={quantity}
+              onChange={(e) => setQuantity(e.target.value)}
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+            />
+            <Typography variant="caption" className="text-muted-foreground mt-1 block">
+              {t('form.variantPriceQuantityHint')}
+            </Typography>
+          </Box>
 
           {/* existing images */}
           {existingImages.length > 0 && (
@@ -534,41 +642,12 @@ interface EditShopVariantModalProps {
 function EditShopVariantModal({ open, shopVariant, onClose, onSuccess }: EditShopVariantModalProps) {
   const { t } = useTranslation('table');
   const { mutate: updateShopVariant, isPending } = useUpdateShopProductVariant();
-  const { data: currenciesResponse } = useFetchCurrencies(1, 100);
 
-  const activeCurrencies = useMemo(() => {
-    const raw = currenciesResponse?.data?.items ?? [];
-    return raw.filter((c) => {
-      const active = c.is_active as boolean | number | undefined;
-      return active === true || active === 1;
-    });
-  }, [currenciesResponse]);
-
-  const usdCurrency = useMemo(
-    () =>
-      activeCurrencies.find((c) => String(c.code).toUpperCase() === 'USD') ??
-      activeCurrencies.find((c) => c.is_default) ??
-      activeCurrencies[0],
-    [activeCurrencies]
-  );
-
-  const sypCurrency = useMemo(
-    () => activeCurrencies.find((c) => String(c.code).toUpperCase() === 'SYP'),
-    [activeCurrencies]
-  );
-
-  const dualPriceReady = Boolean(usdCurrency && sypCurrency);
-  const sypRate = sypCurrency ? parseShopVariantCurrencyRate(sypCurrency) : 1;
-
-  const [price, setPrice] = useState<string>('');
   const [costPrice, setCostPrice] = useState<string>('');
-  const [quantity, setQuantity] = useState<string>('');
 
   useEffect(() => {
     if (open && shopVariant) {
-      setPrice(shopVariant.price != null ? String(shopVariant.price) : '');
       setCostPrice(shopVariant.cost_price != null ? String(shopVariant.cost_price) : '');
-      setQuantity(shopVariant.quantity != null ? String(shopVariant.quantity) : '');
     }
   }, [open, shopVariant]);
 
@@ -578,9 +657,7 @@ function EditShopVariantModal({ open, shopVariant, onClose, onSuccess }: EditSho
       {
         id: shopVariant.id,
         data: {
-          price: price !== '' ? Number(price) : undefined,
           cost_price: costPrice !== '' ? Number(costPrice) : undefined,
-          quantity: quantity !== '' ? Number(quantity) : undefined,
         },
       },
       {
@@ -601,94 +678,22 @@ function EditShopVariantModal({ open, shopVariant, onClose, onSuccess }: EditSho
       title={t('form.productDetailsEditShopVariantTitle', { id: shopVariant?.id ?? '' })}
       content={
         <Box className="space-y-3">
-          {dualPriceReady ? (
-            <>
-              <Box>
-                <Typography variant="body2" className="text-muted-foreground mb-1 font-medium">
-                  {t('form.productPriceUsdLabel')}
-                  {usdCurrency?.symbol ? (
-                    <span className="ms-1 opacity-80">({usdCurrency.symbol})</span>
-                  ) : null}
-                </Typography>
-                <input
-                  type="number"
-                  step="any"
-                  min={0}
-                  value={price}
-                  onChange={(e) => setPrice(e.target.value)}
-                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                />
-              </Box>
-              <Box>
-                <Typography variant="body2" className="text-muted-foreground mb-1 font-medium">
-                  {t('form.productPriceSypLabel')}
-                  {sypCurrency?.symbol ? (
-                    <span className="ms-1 opacity-80">({sypCurrency.symbol})</span>
-                  ) : null}
-                </Typography>
-                <input
-                  type="number"
-                  step="any"
-                  min={0}
-                  value={(() => {
-                    const u = parseFloat(price) || 0;
-                    const syp = shopVariantUsdToLocal(u, sypRate);
-                    return u === 0 && syp === 0 ? '' : syp;
-                  })()}
-                  onChange={(e) => {
-                    const raw = e.target.value;
-                    const v = raw === '' ? 0 : parseFloat(raw);
-                    setPrice(
-                      String(shopVariantLocalToUsd(Number.isFinite(v) ? v : 0, sypRate))
-                    );
-                  }}
-                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                />
-              </Box>
-            </>
-          ) : (
-            <Box>
-              <Typography variant="body2" className="text-muted-foreground mb-1 font-medium">
-                {t('form.priceLabel')}
-              </Typography>
-              <input
-                type="number"
-                step="0.01"
-                min={0}
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-              />
-            </Box>
-          )}
-          {[
-            { label: t('form.productCostPriceOptional'), value: costPrice, setter: setCostPrice, step: '0.01' },
-            { label: t('form.quantity'), value: quantity, setter: setQuantity, step: '1' },
-          ].map(({ label, value, setter, step }) => (
-            <Box key={label}>
-              <Typography variant="body2" className="text-muted-foreground mb-1 font-medium">
-                {label}
-              </Typography>
-              <input
-                type="number"
-                step={step}
-                min={0}
-                value={value}
-                onChange={(e) => setter(e.target.value)}
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-              />
-            </Box>
-          ))}
-          {shopVariant?.price_after_discount != null ? (
-            <Box>
-              <Typography variant="body2" className="text-muted-foreground mb-1 font-medium">
-                {t('columns.priceAfterDiscount')}
-              </Typography>
-              <Typography variant="body2" className="rounded-md border border-border/60 bg-muted/30 px-3 py-2 tabular-nums">
-                {String(shopVariant.price_after_discount)}
-              </Typography>
-            </Box>
-          ) : null}
+          <Box>
+            <Typography variant="body2" className="text-muted-foreground mb-1 font-medium">
+              {t('form.branchCostPriceLabel')}
+            </Typography>
+            <input
+              type="number"
+              step="0.01"
+              min={0}
+              value={costPrice}
+              onChange={(e) => setCostPrice(e.target.value)}
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+            />
+            <Typography variant="caption" className="text-muted-foreground mt-1 block">
+              {t('form.branchCostPriceHint')}
+            </Typography>
+          </Box>
         </Box>
       }
       actions={
@@ -713,40 +718,34 @@ export default function DetailsPage() {
   const navigate = useNavigate();
   const { data: productResponse, isLoading, error, refetch } = useFetchProductById(id || '');
 
-  const { mutate: deleteVariant } = useDeleteProductVariant();
-  const { mutate: deleteShopVariant } = useDeleteShopProductVariant();
-
   const [editVariant, setEditVariant] = useState<any>(null);
-  const [deleteVariantId, setDeleteVariantId] = useState<number | null>(null);
   const [editShopVariant, setEditShopVariant] = useState<any>(null);
-  const [deleteShopVariantId, setDeleteShopVariantId] = useState<number | null>(null);
   const [heroImageIndex, setHeroImageIndex] = useState(0);
+
+  // Both deletes preview their impact first, so the user sees what is removed (basket /
+  // recipe rows) and what is kept (order history) before committing.
+  const variantDeleteFlow = useVariantDeleteFlow({
+    target: 'product_variant',
+    onDeleted: () => {
+      toast.success(t('form.variantDeleteSuccess'));
+      refetch();
+    },
+    onError: (err) => toast.error(getApiErrorMessage(err, t('form.variantDeleteFailed'))),
+  });
+
+  const shopVariantDeleteFlow = useVariantDeleteFlow({
+    target: 'shop_product_variant',
+    onDeleted: () => {
+      toast.success(t('form.productDetailsShopVariantDeleteSuccess'));
+      refetch();
+    },
+    onError: (err) =>
+      toast.error(getApiErrorMessage(err, t('form.productDetailsShopVariantDeleteFailed'))),
+  });
 
   useEffect(() => {
     setHeroImageIndex(0);
   }, [id]);
-
-  const handleDeleteVariant = () => {
-    if (!deleteVariantId) return;
-    deleteVariant(deleteVariantId, {
-      onSuccess: () => {
-        toast.success(t('form.variantDeleteSuccess'));
-        setDeleteVariantId(null);
-        refetch();
-      },
-    });
-  };
-
-  const handleDeleteShopVariant = () => {
-    if (!deleteShopVariantId) return;
-    deleteShopVariant(deleteShopVariantId, {
-      onSuccess: () => {
-        toast.success(t('form.productDetailsShopVariantDeleteSuccess'));
-        setDeleteShopVariantId(null);
-        refetch();
-      },
-    });
-  };
 
   const na = t('form.productDetailsNotAvailable');
 
@@ -1289,7 +1288,8 @@ export default function DetailsPage() {
                           <Button
                             size="small"
                             variant="text"
-                            onClick={() => setDeleteVariantId(variant.id)}
+                            disabled={variantDeleteFlow.isDeleting}
+                            onClick={() => variantDeleteFlow.requestDelete(variant.id, undefined)}
                             className="text-destructive hover:bg-destructive/10 min-w-0 px-2"
                           >
                             <Iconify icon="solar:trash-bin-minimalistic-bold" width={16} />
@@ -1371,7 +1371,60 @@ export default function DetailsPage() {
                         </Box>
                       )}
 
-                      {/* Shop pricing */}
+                      {/* Variant price/stock — shared across every shop */}
+                      <Box>
+                        <Typography variant="caption" className="mb-2 block text-muted-foreground">
+                          {t('form.productDetailsVariantPriceStockTitle')}
+                        </Typography>
+                        <Box className="grid gap-2 text-xs sm:grid-cols-2 lg:grid-cols-4">
+                          <Box className="rounded-lg bg-background/60 px-2 py-1.5">
+                            <Typography variant="caption" className="text-muted-foreground">
+                              {t('form.priceLabel')}
+                            </Typography>
+                            <Typography variant="body2" component="div" className="font-medium tabular-nums">
+                              {productMoneyDisplay({
+                                currencies: variant.price_currencies,
+                                amount: variant.price,
+                                legacyAmountPrefix: t('currencySyrianPound'),
+                              })}
+                            </Typography>
+                          </Box>
+                          <Box className="rounded-lg bg-background/60 px-2 py-1.5">
+                            <Typography variant="caption" className="text-muted-foreground">
+                              {t('columns.discount')}
+                            </Typography>
+                            <Typography variant="body2" component="div" className="tabular-nums">
+                              {productMoneyDisplay({
+                                currencies: variant.discount_currencies,
+                                amount: variant.discount,
+                                legacyAmountPrefix: t('currencySyrianPound'),
+                              })}
+                            </Typography>
+                          </Box>
+                          <Box className="rounded-lg bg-background/60 px-2 py-1.5">
+                            <Typography variant="caption" className="text-muted-foreground">
+                              {t('columns.priceAfterDiscount')}
+                            </Typography>
+                            <Typography variant="body2" component="div" className="font-medium tabular-nums">
+                              {productMoneyDisplay({
+                                currencies: variant.price_after_discount_currencies,
+                                amount: variant.price_after_discount,
+                                legacyAmountPrefix: t('currencySyrianPound'),
+                              })}
+                            </Typography>
+                          </Box>
+                          <Box className="rounded-lg bg-background/60 px-2 py-1.5">
+                            <Typography variant="caption" className="text-muted-foreground">
+                              {t('form.variantQuantityLabel')}
+                            </Typography>
+                            <Typography variant="body2" className="font-semibold tabular-nums">
+                              {variant.quantity ?? na}
+                            </Typography>
+                          </Box>
+                        </Box>
+                      </Box>
+
+                      {/* Shop availability */}
                       {variant.shops?.length > 0 && (
                         <Box>
                           <Typography variant="caption" className="mb-2 block text-muted-foreground">
@@ -1406,70 +1459,27 @@ export default function DetailsPage() {
                                     <Button
                                       size="small"
                                       variant="text"
-                                      onClick={() => setDeleteShopVariantId(shop.id)}
+                                      disabled={shopVariantDeleteFlow.isDeleting}
+                                      onClick={() =>
+                                        shopVariantDeleteFlow.requestDelete(shop.id, undefined)
+                                      }
                                       className="h-8 min-w-0 px-1.5 text-destructive hover:bg-destructive/10"
                                     >
                                       <Iconify icon="solar:trash-bin-minimalistic-bold" width={14} />
                                     </Button>
                                   </Box>
                                 </Box>
-                                <Box className="mt-3 grid gap-2 text-xs sm:grid-cols-2">
-                                  <Box className="rounded-lg bg-background/60 px-2 py-1.5">
-                                    <Typography variant="caption" className="text-muted-foreground">
-                                      {t('columns.priceAfterDiscount')}
-                                    </Typography>
-                                    <Typography variant="body2" component="div" className="font-medium tabular-nums">
-                                      {productMoneyDisplay({
-                                        currencies: shop.price_after_discount_currencies,
-                                        amount: shop.price_after_discount,
-                                        legacyAmountPrefix: t('currencySyrianPound'),
-                                      })}
-                                    </Typography>
-                                  </Box>
-                                  <Box className="rounded-lg bg-background/60 px-2 py-1.5">
-                                    <Typography variant="caption" className="text-muted-foreground">
-                                      {t('form.priceLabel')}
-                                    </Typography>
-                                    <Typography variant="body2" component="div" className="font-medium tabular-nums">
-                                      {productMoneyDisplay({
-                                        currencies: shop.price_currencies,
-                                        amount: shop.price,
-                                        legacyAmountPrefix: t('currencySyrianPound'),
-                                      })}
-                                    </Typography>
-                                  </Box>
-                                  <Box className="rounded-lg bg-background/60 px-2 py-1.5">
-                                    <Typography variant="caption" className="text-muted-foreground">
-                                      {t('columns.discount')}
-                                    </Typography>
-                                    <Typography variant="body2" component="div" className="tabular-nums">
-                                      {productMoneyDisplay({
-                                        currencies: shop.discount_currencies,
-                                        amount: shop.discount,
-                                        legacyAmountPrefix: t('currencySyrianPound'),
-                                      })}
-                                    </Typography>
-                                  </Box>
-                                  <Box className="rounded-lg bg-background/60 px-2 py-1.5">
-                                    <Typography variant="caption" className="text-muted-foreground">
-                                      {t('form.productCostPriceOptional')}
-                                    </Typography>
-                                    <Typography variant="body2" component="div" className="tabular-nums">
-                                      {productMoneyDisplay({
-                                        currencies: shop.cost_price_currencies,
-                                        amount: shop.cost_price,
-                                        legacyAmountPrefix: t('currencySyrianPound'),
-                                      })}
-                                    </Typography>
-                                  </Box>
-                                  <Box className="rounded-lg bg-background/60 px-2 py-1.5 sm:col-span-2">
-                                    <Typography variant="caption" className="text-muted-foreground">
-                                      {t('form.quantity')}
-                                    </Typography>
-                                    <Typography variant="body2" className="font-semibold tabular-nums">
-                                      {shop.quantity ?? na}
-                                    </Typography>
-                                  </Box>
+                                <Box className="mt-3 rounded-lg bg-background/60 px-2 py-1.5 text-xs">
+                                  <Typography variant="caption" className="text-muted-foreground">
+                                    {t('form.branchCostPriceLabel')}
+                                  </Typography>
+                                  <Typography variant="body2" component="div" className="tabular-nums">
+                                    {productMoneyDisplay({
+                                      currencies: shop.cost_price_currencies,
+                                      amount: shop.cost_price,
+                                      legacyAmountPrefix: t('currencySyrianPound'),
+                                    })}
+                                  </Typography>
                                 </Box>
                               </Box>
                             ))}
@@ -1493,28 +1503,8 @@ export default function DetailsPage() {
               />
             )}
 
-            {/* Delete Variant Confirm */}
-            <Dialog
-              open={deleteVariantId !== null}
-              onClose={() => setDeleteVariantId(null)}
-              maxWidth="xs"
-              title={t('form.productDetailsDeleteVariantTitle')}
-              content={
-                <Typography variant="body2">
-                  {t('form.productDetailsDeleteVariantBody', { id: deleteVariantId ?? '' })}
-                </Typography>
-              }
-              actions={
-                <>
-                  <Button variant="outlined" onClick={() => setDeleteVariantId(null)}>
-                    {t('cancel')}
-                  </Button>
-                  <Button variant="contained" onClick={handleDeleteVariant} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                    {t('delete')}
-                  </Button>
-                </>
-              }
-            />
+            {/* Delete Variant Confirm — lists what the delete touches before committing */}
+            <VariantDeleteImpactDialog {...variantDeleteFlow.dialogProps} />
 
             {/* Edit Shop Variant Modal */}
             {editShopVariant && (
@@ -1526,28 +1516,8 @@ export default function DetailsPage() {
               />
             )}
 
-            {/* Delete Shop Variant Confirm */}
-            <Dialog
-              open={deleteShopVariantId !== null}
-              onClose={() => setDeleteShopVariantId(null)}
-              maxWidth="xs"
-              title={t('form.productDetailsDeleteShopVariantTitle')}
-              content={
-                <Typography variant="body2">
-                  {t('form.productDetailsDeleteShopVariantBody', { id: deleteShopVariantId ?? '' })}
-                </Typography>
-              }
-              actions={
-                <>
-                  <Button variant="outlined" onClick={() => setDeleteShopVariantId(null)}>
-                    {t('cancel')}
-                  </Button>
-                  <Button variant="contained" onClick={handleDeleteShopVariant} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                    {t('delete')}
-                  </Button>
-                </>
-              }
-            />
+            {/* Delete Shop Variant Confirm — same impact preview as the variant delete */}
+            <VariantDeleteImpactDialog {...shopVariantDeleteFlow.dialogProps} />
 
             {/* Category Details */}
             {product.category_details?.length > 0 && (

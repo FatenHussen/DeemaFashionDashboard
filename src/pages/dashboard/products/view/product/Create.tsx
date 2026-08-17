@@ -13,6 +13,7 @@ import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
 import { useQuery, useQueries } from '@tanstack/react-query';
 import { formatTranslated } from '@/utils/format-translated';
+import { getApiErrorMessage } from '@/lib/get-api-error-message';
 import { useFetchUnits } from '@/pages/dashboard/units/hooks/unit';
 import { useFetchShops } from '@/pages/dashboard/vendor/hooks/shop';
 import { _ShopApi } from '@/pages/dashboard/vendor/api/shop.services';
@@ -26,14 +27,14 @@ import { useId, useRef, useMemo, useState, useEffect, useCallback } from 'react'
 import { useFetchCurrencies } from '@/pages/dashboard/currencies/hooks/currency';
 import { InfiniteScrollSelect } from '@/shared/components/infinite-scroll-select';
 import { _CategoryApi } from '@/pages/dashboard/categories/api/category.services';
+import { useFetchCategoryById } from '@/pages/dashboard/categories/hooks/category';
 import { TinyMCEEditorField } from '@/shared/components/tinymce-editor/tinymce-editor';
 import { _SaleCountryApi } from '@/pages/dashboard/sale-countries/api/sale-country.services';
+import { useVariantDeleteFlow } from '@/pages/dashboard/products/hooks/use-variant-delete-flow';
 import { useFetchCategoryAttributes } from '@/pages/dashboard/categories/hooks/category-attribute';
 import { useFetchProductExtraDetails } from '@/pages/dashboard/categories/hooks/product-extra-detail';
-import {
-  useFetchCategories,
-  useFetchCategoryById,
-} from '@/pages/dashboard/categories/hooks/category';
+import { VariantDeleteImpactDialog } from '@/pages/dashboard/products/components/VariantDeleteImpactDialog';
+import { CategoryLeafCascadeFields } from '@/pages/dashboard/categories/components/category-leaf-cascade-fields';
 import {
   ProductSchema,
   type ProductFormValues,
@@ -45,9 +46,7 @@ import {
 } from '@/pages/dashboard/products/hooks/product';
 import {
   useUpdateProductVariant,
-  useDeleteProductVariant,
   useUpdateShopProductVariant,
-  useDeleteShopProductVariant,
 } from '@/pages/dashboard/products/hooks/product-variant';
 
 import { paths } from 'src/routes/paths';
@@ -191,15 +190,19 @@ function parseCurrencyRate(c: CurrencyData): number {
   return r > 0 ? r : 1;
 }
 
-/** `exchange_rate` is units of this currency per 1 USD → USD = local / rate. */
+/**
+ * `exchange_rate` is units of this currency per 1 USD → USD = local / rate.
+ * USD keeps 6 decimal places (not 2) because rates like 13000 SYP/USD make a cent
+ * worth ~130 SYP — rounding to cents here would collapse small local amounts to 0.
+ */
 function localAmountToUsd(local: number, exchangeRate: number): number {
   const r = exchangeRate > 0 ? exchangeRate : 1;
-  return local / r;
+  return Math.round((local / r) * 1e6) / 1e6;
 }
 
 function usdToLocalAmount(usd: number, exchangeRate: number): number {
   const r = exchangeRate > 0 ? exchangeRate : 1;
-  return usd * r;
+  return Math.round((usd * r) * 100) / 100;
 }
 
 /** Platform vendor id sent when "For me" is selected. */
@@ -637,6 +640,9 @@ export default function CreatePage() {
   const [hasSelectedProductType, setHasSelectedProductType] = useState(isEditMode);
   const restaurantShopMetaRef = useRef<Map<number, { vendorId: number }>>(new Map());
   const prevIsRestaurantToggleRef = useRef<boolean | null>(null);
+  /** Detect genuine (non-hydration) category changes to clear dependent state. */
+  const prevMainCategoryIdRef = useRef<number | null>(null);
+  const prevCategoryIdRef = useRef<number | null>(null);
   /** Extra categories to load "bought with" suggestions (merged with main product category). */
   const [boughtWithExtraCategoryIds, setBoughtWithExtraCategoryIds] = useState<number[]>([]);
   const productImagesInputId = useId();
@@ -645,14 +651,6 @@ export default function CreatePage() {
 
   // Fetch dependencies
   const { data: productResponse, isLoading: isLoadingProduct } = useFetchProductById(id || '');
-
-  const editCategoryMetaId =
-    isEditMode && productResponse?.category?.id
-      ? Number(productResponse.category.id)
-      : 0;
-  const { data: editCategoryResp } = useFetchCategoryById(
-    editCategoryMetaId > 0 ? editCategoryMetaId : ''
-  );
 
   const { data: currenciesResponse, isSuccess: currenciesReady } = useFetchCurrencies(1, 100);
   const activeCurrencies = useMemo(() => {
@@ -701,9 +699,7 @@ export default function CreatePage() {
   const createProductMutation = useCreateProduct();
   const updateProductMutation = useUpdateProduct();
   const updateVariantMutation = useUpdateProductVariant();
-  const deleteVariantMutation = useDeleteProductVariant();
   const updateShopVariantMutation = useUpdateShopProductVariant();
-  const deleteShopVariantMutation = useDeleteShopProductVariant();
 
   const todayDateInputMin = useMemo(() => toDateInputLocalYMD(new Date()), []);
 
@@ -759,6 +755,7 @@ export default function CreatePage() {
   const { handleSubmit, reset, control, watch, setValue, getValues, formState: { errors } } = methods;
 
   const priceWatch = watch('price');
+  const costPriceWatch = watch('cost_price');
 
   /** Keep UI-only `price_currency_id` / `price_local` aligned with canonical USD `price`. */
   useEffect(() => {
@@ -781,15 +778,9 @@ export default function CreatePage() {
 
   useEffect(() => {
     setMainCategoryId(0);
+    prevMainCategoryIdRef.current = null;
+    prevCategoryIdRef.current = null;
   }, [id]);
-
-  useEffect(() => {
-    if (!isEditMode || editCategoryMetaId <= 0) return;
-    const d = editCategoryResp?.data;
-    if (!d || Number(d.id) !== editCategoryMetaId) return;
-    const pid = d.parent_id != null && Number(d.parent_id) > 0 ? Number(d.parent_id) : null;
-    setMainCategoryId(pid ?? Number(d.id));
-  }, [isEditMode, editCategoryMetaId, editCategoryResp?.data]);
 
   const categoryId = watch('category_id');
   const isRestaurantToggle = watch('is_restaurant');
@@ -805,24 +796,28 @@ export default function CreatePage() {
   const restaurantMode = isRestaurantToggle || categoryIsRestaurant;
   const categoryRestaurantFilter = isRestaurantToggle ? 1 : 0;
 
-  const mainCategoryFetcher = useCallback(
-    (page: number, limit: number) =>
-      _CategoryApi.getListCategoriesPaginated({
-        page,
-        per_page: limit,
-        parent_id: 0,
-        is_restaurant: categoryRestaurantFilter,
-      }).then((r) => ({
-        data: {
-          items: r.data.items.map((cat) => ({
-            id: cat.id,
-            label: formatTranslated(cat.name as any),
-          })),
-          pagination: r.data.pagination,
-        },
-      })),
-    [categoryRestaurantFilter]
-  );
+  /** Full flat category list (current restaurant/retail mode) — used to hydrate the cascade in edit mode. */
+  const {
+    data: flatCategoryItems = [],
+    dataUpdatedAt: flatCategoriesUpdatedAt,
+    isFetched: flatCategoriesFetched,
+  } = useQuery({
+    queryKey: ['categories', 'flat-all', 'product-form', categoryRestaurantFilter],
+    queryFn: () =>
+      _CategoryApi.getListAllCategoriesFlat({ per_page: 500, is_restaurant: categoryRestaurantFilter }),
+    enabled: hasSelectedProductType,
+  });
+
+  const hydrateLeafCategoryId = useMemo(() => {
+    if (!isEditMode || !productResponse?.category?.id) return null;
+    const savedIsRestaurant = Boolean(
+      productResponse.is_restaurant ?? productResponse.category?.is_restaurant
+    );
+    if (Boolean(isRestaurantToggle) !== savedIsRestaurant) return null;
+    return Number(productResponse.category.id) || null;
+  }, [isEditMode, productResponse, isRestaurantToggle]);
+
+  const categoryHydrationKey = `${id ?? 'new-product'}|${isRestaurantToggle ? 'restaurant' : 'retail'}`;
 
   const vendorFetcher = useCallback(
     (page: number, limit: number) =>
@@ -907,58 +902,6 @@ export default function CreatePage() {
     setValue('shop_variants', []);
   }, [watchedVendorId, vendorScope, setValue]);
 
-  const { data: subcategoriesListResp, isLoading: isLoadingSubCats } = useFetchCategories(
-    1,
-    10,
-    mainCategoryId > 0
-      ? {
-          parent_id: mainCategoryId,
-          is_restaurant: categoryRestaurantFilter,
-        }
-      : undefined,
-    { enabled: mainCategoryId > 0 && hasSelectedProductType }
-  );
-
-  const hasChildCategories = useMemo(() => {
-    if (mainCategoryId <= 0) return false;
-    const items = subcategoriesListResp?.data?.items ?? [];
-    const total = subcategoriesListResp?.data?.pagination?.total;
-    if (typeof total === 'number') return total > 0;
-    return items.length > 0;
-  }, [mainCategoryId, subcategoriesListResp]);
-
-  const mainCategoryInitialLabel = useMemo(() => {
-    if (!isEditMode || editCategoryMetaId <= 0 || !editCategoryResp?.data) return undefined;
-    const d = editCategoryResp.data;
-    if (Number(d.id) !== editCategoryMetaId) return undefined;
-    const pid = d.parent_id != null && Number(d.parent_id) > 0 ? Number(d.parent_id) : null;
-    if (pid && d.parent) {
-      return typeof d.parent.name === 'string'
-        ? d.parent.name
-        : formatTranslated(d.parent.name as any);
-    }
-    return formatTranslated(d.name);
-  }, [isEditMode, editCategoryMetaId, editCategoryResp?.data]);
-
-  const childCategoryFetcher = useMemo(
-    () => (page: number, limit: number) =>
-      _CategoryApi.getListCategoriesPaginated({
-        page,
-        per_page: limit,
-        parent_id: mainCategoryId,
-        is_restaurant: categoryRestaurantFilter,
-      }).then((r) => ({
-        data: {
-          items: r.data.items.map((cat) => ({
-            id: cat.id,
-            label: formatTranslated(cat.name as any),
-          })),
-          pagination: r.data.pagination,
-        },
-      })),
-    [mainCategoryId, categoryRestaurantFilter]
-  );
-
   const selectedRestaurantShopId = useMemo(() => {
     if (!isRestaurantToggle || !categoryId || categoryId <= 0) return 0;
     const row = watchedShopVariants.find((sv) => Number(sv.variant_index) === 0);
@@ -1019,36 +962,62 @@ export default function CreatePage() {
 
       const existing = getValues('shop_variants') ?? [];
       const idx = existing.findIndex((sv) => Number(sv.variant_index) === 0);
-      const price = getValues('price');
-      const quantity = getValues('quantity');
-      const defaults = {
-        shop_id: shopId,
-        variant_index: 0,
-        price: price != null && !Number.isNaN(Number(price)) ? Number(price) : 0,
-        quantity: quantity != null && !Number.isNaN(Number(quantity)) ? Number(quantity) : 0,
-      };
       if (idx >= 0) {
         const next = [...existing];
         next[idx] = { ...next[idx], shop_id: shopId };
         setValue('shop_variants', next);
       } else {
-        setValue('shop_variants', [...existing, defaults]);
+        setValue('shop_variants', [...existing, { shop_id: shopId, variant_index: 0 }]);
+      }
+
+      // Seed the sole variant's price/quantity from the product-level fields the first time.
+      if (getValues('variants.0.price') == null) {
+        const price = getValues('price');
+        setValue(
+          'variants.0.price',
+          price != null && !Number.isNaN(Number(price)) ? Number(price) : undefined
+        );
+      }
+      if (getValues('variants.0.quantity') == null) {
+        const quantity = getValues('quantity');
+        setValue(
+          'variants.0.quantity',
+          quantity != null && !Number.isNaN(Number(quantity)) ? Number(quantity) : undefined
+        );
       }
     },
     [getValues, setValue]
   );
 
+  /** Root category changed (not the initial edit-mode hydration) — its attributes no longer match existing variants. */
   useEffect(() => {
-    if (mainCategoryId <= 0 || isLoadingSubCats) return;
-    if (!hasChildCategories) {
-      setValue('category_id', mainCategoryId);
+    const prev = prevMainCategoryIdRef.current;
+    if (prev !== null && prev !== 0 && prev !== mainCategoryId) {
+      setValue('variants', []);
+    }
+    prevMainCategoryIdRef.current = mainCategoryId;
+  }, [mainCategoryId, setValue]);
+
+  /** Effective category (any level) changed (not the initial edit-mode hydration) — clear category-specific state. */
+  useEffect(() => {
+    const prev = prevCategoryIdRef.current;
+    if (prev !== null && prev !== 0 && prev !== categoryId) {
+      setValue('category_details', []);
       if (isRestaurantToggle) {
         setValue('shop_variants', []);
         setValue('vendor_id', 0);
         restaurantShopMetaRef.current.clear();
       }
     }
-  }, [mainCategoryId, hasChildCategories, isLoadingSubCats, isRestaurantToggle, setValue]);
+    prevCategoryIdRef.current = categoryId;
+  }, [categoryId, isRestaurantToggle, setValue]);
+
+  const syncLeafCategory = useCallback(
+    (leafId: number) => {
+      setValue('category_id', leafId, { shouldValidate: true, shouldDirty: true });
+    },
+    [setValue]
+  );
 
   // Fetch category attributes when category changes
   const { data: categoryAttributesAll, isLoading: isLoadingAttributes } =
@@ -1056,7 +1025,7 @@ export default function CreatePage() {
       {
         page: 1,
         per_page: 100,
-        category_id: categoryId ? Number(categoryId) : undefined,
+        category_id: mainCategoryId ? Number(mainCategoryId) : undefined,
       },
       { requireCategoryId: true }
     );
@@ -1181,6 +1150,8 @@ export default function CreatePage() {
     control,
     name: 'variants',
   });
+  /** Only this variant row renders as an open/editable card; the rest render collapsed. */
+  const [openVariantIndex, setOpenVariantIndex] = useState<number | null>(null);
   const { fields: extraDetailsFields, append: appendExtraDetail, remove: removeExtraDetail } =
     useFieldArray({ control, name: 'extra_details' });
   const { fields: categoryDetailsFields, append: appendCategoryDetail, remove: removeCategoryDetail } =
@@ -1204,8 +1175,45 @@ export default function CreatePage() {
         }));
       setValue('shop_variants', nextSv, { shouldDirty: true });
       removeVariant(variantIndex);
+      setOpenVariantIndex((cur) => {
+        if (cur == null) return cur;
+        if (cur === variantIndex) return null;
+        return cur > variantIndex ? cur - 1 : cur;
+      });
     },
     [getValues, setValue, removeVariant]
+  );
+
+  /**
+   * Server-side delete for variants that already exist. The form row is dropped only after
+   * the API confirms, so a card can never silently disappear while still existing on the
+   * backend. The dialog lists the delete's impact (baskets, recipes, order history) first.
+   */
+  const variantDeleteFlow = useVariantDeleteFlow<number>({
+    target: 'product_variant',
+    onDeleted: (_id, variantIndex) => {
+      handleRemoveVariant(variantIndex);
+      toast.success(t('form.variantDeleteSuccess'));
+    },
+    onError: (err) => toast.error(getApiErrorMessage(err, t('form.variantDeleteFailed'))),
+  });
+
+  /**
+   * Single entry point for every "remove variant" control (collapsed-row trash icon,
+   * open-card remove button). Rows that were never saved are just dropped from the form.
+   */
+  const requestVariantDelete = variantDeleteFlow.requestDelete;
+  const confirmAndRemoveVariant = useCallback(
+    async (variantIndex: number) => {
+      const variantId = getValues(`variants.${variantIndex}.id`);
+      if (variantId && isEditMode) {
+        await requestVariantDelete(variantId, variantIndex);
+        return;
+      }
+      if (!window.confirm(t('form.variantRemoveConfirm'))) return;
+      handleRemoveVariant(variantIndex);
+    },
+    [getValues, isEditMode, requestVariantDelete, handleRemoveVariant, t]
   );
 
   /**
@@ -1225,9 +1233,22 @@ export default function CreatePage() {
       barcode: string;
       nameEn: string;
       nameAr: string;
+      price: number | undefined;
+      quantity: number | undefined;
     }): Promise<number> => {
-      const { productId, variantIndex, attrIds, images, sku, model, barcode, nameEn, nameAr } =
-        args;
+      const {
+        productId,
+        variantIndex,
+        attrIds,
+        images,
+        sku,
+        model,
+        barcode,
+        nameEn,
+        nameAr,
+        price,
+        quantity,
+      } = args;
       const allVariants = getValues('variants') ?? [];
       const currentCategoryId = Number(getValues('category_id') ?? 0);
       const apiVariantsPayload: NonNullable<ProductCreateUpdatePayload['variants']> = [];
@@ -1240,6 +1261,8 @@ export default function CreatePage() {
             model,
             barcode,
             name: { en: nameEn, ar: nameAr },
+            price,
+            quantity,
           });
         } else if (row?.id) {
           const rowIds = Array.isArray(row.attributes_values_ids)
@@ -1279,12 +1302,9 @@ export default function CreatePage() {
       parentVariantId: number;
       parentVariantIndex: number;
       shopId: number;
-      price: number;
       costPrice: number | undefined;
-      quantity: number;
     }): Promise<number> => {
-      const { productId, parentVariantId, parentVariantIndex, shopId, price, costPrice, quantity } =
-        args;
+      const { productId, parentVariantId, parentVariantIndex, shopId, costPrice } = args;
       const allVariants = getValues('variants') ?? [];
       const allShopVariants = getValues('shop_variants') ?? [];
       const currentCategoryId = Number(getValues('category_id') ?? 0);
@@ -1312,8 +1332,6 @@ export default function CreatePage() {
           id: sv.id,
           shop_id: Number(sv.shop_id),
           variant_index: remappedIdx,
-          price: Number(sv.price ?? 0),
-          quantity: Number(sv.quantity ?? 0),
         });
       });
       const parentRemapped = remap.get(parentVariantIndex);
@@ -1323,9 +1341,7 @@ export default function CreatePage() {
       shopVariantsPayload.push({
         shop_id: shopId,
         variant_index: parentRemapped,
-        price,
         cost_price: costPrice,
-        quantity,
       });
 
       const resp = await _ProductApi.updateProductVariantsOnly(productId, {
@@ -1425,6 +1441,8 @@ export default function CreatePage() {
             model: (v as any).model ?? '',
             barcode: (v as any).barcode ?? '',
             name: { en: (v as any).name?.en ?? '', ar: (v as any).name?.ar ?? '' },
+            price: (v as any).price != null ? Number((v as any).price) : undefined,
+            quantity: (v as any).quantity != null ? Number((v as any).quantity) : undefined,
             stock: (v as any).stock != null ? Number((v as any).stock) : undefined,
             max_purchase_quantity: (v as any).max_purchase_quantity != null ? Number((v as any).max_purchase_quantity) : undefined,
             delivery_time: (v as any).delivery_time ?? '',
@@ -1455,10 +1473,7 @@ export default function CreatePage() {
               id: s.id != null ? Number(s.id) : undefined,
               shop_id: Number(s.shop_id),
               variant_index: vIndex,
-              price: Number(s.price) || 0,
               cost_price: s.cost_price != null ? Number(s.cost_price) : undefined,
-              discount: s.discount != null ? Number(s.discount) : undefined,
-              quantity: Number(s.quantity) || 0,
             }))
           ) ?? [],
         badges: p.badges?.length
@@ -1618,8 +1633,12 @@ export default function CreatePage() {
       const prevFiles = Array.isArray(prev?.images)
         ? (prev!.images as unknown[]).filter((f): f is File => f instanceof File)
         : [];
+      const matchedAttr = (categoryAttributes as any[]).find((a: any) =>
+        (a.values || []).some((val: any) => ids.includes(Number(val.id)))
+      );
       return {
         id: v.id,
+        category_attribute_id: matchedAttr?.id ?? (prev as any)?.category_attribute_id,
         attributes_values_ids: ids,
         images: prevFiles,
         existing_images_ids:
@@ -2069,7 +2088,7 @@ export default function CreatePage() {
                   <input
                     type="radio"
                     className="w-4 h-4"
-                    checked={field.value === false}
+                    checked={hasSelectedProductType && field.value === false}
                     onChange={() => {
                       field.onChange(false);
                       setHasSelectedProductType(true);
@@ -2081,7 +2100,7 @@ export default function CreatePage() {
                   <input
                     type="radio"
                     className="w-4 h-4"
-                    checked={field.value === true}
+                    checked={hasSelectedProductType && field.value === true}
                     onChange={() => {
                       field.onChange(true);
                       setHasSelectedProductType(true);
@@ -2128,76 +2147,18 @@ export default function CreatePage() {
             {t('form.productCategorySection')}
           </Typography>
 
-          <Box className="group">
-            <Box className="flex items-center gap-2 mb-2">
-              <Iconify icon="solar:folder-bold" className="text-primary" width={20} />
-              <Typography variant="subtitle2" className="font-semibold text-foreground">
-                {t('form.productMainCategory')}
-              </Typography>
-            </Box>
-            <InfiniteScrollSelect
-              value={mainCategoryId}
-              onChange={(val) => {
-                setMainCategoryId(val);
-                setValue('category_id', 0);
-                setValue('variants', []);
-                setValue('category_details', []);
-                if (isRestaurantToggle) {
-                  setValue('shop_variants', []);
-                  setValue('vendor_id', 0);
-                  restaurantShopMetaRef.current.clear();
-                }
-              }}
-              queryKey={[
-                'categories',
-                'infinite',
-                'product-form',
-                'roots',
-                isRestaurantToggle ? 'restaurant' : 'retail',
-              ]}
-              fetcher={mainCategoryFetcher}
-              placeholder={t('form.selectMainCategory')}
-              initialLabel={mainCategoryInitialLabel}
-            />
-          </Box>
-
-          {hasChildCategories ? (
-            <Box className="group">
-              <Label className="text-sm font-medium mb-1 block">{t('form.productSubcategory')}</Label>
-              <RHFInfiniteSelect
-                name="category_id"
-                queryKey={[
-                  'categories',
-                  'infinite',
-                  'product-form',
-                  'children',
-                  mainCategoryId,
-                  isRestaurantToggle ? 'restaurant' : 'retail',
-                ]}
-                fetcher={childCategoryFetcher}
-                placeholder={t('form.selectSubcategory')}
-                initialLabel={
-                  productResponse?.category?.name
-                    ? formatTranslated(productResponse.category.name as any)
-                    : undefined
-                }
-                disabled={!mainCategoryId}
-                onValueChange={() => {
-                  setValue('variants', []);
-                  setValue('category_details', []);
-                  if (isRestaurantToggle) {
-                    setValue('shop_variants', []);
-                    setValue('vendor_id', 0);
-                    restaurantShopMetaRef.current.clear();
-                  }
-                }}
-              />
-            </Box>
-          ) : mainCategoryId > 0 && !isLoadingSubCats ? (
-            <Typography variant="caption" className="text-muted-foreground block">
-              {t('form.productCategoryUsesMainOnly')}
-            </Typography>
-          ) : null}
+          <CategoryLeafCascadeFields
+            t={t}
+            legacyMode={false}
+            flatItems={flatCategoryItems}
+            flatParentFetched={flatCategoriesFetched}
+            flatParentDataUpdatedAt={flatCategoriesUpdatedAt ?? 0}
+            hydrateLeafCategoryId={hydrateLeafCategoryId}
+            hydrationKey={categoryHydrationKey}
+            onEffectiveLeafChange={syncLeafCategory}
+            isRestaurant={categoryRestaurantFilter}
+            onMainCategoryChange={setMainCategoryId}
+          />
 
           {isRestaurantToggle && categoryId > 0 ? (
             <Box className="group">
@@ -2243,15 +2204,11 @@ export default function CreatePage() {
               setValue={setValue}
               appendShopVariant={appendShopVariant}
               removeShopVariant={removeShopVariant}
-              productDualPriceReady={productDualPriceReady}
-              usdCurrency={usdCurrency}
-              sypCurrency={sypCurrency}
               isEditMode={isEditMode}
               productId={id}
               shopVariantCreateBusyIdx={shopVariantCreateBusyIdx}
               setShopVariantCreateBusyIdx={setShopVariantCreateBusyIdx}
               updateShopVariantMutation={updateShopVariantMutation}
-              deleteShopVariantMutation={deleteShopVariantMutation}
               createSingleShopVariantOnProduct={createSingleShopVariantOnProduct}
               embedded
               hideShopSelect
@@ -2920,32 +2877,133 @@ export default function CreatePage() {
               )}
             />
           </Box>
-          <Box className="group">
+          <Box className="group md:col-span-2 lg:col-span-3">
             <Typography variant="subtitle2" className="font-semibold text-foreground mb-2">
               {t('form.productCostPriceOptional')}
             </Typography>
-            <Controller
-              name="cost_price"
-              control={control}
-              render={({ field, fieldState: { error } }) => (
-                <div>
-                  <input
-                    {...field}
-                    type="number"
-                    placeholder=""
-                    value={
-                      field.value === undefined || field.value === null ? '' : field.value
-                    }
-                    onChange={(e) =>
-                      field.onChange(toTwoDecimalNumber(e.target.value))
-                    }
-                    className={fieldInputClass(!!error)}
-                    step="0.01"
+            {currenciesReady && activeCurrencies.length > 0 ? (
+              productDualPriceReady ? (
+                <Box className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
+                  <Controller
+                    name="cost_price"
+                    control={control}
+                    render={({ field, fieldState: { error } }) => (
+                      <div>
+                        <Typography variant="caption" className="text-muted-foreground mb-1 block">
+                          {t('form.productCostPriceUsdLabel')}
+                          {usdCurrency?.symbol ? (
+                            <span className="ms-1 opacity-80">({usdCurrency.symbol})</span>
+                          ) : null}
+                        </Typography>
+                        <input
+                          {...field}
+                          type="number"
+                          placeholder=""
+                          value={field.value === undefined || field.value === null ? '' : field.value}
+                          onChange={(e) => {
+                            field.onChange(toTwoDecimalNumber(e.target.value));
+                          }}
+                          className={fieldInputClass(!!error)}
+                          step="0.01"
+                          min={0}
+                        />
+                        <FieldErrorText message={error?.message} />
+                      </div>
+                    )}
                   />
-                  <FieldErrorText message={error?.message} />
-                </div>
-              )}
-            />
+                  <div>
+                    <Typography variant="caption" className="text-muted-foreground mb-1 block">
+                      {t('form.productCostPriceSypLabel')}
+                      {sypCurrency?.symbol ? (
+                        <span className="ms-1 opacity-80">({sypCurrency.symbol})</span>
+                      ) : null}
+                    </Typography>
+                    <input
+                      type="number"
+                      placeholder=""
+                      value={(() => {
+                        const cw = costPriceWatch;
+                        if (cw == null || Number.isNaN(Number(cw))) return '';
+                        const usdNum = Number(cw);
+                        const syp = usdToLocalAmount(usdNum, parseCurrencyRate(sypCurrency!));
+                        return syp;
+                      })()}
+                      onChange={(e) => {
+                        const raw = e.target.value;
+                        const rate = parseCurrencyRate(sypCurrency!);
+                        if (raw === '') {
+                          setValue('cost_price', undefined, {
+                            shouldValidate: true,
+                            shouldDirty: true,
+                          });
+                          return;
+                        }
+                        const v = toTwoDecimalNumber(raw);
+                        if (v == null) {
+                          setValue('cost_price', undefined, {
+                            shouldValidate: true,
+                            shouldDirty: true,
+                          });
+                          return;
+                        }
+                        setValue('cost_price', localAmountToUsd(v, rate), {
+                          shouldValidate: true,
+                          shouldDirty: true,
+                        });
+                      }}
+                      className={fieldInputClass(!!errors.cost_price)}
+                      step="0.01"
+                      min={0}
+                    />
+                  </div>
+                </Box>
+              ) : (
+                <Controller
+                  name="cost_price"
+                  control={control}
+                  render={({ field, fieldState: { error } }) => (
+                    <div>
+                      <input
+                        {...field}
+                        type="number"
+                        placeholder=""
+                        value={field.value === undefined || field.value === null ? '' : field.value}
+                        onChange={(e) => {
+                          field.onChange(toTwoDecimalNumber(e.target.value));
+                        }}
+                        className={fieldInputClass(!!error)}
+                        step="0.01"
+                        min={0}
+                      />
+                      <FieldErrorText message={error?.message} />
+                    </div>
+                  )}
+                />
+              )
+            ) : (
+              <Controller
+                name="cost_price"
+                control={control}
+                render={({ field, fieldState: { error } }) => (
+                  <div>
+                    <input
+                      {...field}
+                      type="number"
+                      placeholder=""
+                      value={
+                        field.value === undefined || field.value === null ? '' : field.value
+                      }
+                      onChange={(e) =>
+                        field.onChange(toTwoDecimalNumber(e.target.value))
+                      }
+                      className={fieldInputClass(!!error)}
+                      step="0.01"
+                    />
+                    <FieldErrorText message={error?.message} />
+                  </div>
+                )}
+              />
+            )}
           </Box>
         </Box>
 
@@ -2979,29 +3037,6 @@ export default function CreatePage() {
                         (Number.isNaN(n) ? undefined : n) as ProductFormValues['quantity']
                       );
                     }}
-                    className={fieldInputClass(!!error)}
-                  />
-                  <FieldErrorText message={error?.message} />
-                </div>
-              )}
-            />
-          </Box>
-          <Box className="group">
-            <Box className="flex items-center gap-2 mb-2">
-              <Iconify icon="solar:clock-circle-bold" className="text-primary" width={20} />
-              <Typography variant="subtitle2" className="font-semibold text-foreground">
-                {t('form.productPrepTime')}
-              </Typography>
-            </Box>
-            <Controller
-              name="time_prepare"
-              control={control}
-              render={({ field, fieldState: { error } }) => (
-                <div>
-                  <input
-                    {...field}
-                    type="text"
-                    placeholder={t('form.prepTimePlaceholder')}
                     className={fieldInputClass(!!error)}
                   />
                   <FieldErrorText message={error?.message} />
@@ -3843,13 +3878,11 @@ export default function CreatePage() {
               type="button"
               variant="outlined"
               size="small"
-              disabled={
-                !categoryId ||
-                categoryId === 0 ||
-                categoryAttributes.length === 0
-              }
-              onClick={() =>
+              disabled={!mainCategoryId || mainCategoryId === 0 || categoryAttributes.length === 0}
+              onClick={() => {
+                const newIndex = variantsFields.length;
                 appendVariant({
+                  category_attribute_id: undefined,
                   attributes_values_ids: [],
                   images: [],
                   existing_images_ids: [],
@@ -3857,18 +3890,21 @@ export default function CreatePage() {
                   model: '',
                   barcode: '',
                   name: { en: '', ar: '' },
+                  price: undefined,
+                  quantity: undefined,
                   stock: undefined,
                   max_purchase_quantity: undefined,
                   delivery_time: '',
-                })
-              }
+                });
+                setOpenVariantIndex(newIndex);
+              }}
             >
               <Iconify icon="solar:add-circle-bold" width={16} className="mr-1" />
               {t('form.addVariant')}
             </Button>
           </Box>
 
-          {!categoryId || categoryId === 0 ? (
+          {!mainCategoryId || mainCategoryId === 0 ? (
             <Typography variant="body2" className="text-muted-foreground">
               {t('form.selectCategoryFirstAttributes')}
             </Typography>
@@ -3880,14 +3916,112 @@ export default function CreatePage() {
             <Typography variant="body2" className="text-muted-foreground">
               {t('form.noAttributesForCategory')}
             </Typography>
+          ) : variantsFields.length === 0 ? (
+            <Typography variant="body2" className="text-muted-foreground">
+              {t('form.noVariantsYet')}
+            </Typography>
           ) : (
-            <Box className="space-y-4">
-              {variantsFields.map((variant, variantIndex) => (
+            <Box className="space-y-3">
+              {variantsFields.map((variant, variantIndex) => {
+                const rowSelectedIds = (watch(`variants.${variantIndex}.attributes_values_ids`) ||
+                  []) as number[];
+                const chosenAttrId = watch(`variants.${variantIndex}.category_attribute_id`);
+                const matchedAttr =
+                  categoryAttributes.find((a: any) => Number(a.id) === Number(chosenAttrId)) ??
+                  categoryAttributes.find((a: any) =>
+                    (a.values || []).some((v: any) => rowSelectedIds.includes(Number(v.id)))
+                  );
+                const attr: any = matchedAttr;
+                const attrRowLabel =
+                  typeof attr?.name === 'object' && attr?.name
+                    ? formatTranslated(attr.name as any)
+                    : String(attr?.name ?? t('form.variantIndex', { n: variantIndex + 1 }));
+
+                const attrNameLabel =
+                  typeof attr?.name === 'object' ? attr.name?.en ?? attr.name?.ar : attr?.name;
+                const found = (attr?.values || []).find((v: any) =>
+                  rowSelectedIds.includes(Number(v.id))
+                );
+                const isColor = String(attr?.type).toLowerCase() === 'color';
+                const colorInitialLabel = found ? formatTranslated(found.name as any) : undefined;
+                const attrTypeLower = String(attr?.type ?? '').toLowerCase();
+                const attrTypeLabel =
+                  attrTypeLower === 'color'
+                    ? t('form.categoryAttrTypeColor')
+                    : attrTypeLower === 'select'
+                      ? t('form.categoryAttrTypeSelect')
+                      : attrTypeLower === 'text'
+                        ? t('form.categoryAttrTypeText')
+                        : String(attr?.type ?? '');
+
+                if (variantIndex !== openVariantIndex) {
+                  const foundValueLabel = found
+                    ? typeof found.name === 'object'
+                      ? formatTranslated(found.name as any)
+                      : String(found.name)
+                    : null;
+                  const skuVal = watch(`variants.${variantIndex}.sku`);
+                  const priceVal = watch(`variants.${variantIndex}.price`);
+                  return (
+                    <Box
+                      key={variant.id}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => setOpenVariantIndex(variantIndex)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') setOpenVariantIndex(variantIndex);
+                      }}
+                      className="flex items-center justify-between gap-3 p-3 border border-border rounded-lg cursor-pointer hover:bg-muted/40 transition-colors"
+                    >
+                      <Box className="min-w-0">
+                        <Typography variant="subtitle2" className="font-semibold text-foreground truncate">
+                          {attrRowLabel}
+                          {foundValueLabel ? `: ${foundValueLabel}` : ''}
+                        </Typography>
+                        <Typography variant="caption" className="text-muted-foreground truncate block">
+                          {[
+                            skuVal ? `SKU: ${skuVal}` : null,
+                            priceVal != null && priceVal !== ('' as any) ? `$${priceVal}` : null,
+                          ]
+                            .filter(Boolean)
+                            .join(' · ') || t('form.variantSummaryIncomplete')}
+                        </Typography>
+                      </Box>
+                      <Box className="flex items-center gap-1 shrink-0">
+                        <Button
+                          type="button"
+                          variant="text"
+                          size="small"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setOpenVariantIndex(variantIndex);
+                          }}
+                        >
+                          <Iconify icon="solar:pen-bold" width={16} />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="text"
+                          size="small"
+                          className="text-destructive"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            confirmAndRemoveVariant(variantIndex);
+                          }}
+                        >
+                          <Iconify icon="solar:trash-bin-bold" width={16} />
+                        </Button>
+                      </Box>
+                    </Box>
+                  );
+                }
+
+                return (
                 <Box key={variant.id} className="p-4 border border-border rounded-lg space-y-4">
                   <Box className="flex items-center justify-between flex-wrap gap-2">
                     <Box className="flex items-center gap-2 flex-wrap">
                       <Typography variant="subtitle2" className="font-semibold text-foreground">
-                        {t('form.variantIndex', { n: variantIndex + 1 })}
+                        {attrRowLabel}
                       </Typography>
                       {shops.length > 0 ? (
                         <Button
@@ -3905,140 +4039,128 @@ export default function CreatePage() {
                         </Button>
                       ) : null}
                     </Box>
-                    <Button
-                      type="button"
-                      variant="text"
-                      size="small"
-                      onClick={() => handleRemoveVariant(variantIndex)}
-                      className="text-destructive"
-                    >
-                      <Iconify icon="solar:trash-bin-bold" width={16} className="mr-1" />
-                      {t('form.remove')}
-                    </Button>
+                    <Box className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        variant="outlined"
+                        size="small"
+                        onClick={() => setOpenVariantIndex(null)}
+                      >
+                        <Iconify icon="solar:check-circle-bold" width={16} className="mr-1" />
+                        {t('form.collapseVariant')}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="text"
+                        size="small"
+                        onClick={() => confirmAndRemoveVariant(variantIndex)}
+                        className="text-destructive"
+                      >
+                        <Iconify icon="solar:trash-bin-bold" width={16} className="mr-1" />
+                        {t('form.remove')}
+                      </Button>
+                    </Box>
                   </Box>
 
-                  {/* Attribute selects / color picker */}
-                  <Box className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {categoryAttributes.map((attr: any) => {
-                      const attrNameLabel =
-                        typeof attr.name === 'object' ? attr.name?.en ?? attr.name?.ar : attr.name;
-                      const selectedIds =
-                        watch(`variants.${variantIndex}.attributes_values_ids`) || [];
-                      const attrValueIds = new Set<number>(
-                        (attr.values || []).map((v: any) => Number(v.id))
-                      );
-                      const found = (attr.values || []).find((v: any) =>
-                        selectedIds.includes(Number(v.id))
-                      );
+                  {/* Which category attribute this card represents */}
+                  <Box className="group">
+                    <select
+                      value={attr?.id ?? 0}
+                      onChange={(e) => {
+                        const pickedAttrId = Number(e.target.value);
+                        setValue(`variants.${variantIndex}.category_attribute_id`, pickedAttrId || undefined, {
+                          shouldDirty: true,
+                        });
+                        setValue(`variants.${variantIndex}.attributes_values_ids`, [], {
+                          shouldDirty: true,
+                        });
+                      }}
+                      className={inputCls}
+                    >
+                      <option value={0}>{t('form.variantAttributeChooserPlaceholder')}</option>
+                      {categoryAttributes.map((a: any) => (
+                        <option key={a.id} value={a.id}>
+                          {typeof a.name === 'object' ? a.name?.en ?? a.name?.ar : a.name}
+                        </option>
+                      ))}
+                    </select>
+                  </Box>
 
-                      const isColor = String(attr.type).toLowerCase() === 'color';
-
-                      const colorInitialLabel = found
-                        ? formatTranslated(found.name as any)
-                        : undefined;
-
-                      const attrTypeLower = String(attr.type ?? '').toLowerCase();
-                      const attrTypeLabel =
-                        attrTypeLower === 'color'
-                          ? t('form.categoryAttrTypeColor')
-                          : attrTypeLower === 'select'
-                            ? t('form.categoryAttrTypeSelect')
-                            : attrTypeLower === 'text'
-                              ? t('form.categoryAttrTypeText')
-                              : String(attr.type ?? '');
-                      const attrRowName =
-                        typeof attr.name === 'object' && attr.name
-                          ? formatTranslated(attr.name as any)
-                          : String(attr.name ?? '');
-
-                      return (
-                        <Box key={attr.id} className="group">
-                          <Typography variant="caption" className="text-muted-foreground mb-1 block">
-                            {attrRowName} ({attrTypeLabel})
-                          </Typography>
-                          {isColor ? (
-                            <Box className="flex items-start gap-2">
-                              <div className="flex-1 min-w-0">
-                                <InfiniteScrollSelect
-                                  value={found ? Number(found.id) : 0}
-                                  onChange={(pickedId) => {
-                                    const current = (watch(
-                                      `variants.${variantIndex}.attributes_values_ids`
-                                    ) || []) as number[];
-                                    const filtered = current.filter((i) => !attrValueIds.has(i));
-                                    setValue(
-                                      `variants.${variantIndex}.attributes_values_ids`,
-                                      pickedId ? [...filtered, pickedId] : filtered,
-                                      { shouldDirty: true }
-                                    );
-                                  }}
-                                  queryKey={[
-                                    'product-form',
-                                    'variant-attr-color',
-                                    attr.id,
-                                    variantIndex,
-                                    (attr.values ?? []).length,
-                                  ]}
-                                  fetcher={createAttributeValuesFetcher(attr.values)}
-                                  placeholder={t('form.selectAttribute', {
-                                    name: String(attrNameLabel ?? ''),
-                                  })}
-                                  pageSize={15}
-                                  initialLabel={colorInitialLabel}
-                                />
-                              </div>
-                              {found ? (
-                                <Button
-                                  type="button"
-                                  variant="text"
-                                  size="small"
-                                  className="shrink-0 text-muted-foreground"
-                                  onClick={() => {
-                                    const current = (watch(
-                                      `variants.${variantIndex}.attributes_values_ids`
-                                    ) || []) as number[];
-                                    const filtered = current.filter((i) => !attrValueIds.has(i));
-                                    setValue(
-                                      `variants.${variantIndex}.attributes_values_ids`,
-                                      filtered,
-                                      { shouldDirty: true }
-                                    );
-                                  }}
-                                >
-                                  {t('form.clearAttributeSelection')}
-                                </Button>
-                              ) : null}
-                            </Box>
-                          ) : (
-                            <select
-                              value={found ? Number(found.id) : 0}
-                              onChange={(e) => {
-                                const pickedId = Number(e.target.value);
-                                const current = (watch(
-                                  `variants.${variantIndex}.attributes_values_ids`
-                                ) || []) as number[];
-                                const filtered = current.filter((i) => !attrValueIds.has(i));
-                                setValue(
-                                  `variants.${variantIndex}.attributes_values_ids`,
-                                  pickedId ? [...filtered, pickedId] : filtered,
-                                  { shouldDirty: true }
-                                );
-                              }}
-                              className={inputCls}
-                            >
-                              <option value={0}>
-                                {t('form.selectAttribute', { name: String(attrNameLabel ?? '') })}
-                              </option>
-                              {(attr.values || []).map((val: any) => (
-                                <option key={val.id} value={val.id}>
-                                  {typeof val.name === 'object' ? val.name?.en : val.name}
-                                </option>
-                              ))}
-                            </select>
-                          )}
-                        </Box>
-                      );
-                    })}
+                  {/* This variant's attribute value select */}
+                  <Box className="group">
+                    {!attr ? null : (
+                      <>
+                        <Typography variant="caption" className="text-muted-foreground mb-1 block">
+                          {attrRowLabel}
+                        </Typography>
+                        {isColor ? (
+                      <Box className="flex items-start gap-2">
+                        <div className="flex-1 min-w-0">
+                          <InfiniteScrollSelect
+                            value={found ? Number(found.id) : 0}
+                            onChange={(pickedId) => {
+                              setValue(
+                                `variants.${variantIndex}.attributes_values_ids`,
+                                pickedId ? [pickedId] : [],
+                                { shouldDirty: true }
+                              );
+                            }}
+                            queryKey={[
+                              'product-form',
+                              'variant-attr-color',
+                              attr?.id,
+                              variantIndex,
+                              (attr?.values ?? []).length,
+                            ]}
+                            fetcher={createAttributeValuesFetcher(attr?.values)}
+                            placeholder={t('form.selectAttribute', {
+                              name: String(attrNameLabel ?? ''),
+                            })}
+                            pageSize={15}
+                            initialLabel={colorInitialLabel}
+                          />
+                        </div>
+                        {found ? (
+                          <Button
+                            type="button"
+                            variant="text"
+                            size="small"
+                            className="shrink-0 text-muted-foreground"
+                            onClick={() => {
+                              setValue(`variants.${variantIndex}.attributes_values_ids`, [], {
+                                shouldDirty: true,
+                              });
+                            }}
+                          >
+                            {t('form.clearAttributeSelection')}
+                          </Button>
+                        ) : null}
+                      </Box>
+                    ) : (
+                      <select
+                        value={found ? Number(found.id) : 0}
+                        onChange={(e) => {
+                          const pickedId = Number(e.target.value);
+                          setValue(
+                            `variants.${variantIndex}.attributes_values_ids`,
+                            pickedId ? [pickedId] : [],
+                            { shouldDirty: true }
+                          );
+                        }}
+                        className={inputCls}
+                      >
+                        <option value={0}>
+                          {t('form.selectAttribute', { name: String(attrNameLabel ?? '') })}
+                        </option>
+                        {(attr?.values || []).map((val: any) => (
+                          <option key={val.id} value={val.id}>
+                            {typeof val.name === 'object' ? val.name?.en : val.name}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                      </>
+                    )}
                   </Box>
 
                   {/* Variant Images */}
@@ -4089,11 +4211,6 @@ export default function CreatePage() {
                               </Typography>
                             </div>
                             <FieldErrorText message={error?.message} />
-                            {!error && (
-                              <Typography variant="caption" className="text-muted-foreground mt-1 block">
-                                {t('form.variantImagesHelper')}
-                              </Typography>
-                            )}
                           </div>
                         );
                       }}
@@ -4140,62 +4257,53 @@ export default function CreatePage() {
                     })()}
                   </Box>
 
-                  {/* ─── Variant extra fields (SKU; model/barcode hidden for restaurant; name, stock, …) ─── */}
-                  <Box className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 border-t border-border pt-4">
-                    <Box>
-                      <Typography variant="caption" className="text-muted-foreground mb-1 block">
-                        {t('form.variantSku')}
-                      </Typography>
-                      <Controller
-                        name={`variants.${variantIndex}.sku`}
-                        control={control}
-                        render={({ field, fieldState: { error } }) => (
-                          <div>
-                            <div className="flex gap-2">
+                  {/* ─── Variant details: name + barcode (SKU/Model live under Product Info) ─── */}
+                  <Box className="border-t border-border pt-4">
+                    <Box className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                      <Box>
+                        <Typography variant="caption" className="text-muted-foreground mb-1 block">
+                          {t('form.variantNameEn')}
+                        </Typography>
+                        <Controller
+                          name={`variants.${variantIndex}.name.en`}
+                          control={control}
+                          render={({ field, fieldState: { error } }) => (
+                            <div>
                               <input
                                 {...field}
                                 value={field.value ?? ''}
                                 type="text"
-                                placeholder={t('form.variantSkuPlaceholder')}
+                                placeholder={t('form.variantNameEnPlaceholder')}
                                 className={fieldInputClass(!!error)}
                               />
-                              <button
-                                type="button"
-                                title={t('form.generateSku')}
-                                onClick={() => field.onChange(generateRandomSku())}
-                                className="flex items-center justify-center rounded-md border border-border bg-muted px-2 hover:bg-muted/80 transition-colors"
-                              >
-                                <Iconify icon="solar:shuffle-bold" width={18} />
-                              </button>
+                              <FieldErrorText message={error?.message} />
                             </div>
-                            <FieldErrorText message={error?.message} />
-                          </div>
-                        )}
-                      />
-                    </Box>
-                    {!restaurantMode && (
-                      <>
-                        <Box>
-                          <Typography variant="caption" className="text-muted-foreground mb-1 block">
-                            {t('form.variantModel')}
-                          </Typography>
-                          <Controller
-                            name={`variants.${variantIndex}.model`}
-                            control={control}
-                            render={({ field, fieldState: { error } }) => (
-                              <div>
-                                <input
-                                  {...field}
-                                  value={field.value ?? ''}
-                                  type="text"
-                                  placeholder={t('form.variantModelPlaceholder')}
-                                  className={fieldInputClass(!!error)}
-                                />
-                                <FieldErrorText message={error?.message} />
-                              </div>
-                            )}
-                          />
-                        </Box>
+                          )}
+                        />
+                      </Box>
+                      <Box>
+                        <Typography variant="caption" className="text-muted-foreground mb-1 block">
+                          {t('form.variantNameAr')}
+                        </Typography>
+                        <Controller
+                          name={`variants.${variantIndex}.name.ar`}
+                          control={control}
+                          render={({ field, fieldState: { error } }) => (
+                            <div>
+                              <input
+                                {...field}
+                                value={field.value ?? ''}
+                                type="text"
+                                dir="rtl"
+                                placeholder={t('form.variantNameArPlaceholder')}
+                                className={fieldInputClass(!!error)}
+                              />
+                              <FieldErrorText message={error?.message} />
+                            </div>
+                          )}
+                        />
+                      </Box>
+                      {!restaurantMode && (
                         <Box>
                           <Typography variant="caption" className="text-muted-foreground mb-1 block">
                             {t('form.variantBarcode')}
@@ -4217,22 +4325,141 @@ export default function CreatePage() {
                             )}
                           />
                         </Box>
+                      )}
+                    </Box>
+                  </Box>
+
+                  {/* ─── Pricing & availability ─── */}
+                  <Box className="border-t border-border pt-4">
+                    <Box className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {productDualPriceReady ? (
+                      <>
+                        <Box>
+                          <Typography variant="caption" className="text-muted-foreground mb-1 block">
+                            {t('form.variantPriceUsdLabel')}
+                            {usdCurrency?.symbol ? (
+                              <span className="ms-1 opacity-80">({usdCurrency.symbol})</span>
+                            ) : null}
+                          </Typography>
+                          <Controller
+                            name={`variants.${variantIndex}.price`}
+                            control={control}
+                            render={({ field: f, fieldState: { error } }) => (
+                              <div>
+                                <input
+                                  type="number"
+                                  placeholder={t('form.shopVariantPricePlaceholder')}
+                                  name={f.name}
+                                  ref={f.ref}
+                                  onBlur={f.onBlur}
+                                  value={optionalNumberInputDisplay(f.value)}
+                                  onChange={(e) => f.onChange(toTwoDecimalNumber(e.target.value))}
+                                  className={fieldInputClass(!!error)}
+                                  step="any"
+                                  min={0}
+                                />
+                                <FieldErrorText message={error?.message} />
+                              </div>
+                            )}
+                          />
+                        </Box>
+                        <Box>
+                          <Typography variant="caption" className="text-muted-foreground mb-1 block">
+                            {t('form.variantPriceSypLabel')}
+                            {sypCurrency?.symbol ? (
+                              <span className="ms-1 opacity-80">({sypCurrency.symbol})</span>
+                            ) : null}
+                          </Typography>
+                          <input
+                            type="number"
+                            placeholder=""
+                            step="any"
+                            min={0}
+                            value={(() => {
+                              const pw = watchedVariants[variantIndex]?.price;
+                              const usdNum = pw == null || Number.isNaN(Number(pw)) ? 0 : Number(pw);
+                              const sypVal = usdToLocalAmount(usdNum, parseCurrencyRate(sypCurrency!));
+                              return usdNum === 0 && sypVal === 0 ? '' : sypVal;
+                            })()}
+                            onChange={(e) => {
+                              const raw = e.target.value;
+                              const rate = parseCurrencyRate(sypCurrency!);
+                              if (raw === '') {
+                                setValue(`variants.${variantIndex}.price`, undefined as unknown as number, {
+                                  shouldValidate: true,
+                                  shouldDirty: true,
+                                });
+                                return;
+                              }
+                              const v = toTwoDecimalNumber(raw);
+                              if (v == null) {
+                                setValue(`variants.${variantIndex}.price`, undefined as unknown as number, {
+                                  shouldValidate: true,
+                                  shouldDirty: true,
+                                });
+                                return;
+                              }
+                              setValue(`variants.${variantIndex}.price`, localAmountToUsd(v, rate), {
+                                shouldValidate: true,
+                                shouldDirty: true,
+                              });
+                            }}
+                            className={fieldInputClass(!!(errors.variants as any)?.[variantIndex]?.price)}
+                          />
+                        </Box>
                       </>
+                    ) : (
+                      <Box>
+                        <Typography variant="caption" className="text-muted-foreground mb-1 block">
+                          {t('form.variantPriceLabel')}
+                        </Typography>
+                        <Controller
+                          name={`variants.${variantIndex}.price`}
+                          control={control}
+                          render={({ field: f, fieldState: { error } }) => (
+                            <div>
+                              <input
+                                type="number"
+                                placeholder={t('form.shopVariantPricePlaceholder')}
+                                name={f.name}
+                                ref={f.ref}
+                                onBlur={f.onBlur}
+                                value={optionalNumberInputDisplay(f.value)}
+                                onChange={(e) => f.onChange(toTwoDecimalNumber(e.target.value))}
+                                className={fieldInputClass(!!error)}
+                                step="0.01"
+                              />
+                              <FieldErrorText message={error?.message} />
+                            </div>
+                          )}
+                        />
+                      </Box>
                     )}
                     <Box>
                       <Typography variant="caption" className="text-muted-foreground mb-1 block">
-                        {t('form.variantNameEn')}
+                        {t('form.variantQuantityLabel')}
                       </Typography>
                       <Controller
-                        name={`variants.${variantIndex}.name.en`}
+                        name={`variants.${variantIndex}.quantity`}
                         control={control}
-                        render={({ field, fieldState: { error } }) => (
+                        render={({ field: f, fieldState: { error } }) => (
                           <div>
                             <input
-                              {...field}
-                              value={field.value ?? ''}
-                              type="text"
-                              placeholder={t('form.variantNameEnPlaceholder')}
+                              type="number"
+                              placeholder={t('form.shopVariantQuantityPlaceholder')}
+                              name={f.name}
+                              ref={f.ref}
+                              onBlur={f.onBlur}
+                              value={optionalNumberInputDisplay(f.value)}
+                              onChange={(e) => {
+                                const raw = e.target.value;
+                                if (raw === '') {
+                                  f.onChange(undefined as unknown as number);
+                                  return;
+                                }
+                                const n = Number(raw);
+                                f.onChange(Number.isNaN(n) ? (undefined as unknown as number) : n);
+                              }}
                               className={fieldInputClass(!!error)}
                             />
                             <FieldErrorText message={error?.message} />
@@ -4240,28 +4467,9 @@ export default function CreatePage() {
                         )}
                       />
                     </Box>
-                    <Box>
-                      <Typography variant="caption" className="text-muted-foreground mb-1 block">
-                        {t('form.variantNameAr')}
-                      </Typography>
-                      <Controller
-                        name={`variants.${variantIndex}.name.ar`}
-                        control={control}
-                        render={({ field, fieldState: { error } }) => (
-                          <div>
-                            <input
-                              {...field}
-                              value={field.value ?? ''}
-                              type="text"
-                              dir="rtl"
-                              placeholder={t('form.variantNameArPlaceholder')}
-                              className={fieldInputClass(!!error)}
-                            />
-                            <FieldErrorText message={error?.message} />
-                          </div>
-                        )}
-                      />
-                    </Box>
+                    <Typography variant="caption" className="col-span-full text-muted-foreground/80 -mt-1">
+                      {t('form.variantPriceQuantityHint')}
+                    </Typography>
                     <Box>
                       <Typography variant="caption" className="text-muted-foreground mb-1 block">
                         {t('form.variantStock')}
@@ -4348,6 +4556,7 @@ export default function CreatePage() {
                         />
                       )}
                     </Box>
+                    </Box>
                   </Box>
 
                   {/* ─── is_trend toggle ─── */}
@@ -4414,6 +4623,14 @@ export default function CreatePage() {
                             : watch(`variants.${variantIndex}.barcode`) ?? '';
                           const nameEn = watch(`variants.${variantIndex}.name.en`) ?? '';
                           const nameAr = watch(`variants.${variantIndex}.name.ar`) ?? '';
+                          const priceRaw = watch(`variants.${variantIndex}.price`);
+                          const priceVal =
+                            priceRaw == null || priceRaw === ('' as any) ? undefined : Number(priceRaw);
+                          const quantityRaw = watch(`variants.${variantIndex}.quantity`);
+                          const quantityVal =
+                            quantityRaw == null || quantityRaw === ('' as any)
+                              ? undefined
+                              : Number(quantityRaw);
 
                           if (variantId) {
                             try {
@@ -4429,6 +4646,8 @@ export default function CreatePage() {
                                   barcode: barcodeVal,
                                   name: { en: nameEn, ar: nameAr },
                                   is_trend: isTrendChecked ? 1 : 0,
+                                  price: priceVal,
+                                  quantity: quantityVal,
                                 },
                               });
                               toast.success(t('form.variantSaveSuccess'));
@@ -4452,6 +4671,8 @@ export default function CreatePage() {
                                 barcode: barcodeVal,
                                 nameEn,
                                 nameAr,
+                                price: priceVal,
+                                quantity: quantityVal,
                               });
                               if (newId > 0) {
                                 setValue(`variants.${variantIndex}.id`, newId, {
@@ -4481,30 +4702,6 @@ export default function CreatePage() {
                             ? t('form.savingVariant')
                             : t('form.createVariant')}
                       </Button>
-                      {watch(`variants.${variantIndex}.id`) && (
-                        <Button
-                          type="button"
-                          variant="text"
-                          size="small"
-                          className="text-destructive"
-                          disabled={deleteVariantMutation.isPending}
-                          onClick={async () => {
-                            const variantId = watch(`variants.${variantIndex}.id`);
-                            if (!variantId) return;
-                            if (!window.confirm(t('form.variantDeleteConfirm'))) return;
-                            try {
-                              await deleteVariantMutation.mutateAsync(variantId);
-                              handleRemoveVariant(variantIndex);
-                              toast.success(t('form.variantDeleteSuccess'));
-                            } catch {
-                              toast.error(t('form.variantDeleteFailed'));
-                            }
-                          }}
-                        >
-                          <Iconify icon="solar:trash-bin-bold" width={16} className="mr-1" />
-                          {t('form.deleteVariant')}
-                        </Button>
-                      )}
                     </Box>
                   )}
 
@@ -4518,19 +4715,16 @@ export default function CreatePage() {
                     setValue={setValue}
                     appendShopVariant={appendShopVariant}
                     removeShopVariant={removeShopVariant}
-                    productDualPriceReady={productDualPriceReady}
-                    usdCurrency={usdCurrency}
-                    sypCurrency={sypCurrency}
                     isEditMode={isEditMode}
                     productId={id}
                     shopVariantCreateBusyIdx={shopVariantCreateBusyIdx}
                     setShopVariantCreateBusyIdx={setShopVariantCreateBusyIdx}
                     updateShopVariantMutation={updateShopVariantMutation}
-                    deleteShopVariantMutation={deleteShopVariantMutation}
                     createSingleShopVariantOnProduct={createSingleShopVariantOnProduct}
                   />
                 </Box>
-              ))}
+                );
+              })}
             </Box>
           )}
         </Box>
@@ -4731,6 +4925,9 @@ export default function CreatePage() {
         </Box>
           </Box>
         )}
+
+        {/* Shown before any saved variant is deleted — lists what the delete touches. */}
+        <VariantDeleteImpactDialog {...variantDeleteFlow.dialogProps} />
       </CreateFormLayout>
   );
 }

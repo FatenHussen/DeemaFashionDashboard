@@ -1,3 +1,8 @@
+import type {
+  VariantDeleteImpact,
+  VariantDeleteImpactResponse,
+} from '../types/variant-delete-impact.types';
+
 import { apiRoutes, axiosInstance } from '@/api';
 
 // ----------------------------------------------------------------------
@@ -12,6 +17,8 @@ export interface ProductVariantUpdatePayload {
   model?: string | null;
   barcode?: string | null;
   name?: { en?: string | null; ar?: string | null };
+  price?: number;
+  quantity?: number;
 }
 
 const buildVariantFormData = (data: ProductVariantUpdatePayload): FormData => {
@@ -24,6 +31,8 @@ const buildVariantFormData = (data: ProductVariantUpdatePayload): FormData => {
   if (data.barcode !== undefined) formData.append('barcode', data.barcode == null ? '' : data.barcode);
   if (data.name?.en !== undefined) formData.append('name[en]', data.name.en == null ? '' : data.name.en);
   if (data.name?.ar !== undefined) formData.append('name[ar]', data.name.ar == null ? '' : data.name.ar);
+  if (data.price !== undefined) formData.append('price', String(data.price));
+  if (data.quantity !== undefined) formData.append('quantity', String(data.quantity));
 
   (data.attributes_values_ids ?? []).forEach((id) => {
     formData.append('attributes_values_ids[]', String(id));
@@ -51,8 +60,27 @@ export const _ProductVariantApi = {
     return response.data;
   },
 
-  delete: async (id: number | string): Promise<any> => {
-    const response = await axiosInstance.delete(apiRoutes.productVariant.delete(id));
+  /**
+   * Soft-deletes the variant. Order history is preserved either way.
+   *
+   * Without `confirm`, the API answers `409` (rejected as `ConfirmationRequiredError`)
+   * whenever linked data exists; pass `confirm: true` to go through after the user acks.
+   */
+  delete: async (id: number | string, options?: { confirm?: boolean }): Promise<any> => {
+    const response = await axiosInstance.delete(apiRoutes.productVariant.delete(id), {
+      params: options?.confirm ? { confirm: true } : undefined,
+      // `useVariantDeleteFlow` owns every message for this call, including the 409 handshake.
+      skipErrorToast: true,
+    });
     return response.data;
+  },
+
+  /** Preview of what the delete would touch. Deletes nothing. */
+  getDeleteImpact: async (id: number | string): Promise<VariantDeleteImpact | null> => {
+    const response = await axiosInstance.get<VariantDeleteImpactResponse>(
+      apiRoutes.productVariant.deleteImpact(id),
+      { skipErrorToast: true }
+    );
+    return response.data?.data ?? null;
   },
 };

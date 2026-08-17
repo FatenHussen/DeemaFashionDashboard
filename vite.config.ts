@@ -12,6 +12,11 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   // Must match the host in your production `VITE_SERVER_URL` when using the dev proxy below.
   const devProxyTarget = env.VITE_DEV_PROXY_TARGET || 'https://tickdash.tickmartsy.com';
+  // The proxy only matters when the app calls the API on a relative path
+  // (`VITE_SERVER_URL=/api`); with an absolute URL the browser goes straight to
+  // the host and nothing hits the dev server. Enabling it conditionally keeps an
+  // absolute-URL setup untouched.
+  const useDevProxy = (env.VITE_SERVER_URL ?? '').startsWith('/');
 
   return {
   plugins: [
@@ -42,17 +47,17 @@ export default defineConfig(({ mode }) => {
       },
     ],
   },
-  // server: {
-  //   port: PORT,
-  //   host: true,
-  //   proxy: {
-  //     '/api': {
-  //       target: devProxyTarget,
-  //       changeOrigin: true,
-  //       secure: true,
-  //     },
-  //   },
-  // },
+  server: useDevProxy
+    ? {
+        proxy: {
+          '/api': {
+            target: devProxyTarget,
+            changeOrigin: true,
+            secure: true,
+          },
+        },
+      }
+    : undefined,
   preview: { port: PORT, host: true },
   };
 });
