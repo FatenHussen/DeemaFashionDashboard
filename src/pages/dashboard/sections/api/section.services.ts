@@ -1,6 +1,7 @@
 import type {
   ItemTypesResponse,
   SectionListResponse,
+  SectionListQueryParams,
   SectionDetailsResponse,
   SectionCreateUpdatePayload,
 } from '../types/section.types';
@@ -8,18 +9,18 @@ import type {
 import { apiRoutes, axiosInstance } from '@/api';
 
 export const _SectionApi = {
-  getListSections: async (
-    page: number = 1,
-    perPage: number = 25,
-    search?: string,
-    categoryId?: number
-  ): Promise<SectionListResponse> => {
+  getListSections: async (params?: SectionListQueryParams): Promise<SectionListResponse> => {
     const response = await axiosInstance.get<SectionListResponse>(apiRoutes.section.list, {
       params: {
-        page,
-        per_page: perPage,
-        ...(search?.trim() ? { search: search.trim() } : {}),
-        ...(categoryId != null && categoryId > 0 ? { category_id: categoryId } : {}),
+        page: params?.page ?? 1,
+        per_page: params?.per_page ?? 25,
+        ...(params?.search?.trim() ? { search: params.search.trim() } : {}),
+        ...(params?.content_type ? { content_type: params.content_type } : {}),
+        ...(params?.type ? { type: params.type } : {}),
+        ...(params?.is_active != null ? { is_active: params.is_active } : {}),
+        ...(params?.category_id != null && params.category_id > 0
+          ? { category_id: params.category_id }
+          : {}),
       },
     });
     return response.data;

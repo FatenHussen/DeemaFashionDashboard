@@ -170,7 +170,7 @@ export const permissionTranslationsAr = {
     banner: 'البانرات الإعلانية',
     basket: 'السلة',
     brand: 'العلامات التجارية',
-    category: 'التصنيف',
+    category: 'الفئات',
     categoryattribute: 'متغيرات الفئة',
     categorydetail: 'تفاصيل المنتج',
     city: 'المدينة',

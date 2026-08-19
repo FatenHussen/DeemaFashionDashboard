@@ -2,10 +2,13 @@
 
 export interface CategoryAttributeValue {
   id?: number;
-  name: {
-    ar: string;
-    en: string;
-  };
+  /** List payloads may send a display string; create/edit uses `{ ar, en }`. */
+  name:
+    | {
+        ar: string;
+        en: string;
+      }
+    | string;
 }
 
 export interface CategoryAttributeData {
@@ -14,9 +17,11 @@ export interface CategoryAttributeData {
   category_id?: number;
   /** Same value as category_id; the attribute is always resolved/saved on the root. */
   root_category_id?: number;
-  name: string;
+  name: string | { ar?: string; en?: string };
   category: string;
   type: string;
+  /** Values defined on the root; inherited by every subcategory. */
+  values?: CategoryAttributeValue[];
   is_active?: boolean;
 }
 
@@ -86,13 +91,13 @@ export interface CategoryAttributeDeleteImpactData {
   id: number;
   name: { ar: string; en: string } | string;
   requires_confirmation: boolean;
-  counts: {
+  counts?: Partial<{
     attribute_values: number;
     product_variants: number;
     products: number;
     active_orders: number;
-  };
-  warnings: CategoryAttributeDeleteWarning[];
+  }>;
+  warnings?: CategoryAttributeDeleteWarning[];
 }
 
 export interface CategoryAttributeDeleteImpactResponse {

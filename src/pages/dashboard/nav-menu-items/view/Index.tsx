@@ -14,6 +14,8 @@ import { SortItemsDialog } from '@/shared/ui/table-data/sort-items-dialog';
 
 import { paths } from 'src/routes/paths';
 
+import { parseRecordIsActive } from 'src/utils/parse-record-is-active';
+
 import { CONFIG } from 'src/global-config';
 
 import { NAV_MENU_ITEM_TYPES } from '../types';
@@ -76,8 +78,9 @@ export default function Page() {
     const term = search.trim().toLowerCase();
     return allItems.filter((item) => {
       if (typeFilter && item.type !== typeFilter) return false;
-      if (isActiveFilter === '1' && !item.is_active) return false;
-      if (isActiveFilter === '0' && item.is_active) return false;
+      const isActive = parseRecordIsActive(item as unknown as Record<string, unknown>);
+      if (isActiveFilter === '1' && !isActive) return false;
+      if (isActiveFilter === '0' && isActive) return false;
       if (!term) return true;
       const haystack = [navMenuItemTitle(item), navMenuTargetLabel(item, t), item.type]
         .join(' ')
@@ -200,6 +203,8 @@ export default function Page() {
           delete: canDelete,
         }}
         isLoading={isLoading}
+        isPagePaginateHiddent
+        pageSize={Math.max(allItems.length, 50)}
         onSearchChange={setSearch}
         searchPlaceholder={t('search')}
         filterSidebar={

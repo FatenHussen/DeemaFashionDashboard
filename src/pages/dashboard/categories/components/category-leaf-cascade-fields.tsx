@@ -12,6 +12,7 @@ import {
 } from '@/pages/dashboard/categories/utils/build-parent-picker-options';
 import {
   categoryListTotal,
+  categoryHasChildren,
   MAX_CATEGORY_SUB_LEVELS,
   leafCategoryIdFromCascade,
 } from '@/pages/dashboard/categories/utils/category-cascade-shared';
@@ -33,15 +34,21 @@ export type CategoryLeafCascadeFieldsProps = {
   flatParentFetched: boolean;
   flatParentDataUpdatedAt: number;
   excludedIds?: Set<number>;
-  /** Rebuild cascade when this leaf id is known (e.g. edit). Use null when creating. */
+  /** Rebuild cascade when this saved category id is known (e.g. edit). Use null when creating. */
   hydrateLeafCategoryId: number | null;
   /** e.g. route id or attribute id — resets internal hydrate bookkeeping */
   hydrationKey: string;
-  onEffectiveLeafChange: (leafId: number) => void;
+  /** Last selected category id (any depth). Empty deeper levels do not force a leaf. */
+  onEffectiveLeafChange: (categoryId: number) => void;
   /** Restrict every level (root + subs) to this `is_restaurant` value. Omit for no filter. */
   isRestaurant?: 0 | 1;
   /** Notified whenever the root (main) selection changes, incl. hydration. */
   onMainCategoryChange?: (mainCategoryId: number) => void;
+  /**
+   * Product assignment: level 1 is required; levels 2–6 stay empty/optional.
+   * The product is saved on the last selected category even if it has children.
+   */
+  allowAnyLevel?: boolean;
 };
 
 export function CategoryLeafCascadeFields({
@@ -56,11 +63,13 @@ export function CategoryLeafCascadeFields({
   onEffectiveLeafChange,
   isRestaurant,
   onMainCategoryChange,
+  allowAnyLevel = false,
 }: CategoryLeafCascadeFieldsProps) {
   const [mainCategoryId, setMainCategoryId] = useState(0);
   const [subSelections, setSubSelections] = useState<number[]>([]);
   const [cascadeHydrated, setCascadeHydrated] = useState(false);
   const cascadeHydratedKeyRef = useRef<string>('');
+  const flatById = useMemo(() => new Map(flatItems.map((c) => [c.id, c])), [flatItems]);
 
   const rootCascadeFetcher = useCallback(
     async (page: number, limit: number) => {
@@ -94,7 +103,7 @@ export function CategoryLeafCascadeFields({
                 : t('form.categoryDirectUnderParent'),
           };
           if (parentId <= 0) {
-            return paginateSelectRowsLocal([directRow], page, limit);
+            return paginateSelectRowsLocal(allowAnyLevel ? [] : [directRow], page, limit);
           }
           const r = await _CategoryApi.getListCategoriesPaginated({
             page: 1,
@@ -108,9 +117,9 @@ export function CategoryLeafCascadeFields({
               id: cat.id,
               label: categoryListLabel(cat),
             }));
-          return paginateSelectRowsLocal([directRow, ...rows], page, limit);
+          return paginateSelectRowsLocal(allowAnyLevel ? rows : [directRow, ...rows], page, limit);
         }),
-    [mainCategoryId, subSelections, excludedIds, t, isRestaurant]
+    [mainCategoryId, subSelections, excludedIds, t, isRestaurant, allowAnyLevel]
   );
 
   const subChildrenProbes = useQueries({
@@ -240,7 +249,7 @@ export function CategoryLeafCascadeFields({
   return (
     <Box className="space-y-5">
       <Typography variant="caption" className="text-muted-foreground block">
-        {t('form.categoryHierarchyCascadeHelper')}
+        {t(allowAnyLevel ? 'form.productCategoryCascadeHelper' : 'form.categoryHierarchyCascadeHelper')}
       </Typography>
 
       <Box>
@@ -248,6 +257,7 @@ export function CategoryLeafCascadeFields({
           <Iconify icon="solar:diagram-bold" className="text-violet-500" width={20} height={20} />
           <Typography variant="subtitle2" className="font-semibold text-foreground">
             {t('form.productMainCategory')}
+            {allowAnyLevel ? ' *' : ''}
           </Typography>
         </Box>
         <InfiniteScrollSelect
@@ -278,7 +288,9 @@ export function CategoryLeafCascadeFields({
         const total = categoryListTotal(
           subChildrenProbes[level]?.data as CategoryListResponse | undefined
         );
-        const showLevel = mainCategoryId > 0 && parentId > 0 && total > 0;
+        const parentHasChildren = categoryHasChildren(flatById.get(parentId));
+        const showLevel =
+          mainCategoryId > 0 && parentId > 0 && (parentHasChildren || total > 0);
         if (!showLevel) return null;
 
         const fetcher = subCascadeFetchers[level];
@@ -293,7 +305,9 @@ export function CategoryLeafCascadeFields({
             <InfiniteScrollSelect
               value={subSelections[level] ?? 0}
               onChange={(val) => {
-                setSubSelections((prev) => [...prev.slice(0, level), val]);
+                setSubSelections((prev) =>
+                  val > 0 ? [...prev.slice(0, level), val] : prev.slice(0, level)
+                );
               }}
               queryKey={[
                 'categories',
@@ -305,10 +319,16 @@ export function CategoryLeafCascadeFields({
                 hydrationKey,
                 excludedIds.size,
                 isRestaurant ?? 'any',
+                allowAnyLevel ? 'any-level' : 'parent',
               ]}
               fetcher={fetcher}
-              placeholder={t('form.productSubcategory')}
+              placeholder={
+                allowAnyLevel
+                  ? t('form.categoryLevelOptionalPlaceholder')
+                  : t('form.productSubcategory')
+              }
               initialLabel={cascadeEditLabels.subs[level]}
+              clearable={allowAnyLevel}
             />
           </Box>
         );

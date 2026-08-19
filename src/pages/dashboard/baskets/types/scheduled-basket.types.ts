@@ -55,9 +55,17 @@ export interface ScheduledBasketItem {
     attributes?: Array<{ name: string; value: string }>;
   };
   shop_variant?: {
-    price: number;
+    price?: number;
     discount?: number | null;
     price_after_discount?: number | null;
+    quantity?: number;
+    variant?: {
+      id?: number;
+      price?: number;
+      quantity?: number;
+      discount?: number | null;
+      price_after_discount?: number | null;
+    };
   };
   alternatives?: ScheduledBasketItemAlternative[];
   created_at?: string;

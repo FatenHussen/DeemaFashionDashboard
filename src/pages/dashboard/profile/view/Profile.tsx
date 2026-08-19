@@ -278,10 +278,10 @@ export default function ProfilePage() {
                 color="inherit"
                 size="small"
                 className="gap-1.5"
-                onClick={() => navigate(paths.dashboard.pageSections)}
+                onClick={() => navigate(paths.dashboard.pages)}
               >
                 <Iconify icon="solar:widget-add-bold" width={14} />
-                {tNav('pageSections')}
+                {tNav('pages')}
               </Button>
               <Button
                 type="button"

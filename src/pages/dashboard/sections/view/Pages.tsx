@@ -1,12 +1,14 @@
 import type { PageBuilderListItem } from '@/pages/dashboard/sections/types/page-builder.types';
 
 import { toast } from 'react-toastify';
-import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
+import { useState, useEffect, useCallback } from 'react';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { usePermissions } from '@/auth/hooks/use-permissions';
 import { pagesColumns } from '@/columns/one/sections/pages/columns';
 import { useFetchPages } from '@/pages/dashboard/sections/hooks/usePageSections';
+import { canDeleteCmsPage } from '@/pages/dashboard/sections/utils/category-page';
 import { cmsPageSelectLabel } from '@/pages/dashboard/sections/utils/cms-page-select-label';
 import {
   useDeletePage,
@@ -17,8 +19,13 @@ import { CONFIG } from 'src/global-config';
 import { Box, Typography } from 'src/shared/ui';
 import { Iconify } from 'src/shared/components/iconify';
 
+type PagesTab = 'content' | 'category';
+
 export default function Page() {
   const { t } = useTranslation('table');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab: PagesTab = searchParams.get('tab') === 'category' ? 'category' : 'content';
+  const isCategoryTab = activeTab === 'category';
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [deletingId, setDeletingId] = useState<number | null>(null);
@@ -26,12 +33,30 @@ export default function Page() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [search]);
+  }, [search, activeTab]);
 
-  const { data: response, isLoading, error } = useFetchPageBuilderPages({
+  const handleTabChange = useCallback(
+    (tab: PagesTab) => {
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        if (tab === 'content') next.delete('tab');
+        else next.set('tab', tab);
+        return next;
+      });
+    },
+    [setSearchParams]
+  );
+
+  // `type` splits the tabs server-side, so each tab fetches only its own page of rows.
+  const {
+    data: response,
+    isLoading: isPagesLoading,
+    error,
+  } = useFetchPageBuilderPages({
     page: currentPage,
     per_page: pageSize,
     ...(search.trim() ? { search: search.trim() } : {}),
+    type: activeTab,
   });
   // Fallback: keep the screen usable on backends without `page.*` yet (already cached — feeds the pickers).
   const { data: legacyPagesData } = useFetchPages();
@@ -43,9 +68,71 @@ export default function Page() {
     setCurrentPage(1);
   };
 
-  const onDelete = (id: number) => setDeletingId(id);
+  const useLegacyFallback = !!error && !response && !isCategoryTab;
+
+  // Taken as-is: the list resource derives `is_category_page`/`can_delete_page`/`can_edit_metadata`
+  // from `category_id` on every row, so the guards in `pagesColumns` always have what they read.
+  const serverItems: PageBuilderListItem[] = response?.data?.items ?? [];
+
+  // The legacy feed returns every page in one payload, so that path still filters and slices here.
+  const searchTerm = search.trim().toLowerCase();
+  const legacyItems: PageBuilderListItem[] = (legacyPagesData?.data ?? [])
+    .map((p) => p as PageBuilderListItem)
+    .filter(
+      (p) =>
+        !searchTerm ||
+        `${cmsPageSelectLabel(p)} ${p.slug ?? ''}`.toLowerCase().includes(searchTerm)
+    );
+  const legacyLastPage = Math.max(1, Math.ceil(legacyItems.length / pageSize));
+  const legacySafePage = Math.min(currentPage, legacyLastPage);
+
+  const apiPagination = response?.data?.pagination;
+  const items = useLegacyFallback
+    ? legacyItems.slice((legacySafePage - 1) * pageSize, legacySafePage * pageSize)
+    : serverItems;
+
+  const activePagination = useLegacyFallback
+    ? {
+        current_page: legacySafePage,
+        last_page: legacyLastPage,
+        per_page: pageSize,
+        total: legacyItems.length,
+      }
+    : {
+        current_page: apiPagination?.current_page ?? currentPage,
+        last_page: Math.max(1, apiPagination?.last_page ?? 1),
+        per_page: apiPagination?.per_page ?? pageSize,
+        total: apiPagination?.total ?? serverItems.length,
+      };
+  const pagination = {
+    ...activePagination,
+    from:
+      activePagination.total > 0
+        ? (activePagination.current_page - 1) * activePagination.per_page + 1
+        : 0,
+    to: Math.min(
+      activePagination.current_page * activePagination.per_page,
+      activePagination.total
+    ),
+  };
+  const isLoading = isPagesLoading;
+
+  const onDelete = (id: number) => {
+    const row = items.find((p) => p.id === id);
+    if (row && !canDeleteCmsPage(row)) {
+      toast.error(t('form.categoryPageCannotDeleteDirectly'));
+      return;
+    }
+    setDeletingId(id);
+  };
   const onDeleteConfirm = async () => {
     if (!deletingId) return;
+    const row = items.find((p) => p.id === deletingId);
+    if (row && !canDeleteCmsPage(row)) {
+      toast.error(t('form.categoryPageCannotDeleteDirectly'));
+      setDeletingId(null);
+      return;
+    }
     try {
       await deleteMutation.mutateAsync(deletingId);
       toast.success(t('deleteSuccess'));
@@ -56,41 +143,68 @@ export default function Page() {
   };
   const onDeleteCancel = () => setDeletingId(null);
 
-  const useLegacyFallback = !!error && !response;
-  const legacyItems: PageBuilderListItem[] = (legacyPagesData?.data ?? [])
-    .map((p) => p as PageBuilderListItem)
-    .filter(
-      (p) =>
-        !search.trim() ||
-        `${cmsPageSelectLabel(p)} ${p.slug ?? ''}`.toLowerCase().includes(search.trim().toLowerCase())
-    );
-
-  const items = useLegacyFallback ? legacyItems : (response?.data?.items ?? []);
-  const apiPagination = useLegacyFallback ? undefined : response?.data?.pagination;
-  const pagination = apiPagination
-    ? {
-        current_page: apiPagination.current_page,
-        last_page: apiPagination.last_page,
-        per_page: apiPagination.per_page,
-        total: apiPagination.total,
-        from: (apiPagination.current_page - 1) * apiPagination.per_page + 1,
-        to: Math.min(apiPagination.current_page * apiPagination.per_page, apiPagination.total),
-      }
-    : {
-        current_page: 1,
-        last_page: 1,
-        per_page: Math.max(items.length, 10),
-        total: items.length,
-        from: items.length > 0 ? 1 : 0,
-        to: items.length,
-      };
+  // Deleting the last row of the last page leaves the cursor past the end — the server would
+  // answer with an empty list rather than clamping, so step back here.
+  useEffect(() => {
+    if (apiPagination && currentPage > apiPagination.last_page) {
+      setCurrentPage(Math.max(1, apiPagination.last_page));
+    }
+  }, [apiPagination, currentPage]);
 
   const { can } = usePermissions();
   const canAct = (action: 'create' | 'update' | 'delete') => can(`page.${action}`);
 
+  const tabButtonClass = (selected: boolean) =>
+    [
+      'group relative flex min-h-[2.85rem] flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200 sm:px-5',
+      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-card',
+      selected
+        ? 'bg-primary text-primary-foreground shadow-sm'
+        : 'text-muted-foreground hover:bg-primary/[0.06] hover:text-foreground',
+    ].join(' ');
+
   return (
     <>
       <title>{t('form.pagesIndexDocumentTitle', { appName: CONFIG.appName })}</title>
+
+      {/* Content pages vs auto-generated category pages */}
+      <Box className="mb-4 w-full max-w-xl">
+        <div
+          role="tablist"
+          aria-label={t('tableNames.page')}
+          className="relative grid w-full grid-cols-2 items-stretch gap-1 rounded-2xl border border-primary/20 bg-card/95 p-1.5 shadow-sm ring-1 ring-border/40"
+        >
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'content'}
+            onClick={() => handleTabChange('content')}
+            className={tabButtonClass(activeTab === 'content')}
+          >
+            <Iconify icon="solar:document-text-bold" width={18} className="shrink-0" />
+            <span className="truncate">{t('form.pagesTabContent')}</span>
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'category'}
+            onClick={() => handleTabChange('category')}
+            className={tabButtonClass(activeTab === 'category')}
+          >
+            <Iconify icon="solar:folder-with-files-bold" width={18} className="shrink-0" />
+            <span className="truncate">{t('form.pagesTabCategory')}</span>
+          </button>
+        </div>
+      </Box>
+
+      {isCategoryTab && (
+        <Box className="mb-4 flex items-start gap-3 rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.06] px-4 py-3">
+          <Iconify icon="solar:info-circle-bold" className="mt-0.5 shrink-0 text-emerald-600" width={18} />
+          <Typography variant="body2" className="text-muted-foreground">
+            {t('form.pagesCategoryTabNotice')}
+          </Typography>
+        </Box>
+      )}
 
       {useLegacyFallback && (
         <Box className="mb-4 flex items-start gap-3 rounded-2xl border border-amber-500/20 bg-amber-500/[0.06] px-4 py-3">
@@ -103,23 +217,32 @@ export default function Page() {
 
       <DataTable
         tableName={t('tableNames.page')}
-        columns={pagesColumns(t, {
-          permissions: { update: canAct('update'), delete: canAct('delete') },
-          onDelete,
-          isDeleting: deleteMutation.isPending,
-          isDeleteDialogOpen: deletingId !== null,
-          onDeleteConfirm,
-          onDeleteCancel,
-          deletingId,
-        })}
+        columns={pagesColumns(
+          t,
+          {
+            // On the category tab every row is an auto page — no manual edit/delete.
+            permissions: {
+              update: !isCategoryTab && canAct('update'),
+              delete: !isCategoryTab && canAct('delete'),
+            },
+            onDelete,
+            isDeleting: deleteMutation.isPending,
+            isDeleteDialogOpen: deletingId !== null,
+            onDeleteConfirm,
+            onDeleteCancel,
+            deletingId,
+          },
+          { hideFiltersColumn: isCategoryTab }
+        )}
         data={items}
-        createPath="/sections/pages/create"
+        createPath={isCategoryTab ? undefined : '/sections/pages/create'}
         hasDetails
         detailsLink="/sections/pages/details"
         permissions={{
-          create: canAct('create'),
-          update: canAct('update'),
-          delete: canAct('delete'),
+          // Category pages follow their category — created/deleted automatically.
+          create: !isCategoryTab && canAct('create'),
+          update: !isCategoryTab && canAct('update'),
+          delete: !isCategoryTab && canAct('delete'),
         }}
         isLoading={isLoading}
         onSearchChange={setSearch}
@@ -134,7 +257,7 @@ export default function Page() {
           actions: t('columns.action'),
         }}
         pagination={pagination}
-        currentPage={currentPage}
+        currentPage={pagination.current_page}
         pageSize={pageSize}
         onPageChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}

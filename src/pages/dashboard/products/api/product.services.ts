@@ -8,6 +8,12 @@ import type {
 
 import { apiRoutes, axiosInstance } from '@/api';
 
+import {
+  toShopVariantPayloadList,
+  toVariantPayload,
+  toVariantPayloadList,
+} from '../utils/variant-payload';
+
 // ----------------------------------------------------------------------
 
 const splitKeywords = (s: string) =>
@@ -20,6 +26,81 @@ const appendSeoKeywords = (formData: FormData, kw?: { en?: string; ar?: string }
   if (!kw) return;
   splitKeywords(kw.en ?? '').forEach((w) => formData.append('seo_keywords[en][]', w));
   splitKeywords(kw.ar ?? '').forEach((w) => formData.append('seo_keywords[ar][]', w));
+};
+
+const appendVariantRows = (
+  formData: FormData,
+  rows: ProductCreateUpdatePayload['variants'] | undefined
+) => {
+  const variants = toVariantPayloadList(rows);
+  if (variants.length === 0) return;
+  variants.forEach((variant, vIndex) => {
+    const cleaned = toVariantPayload(variant);
+    if (!cleaned) return;
+    if (cleaned.id) {
+      formData.append(`variants[${vIndex}][id]`, String(cleaned.id));
+    }
+    (cleaned.attributes_values_ids ?? []).forEach((attrValueId, attrIndex) => {
+      formData.append(
+        `variants[${vIndex}][attributes_values_ids][${attrIndex}]`,
+        String(attrValueId)
+      );
+    });
+    // Always send kept image ids; omitting the key deletes every variant image.
+    (cleaned.existing_images_ids ?? []).forEach((imgId, imgIndex) => {
+      formData.append(`variants[${vIndex}][existing_images_ids][${imgIndex}]`, String(imgId));
+    });
+    (cleaned.images ?? []).forEach((file, imgIndex) => {
+      if (file instanceof File) {
+        formData.append(`variants[${vIndex}][images][${imgIndex}]`, file);
+      }
+    });
+    if (cleaned.sku !== undefined) {
+      formData.append(`variants[${vIndex}][sku]`, cleaned.sku ?? '');
+    }
+    if (cleaned.model !== undefined) {
+      formData.append(`variants[${vIndex}][model]`, cleaned.model ?? '');
+    }
+    if (cleaned.barcode !== undefined) {
+      formData.append(`variants[${vIndex}][barcode]`, cleaned.barcode ?? '');
+    }
+    if (cleaned.name?.en !== undefined) {
+      formData.append(`variants[${vIndex}][name][en]`, cleaned.name.en);
+    }
+    if (cleaned.name?.ar !== undefined) {
+      formData.append(`variants[${vIndex}][name][ar]`, cleaned.name.ar);
+    }
+    if (cleaned.price !== undefined) {
+      formData.append(`variants[${vIndex}][price]`, String(cleaned.price));
+    }
+    if (cleaned.quantity !== undefined) {
+      formData.append(`variants[${vIndex}][quantity]`, String(cleaned.quantity));
+    }
+    if (cleaned.is_trend !== undefined) {
+      formData.append(`variants[${vIndex}][is_trend]`, Number(cleaned.is_trend) === 1 ? '1' : '0');
+    }
+    if (cleaned.is_active !== undefined) {
+      formData.append(`variants[${vIndex}][is_active]`, Number(cleaned.is_active) === 1 ? '1' : '0');
+    }
+  });
+};
+
+const appendShopVariantRows = (
+  formData: FormData,
+  rows: ProductCreateUpdatePayload['shop_variants'] | undefined
+) => {
+  const shopVariants = toShopVariantPayloadList(rows);
+  if (shopVariants.length === 0) return;
+  shopVariants.forEach((shopVariant, index) => {
+    if (shopVariant.id) {
+      formData.append(`shop_variants[${index}][id]`, String(shopVariant.id));
+    }
+    formData.append(`shop_variants[${index}][shop_id]`, String(shopVariant.shop_id));
+    formData.append(`shop_variants[${index}][variant_index]`, String(shopVariant.variant_index));
+    if (shopVariant.cost_price !== undefined && shopVariant.cost_price !== null) {
+      formData.append(`shop_variants[${index}][cost_price]`, String(shopVariant.cost_price));
+    }
+  });
 };
 
 const buildProductFormData = (data: ProductCreateUpdatePayload): FormData => {
@@ -112,70 +193,10 @@ const buildProductFormData = (data: ProductCreateUpdatePayload): FormData => {
     formData.append(`bought_with[${index}]`, String(productId));
   });
 
-  const validVariants =
-    data.variants?.filter(
-      (v) =>
-        Array.isArray(v.attributes_values_ids) && v.attributes_values_ids.length > 0
-    ) ?? [];
-  if (validVariants.length > 0) {
-    const categoryIdStr = data.category_id.toString();
-    validVariants.forEach((variant, vIndex) => {
-      formData.append(`variants[${vIndex}][category_id]`, categoryIdStr);
-      if (variant.id) {
-        formData.append(`variants[${vIndex}][id]`, variant.id.toString());
-      }
-      (variant.attributes_values_ids ?? []).forEach((attrValueId) => {
-        formData.append(`variants[${vIndex}][attributes_values_ids][]`, String(attrValueId));
-      });
-      const variantExistingImgIds = Array.isArray(variant.existing_images_ids)
-        ? variant.existing_images_ids
-        : [];
-      variantExistingImgIds.forEach((imgId) => {
-        formData.append(`variants[${vIndex}][existing_images_ids][]`, String(imgId));
-      });
-      if (variant.images && variant.images.length > 0) {
-        variant.images.forEach((file) => {
-          formData.append(`variants[${vIndex}][images][]`, file);
-        });
-      }
-      if (variant.sku !== undefined && variant.sku !== '') {
-        formData.append(`variants[${vIndex}][sku]`, variant.sku);
-      }
-      if (variant.model !== undefined) {
-        formData.append(`variants[${vIndex}][model]`, variant.model ?? '');
-      }
-      if (variant.barcode !== undefined) {
-        formData.append(`variants[${vIndex}][barcode]`, variant.barcode ?? '');
-      }
-      if (variant.name?.en !== undefined) {
-        formData.append(`variants[${vIndex}][name][en]`, variant.name.en);
-      }
-      if (variant.name?.ar !== undefined) {
-        formData.append(`variants[${vIndex}][name][ar]`, variant.name.ar);
-      }
-      if (variant.price !== undefined) {
-        formData.append(`variants[${vIndex}][price]`, String(variant.price));
-      }
-      if (variant.quantity !== undefined) {
-        formData.append(`variants[${vIndex}][quantity]`, String(variant.quantity));
-      }
-      if (variant.stock !== undefined) {
-        formData.append(`variants[${vIndex}][stock]`, String(variant.stock));
-      }
-      if (variant.max_purchase_quantity !== undefined) {
-        formData.append(`variants[${vIndex}][max_purchase_quantity]`, String(variant.max_purchase_quantity));
-      }
-      if (variant.delivery_time !== undefined && variant.delivery_time !== '') {
-        formData.append(`variants[${vIndex}][delivery_time]`, variant.delivery_time);
-      }
-      if (variant.is_trend !== undefined) {
-        formData.append(`variants[${vIndex}][is_trend]`, Number(variant.is_trend) === 1 ? '1' : '0');
-      }
-      if (variant.is_active !== undefined) {
-        formData.append(`variants[${vIndex}][is_active]`, Number(variant.is_active) === 1 ? '1' : '0');
-      }
-    });
-  }
+  // Whitelist-only. Empty arrays are omitted so the backend keeps current rows
+  // (sending `variants: []` soft-deletes everything and seeds a default SKU).
+  appendVariantRows(formData, data.variants);
+  appendShopVariantRows(formData, data.shop_variants);
 
   const validCategoryDetails = (data.category_details ?? []).filter(
     (d) => d.category_detail_id && d.category_detail_id > 0
@@ -215,19 +236,6 @@ const buildProductFormData = (data: ProductCreateUpdatePayload): FormData => {
     });
   }
 
-  if (data.shop_variants && data.shop_variants.length > 0) {
-    data.shop_variants.forEach((shopVariant, index) => {
-      formData.append(`shop_variants[${index}][shop_id]`, shopVariant.shop_id.toString());
-      formData.append(
-        `shop_variants[${index}][variant_index]`,
-        shopVariant.variant_index.toString()
-      );
-      if (shopVariant.cost_price !== undefined && shopVariant.cost_price !== null) {
-        formData.append(`shop_variants[${index}][cost_price]`, String(shopVariant.cost_price));
-      }
-    });
-  }
-
   (data.badges ?? []).forEach((badgeId) => {
     formData.append('badges[]', String(badgeId));
   });
@@ -261,6 +269,8 @@ export type ProductListQueryParams = {
   sort_order?: string;
   sortField?: string;
   sortOrder?: string;
+  quantity_min?: number;
+  quantity_max?: number;
 };
 
 function appendProductListParam(
@@ -330,7 +340,14 @@ export const _ProductApi = {
 
   getProductVariants: async (
     productId: number | string,
-    params?: { page?: number; per_page?: number }
+    params?: {
+      page?: number;
+      per_page?: number;
+      price_min?: number;
+      price_max?: number;
+      quantity_min?: number;
+      quantity_max?: number;
+    }
   ): Promise<AdminProductVariantsListApiResponse['data']> => {
     const response = await axiosInstance.get<AdminProductVariantsListApiResponse>(
       apiRoutes.product.variants(productId),
@@ -338,6 +355,10 @@ export const _ProductApi = {
         params: {
           page: params?.page ?? 1,
           per_page: params?.per_page ?? 10,
+          ...(params?.price_min != null ? { price_min: params.price_min } : {}),
+          ...(params?.price_max != null ? { price_max: params.price_max } : {}),
+          ...(params?.quantity_min != null ? { quantity_min: params.quantity_min } : {}),
+          ...(params?.quantity_max != null ? { quantity_max: params.quantity_max } : {}),
         },
       }
     );
@@ -394,68 +415,14 @@ export const _ProductApi = {
     }
   ): Promise<any> => {
     const formData = new FormData();
-    const variants = payload.variants ?? [];
-    const shopVariants = payload.shop_variants ?? [];
-
-    variants.forEach((variant, vIndex) => {
-      if (payload.category_id != null) {
-        formData.append(`variants[${vIndex}][category_id]`, String(payload.category_id));
-      }
-      if (variant.id) {
-        formData.append(`variants[${vIndex}][id]`, String(variant.id));
-      }
-      (variant.attributes_values_ids ?? []).forEach((attrId) => {
-        formData.append(
-          `variants[${vIndex}][attributes_values_ids][]`,
-          String(attrId)
-        );
-      });
-      const variantExistingImageIds = Array.isArray(variant.existing_images_ids)
-        ? variant.existing_images_ids
-        : [];
-      variantExistingImageIds.forEach((imgId) => {
-        formData.append(`variants[${vIndex}][existing_images_ids][]`, String(imgId));
-      });
-      if (variant.images && variant.images.length > 0) {
-        variant.images.forEach((file) => {
-          if (file instanceof File) {
-            formData.append(`variants[${vIndex}][images][]`, file);
-          }
-        });
-      }
-      if (variant.sku !== undefined && variant.sku !== '') {
-        formData.append(`variants[${vIndex}][sku]`, variant.sku);
-      }
-      if (variant.model !== undefined && variant.model !== '') {
-        formData.append(`variants[${vIndex}][model]`, variant.model);
-      }
-      if (variant.barcode !== undefined && variant.barcode !== '') {
-        formData.append(`variants[${vIndex}][barcode]`, variant.barcode);
-      }
-      if (variant.name?.en !== undefined) {
-        formData.append(`variants[${vIndex}][name][en]`, variant.name.en);
-      }
-      if (variant.name?.ar !== undefined) {
-        formData.append(`variants[${vIndex}][name][ar]`, variant.name.ar);
-      }
-      if (variant.price !== undefined) {
-        formData.append(`variants[${vIndex}][price]`, String(variant.price));
-      }
-      if (variant.quantity !== undefined) {
-        formData.append(`variants[${vIndex}][quantity]`, String(variant.quantity));
-      }
-    });
-
-    shopVariants.forEach((sv, index) => {
-      if (sv.id) {
-        formData.append(`shop_variants[${index}][id]`, String(sv.id));
-      }
-      formData.append(`shop_variants[${index}][shop_id]`, String(sv.shop_id));
-      formData.append(`shop_variants[${index}][variant_index]`, String(sv.variant_index));
-      if (sv.cost_price != null) {
-        formData.append(`shop_variants[${index}][cost_price]`, String(sv.cost_price));
-      }
-    });
+    // Omit the key entirely when the caller didn't pass that array so the backend
+    // leaves existing rows alone. Never send `[]` from this helper.
+    if (payload.variants !== undefined) {
+      appendVariantRows(formData, payload.variants);
+    }
+    if (payload.shop_variants !== undefined) {
+      appendShopVariantRows(formData, payload.shop_variants);
+    }
 
     formData.append('_method', 'PUT');
     const response = await axiosInstance.post(apiRoutes.product.update(id), formData, {

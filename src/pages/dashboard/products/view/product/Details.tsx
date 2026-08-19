@@ -326,7 +326,7 @@ function EditVariantModal({
           ...(isRestaurant ? { model: '', barcode: '' } : { model, barcode }),
           name: { en: nameEn, ar: nameAr },
           price: price !== '' ? Number(price) : undefined,
-          quantity: quantity !== '' ? Number(quantity) : undefined,
+          quantity: quantity !== '' ? Math.max(0, Math.floor(Number(quantity))) : undefined,
         },
       },
       {

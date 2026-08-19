@@ -1,9 +1,12 @@
+import type { ReactNode } from 'react';
+import type { TFunction } from 'i18next';
 import type {
   VariantDeleteImpact,
   VariantDeleteImpactType,
   VariantDeleteImpactWarning,
 } from '../types/variant-delete-impact.types';
 
+import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Iconify } from '@/shared/components/iconify';
 import { Box, Button, Dialog, Typography } from '@/shared/ui';
@@ -14,6 +17,54 @@ import { hasVariantDeleteImpact } from '../types/variant-delete-impact.types';
 
 /** Warnings about records that survive the delete are informational, not destructive. */
 const PRESERVED_KEYS = new Set(['active_orders', 'past_orders', 'images']);
+
+const ORDER_STATUS_I18N: Record<string, string> = {
+  pending: 'statusPending',
+  preparing: 'statusPreparing',
+  out_delivery: 'statusOutDelivery',
+  delivered: 'statusDelivered',
+  cancelled: 'statusCancelled',
+  cancelled_by_admin: 'statusCancelledByAdmin',
+  rejected: 'statusRejected',
+};
+
+const COUNT_I18N_KEYS = [
+  'active_orders',
+  'past_orders',
+  'basket_items',
+  'recipe_items',
+  'scheduled_items',
+  'gifts',
+  'shop_variants',
+  'images',
+] as const;
+
+function orderStatusLabel(status: string | null | undefined, t: TFunction): string | null {
+  if (!status) return null;
+  const key = ORDER_STATUS_I18N[status];
+  return key ? t(key) : status;
+}
+
+/** Prefer the API's ready-to-show lines; fall back to `counts` when those are missing. */
+function resolveWarnings(impact: VariantDeleteImpact | null, t: TFunction): VariantDeleteImpactWarning[] {
+  if (impact?.warnings?.length) return impact.warnings;
+
+  const counts = impact?.counts ?? {};
+  const known = COUNT_I18N_KEYS.filter((key) => Number(counts[key]) > 0).map((key) => ({
+    key,
+    count: Number(counts[key]),
+    message: t(`form.variantDeleteImpactCount_${key}`, { count: Number(counts[key]) }),
+  }));
+  if (known.length) return known;
+
+  return Object.entries(counts)
+    .filter(([, count]) => Number(count) > 0)
+    .map(([key, count]) => ({
+      key,
+      count: Number(count),
+      message: t('form.variantDeleteImpactCountGeneric', { count: Number(count) }),
+    }));
+}
 
 export interface VariantDeleteImpactDialogProps {
   open: boolean;
@@ -70,7 +121,7 @@ export function VariantDeleteImpactDialog({
 }: VariantDeleteImpactDialogProps) {
   const { t } = useTranslation();
 
-  const warnings = impact?.warnings ?? [];
+  const warnings = useMemo(() => resolveWarnings(impact, t), [impact, t]);
   const activeOrders = impact?.active_orders ?? [];
   const hasImpact = hasVariantDeleteImpact(impact);
 
@@ -84,7 +135,7 @@ export function VariantDeleteImpactDialog({
       ? t('form.variantDeleteImpactSubject', { id: variantId ?? '' })
       : t('form.shopVariantDeleteImpactSubject', { id: variantId ?? '' });
 
-  let body: React.ReactNode;
+  let body: ReactNode;
   if (isLoadingImpact) {
     body = (
       <Box className="flex items-center gap-2 py-2 text-muted-foreground">
@@ -129,7 +180,10 @@ export function VariantDeleteImpactDialog({
                 >
                   <span className="font-mono">{order.order_code ?? `#${order.id}`}</span>
                   {order.status ? (
-                    <span className="text-muted-foreground"> · {order.status}</span>
+                    <span className="text-muted-foreground">
+                      {' '}
+                      · {orderStatusLabel(order.status, t) ?? order.status}
+                    </span>
                   ) : null}
                 </Box>
               ))}

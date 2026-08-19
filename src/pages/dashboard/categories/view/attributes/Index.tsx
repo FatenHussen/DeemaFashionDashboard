@@ -3,20 +3,18 @@ import type { CategoryData } from '@/pages/dashboard/categories/types/category.t
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState, useEffect } from 'react';
+import { formatTranslated } from '@/utils/format-translated';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { usePermissions } from '@/auth/hooks/use-permissions';
 import { getApiErrorMessage } from '@/lib/get-api-error-message';
 import { _CategoryApi } from '@/pages/dashboard/categories/api/category.services';
+import { isRootCategory } from '@/pages/dashboard/categories/utils/category-cascade-shared';
 import { useFetchCategoryAttributes } from '@/pages/dashboard/categories/hooks/category-attribute';
 import { CategoryAttributeDeleteDialog } from '@/pages/dashboard/categories/components/category-attribute-delete-dialog';
 import {
   categoryAttributeColumns,
   type CategoryAttributeFormValues,
 } from '@/columns/one/categories/category-attribute';
-import {
-  buildCategorySelectRows,
-  nativeSelectCategoryLabel,
-} from '@/pages/dashboard/categories/utils/build-parent-picker-options';
 
 import { CONFIG } from 'src/global-config';
 
@@ -56,16 +54,22 @@ export default function Page() {
   }, [search, categoryFilter, typeFilter, isActiveFilter, dateFrom, dateTo]);
 
   const { data: categoriesResp } = useQuery({
-    queryKey: ['categories', 'category-attributes-filter'],
-    queryFn: () => _CategoryApi.getListCategoriesPaginated({ page: 1, per_page: 500 }),
+    queryKey: ['categories', 'category-attributes-filter', 'roots'],
+    queryFn: () =>
+      _CategoryApi.getListCategoriesPaginated({ page: 1, per_page: 500, parent_id: null }),
   });
-  const filterCategoryOptions = useMemo(
-    () =>
-      buildCategorySelectRows((categoriesResp?.data?.items ?? []) as CategoryData[]).filter(
-        (c) => c.depth === 0
-      ),
-    [categoriesResp?.data?.items]
-  );
+  const filterCategoryOptions = useMemo(() => {
+    const roots = ((categoriesResp?.data?.items ?? []) as CategoryData[]).filter((c) =>
+      isRootCategory(c)
+    );
+    return roots.map((c) => ({
+      id: c.id,
+      label:
+        typeof c.name === 'object' && c.name !== null
+          ? formatTranslated(c.name as { en?: string; ar?: string })
+          : String(c.name ?? ''),
+    }));
+  }, [categoriesResp?.data?.items]);
 
   const {
     data: categoryAttributesResponse,
@@ -100,7 +104,10 @@ export default function Page() {
   };
 
   const categoryAttributeData: CategoryAttributeFormValues[] =
-    categoryAttributesResponse?.data?.items || [];
+    (categoryAttributesResponse?.data?.items || []).map((item) => ({
+      ...item,
+      name: typeof item.name === 'string' ? item.name : (item.name?.en || item.name?.ar || ''),
+    }));
   const apiPagination = categoryAttributesResponse?.data?.pagination;
   const pagination = apiPagination
     ? {
@@ -181,7 +188,7 @@ export default function Page() {
                 <option value="">{t('all')}</option>
                 {filterCategoryOptions.map((c) => (
                   <option key={c.id} value={String(c.id)}>
-                    {nativeSelectCategoryLabel(c.label, c.depth, c.hasChildren)}
+                    {c.label}
                   </option>
                 ))}
               </select>

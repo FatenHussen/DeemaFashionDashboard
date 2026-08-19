@@ -1,4 +1,5 @@
 import type { ZodSchema } from 'zod';
+import type { ReactNode } from 'react';
 import type { Row } from '@tanstack/react-table';
 import type { AdminToggleEntityType } from '@/api/admin-toggle-status.types';
 
@@ -34,6 +35,8 @@ interface DataTableRowActionsProps<TData> {
   row: Row<TData> | any;
   schema: ZodSchema;
   viewDetails?: string | undefined | null;
+  /** Overrides the default "View details" label (e.g. "Open / Build" on category pages). */
+  viewDetailsLabel?: string;
   /** Navigate to subcategories list for this row's category id. */
   subcategoriesPath?: (id: number) => string;
   /** When set, "View subcategories" calls this instead of navigating to `subcategoriesPath`. */
@@ -53,6 +56,8 @@ interface DataTableRowActionsProps<TData> {
   onDeleteConfirm?: () => void;
   onDeleteCancel?: () => void;
   deletingId?: number | null;
+  /** Extra consequence shown in the delete dialog (e.g. "also deletes the category's page"). */
+  deleteWarning?: string;
   /** When set and status is pending, show Approve / Reject in the menu (e.g. products). */
   approvalStatus?: string | null;
   onApprove?: (id: number) => void;
@@ -70,6 +75,13 @@ interface DataTableRowActionsProps<TData> {
     disableLabel: string;
     enableLabel: string;
   };
+  /** Extra menu entries appended after the standard items (e.g. "Build page"). */
+  extraActions?: Array<{
+    key: string;
+    label: string;
+    icon?: ReactNode;
+    onClick: (row: Row<TData>) => void;
+  }>;
 }
 
 function resolveRowIsActive<TData>(
@@ -89,6 +101,7 @@ function resolveRowIsActive<TData>(
 export function DataTableRowActions<TData>({
   row,
   viewDetails,
+  viewDetailsLabel,
   subcategoriesPath,
   onSubcategoriesClick,
   editItem,
@@ -102,6 +115,7 @@ export function DataTableRowActions<TData>({
   onDeleteConfirm,
   onDeleteCancel,
   deletingId,
+  deleteWarning,
   approvalStatus,
   onApprove,
   onReject,
@@ -110,6 +124,7 @@ export function DataTableRowActions<TData>({
   adminToggleEntityType,
   getIsActive,
   enableDisableHandlers,
+  extraActions,
 }: DataTableRowActionsProps<TData>) {
   const navigate = useNavigate();
   const toggleStatusMutation = useAdminToggleStatus();
@@ -230,7 +245,7 @@ export function DataTableRowActions<TData>({
                 }}
               >
                 <Eye className="mr-2 h-4 w-4" />
-                {t('viewDetails')}
+                {viewDetailsLabel ?? t('viewDetails')}
               </DropdownMenuItem>
             )}
 
@@ -293,6 +308,20 @@ export function DataTableRowActions<TData>({
                 {t('assignOrderToDriver')}
               </DropdownMenuItem>
             )}
+
+            {extraActions?.map((action) => (
+              <DropdownMenuItem
+                key={action.key}
+                className="hover:bg-muted"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  action.onClick(row);
+                }}
+              >
+                {action.icon}
+                {action.label}
+              </DropdownMenuItem>
+            ))}
 
             {showDedicatedEnableDisable && enableDisableHandlers && (
               <>
@@ -424,6 +453,11 @@ export function DataTableRowActions<TData>({
           <DialogContent className="bg-background text-foreground p-6 rounded-lg shadow-lg z-[9999]">
             <h2 className="text-lg font-bold">{t('confirmDelete')}</h2>
             <p>{t('areYouSure')}</p>
+            {deleteWarning && (
+              <p className="mt-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-400">
+                {deleteWarning}
+              </p>
+            )}
             <div className="flex justify-end space-x-2 mt-4">
               <Button
                 variant="outlined"

@@ -10,6 +10,7 @@ import { apiRoutes, axiosInstance } from '@/api';
 export interface ShopProductVariantItem {
   id: number;
   label: string;
+  product_variant_id?: number;
   /** Sale price/stock now live on the variant, shared across every shop. */
   variant?: {
     id?: number;
@@ -20,6 +21,11 @@ export interface ShopProductVariantItem {
   };
   /** Branch purchase cost only — not a sale price; sale price lives on `variant.price` above. */
   cost_price?: number | null;
+  /**
+   * Display-only mirror of `variant.quantity` on shop-product-variant detail/list.
+   * Do not send this on PUT — stock is edited on the product variant.
+   */
+  quantity?: number | null;
   /** Present on list/detail payloads from API */
   variant_image?: string | null;
   product?: { image?: string | null; brand?: string | { name?: string | { ar?: string; en?: string } } };
@@ -29,6 +35,28 @@ export interface ShopProductVariantItem {
   model?: string | null;
   barcode?: string | null;
   [key: string]: unknown;
+}
+
+export type ShopVariantSaleFields = {
+  price?: number;
+  discount?: number | null;
+  price_after_discount?: number | null;
+  quantity?: number;
+};
+
+/** Prefer nested `variant` (new API), then the shop-row keys kept for display compatibility. */
+export function resolveShopVariantSaleFields(row: {
+  variant?: ShopVariantSaleFields | null;
+  shop_variant?: (ShopVariantSaleFields & { variant?: ShopVariantSaleFields | null }) | null;
+}): ShopVariantSaleFields {
+  const nested = row.shop_variant?.variant ?? row.variant;
+  const shop = row.shop_variant;
+  return {
+    price: nested?.price ?? shop?.price,
+    discount: nested?.discount ?? shop?.discount,
+    price_after_discount: nested?.price_after_discount ?? shop?.price_after_discount,
+    quantity: nested?.quantity ?? shop?.quantity,
+  };
 }
 
 export interface ShopProductVariantListResponse {
@@ -54,9 +82,14 @@ function formatShopProductVariantListLabel(
   if (!includePricing) return base;
   const bits: string[] = [];
   const variant = item.variant;
-  if (variant?.price != null) bits.push(String(variant.price));
-  if (variant?.discount != null) bits.push(String(variant.discount));
-  if (variant?.price_after_discount != null) bits.push(String(variant.price_after_discount));
+  const price = variant?.price ?? (typeof item.price === 'number' ? item.price : undefined);
+  const discount = variant?.discount ?? (typeof item.discount === 'number' ? item.discount : undefined);
+  const after =
+    variant?.price_after_discount ??
+    (typeof item.price_after_discount === 'number' ? item.price_after_discount : undefined);
+  if (price != null) bits.push(String(price));
+  if (discount != null) bits.push(String(discount));
+  if (after != null) bits.push(String(after));
   return bits.length ? `${base} — ${bits.join(' · ')}` : base;
 }
 

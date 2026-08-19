@@ -1,19 +1,14 @@
-import type { SectionCreateUpdatePayload } from '../types/section.types';
+import type { SectionListQueryParams, SectionCreateUpdatePayload } from '../types/section.types';
 
 import { queryKeys } from '@/api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { _SectionApi } from '../api/section.services';
 
-export const useFetchSections = (
-  page: number = 1,
-  limit: number = 25,
-  search?: string,
-  categoryId?: number
-) =>
+export const useFetchSections = (params?: SectionListQueryParams) =>
   useQuery({
-    queryKey: queryKeys.section.list({ page, limit, search, category_id: categoryId }),
-    queryFn: () => _SectionApi.getListSections(page, limit, search, categoryId),
+    queryKey: queryKeys.section.list(params),
+    queryFn: () => _SectionApi.getListSections(params),
   });
 
 export const useFetchSectionDetails = (id: number | string) =>

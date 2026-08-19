@@ -8,6 +8,7 @@ import type {
   PagesResponse,
   SectionsListResponse,
   PageSectionListResponse,
+  PageSectionUpdatePayload,
   PageSectionDetailsResponse,
   PageSectionCreateUpdatePayload,
 } from '../types/page-section.types';
@@ -38,11 +39,12 @@ export const _PageSectionApi = {
     return response.data;
   },
 
+  /** `PUT` (not `PATCH`) is what the backend route accepts. Send only the changed keys. */
   updatePageSection: async (
     id: number | string,
-    data: PageSectionCreateUpdatePayload
+    data: PageSectionUpdatePayload
   ): Promise<any> => {
-    const response = await axiosInstance.patch(apiRoutes.pageSection.update(id), data);
+    const response = await axiosInstance.put(apiRoutes.pageSection.update(id), data);
     return response.data;
   },
 

@@ -2,6 +2,7 @@ import type { TFunction } from 'i18next';
 import type { ColumnDef } from '@tanstack/react-table';
 
 import { z } from 'zod';
+import { LayoutTemplate } from 'lucide-react';
 import { Iconify } from '@/shared/components/iconify';
 import { formatTranslated } from '@/utils/format-translated';
 import { createToggleColumn } from '@/shared/ui/table-data/data-table-toggle-cell';
@@ -36,11 +37,17 @@ export interface CategoryFormValues {
     name: string;
   } | null;
   children_count: number;
+  /** true when parent_id === null — root/main category. */
+  is_root?: boolean;
+  /** true when this category has children — next cascade select is optional, not a save requirement. */
+  has_children?: boolean;
   created_at: string;
   updated_at: string;
   /** From list API — drives row Show/Hide in actions menu. */
   is_active?: boolean | number;
   is_restaurant?: boolean;
+  /** Auto-generated page of this category (page builder). */
+  page_id?: number | null;
   [key: string]: any;
 }
 
@@ -66,12 +73,15 @@ export const categoryColumns = (
     hideTypeColumn?: boolean;
     /** Active list tab — used for edit/update query params. */
     categoryTab?: 'normal' | 'restaurant';
+    /** Open the page builder for this category's auto page (shown when the row has a `page_id`). */
+    onBuildPage?: (row: CategoryFormValues) => void;
   }
 ): ColumnDef<CategoryFormValues>[] => {
   const subcategoriesPath = options?.subcategoriesPath;
   const onSubcategoriesClick = options?.onSubcategoriesClick;
   const hideParentColumn = options?.hideParentColumn;
   const hideTypeColumn = options?.hideTypeColumn;
+  const onBuildPage = options?.onBuildPage;
   const categoryTypeQuery = options?.categoryTab ?? 'normal';
   const editPath = (rowId: number) =>
     `/categories/update/${rowId}?type=${categoryTypeQuery}`;
@@ -250,6 +260,18 @@ export const categoryColumns = (
       <DataTableRowActions
         schema={CategorySchema}
         row={row}
+        extraActions={
+          onBuildPage && row.original.page_id != null && Number(row.original.page_id) > 0
+            ? [
+                {
+                  key: 'build-page',
+                  label: t('buildCategoryPage'),
+                  icon: <LayoutTemplate className="mr-2 h-4 w-4" />,
+                  onClick: (r: any) => onBuildPage(r.original as CategoryFormValues),
+                },
+              ]
+            : undefined
+        }
         subcategoriesPath={subcategoriesPath}
         onSubcategoriesClick={
           onSubcategoriesClick
@@ -264,6 +286,7 @@ export const categoryColumns = (
         onDeleteConfirm={onDeleteConfirm}
         onDeleteCancel={onDeleteCancel}
         deletingId={deletingId}
+        deleteWarning={t('categoryDeleteHasPageWarning')}
         permissions={permissions}
       />
     ),

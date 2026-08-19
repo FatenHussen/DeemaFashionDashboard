@@ -58,22 +58,31 @@ export const useFetchCategoryById = (id: number | string) => useQuery({
     enabled: !!id,
   });
 
+/** Creating/renaming/deleting a category also creates/renames/deletes its CMS page. */
+function invalidateCategoryPages(queryClient: ReturnType<typeof useQueryClient>) {
+  queryClient.invalidateQueries({ queryKey: ['pageBuilder'] });
+  queryClient.invalidateQueries({ queryKey: queryKeys.pageSection.pages() });
+}
+
+function invalidateCategoryLists(queryClient: ReturnType<typeof useQueryClient>) {
+  queryClient.invalidateQueries({
+    queryKey: ['category', 'list'],
+    refetchType: 'active',
+  });
+  queryClient.refetchQueries({
+    queryKey: ['category', 'list'],
+    type: 'active',
+  });
+}
+
 export const useCreateCategory = (page?: number, limit?: number) => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (data: CategoryCreateUpdatePayload) => _CategoryApi.createCategory(data),
     onSuccess: () => {
-      // Invalidate all category list queries (matches all queries starting with ['category', 'list'])
-      queryClient.invalidateQueries({
-        queryKey: ['category', 'list'],
-        refetchType: 'active',
-      });
-      // Explicitly refetch all active category list queries
-      queryClient.refetchQueries({
-        queryKey: ['category', 'list'],
-        type: 'active',
-      });
+      invalidateCategoryLists(queryClient);
+      invalidateCategoryPages(queryClient);
     },
   });
 };
@@ -85,19 +94,8 @@ export const useUpdateCategory = (page?: number, limit?: number) => {
     mutationFn: ({ id, data }: { id: number | string; data: CategoryCreateUpdatePayload }) =>
       _CategoryApi.updateCategory(id, data),
     onSuccess: (_, variables) => {
-      // Invalidate all category list queries (matches all queries starting with ['category', 'list'])
-      queryClient.invalidateQueries({
-        queryKey: ['category', 'list'],
-        refetchType: 'active',
-      });
-
-      // Explicitly refetch all active category list queries
-      queryClient.refetchQueries({
-        queryKey: ['category', 'list'],
-        type: 'active',
-      });
-
-      // Invalidate the specific category details query
+      invalidateCategoryLists(queryClient);
+      invalidateCategoryPages(queryClient);
       queryClient.invalidateQueries({
         queryKey: queryKeys.category.details(variables.id),
       });
@@ -130,19 +128,8 @@ export const useDeleteCategory = (page?: number, limit?: number) => {
   return useMutation({
     mutationFn: (id: number | string) => _CategoryApi.deleteCategory(id),
     onSuccess: (_, id) => {
-      // Invalidate all category list queries (matches all queries starting with ['category', 'list'])
-      queryClient.invalidateQueries({
-        queryKey: ['category', 'list'],
-        refetchType: 'active',
-      });
-
-      // Explicitly refetch all active category list queries
-      queryClient.refetchQueries({
-        queryKey: ['category', 'list'],
-        type: 'active',
-      });
-
-      // Invalidate the specific category details query
+      invalidateCategoryLists(queryClient);
+      invalidateCategoryPages(queryClient);
       queryClient.invalidateQueries({
         queryKey: queryKeys.category.details(id),
       });

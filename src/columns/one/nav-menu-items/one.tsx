@@ -5,6 +5,7 @@ import type { NavMenuItem } from '@/pages/dashboard/nav-menu-items/types';
 import { z } from 'zod';
 import { Switch } from '@/shared/ui/switch';
 import { Iconify } from '@/shared/components/iconify';
+import { parseRecordIsActive } from '@/utils/parse-record-is-active';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 import {
@@ -65,6 +66,7 @@ export const navMenuItemColumns = ({
   {
     id: 'order',
     accessorKey: 'order',
+    enableSorting: false,
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.order')} />,
     cell: ({ row }) => (
       <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-md bg-primary/10 px-1.5 text-xs font-semibold text-primary">
@@ -75,6 +77,7 @@ export const navMenuItemColumns = ({
   {
     id: 'icon',
     accessorKey: 'icon',
+    enableSorting: false,
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.image')} />,
     cell: ({ row }) => {
       const src = row.original.icon;
@@ -90,6 +93,7 @@ export const navMenuItemColumns = ({
   {
     id: 'title',
     accessorFn: (row) => navMenuItemTitle(row),
+    enableSorting: false,
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.title')} />,
     cell: ({ row }) => (
       <span className="line-clamp-2 text-sm font-medium text-foreground">
@@ -100,6 +104,7 @@ export const navMenuItemColumns = ({
   {
     id: 'type',
     accessorKey: 'type',
+    enableSorting: false,
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.type')} />,
     cell: ({ row }) => {
       const type = row.original.type;
@@ -118,6 +123,7 @@ export const navMenuItemColumns = ({
   {
     id: 'destination',
     accessorFn: (row) => navMenuTargetLabel(row, t),
+    enableSorting: false,
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title={t('form.navMenuColDestination')} />
     ),
@@ -148,10 +154,11 @@ export const navMenuItemColumns = ({
   {
     id: 'status',
     accessorKey: 'is_active',
+    enableSorting: false,
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.status')} />,
     cell: ({ row }) => {
       const item = row.original;
-      const isActive = Boolean(item.is_active);
+      const isActive = parseRecordIsActive(item as unknown as Record<string, unknown>);
       const isPending = togglingId === item.id;
       const canToggle = permissions.update && !!onToggleActive;
 
@@ -181,6 +188,7 @@ export const navMenuItemColumns = ({
   },
   {
     id: 'actions',
+    enableSorting: false,
     cell: ({ row }: any) => (
       <DataTableRowActions
         schema={RowSchema}

@@ -13,6 +13,8 @@ export const useUpdateProductVariant = () => {
       _ProductVariantApi.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['product', 'list'] });
+      queryClient.invalidateQueries({ queryKey: ['product', 'variants'] });
+      queryClient.invalidateQueries({ queryKey: ['productVariant'] });
     },
   });
 };
@@ -28,6 +30,8 @@ export const useDeleteProductVariant = () => {
       _ProductVariantApi.delete(id, { confirm }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['product', 'list'] });
+      queryClient.invalidateQueries({ queryKey: ['product', 'variants'] });
+      queryClient.invalidateQueries({ queryKey: ['productVariant'] });
     },
   });
 };

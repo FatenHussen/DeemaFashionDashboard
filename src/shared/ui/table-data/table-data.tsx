@@ -160,6 +160,7 @@ export function DataTable<TData, TValue>({
     },
     initialState: {
       columnVisibility: initialColumnVisibility,
+      pagination: { pageSize },
     },
     enableRowSelection: true,
     onRowSelectionChange: setRowSelection,

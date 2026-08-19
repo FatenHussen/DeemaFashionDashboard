@@ -7,6 +7,7 @@ import { Iconify } from '@/shared/components/iconify';
 import { formatTranslated } from '@/utils/format-translated';
 import { useFetchBasketById } from '@/pages/dashboard/baskets/hooks/basket';
 import { formatBasketBrandLabel, resolveBasketGalleryUrls } from '@/utils/basket-gallery';
+import { resolveShopVariantSaleFields } from '@/shared/api/shop-product-variant.services';
 
 import { CONFIG } from 'src/global-config';
 import { Box, Typography } from 'src/shared/ui';
@@ -230,9 +231,12 @@ export default function DetailsPage() {
                         </Typography>
                         {item.shop_variant ? (
                           <Typography variant="caption" className="mt-1 block text-muted-foreground">
-                            {t('form.priceLabel')}: {item.shop_variant.price ?? '—'} · {t('columns.discount')}:{' '}
-                            {item.shop_variant.discount ?? '—'} · {t('columns.priceAfterDiscount')}:{' '}
-                            {item.shop_variant.price_after_discount ?? '—'}
+                            {(() => {
+                              const sale = resolveShopVariantSaleFields({
+                                shop_variant: item.shop_variant,
+                              });
+                              return `${t('form.priceLabel')}: ${sale.price ?? '—'} · ${t('columns.discount')}: ${sale.discount ?? '—'} · ${t('columns.priceAfterDiscount')}: ${sale.price_after_discount ?? '—'}`;
+                            })()}
                           </Typography>
                         ) : null}
                         {Array.isArray(item.variant) && item.variant.length > 0 ? (

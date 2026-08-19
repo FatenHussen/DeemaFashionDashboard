@@ -18,6 +18,12 @@ export interface CategoryData {
   is_active: boolean;
   is_restaurant: boolean;
   children_count: number;
+  /** true when this category has at least one child. Does not block product assignment. */
+  has_children?: boolean;
+  /** Auto-generated page of this category (page builder). */
+  page_id?: number | null;
+  /** true when the page was auto-created with the category (the normal case). */
+  page_is_auto?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -49,10 +55,19 @@ export interface CategoryDetailData {
   icon: string | null;
   parent_id: number | null;
   parent: ParentCategory | null;
+  /** true when parent_id === null — root/main category. */
+  is_root?: boolean;
   order: number | null;
   is_active: boolean;
   is_restaurant: boolean;
   children: CategoryData[];
+  children_count?: number;
+  /** true when this category has at least one child. Does not block product assignment. */
+  has_children?: boolean;
+  /** Auto-generated page of this category (page builder). */
+  page_id?: number | null;
+  /** true when the page was auto-created with the category (the normal case). */
+  page_is_auto?: boolean;
   created_at: string;
   updated_at: string;
 }

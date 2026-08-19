@@ -1,16 +1,24 @@
-import type { DragEndEvent } from '@dnd-kit/core';
-import type { ItemIdEntry } from '@/pages/dashboard/sections/types/section.types';
+import type {
+  ItemIdEntry,
+  SectionCreateUpdatePayload,
+} from '@/pages/dashboard/sections/types/section.types';
 
 import { toast } from 'react-toastify';
 import { useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
+import { useMemo, useState, useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
-import { useRef, useMemo, useState, useEffect } from 'react';
-import { useInfiniteManualItems } from '@/pages/dashboard/sections/hooks/useManualItems';
-import { arrayMove, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { useSensor, DndContext, useSensors, PointerSensor, closestCenter } from '@dnd-kit/core';
+import { useParams, useNavigate, useSearchParams } from 'react-router';
+import { CategoryPageBanner } from '@/pages/dashboard/sections/components/category-page-banner';
+import { useAddSectionToPage, useFetchPageBuilderPage } from '@/pages/dashboard/sections/hooks/usePageBuilder';
+import { PRIMARY_API_FILTER_KEYS } from '@/pages/dashboard/sections/utils/api-method-config';
+import { isCategoryCmsPage } from '@/pages/dashboard/sections/utils/category-page';
+import { DynamicFilterField } from '@/pages/dashboard/sections/components/dynamic-filter-field';
+import {
+  isGifManualModel,
+  ManualItemsPicker,
+} from '@/pages/dashboard/sections/components/manual-items-picker';
 import {
   SectionSchema,
   type SectionFormValues,
@@ -20,287 +28,439 @@ import {
   useUpdateSection,
   useFetchSectionDetails,
 } from '@/pages/dashboard/sections/hooks/useSections';
+import {
+  autoFeedPreview,
+  contentTypeLabel,
+  CONTENT_TYPE_ICONS,
+  isApiOnlyContentType,
+  isBannerContentType,
+  contentTypeToApiMethod,
+  apiMethodToContentType,
+  CONTENT_TYPE_API_FILTERS,
+  ALL_SECTION_CONTENT_TYPES,
+  CONTENT_TYPE_ITEM_SOURCES,
+} from '@/pages/dashboard/sections/utils/content-type-config';
 
 import { CONFIG } from 'src/global-config';
-import { Box, Input, Button, Typography } from 'src/shared/ui';
-import { SortableItem } from 'src/shared/ui/table-data/sortable-item';
-import { RHFSelect } from 'src/shared/components/hook-form/rhf-select';
+import { Box, Typography } from 'src/shared/ui';
 import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
+import { RHFColorPicker } from 'src/shared/components/hook-form/rhf-color-picker';
 import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
 
 // ----------------------------------------------------------------------
 
-/** Backend `manual_model` key for GIF sections (compare case-insensitively). */
-function isGifManualModel(manualModel: string | undefined | null): boolean {
-  return (manualModel ?? '').trim().toLowerCase() === 'gif';
+const VARIANTS = ['horizontal', 'vertical', 'square'] as const;
+
+function extractCreatedId(response: unknown): number | undefined {
+  if (!response || typeof response !== 'object') return undefined;
+  const r = response as Record<string, any>;
+  for (const candidate of [r.data?.id, r.data?.data?.id, r.id]) {
+    const n = Number(candidate);
+    if (Number.isFinite(n) && n > 0) return n;
+  }
+  return undefined;
 }
 
-function defaultLinkForManualItem(manualModel: string, itemId: number): string {
-  return isGifManualModel(manualModel) ? '' : `/item/${itemId}`;
+const NUMERIC_FILTER_KEYS = new Set([
+  'category_id',
+  'brand_id',
+  'shop_id',
+  'vendor_id',
+  'schedule_days',
+]);
+
+function cleanFilters(values: Record<string, any>): Record<string, any> | undefined {
+  const result: Record<string, any> = {};
+  for (const [key, val] of Object.entries(values)) {
+    if (val === undefined || val === null || val === '') continue;
+    if (NUMERIC_FILTER_KEYS.has(key)) {
+      const n = Number(val);
+      if (Number.isFinite(n)) result[key] = n;
+      continue;
+    }
+    result[key] = val;
+  }
+  return Object.keys(result).length > 0 ? result : undefined;
+}
+
+function Step({
+  n,
+  title,
+  hint,
+  children,
+}: {
+  n: number;
+  title: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <Box className="space-y-3">
+      <Box className="flex items-start gap-3">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
+          {n}
+        </span>
+        <Box className="min-w-0 pt-0.5">
+          <Typography variant="subtitle1" className="font-bold text-foreground leading-tight">
+            {title}
+          </Typography>
+          {hint && (
+            <Typography variant="body2" className="text-muted-foreground mt-0.5">
+              {hint}
+            </Typography>
+          )}
+        </Box>
+      </Box>
+      {children}
+    </Box>
+  );
+}
+
+function ChoiceCard({
+  active,
+  disabled,
+  onClick,
+  children,
+  className = '',
+}: {
+  active: boolean;
+  disabled?: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={`rounded-2xl border p-4 text-start transition-all ${
+        active
+          ? 'border-primary bg-primary/[0.07] shadow-sm ring-2 ring-primary/25'
+          : 'border-border/60 bg-card hover:border-border hover:bg-muted/30'
+      } ${disabled && !active ? 'opacity-45 cursor-not-allowed' : ''} ${className}`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function VariantPreview({ variant }: { variant: (typeof VARIANTS)[number] }) {
+  if (variant === 'horizontal') {
+    return (
+      <Box className="flex h-14 items-center justify-center gap-1 px-1">
+        <span className="text-xs text-muted-foreground">‹</span>
+        {[0, 1, 2].map((i) => (
+          <span
+            key={i}
+            className="h-10 w-8 rounded-md border border-primary/35 bg-primary/20"
+          />
+        ))}
+        <span className="text-xs text-muted-foreground">›</span>
+      </Box>
+    );
+  }
+  if (variant === 'vertical') {
+    return (
+      <Box className="flex h-14 flex-col justify-center gap-1 px-4">
+        {[0, 1, 2].map((i) => (
+          <span key={i} className="h-2.5 w-full rounded border border-primary/35 bg-primary/20" />
+        ))}
+      </Box>
+    );
+  }
+  return (
+    <Box className="mx-auto grid h-14 w-14 grid-cols-2 gap-1">
+      {[0, 1, 2, 3].map((i) => (
+        <span key={i} className="rounded border border-primary/35 bg-primary/20" />
+      ))}
+    </Box>
+  );
 }
 
 export default function CreatePage() {
   const { t } = useTranslation('table');
   const { id } = useParams<{ id?: string }>();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const isEditMode = !!id;
-  const [selectedModel, setSelectedModel] = useState<string>('');
+  const returnPage = !isEditMode ? searchParams.get('returnPage')?.trim() || '' : '';
+
   const [orderedItems, setOrderedItems] = useState<ItemIdEntry[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const sentinelRef = useRef<HTMLDivElement>(null);
-
-  // Pointer only: KeyboardSensor steals keys for inputs inside sortables.
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
-  );
-
-  const selectedIds = useMemo(
-    () => new Set(orderedItems.map((e) => e.item_id)),
-    [orderedItems]
-  );
+  const [filterValues, setFilterValues] = useState<Record<string, any>>({});
+  const [showColors, setShowColors] = useState(false);
 
   const { data: sectionData, isLoading: isLoadingSection } = useFetchSectionDetails(id || '');
   const createSectionMutation = useCreateSection();
   const updateSectionMutation = useUpdateSection();
-
-  const { itemTypesQuery, infiniteQuery, allItems } = useInfiniteManualItems(selectedModel || null, {
-    limit: 10,
-    search: searchTerm,
-  });
-
-  const itemLabelById = useMemo(() => {
-    const map = new Map<number, string>();
-    for (const row of allItems as { id: number; name?: string; title?: string }[]) {
-      map.set(row.id, row.name || row.title || '');
-    }
-    if (isEditMode && sectionData?.data?.items) {
-      for (const row of sectionData.data.items as any[]) {
-        const rowId = row.item?.id ?? row.id;
-        if (!map.has(rowId)) {
-          const label =
-            row.item?.name ||
-            row.item?.title ||
-            row.name ||
-            row.title ||
-            '';
-          map.set(rowId, label);
-        }
-      }
-    }
-    return map;
-  }, [allItems, isEditMode, sectionData?.data?.items]);
-
-  useEffect(() => {
-    const sentinel = sentinelRef.current;
-    if (!sentinel) return undefined;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && infiniteQuery.hasNextPage && !infiniteQuery.isFetchingNextPage) {
-          infiniteQuery.fetchNextPage();
-        }
-      },
-      { threshold: 0.1 }
-    );
-    observer.observe(sentinel);
-    return () => observer.disconnect();
-  }, [infiniteQuery]);
-
-  const defaultValues: SectionFormValues = {
-    name: {
-      ar: '',
-      en: '',
-    },
-    manual_model: '',
-    item_ids: [],
-  };
+  const addSectionToPageMutation = useAddSectionToPage();
+  const { data: returnPageDetails } = useFetchPageBuilderPage(returnPage);
 
   const methods = useForm<SectionFormValues>({
     resolver: zodResolver(SectionSchema),
-    defaultValues,
+    defaultValues: {
+      type: 'api',
+      content_type: '',
+      name: { ar: '', en: '' },
+      variant: 'horizontal',
+      background_color: '',
+      background_card_color: '',
+    },
   });
 
   const { handleSubmit, reset, watch, setValue } = methods;
 
-  const watchedManualModel = watch('manual_model');
+  const watchedType = watch('type');
+  const watchedContentType = watch('content_type') ?? '';
+  const watchedVariant = watch('variant') ?? 'horizontal';
+  const watchedBg = watch('background_color');
+  const watchedCardBg = watch('background_card_color');
+
+  const contentTypesToShow = useMemo(() => {
+    const list = [...ALL_SECTION_CONTENT_TYPES];
+    if (watchedContentType && !list.includes(watchedContentType)) {
+      list.unshift(watchedContentType);
+    }
+    return list;
+  }, [watchedContentType]);
+
+  const isBannerContent = isBannerContentType(watchedContentType);
+  const isApiOnlyContent = isApiOnlyContentType(watchedContentType);
+  const showFillStep = Boolean(watchedContentType) && !isBannerContent && !isApiOnlyContent;
+
+  const isCategoryPage = isCategoryCmsPage(returnPageDetails?.data);
+  const hasBannerSectionOnPage = useMemo(() => {
+    const sections = returnPageDetails?.data?.sections ?? [];
+    return sections.some((section) => isBannerContentType(section.content_type));
+  }, [returnPageDetails]);
 
   useEffect(() => {
-    if (watchedManualModel) {
-      setSelectedModel(watchedManualModel);
-    }
-  }, [watchedManualModel]);
+    if (isEditMode) return;
+    setOrderedItems([]);
+    setFilterValues({});
+  }, [watchedContentType, isEditMode]);
 
-  const isGifModel = isGifManualModel(selectedModel);
+  useEffect(() => {
+    if (isEditMode || !isBannerContent) return;
+    setValue('type', 'manual', { shouldValidate: true, shouldDirty: true });
+    setValue('variant', 'horizontal', { shouldValidate: true, shouldDirty: true });
+  }, [isBannerContent, isEditMode, setValue]);
+
+  useEffect(() => {
+    if (isEditMode || !isApiOnlyContent) return;
+    setValue('type', 'api', { shouldValidate: true, shouldDirty: true });
+  }, [isApiOnlyContent, isEditMode, setValue]);
+
+  const manualItemsSource =
+    (CONTENT_TYPE_ITEM_SOURCES as Record<string, { url: string; params?: Record<string, unknown> }>)[
+      watchedContentType
+    ] ?? undefined;
+
+  const apiFilterSchema = useMemo(
+    () => CONTENT_TYPE_API_FILTERS[watchedContentType] ?? {},
+    [watchedContentType]
+  );
+
+  const primaryApiFilters = useMemo(
+    () =>
+      Object.entries(apiFilterSchema).filter(([key]) =>
+        (PRIMARY_API_FILTER_KEYS as readonly string[]).includes(key)
+      ),
+    [apiFilterSchema]
+  );
+
+  const optionalApiFilters = useMemo(
+    () =>
+      Object.entries(apiFilterSchema).filter(
+        ([key]) => !(PRIMARY_API_FILTER_KEYS as readonly string[]).includes(key)
+      ),
+    [apiFilterSchema]
+  );
+
+  const previewText = useMemo(
+    () => autoFeedPreview(t, watchedContentType, filterValues),
+    [t, watchedContentType, filterValues]
+  );
+
+  const labelOverrides = useMemo(() => {
+    const map = new Map<number, string>();
+    if (isEditMode && sectionData?.data?.items) {
+      for (const row of sectionData.data.items as any[]) {
+        const rowId = row.item?.id ?? row.id;
+        const label = row.item?.name || row.item?.title || row.name || row.title || '';
+        if (label) map.set(rowId, label);
+      }
+    }
+    return map;
+  }, [isEditMode, sectionData?.data?.items]);
 
   useEffect(() => {
     if (isEditMode && sectionData?.data && !isLoadingSection) {
       const section = sectionData.data;
       const nameObj = section.admin_name || section.name;
-      const nameEn = typeof nameObj === 'object' && nameObj !== null ? (nameObj as any).en || '' : String(nameObj || '');
-      const nameAr = typeof nameObj === 'object' && nameObj !== null ? (nameObj as any).ar || '' : String(nameObj || '');
+      const nameEn =
+        typeof nameObj === 'object' && nameObj !== null
+          ? (nameObj as any).en || ''
+          : String(nameObj || '');
+      const nameAr =
+        typeof nameObj === 'object' && nameObj !== null
+          ? (nameObj as any).ar || ''
+          : String(nameObj || '');
 
-      const manualModel = section.manual?.manual_model || '';
+      const contentType =
+        section.content_type ||
+        section.manual?.manual_model ||
+        apiMethodToContentType(section.api?.api_method) ||
+        '';
+      const sectionType = section.type === 'api' ? 'api' : 'manual';
+
+      const sectionVariant = (VARIANTS as readonly string[]).includes(section.variant ?? '')
+        ? (section.variant as (typeof VARIANTS)[number])
+        : 'horizontal';
 
       reset({
-        name: {
-          en: nameEn,
-          ar: nameAr,
-        },
-        manual_model: manualModel,
-        item_ids: section.items.map((item: any, index: number) => ({
-          item_id: item.item?.id ?? item.id,
-          link: isGifManualModel(manualModel)
-            ? (item.link ?? '')
-            : (item.link || `/item/${item.item?.id ?? item.id}`),
-          order: item.order ?? index + 1,
-        })),
+        type: sectionType,
+        content_type: contentType,
+        name: { en: nameEn, ar: nameAr },
+        variant: sectionVariant,
+        background_color: section.background_color ?? '',
+        background_card_color: section.background_card_color ?? '',
       });
-      // Set selected model directly so items list loads immediately
-      if (manualModel) {
-        setSelectedModel(manualModel);
+
+      if (section.background_color || section.background_card_color) {
+        setShowColors(true);
       }
+
+      const savedFilters = section.filters ?? (section.api as any)?.filters;
+      if (savedFilters && typeof savedFilters === 'object' && !Array.isArray(savedFilters)) {
+        setFilterValues(savedFilters as Record<string, any>);
+      }
+
       setOrderedItems(
-        section.items.map((item: any, index: number) => ({
+        (section.items ?? []).map((item: any, index: number) => ({
           item_id: item.item?.id ?? item.id,
-          link: isGifManualModel(manualModel)
-            ? (item.link ?? '')
-            : (item.link || `/item/${item.item?.id ?? item.id}`),
-          order: item.order ?? index + 1,
+          order: item.order ?? index,
+          ...(isGifManualModel(contentType) ? { link: item.link ?? '' } : {}),
         }))
       );
     }
   }, [sectionData, isEditMode, isLoadingSection, reset]);
 
-  const isSubmitting = createSectionMutation.isPending || updateSectionMutation.isPending;
+  const isSubmitting =
+    createSectionMutation.isPending ||
+    updateSectionMutation.isPending ||
+    addSectionToPageMutation.isPending;
   const errorMessage =
-    createSectionMutation.error?.message || updateSectionMutation.error?.message || null;
+    createSectionMutation.error?.message ||
+    updateSectionMutation.error?.message ||
+    addSectionToPageMutation.error?.message ||
+    null;
 
-  useEffect(() => {
-    setValue(
-      'item_ids',
-      orderedItems.map((entry, index) => ({
-        item_id: entry.item_id,
-        link: isGifModel
-          ? (entry.link ?? '')
-          : (entry.link || `/item/${entry.item_id}`),
-        order: index + 1,
-      }))
-    );
-  }, [orderedItems, setValue, isGifModel]);
+  const handleContentTypeChange = (type: string) => {
+    if (isEditMode) return;
+    setValue('content_type', type, { shouldValidate: true, shouldDirty: true });
+    if (isBannerContentType(type)) {
+      setValue('type', 'manual', { shouldValidate: true, shouldDirty: true });
+      setValue('variant', 'horizontal', { shouldValidate: true, shouldDirty: true });
+    } else if (isApiOnlyContentType(type)) {
+      setValue('type', 'api', { shouldValidate: true, shouldDirty: true });
+    }
+  };
 
-  const handleItemsDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-    setOrderedItems((prev) => {
-      const oldIndex = prev.findIndex((x) => x.item_id === active.id);
-      const newIndex = prev.findIndex((x) => x.item_id === over.id);
-      if (oldIndex === -1 || newIndex === -1) return prev;
-      return arrayMove(prev, oldIndex, newIndex).map((entry, idx) => ({
-        ...entry,
-        order: idx + 1,
-      }));
-    });
+  const handleTypeChange = (type: 'manual' | 'api') => {
+    if (isEditMode) return;
+    setValue('type', type, { shouldValidate: true, shouldDirty: true });
+    if (type === 'api' && isBannerContentType(watchedContentType)) {
+      setValue('content_type', '', { shouldValidate: true, shouldDirty: true });
+    }
+    if (type === 'manual' && isApiOnlyContentType(watchedContentType)) {
+      setValue('content_type', '', { shouldValidate: true, shouldDirty: true });
+    }
+  };
+
+  const handleFilterChange = (filterKey: string, value: any) => {
+    setFilterValues((prev) => ({ ...prev, [filterKey]: value }));
   };
 
   const onSubmit = async (data: SectionFormValues) => {
+    if (data.type === 'manual' && orderedItems.length === 0) {
+      toast.error(t('form.sectionEasyPickItemsRequired'));
+      return;
+    }
+
+    const apiMethod = contentTypeToApiMethod(data.content_type);
+    const filters = cleanFilters(filterValues);
+
+    const payload: SectionCreateUpdatePayload = {
+      name: {
+        en: data.name.en,
+        ar: data.name.ar,
+      },
+      content_type: data.content_type,
+      type: data.type,
+      ...(data.variant ? { variant: data.variant } : {}),
+      ...(data.background_color ? { background_color: data.background_color } : {}),
+      ...(data.background_card_color
+        ? { background_card_color: data.background_card_color }
+        : {}),
+      ...(data.type === 'manual'
+        ? {
+            item_ids: orderedItems.map((entry, index) => {
+              const base = { item_id: entry.item_id, order: index };
+              if (!isGifManualModel(data.content_type)) return base;
+              const trimmed = entry.link?.trim() ?? '';
+              return { ...base, link: trimmed === '' ? null : trimmed };
+            }),
+          }
+        : {
+            ...(apiMethod ? { api_method: apiMethod } : {}),
+            ...(filters ? { filters } : {}),
+          }),
+    };
+
     try {
-      const manualModel = data.manual_model || selectedModel;
-      const item_ids = orderedItems.map((entry, index) => {
-        const trimmed = entry.link?.trim() ?? '';
-        return {
-          item_id: entry.item_id,
-          order: index + 1,
-          link: isGifManualModel(manualModel)
-            ? trimmed === ''
-              ? null
-              : trimmed
-            : trimmed || `/item/${entry.item_id}`,
-        };
-      });
-
-      const payload = {
-        name: {
-          en: data.name.en,
-          ar: data.name.ar,
-        },
-        manual_model: manualModel,
-        item_ids,
-      };
-
       if (isEditMode && id) {
         await updateSectionMutation.mutateAsync({ id, data: payload });
         toast.success(t('form.sectionUpdatedSuccess'));
         navigate('/sections');
-      } else {
-        await createSectionMutation.mutateAsync(payload);
-        toast.success(t('form.sectionCreatedSuccess'));
-        navigate('/sections');
+        return;
       }
+
+      const created = await createSectionMutation.mutateAsync(payload);
+      toast.success(t('form.sectionCreatedSuccess'));
+
+      if (returnPage) {
+        const newId = extractCreatedId(created);
+        if (newId) {
+          try {
+            await addSectionToPageMutation.mutateAsync({
+              pageId: returnPage,
+              data: { section_id: newId },
+            });
+            toast.success(t('form.pageBuilderSectionAddedSuccess'));
+            navigate(`/sections/pages/details/${returnPage}`);
+            return;
+          } catch {
+            navigate(`/sections/pages/${returnPage}/sections/create`);
+            return;
+          }
+        }
+        navigate(`/sections/pages/${returnPage}/sections/create`);
+        return;
+      }
+
+      navigate('/sections');
     } catch (error: any) {
       console.error('Error saving section:', error);
     }
   };
 
   const handleCancel = () => {
-    navigate('/sections');
+    navigate(returnPage ? `/sections/pages/${returnPage}/sections/create` : '/sections');
   };
 
-  const handleToggleItem = (itemId: number) => {
-    setOrderedItems((prev) => {
-      const exists = prev.some((p) => p.item_id === itemId);
-      if (exists) {
-        return prev
-          .filter((p) => p.item_id !== itemId)
-          .map((e, idx) => ({ ...e, order: idx + 1 }));
-      }
-      return [
-        ...prev,
-        {
-          item_id: itemId,
-          link: defaultLinkForManualItem(selectedModel, itemId),
-          order: prev.length + 1,
-        },
-      ];
-    });
-  };
-
-  const handleSelectAll = () => {
-    if (!allItems.length) return;
-    setOrderedItems(
-      (allItems as { id: number }[]).map((item, index) => ({
-        item_id: item.id,
-        link: defaultLinkForManualItem(selectedModel, item.id),
-        order: index + 1,
-      }))
-    );
-  };
-
-  const handleItemLinkChange = (itemId: number, link: string) => {
-    setOrderedItems((prev) =>
-      prev.map((e) => (e.item_id === itemId ? { ...e, link } : e))
-    );
-  };
-
-  const handleClearAll = () => {
-    setOrderedItems([]);
-  };
-
-  const itemTypeOptions = itemTypesQuery.data?.data
-    ? Object.entries(itemTypesQuery.data.data)
-        .filter(([_, value]) => !Array.isArray(value))
-        .map(([key]) => ({
-          value: key,
-          label: key.charAt(0).toUpperCase() + key.slice(1).replace(/-/g, ' '),
-        }))
-    : [];
-
-  // In edit mode, re-set manual_model when options load to ensure Select displays it
-  useEffect(() => {
-    if (isEditMode && selectedModel && itemTypeOptions.length > 0) {
-      setValue('manual_model', selectedModel, { shouldValidate: true });
-    }
-  }, [isEditMode, selectedModel, itemTypeOptions.length, setValue]);
-
-  const infoText = isEditMode ? t('form.sectionFormInfoEdit') : t('form.sectionFormInfoCreate');
+  const apiDisabled = isBannerContentType(watchedContentType);
+  const hasColors = Boolean(watchedBg || watchedCardBg);
 
   return (
     <>
@@ -312,323 +472,367 @@ export default function CreatePage() {
 
       <CreateFormLayout
         methods={methods}
-        onSubmit={handleSubmit(onSubmit)}
+        onSubmit={handleSubmit(onSubmit, (errors) => {
+          const firstError = Object.values(errors)[0] as any;
+          const nested = firstError?.en || firstError?.ar || firstError;
+          const message = nested?.message || firstError?.message || t('pleaseFixValidationErrors');
+          toast.error(message);
+        })}
         onCancel={handleCancel}
         isSubmitting={isSubmitting}
         errorMessage={errorMessage}
         title={isEditMode ? t('form.editSection') : t('form.createSection')}
-        description={isEditMode ? t('form.editSectionDesc') : t('form.createSectionDesc')}
+        description={isEditMode ? t('form.editSectionDesc') : isCategoryPage ? t('form.createSectionDescCategory') : t('form.createSectionDesc')}
         isEditMode={isEditMode}
         isLoading={isLoadingSection}
         loadingText={t('form.loadingSection')}
-        infoText={infoText}
         submitLabel={isEditMode ? t('form.updateSectionSubmit') : t('form.createSectionSubmit')}
         submittingLabel={isEditMode ? t('form.updatingSection') : t('form.creatingSection')}
+        maxWidth="xl"
+        formInnerClassName="flex flex-col gap-8"
       >
-        {/* ── Section: Names ── */}
-        <Box className="rounded-2xl border border-border/50 bg-card/50 shadow-sm">
-          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-primary/[0.06] via-primary/[0.02] to-transparent">
-            <Box className="h-8 w-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
-              <Iconify icon="solar:text-bold" className="text-primary" width={15} />
-            </Box>
-            <Typography variant="subtitle2" className="font-semibold text-foreground">
-              {t('form.sectionNameEnglishLabel')} / {t('form.sectionNameArabicLabel')}
-            </Typography>
-          </Box>
-          <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
-            <Box className="group">
-              <Box className="flex items-center gap-2 mb-2">
-                <Iconify icon="solar:text-bold" className="text-primary" width={20} height={20} />
-                <Typography variant="subtitle2" className="font-semibold text-foreground">
-                  {t('form.sectionNameEnglishLabel')}
-                </Typography>
-              </Box>
-              <RHFTextField
-                name="name.en"
-                placeholder={t('form.sectionNameEnPlaceholder')}
-                helperText={t('form.sectionNameEnHelper2')}
-                className="transition-all duration-200"
-              />
-            </Box>
+        {returnPage && <CategoryPageBanner page={returnPageDetails?.data} />}
 
-            <Box className="group">
-              <Box className="flex items-center gap-2 mb-2">
-                <Iconify icon="solar:text-bold" className="text-primary" width={20} height={20} />
-                <Typography variant="subtitle2" className="font-semibold text-foreground">
-                  {t('form.sectionNameArabicLabel')}
-                </Typography>
-              </Box>
+        {returnPage && isBannerContent && hasBannerSectionOnPage && (
+          <Box className="rounded-2xl border border-amber-500/20 bg-amber-500/[0.06] px-4 py-3">
+            <Box className="flex items-start gap-3">
+              <Iconify icon="solar:info-circle-bold" className="mt-0.5 shrink-0 text-amber-700" width={18} />
+              <Typography variant="body2" className="min-w-0 flex-1 text-muted-foreground">
+                {t('form.pageBuilderBannerExistingWarning')}
+              </Typography>
+            </Box>
+          </Box>
+        )}
+
+        <Step n={1} title={t('form.sectionEasyNameTitle')} hint={t('form.sectionEasyNameHint')}>
+          <Box className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <Box>
+              <Typography variant="subtitle2" className="mb-1.5 font-semibold text-foreground">
+                {t('form.sectionEasyNameAr')}
+              </Typography>
               <RHFTextField
                 name="name.ar"
-                placeholder={t('form.sectionNameArPlaceholder')}
-                helperText={t('form.sectionNameArHelper2')}
-                className="transition-all duration-200"
+                placeholder={t('form.sectionEasyNameArPlaceholder')}
                 dir="rtl"
               />
             </Box>
-          </Box>
-        </Box>
-
-        {/* ── Section: Configuration ── */}
-        <Box className="rounded-2xl border border-border/50 bg-card/50 shadow-sm">
-          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-violet-500/[0.06] via-violet-500/[0.02] to-transparent">
-            <Box className="h-8 w-8 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center shrink-0">
-              <Iconify icon="solar:widget-bold" className="text-violet-500" width={15} />
-            </Box>
-            <Typography variant="subtitle2" className="font-semibold text-foreground">
-              {t('form.manualModelLabel')}
-            </Typography>
-          </Box>
-          <Box className="p-6">
-            <Box className="group">
-              <Box className="flex items-center gap-2 mb-2">
-                <Iconify icon="solar:widget-bold" className="text-violet-500" width={20} height={20} />
-                <Typography variant="subtitle2" className="font-semibold text-foreground">
-                  {t('form.manualModelLabel')}
-                </Typography>
-              </Box>
-              <RHFSelect
-                name="manual_model"
-                options={itemTypeOptions}
-                placeholder={t('form.selectModelType')}
-                helperText={
-                  isEditMode
-                    ? t('form.manualModelHelperEdit')
-                    : t('form.manualModelHelperCreate')
-                }
-                className="transition-all duration-200"
-                disabled={isEditMode}
-              />
-            </Box>
-          </Box>
-        </Box>
-
-        {/* ── Section: Items ── */}
-        {selectedModel && (
-          <Box className="rounded-2xl border border-border/50 bg-card/50 shadow-sm">
-            <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-amber-500/[0.06] via-amber-500/[0.02] to-transparent">
-              <Box className="h-8 w-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
-                <Iconify icon="solar:checklist-bold" className="text-amber-500" width={15} />
-              </Box>
-              <Typography variant="subtitle2" className="font-semibold text-foreground flex-1">
-                {t('form.selectItemsHeading')}
-                {orderedItems.length > 0 && (
-                  <Typography component="span" variant="body2" className="text-muted-foreground ml-2">
-                    {t('form.itemsSelectedCount', { count: orderedItems.length })}
-                  </Typography>
-                )}
+            <Box>
+              <Typography variant="subtitle2" className="mb-1.5 font-semibold text-foreground">
+                {t('form.sectionEasyNameEn')}
               </Typography>
-              <Box className="flex gap-2 shrink-0">
-                <Button type="button" onClick={handleSelectAll} variant="outlined" size="small" disabled={!allItems.length}>
-                  {t('form.selectAllItems')}
-                </Button>
-                <Button type="button" onClick={handleClearAll} variant="outlined" size="small" disabled={orderedItems.length === 0}>
-                  {t('form.clearAllItems')}
-                </Button>
-              </Box>
+              <RHFTextField name="name.en" placeholder={t('form.sectionEasyNameEnPlaceholder')} />
             </Box>
-          <Box className="p-6">
+          </Box>
+        </Step>
 
-            {orderedItems.length > 0 && (
-              <Box className="mb-4 p-4 border rounded-lg bg-muted/20 space-y-2">
-                <Typography variant="subtitle2" className="font-semibold text-foreground">
-                  {t('form.sectionItemsOrderHeading')}
-                </Typography>
-                <Typography variant="body2" className="text-muted-foreground text-sm">
-                  {t('form.sectionItemsOrderHelper')}
-                </Typography>
-                <Typography variant="body2" className="text-muted-foreground text-sm">
-                  {t('form.sectionItemLinkHint')}
-                </Typography>
-                <DndContext
-                  sensors={sensors}
-                  collisionDetection={closestCenter}
-                  onDragEnd={handleItemsDragEnd}
+        <Step
+          n={2}
+          title={t('form.sectionEasyContentTitle')}
+          hint={
+            isEditMode
+              ? t('form.sectionEasyContentLocked')
+              : watchedType === 'api'
+                ? t('form.sectionEasyContentHintAuto')
+                : t('form.sectionEasyContentHint')
+          }
+        >
+          <Box className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {contentTypesToShow.map((type) => {
+              const active = watchedContentType === type;
+              const icon = CONTENT_TYPE_ICONS[type] ?? 'solar:widget-bold';
+              return (
+                <ChoiceCard
+                  key={type}
+                  active={active}
+                  disabled={isEditMode}
+                  onClick={() => handleContentTypeChange(type)}
                 >
-                  <SortableContext
-                    items={orderedItems.map((e) => e.item_id)}
-                    strategy={verticalListSortingStrategy}
-                  >
-                    <Box className="flex flex-col gap-2 mt-2">
-                      {orderedItems.map((entry, index) => {
-                        const label =
-                          itemLabelById.get(entry.item_id)?.trim() ||
-                          t('form.itemNumberFallback', { id: entry.item_id });
-                        return (
-                          <SortableItem key={entry.item_id} id={entry.item_id}>
-                            <Box className="flex min-w-0 flex-1 flex-col gap-2">
-                              <Box className="flex min-w-0 flex-1 items-center gap-3">
-                                <Box className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-muted text-xs font-medium text-muted-foreground">
-                                  {index + 1}
-                                </Box>
-                                <Box className="min-w-0 flex-1">
-                                  <Typography variant="body2" className="font-medium truncate">
-                                    {label}
-                                  </Typography>
-                                  <Typography variant="caption" className="text-muted-foreground">
-                                    {t('form.itemIdBadgeShort', { id: entry.item_id })}
-                                  </Typography>
-                                </Box>
-                              </Box>
-                              <Box
-                                className="relative z-10 w-full max-w-full"
-                                onPointerDownCapture={(e) => e.stopPropagation()}
-                                onPointerDown={(e) => e.stopPropagation()}
-                                onClickCapture={(e) => e.stopPropagation()}
-                                onKeyDownCapture={(e) => e.stopPropagation()}
-                              >
-                                <Typography
-                                  variant="caption"
-                                  className="mb-1 block text-muted-foreground"
-                                >
-                                  {t('form.sectionItemLinkLabel')}
-                                </Typography>
-                                <Input
-                                  type="text"
-                                  inputMode="url"
-                                  autoComplete="off"
-                                  floatingLabel={false}
-                                  fullWidth
-                                  value={entry.link ?? ''}
-                                  onChange={(e) =>
-                                    handleItemLinkChange(entry.item_id, e.target.value)
-                                  }
-                                  onKeyDown={(e) => e.stopPropagation()}
-                                  placeholder={t('form.sectionItemLinkPlaceholder')}
-                                  className="w-full"
-                                />
-                              </Box>
-                            </Box>
-                          </SortableItem>
-                        );
-                      })}
+                  <Box className="flex flex-col items-start gap-2">
+                    <Box
+                      className={`flex h-9 w-9 items-center justify-center rounded-xl border ${
+                        active
+                          ? 'border-primary/30 bg-primary/10 text-primary'
+                          : 'border-border/50 bg-muted/50 text-muted-foreground'
+                      }`}
+                    >
+                      <Iconify icon={icon} width={18} />
                     </Box>
-                  </SortableContext>
-                </DndContext>
-              </Box>
-            )}
-
-            {/* Search Input */}
-            <Box className="mb-4">
-              <RHFTextField
-                name="search"
-                value={searchTerm}
-                onChange={(e: any) => setSearchTerm(e.target.value)}
-                placeholder={t('form.searchItems')}
-                className="w-full"
-              />
-            </Box>
-
-            {/* Loading State */}
-            {infiniteQuery.isLoading && (
-              <Box className="text-center p-8 border border-dashed rounded-lg">
-                <Iconify
-                  icon="solar:refresh-circle-bold"
-                  className="w-12 h-12 text-primary mx-auto mb-2 animate-spin"
-                />
-                <Typography variant="body2" className="text-muted-foreground">
-                  {t('form.loadingItems')}
-                </Typography>
-              </Box>
-            )}
-
-            {/* Error State */}
-            {infiniteQuery.isError && (
-              <Box className="text-center p-8 border border-destructive/50 rounded-lg bg-destructive/5">
-                <Iconify icon="solar:danger-bold" className="w-12 h-12 text-destructive mx-auto mb-2" />
-                <Typography variant="body2" className="text-destructive">
-                  {t('form.itemsLoadError')}
-                </Typography>
-              </Box>
-            )}
-
-            {/* Items List */}
-            {!infiniteQuery.isLoading && !infiniteQuery.isError && (
-              <Box className="border rounded-lg overflow-hidden">
-                {allItems.length === 0 ? (
-                  <Box className="text-center p-8">
-                    <Iconify
-                      icon="solar:inbox-line-bold"
-                      className="w-12 h-12 text-muted-foreground/50 mx-auto mb-2"
-                    />
-                    <Typography variant="body2" className="text-muted-foreground">
-                      {t('form.noItemsFoundShort')}
+                    <Typography variant="subtitle2" className="font-semibold leading-snug">
+                      {t(`form.sectionEasyContent_${type}`, {
+                        defaultValue: contentTypeLabel(t, type),
+                      })}
+                    </Typography>
+                    <Typography variant="caption" className="text-muted-foreground leading-snug">
+                      {t(`form.sectionEasyContentHint_${type}`, {
+                        defaultValue: '',
+                      })}
                     </Typography>
                   </Box>
-                ) : (
-                  <Box className="divide-y divide-border">
-                    {allItems.map((item: any) => {
-                      const isSelected = selectedIds.has(item.id);
-                      return (
-                        <Box
-                          key={item.id}
-                          onClick={() => handleToggleItem(item.id)}
-                          className={`p-4 flex items-center gap-4 cursor-pointer transition-colors hover:bg-muted/50 ${
-                            isSelected ? 'bg-primary/5 border-l-4 border-l-primary' : ''
-                          }`}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={() => handleToggleItem(item.id)}
-                            onClick={(e) => e.stopPropagation()}
-                            className="w-5 h-5 rounded border-border text-primary focus:ring-primary cursor-pointer"
-                          />
-                          <Box className="flex-1 min-w-0">
-                            <Box className="flex items-center gap-2 mb-1">
-                              <Typography variant="body1" className="font-semibold text-foreground">
-                                {item.name ||
-                                  item.title ||
-                                  t('form.itemNumberFallback', { id: item.id })}
-                              </Typography>
-                              <Box className="px-2 py-0.5 rounded bg-muted text-xs text-muted-foreground">
-                                {t('form.itemIdBadgeShort', { id: item.id })}
-                              </Box>
-                            </Box>
-                            {item.desc && (
-                              <Typography variant="body2" className="text-muted-foreground text-sm line-clamp-1">
-                                {item.desc}
-                              </Typography>
-                            )}
-                          </Box>
-                          {isSelected && (
-                            <Iconify
-                              icon="solar:check-circle-bold"
-                              className="text-primary shrink-0"
-                              width={24}
-                              height={24}
-                            />
-                          )}
-                        </Box>
-                      );
-                    })}
-                    {/* Sentinel for infinite scroll */}
-                    <div ref={sentinelRef} className="py-2 text-center">
-                      {infiniteQuery.isFetchingNextPage && (
-                        <Typography variant="body2" className="text-muted-foreground">
-                          {t('form.loadingMoreItems')}
-                        </Typography>
-                      )}
-                    </div>
-                  </Box>
-                )}
-              </Box>
-            )}
+                </ChoiceCard>
+              );
+            })}
           </Box>
-          </Box>
+        </Step>
+
+        {!isBannerContent ? (
+          <Step n={3} title={t('form.sectionEasyLookTitle')} hint={t('form.sectionEasyLookHint')}>
+            <Box className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              {VARIANTS.map((variant) => {
+                const active = watchedVariant === variant;
+                return (
+                  <ChoiceCard
+                    key={variant}
+                    active={active}
+                    onClick={() =>
+                      setValue('variant', variant, { shouldValidate: true, shouldDirty: true })
+                    }
+                  >
+                    <VariantPreview variant={variant} />
+                    <Typography variant="subtitle2" className="mt-2 font-bold">
+                      {t(`form.sectionEasyVariant_${variant}`)}
+                    </Typography>
+                    <Typography variant="caption" className="mt-1 block text-muted-foreground">
+                      {t(`form.sectionEasyVariantHint_${variant}`)}
+                    </Typography>
+                  </ChoiceCard>
+                );
+              })}
+            </Box>
+          </Step>
+        ) : (
+          <Step n={3} title={t('form.sectionEasyLookTitle')} hint={t('form.sectionEasyLookBannerHint')}>
+            <Box className="flex items-start gap-3 rounded-2xl border border-amber-500/20 bg-amber-500/[0.06] px-4 py-3">
+              <Iconify icon="solar:gallery-bold" className="mt-0.5 shrink-0 text-amber-700" width={18} />
+              <Typography variant="body2" className="min-w-0 flex-1 text-muted-foreground">
+                {t('form.pageBuilderBannerPickHelper')}
+              </Typography>
+            </Box>
+          </Step>
         )}
 
-        {/* Show message when no model is selected */}
-        {!selectedModel && (
-          <Box className="rounded-2xl border border-border/50 border-dashed bg-card/30 p-10 text-center shadow-sm">
-            <Box className="h-14 w-14 rounded-2xl bg-muted/60 border border-border/50 flex items-center justify-center mx-auto mb-3">
-              <Iconify icon="solar:widget-bold" className="w-7 h-7 text-muted-foreground/50" />
+        {showFillStep && (
+          <Step n={4} title={t('form.sectionEasyFillTitle')} hint={t('form.sectionEasyFillHint')}>
+            <Box className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <ChoiceCard
+                active={watchedType === 'api'}
+                disabled={isEditMode || apiDisabled}
+                onClick={() => handleTypeChange('api')}
+              >
+                <Box className="flex items-start gap-3">
+                  <Box
+                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border ${
+                      watchedType === 'api'
+                        ? 'border-primary/30 bg-primary/10 text-primary'
+                        : 'border-border/50 bg-muted/50 text-muted-foreground'
+                    }`}
+                  >
+                    <Iconify icon="solar:magic-stick-3-bold" width={20} />
+                  </Box>
+                  <Box>
+                    <Typography variant="subtitle2" className="font-bold">
+                      {t('form.sectionEasyFillAuto')}
+                    </Typography>
+                    <Typography variant="body2" className="mt-1 text-muted-foreground">
+                      {apiDisabled
+                        ? t('form.sectionEasyFillAutoBannerOff')
+                        : t('form.sectionEasyFillAutoHint')}
+                    </Typography>
+                  </Box>
+                </Box>
+              </ChoiceCard>
+              <ChoiceCard
+                active={watchedType === 'manual'}
+                disabled={isEditMode || isApiOnlyContent}
+                onClick={() => handleTypeChange('manual')}
+              >
+                <Box className="flex items-start gap-3">
+                  <Box
+                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border ${
+                      watchedType === 'manual'
+                        ? 'border-primary/30 bg-primary/10 text-primary'
+                        : 'border-border/50 bg-muted/50 text-muted-foreground'
+                    }`}
+                  >
+                    <Iconify icon="solar:hand-stars-bold" width={20} />
+                  </Box>
+                  <Box>
+                    <Typography variant="subtitle2" className="font-bold">
+                      {t('form.sectionEasyFillManual')}
+                    </Typography>
+                    <Typography variant="body2" className="mt-1 text-muted-foreground">
+                      {t('form.sectionEasyFillManualHint')}
+                    </Typography>
+                  </Box>
+                </Box>
+              </ChoiceCard>
             </Box>
-            <Typography variant="body2" className="text-muted-foreground">
-              {t('form.selectManualModelFirst')}
-            </Typography>
-          </Box>
+          </Step>
         )}
+
+        <Step
+          n={showFillStep ? 5 : watchedContentType ? 4 : 5}
+          title={
+            watchedType === 'api'
+              ? t('form.sectionEasyFiltersTitle')
+              : t('form.sectionEasyItemsTitle')
+          }
+          hint={
+            !watchedContentType
+              ? t('form.sectionEasyItemsNeedType')
+              : watchedType === 'api'
+                ? t('form.sectionEasyFiltersHint')
+                : t('form.sectionEasyItemsHint', {
+                    type: contentTypeLabel(t, watchedContentType),
+                  })
+          }
+        >
+          {watchedType === 'manual' &&
+            (watchedContentType ? (
+              <ManualItemsPicker
+                manualModel={watchedContentType}
+                orderedItems={orderedItems}
+                setOrderedItems={setOrderedItems}
+                source={manualItemsSource}
+                labelOverrides={labelOverrides}
+              />
+            ) : (
+              <Box className="rounded-2xl border border-dashed border-border/60 bg-muted/20 p-8 text-center">
+                <Iconify
+                  icon="solar:widget-bold"
+                  className="mx-auto mb-2 text-muted-foreground/50"
+                  width={32}
+                />
+                <Typography variant="body2" className="text-muted-foreground">
+                  {t('form.sectionEasyItemsNeedType')}
+                </Typography>
+              </Box>
+            ))}
+
+          {watchedType === 'api' &&
+            (watchedContentType ? (
+              <Box className="rounded-2xl border border-border/60 bg-card p-5">
+                {primaryApiFilters.length > 0 && (
+                  <Box className="flex flex-col gap-4">
+                    {primaryApiFilters.map(([filterKey, filterConfig]) => (
+                      <DynamicFilterField
+                        key={`${watchedContentType}_${filterKey}`}
+                        filterKey={filterKey}
+                        filterConfig={filterConfig}
+                        value={filterValues[filterKey]}
+                        onChange={(value) => handleFilterChange(filterKey, value)}
+                      />
+                    ))}
+                  </Box>
+                )}
+
+                {optionalApiFilters.length > 0 && (
+                  <Box className={primaryApiFilters.length > 0 ? 'mt-5' : undefined}>
+                    <Typography
+                      variant="caption"
+                      className="mb-3 block font-semibold uppercase tracking-wide text-muted-foreground"
+                    >
+                      {t('form.sectionEasyFiltersOptional')}
+                    </Typography>
+                    <Box className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                      {optionalApiFilters.map(([filterKey, filterConfig]) => (
+                        <DynamicFilterField
+                          key={`${watchedContentType}_${filterKey}`}
+                          filterKey={filterKey}
+                          filterConfig={filterConfig}
+                          value={filterValues[filterKey]}
+                          onChange={(value) => handleFilterChange(filterKey, value)}
+                          allowNullOption
+                        />
+                      ))}
+                    </Box>
+                  </Box>
+                )}
+
+                {primaryApiFilters.length === 0 && optionalApiFilters.length === 0 && (
+                  <Typography variant="body2" className="text-muted-foreground">
+                    {t('form.sectionEasyFiltersNone')}
+                  </Typography>
+                )}
+
+                <Box className="mt-5 flex items-start gap-2 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3">
+                  <Iconify
+                    icon="solar:lightbulb-bolt-bold"
+                    width={18}
+                    className="mt-0.5 shrink-0 text-primary"
+                  />
+                  <Typography variant="body2" className="text-foreground">
+                    {previewText}
+                  </Typography>
+                </Box>
+              </Box>
+            ) : (
+              <Box className="rounded-2xl border border-dashed border-border/60 bg-muted/20 p-8 text-center">
+                <Iconify
+                  icon="solar:widget-bold"
+                  className="mx-auto mb-2 text-muted-foreground/50"
+                  width={32}
+                />
+                <Typography variant="body2" className="text-muted-foreground">
+                  {t('form.sectionEasyItemsNeedType')}
+                </Typography>
+              </Box>
+            ))}
+        </Step>
+
+        <Box>
+          <button
+            type="button"
+            onClick={() => setShowColors((v) => !v)}
+            className="flex w-full items-center gap-3 rounded-2xl border border-border/60 bg-card px-4 py-3 text-start hover:bg-muted/20"
+          >
+            <Iconify icon="solar:pallete-bold" className="text-muted-foreground" width={20} />
+            <Box className="min-w-0 flex-1">
+              <Typography variant="subtitle2" className="font-semibold">
+                {t('form.sectionEasyColorsTitle')}
+              </Typography>
+              <Typography variant="caption" className="text-muted-foreground">
+                {t('form.sectionEasyColorsHint')}
+              </Typography>
+            </Box>
+            {hasColors && !showColors && (
+              <span className="flex gap-1">
+                {watchedBg && (
+                  <span
+                    className="h-5 w-5 rounded-md border border-border/60"
+                    style={{ backgroundColor: watchedBg }}
+                  />
+                )}
+                {watchedCardBg && (
+                  <span
+                    className="h-5 w-5 rounded-md border border-border/60"
+                    style={{ backgroundColor: watchedCardBg }}
+                  />
+                )}
+              </span>
+            )}
+            <Iconify
+              icon={showColors ? 'solar:alt-arrow-up-bold' : 'solar:alt-arrow-down-bold'}
+              width={18}
+              className="text-muted-foreground"
+            />
+          </button>
+          {showColors && (
+            <Box className="mt-3 grid grid-cols-1 gap-4 rounded-2xl border border-border/60 bg-card p-5 md:grid-cols-2">
+              <Box>
+                <Typography variant="subtitle2" className="mb-1.5 font-semibold">
+                  {t('form.sectionEasyColorBg')}
+                </Typography>
+                <RHFColorPicker name="background_color" />
+              </Box>
+              <Box>
+                <Typography variant="subtitle2" className="mb-1.5 font-semibold">
+                  {t('form.sectionEasyColorCard')}
+                </Typography>
+                <RHFColorPicker name="background_card_color" />
+              </Box>
+            </Box>
+          )}
+        </Box>
       </CreateFormLayout>
     </>
   );

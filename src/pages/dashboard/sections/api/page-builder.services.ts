@@ -1,7 +1,9 @@
 import type {
   PageBuilderListItem,
+  SliderLibraryResponse,
   PageBuilderListResponse,
   PageCreateUpdatePayload,
+  SliderLibraryQueryParams,
   PageBuilderDetailsResponse,
   PageBuilderListQueryParams,
   UnifiedSectionCreatePayload,
@@ -90,5 +92,36 @@ export const _PageBuilderApi = {
   addSection: async (pageId: number | string, data: UnifiedSectionCreatePayload): Promise<any> => {
     const response = await axiosInstance.post(apiRoutes.pageBuilder.addSection(pageId), data);
     return response.data;
+  },
+
+  /** Every existing section (not only those already on the page) — for the "add section" picker. */
+  getPageSliders: async (
+    pageId: number | string,
+    params?: SliderLibraryQueryParams
+  ): Promise<SliderLibraryResponse> => {
+    const response = await axiosInstance.get(apiRoutes.pageBuilder.sliders(pageId), {
+      // The picker renders its own inline error state.
+      skipErrorToast: true,
+      params: {
+        page: params?.page ?? 1,
+        per_page: params?.per_page ?? 10,
+        ...(params?.search?.trim() ? { search: params.search.trim() } : {}),
+        ...(params?.content_type ? { content_type: params.content_type } : {}),
+        ...(params?.type ? { type: params.type } : {}),
+      },
+    });
+    const data = response.data?.data;
+    const items = Array.isArray(data) ? data : (data?.items ?? []);
+    const pagination = (!Array.isArray(data) && data?.pagination) || {
+      current_page: 1,
+      last_page: 1,
+      per_page: items.length,
+      total: items.length,
+    };
+    return {
+      status: Boolean(response.data?.status),
+      message: String(response.data?.message ?? ''),
+      data: { items, pagination },
+    };
   },
 };

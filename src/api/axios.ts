@@ -8,7 +8,7 @@ import { CONFIG } from 'src/global-config';
 import { getActiveLanguageCode } from 'src/lib/language-code';
 import { JWT_STORAGE_KEY } from 'src/pages/auth/context/jwt/constant';
 
-import { ConfirmationRequiredError } from './errors';
+import { ApiValidationError, ConfirmationRequiredError } from './errors';
 
 // ----------------------------------------------------------------------
 
@@ -67,6 +67,19 @@ const clearSessionAndRedirectToLogin = () => {
   }
 };
 
+/** Same `{ errors: {...} }` bag, kept per field so a form can render each message inline. */
+function toFieldErrors(errors: unknown): Record<string, string[]> | null {
+  if (!errors || typeof errors !== 'object' || Array.isArray(errors)) return null;
+  const result: Record<string, string[]> = {};
+  for (const [field, value] of Object.entries(errors as Record<string, unknown>)) {
+    const messages = (Array.isArray(value) ? value : [value]).filter(
+      (item): item is string => typeof item === 'string' && item.trim() !== ''
+    );
+    if (messages.length) result[field] = messages;
+  }
+  return Object.keys(result).length ? result : null;
+}
+
 /** Laravel-style `{ errors: { field: ["msg"] } }` → one line for toasts. */
 function formatApiValidationErrors(errors: unknown): string | null {
   if (!errors || typeof errors !== 'object') return null;
@@ -120,16 +133,26 @@ axiosInstance.interceptors.response.use(
       return Promise.reject(new Error(message));
     }
 
+    // 409 + `requires_confirmation`: nothing failed and nothing changed — the backend is asking
+    // the user to acknowledge the listed impact and repeat the call with `confirm=true`.
+    // Never toast this: it is a confirmation handshake, not an error.
+    if (
+      status === 409 &&
+      (data?.requires_confirmation || data?.data?.requires_confirmation)
+    ) {
+      return Promise.reject(new ConfirmationRequiredError(message, data?.data ?? null));
+    }
+
     const skipToast = Boolean(error?.config?.skipErrorToast);
     if (!skipToast) {
       toast.error(message);
     }
 
-    // 409 + `requires_confirmation`: nothing failed and nothing changed — the backend is asking
-    // the user to acknowledge the listed impact and repeat the call with `confirm=true`. Carry
-    // the impact through so a caller opted into the flow (`skipErrorToast`) can render it.
-    if (status === 409 && data?.requires_confirmation) {
-      return Promise.reject(new ConfirmationRequiredError(message, data?.data ?? null));
+    // 422: keep the per-field bag so a form can show each message under its own field.
+    // `message` stays the flattened line, so `error.message` consumers are unaffected.
+    const fieldErrors = status === 422 ? toFieldErrors(data?.errors) : null;
+    if (fieldErrors) {
+      return Promise.reject(new ApiValidationError(message, fieldErrors));
     }
 
     return Promise.reject(new Error(message));

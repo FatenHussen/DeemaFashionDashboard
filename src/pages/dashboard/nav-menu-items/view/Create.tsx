@@ -31,12 +31,17 @@ import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout
 
 import { NAV_MENU_TARGET_FIELD } from '../types';
 import { navMenuTypeOptions, navMenuRouteKeyOptions } from '../utils/nav-menu-labels';
-import { useCreateNavMenuItem, useUpdateNavMenuItem, useFetchNavMenuItemById } from '../hooks';
 import {
   NavMenuItemCreateSchema,
   NavMenuItemUpdateSchema,
   type NavMenuItemFormValues,
 } from '../validation';
+import {
+  useCreateNavMenuItem,
+  useUpdateNavMenuItem,
+  useFetchNavMenuItems,
+  useFetchNavMenuItemById,
+} from '../hooks';
 
 // ----------------------------------------------------------------------
 
@@ -86,7 +91,7 @@ function toIdString(value: unknown): string {
 }
 
 /** Only the target field that matches `type` is submitted, so stale picks never leak. */
-function buildFormData(data: NavMenuItemFormValues): FormData {
+function buildFormData(data: NavMenuItemFormValues, nextOrder?: number): FormData {
   const fd = new FormData();
   fd.append('title[en]', data.title.en.trim());
   fd.append('title[ar]', data.title.ar.trim());
@@ -96,8 +101,10 @@ function buildFormData(data: NavMenuItemFormValues): FormData {
   const targetValue = String(data[targetField] ?? '').trim();
   fd.append(targetField, targetValue);
 
-  if (data.order !== undefined && data.order !== null) {
-    fd.append('order', String(data.order));
+  // Create: append after the last item. Edit: keep the stored order (reorder is drag-and-drop).
+  const orderValue = nextOrder ?? data.order;
+  if (orderValue !== undefined && orderValue !== null) {
+    fd.append('order', String(orderValue));
   }
   fd.append('is_active', data.is_active ? '1' : '0');
   fd.append('open_in_new_tab', data.type === 'url' && data.open_in_new_tab ? '1' : '0');
@@ -117,6 +124,7 @@ export default function CreatePage() {
   const [previewIcon, setPreviewIcon] = useState<string | null>(null);
 
   const { data: detailResponse, isLoading: isLoadingDetail } = useFetchNavMenuItemById(id || '');
+  const { data: listResponse } = useFetchNavMenuItems();
   const createMutation = useCreateNavMenuItem();
   const updateMutation = useUpdateNavMenuItem();
 
@@ -245,7 +253,11 @@ export default function CreatePage() {
   const onSubmit = async (data: NavMenuItemFormValues) => {
     try {
       const icon = data.icon instanceof File ? await compressImage(data.icon) : data.icon;
-      const formData = buildFormData({ ...data, icon });
+      const nextOrder = isEditMode
+        ? undefined
+        : Math.max(0, ...(listResponse?.data?.items ?? []).map((item) => Number(item.order) || 0)) +
+          1;
+      const formData = buildFormData({ ...data, icon }, nextOrder);
       if (isEditMode && id) {
         await updateMutation.mutateAsync({ id, formData });
         toast.success(t('form.navMenuItemUpdatedSuccess'));
@@ -512,7 +524,7 @@ export default function CreatePage() {
           </Box>
         </Box>
 
-        {/* ── Section: icon, order, visibility ── */}
+        {/* ── Section: icon & visibility ── */}
         <Box className="rounded-2xl border border-border/50 bg-card/50 shadow-sm">
           <Box className="flex items-center gap-3 border-b border-border/40 bg-gradient-to-r from-amber-500/[0.06] via-amber-500/[0.02] to-transparent px-6 py-4">
             <Box className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-amber-500/20 bg-amber-500/10">
@@ -538,7 +550,7 @@ export default function CreatePage() {
               <Controller
                 name="icon"
                 control={control}
-                render={({ field: { onChange, value, ...field }, fieldState: { error } }) => (
+                render={({ field: { onChange, value: _value, ...field }, fieldState: { error } }) => (
                   <div className="w-full">
                     <Input
                       {...field}
@@ -561,27 +573,6 @@ export default function CreatePage() {
                   </div>
                 )}
               />
-            </Box>
-
-            <Box>
-              <Box className="mb-2 flex items-center gap-2">
-                <Iconify
-                  icon="solar:sort-vertical-bold"
-                  className="text-amber-500"
-                  width={20}
-                  height={20}
-                />
-                <Typography variant="subtitle2" className="font-semibold text-foreground">
-                  {t('columns.order')}
-                </Typography>
-              </Box>
-              <Typography
-                variant="caption"
-                className="mb-2 block leading-relaxed text-muted-foreground"
-              >
-                {t('form.navMenuOrderHelper')}
-              </Typography>
-              <RHFTextField name="order" type="number" placeholder="0" />
             </Box>
 
             <Box className="flex items-start">

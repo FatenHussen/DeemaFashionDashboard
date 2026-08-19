@@ -209,30 +209,29 @@ export function PagePreviewFilters({
   );
 
   return (
-    <div className="mb-5 overflow-hidden rounded-2xl border border-border/50 bg-card p-4 shadow-sm sm:p-5">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+    <div className="mb-4 rounded-lg border border-border/50 bg-card p-4">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <Typography variant="subtitle2" className="font-medium text-foreground">
+          {t('form.pagePreviewFiltersHeading')}
+        </Typography>
         <div className="flex items-center gap-2">
-          <Iconify icon="solar:filter-bold" className="text-primary" width={20} />
-          <Typography variant="subtitle2" className="font-semibold text-foreground">
-            {t('form.pagePreviewFiltersHeading')}
-          </Typography>
           {isFetching && (
-            <Iconify icon="svg-spinners:ring-resize" className="text-muted-foreground" width={18} />
+            <Iconify icon="svg-spinners:ring-resize" className="text-muted-foreground" width={16} />
+          )}
+          {hasActiveFilters && (
+            <button
+              type="button"
+              onClick={onClear}
+              disabled={isFetching}
+              className="text-xs text-muted-foreground transition-colors hover:text-foreground disabled:opacity-60"
+            >
+              {t('form.pagePreviewFiltersClear')}
+            </button>
           )}
         </div>
-        {hasActiveFilters && (
-          <button
-            type="button"
-            onClick={onClear}
-            disabled={isFetching}
-            className="text-xs font-medium text-muted-foreground transition-colors hover:text-foreground disabled:opacity-60"
-          >
-            {t('form.pagePreviewFiltersClear')}
-          </button>
-        )}
       </div>
 
-      <div className="flex flex-wrap gap-4">
+      <div className="flex flex-wrap gap-3">
         {entries.map(([filterKey, filterConfig]) => (
           <PagePreviewFilterField
             key={filterKey}

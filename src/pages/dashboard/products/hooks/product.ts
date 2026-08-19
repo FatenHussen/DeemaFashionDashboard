@@ -22,6 +22,8 @@ export const useFetchProducts = (params?: {
   stock_sort?: 'asc' | 'desc';
   approval_status?: string;
   is_visible?: boolean;
+  quantity_min?: number;
+  quantity_max?: number;
 }) =>
   useQuery({
     queryKey: queryKeys.product.list(params),

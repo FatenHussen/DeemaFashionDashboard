@@ -35,7 +35,7 @@ import {
 } from '@/pages/dashboard/categories/utils/build-parent-picker-options';
 
 import { CONFIG } from 'src/global-config';
-import { Box, Input, Switch, Typography } from 'src/shared/ui';
+import { Box, Input, Switch, Button, Typography } from 'src/shared/ui';
 import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
 import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
 
@@ -437,7 +437,7 @@ export default function CreatePage() {
         navigate(categoriesListPath);
       } else {
         await createCategoryMutation.mutateAsync(payload);
-        toast.success(t('form.categoryCreatedSuccess'));
+        toast.success(t('form.categoryCreatedWithPageSuccess'));
         navigate(categoriesListPath);
       }
     } catch (error: any) {
@@ -450,6 +450,7 @@ export default function CreatePage() {
   };
 
   const infoText = isEditMode ? t('form.categoryFormInfoEdit') : t('form.categoryFormInfoCreate');
+  const categoryPageId = Number(categoryData?.data?.page_id) > 0 ? Number(categoryData?.data?.page_id) : null;
 
   const cascadeEditLabels = useMemo(() => {
     if (legacyParentPicker || !isEditMode || !categoryData?.data?.parent_id) {
@@ -496,6 +497,34 @@ export default function CreatePage() {
         submitLabel={isEditMode ? t('form.updateCategorySubmit') : t('form.createCategorySubmit')}
         submittingLabel={isEditMode ? t('form.updatingCategory') : t('form.creatingCategory')}
       >
+        {isEditMode && (
+          <Box className="flex flex-col gap-3 rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.06] px-4 py-3 sm:flex-row sm:items-start">
+            <Iconify
+              icon="solar:info-circle-bold"
+              className="mt-0.5 shrink-0 text-emerald-600"
+              width={18}
+            />
+            <Typography variant="body2" className="min-w-0 flex-1 text-muted-foreground">
+              {t('form.categoryPageBuilderHint')}
+            </Typography>
+            {categoryPageId != null && (
+              <Button
+                type="button"
+                variant="outlined"
+                onClick={() =>
+                  navigate(`/sections/pages/details/${categoryPageId}`, {
+                    state: { from: 'categories' },
+                  })
+                }
+                className="shrink-0 gap-2 self-start whitespace-nowrap"
+              >
+                <Iconify icon="solar:widget-5-bold" width={16} />
+                {t('buildCategoryPage')}
+              </Button>
+            )}
+          </Box>
+        )}
+
         {/* ── Section: Names ── */}
         <Box className="rounded-2xl border border-border/50 bg-card/50 shadow-sm">
           <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-primary/[0.06] via-primary/[0.02] to-transparent">

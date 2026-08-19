@@ -118,7 +118,9 @@ export const ProductSchema = zod
           id: zod.coerce.number().optional(),
           /** UI-only: which category attribute this card represents (not sent to the API). */
           category_attribute_id: zod.coerce.number().optional(),
-          attributes_values_ids: zod.array(zod.coerce.number()),
+          // Defaulted so the attribute-less restaurant row (seeded with price/quantity only)
+          // passes validation; the backend's own minimal variant also has [].
+          attributes_values_ids: zod.array(zod.coerce.number()).default([]),
           images: zod.preprocess(
             (val) =>
               Array.isArray(val) ? val.filter((x): x is File => x instanceof File) : undefined,
@@ -134,8 +136,17 @@ export const ProductSchema = zod
             zod.coerce.number().min(0, { message: t('product.pricePositive') }).optional()
           ),
           quantity: zod.preprocess(
-            (v) => (v === '' || v === null || v === undefined ? undefined : v),
-            zod.coerce.number().min(0, { message: t('product.quantityPositive') }).optional()
+            (v) => {
+              if (v === '' || v === null || v === undefined) return undefined;
+              const n = Number(v);
+              if (!Number.isFinite(n)) return v;
+              return Math.floor(n);
+            },
+            zod.coerce
+              .number()
+              .int({ message: t('product.quantityPositive') })
+              .min(0, { message: t('product.quantityPositive') })
+              .optional()
           ),
           stock: zod.preprocess(
             (v) => (v === '' || v === null || v === undefined ? undefined : v),
@@ -146,6 +157,8 @@ export const ProductSchema = zod
             zod.coerce.number().min(0).optional()
           ),
           delivery_time: zod.string().optional(),
+          is_trend: zod.coerce.number().min(0).max(1).optional().default(0),
+          is_active: zod.coerce.number().min(0).max(1).optional().default(1),
         })
       )
       .optional(),

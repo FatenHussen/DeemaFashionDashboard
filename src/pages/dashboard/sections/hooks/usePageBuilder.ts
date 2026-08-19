@@ -1,11 +1,12 @@
 import type {
   PageCreateUpdatePayload,
+  SliderLibraryQueryParams,
   PageBuilderListQueryParams,
   UnifiedSectionCreatePayload,
 } from '../types/page-builder.types';
 
 import { queryKeys } from '@/api';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
 
 import { _PageBuilderApi } from '../api/page-builder.services';
 
@@ -54,6 +55,31 @@ export const useDeletePage = () => {
     mutationFn: (id: number | string) => _PageBuilderApi.deletePage(id),
     onSuccess: () => invalidatePageCaches(queryClient),
   });
+};
+
+/** Infinite scroll over every existing section (the "add section to page" picker). */
+export const useInfinitePageSliders = (
+  pageId: number | string,
+  params?: Omit<SliderLibraryQueryParams, 'page'>
+) => {
+  const infiniteQuery = useInfiniteQuery({
+    queryKey: queryKeys.pageBuilder.sliders(pageId, params),
+    queryFn: ({ pageParam }) =>
+      _PageBuilderApi.getPageSliders(pageId, { ...params, page: pageParam }),
+    getNextPageParam: (lastPage) => {
+      const pagination = lastPage?.data?.pagination;
+      if (!pagination) return undefined;
+      return pagination.current_page < pagination.last_page
+        ? pagination.current_page + 1
+        : undefined;
+    },
+    initialPageParam: 1,
+    enabled: !!pageId,
+  });
+
+  const allSliders = infiniteQuery.data?.pages.flatMap((page) => page.data?.items ?? []) ?? [];
+
+  return { infiniteQuery, allSliders };
 };
 
 /** Unified create: one call builds the section and links it to the page. */

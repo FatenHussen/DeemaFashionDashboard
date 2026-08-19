@@ -7,6 +7,13 @@ export interface PagePreviewPage {
   slug: string;
   title: string;
   filters?: Record<string, FilterConfig> | null;
+  /** Auto page of a category — deleted only via its category, title follows the category name. */
+  is_category_page?: boolean;
+  category_id?: number | null;
+  can_delete_page?: boolean;
+  can_edit_metadata?: boolean;
+  /** Category pages only: the endpoint that actually removes this page. */
+  delete_page_via?: string;
 }
 
 export type PagePreviewQueryParams = Record<string, string | number>;
@@ -26,8 +33,12 @@ export interface PagePreviewSection {
   type: 'api' | 'manual';
   position: 'before' | 'after';
   order: number;
+  /** Category pages: two default sections are auto-generated (`is_default: true`). */
+  is_default?: boolean;
   display_type_id?: number;
   variant?: string;
+  content_type?: string;
+  manual_model?: string;
   background_color?: string | null;
   background_card_color?: string | null;
   end_date?: string | null;

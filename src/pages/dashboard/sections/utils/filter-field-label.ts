@@ -11,7 +11,10 @@ export function filterFieldLabel(t: TFunction, key: string) {
 }
 
 /** Human-readable label for a static select option inside a filter. */
-export function filterOptionLabel(t: TFunction, value: string) {
+export function filterOptionLabel(t: TFunction, value: string, filterKey?: string) {
+  if (filterKey === 'schedule_days') {
+    return t(`form.sectionEasyScheduleDays_${value}`, { defaultValue: value });
+  }
   return t(`form.pageSectionFilterValues.${value}`, {
     defaultValue: filterFieldLabel(t, value),
   });

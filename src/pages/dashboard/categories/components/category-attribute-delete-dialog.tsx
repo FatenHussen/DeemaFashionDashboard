@@ -1,5 +1,6 @@
 import type {
   CategoryAttributeLinkedItem,
+  CategoryAttributeDeleteWarning,
   CategoryAttributeDeleteImpactData,
 } from '@/pages/dashboard/categories/types/category-attribute.types';
 
@@ -21,13 +22,33 @@ import { Box, Button, Typography } from 'src/shared/ui';
 
 // ----------------------------------------------------------------------
 
+/** Records that survive the delete — informational, not destructive. */
+const PRESERVED_KEYS = new Set(['active_orders', 'products']);
+
 function resolveVariantLabel(item: CategoryAttributeLinkedItem): string {
-  const vn = item.variant_name;
-  if (vn && typeof vn === 'object' && !Array.isArray(vn)) {
-    const label = formatTranslated(vn as { en?: string; ar?: string });
-    if (label && label.trim()) return label;
-  }
+  const label = formatTranslated(item.variant_name, '');
+  if (label.trim()) return label;
   return item.product?.name ?? '';
+}
+
+function WarningRow({ warning }: { warning: CategoryAttributeDeleteWarning }) {
+  const preserved = PRESERVED_KEYS.has(warning.key);
+  return (
+    <Box
+      className={`flex items-start gap-2 rounded-lg border px-3 py-2 ${
+        preserved ? 'border-sky-500/30 bg-sky-500/10' : 'border-amber-500/30 bg-amber-500/10'
+      }`}
+    >
+      <Iconify
+        icon={preserved ? 'solar:info-circle-bold' : 'solar:danger-triangle-bold'}
+        className={`shrink-0 mt-0.5 ${preserved ? 'text-sky-600' : 'text-amber-600'}`}
+        width={18}
+      />
+      <Typography variant="body2" className="text-foreground">
+        {warning.message}
+      </Typography>
+    </Box>
+  );
 }
 
 export type CategoryAttributeDeleteDialogProps = {
@@ -91,9 +112,18 @@ export function CategoryAttributeDeleteDialog({
       ? formatTranslated(impact.name as { en?: string; ar?: string })
       : String(impact?.name ?? '');
 
+  const productImage = (item: CategoryAttributeLinkedItem) =>
+    item.product?.image || item.variant_image || null;
+
+  const warnings = impact?.warnings ?? [];
+
   return (
     <Dialog open onOpenChange={(open) => !open && onCancel()}>
-      <DialogContent className="bg-background text-foreground p-6 rounded-lg shadow-lg z-[9999] max-w-lg w-full">
+      <DialogContent
+        className={`bg-background text-foreground p-6 rounded-lg shadow-lg z-[9999] w-full ${
+          requiresConfirmation ? 'max-w-3xl' : 'max-w-lg'
+        }`}
+      >
         <h2 className="text-lg font-bold mb-1">{t('confirmDelete')}</h2>
         {attrName ? (
           <Typography variant="body2" className="text-muted-foreground mb-4">
@@ -137,21 +167,11 @@ export function CategoryAttributeDeleteDialog({
 
             {activeTab === 'warnings' ? (
               <Box className="space-y-2 max-h-72 overflow-y-auto">
-                {(impact?.warnings ?? []).map((w) => (
-                  <Box
-                    key={w.key}
-                    className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2"
-                  >
-                    <Iconify
-                      icon="solar:danger-triangle-bold"
-                      className="text-amber-600 shrink-0 mt-0.5"
-                      width={18}
-                    />
-                    <Typography variant="body2" className="text-foreground">
-                      {w.message}
-                    </Typography>
-                  </Box>
-                ))}
+                {warnings.length > 0 ? (
+                  warnings.map((w) => <WarningRow key={w.key} warning={w} />)
+                ) : (
+                  <Typography variant="body2">{t('areYouSure')}</Typography>
+                )}
               </Box>
             ) : (
               <Box className="max-h-72 overflow-y-auto">
@@ -170,67 +190,66 @@ export function CategoryAttributeDeleteDialog({
                     {t('form.noLinkedItems')}
                   </Typography>
                 ) : (
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="text-muted-foreground text-xs">
-                        <th className="text-start py-1.5 px-2">
-                          {t('form.linkedItemProduct')}
-                        </th>
-                        <th className="text-start py-1.5 px-2">
-                          {t('form.linkedItemVariant')}
-                        </th>
-                        <th className="text-start py-1.5 px-2">
-                          {t('form.linkedItemCategory')}
-                        </th>
-                        <th className="text-start py-1.5 px-2">{t('form.linkedItemValues')}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {linkedItems.map((item) => (
-                        <tr key={item.variant_id} className="border-t border-border/50">
-                          <td className="py-2 px-2">
-                            <div className="flex items-center gap-2 min-w-0">
-                              {item.product?.image ? (
-                                <img
-                                  src={item.product.image}
-                                  alt=""
-                                  className="h-8 w-8 rounded object-cover shrink-0"
-                                />
-                              ) : null}
-                              <span className="truncate">{item.product?.name}</span>
-                            </div>
-                          </td>
-                          <td className="py-2 px-2">
-                            <div className="truncate">{resolveVariantLabel(item)}</div>
-                            {item.sku ? (
-                              <div className="text-xs text-muted-foreground">{item.sku}</div>
-                            ) : null}
-                          </td>
-                          <td className="py-2 px-2 text-muted-foreground">
-                            {item.product?.category?.name}
-                          </td>
-                          <td className="py-2 px-2">
-                            <div className="flex flex-wrap gap-1">
-                              {(item.used_values ?? []).map((v) => (
-                                <span
-                                  key={v.id}
-                                  className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-xs"
-                                >
-                                  {v.hex ? (
-                                    <span
-                                      className="h-2.5 w-2.5 rounded-full border border-border/60 shrink-0"
-                                      style={{ backgroundColor: v.hex }}
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm min-w-[36rem]">
+                      <thead>
+                        <tr className="text-muted-foreground text-xs">
+                          <th className="text-start py-1.5 px-2">{t('form.linkedItemProduct')}</th>
+                          <th className="text-start py-1.5 px-2">{t('form.linkedItemVariant')}</th>
+                          <th className="text-start py-1.5 px-2">{t('form.linkedItemCategory')}</th>
+                          <th className="text-start py-1.5 px-2">{t('form.linkedItemValues')}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {linkedItems.map((item) => {
+                          const image = productImage(item);
+                          return (
+                            <tr key={item.variant_id} className="border-t border-border/50">
+                              <td className="py-2 px-2">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  {image ? (
+                                    <img
+                                      src={image}
+                                      alt=""
+                                      className="h-8 w-8 rounded object-cover shrink-0"
                                     />
                                   ) : null}
-                                  {v.name}
-                                </span>
-                              ))}
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                                  <span className="truncate">{item.product?.name}</span>
+                                </div>
+                              </td>
+                              <td className="py-2 px-2">
+                                <div className="truncate">{resolveVariantLabel(item)}</div>
+                                {item.sku ? (
+                                  <div className="text-xs text-muted-foreground">{item.sku}</div>
+                                ) : null}
+                              </td>
+                              <td className="py-2 px-2 text-muted-foreground">
+                                {item.product?.category?.name}
+                              </td>
+                              <td className="py-2 px-2">
+                                <div className="flex flex-wrap gap-1">
+                                  {(item.used_values ?? []).map((v) => (
+                                    <span
+                                      key={v.id}
+                                      className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-xs"
+                                    >
+                                      {v.hex ? (
+                                        <span
+                                          className="h-2.5 w-2.5 rounded-full border border-border/60 shrink-0"
+                                          style={{ backgroundColor: v.hex }}
+                                        />
+                                      ) : null}
+                                      {v.name}
+                                    </span>
+                                  ))}
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
                 )}
                 {linkedPagination && linkedPagination.last_page > 1 ? (
                   <Box className="flex items-center justify-between mt-3">

@@ -7,6 +7,7 @@ import { Iconify } from '@/shared/components/iconify';
 import { formatTranslated } from '@/utils/format-translated';
 import { useFetchSectionDetails } from '@/pages/dashboard/sections/hooks/useSections';
 import { sectionTypeLabel } from '@/pages/dashboard/sections/utils/section-type-label';
+import { contentTypeLabel } from '@/pages/dashboard/sections/utils/content-type-config';
 
 import { CONFIG } from 'src/global-config';
 import { Box, Typography } from 'src/shared/ui';
@@ -76,7 +77,7 @@ export default function DetailsPage() {
             {t('form.sectionDetailsInvalidId')}
           </Typography>
           <Button variant="outlined" onClick={() => navigate('/sections')}>
-            {t('form.backToSliders')}
+            {t('form.backToSections')}
           </Button>
         </Box>
       </Box>
@@ -94,14 +95,14 @@ export default function DetailsPage() {
           <Box className="flex items-center gap-2 mb-2">
             <Iconify icon="solar:danger-bold" className="w-5 h-5 text-destructive" />
             <Typography variant="h6" className="text-destructive">
-              {t('form.errorLoadingSlider')}
+              {t('form.errorLoadingSection')}
             </Typography>
           </Box>
           <Typography variant="body2" className="text-muted-foreground mb-4">
-            {error instanceof Error ? error.message : t('form.failedToLoadSliderInfo')}
+            {error instanceof Error ? error.message : t('form.failedToLoadSectionInfo')}
           </Typography>
           <Button variant="outlined" onClick={() => navigate('/sections')}>
-            {t('form.backToSliders')}
+            {t('form.backToSections')}
           </Button>
         </Box>
       </Box>
@@ -109,10 +110,11 @@ export default function DetailsPage() {
   }
 
   const section = sectionResponse.data;
+  const isLegacyApi = section.type === 'api' && !section.content_type;
 
   return (
     <>
-      <title>{t('form.sliderDetailsDocumentTitle', { appName: CONFIG.appName })}</title>
+      <title>{t('form.sectionDetailsDocumentTitle', { appName: CONFIG.appName })}</title>
       <Box className="relative min-h-screen overflow-hidden bg-background p-6">
         {/* Subtle background gradient */}
         <Box className="pointer-events-none fixed inset-0 bg-gradient-to-br from-background via-background to-muted/30" />
@@ -131,7 +133,7 @@ export default function DetailsPage() {
               className="mb-4 -ml-2 text-muted-foreground hover:text-foreground"
             >
               <Iconify icon="solar:arrow-left-bold" width={20} className="mr-2" />
-              {t('form.backToSliders')}
+              {t('form.backToSections')}
             </Button>
 
             <Box className="flex items-center gap-4 mb-2">
@@ -143,10 +145,10 @@ export default function DetailsPage() {
                   {formatTranslated(section.name)}
                 </Typography>
                 <Typography variant="body2" className="text-muted-foreground">
-                  {t('form.sliderDetailsHeading')}
+                  {t('form.sectionDetailsHeading')}
                 </Typography>
               </Box>
-              {section.type !== 'api' && (
+              {!isLegacyApi && (
                 <Button
                   variant="contained"
                   onClick={() => navigate(`/sections/update/${id}`)}
@@ -176,7 +178,7 @@ export default function DetailsPage() {
                     <>
                       <Box className="space-y-2">
                         <Typography variant="body2" className="text-muted-foreground font-medium">
-                          {t('form.sliderNameLabel')} ({t('form.labelEnglishShort')})
+                          {t('form.sectionNameEnglishLabel')} ({t('form.labelEnglishShort')})
                         </Typography>
                         <Box className="flex items-center gap-2">
                           <Iconify icon="solar:list-bold" className="text-primary" width={18} />
@@ -187,7 +189,7 @@ export default function DetailsPage() {
                       </Box>
                       <Box className="space-y-2">
                         <Typography variant="body2" className="text-muted-foreground font-medium">
-                          {t('form.sliderNameLabel')} ({t('form.labelArabicShort')})
+                          {t('form.sectionNameArabicLabel')} ({t('form.labelArabicShort')})
                         </Typography>
                         <Box className="flex items-center gap-2">
                           <Iconify icon="solar:list-bold" className="text-primary" width={18} />
@@ -200,7 +202,7 @@ export default function DetailsPage() {
                   ) : (
                     <Box className="space-y-2">
                       <Typography variant="body2" className="text-muted-foreground font-medium">
-                        {t('form.sliderNameLabel')}
+                        {t('form.sectionNameEnglishLabel')}
                       </Typography>
                       <Box className="flex items-center gap-2">
                         <Iconify icon="solar:list-bold" className="text-primary" width={18} />
@@ -231,7 +233,7 @@ export default function DetailsPage() {
                   {section.id && (
                     <Box className="space-y-2">
                       <Typography variant="body2" className="text-muted-foreground font-medium">
-                        {t('form.sliderIdLabel')}
+                        {t('form.sectionIdLabel')}
                       </Typography>
                       <Box className="flex items-center gap-2">
                         <Box className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
@@ -241,17 +243,68 @@ export default function DetailsPage() {
                     </Box>
                   )}
 
-                  {section.manual?.manual_model && (
+                  {(section.content_type || section.manual?.manual_model) && (
                     <Box className="space-y-2">
                       <Typography variant="body2" className="text-muted-foreground font-medium">
-                        {t('form.manualModelLabel')}
+                        {t('form.sectionContentTypeLabel')}
                       </Typography>
                       <Box className="flex items-center gap-2">
                         <Iconify icon="solar:settings-bold" className="text-primary" width={18} />
                         <Typography variant="body1" className="text-foreground">
-                          {section.manual.manual_model}
+                          {contentTypeLabel(
+                            t,
+                            section.content_type || section.manual?.manual_model || ''
+                          )}
                         </Typography>
                       </Box>
+                    </Box>
+                  )}
+
+                  {section.variant && (
+                    <Box className="space-y-2">
+                      <Typography variant="body2" className="text-muted-foreground font-medium">
+                        {t('form.pageSectionFormVariantLabel')}
+                      </Typography>
+                      <Typography variant="body1" className="text-foreground">
+                        {t(`form.pageSectionVariant_${section.variant}`, {
+                          defaultValue: section.variant,
+                        })}
+                      </Typography>
+                    </Box>
+                  )}
+
+                  {(section.background_color || section.background_card_color) && (
+                    <Box className="space-y-2">
+                      <Typography variant="body2" className="text-muted-foreground font-medium">
+                        {t('form.sectionLookHeading')}
+                      </Typography>
+                      <Box className="flex items-center gap-3">
+                        {section.background_color && (
+                          <span
+                            className="inline-block h-6 w-6 rounded-md border border-border/60"
+                            style={{ backgroundColor: section.background_color }}
+                            title={section.background_color}
+                          />
+                        )}
+                        {section.background_card_color && (
+                          <span
+                            className="inline-block h-6 w-6 rounded-md border border-border/60"
+                            style={{ backgroundColor: section.background_card_color }}
+                            title={section.background_card_color}
+                          />
+                        )}
+                      </Box>
+                    </Box>
+                  )}
+
+                  {section.pages_count != null && (
+                    <Box className="space-y-2">
+                      <Typography variant="body2" className="text-muted-foreground font-medium">
+                        {t('columns.pagesCount')}
+                      </Typography>
+                      <Typography variant="body1" className="text-foreground">
+                        {t('form.pageBuilderLibraryPagesCount', { count: section.pages_count })}
+                      </Typography>
                     </Box>
                   )}
                 </Box>

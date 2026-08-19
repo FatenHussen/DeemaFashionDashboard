@@ -11,6 +11,7 @@ import { formatTranslated } from '@/utils/format-translated';
 import { useForm, useWatch, Controller, useFieldArray } from 'react-hook-form';
 import { _CategoryApi } from '@/pages/dashboard/categories/api/category.services';
 import { RHFInfiniteSelect } from '@/shared/components/hook-form/rhf-infinite-select';
+import { isRootCategory } from '@/pages/dashboard/categories/utils/category-cascade-shared';
 import { paginateSelectRowsLocal } from '@/pages/dashboard/categories/utils/build-parent-picker-options';
 import {
   CategoryAttributeSchema,
@@ -57,8 +58,9 @@ export default function CreatePage() {
   );
 
   const { data: flatForParent, dataUpdatedAt: flatParentDataUpdatedAt } = useQuery({
-    queryKey: ['categories', 'flat-parent-picker'],
-    queryFn: () => _CategoryApi.getListCategoriesPaginated({ page: 1, per_page: 500 }),
+    queryKey: ['categories', 'attribute-form-roots'],
+    queryFn: () =>
+      _CategoryApi.getListCategoriesPaginated({ page: 1, per_page: 500, parent_id: null }),
   });
 
   const flatItems = flatForParent?.data?.items ?? [];
@@ -95,7 +97,7 @@ export default function CreatePage() {
   const rootCategoryFetcher = useCallback(
     (page: number, limit: number) => {
       const rows = flatItems
-        .filter((cat) => cat.is_root === true || cat.parent_id == null)
+        .filter((cat) => isRootCategory(cat))
         .map((cat) => ({ id: cat.id, label: categoryListLabel(cat) }));
       return Promise.resolve(paginateSelectRowsLocal(rows, page, limit));
     },
@@ -122,7 +124,13 @@ export default function CreatePage() {
             ? []
             : attribute.values?.length > 0
               ? attribute.values.map((val) => ({
-                  name: val.name,
+                  name:
+                    typeof val.name === 'string'
+                      ? { en: val.name, ar: val.name }
+                      : {
+                          en: val.name?.en ?? '',
+                          ar: val.name?.ar ?? '',
+                        },
                 }))
               : [{ name: { en: '', ar: '' } }],
       });
@@ -157,6 +165,12 @@ export default function CreatePage() {
 
   const onSubmit = async (data: CategoryAttributeFormValues) => {
     try {
+      const selected = flatItems.find((cat) => cat.id === data.category_id);
+      if (selected && !isRootCategory(selected)) {
+        toast.error(t('form.attributeMustBeOnRoot'));
+        return;
+      }
+
       const payload = {
         category_id: data.category_id,
         name: {
@@ -349,10 +363,12 @@ export default function CreatePage() {
               </Typography>
               <Box className="flex flex-wrap gap-3 p-4 border border-border/60 rounded-xl bg-muted/20">
                 {(categoryAttributeData?.data?.values ?? []).map((val) => {
-                  const hex = hexForDisplay(val.name?.en || val.name?.ar);
+                  const enName = typeof val.name === 'string' ? val.name : val.name?.en;
+                  const arName = typeof val.name === 'string' ? val.name : val.name?.ar;
+                  const hex = hexForDisplay(enName || arName);
                   return (
                     <Box
-                      key={val.id ?? `${hex}-${val.name?.en}-${val.name?.ar}`}
+                      key={val.id ?? `${hex}-${enName}-${arName}`}
                       className="flex flex-col items-center gap-1"
                       title={hex}
                     >

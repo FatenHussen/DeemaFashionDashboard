@@ -180,8 +180,10 @@ export const apiRoutes = {
     details: (id: number | string) => `${ROOTS.ADMIN}/pages/${id}`,
     update: (id: number | string) => `${ROOTS.ADMIN}/pages/${id}`,
     delete: (id: number | string) => `${ROOTS.ADMIN}/pages/${id}`,
-    /** Creates a Section and links it to the page in one transaction. */
+    /** Links an existing section (or creates + links) to the page. */
     addSection: (pageId: number | string) => `${ROOTS.ADMIN}/pages/${pageId}/sections`,
+    /** Every existing section (not just those already on the page) — for the picker. */
+    sliders: (pageId: number | string) => `${ROOTS.ADMIN}/pages/${pageId}/sliders`,
   },
   // Page Section routes
   pageSection: {
@@ -360,6 +362,8 @@ export const apiRoutes = {
    * `deleteImpact` returns that same payload without deleting anything.
    */
   productVariant: {
+    list: `${ROOTS.ADMIN}/product-variants`,
+    details: (id: number | string) => `${ROOTS.ADMIN}/product-variants/${id}`,
     update: (id: number | string) => `${ROOTS.ADMIN}/product-variants/${id}`,
     delete: (id: number | string) => `${ROOTS.ADMIN}/product-variants/${id}`,
     deleteImpact: (id: number | string) => `${ROOTS.ADMIN}/product-variants/${id}/delete-impact`,

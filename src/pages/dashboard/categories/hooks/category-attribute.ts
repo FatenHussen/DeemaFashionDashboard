@@ -36,7 +36,7 @@ export const useFetchCategoryAttributeById = (id: number | string) =>
 /** Preview of what deleting this attribute would affect — fetched right before showing the delete dialog. */
 export const useFetchCategoryAttributeDeleteImpact = (id: number | string | null) =>
   useQuery({
-    queryKey: ['categoryattribute', 'delete-impact', id],
+    queryKey: queryKeys.categoryAttribute.deleteImpact(id as number | string),
     queryFn: () => _CategoryAttributeApi.getDeleteImpact(id as number | string),
     enabled: id != null,
     // The user is waiting on a modal; a retry only delays the fallback confirm.
@@ -50,7 +50,7 @@ export const useFetchCategoryAttributeLinkedItems = (
   perPage = 10
 ) =>
   useQuery({
-    queryKey: ['categoryattribute', 'linked-items', id, page, perPage],
+    queryKey: queryKeys.categoryAttribute.linkedItems(id as number | string, page, perPage),
     queryFn: () =>
       _CategoryAttributeApi.getLinkedItems(id as number | string, { page, per_page: perPage }),
     enabled: id != null,

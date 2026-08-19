@@ -159,6 +159,12 @@ export default function Page() {
           {
             subcategoriesPath: subPath,
             hideParentColumn: false,
+            onBuildPage: (row) => {
+              if (row.page_id == null || Number(row.page_id) <= 0) return;
+              navigate(`/sections/pages/details/${row.page_id}`, {
+                state: { from: 'categories' },
+              });
+            },
           }
         )}
         data={categoryData}

@@ -97,6 +97,10 @@ export const _CategoryAttributeApi = {
     const response = await axiosInstance.put(apiRoutes.categoryAttribute.update(id), data);
     return response.data;
   },
+  /**
+   * Deletes the attribute. Without `confirm`, linked records yield `409`
+   * (`ConfirmationRequiredError`) instead of acting — pass `confirm: true` after the user acks.
+   */
   deleteCategoryAttribute: async (
     id: number | string,
     options?: { confirm?: boolean }

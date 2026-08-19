@@ -2,6 +2,10 @@ import type {
   VariantDeleteImpact,
   VariantDeleteImpactResponse,
 } from '../types/variant-delete-impact.types';
+import type {
+  AdminProductVariantListItem,
+  AdminProductVariantsListApiResponse,
+} from '../types/product.types';
 
 import { apiRoutes, axiosInstance } from '@/api';
 
@@ -20,6 +24,32 @@ export interface ProductVariantUpdatePayload {
   price?: number;
   quantity?: number;
 }
+
+export interface ProductVariantListParams {
+  page?: number;
+  per_page?: number;
+  search?: string;
+  product_id?: number;
+  category_id?: number;
+  shop_id?: number;
+  price_min?: number;
+  price_max?: number;
+  quantity_min?: number;
+  quantity_max?: number;
+}
+
+const emptyVariantList = (
+  page: number,
+  perPage: number
+): AdminProductVariantsListApiResponse['data'] => ({
+  items: [],
+  pagination: {
+    current_page: page,
+    last_page: page,
+    per_page: perPage,
+    total: 0,
+  },
+});
 
 const buildVariantFormData = (data: ProductVariantUpdatePayload): FormData => {
   const formData = new FormData();
@@ -51,6 +81,36 @@ const buildVariantFormData = (data: ProductVariantUpdatePayload): FormData => {
 };
 
 export const _ProductVariantApi = {
+  getList: async (
+    params?: ProductVariantListParams
+  ): Promise<AdminProductVariantsListApiResponse['data']> => {
+    const page = params?.page ?? 1;
+    const perPage = params?.per_page ?? 10;
+    const response = await axiosInstance.get<AdminProductVariantsListApiResponse>(
+      apiRoutes.productVariant.list,
+      { params }
+    );
+    const inner = response.data?.data;
+    if (!inner) return emptyVariantList(page, perPage);
+    return {
+      items: Array.isArray(inner.items) ? inner.items : [],
+      pagination: inner.pagination ?? {
+        current_page: page,
+        last_page: page,
+        per_page: perPage,
+        total: 0,
+      },
+    };
+  },
+
+  getById: async (id: number | string): Promise<AdminProductVariantListItem | null> => {
+    const response = await axiosInstance.get<{
+      status?: boolean;
+      data?: AdminProductVariantListItem;
+    }>(apiRoutes.productVariant.details(id));
+    return response.data?.data ?? null;
+  },
+
   update: async (id: number | string, data: ProductVariantUpdatePayload): Promise<any> => {
     const formData = buildVariantFormData(data);
     const response = await axiosInstance.post(apiRoutes.productVariant.update(id), formData, {

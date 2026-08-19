@@ -6,15 +6,13 @@ import { apiRoutes } from '@/api';
 // ----------------------------------------------------------------------
 
 /**
- * `api_method` values accepted by `POST /api/admin/pages/{page}/sections`
- * with the display filters each one supports at runtime. The effective
- * filters for `api` sections live on the page link (this payload), not on
- * the Section itself.
+ * `api_method` values accepted when creating an automatic (`type=api`) section.
  */
 export const API_METHODS = [
   'products',
   'categories',
   'shops',
+  'restaurants',
   'brands',
   'recipes',
   'baskets',
@@ -29,46 +27,50 @@ export type ApiMethod = (typeof API_METHODS)[number];
 const categorySelect: FilterConfig = { type: 'select', url: apiRoutes.category.list };
 const brandSelect: FilterConfig = { type: 'select', url: apiRoutes.brand.list };
 const shopSelect: FilterConfig = { type: 'select', url: apiRoutes.shop.list };
-const textFilter: FilterConfig = { type: 'text' };
-const numberFilter: FilterConfig = { type: 'number' };
+
+const PRODUCT_TYPES = [
+  'new',
+  'trend',
+  'top_rated',
+  'offers',
+  'latest_flash_sale',
+  'recommended',
+  'for_you',
+  'search_based',
+] as const;
+
+const SHOP_FEED_TYPES = ['nearby', 'offers', 'active', 'top_rated', 'free_delivery'] as const;
+
+const SHOP_KINDS = ['store', 'restaurant', 'service_provider'] as const;
 
 export const API_METHOD_FILTERS: Record<ApiMethod, Record<string, FilterConfig>> = {
   products: {
+    type: { type: 'select', items: [...PRODUCT_TYPES] },
     category_id: categorySelect,
     brand_id: brandSelect,
     shop_id: shopSelect,
-    type: textFilter,
-    sort_by: textFilter,
-    price_min: numberFilter,
-    price_max: numberFilter,
-  },
-  categories: {
-    parent_id: categorySelect,
-    brand_id: brandSelect,
-    shop_id: shopSelect,
-    type: textFilter,
-    sort_by: textFilter,
   },
   shops: {
-    brand_id: brandSelect,
+    type: { type: 'select', items: [...SHOP_FEED_TYPES] },
+    shop_type: { type: 'select', items: [...SHOP_KINDS] },
+  },
+  restaurants: {
+    type: { type: 'select', items: [...SHOP_FEED_TYPES] },
   },
   brands: {},
+  categories: {},
   recipes: {},
   baskets: {},
-  'schedule-basket': {},
-  suggested_products: {
-    category_id: categorySelect,
-    brand_id: brandSelect,
-    shop_id: shopSelect,
-    type: textFilter,
+  'schedule-basket': {
+    schedule_days: { type: 'select', items: ['7', '15', '30'] },
   },
-  suggested_shops: {
-    brand_id: brandSelect,
-  },
+  suggested_products: {},
+  suggested_shops: {},
   suggested_baskets: {},
 };
 
-/** User-language label for an `api_method` value (falls back to the raw key). */
+export const PRIMARY_API_FILTER_KEYS = ['type', 'shop_type', 'schedule_days'] as const;
+
 export function apiMethodLabel(t: TFunction<'table'>, method: string): string {
   return t(`form.pageBuilderApiMethods.${method}`, { defaultValue: method });
 }

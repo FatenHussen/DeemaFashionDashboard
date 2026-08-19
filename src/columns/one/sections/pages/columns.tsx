@@ -6,6 +6,11 @@ import { z } from 'zod';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 import { cmsPageSelectLabel } from '@/pages/dashboard/sections/utils/cms-page-select-label';
+import {
+  canDeleteCmsPage,
+  canEditPageMetadata,
+  isCategoryCmsPage,
+} from '@/pages/dashboard/sections/utils/category-page';
 
 const PageRowSchema = z.object({
   id: z.number(),
@@ -29,6 +34,10 @@ export const pagesColumns = (
     onDeleteConfirm?: () => void;
     onDeleteCancel?: () => void;
     deletingId?: number | null;
+  },
+  options?: {
+    /** Category pages do not use page-variable filters. */
+    hideFiltersColumn?: boolean;
   }
 ): ColumnDef<PageBuilderListItem>[] => [
   {
@@ -49,7 +58,16 @@ export const pagesColumns = (
       cellClassName: 'min-w-0 max-w-[min(48vw,12rem)] sm:max-w-[18rem] lg:max-w-none',
     },
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.title')} />,
-    cell: ({ row }) => <div className="font-medium">{cmsPageSelectLabel(row.original)}</div>,
+    cell: ({ row }) => (
+      <div className="flex items-center gap-2 min-w-0">
+        <span className="font-medium truncate">{cmsPageSelectLabel(row.original)}</span>
+        {isCategoryCmsPage(row.original) && (
+          <span className="inline-flex shrink-0 items-center rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+            {t('columns.categoryPageBadge')}
+          </span>
+        )}
+      </div>
+    ),
   },
   {
     id: 'slug',
@@ -86,27 +104,33 @@ export const pagesColumns = (
       );
     },
   },
-  {
-    id: 'filters',
-    accessorKey: 'filters',
-    meta: {
-      headerClassName: 'hidden md:table-cell',
-      cellClassName: 'hidden md:table-cell',
-    },
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.filters')} />,
-    cell: ({ row }) => {
-      const n = filtersKeyCount(row.original.filters);
-      return (
-        <span
-          className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
-            n > 0 ? 'bg-muted text-foreground' : 'text-muted-foreground'
-          }`}
-        >
-          {n > 0 ? t('columns.filtersCountLabel', { count: n }) : '—'}
-        </span>
-      );
-    },
-  },
+  ...(options?.hideFiltersColumn
+    ? []
+    : [
+        {
+          id: 'filters',
+          accessorKey: 'filters',
+          meta: {
+            headerClassName: 'hidden md:table-cell',
+            cellClassName: 'hidden md:table-cell',
+          },
+          header: ({ column }) => (
+            <DataTableColumnHeader column={column} title={t('columns.filters')} />
+          ),
+          cell: ({ row }) => {
+            const n = filtersKeyCount(row.original.filters);
+            return (
+              <span
+                className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
+                  n > 0 ? 'bg-muted text-foreground' : 'text-muted-foreground'
+                }`}
+              >
+                {n > 0 ? t('columns.filtersCountLabel', { count: n }) : '—'}
+              </span>
+            );
+          },
+        } as ColumnDef<PageBuilderListItem>,
+      ]),
   {
     id: 'created_at',
     accessorKey: 'created_at',
@@ -127,13 +151,22 @@ export const pagesColumns = (
           id: 'actions',
           cell: ({ row }) => {
             const id = row.original.id;
+            // Category pages follow their category: no manual edit/delete, sections only.
+            // Prefer the explicit API flags; fall back to is_category_page on older backends.
+            const isCategoryPage = isCategoryCmsPage(row.original);
+            const canEditMetadata = canEditPageMetadata(row.original);
+            const canDeletePage = canDeleteCmsPage(row.original);
             return (
               <DataTableRowActions
                 schema={PageRowSchema}
                 row={row as any}
                 viewDetails={`/sections/pages/details/${id}`}
-                editItem={`/sections/pages/update/${id}`}
-                permissions={rowActions.permissions}
+                viewDetailsLabel={isCategoryPage ? t('openBuildCategoryPage') : undefined}
+                editItem={canEditMetadata ? `/sections/pages/update/${id}` : undefined}
+                permissions={{
+                  update: canEditMetadata && rowActions.permissions.update,
+                  delete: canDeletePage && rowActions.permissions.delete,
+                }}
                 onDelete={rowActions.onDelete}
                 isDeleting={rowActions.isDeleting}
                 isDeleteDialogOpen={rowActions.isDeleteDialogOpen}

@@ -15,36 +15,13 @@ export type PageFormValues = z.infer<typeof PageSchema>;
 
 // ----------------------------------------------------------------------
 
-export const UnifiedSectionSchema = z
-  .object({
-    type: z.enum(['manual', 'api'], { required_error: t('pageBuilder.typeRequired') }),
-    name: z.object({
-      en: z.string(),
-      ar: z.string(),
-    }),
-    manual_model: z.string().optional(),
-    api_method: z.string().optional(),
-    position: z.enum(['before', 'after']),
-    variant: z.enum(['horizontal', 'vertical', 'square']),
-    order: z.union([z.string(), z.number()]).optional(),
-    background_color: z.string().optional(),
-    background_card_color: z.string().optional(),
-  })
-  .superRefine((values, ctx) => {
-    if (values.type === 'manual' && !values.manual_model) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['manual_model'],
-        message: t('pageBuilder.manualModelRequired'),
-      });
-    }
-    if (values.type === 'api' && !values.api_method) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['api_method'],
-        message: t('pageBuilder.apiMethodRequired'),
-      });
-    }
-  });
+/** Link an existing section to a page. Name/variant/colors copy from the section and can be overridden. */
+export const UnifiedSectionSchema = z.object({
+  position: z.enum(['before', 'after']),
+  variant: z.enum(['horizontal', 'vertical', 'square']).optional(),
+  order: z.union([z.string(), z.number()]).optional(),
+  background_color: z.string().optional(),
+  background_card_color: z.string().optional(),
+});
 
 export type UnifiedSectionFormValues = z.infer<typeof UnifiedSectionSchema>;

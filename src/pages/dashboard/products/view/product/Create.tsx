@@ -48,6 +48,12 @@ import {
   useUpdateProductVariant,
   useUpdateShopProductVariant,
 } from '@/pages/dashboard/products/hooks/product-variant';
+import {
+  responseIncludesVariants,
+  savedProductHasShopLink,
+  toShopVariantPayload,
+  toVariantPayload,
+} from '@/pages/dashboard/products/utils/variant-payload';
 
 import { paths } from 'src/routes/paths';
 
@@ -124,6 +130,14 @@ function findCategoryDetailOptionKey(
 }
 
 /** Paginate static attribute value lists for InfiniteScrollSelect (e.g. many colors). */
+function attributeLabel(name: unknown, fallback = ''): string {
+  if (name == null) return fallback;
+  if (typeof name === 'object') {
+    return formatTranslated(name as Parameters<typeof formatTranslated>[0]) || fallback;
+  }
+  return String(name);
+}
+
 function createAttributeValuesFetcher(values: any[] | undefined) {
   const vals = (values ?? []).filter((v) => v != null);
   return (page: number, limit: number) => {
@@ -166,6 +180,19 @@ function toTwoDecimalNumber(raw: string): number | undefined {
   const value = Number(raw);
   if (!Number.isFinite(value)) return undefined;
   return Math.round(value * 100) / 100;
+}
+
+function toOptionalInt(raw: unknown): number | undefined {
+  if (raw === '' || raw === null || raw === undefined) return undefined;
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return undefined;
+  return Math.max(0, Math.floor(n));
+}
+
+function toOptionalNumber(raw: unknown): number | undefined {
+  if (raw === '' || raw === null || raw === undefined) return undefined;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : undefined;
 }
 
 /** Hide `0` in optional / numeric variant & shop fields (show empty like cleared input). */
@@ -920,6 +947,21 @@ export default function CreatePage() {
     return undefined;
   }, [selectedRestaurantShopId, productResponse?.variants]);
 
+  /**
+   * A product whose variants carry no shop link is invisible to the cart on the web
+   * (shop_id = null) — flag it so the admin links at least one branch (§7/§8 of the
+   * variants contract). Covers products saved while the backend ignored shop_variants.
+   */
+  const productMissingShopLink = useMemo(() => {
+    if (!isEditMode || !productResponse) return false;
+    const vars = productResponse.variants ?? [];
+    if (vars.length === 0) return true;
+    return !vars.some((v) => {
+      const links = v.shops ?? (v as { shop_variants?: unknown[] }).shop_variants ?? [];
+      return Array.isArray(links) && links.length > 0;
+    });
+  }, [isEditMode, productResponse]);
+
   const restaurantShopFetcher = useCallback(
     (page: number, limit: number) => {
       if (!categoryId || categoryId <= 0) {
@@ -970,20 +1012,38 @@ export default function CreatePage() {
         setValue('shop_variants', [...existing, { shop_id: shopId, variant_index: 0 }]);
       }
 
-      // Seed the sole variant's price/quantity from the product-level fields the first time.
-      if (getValues('variants.0.price') == null) {
+      // Seed the sole variant so create/update always has a row to send with shop_variants.
+      const existingVariants = getValues('variants') ?? [];
+      if (!existingVariants[0]) {
         const price = getValues('price');
-        setValue(
-          'variants.0.price',
-          price != null && !Number.isNaN(Number(price)) ? Number(price) : undefined
-        );
-      }
-      if (getValues('variants.0.quantity') == null) {
         const quantity = getValues('quantity');
-        setValue(
-          'variants.0.quantity',
-          quantity != null && !Number.isNaN(Number(quantity)) ? Number(quantity) : undefined
-        );
+        setValue('variants', [
+          {
+            attributes_values_ids: [],
+            images: [],
+            existing_images_ids: [],
+            price: price != null && !Number.isNaN(Number(price)) ? Number(price) : undefined,
+            quantity:
+              quantity != null && !Number.isNaN(Number(quantity)) ? Number(quantity) : undefined,
+            is_trend: 0,
+            is_active: 1,
+          },
+        ]);
+      } else {
+        if (getValues('variants.0.price') == null) {
+          const price = getValues('price');
+          setValue(
+            'variants.0.price',
+            price != null && !Number.isNaN(Number(price)) ? Number(price) : undefined
+          );
+        }
+        if (getValues('variants.0.quantity') == null) {
+          const quantity = getValues('quantity');
+          setValue(
+            'variants.0.quantity',
+            quantity != null && !Number.isNaN(Number(quantity)) ? Number(quantity) : undefined
+          );
+        }
       }
     },
     [getValues, setValue]
@@ -1012,14 +1072,14 @@ export default function CreatePage() {
     prevCategoryIdRef.current = categoryId;
   }, [categoryId, isRestaurantToggle, setValue]);
 
-  const syncLeafCategory = useCallback(
-    (leafId: number) => {
-      setValue('category_id', leafId, { shouldValidate: true, shouldDirty: true });
+  const syncSelectedCategory = useCallback(
+    (selectedCategoryId: number) => {
+      setValue('category_id', selectedCategoryId, { shouldValidate: true, shouldDirty: true });
     },
     [setValue]
   );
 
-  // Fetch category attributes when category changes
+  // Attributes always come from the root (level 1), even if the product is saved on a parent or leaf.
   const { data: categoryAttributesAll, isLoading: isLoadingAttributes } =
     useFetchCategoryAttributes(
       {
@@ -1250,11 +1310,11 @@ export default function CreatePage() {
         quantity,
       } = args;
       const allVariants = getValues('variants') ?? [];
-      const currentCategoryId = Number(getValues('category_id') ?? 0);
       const apiVariantsPayload: NonNullable<ProductCreateUpdatePayload['variants']> = [];
       allVariants.forEach((row, idx) => {
         if (idx === variantIndex) {
-          apiVariantsPayload.push({
+          const cleaned = toVariantPayload({
+            ...row,
             attributes_values_ids: attrIds,
             images,
             sku,
@@ -1264,18 +1324,15 @@ export default function CreatePage() {
             price,
             quantity,
           });
+          if (cleaned) apiVariantsPayload.push(cleaned);
         } else if (row?.id) {
-          const rowIds = Array.isArray(row.attributes_values_ids)
-            ? row.attributes_values_ids.map(Number).filter((n) => Number.isFinite(n) && n > 0)
-            : [];
-          apiVariantsPayload.push({
-            id: row.id,
-            attributes_values_ids: rowIds,
-          });
+          // Full whitelist for existing rows: a replace without price/quantity/images
+          // would reset those fields to product defaults / delete media.
+          const cleaned = toVariantPayload(row as Record<string, unknown>, { omitImages: true });
+          if (cleaned) apiVariantsPayload.push(cleaned);
         }
       });
       const resp = await _ProductApi.updateProductVariantsOnly(productId, {
-        category_id: currentCategoryId > 0 ? currentCategoryId : undefined,
         variants: apiVariantsPayload,
       });
       const updatedVariants: any[] = Array.isArray(resp?.data?.variants)
@@ -1307,7 +1364,6 @@ export default function CreatePage() {
       const { productId, parentVariantId, parentVariantIndex, shopId, costPrice } = args;
       const allVariants = getValues('variants') ?? [];
       const allShopVariants = getValues('shop_variants') ?? [];
-      const currentCategoryId = Number(getValues('category_id') ?? 0);
 
       // Map original variant index -> remapped index in the payload (we send only variants with id).
       const variantsPayload: NonNullable<ProductCreateUpdatePayload['variants']> = [];
@@ -1315,50 +1371,79 @@ export default function CreatePage() {
       allVariants.forEach((row, idx) => {
         if (row?.id) {
           remap.set(idx, variantsPayload.length);
-          const rowIds = Array.isArray(row.attributes_values_ids)
-            ? row.attributes_values_ids.map(Number).filter((n) => Number.isFinite(n) && n > 0)
-            : [];
-          variantsPayload.push({ id: row.id, attributes_values_ids: rowIds });
+          const cleaned = toVariantPayload(row as Record<string, unknown>, { omitImages: true });
+          if (cleaned) variantsPayload.push(cleaned);
         }
       });
 
       const shopVariantsPayload: NonNullable<ProductCreateUpdatePayload['shop_variants']> = [];
-      // Keep existing shop variants (by id) so backend doesn't drop them.
+      // shop_variants is a full replace: send the complete kept list (not only the new row).
       allShopVariants.forEach((sv) => {
         if (!sv?.id) return;
         const remappedIdx = remap.get(Number(sv.variant_index));
         if (remappedIdx == null) return;
-        shopVariantsPayload.push({
-          id: sv.id,
-          shop_id: Number(sv.shop_id),
-          variant_index: remappedIdx,
-        });
+        const cleaned = toShopVariantPayload({ ...sv, variant_index: remappedIdx });
+        if (cleaned) shopVariantsPayload.push(cleaned);
       });
       const parentRemapped = remap.get(parentVariantIndex);
       if (parentRemapped == null) {
         return 0;
       }
-      shopVariantsPayload.push({
+      const newShopRow = toShopVariantPayload({
         shop_id: shopId,
         variant_index: parentRemapped,
         cost_price: costPrice,
       });
+      if (newShopRow) shopVariantsPayload.push(newShopRow);
 
       const resp = await _ProductApi.updateProductVariantsOnly(productId, {
-        category_id: currentCategoryId > 0 ? currentCategoryId : undefined,
         variants: variantsPayload,
         shop_variants: shopVariantsPayload,
       });
       const updatedVariants: any[] = Array.isArray(resp?.data?.variants)
         ? resp.data.variants
         : [];
+      // The backend wipes and recreates EVERY shop-variant row of the variants it receives
+      // (ProductService::syncVariantsAndShopLinks), so the `id`s the other rows still hold in
+      // form state are dead the moment this call returns. Re-sync them all from the response,
+      // keyed by (parent variant id, shop id) — otherwise the per-row save/delete buttons hit
+      // shop-product-variants/{staleId}.
+      const freshShopVariantIds = new Map<string, number>();
+      updatedVariants.forEach((uv) => {
+        const uvId = Number(uv?.id);
+        if (!uvId) return;
+        extractCreatedShopVariants(uv).forEach((csv) => {
+          const csvShopId = getShopIdFromCreatedShopVariant(csv);
+          const csvId = Number(csv?.id);
+          if (csvShopId > 0 && csvId > 0) {
+            freshShopVariantIds.set(`${uvId}:${csvShopId}`, csvId);
+          }
+        });
+      });
+      if (freshShopVariantIds.size > 0) {
+        const variantRowsAfterSave = getValues('variants') ?? [];
+        const currentShopVariants = getValues('shop_variants') ?? [];
+        let anyIdChanged = false;
+        const resyncedShopVariants = currentShopVariants.map((sv) => {
+          const parentId = Number(variantRowsAfterSave[Number(sv?.variant_index)]?.id ?? 0);
+          const svShopId = Number(sv?.shop_id);
+          if (!parentId || !svShopId) return sv;
+          const fresh = freshShopVariantIds.get(`${parentId}:${svShopId}`);
+          if (!fresh || fresh === Number(sv?.id)) return sv;
+          anyIdChanged = true;
+          return { ...sv, id: fresh };
+        });
+        if (anyIdChanged) {
+          setValue('shop_variants', resyncedShopVariants, { shouldDirty: false });
+        }
+      }
       const parentRow = updatedVariants.find((v) => Number(v?.id) === Number(parentVariantId));
       const created = extractCreatedShopVariants(parentRow).find(
         (csv) => getShopIdFromCreatedShopVariant(csv) === shopId
       );
       return created?.id ? Number(created.id) : 0;
     },
-    [getValues]
+    [getValues, setValue]
   );
 
   // Populate form in edit mode
@@ -1446,6 +1531,8 @@ export default function CreatePage() {
             stock: (v as any).stock != null ? Number((v as any).stock) : undefined,
             max_purchase_quantity: (v as any).max_purchase_quantity != null ? Number((v as any).max_purchase_quantity) : undefined,
             delivery_time: (v as any).delivery_time ?? '',
+            is_trend: Number((v as any).is_trend) === 1 ? 1 : 0,
+            is_active: (v as any).is_active === false || Number((v as any).is_active) === 0 ? 0 : 1,
           })) ?? [],
         category_details:
           p.category_details?.map((cd) => ({
@@ -1468,14 +1555,18 @@ export default function CreatePage() {
           .filter((v) => v != null && v !== '' && !Number.isNaN(Number(v)))
           .map((v) => Number(v)),
         shop_variants:
-          p.variants?.flatMap((v, vIndex) =>
-            (v.shops ?? []).map((s: any) => ({
+          p.variants?.flatMap((v, vIndex) => {
+            const shopLinks =
+              Array.isArray(v.shops) && v.shops.length > 0
+                ? v.shops
+                : ((v as { shop_variants?: unknown[] }).shop_variants ?? []);
+            return shopLinks.map((s: any) => ({
               id: s.id != null ? Number(s.id) : undefined,
-              shop_id: Number(s.shop_id),
+              shop_id: Number(s.shop_id ?? s.shop?.id),
               variant_index: vIndex,
               cost_price: s.cost_price != null ? Number(s.cost_price) : undefined,
-            }))
-          ) ?? [],
+            }));
+          }) ?? [],
         badges: p.badges?.length
           ? p.badges.map((b: any) => (typeof b === 'number' ? b : b.id))
           : [],
@@ -1649,9 +1740,21 @@ export default function CreatePage() {
         model: (prev as any)?.model ?? (v as any).model ?? '',
         barcode: (prev as any)?.barcode ?? (v as any).barcode ?? '',
         name: (prev as any)?.name ?? { en: (v as any).name?.en ?? '', ar: (v as any).name?.ar ?? '' },
+        price:
+          (prev as any)?.price ??
+          ((v as any).price != null ? Number((v as any).price) : undefined),
+        quantity:
+          (prev as any)?.quantity ??
+          ((v as any).quantity != null ? toOptionalInt((v as any).quantity) : undefined),
         stock: (prev as any)?.stock ?? ((v as any).stock != null ? Number((v as any).stock) : undefined),
         max_purchase_quantity: (prev as any)?.max_purchase_quantity ?? ((v as any).max_purchase_quantity != null ? Number((v as any).max_purchase_quantity) : undefined),
         delivery_time: (prev as any)?.delivery_time ?? (v as any).delivery_time ?? '',
+        is_trend:
+          (prev as any)?.is_trend ??
+          (Number((v as any).is_trend) === 1 ? 1 : 0),
+        is_active:
+          (prev as any)?.is_active ??
+          ((v as any).is_active === false || Number((v as any).is_active) === 0 ? 0 : 1),
       };
     });
     // Only lock the guard if ALL variants got at least one attribute id resolved.
@@ -1822,36 +1925,64 @@ export default function CreatePage() {
         };
       }
 
-      // Variants are optional: only rows with at least one attribute value are sent; incomplete rows are omitted.
+      // Keep existing rows (by id) even without attributes — dropping them would
+      // soft-delete the backend default variant and break shop links. New rows
+      // still need at least one attribute value, except the restaurant SKU.
       const rawVariantRows = payload.variants ?? [];
+      const keepVariantRow = (v: (typeof rawVariantRows)[number], origIdx: number) => {
+        const hasId = v.id != null && Number(v.id) > 0;
+        const hasAttrs =
+          Array.isArray(v.attributes_values_ids) && v.attributes_values_ids.length > 0;
+        if (restaurantMode) return origIdx === 0 || hasId;
+        return hasId || hasAttrs;
+      };
       const validVariantEntries = rawVariantRows
         .map((v, origIdx) => ({ row: v, origIdx }))
-        .filter(
-          ({ row: v }) =>
-            Array.isArray(v.attributes_values_ids) && v.attributes_values_ids.length > 0
-        );
+        .filter(({ row: v, origIdx }) => keepVariantRow(v, origIdx));
       const validVariants = validVariantEntries.map(({ row }) => row);
       const validVariantOrigIndices = validVariantEntries.map(({ origIdx }) => origIdx);
 
-      // After dropping variant rows, remap shop_variants.variant_index to the new indices.
       const variantIndexMap = new Map<number, number>();
-      let nextVariantIdx = 0;
-      rawVariantRows.forEach((v, origIdx) => {
-        if (Array.isArray(v.attributes_values_ids) && v.attributes_values_ids.length > 0) {
-          variantIndexMap.set(origIdx, nextVariantIdx);
-          nextVariantIdx += 1;
-        }
+      validVariantEntries.forEach(({ origIdx }, nextIdx) => {
+        variantIndexMap.set(origIdx, nextIdx);
       });
       const remappedShopVariants = (payload.shop_variants ?? [])
-        .filter((sv) => variantIndexMap.has(Number(sv.variant_index)))
+        .filter((sv) => Number(sv.shop_id) > 0 && variantIndexMap.has(Number(sv.variant_index)))
         .map((sv) => ({
           ...sv,
           variant_index: variantIndexMap.get(Number(sv.variant_index))!,
         }));
 
-      const variantsForPayload = restaurantMode
+      let variantsForPayload = restaurantMode
         ? validVariants.map((v) => ({ ...v, model: '', barcode: '' }))
         : validVariants;
+      let shopVariantsForPayload = remappedShopVariants;
+
+      // Restaurant products have no attribute-based variants. If the seeded row
+      // is missing, send one minimal SKU and rebind shop rows to index 0.
+      if (restaurantMode && variantsForPayload.length === 0) {
+        const row0 = rawVariantRows[0] as
+          | { id?: number; price?: number | string; quantity?: number | string; existing_images_ids?: number[] }
+          | undefined;
+        const toNum = (v: unknown) =>
+          v == null || v === '' || Number.isNaN(Number(v)) ? undefined : Number(v);
+        variantsForPayload = [
+          {
+            ...(row0?.id ? { id: row0.id } : {}),
+            attributes_values_ids: [],
+            price: toNum(row0?.price) ?? toNum(payload.price),
+            quantity: toNum(row0?.quantity) ?? toNum(payload.quantity),
+            existing_images_ids: Array.isArray(row0?.existing_images_ids)
+              ? row0!.existing_images_ids
+              : [],
+            is_active: 1,
+            is_trend: 0,
+          },
+        ];
+        shopVariantsForPayload = (payload.shop_variants ?? [])
+          .filter((sv) => Number(sv.shop_id) > 0)
+          .map((sv) => ({ ...sv, variant_index: 0 }));
+      }
 
       const finalPayload = {
         ...payload,
@@ -1864,7 +1995,7 @@ export default function CreatePage() {
         country_id: payload.country_id && payload.country_id > 0 ? payload.country_id : undefined,
         sale_country_id: payload.sale_country_id && payload.sale_country_id > 0 ? payload.sale_country_id : undefined,
         variants: variantsForPayload,
-        shop_variants: remappedShopVariants,
+        shop_variants: shopVariantsForPayload,
         category_details: payload.category_details?.filter(
           (cd) => cd.category_detail_id && cd.category_detail_id > 0
         ),
@@ -1882,25 +2013,23 @@ export default function CreatePage() {
       const productImagesCompressed = finalPayload.images?.length
         ? await compressImages(finalPayload.images)
         : finalPayload.images;
-      const variantsCompressed = await Promise.all(
-        (finalPayload.variants ?? []).map(async (v, k) => {
-          const imgs = v.images?.length ? await compressImages(v.images) : v.images;
-          const origIdx = validVariantOrigIndices[k] ?? k;
-          const trendEl =
-            typeof document !== 'undefined'
-              ? (document.querySelector(
-                  `[data-variant-field="is-trend-${origIdx}"]`
-                ) as HTMLInputElement | null)
-              : null;
-          const isTrend = trendEl?.checked ? 1 : 0;
-          return {
-            ...v,
-            images: imgs,
-            is_trend: isTrend,
-            is_active: 1,
-          };
-        })
-      );
+      const variantsCompressed = (
+        await Promise.all(
+          (finalPayload.variants ?? []).map(async (v, k) => {
+            const imgs = v.images?.length ? await compressImages(v.images) : v.images;
+            const origIdx = validVariantOrigIndices[k] ?? k;
+            const liveRow = (getValues('variants') ?? [])[origIdx];
+            return toVariantPayload({
+              ...(liveRow as Record<string, unknown> | undefined),
+              ...(v as Record<string, unknown>),
+              images: imgs,
+            });
+          })
+        )
+      ).filter((row): row is NonNullable<typeof row> => row != null);
+      const shopVariantsCleaned = (finalPayload.shop_variants ?? [])
+        .map((sv) => toShopVariantPayload(sv as Record<string, unknown>))
+        .filter((sv): sv is NonNullable<typeof sv> => sv != null);
       let thumb = finalPayload.thumbnail;
       if (thumb instanceof File) thumb = await compressImage(thumb);
       let seoImg = finalPayload.seo_image;
@@ -1909,6 +2038,7 @@ export default function CreatePage() {
         ...finalPayload,
         images: productImagesCompressed,
         variants: variantsCompressed,
+        shop_variants: shopVariantsCleaned,
         thumbnail: thumb,
         seo_image: seoImg,
       };
@@ -1925,26 +2055,43 @@ export default function CreatePage() {
           delete p.seo_image;
         }
       };
+      // Never send empty arrays: `[]` wipes all variants / branch links on the backend.
+      const stripEmptyNestedArrays = (p: Record<string, unknown>) => {
+        if (!Array.isArray(p.variants) || p.variants.length === 0) delete p.variants;
+        if (!Array.isArray(p.shop_variants) || p.shop_variants.length === 0) {
+          delete p.shop_variants;
+        }
+      };
+      const notifySaved = (resp: unknown, created: boolean) => {
+        toast.success(created ? t('form.productCreatedSuccess') : t('form.productUpdatedSuccess'));
+        const responseMissingLink =
+          responseIncludesVariants(resp) && !savedProductHasShopLink(resp);
+        const createdWithoutShops = created && shopVariantsCleaned.length === 0;
+        if (responseMissingLink || createdWithoutShops) {
+          toast.warning(t('form.productSavedWithoutShopLink'));
+        }
+      };
 
       if (isEditMode && id) {
-        // In edit mode, variants and shop_variants are managed independently via their own save/delete buttons.
-        const { variants: _omitVariants, shop_variants: _omitShopVariants, ...editApiPayload } = apiPayload as any;
+        const editApiPayload = { ...(apiPayload as object) } as Record<string, unknown>;
         stripSeoIfNoFile(editApiPayload);
+        stripEmptyNestedArrays(editApiPayload);
         console.log('[Product Form] Sending update payload:', { id, data: editApiPayload });
-        await updateProductMutation.mutateAsync({
+        const updateResponse = await updateProductMutation.mutateAsync({
           id,
-          data: editApiPayload as ProductCreateUpdatePayload,
+          data: editApiPayload as unknown as ProductCreateUpdatePayload,
         });
-        toast.success(t('form.productUpdatedSuccess'));
+        notifySaved(updateResponse, false);
       } else {
-        const createPayload = { ...(apiPayload as object) } as ProductCreateUpdatePayload;
-        stripSeoIfNoFile(createPayload as unknown as Record<string, unknown>);
+        const createPayload = { ...(apiPayload as object) } as Record<string, unknown>;
+        stripSeoIfNoFile(createPayload);
+        stripEmptyNestedArrays(createPayload);
         console.log('[Product Form] Sending create payload:', createPayload);
-        const createResponse = await createProductMutation.mutateAsync(createPayload);
-        const newProductId = Number(
-          createResponse?.data?.id ?? createResponse?.id ?? 0
+        const createResponse = await createProductMutation.mutateAsync(
+          createPayload as unknown as ProductCreateUpdatePayload
         );
-        toast.success(t('form.productCreatedSuccess'));
+        const newProductId = Number(createResponse?.data?.id ?? createResponse?.id ?? 0);
+        notifySaved(createResponse, true);
         if (newProductId > 0) {
           navigate(paths.dashboard.product.update(newProductId));
           return;
@@ -2139,6 +2286,25 @@ export default function CreatePage() {
           </Box>
         )}
 
+        {/* ─── Missing branch link warning ──────────────────────── */}
+        {productMissingShopLink && (
+          <Box className="flex items-start gap-3 p-4 rounded-lg border border-destructive/30 bg-destructive/10">
+            <Iconify
+              icon="solar:danger-triangle-bold"
+              className="text-destructive shrink-0 mt-0.5"
+              width={20}
+            />
+            <div>
+              <Typography variant="subtitle2" className="font-semibold text-destructive">
+                {t('form.productNoShopLinkTitle')}
+              </Typography>
+              <Typography variant="caption" className="text-destructive/80">
+                {t('form.productNoShopLinkHelper')}
+              </Typography>
+            </div>
+          </Box>
+        )}
+
         {/* ════════════════════════════════════════════════════════
             Card: Categories (الفئات)
            ════════════════════════════════════════════════════════ */}
@@ -2155,9 +2321,10 @@ export default function CreatePage() {
             flatParentDataUpdatedAt={flatCategoriesUpdatedAt ?? 0}
             hydrateLeafCategoryId={hydrateLeafCategoryId}
             hydrationKey={categoryHydrationKey}
-            onEffectiveLeafChange={syncLeafCategory}
+            onEffectiveLeafChange={syncSelectedCategory}
             isRestaurant={categoryRestaurantFilter}
             onMainCategoryChange={setMainCategoryId}
+            allowAnyLevel
           />
 
           {isRestaurantToggle && categoryId > 0 ? (
@@ -3895,6 +4062,8 @@ export default function CreatePage() {
                   stock: undefined,
                   max_purchase_quantity: undefined,
                   delivery_time: '',
+                  is_trend: 0,
+                  is_active: 1,
                 });
                 setOpenVariantIndex(newIndex);
               }}
@@ -3916,11 +4085,44 @@ export default function CreatePage() {
             <Typography variant="body2" className="text-muted-foreground">
               {t('form.noAttributesForCategory')}
             </Typography>
-          ) : variantsFields.length === 0 ? (
-            <Typography variant="body2" className="text-muted-foreground">
-              {t('form.noVariantsYet')}
-            </Typography>
           ) : (
+            <Box className="space-y-4">
+              <Box className="rounded-lg border border-border/60 bg-muted/20 p-4 space-y-3">
+                <Typography variant="caption" className="text-muted-foreground block">
+                  {t('form.rootAttributesInheritedHint')}
+                </Typography>
+                {categoryAttributes.map((a: any) => {
+                  const values = Array.isArray(a?.values) ? a.values : [];
+                  return (
+                    <Box key={a.id} className="space-y-1.5">
+                      <Typography variant="subtitle2" className="font-semibold text-foreground">
+                        {attributeLabel(a?.name)}
+                      </Typography>
+                      {values.length === 0 ? (
+                        <Typography variant="caption" className="text-muted-foreground">
+                          —
+                        </Typography>
+                      ) : (
+                        <Box className="flex flex-wrap gap-1.5">
+                          {values.map((val: any) => (
+                            <span
+                              key={val.id ?? attributeLabel(val?.name)}
+                              className="inline-flex rounded-md border border-border/70 bg-background px-2 py-0.5 text-xs text-foreground"
+                            >
+                              {attributeLabel(val?.name)}
+                            </span>
+                          ))}
+                        </Box>
+                      )}
+                    </Box>
+                  );
+                })}
+              </Box>
+              {variantsFields.length === 0 ? (
+                <Typography variant="body2" className="text-muted-foreground">
+                  {t('form.noVariantsYet')}
+                </Typography>
+              ) : (
             <Box className="space-y-3">
               {variantsFields.map((variant, variantIndex) => {
                 const rowSelectedIds = (watch(`variants.${variantIndex}.attributes_values_ids`) ||
@@ -4004,6 +4206,7 @@ export default function CreatePage() {
                           variant="text"
                           size="small"
                           className="text-destructive"
+                          disabled={variantDeleteFlow.isDeleting}
                           onClick={(e) => {
                             e.stopPropagation();
                             confirmAndRemoveVariant(variantIndex);
@@ -4055,6 +4258,7 @@ export default function CreatePage() {
                         size="small"
                         onClick={() => confirmAndRemoveVariant(variantIndex)}
                         className="text-destructive"
+                        disabled={variantDeleteFlow.isDeleting}
                       >
                         <Iconify icon="solar:trash-bin-bold" width={16} className="mr-1" />
                         {t('form.remove')}
@@ -4457,12 +4661,16 @@ export default function CreatePage() {
                                   f.onChange(undefined as unknown as number);
                                   return;
                                 }
-                                const n = Number(raw);
-                                f.onChange(Number.isNaN(n) ? (undefined as unknown as number) : n);
+                                f.onChange(toOptionalInt(raw));
                               }}
                               className={fieldInputClass(!!error)}
+                              step={1}
+                              min={0}
                             />
                             <FieldErrorText message={error?.message} />
+                            <Typography variant="caption" className="text-muted-foreground mt-1 block">
+                              {t('form.variantQuantityHint')}
+                            </Typography>
                           </div>
                         )}
                       />
@@ -4490,6 +4698,9 @@ export default function CreatePage() {
                               className={fieldInputClass(!!error)}
                             />
                             <FieldErrorText message={error?.message} />
+                            <Typography variant="caption" className="text-muted-foreground mt-1 block">
+                              {t('form.variantStockHint')}
+                            </Typography>
                           </div>
                         )}
                       />
@@ -4559,26 +4770,58 @@ export default function CreatePage() {
                     </Box>
                   </Box>
 
-                  {/* ─── is_trend toggle ─── */}
-                  <Box className="flex items-center gap-3 border-t border-border pt-4">
-                    <label className="flex items-center gap-2 cursor-pointer select-none">
-                      <input
-                        type="checkbox"
-                        className="w-4 h-4 accent-primary"
-                        defaultChecked={
-                          isEditMode && productResponse?.variants?.[variantIndex]
-                            ? Boolean((productResponse.variants[variantIndex] as any)?.is_trend)
-                            : false
-                        }
-                        data-variant-field={`is-trend-${variantIndex}`}
+                  {/* ─── is_trend / is_active ─── */}
+                  <Box className="flex flex-col gap-3 border-t border-border pt-4">
+                    <Box className="flex items-center gap-3">
+                      <Controller
+                        name={`variants.${variantIndex}.is_trend`}
+                        control={control}
+                        render={({ field: f }) => (
+                          <label className="flex items-center gap-2 cursor-pointer select-none">
+                            <input
+                              type="checkbox"
+                              className="w-4 h-4 accent-primary"
+                              checked={Number(f.value) === 1}
+                              onChange={(e) => f.onChange(e.target.checked ? 1 : 0)}
+                              onBlur={f.onBlur}
+                              name={f.name}
+                              ref={f.ref}
+                            />
+                            <Typography variant="body2" className="font-medium text-foreground">
+                              {t('form.variantIsTrend')}
+                            </Typography>
+                          </label>
+                        )}
                       />
-                      <Typography variant="body2" className="font-medium text-foreground">
-                        {t('form.variantIsTrend')}
+                      <Typography variant="caption" className="text-muted-foreground">
+                        {t('form.variantIsTrendHint')}
                       </Typography>
-                    </label>
-                    <Typography variant="caption" className="text-muted-foreground">
-                      {t('form.variantIsTrendHint')}
-                    </Typography>
+                    </Box>
+                    <Box className="flex items-center gap-3">
+                      <Controller
+                        name={`variants.${variantIndex}.is_active`}
+                        control={control}
+                        render={({ field: f }) => (
+                          <label className="flex items-center gap-2 cursor-pointer select-none">
+                            <input
+                              type="checkbox"
+                              className="w-4 h-4 accent-primary"
+                              checked={Number(f.value ?? 1) === 1}
+                              onChange={(e) => f.onChange(e.target.checked ? 1 : 0)}
+                              onBlur={f.onBlur}
+                              name={f.name}
+                              ref={f.ref}
+                            />
+                            <Typography variant="body2" className="font-medium text-foreground">
+                              {t('form.variantIsActive')}
+                            </Typography>
+                          </label>
+                        )}
+                      />
+                      <Typography variant="caption" className="text-muted-foreground">
+                        {t('form.variantIsActiveHint')}
+                      </Typography>
+                    </Box>
                   </Box>
 
                   {/* ─── Variant Save / Delete (edit mode only) ─── */}
@@ -4594,13 +4837,14 @@ export default function CreatePage() {
                         }
                         onClick={async () => {
                           const variantId = watch(`variants.${variantIndex}.id`);
-                          const isTrendEl = document.querySelector(
-                            `[data-variant-field="is-trend-${variantIndex}"]`
-                          ) as HTMLInputElement | null;
-                          const isTrendChecked = isTrendEl?.checked ?? false;
+                          const isTrendChecked = Number(watch(`variants.${variantIndex}.is_trend`)) === 1;
+                          const isActiveChecked = Number(watch(`variants.${variantIndex}.is_active`) ?? 1) === 1;
                           const attrIds =
                             watch(`variants.${variantIndex}.attributes_values_ids`) || [];
-                          if (!Array.isArray(attrIds) || attrIds.length === 0) {
+                          if (
+                            !variantId &&
+                            (!Array.isArray(attrIds) || attrIds.length === 0)
+                          ) {
                             toast.error(t('form.variantAttributesRequired'));
                             return;
                           }
@@ -4627,10 +4871,7 @@ export default function CreatePage() {
                           const priceVal =
                             priceRaw == null || priceRaw === ('' as any) ? undefined : Number(priceRaw);
                           const quantityRaw = watch(`variants.${variantIndex}.quantity`);
-                          const quantityVal =
-                            quantityRaw == null || quantityRaw === ('' as any)
-                              ? undefined
-                              : Number(quantityRaw);
+                          const quantityVal = toOptionalInt(quantityRaw);
 
                           if (variantId) {
                             try {
@@ -4646,6 +4887,7 @@ export default function CreatePage() {
                                   barcode: barcodeVal,
                                   name: { en: nameEn, ar: nameAr },
                                   is_trend: isTrendChecked ? 1 : 0,
+                                  is_active: isActiveChecked ? 1 : 0,
                                   price: priceVal,
                                   quantity: quantityVal,
                                 },
@@ -4726,9 +4968,11 @@ export default function CreatePage() {
                 );
               })}
             </Box>
+              )}
+            </Box>
           )}
         </Box>
-          </Box>
+        </Box>
         )}
 
         {productFormTab === 'seo' && (

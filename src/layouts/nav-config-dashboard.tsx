@@ -118,8 +118,7 @@ export function getNavData(t: TFunction<'nav'>): NavSectionProps['data'] {
       ) as any,
       items: [
         { title: t('sections'), path: paths.dashboard.sections, icon: ICONS.menuItem, requiredPermission: 'section.view' },
-        { title: t('pageSections'), path: paths.dashboard.pageSections, icon: ICONS.menuItem, requiredPermission: 'pagesection.view' },
-        { title: t('pages'), path: paths.dashboard.pages, icon: ICONS.menuItem, requiredPermission: 'pagesection.view' },
+        { title: t('pages'), path: paths.dashboard.pages, icon: ICONS.menuItem, requiredPermissionAny: ['page.view', 'pagesection.view'] },
         {
           title: t('navMenuItems'),
           path: paths.dashboard.navMenuItems.root,

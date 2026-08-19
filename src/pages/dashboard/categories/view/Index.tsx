@@ -5,9 +5,9 @@ import type { CategoryData } from '@/pages/dashboard/categories/types/category.t
 import { toast } from 'react-toastify';
 import { Button } from '@/shared/ui/button';
 import { useTranslation } from 'react-i18next';
-import { useSearchParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { Iconify } from '@/shared/components/iconify';
+import { useNavigate, useSearchParams } from 'react-router';
 import { formatTranslated } from '@/utils/format-translated';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { usePermissions } from '@/auth/hooks/use-permissions';
@@ -52,6 +52,7 @@ const sortSelectClass =
 
 export default function Page() {
   const { t } = useTranslation('table');
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab: CategoryTab =
     searchParams.get('tab') === 'restaurant' ? 'restaurant' : 'normal';
@@ -461,6 +462,12 @@ export default function Page() {
             hideParentColumn: trail.length === 0,
             hideTypeColumn: true,
             categoryTab: activeTab,
+            onBuildPage: (row) => {
+              if (row.page_id == null || Number(row.page_id) <= 0) return;
+              navigate(`/sections/pages/details/${row.page_id}`, {
+                state: { from: 'categories' },
+              });
+            },
           }
         )}
         data={categoryData}

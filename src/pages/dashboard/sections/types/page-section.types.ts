@@ -1,15 +1,24 @@
 // ----------------------------------------------------------------------
 
-/** Values allowed when creating or updating a page section. */
-export type PageSectionVariant = 'vertical' | 'square';
+/** Display shape of a linked section. `horizontal` is a slider strip. */
+export type PageSectionVariant = 'horizontal' | 'vertical' | 'square';
 
-/** API may still return deprecated values on older rows (e.g. `horizontal`). */
-export type PageSectionVariantResponse = PageSectionVariant | 'horizontal';
+export type PageSectionVariantResponse = PageSectionVariant;
 
 export interface PageSectionListItem {
   id: number;
   name: string | Record<string, string> | unknown[];
   type?: 'api' | 'manual';
+  /** The library section this row renders. Changing it swaps the content of the slot. */
+  section_id?: number;
+  /** Name of the linked section, shown read-only; `name` above is the per-page override. */
+  section_name?: string | Record<string, string> | null;
+  /** What the linked section serves (`product`, `banner`, and so on). Read-only. */
+  content_type?: string;
+  /** Owning CMS page. Read-only: a section is moved by re-adding it from the other page. */
+  page_id?: number;
+  /** Visibility conditions keyed by the owning page's filter schema. */
+  show_when?: Record<string, unknown> | null;
   variant?: PageSectionVariantResponse;
   position?: 'before' | 'after';
   order?: number;
@@ -79,12 +88,38 @@ export interface Page {
   created_at: string;
   updated_at: string;
   filters?: Record<string, FilterConfig> | null;
+  is_category_page?: boolean;
+  category_id?: number | null;
+  can_delete_page?: boolean;
+  can_edit_metadata?: boolean;
+  delete_page_via?: string;
 }
 
 export interface PagesResponse {
   status: boolean;
   message: string;
   data: Page[];
+}
+
+/**
+ * Body for `PUT /api/admin/page-sections/{id}`.
+ *
+ * Every key is optional: send only what the user changed. `page_id` is read-only and
+ * `display_type_id` is rejected outright by the backend (`prohibited`), so neither is
+ * part of this shape. Keys inside `filters` must belong to the linked section's own
+ * filter schema, otherwise the request comes back `422`.
+ */
+export interface PageSectionUpdatePayload {
+  position?: 'before' | 'after';
+  order?: number;
+  variant?: PageSectionVariant;
+  background_color?: string;
+  background_card_color?: string;
+  section_id?: number;
+  /** Per-page name override. */
+  name?: { ar: string; en: string };
+  filters?: Record<string, any>;
+  show_when?: Record<string, any>;
 }
 
 export interface PageSectionCreateUpdatePayload {

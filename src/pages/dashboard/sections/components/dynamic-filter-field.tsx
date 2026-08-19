@@ -2,6 +2,9 @@ import type { FilterConfig } from '../types/page-section.types';
 
 import { axiosInstance } from '@/api';
 import { useTranslation } from 'react-i18next';
+import { useQuery } from '@tanstack/react-query';
+import { formatTranslated } from '@/utils/format-translated';
+import { normalizeFilterConfig } from '@/pages/dashboard/sections/utils/filter-config-normalize';
 import {
   filterFieldLabel,
   filterOptionLabel,
@@ -14,6 +17,30 @@ import { InfiniteScrollSelect } from 'src/shared/components/infinite-scroll-sele
 
 export const FILTER_NULL_SENTINEL = '__NULL__';
 
+function useResolvedFilterLabel(
+  url: string | undefined,
+  value: unknown,
+  initialLabel?: string
+): string | undefined {
+  const numericId = Number(value);
+  const { data } = useQuery({
+    queryKey: ['filter-field-label', url, numericId],
+    queryFn: async () => {
+      const res = await axiosInstance.get(`${url}/${numericId}`);
+      const item = res.data?.data ?? res.data;
+      return (
+        formatTranslated(item?.name, '') ||
+        formatTranslated(item?.title, '') ||
+        `#${numericId}`
+      );
+    },
+    enabled: !!url && Number.isFinite(numericId) && numericId > 0 && !initialLabel,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  return initialLabel || data;
+}
+
 /**
  * Renders one filter input from a backend `FilterConfig` (number / text /
  * static select / select fed by a paginated URL). Shared by the legacy
@@ -21,21 +48,63 @@ export const FILTER_NULL_SENTINEL = '__NULL__';
  */
 export function DynamicFilterField({
   filterKey,
-  filterConfig,
+  filterConfig: rawFilterConfig,
   value,
   onChange,
   allowNullOption = false,
+  initialLabel,
+  readOnly = false,
+  helperText,
 }: {
   filterKey: string;
   filterConfig: FilterConfig;
   value: any;
   onChange: (value: any) => void;
   allowNullOption?: boolean;
+  /** Shown when the saved id hasn't been loaded from the list yet (edit mode). */
+  initialLabel?: string;
+  readOnly?: boolean;
+  helperText?: string;
 }) {
   const { t } = useTranslation('table');
+  const filterConfig = normalizeFilterConfig(filterKey, rawFilterConfig);
   const label = filterFieldLabel(t, filterKey);
   const nullOptionLabel = t('form.pageSliderFilterAllNoFilter');
   const isNullValue = allowNullOption && (value === null || value === undefined);
+  const fieldHelper =
+    helperText ??
+    (t(`form.pageSectionFilterHelpers.${filterKey}`, { defaultValue: '' }) || undefined);
+
+  const resolvedLabel = useResolvedFilterLabel(
+    filterConfig.type === 'select' ? filterConfig.url : undefined,
+    value,
+    initialLabel
+  );
+
+  if (readOnly) {
+    const display =
+      isNullValue && allowNullOption
+        ? nullOptionLabel
+        : resolvedLabel || (value != null && value !== '' ? String(value) : '—');
+
+    return (
+      <Box className="group">
+        <Typography variant="subtitle2" className="font-semibold text-foreground mb-2">
+          {label}
+        </Typography>
+        <Box className="rounded-xl border border-border/50 bg-muted/30 px-4 py-3">
+          <Typography variant="body2" className="font-medium text-foreground">
+            {display}
+          </Typography>
+        </Box>
+        {fieldHelper && (
+          <Typography variant="caption" className="mt-1.5 block text-muted-foreground">
+            {fieldHelper}
+          </Typography>
+        )}
+      </Box>
+    );
+  }
 
   if (filterConfig.type === 'number') {
     return (
@@ -48,8 +117,13 @@ export function DynamicFilterField({
           value={isNullValue ? '' : (value ?? '')}
           onChange={(e) => onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
           className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-          placeholder={t('form.filterEnterPlaceholder', { name: label })}
+          placeholder={t('form.filterSelectPlaceholder', { name: label })}
         />
+        {fieldHelper && (
+          <Typography variant="caption" className="mt-1.5 block text-muted-foreground">
+            {fieldHelper}
+          </Typography>
+        )}
       </Box>
     );
   }
@@ -63,7 +137,7 @@ export function DynamicFilterField({
       ...(allowNullOption ? [{ value: FILTER_NULL_SENTINEL, label: nullOptionLabel }] : []),
       ...filterConfig.items.map((item) => ({
         value: item,
-        label: filterOptionLabel(t, String(item)),
+        label: filterOptionLabel(t, String(item), filterKey),
       })),
     ];
 
@@ -87,6 +161,11 @@ export function DynamicFilterField({
           placeholder={t('form.filterSelectPlaceholder', { name: label })}
           options={options}
         />
+        {fieldHelper && (
+          <Typography variant="caption" className="mt-1.5 block text-muted-foreground">
+            {fieldHelper}
+          </Typography>
+        )}
       </Box>
     );
   }
@@ -107,7 +186,10 @@ export function DynamicFilterField({
           data: {
             items: items.map((item: any) => ({
               id: item.id,
-              label: item.name || item.title || t('form.filterItemFallbackLabel', { id: item.id }),
+              label:
+                formatTranslated(item.name, '') ||
+                formatTranslated(item.title, '') ||
+                t('form.filterItemFallbackLabel', { id: item.id }),
             })),
             pagination,
           },
@@ -127,10 +209,16 @@ export function DynamicFilterField({
           queryKey={['filter-data', url, 'infinite']}
           fetcher={fetcher}
           placeholder={t('form.filterSelectPlaceholder', { name: label })}
+          initialLabel={resolvedLabel}
           nullOptionLabel={allowNullOption ? nullOptionLabel : undefined}
           isNullValue={isNullValue}
           onSelectNull={allowNullOption ? () => onChange(null) : undefined}
         />
+        {fieldHelper && (
+          <Typography variant="caption" className="mt-1.5 block text-muted-foreground">
+            {fieldHelper}
+          </Typography>
+        )}
       </Box>
     );
   }
@@ -147,6 +235,11 @@ export function DynamicFilterField({
         className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
         placeholder={t('form.filterEnterPlaceholder', { name: label })}
       />
+      {fieldHelper && (
+        <Typography variant="caption" className="mt-1.5 block text-muted-foreground">
+          {fieldHelper}
+        </Typography>
+      )}
     </Box>
   );
 }

@@ -30,12 +30,7 @@ export const categoryAttributeColumns = (
     delete: boolean;
   },
   t: TFunction<'table'>,
-  onDelete?: (id: number) => void,
-  isDeleting?: boolean,
-  isDeleteDialogOpen?: boolean,
-  onDeleteConfirm?: () => void,
-  onDeleteCancel?: () => void,
-  deletingId?: number | null
+  onDelete?: (id: number) => void
 ): ColumnDef<CategoryAttributeFormValues>[] => [
   {
     id: 'name',
@@ -121,11 +116,6 @@ export const categoryAttributeColumns = (
         viewDetails={`/categories/attributes/update/${row.original.id}`}
         editItem={`/categories/attributes/update/${row.original.id}`}
         onDelete={onDelete}
-        isDeleting={isDeleting}
-        isDeleteDialogOpen={isDeleteDialogOpen}
-        onDeleteConfirm={onDeleteConfirm}
-        onDeleteCancel={onDeleteCancel}
-        deletingId={deletingId}
         permissions={permissions}
       />
     ),

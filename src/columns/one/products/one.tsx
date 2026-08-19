@@ -12,6 +12,7 @@ import { normalizeFormattedMoneyText } from '@/utils/format-currency';
 import { createToggleColumn } from '@/shared/ui/table-data/data-table-toggle-cell';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
+import { productRowHasNoShopLink } from '@/pages/dashboard/products/utils/variant-payload';
 
 import { paths } from 'src/routes/paths';
 
@@ -324,6 +325,15 @@ export type ProductApprovalActions = {
   rejectingId: number | string | null;
 };
 
+/**
+ * True only when the list row carries explicit evidence that no variant is linked to a
+ * branch (`shop_variants` were ignored during the backend bug window — such products are
+ * not purchasable on the web). Rows that don't embed variant/shop data are left unflagged.
+ */
+function productHasNoShopLink(row: ProductFormValues): boolean {
+  return productRowHasNoShopLink(row as Record<string, unknown>);
+}
+
 export const productColumns = (
   permissions: {
     update: boolean;
@@ -386,6 +396,12 @@ export const productColumns = (
           <div className="text-xs text-muted-foreground truncate">
             {formatTranslated(row.original.description)}
           </div>
+          {productHasNoShopLink(row.original) && (
+            <span className="mt-1 inline-flex items-center gap-1 rounded-full border border-destructive/30 bg-destructive/10 px-2 py-0.5 text-[11px] font-medium text-destructive">
+              <Iconify icon="solar:danger-triangle-bold" width={12} height={12} />
+              {t('columns.noShopLink')}
+            </span>
+          )}
         </div>
       </div>
     ),

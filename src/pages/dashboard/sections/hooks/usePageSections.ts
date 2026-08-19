@@ -1,6 +1,4 @@
-import type {
-  PageSectionCreateUpdatePayload,
-} from '../types/page-section.types';
+import type { PageSectionUpdatePayload } from '../types/page-section.types';
 import type { PagePreviewQueryParams, PageSectionReorderPayload } from '../types/page-preview.types';
 
 import { queryKeys } from '@/api/queryKeys';
@@ -11,12 +9,6 @@ import {
   serializePagePreviewParams,
   toPagePreviewRequestParams,
 } from '../utils/page-preview-params';
-
-// Fetch list of page sections
-export const useFetchPageSections = (page: number = 1, limit: number = 25, search?: string) => useQuery({
-    queryKey: queryKeys.pageSection.list({ page, limit, search }),
-    queryFn: () => _PageSectionApi.getListPageSections(page, limit, search),
-  });
 
 // Fetch page section details
 export const useFetchPageSectionDetails = (id: string | number) => useQuery({
@@ -56,28 +48,18 @@ export const useFetchFilterData = (url: string | null, params?: any) => useQuery
     enabled: !!url,
   });
 
-// Create page section mutation
-export const useCreatePageSection = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (data: PageSectionCreateUpdatePayload) => _PageSectionApi.createPageSection(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['pageSection', 'list'] });
-    },
-  });
-};
-
 // Update page section mutation
 export const useUpdatePageSection = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string | number; data: PageSectionCreateUpdatePayload }) =>
+    mutationFn: ({ id, data }: { id: string | number; data: PageSectionUpdatePayload }) =>
       _PageSectionApi.updatePageSection(id, data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['pageSection', 'list'] });
       queryClient.invalidateQueries({ queryKey: ['pageSection', 'details', variables.id] });
+      queryClient.invalidateQueries({ queryKey: ['pageSection', 'pagePreview'] });
+      queryClient.invalidateQueries({ queryKey: ['pageBuilder'] });
     },
   });
 };
@@ -98,6 +80,7 @@ export const useReorderPageSections = () => {
       queryClient.invalidateQueries({
         queryKey: ['pageSection', 'pagePreview', variables.pageId],
       });
+      queryClient.invalidateQueries({ queryKey: ['pageBuilder'] });
     },
   });
 };
@@ -109,7 +92,8 @@ export const useDeletePageSection = () => {
   return useMutation({
     mutationFn: (id: string | number) => _PageSectionApi.deletePageSection(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['pageSection', 'list'] });
+      queryClient.invalidateQueries({ queryKey: ['pageSection'] });
+      queryClient.invalidateQueries({ queryKey: ['pageBuilder'] });
     },
   });
 };

@@ -38,11 +38,20 @@ export interface BasketItem {
     id: number;
     shop_id: number;
     shop_name: string;
-    price: number;
+    /** Legacy display keys — sale price/stock now live on `variant`. */
+    price?: number;
     discount?: number | null;
     price_after_discount?: number | null;
     cost_price?: number | null;
-    quantity: number;
+    /** Display-only mirror of variant quantity (same key, new source). */
+    quantity?: number;
+    variant?: {
+      id?: number;
+      price?: number;
+      quantity?: number;
+      discount?: number | null;
+      price_after_discount?: number | null;
+    };
   };
   /** Product variant identifiers when API embeds them */
   product_variant?: {

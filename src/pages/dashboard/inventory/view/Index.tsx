@@ -72,6 +72,8 @@ export default function InventoryPage() {
   const [brandFilter, setBrandFilter] = useState('');
   const [vendorFilter, setVendorFilter] = useState('');
   const [shopFilter, setShopFilter] = useState('');
+  const [quantityMin, setQuantityMin] = useState('');
+  const [quantityMax, setQuantityMax] = useState('');
   const [sortField, setSortField] = useState('');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
@@ -96,6 +98,8 @@ export default function InventoryPage() {
     setBrandFilter('');
     setVendorFilter('');
     setShopFilter('');
+    setQuantityMin('');
+    setQuantityMax('');
     setSortField('');
     setSortOrder('desc');
   };
@@ -153,6 +157,12 @@ export default function InventoryPage() {
     ...(categoryFilter ? { category_id: Number(categoryFilter) } : {}),
     ...(brandFilter ? { brand_id: Number(brandFilter) } : {}),
     ...(shopFilter ? { shop_id: Number(shopFilter) } : {}),
+    ...(quantityMin !== '' && Number.isFinite(Number(quantityMin))
+      ? { quantity_min: Math.floor(Number(quantityMin)) }
+      : {}),
+    ...(quantityMax !== '' && Number.isFinite(Number(quantityMax))
+      ? { quantity_max: Math.floor(Number(quantityMax)) }
+      : {}),
     sort_field: sortField || DEFAULT_INVENTORY_SORT_FIELD,
     sort_order: sortField ? sortOrder : DEFAULT_INVENTORY_SORT_ORDER,
   };
@@ -261,7 +271,17 @@ export default function InventoryPage() {
   const filterSelectClass =
     'w-full h-10 rounded-lg border border-border/60 bg-background px-2.5 text-sm text-foreground focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/15 transition-colors';
 
-  const activeFilterCount = [approvalStatus, isVisibleFilter, categoryFilter, brandFilter, vendorFilter, shopFilter, sortField].filter(Boolean).length;
+  const activeFilterCount = [
+    approvalStatus,
+    isVisibleFilter,
+    categoryFilter,
+    brandFilter,
+    vendorFilter,
+    shopFilter,
+    quantityMin,
+    quantityMax,
+    sortField,
+  ].filter(Boolean).length;
 
   return (
     <>
@@ -458,6 +478,30 @@ export default function InventoryPage() {
                   <option key={sh.id} value={String(sh.id)}>{sh.name}</option>
                 ))}
               </select>
+            </FilterGroup>
+
+            <FilterGroup label={t('productFilterQuantityMin')}>
+              <input
+                type="number"
+                min={0}
+                step={1}
+                className={filterSelectClass}
+                value={quantityMin}
+                onChange={(e) => { setQuantityMin(e.target.value); setPageOne(); }}
+                placeholder="0"
+              />
+            </FilterGroup>
+
+            <FilterGroup label={t('productFilterQuantityMax')}>
+              <input
+                type="number"
+                min={0}
+                step={1}
+                className={filterSelectClass}
+                value={quantityMax}
+                onChange={(e) => { setQuantityMax(e.target.value); setPageOne(); }}
+                placeholder=""
+              />
             </FilterGroup>
 
             <FilterGroup label={t('productFilterSortBy')}>

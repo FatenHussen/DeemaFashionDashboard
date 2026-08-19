@@ -227,6 +227,7 @@ function VariantPriceEditor({
           <Input
             type="number"
             min={0}
+            step={1}
             value={quantity}
             onChange={(e) => setQuantity(e.target.value)}
             className="h-9 w-full min-w-0"

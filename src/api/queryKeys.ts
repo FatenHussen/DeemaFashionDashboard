@@ -64,8 +64,17 @@ export const queryKeys = {
   product: {
     list: (params?: Record<string, unknown>) => ['product', 'list', params] as const,
     details: (id: number | string) => ['product', 'details', id] as const,
-    variants: (id: number | string, params?: { page?: number; per_page?: number }) =>
-      ['product', 'variants', id, params] as const,
+    variants: (
+      id: number | string,
+      params?: {
+        page?: number;
+        per_page?: number;
+        price_min?: number;
+        price_max?: number;
+        quantity_min?: number;
+        quantity_max?: number;
+      }
+    ) => ['product', 'variants', id, params] as const,
   },
   // Governorate query keys
   governorate: {
@@ -102,6 +111,9 @@ export const queryKeys = {
   categoryAttribute: {
     list: (params?: Record<string, unknown>) => ['categoryattribute', 'list', params] as const,
     details: (id: number | string) => ['categoryattribute', 'details', id] as const,
+    deleteImpact: (id: number | string) => ['categoryattribute', 'delete-impact', id] as const,
+    linkedItems: (id: number | string, page: number, perPage: number) =>
+      ['categoryattribute', 'linked-items', id, page, perPage] as const,
   },
   // Category Detail query keys
   categoryDetail: {
@@ -126,8 +138,16 @@ export const queryKeys = {
   },
   // Section query keys
   section: {
-    list: (params?: { page?: number; limit?: number; search?: string; category_id?: number }) =>
-      ['section', 'list', params] as const,
+    list: (params?: {
+      page?: number;
+      per_page?: number;
+      limit?: number;
+      search?: string;
+      content_type?: string;
+      type?: string;
+      is_active?: 0 | 1;
+      category_id?: number;
+    }) => ['section', 'list', params] as const,
     details: (id: number | string) => ['section', 'details', id] as const,
     itemTypes: () => ['section', 'item-types'] as const,
     manualItems: (manualModel: string, url: string, params?: { page?: number; limit?: number; search?: string }) =>
@@ -285,6 +305,7 @@ export const queryKeys = {
   },
   // Product Variant query keys
   productVariant: {
+    list: (params?: Record<string, unknown>) => ['productVariant', 'list', params] as const,
     details: (id: number | string) => ['productVariant', 'details', id] as const,
   },
   // Shop Product Variant query keys (shared - used in selects)

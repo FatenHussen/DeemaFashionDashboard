@@ -1,4 +1,4 @@
-import type { CategoryListResponse } from '../types/category.types';
+import type { CategoryData, CategoryListResponse } from '../types/category.types';
 
 // ----------------------------------------------------------------------
 
@@ -9,7 +9,10 @@ export function categoryListTotal(resp: CategoryListResponse | undefined): numbe
   return resp?.data?.pagination?.total ?? 0;
 }
 
-/** Effective leaf category id from cascade (0 if main not chosen). */
+/**
+ * Last selected cascade id (root / parent / leaf). 0 if main is not chosen.
+ * Empty or 0 sub-selections stop the walk — they do not force a leaf.
+ */
 export function leafCategoryIdFromCascade(mainCategoryId: number, subSelections: number[]): number {
   if (mainCategoryId <= 0) return 0;
   let effective = mainCategoryId;
@@ -19,4 +22,25 @@ export function leafCategoryIdFromCascade(mainCategoryId: number, subSelections:
     effective = s;
   }
   return effective;
+}
+
+/** Root / main category: `is_root` or `parent_id === null`. */
+export function isRootCategory(
+  cat: Pick<CategoryData, 'is_root' | 'parent_id'> | undefined | null
+): boolean {
+  if (!cat) return false;
+  if (cat.is_root === true) return true;
+  if (cat.is_root === false) return false;
+  return cat.parent_id == null || Number(cat.parent_id) === 0;
+}
+
+/** Show the next cascade select when the selected category has children. Not a save requirement. */
+export function categoryHasChildren(
+  cat: Pick<CategoryData, 'has_children' | 'children_count'> | undefined
+): boolean {
+  if (!cat) return false;
+  if (cat.has_children === true) return true;
+  if ((cat.children_count ?? 0) > 0) return true;
+  if (cat.has_children === false) return false;
+  return false;
 }

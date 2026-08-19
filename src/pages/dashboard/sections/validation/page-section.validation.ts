@@ -17,18 +17,10 @@ export const PageSectionSchema = z.object({
     },
     { message: t('pageSection.sectionRequired') }
   ),
-  page_id: z.union([z.string(), z.number()]).refine(
-    (val) => {
-      if (typeof val === 'string') return val !== '';
-      if (typeof val === 'number') return val > 0;
-      return false;
-    },
-    { message: t('pageSection.pageRequired') }
-  ),
   position: z.enum(['before', 'after'], {
     required_error: t('pageSection.positionRequired'),
   }),
-  variant: z.enum(['vertical', 'square'], {
+  variant: z.enum(['horizontal', 'vertical', 'square'], {
     required_error: t('pageSection.variantRequired'),
   }),
   order: z.union([z.string(), z.number()]),

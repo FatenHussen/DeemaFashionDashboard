@@ -70,29 +70,52 @@ export const useFetchManualItems = (
 interface InfiniteManualItemsParams {
   limit?: number;
   search?: string;
+  /** Extra query params forwarded to the items list API (e.g. category_id for products). */
+  listFilters?: Record<string, unknown>;
+}
+
+/** Explicit items feed (URL + fixed params) that bypasses the `item-types` map. */
+export interface ManualItemsSource {
+  url: string;
+  params?: Record<string, unknown>;
 }
 
 export const useInfiniteManualItems = (
   manualModel: string | null | undefined,
-  params: InfiniteManualItemsParams = {}
+  params: InfiniteManualItemsParams = {},
+  source?: ManualItemsSource
 ) => {
-  const { limit = 10, search } = params;
+  const { limit = 10, search, listFilters } = params;
 
   const itemTypesQuery = useFetchSectionItemTypes();
 
   const url = useMemo(() => {
+    if (source?.url) return source.url;
     if (!manualModel || !itemTypesQuery.data?.data) return null;
     const entry = itemTypesQuery.data.data[manualModel];
     if (!entry || Array.isArray(entry)) return null;
     return (entry as ItemTypeEntry).url || null;
-  }, [manualModel, itemTypesQuery.data]);
+  }, [source?.url, manualModel, itemTypesQuery.data]);
+
+  const mergedListParams = useMemo(
+    () => ({ ...source?.params, ...listFilters }),
+    [source?.params, listFilters]
+  );
 
   const infiniteQuery = useInfiniteQuery({
-    queryKey: ['section', 'manual-items', 'infinite', manualModel, url, { limit, search }],
+    queryKey: [
+      'section',
+      'manual-items',
+      'infinite',
+      manualModel,
+      url,
+      { limit, search, ...mergedListParams },
+    ],
     queryFn: async ({ pageParam }) => {
       if (!url) throw new Error('Invalid manual model or URL not found');
       const response = await axiosInstance.get<ManualItemsListResponse>(url, {
-        params: { page: pageParam, limit, search },
+        // `per_page` mirrors `limit` for admin list endpoints used as explicit sources.
+        params: { page: pageParam, limit, per_page: limit, search, ...mergedListParams },
       });
       return response.data;
     },

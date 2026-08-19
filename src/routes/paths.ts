@@ -24,10 +24,9 @@ export const ROOTS = {
   SERVICES: '/services',
   // LANGUAGES: '/languages',
   SECTIONS: '/sections',
-  PAGE_SECTIONS: '/sections/page-sections',
   PAGES: '/sections/pages',
   NAV_MENU_ITEMS: '/sections/nav-menu-items',
-  BANNERS: '/banners',
+  BANNERS: '/sections/banners',
   COUPONS: '/coupons',
   COMPLAINTS: '/complaints',
   USERS: '/users',
@@ -157,7 +156,6 @@ export const paths = {
     services: ROOTS.SERVICES,
     // languages: ROOTS.LANGUAGES,
     sections: ROOTS.SECTIONS,
-    pageSections: ROOTS.PAGE_SECTIONS,
     pages: ROOTS.PAGES,
     /** Storefront top-bar items (`nav_menu_items`) */
     navMenuItems: {

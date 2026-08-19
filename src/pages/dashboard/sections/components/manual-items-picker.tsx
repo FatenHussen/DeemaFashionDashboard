@@ -1,13 +1,20 @@
 import type { DragEndEvent } from '@dnd-kit/core';
+import type { ManualItemsSource } from '@/pages/dashboard/sections/hooks/useManualItems';
 import type { ItemIdEntry } from '../types/section.types';
 
+import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { Iconify } from '@/shared/components/iconify';
-import { useRef, useMemo, useState, useEffect } from 'react';
+import { useRef, useMemo, useState, useEffect, useCallback } from 'react';
 import { useInfiniteManualItems } from '@/pages/dashboard/sections/hooks/useManualItems';
 import { arrayMove, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useSensor, DndContext, useSensors, PointerSensor, closestCenter } from '@dnd-kit/core';
+import { DynamicFilterField } from '@/pages/dashboard/sections/components/dynamic-filter-field';
+import { MANUAL_ITEM_PICKER_FILTERS } from '@/pages/dashboard/sections/utils/content-type-config';
 
+import { paths } from 'src/routes/paths';
+
+import { CONFIG } from 'src/global-config';
 import { Box, Input, Button, Typography } from 'src/shared/ui';
 import { SortableItem } from 'src/shared/ui/table-data/sortable-item';
 
@@ -18,8 +25,24 @@ function isGifManualModel(manualModel: string | undefined | null): boolean {
   return (manualModel ?? '').trim().toLowerCase() === 'gif';
 }
 
+/** Banners (and GIFs) are wide images — previewed at a horizontal ratio, not as squares. */
+function isWideImageManualModel(manualModel: string | undefined | null): boolean {
+  const model = (manualModel ?? '').trim().toLowerCase();
+  return model === 'banner' || model === 'gif';
+}
+
+function resolveItemImageUrl(item: Record<string, any>): string | null {
+  const src = item.image_url ?? item.image ?? item.icon;
+  if (typeof src !== 'string' || !src.trim()) return null;
+  const s = src.trim();
+  if (s.startsWith('http://') || s.startsWith('https://')) return s;
+  const base = CONFIG.serverUrl?.replace(/\/$/, '') ?? '';
+  return base ? `${base}/${s.replace(/^\//, '')}` : s;
+}
+
 function defaultLinkForManualItem(manualModel: string, itemId: number): string {
-  return isGifManualModel(manualModel) ? '' : `/item/${itemId}`;
+  if (isWideImageManualModel(manualModel)) return '';
+  return `/item/${itemId}`;
 }
 
 /**
@@ -30,32 +53,80 @@ export function ManualItemsPicker({
   manualModel,
   orderedItems,
   setOrderedItems,
+  source,
+  labelOverrides,
 }: {
   manualModel: string;
   orderedItems: ItemIdEntry[];
   setOrderedItems: React.Dispatch<React.SetStateAction<ItemIdEntry[]>>;
+  /** Explicit items feed (e.g. shops split by `is_restaurant`) — bypasses the `item-types` map. */
+  source?: ManualItemsSource;
+  /** Known labels for selected items not yet present in the fetched pages (edit mode). */
+  labelOverrides?: Map<number, string>;
 }) {
   const { t } = useTranslation('table');
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [listFilters, setListFilters] = useState<Record<string, unknown>>({});
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const isWide = isWideImageManualModel(manualModel);
+  const hideItemLinks = !isGifManualModel(manualModel);
+
+  const pickerFilterSchema = MANUAL_ITEM_PICKER_FILTERS[manualModel as keyof typeof MANUAL_ITEM_PICKER_FILTERS];
+  const pickerFilterEntries = useMemo(
+    () => Object.entries(pickerFilterSchema ?? {}),
+    [pickerFilterSchema]
+  );
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedSearch(searchTerm.trim()), 300);
+    return () => window.clearTimeout(timer);
+  }, [searchTerm]);
+
+  const listFilterParams = useMemo(() => {
+    const params: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(listFilters)) {
+      if (value === null || value === undefined || value === '') continue;
+      params[key] = value;
+    }
+    return params;
+  }, [listFilters]);
+
+  const handleListFilterChange = useCallback((key: string, value: unknown) => {
+    setListFilters((prev) => {
+      const next = { ...prev };
+      if (value === null || value === undefined || value === '') {
+        delete next[key];
+      } else {
+        next[key] = value;
+      }
+      return next;
+    });
+  }, []);
 
   // Pointer only: KeyboardSensor steals keys for inputs inside sortables.
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
-  const { infiniteQuery, allItems } = useInfiniteManualItems(manualModel || null, {
-    limit: 10,
-    search: searchTerm,
-  });
+  const { infiniteQuery, allItems } = useInfiniteManualItems(
+    manualModel || null,
+    {
+      limit: 10,
+      search: debouncedSearch || undefined,
+      listFilters: listFilterParams,
+    },
+    source
+  );
 
   const selectedIds = useMemo(() => new Set(orderedItems.map((e) => e.item_id)), [orderedItems]);
 
   const itemLabelById = useMemo(() => {
-    const map = new Map<number, string>();
+    const map = new Map<number, string>(labelOverrides ?? []);
     for (const row of allItems as { id: number; name?: string; title?: string }[]) {
       map.set(row.id, row.name || row.title || '');
     }
     return map;
-  }, [allItems]);
+  }, [allItems, labelOverrides]);
 
   useEffect(() => {
     const sentinel = sentinelRef.current;
@@ -85,7 +156,7 @@ export function ManualItemsPicker({
       if (oldIndex === -1 || newIndex === -1) return prev;
       return arrayMove(prev, oldIndex, newIndex).map((entry, idx) => ({
         ...entry,
-        order: idx + 1,
+        order: idx,
       }));
     });
   };
@@ -94,14 +165,16 @@ export function ManualItemsPicker({
     setOrderedItems((prev) => {
       const exists = prev.some((p) => p.item_id === itemId);
       if (exists) {
-        return prev.filter((p) => p.item_id !== itemId).map((e, idx) => ({ ...e, order: idx + 1 }));
+        return prev.filter((p) => p.item_id !== itemId).map((e, idx) => ({ ...e, order: idx }));
       }
       return [
         ...prev,
         {
           item_id: itemId,
-          link: defaultLinkForManualItem(manualModel, itemId),
-          order: prev.length + 1,
+          order: prev.length,
+          ...(isGifManualModel(manualModel)
+            ? { link: defaultLinkForManualItem(manualModel, itemId) }
+            : {}),
         },
       ];
     });
@@ -112,8 +185,10 @@ export function ManualItemsPicker({
     setOrderedItems(
       (allItems as { id: number }[]).map((item, index) => ({
         item_id: item.id,
-        link: defaultLinkForManualItem(manualModel, item.id),
-        order: index + 1,
+        order: index,
+        ...(isGifManualModel(manualModel)
+          ? { link: defaultLinkForManualItem(manualModel, item.id) }
+          : {}),
       }))
     );
   };
@@ -162,6 +237,27 @@ export function ManualItemsPicker({
         </Box>
       </Box>
       <Box className="p-6">
+        {isWide && (
+          <Box className="mb-4 flex flex-col gap-3 rounded-xl border border-amber-500/20 bg-amber-500/[0.06] px-4 py-3 sm:flex-row sm:items-start">
+            <Iconify
+              icon="solar:info-circle-bold"
+              className="mt-0.5 shrink-0 text-amber-600"
+              width={18}
+            />
+            <Typography variant="body2" className="min-w-0 flex-1 text-muted-foreground">
+              {t('form.pageBuilderBannerPickHelper')}
+            </Typography>
+            <Button
+              type="button"
+              variant="outlined"
+              size="small"
+              className="shrink-0 self-start"
+              onClick={() => navigate(paths.dashboard.banners)}
+            >
+              {t('form.pageBuilderBannerManageLibrary')}
+            </Button>
+          </Box>
+        )}
         {orderedItems.length > 0 && (
           <Box className="mb-4 p-4 border rounded-lg bg-muted/20 space-y-2">
             <Typography variant="subtitle2" className="font-semibold text-foreground">
@@ -170,9 +266,11 @@ export function ManualItemsPicker({
             <Typography variant="body2" className="text-muted-foreground text-sm">
               {t('form.sectionItemsOrderHelper')}
             </Typography>
-            <Typography variant="body2" className="text-muted-foreground text-sm">
-              {t('form.sectionItemLinkHint')}
-            </Typography>
+            {!hideItemLinks && (
+              <Typography variant="body2" className="text-muted-foreground text-sm">
+                {t('form.sectionItemLinkHint')}
+              </Typography>
+            )}
             <DndContext
               sensors={sensors}
               collisionDetection={closestCenter}
@@ -187,6 +285,10 @@ export function ManualItemsPicker({
                     const label =
                       itemLabelById.get(entry.item_id)?.trim() ||
                       t('form.itemNumberFallback', { id: entry.item_id });
+                    const selectedRow = (allItems as Record<string, any>[]).find(
+                      (row) => row.id === entry.item_id
+                    );
+                    const selectedImage = selectedRow ? resolveItemImageUrl(selectedRow) : null;
                     return (
                       <SortableItem key={entry.item_id} id={entry.item_id}>
                         <Box className="flex min-w-0 flex-1 flex-col gap-2">
@@ -194,6 +296,20 @@ export function ManualItemsPicker({
                             <Box className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-muted text-xs font-medium text-muted-foreground">
                               {index + 1}
                             </Box>
+                            {selectedImage && (
+                              <Box
+                                className={`shrink-0 overflow-hidden rounded-md border border-border/60 bg-muted/40 ${
+                                  isWide ? 'aspect-[16/6] w-28 sm:w-36' : 'h-10 w-10'
+                                }`}
+                              >
+                                <img
+                                  src={selectedImage}
+                                  alt=""
+                                  loading="lazy"
+                                  className="h-full w-full object-cover"
+                                />
+                              </Box>
+                            )}
                             <Box className="min-w-0 flex-1">
                               <Typography variant="body2" className="font-medium truncate">
                                 {label}
@@ -203,32 +319,36 @@ export function ManualItemsPicker({
                               </Typography>
                             </Box>
                           </Box>
-                          <Box
-                            className="relative z-10 w-full max-w-full"
-                            onPointerDownCapture={(e) => e.stopPropagation()}
-                            onPointerDown={(e) => e.stopPropagation()}
-                            onClickCapture={(e) => e.stopPropagation()}
-                            onKeyDownCapture={(e) => e.stopPropagation()}
-                          >
-                            <Typography
-                              variant="caption"
-                              className="mb-1 block text-muted-foreground"
+                          {!hideItemLinks && (
+                            <Box
+                              className="relative z-10 w-full max-w-full"
+                              onPointerDownCapture={(e) => e.stopPropagation()}
+                              onPointerDown={(e) => e.stopPropagation()}
+                              onClickCapture={(e) => e.stopPropagation()}
+                              onKeyDownCapture={(e) => e.stopPropagation()}
                             >
-                              {t('form.sectionItemLinkLabel')}
-                            </Typography>
-                            <Input
-                              type="text"
-                              inputMode="url"
-                              autoComplete="off"
-                              floatingLabel={false}
-                              fullWidth
-                              value={entry.link ?? ''}
-                              onChange={(e) => handleItemLinkChange(entry.item_id, e.target.value)}
-                              onKeyDown={(e) => e.stopPropagation()}
-                              placeholder={t('form.sectionItemLinkPlaceholder')}
-                              className="w-full"
-                            />
-                          </Box>
+                              <Typography
+                                variant="caption"
+                                className="mb-1 block text-muted-foreground"
+                              >
+                                {t('form.sectionItemLinkLabel')}
+                              </Typography>
+                              <Input
+                                type="text"
+                                inputMode="url"
+                                autoComplete="off"
+                                floatingLabel={false}
+                                fullWidth
+                                value={entry.link ?? ''}
+                                onChange={(e) =>
+                                  handleItemLinkChange(entry.item_id, e.target.value)
+                                }
+                                onKeyDown={(e) => e.stopPropagation()}
+                                placeholder={t('form.sectionItemLinkPlaceholder')}
+                                className="w-full"
+                              />
+                            </Box>
+                          )}
                         </Box>
                       </SortableItem>
                     );
@@ -239,8 +359,8 @@ export function ManualItemsPicker({
           </Box>
         )}
 
-        {/* Search Input */}
-        <Box className="mb-4">
+        {/* Search + optional list filters (products: category / brand / shop) */}
+        <Box className="mb-4 space-y-4">
           <Input
             type="text"
             autoComplete="off"
@@ -251,6 +371,20 @@ export function ManualItemsPicker({
             placeholder={t('form.searchItems')}
             className="w-full"
           />
+          {pickerFilterEntries.length > 0 && (
+            <Box className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              {pickerFilterEntries.map(([filterKey, filterConfig]) => (
+                <DynamicFilterField
+                  key={`manual_${manualModel}_${filterKey}`}
+                  filterKey={filterKey}
+                  filterConfig={filterConfig}
+                  value={listFilters[filterKey]}
+                  onChange={(value) => handleListFilterChange(filterKey, value)}
+                  allowNullOption
+                />
+              ))}
+            </Box>
+          )}
         </Box>
 
         {/* Loading State */}
@@ -290,17 +424,37 @@ export function ManualItemsPicker({
                 </Typography>
               </Box>
             ) : (
-              <Box className="divide-y divide-border">
+              <Box className={isWide ? 'grid grid-cols-1 sm:grid-cols-2 gap-3 p-3' : 'divide-y divide-border'}>
                 {allItems.map((item: any) => {
                   const isSelected = selectedIds.has(item.id);
+                  const imageSrc = resolveItemImageUrl(item);
                   return (
                     <Box
                       key={item.id}
                       onClick={() => handleToggleItem(item.id)}
-                      className={`p-4 flex items-center gap-4 cursor-pointer transition-colors hover:bg-muted/50 ${
-                        isSelected ? 'bg-primary/5 border-l-4 border-l-primary' : ''
+                      className={`cursor-pointer transition-colors hover:bg-muted/50 ${
+                        isWide
+                          ? 'flex flex-col gap-3 rounded-xl border border-border/50 p-3'
+                          : 'flex items-center gap-4 p-4'
+                      } ${
+                        isSelected
+                          ? isWide
+                            ? 'bg-primary/5 ring-2 ring-primary/30'
+                            : 'bg-primary/5 border-l-4 border-l-primary'
+                          : ''
                       }`}
                     >
+                      {isWide && imageSrc && (
+                        <Box className="aspect-[16/6] w-full overflow-hidden rounded-lg border border-border/60 bg-muted/40">
+                          <img
+                            src={imageSrc}
+                            alt=""
+                            loading="lazy"
+                            className="h-full w-full object-cover"
+                          />
+                        </Box>
+                      )}
+                      <Box className={`flex min-w-0 items-center gap-4 ${isWide ? 'w-full' : 'flex-1'}`}>
                       <input
                         type="checkbox"
                         checked={isSelected}
@@ -308,6 +462,16 @@ export function ManualItemsPicker({
                         onClick={(e) => e.stopPropagation()}
                         className="w-5 h-5 rounded border-border text-primary focus:ring-primary cursor-pointer"
                       />
+                      {!isWide && imageSrc && (
+                        <Box className="h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-border/60 bg-muted/40">
+                          <img
+                            src={imageSrc}
+                            alt=""
+                            loading="lazy"
+                            className="h-full w-full object-cover"
+                          />
+                        </Box>
+                      )}
                       <Box className="flex-1 min-w-0">
                         <Box className="flex items-center gap-2 mb-1">
                           <Typography variant="body1" className="font-semibold text-foreground">
@@ -336,11 +500,15 @@ export function ManualItemsPicker({
                           height={24}
                         />
                       )}
+                      </Box>
                     </Box>
                   );
                 })}
                 {/* Sentinel for infinite scroll */}
-                <div ref={sentinelRef} className="py-2 text-center">
+                <div
+                  ref={sentinelRef}
+                  className={`py-2 text-center ${isWide ? 'sm:col-span-2' : ''}`}
+                >
                   {infiniteQuery.isFetchingNextPage && (
                     <Typography variant="body2" className="text-muted-foreground">
                       {t('form.loadingMoreItems')}
@@ -356,4 +524,4 @@ export function ManualItemsPicker({
   );
 }
 
-export { isGifManualModel };
+export { isGifManualModel, isWideImageManualModel };

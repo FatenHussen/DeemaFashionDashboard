@@ -112,12 +112,8 @@ const SectionIndexPage = lazyWithRetry(() => import('@/pages/dashboard/sections/
 const SectionCreatePage = lazyWithRetry(() => import('@/pages/dashboard/sections/view/Create'));
 const SectionDetailsPage = lazyWithRetry(() => import('@/pages/dashboard/sections/view/Details'));
 
-const PageSectionIndexPage = lazyWithRetry(() => import('@/pages/dashboard/sections/view/PageSections'));
-const PageSectionCreatePage = lazyWithRetry(
-  () => import('@/pages/dashboard/sections/view/PageSectionCreate')
-);
-const PageSectionDetailsPage = lazyWithRetry(
-  () => import('@/pages/dashboard/sections/view/PageSectionDetails')
+const PageSectionEditPage = lazyWithRetry(
+  () => import('@/pages/dashboard/sections/view/PageSectionEdit')
 );
 
 const PagesIndexPage = lazyWithRetry(() => import('@/pages/dashboard/sections/view/Pages'));
@@ -1159,7 +1155,7 @@ export const dashboardRoutes: RouteObject[] = [
       {
         path: 'pages',
         element: (
-          <RequirePermission permission="pagesection.view">
+          <RequirePermission permissionAny={['page.view', 'pagesection.view']}>
             <PagesIndexPage />
           </RequirePermission>
         ),
@@ -1183,7 +1179,7 @@ export const dashboardRoutes: RouteObject[] = [
       {
         path: 'pages/details/:id',
         element: (
-          <RequirePermission permission="pagesection.view">
+          <RequirePermission permissionAny={['page.view', 'pagesection.view']}>
             <PageDetailsPage />
           </RequirePermission>
         ),
@@ -1193,6 +1189,14 @@ export const dashboardRoutes: RouteObject[] = [
         element: (
           <RequirePermission permission="pagesection.create">
             <PageAddSectionPage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'pages/:pageId/sections/update/:id',
+        element: (
+          <RequirePermission permission="pagesection.update">
+            <PageSectionEditPage />
           </RequirePermission>
         ),
       },
@@ -1217,38 +1221,6 @@ export const dashboardRoutes: RouteObject[] = [
         element: (
           <RequirePermission permissionAny={[...NAV_MENU_ITEM_UPDATE_ANY]}>
             <NavMenuItemCreatePage />
-          </RequirePermission>
-        ),
-      },
-      {
-        path: 'page-sections',
-        element: (
-          <RequirePermission permission="pagesection.view">
-            <PageSectionIndexPage />
-          </RequirePermission>
-        ),
-      },
-      {
-        path: 'page-sections/create',
-        element: (
-          <RequirePermission permission="pagesection.create">
-            <PageSectionCreatePage />
-          </RequirePermission>
-        ),
-      },
-      {
-        path: 'page-sections/update/:id',
-        element: (
-          <RequirePermission permission="pagesection.update">
-            <PageSectionCreatePage />
-          </RequirePermission>
-        ),
-      },
-      {
-        path: 'page-sections/details/:id',
-        element: (
-          <RequirePermission permission="pagesection.view">
-            <PageSectionDetailsPage />
           </RequirePermission>
         ),
       },

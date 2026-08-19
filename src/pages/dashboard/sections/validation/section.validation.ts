@@ -5,20 +5,17 @@ import i18n from 'src/lib/i18n';
 const t = (key: string) => i18n.t(key, { ns: 'validation' });
 
 export const SectionSchema = zod.object({
+  /** `manual` = hand-picked items, `api` = automatic feed with filters. */
+  type: zod.enum(['manual', 'api']),
+  content_type: zod.string().min(1, { message: t('section.contentTypeRequired') }),
   name: zod.object({
     en: zod.string().min(1, { message: t('section.nameEnRequired') }),
     ar: zod.string().min(1, { message: t('section.nameArRequired') }),
   }),
-  manual_model: zod.string().min(1, { message: t('section.manualModelRequired') }),
-  item_ids: zod.array(
-    zod.object({
-      item_id: zod.number(),
-      link: zod
-        .string()
-        .max(255, { message: t('section.itemLinkMax') }),
-      order: zod.number(),
-    })
-  ),
+  /** Display shape — `horizontal` is a slider. Copied to pages that link this section. */
+  variant: zod.enum(['horizontal', 'vertical', 'square']).optional(),
+  background_color: zod.string().optional(),
+  background_card_color: zod.string().optional(),
 });
 
 export type SectionFormValues = zod.infer<typeof SectionSchema>;
