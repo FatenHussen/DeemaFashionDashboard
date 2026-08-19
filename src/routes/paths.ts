@@ -26,6 +26,7 @@ export const ROOTS = {
   SECTIONS: '/sections',
   PAGE_SECTIONS: '/sections/page-sections',
   PAGES: '/sections/pages',
+  NAV_MENU_ITEMS: '/sections/nav-menu-items',
   BANNERS: '/banners',
   COUPONS: '/coupons',
   COMPLAINTS: '/complaints',
@@ -158,6 +159,12 @@ export const paths = {
     sections: ROOTS.SECTIONS,
     pageSections: ROOTS.PAGE_SECTIONS,
     pages: ROOTS.PAGES,
+    /** Storefront top-bar items (`nav_menu_items`) */
+    navMenuItems: {
+      root: ROOTS.NAV_MENU_ITEMS,
+      create: `${ROOTS.NAV_MENU_ITEMS}/create`,
+      update: (id: string | number) => `${ROOTS.NAV_MENU_ITEMS}/update/${id}`,
+    },
     banners: ROOTS.BANNERS,
     coupons: ROOTS.COUPONS,
     complaints: ROOTS.COMPLAINTS,

@@ -161,9 +161,23 @@ export const queryKeys = {
   },
   // Page Builder query keys (unified CMS page CRUD)
   pageBuilder: {
-    list: (params?: { page?: number; per_page?: number; search?: string }) =>
-      ['pageBuilder', 'list', params] as const,
+    /**
+     * `type` and `category_id` are part of the cache identity, not decoration: the Pages screen
+     * runs the same endpoint per tab, so omitting them here would collide content with category rows.
+     */
+    list: (params?: {
+      page?: number;
+      per_page?: number;
+      search?: string;
+      sort_field?: string;
+      sort_order?: string;
+      type?: 'content' | 'category';
+      category_id?: number;
+    }) => ['pageBuilder', 'list', params] as const,
+    listAll: () => ['pageBuilder', 'list', 'all'] as const,
     details: (id: number | string) => ['pageBuilder', 'details', id] as const,
+    sliders: (pageId: number | string, params?: Record<string, unknown>) =>
+      ['pageBuilder', 'sliders', pageId, params] as const,
   },
   // Page Section query keys
   pageSection: {
@@ -463,6 +477,11 @@ export const queryKeys = {
   quickAction: {
     list: (params?: Record<string, unknown>) => ['quickAction', 'list', params] as const,
     details: (id: number | string) => ['quickAction', 'details', id] as const,
+  },
+  // Navigation menu item query keys (storefront top bar)
+  navMenuItem: {
+    list: (params?: Record<string, unknown>) => ['navMenuItem', 'list', params] as const,
+    details: (id: number | string) => ['navMenuItem', 'details', id] as const,
   },
   // Popup Campaign query keys
   popupCampaign: {

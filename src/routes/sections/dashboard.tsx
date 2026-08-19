@@ -5,6 +5,11 @@ import { Outlet } from 'react-router';
 import { RequirePermission } from '@/auth/components/require-permission';
 import { FLASH_SALE_PERMISSION } from '@/pages/dashboard/flash-sales/permissions';
 import {
+  NAV_MENU_ITEM_VIEW_ANY,
+  NAV_MENU_ITEM_CREATE_ANY,
+  NAV_MENU_ITEM_UPDATE_ANY,
+} from '@/pages/dashboard/nav-menu-items/permissions';
+import {
   CONTACT_METHOD_VIEW_ANY,
   CONTACT_METHOD_UPDATE_ANY,
   CONTACT_METHOD_CREATE_ANY,
@@ -400,6 +405,10 @@ const ServiceOrderIndexPage = lazyWithRetry(
 // Quick Actions
 const QuickActionIndexPage = lazyWithRetry(() => import('@/pages/dashboard/quick-actions/view/Index'));
 const QuickActionCreatePage = lazyWithRetry(() => import('@/pages/dashboard/quick-actions/view/Create'));
+
+// Navigation menu items (storefront top bar)
+const NavMenuItemIndexPage = lazyWithRetry(() => import('@/pages/dashboard/nav-menu-items/view/Index'));
+const NavMenuItemCreatePage = lazyWithRetry(() => import('@/pages/dashboard/nav-menu-items/view/Create'));
 
 // Popup Campaigns
 const PopupCampaignIndexPage = lazyWithRetry(() => import('@/pages/dashboard/popup-campaigns/view/Index'));
@@ -1184,6 +1193,30 @@ export const dashboardRoutes: RouteObject[] = [
         element: (
           <RequirePermission permission="pagesection.create">
             <PageAddSectionPage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'nav-menu-items',
+        element: (
+          <RequirePermission permissionAny={[...NAV_MENU_ITEM_VIEW_ANY]}>
+            <NavMenuItemIndexPage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'nav-menu-items/create',
+        element: (
+          <RequirePermission permissionAny={[...NAV_MENU_ITEM_CREATE_ANY]}>
+            <NavMenuItemCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'nav-menu-items/update/:id',
+        element: (
+          <RequirePermission permissionAny={[...NAV_MENU_ITEM_UPDATE_ANY]}>
+            <NavMenuItemCreatePage />
           </RequirePermission>
         ),
       },

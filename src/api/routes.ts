@@ -195,6 +195,20 @@ export const apiRoutes = {
     /** Persist section order on a CMS page. Body: `{ sections: [{ id, order, position }] }`. */
     pageReorder: (pageId: number | string) => `${ROOTS.ADMIN}/page-sections/pages/${pageId}/reorder`,
   },
+  /**
+   * Storefront navigation menu items (the public top bar).
+   * Requires `navmenuitem.*` permissions. Create/update are sent as `multipart/form-data`
+   * (optional `icon` upload); update is POSTed with `_method=PUT`.
+   */
+  navMenuItem: {
+    list: `${ROOTS.ADMIN}/nav-menu-items`,
+    create: `${ROOTS.ADMIN}/nav-menu-items`,
+    details: (id: number | string) => `${ROOTS.ADMIN}/nav-menu-items/${id}`,
+    update: (id: number | string) => `${ROOTS.ADMIN}/nav-menu-items/${id}`,
+    delete: (id: number | string) => `${ROOTS.ADMIN}/nav-menu-items/${id}`,
+    /** Persist drag-and-drop ordering. Body: `{ ordered_ids: number[] }`. */
+    reorder: `${ROOTS.ADMIN}/nav-menu-items/reorder`,
+  },
   // Other API routes (from old endpoints)
   chat: '/api/chat',
   kanban: '/api/kanban',

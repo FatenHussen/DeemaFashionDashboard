@@ -37,9 +37,31 @@ export const _PageBuilderApi = {
         ...(params?.search?.trim() ? { search: params.search.trim() } : {}),
         ...(params?.sort_field ? { sort_field: params.sort_field } : {}),
         ...(params?.sort_order ? { sort_order: params.sort_order } : {}),
+        ...(params?.type ? { type: params.type } : {}),
+        ...(params?.category_id != null ? { category_id: params.category_id } : {}),
       },
     });
     return normalizeListResponse(response.data);
+  },
+
+  /**
+   * Fetches every page of the pages list and merges rows (deduped by id).
+   * For the pickers that need one flat list of every page (nav-menu targets); the Pages
+   * screen filters and paginates server-side instead.
+   */
+  getListAllPagesFlat: async (
+    params?: Omit<PageBuilderListQueryParams, 'page' | 'per_page'>
+  ): Promise<PageBuilderListItem[]> => {
+    const perPage = 500;
+    const first = await _PageBuilderApi.getListPages({ ...params, page: 1, per_page: perPage });
+    const byId = new Map<number, PageBuilderListItem>();
+    for (const p of first.data.items) byId.set(p.id, p);
+    const lastPage = Math.max(1, first.data.pagination?.last_page ?? 1);
+    for (let page = 2; page <= lastPage; page++) {
+      const r = await _PageBuilderApi.getListPages({ ...params, page, per_page: perPage });
+      for (const p of r.data.items) byId.set(p.id, p);
+    }
+    return Array.from(byId.values());
   },
 
   getPageDetails: async (id: number | string): Promise<PageBuilderDetailsResponse> => {

@@ -65,6 +65,9 @@ export const permissionTranslationsEn = {
     icon: 'Icon',
     language: 'Language',
     legaldocument: 'Legal document',
+    navmenuitem: 'Navigation menu',
+    /** Snake-case variant, in case the backend registers the resource that way */
+    nav_menu_item: 'Navigation menu',
     notification: 'Notifications',
     order: 'Order',
     package: 'Package',
@@ -186,6 +189,8 @@ export const permissionTranslationsAr = {
     icon: 'الأيقونات',
     language: 'اللغات',
     legaldocument: 'المستندات القانونية',
+    navmenuitem: 'شريط التنقّل',
+    nav_menu_item: 'شريط التنقّل',
     notification: 'إشعارات الإدارة',
     order: 'الطلبات',
     package: 'الباقات',

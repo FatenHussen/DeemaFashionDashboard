@@ -2,6 +2,7 @@ import type { TFunction } from 'i18next';
 import type { NavSectionProps } from 'src/shared/components/nav-section';
 
 import { FLASH_SALE_PERMISSION } from '@/pages/dashboard/flash-sales/permissions';
+import { NAV_MENU_ITEM_VIEW_ANY } from '@/pages/dashboard/nav-menu-items/permissions';
 import { CONTACT_METHOD_VIEW_ANY } from '@/pages/dashboard/contact-methods/permissions';
 
 import { paths } from 'src/routes/paths';
@@ -119,6 +120,12 @@ export function getNavData(t: TFunction<'nav'>): NavSectionProps['data'] {
         { title: t('sections'), path: paths.dashboard.sections, icon: ICONS.menuItem, requiredPermission: 'section.view' },
         { title: t('pageSections'), path: paths.dashboard.pageSections, icon: ICONS.menuItem, requiredPermission: 'pagesection.view' },
         { title: t('pages'), path: paths.dashboard.pages, icon: ICONS.menuItem, requiredPermission: 'pagesection.view' },
+        {
+          title: t('navMenuItems'),
+          path: paths.dashboard.navMenuItems.root,
+          icon: <Iconify icon="solar:list-bold" width={22} height={22} />,
+          requiredPermissionAny: [...NAV_MENU_ITEM_VIEW_ANY],
+        },
         { title: t('quickActions'), path: paths.dashboard.quickActions.root, icon: ICONS.menuItem, requiredPermission: 'quickaction.view' },
         { title: t('recipes'), path: paths.dashboard.recipes, icon: ICONS.file, requiredPermission: 'recipe.view' },
       ],
