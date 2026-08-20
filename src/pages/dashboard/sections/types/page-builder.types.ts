@@ -66,7 +66,10 @@ export type PageBuilderListQueryParams = {
 
 export type UnifiedSectionType = 'manual' | 'api';
 
-/** Display shape of a section. `horizontal` is a slider strip — not a separate entity. */
+/** Section arrangement on the page. */
+export type UnifiedSectionLayout = 'slider' | 'list' | 'grid';
+
+/** Card shape inside the section. */
 export type UnifiedSectionVariant = 'horizontal' | 'vertical' | 'square';
 
 /** Row returned by `GET /api/admin/pages/{page}/sliders` — every existing section. */
@@ -75,6 +78,7 @@ export interface SliderLibraryItem {
   name: string | { ar?: string; en?: string };
   content_type?: string;
   type?: UnifiedSectionType;
+  layout?: string;
   variant?: string;
   background_color?: string | null;
   background_card_color?: string | null;
@@ -120,8 +124,16 @@ export interface UnifiedSectionCreatePayload {
   position?: 'before' | 'after';
   /** Defaults to last order + 1 server-side. */
   order?: number;
+  /** Section arrangement: slider | list | grid. */
+  layout?: UnifiedSectionLayout;
+  /** Card shape: horizontal | vertical | square. */
   variant?: UnifiedSectionVariant;
   background_color?: string;
   background_card_color?: string;
   show_when?: Record<string, unknown>;
+  /**
+   * Backend-owned content-type id (banner/product/shop…).
+   * Never send from the dashboard — the API sets it from the linked section.
+   */
+  display_type_id?: number;
 }

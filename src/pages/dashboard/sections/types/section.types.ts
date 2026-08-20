@@ -6,7 +6,9 @@ export interface SectionListItem {
   type: 'api' | 'manual';
   /** What the section shows (banner / product / shop / restaurant / …). */
   content_type?: string;
-  /** Display shape: `horizontal` (slider), `vertical` (grid), or `square`. */
+  /** Section arrangement: slider | list | grid. */
+  layout?: string | null;
+  /** Card shape inside the section: horizontal | vertical | square. */
   variant?: string | null;
   background_color?: string | null;
   background_card_color?: string | null;
@@ -63,8 +65,10 @@ export interface SectionDetails {
   };
   /** Feed filters when `type=api`. */
   filters?: Record<string, any> | null;
-  /** Display shape — copied to pages that link this section. */
+  /** Display shape — `horizontal` is a slider strip — not a separate entity. */
   variant?: string | null;
+  /** Section arrangement: slider | list | grid. */
+  layout?: string | null;
   background_color?: string | null;
   background_card_color?: string | null;
   pages_count?: number;
@@ -95,7 +99,9 @@ export interface SectionCreateUpdatePayload {
   api_method?: string;
   /** `manual` (hand-picked `item_ids`) or `api` (automatic feed with `filters`). */
   type: 'manual' | 'api';
-  /** Display shape. Defaults to `horizontal` (slider) server-side. Never send `page_id`. */
+  /** Section display mode: slider | list | grid. */
+  layout?: string;
+  /** Card shape inside the section: horizontal | vertical | square. */
   variant?: string;
   background_color?: string;
   background_card_color?: string;

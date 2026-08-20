@@ -1,7 +1,10 @@
 // ----------------------------------------------------------------------
 
-/** Display shape of a linked section. `horizontal` is a slider strip. */
+/** Display shape of a linked section. Card shape inside the layout. */
 export type PageSectionVariant = 'horizontal' | 'vertical' | 'square';
+
+/** How the whole section is arranged on the page. */
+export type PageSectionLayout = 'slider' | 'list' | 'grid';
 
 export type PageSectionVariantResponse = PageSectionVariant;
 
@@ -19,6 +22,8 @@ export interface PageSectionListItem {
   page_id?: number;
   /** Visibility conditions keyed by the owning page's filter schema. */
   show_when?: Record<string, unknown> | null;
+  /** Section arrangement: slider | list | grid. */
+  layout?: PageSectionLayout | string;
   variant?: PageSectionVariantResponse;
   position?: 'before' | 'after';
   order?: number;
@@ -101,17 +106,32 @@ export interface PagesResponse {
   data: Page[];
 }
 
+/** Card layout template returned by `GET /sections/display-types`. */
+export interface DisplayType {
+  id: number;
+  image_url: string;
+  manual_model?: string;
+  fields?: string[];
+  created_at?: string;
+}
+
+export interface DisplayTypesResponse {
+  status: boolean;
+  message: string;
+  data: DisplayType[];
+}
+
 /**
  * Body for `PUT /api/admin/page-sections/{id}`.
  *
- * Every key is optional: send only what the user changed. `page_id` is read-only and
- * `display_type_id` is rejected outright by the backend (`prohibited`), so neither is
- * part of this shape. Keys inside `filters` must belong to the linked section's own
- * filter schema, otherwise the request comes back `422`.
+ * Every key is optional: send only what the user changed. `page_id` is read-only.
+ * Keys inside `filters` must belong to the linked section's own filter schema,
+ * otherwise the request comes back `422`.
  */
 export interface PageSectionUpdatePayload {
   position?: 'before' | 'after';
   order?: number;
+  layout?: PageSectionLayout;
   variant?: PageSectionVariant;
   background_color?: string;
   background_card_color?: string;
@@ -120,6 +140,11 @@ export interface PageSectionUpdatePayload {
   name?: { ar: string; en: string };
   filters?: Record<string, any>;
   show_when?: Record<string, any>;
+  /**
+   * Backend-owned content-type id (banner/product/…).
+   * Do not send from the admin forms — the API derives it from the section.
+   */
+  display_type_id?: number | null;
 }
 
 export interface PageSectionCreateUpdatePayload {
@@ -130,6 +155,7 @@ export interface PageSectionCreateUpdatePayload {
   section_id: string | number;
   page_id: string | number;
   position: 'before' | 'after';
+  layout?: PageSectionLayout;
   variant: PageSectionVariant;
   order: number;
   background_color?: string;

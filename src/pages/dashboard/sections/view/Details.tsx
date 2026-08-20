@@ -260,16 +260,32 @@ export default function DetailsPage() {
                     </Box>
                   )}
 
-                  {section.variant && (
+                  {(section.layout || section.variant) && (
                     <Box className="space-y-2">
-                      <Typography variant="body2" className="text-muted-foreground font-medium">
-                        {t('form.pageSectionFormVariantLabel')}
-                      </Typography>
-                      <Typography variant="body1" className="text-foreground">
-                        {t(`form.pageSectionVariant_${section.variant}`, {
-                          defaultValue: section.variant,
-                        })}
-                      </Typography>
+                      {section.layout && (
+                        <>
+                          <Typography variant="body2" className="text-muted-foreground font-medium">
+                            {t('form.pageSectionFormLayoutLabel')}
+                          </Typography>
+                          <Typography variant="body1" className="text-foreground">
+                            {t(`form.pageSectionLayout_${section.layout}`, {
+                              defaultValue: section.layout,
+                            })}
+                          </Typography>
+                        </>
+                      )}
+                      {section.variant && (
+                        <>
+                          <Typography variant="body2" className="text-muted-foreground font-medium">
+                            {t('form.pageSectionFormVariantLabel')}
+                          </Typography>
+                          <Typography variant="body1" className="text-foreground">
+                            {t(`form.pageSectionVariant_${section.variant}`, {
+                              defaultValue: section.variant,
+                            })}
+                          </Typography>
+                        </>
+                      )}
                     </Box>
                   )}
 

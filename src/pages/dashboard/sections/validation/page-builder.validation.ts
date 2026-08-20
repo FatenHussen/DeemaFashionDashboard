@@ -18,7 +18,8 @@ export type PageFormValues = z.infer<typeof PageSchema>;
 /** Link an existing section to a page. Name/variant/colors copy from the section and can be overridden. */
 export const UnifiedSectionSchema = z.object({
   position: z.enum(['before', 'after']),
-  variant: z.enum(['horizontal', 'vertical', 'square']).optional(),
+  layout: z.enum(['slider', 'list', 'grid']),
+  variant: z.enum(['horizontal', 'vertical', 'square']),
   order: z.union([z.string(), z.number()]).optional(),
   background_color: z.string().optional(),
   background_card_color: z.string().optional(),

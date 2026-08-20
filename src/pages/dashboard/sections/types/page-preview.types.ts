@@ -36,6 +36,7 @@ export interface PagePreviewSection {
   /** Category pages: two default sections are auto-generated (`is_default: true`). */
   is_default?: boolean;
   display_type_id?: number;
+  layout?: string;
   variant?: string;
   content_type?: string;
   manual_model?: string;

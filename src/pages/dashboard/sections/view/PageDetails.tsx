@@ -101,6 +101,13 @@ function variantLabel(t: TFunction<'table'>, variant?: string) {
   return translated !== key ? translated : variant;
 }
 
+function layoutLabel(t: TFunction<'table'>, layout?: string) {
+  if (!layout) return null;
+  const key = `form.pageSectionLayout_${layout}` as const;
+  const translated = t(key);
+  return translated !== key ? translated : layout;
+}
+
 function sectionTypeStyles(type: PagePreviewSection['type']) {
   return type === 'api'
     ? 'bg-blue-500/10 text-blue-700 dark:text-blue-300'
@@ -274,7 +281,9 @@ function SortablePreviewSection({
               {' · '}
               {section.position}
               {' · '}
-              {variantLabel(t, section.variant)}
+              {[layoutLabel(t, section.layout), variantLabel(t, section.variant)]
+                .filter(Boolean)
+                .join(' · ') || '—'}
               {' · '}
               {section.items.length} {t('columns.items')}
               {section.is_default && ` · ${t('form.pageBuilderCategoryDefaultBadge')}`}

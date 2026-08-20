@@ -20,6 +20,7 @@ export const PageSectionSchema = z.object({
   position: z.enum(['before', 'after'], {
     required_error: t('pageSection.positionRequired'),
   }),
+  layout: z.enum(['slider', 'list', 'grid']).optional(),
   variant: z.enum(['horizontal', 'vertical', 'square'], {
     required_error: t('pageSection.variantRequired'),
   }),

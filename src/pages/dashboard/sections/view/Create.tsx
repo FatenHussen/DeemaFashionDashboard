@@ -10,11 +10,12 @@ import { useMemo, useState, useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Iconify } from '@/shared/components/iconify';
 import { useParams, useNavigate, useSearchParams } from 'react-router';
-import { CategoryPageBanner } from '@/pages/dashboard/sections/components/category-page-banner';
-import { useAddSectionToPage, useFetchPageBuilderPage } from '@/pages/dashboard/sections/hooks/usePageBuilder';
-import { PRIMARY_API_FILTER_KEYS } from '@/pages/dashboard/sections/utils/api-method-config';
 import { isCategoryCmsPage } from '@/pages/dashboard/sections/utils/category-page';
+import { PRIMARY_API_FILTER_KEYS } from '@/pages/dashboard/sections/utils/api-method-config';
+import { normalizeLayoutAndCardShape } from '@/pages/dashboard/sections/utils/section-layout';
+import { CategoryPageBanner } from '@/pages/dashboard/sections/components/category-page-banner';
 import { DynamicFilterField } from '@/pages/dashboard/sections/components/dynamic-filter-field';
+import { useAddSectionToPage, useFetchPageBuilderPage } from '@/pages/dashboard/sections/hooks/usePageBuilder';
 import {
   isGifManualModel,
   ManualItemsPicker,
@@ -29,11 +30,19 @@ import {
   useFetchSectionDetails,
 } from '@/pages/dashboard/sections/hooks/useSections';
 import {
+  FormStep,
+  ChoiceCard,
+  CARD_SHAPES,
+  LayoutPreview,
+  SECTION_LAYOUTS,
+  CardShapePreview,
+} from '@/pages/dashboard/sections/components/section-form-ui';
+import {
   autoFeedPreview,
   contentTypeLabel,
   CONTENT_TYPE_ICONS,
-  isApiOnlyContentType,
   isBannerContentType,
+  isApiOnlyContentType,
   contentTypeToApiMethod,
   apiMethodToContentType,
   CONTENT_TYPE_API_FILTERS,
@@ -48,8 +57,6 @@ import { RHFColorPicker } from 'src/shared/components/hook-form/rhf-color-picker
 import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
 
 // ----------------------------------------------------------------------
-
-const VARIANTS = ['horizontal', 'vertical', 'square'] as const;
 
 function extractCreatedId(response: unknown): number | undefined {
   if (!response || typeof response !== 'object') return undefined;
@@ -83,101 +90,6 @@ function cleanFilters(values: Record<string, any>): Record<string, any> | undefi
   return Object.keys(result).length > 0 ? result : undefined;
 }
 
-function Step({
-  n,
-  title,
-  hint,
-  children,
-}: {
-  n: number;
-  title: string;
-  hint?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <Box className="space-y-3">
-      <Box className="flex items-start gap-3">
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
-          {n}
-        </span>
-        <Box className="min-w-0 pt-0.5">
-          <Typography variant="subtitle1" className="font-bold text-foreground leading-tight">
-            {title}
-          </Typography>
-          {hint && (
-            <Typography variant="body2" className="text-muted-foreground mt-0.5">
-              {hint}
-            </Typography>
-          )}
-        </Box>
-      </Box>
-      {children}
-    </Box>
-  );
-}
-
-function ChoiceCard({
-  active,
-  disabled,
-  onClick,
-  children,
-  className = '',
-}: {
-  active: boolean;
-  disabled?: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className={`rounded-2xl border p-4 text-start transition-all ${
-        active
-          ? 'border-primary bg-primary/[0.07] shadow-sm ring-2 ring-primary/25'
-          : 'border-border/60 bg-card hover:border-border hover:bg-muted/30'
-      } ${disabled && !active ? 'opacity-45 cursor-not-allowed' : ''} ${className}`}
-    >
-      {children}
-    </button>
-  );
-}
-
-function VariantPreview({ variant }: { variant: (typeof VARIANTS)[number] }) {
-  if (variant === 'horizontal') {
-    return (
-      <Box className="flex h-14 items-center justify-center gap-1 px-1">
-        <span className="text-xs text-muted-foreground">‹</span>
-        {[0, 1, 2].map((i) => (
-          <span
-            key={i}
-            className="h-10 w-8 rounded-md border border-primary/35 bg-primary/20"
-          />
-        ))}
-        <span className="text-xs text-muted-foreground">›</span>
-      </Box>
-    );
-  }
-  if (variant === 'vertical') {
-    return (
-      <Box className="flex h-14 flex-col justify-center gap-1 px-4">
-        {[0, 1, 2].map((i) => (
-          <span key={i} className="h-2.5 w-full rounded border border-primary/35 bg-primary/20" />
-        ))}
-      </Box>
-    );
-  }
-  return (
-    <Box className="mx-auto grid h-14 w-14 grid-cols-2 gap-1">
-      {[0, 1, 2, 3].map((i) => (
-        <span key={i} className="rounded border border-primary/35 bg-primary/20" />
-      ))}
-    </Box>
-  );
-}
-
 export default function CreatePage() {
   const { t } = useTranslation('table');
   const { id } = useParams<{ id?: string }>();
@@ -202,6 +114,7 @@ export default function CreatePage() {
       type: 'api',
       content_type: '',
       name: { ar: '', en: '' },
+      layout: 'slider',
       variant: 'horizontal',
       background_color: '',
       background_card_color: '',
@@ -212,6 +125,7 @@ export default function CreatePage() {
 
   const watchedType = watch('type');
   const watchedContentType = watch('content_type') ?? '';
+  const watchedLayout = watch('layout') ?? 'slider';
   const watchedVariant = watch('variant') ?? 'horizontal';
   const watchedBg = watch('background_color');
   const watchedCardBg = watch('background_card_color');
@@ -243,6 +157,7 @@ export default function CreatePage() {
   useEffect(() => {
     if (isEditMode || !isBannerContent) return;
     setValue('type', 'manual', { shouldValidate: true, shouldDirty: true });
+    setValue('layout', 'slider', { shouldValidate: true, shouldDirty: true });
     setValue('variant', 'horizontal', { shouldValidate: true, shouldDirty: true });
   }, [isBannerContent, isEditMode, setValue]);
 
@@ -314,14 +229,16 @@ export default function CreatePage() {
         '';
       const sectionType = section.type === 'api' ? 'api' : 'manual';
 
-      const sectionVariant = (VARIANTS as readonly string[]).includes(section.variant ?? '')
-        ? (section.variant as (typeof VARIANTS)[number])
-        : 'horizontal';
+      const { layout: sectionLayout, variant: sectionVariant } = normalizeLayoutAndCardShape({
+        layout: section.layout,
+        variant: section.variant,
+      });
 
       reset({
         type: sectionType,
         content_type: contentType,
         name: { en: nameEn, ar: nameAr },
+        layout: sectionLayout,
         variant: sectionVariant,
         background_color: section.background_color ?? '',
         background_card_color: section.background_card_color ?? '',
@@ -361,6 +278,7 @@ export default function CreatePage() {
     setValue('content_type', type, { shouldValidate: true, shouldDirty: true });
     if (isBannerContentType(type)) {
       setValue('type', 'manual', { shouldValidate: true, shouldDirty: true });
+      setValue('layout', 'slider', { shouldValidate: true, shouldDirty: true });
       setValue('variant', 'horizontal', { shouldValidate: true, shouldDirty: true });
     } else if (isApiOnlyContentType(type)) {
       setValue('type', 'api', { shouldValidate: true, shouldDirty: true });
@@ -398,7 +316,8 @@ export default function CreatePage() {
       },
       content_type: data.content_type,
       type: data.type,
-      ...(data.variant ? { variant: data.variant } : {}),
+      layout: data.layout ?? 'slider',
+      variant: data.variant ?? 'horizontal',
       ...(data.background_color ? { background_color: data.background_color } : {}),
       ...(data.background_card_color
         ? { background_card_color: data.background_card_color }
@@ -435,7 +354,11 @@ export default function CreatePage() {
           try {
             await addSectionToPageMutation.mutateAsync({
               pageId: returnPage,
-              data: { section_id: newId },
+              data: {
+                section_id: newId,
+                layout: data.layout ?? 'slider',
+                variant: data.variant ?? 'horizontal',
+              },
             });
             toast.success(t('form.pageBuilderSectionAddedSuccess'));
             navigate(`/sections/pages/details/${returnPage}`);
@@ -461,6 +384,10 @@ export default function CreatePage() {
 
   const apiDisabled = isBannerContentType(watchedContentType);
   const hasColors = Boolean(watchedBg || watchedCardBg);
+  const lookStepCount = isBannerContent ? 1 : 2;
+  const afterLookStep = 2 + lookStepCount;
+  const fillStepN = afterLookStep + 1;
+  const itemsStepN = showFillStep ? fillStepN + 1 : afterLookStep + 1;
 
   return (
     <>
@@ -504,7 +431,7 @@ export default function CreatePage() {
           </Box>
         )}
 
-        <Step n={1} title={t('form.sectionEasyNameTitle')} hint={t('form.sectionEasyNameHint')}>
+        <FormStep n={1} title={t('form.sectionEasyNameTitle')} hint={t('form.sectionEasyNameHint')}>
           <Box className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <Box>
               <Typography variant="subtitle2" className="mb-1.5 font-semibold text-foreground">
@@ -523,9 +450,9 @@ export default function CreatePage() {
               <RHFTextField name="name.en" placeholder={t('form.sectionEasyNameEnPlaceholder')} />
             </Box>
           </Box>
-        </Step>
+        </FormStep>
 
-        <Step
+        <FormStep
           n={2}
           title={t('form.sectionEasyContentTitle')}
           hint={
@@ -572,46 +499,73 @@ export default function CreatePage() {
               );
             })}
           </Box>
-        </Step>
+        </FormStep>
 
         {!isBannerContent ? (
-          <Step n={3} title={t('form.sectionEasyLookTitle')} hint={t('form.sectionEasyLookHint')}>
-            <Box className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              {VARIANTS.map((variant) => {
-                const active = watchedVariant === variant;
-                return (
-                  <ChoiceCard
-                    key={variant}
-                    active={active}
-                    onClick={() =>
-                      setValue('variant', variant, { shouldValidate: true, shouldDirty: true })
-                    }
-                  >
-                    <VariantPreview variant={variant} />
-                    <Typography variant="subtitle2" className="mt-2 font-bold">
-                      {t(`form.sectionEasyVariant_${variant}`)}
-                    </Typography>
-                    <Typography variant="caption" className="mt-1 block text-muted-foreground">
-                      {t(`form.sectionEasyVariantHint_${variant}`)}
-                    </Typography>
-                  </ChoiceCard>
-                );
-              })}
-            </Box>
-          </Step>
+          <>
+            <FormStep n={3} title={t('form.sectionEasyLayoutTitle')} hint={t('form.sectionEasyLayoutHint')}>
+              <Box className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                {SECTION_LAYOUTS.map((layout) => {
+                  const active = watchedLayout === layout;
+                  return (
+                    <ChoiceCard
+                      key={layout}
+                      active={active}
+                      onClick={() =>
+                        setValue('layout', layout, { shouldValidate: true, shouldDirty: true })
+                      }
+                    >
+                      <LayoutPreview layout={layout} />
+                      <Typography variant="subtitle2" className="mt-2 font-bold">
+                        {t(`form.sectionEasyLayout_${layout}`)}
+                      </Typography>
+                      <Typography variant="caption" className="mt-1 block text-muted-foreground">
+                        {t(`form.sectionEasyLayoutHint_${layout}`)}
+                      </Typography>
+                    </ChoiceCard>
+                  );
+                })}
+              </Box>
+            </FormStep>
+
+            <FormStep n={4} title={t('form.sectionEasyCardShapeTitle')} hint={t('form.sectionEasyCardShapeHint')}>
+              <Box className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                {CARD_SHAPES.map((shape) => {
+                  const active = watchedVariant === shape;
+                  return (
+                    <ChoiceCard
+                      key={shape}
+                      active={active}
+                      onClick={() =>
+                        setValue('variant', shape, { shouldValidate: true, shouldDirty: true })
+                      }
+                    >
+                      <CardShapePreview shape={shape} />
+                      <Typography variant="subtitle2" className="mt-2 font-bold">
+                        {t(`form.sectionEasyCardShape_${shape}`)}
+                      </Typography>
+                      <Typography variant="caption" className="mt-1 block text-muted-foreground">
+                        {t(`form.sectionEasyCardShapeHint_${shape}`)}
+                      </Typography>
+                    </ChoiceCard>
+                  );
+                })}
+              </Box>
+            </FormStep>
+          </>
         ) : (
-          <Step n={3} title={t('form.sectionEasyLookTitle')} hint={t('form.sectionEasyLookBannerHint')}>
+          <FormStep n={3} title={t('form.sectionEasyLookTitle')} hint={t('form.sectionEasyLookBannerHint')}>
             <Box className="flex items-start gap-3 rounded-2xl border border-amber-500/20 bg-amber-500/[0.06] px-4 py-3">
               <Iconify icon="solar:gallery-bold" className="mt-0.5 shrink-0 text-amber-700" width={18} />
               <Typography variant="body2" className="min-w-0 flex-1 text-muted-foreground">
                 {t('form.pageBuilderBannerPickHelper')}
               </Typography>
             </Box>
-          </Step>
+          </FormStep>
         )}
 
         {showFillStep && (
-          <Step n={4} title={t('form.sectionEasyFillTitle')} hint={t('form.sectionEasyFillHint')}>
+          <FormStep n={fillStepN} title={t('form.sectionEasyFillTitle')} hint={t('form.sectionEasyFillHint')}>
             <Box className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <ChoiceCard
                 active={watchedType === 'api'}
@@ -666,11 +620,11 @@ export default function CreatePage() {
                 </Box>
               </ChoiceCard>
             </Box>
-          </Step>
+          </FormStep>
         )}
 
-        <Step
-          n={showFillStep ? 5 : watchedContentType ? 4 : 5}
+        <FormStep
+          n={itemsStepN}
           title={
             watchedType === 'api'
               ? t('form.sectionEasyFiltersTitle')
@@ -777,7 +731,7 @@ export default function CreatePage() {
                 </Typography>
               </Box>
             ))}
-        </Step>
+        </FormStep>
 
         <Box>
           <button

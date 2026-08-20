@@ -60,7 +60,8 @@ export const useDeletePage = () => {
 /** Infinite scroll over every existing section (the "add section to page" picker). */
 export const useInfinitePageSliders = (
   pageId: number | string,
-  params?: Omit<SliderLibraryQueryParams, 'page'>
+  params?: Omit<SliderLibraryQueryParams, 'page'>,
+  options?: { enabled?: boolean }
 ) => {
   const infiniteQuery = useInfiniteQuery({
     queryKey: queryKeys.pageBuilder.sliders(pageId, params),
@@ -74,7 +75,7 @@ export const useInfinitePageSliders = (
         : undefined;
     },
     initialPageParam: 1,
-    enabled: !!pageId,
+    enabled: !!pageId && (options?.enabled ?? true),
   });
 
   const allSliders = infiniteQuery.data?.pages.flatMap((page) => page.data?.items ?? []) ?? [];

@@ -8,24 +8,39 @@ import { useMemo, useState, useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
+import { formatTranslated } from '@/utils/format-translated';
 import { useFetchPages } from '@/pages/dashboard/sections/hooks/usePageSections';
+import { isCategoryCmsPage } from '@/pages/dashboard/sections/utils/category-page';
+import { isBannerContentType } from '@/pages/dashboard/sections/utils/content-type-config';
 import { cmsPageSelectLabel } from '@/pages/dashboard/sections/utils/cms-page-select-label';
+import { normalizeLayoutAndCardShape } from '@/pages/dashboard/sections/utils/section-layout';
 import { DynamicFilterField } from '@/pages/dashboard/sections/components/dynamic-filter-field';
 import { CategoryPageBanner } from '@/pages/dashboard/sections/components/category-page-banner';
+import { normalizeFilterSchema } from '@/pages/dashboard/sections/utils/filter-config-normalize';
 import { SliderLibraryPicker } from '@/pages/dashboard/sections/components/slider-library-picker';
 import {
   useAddSectionToPage,
   useFetchPageBuilderPage,
 } from '@/pages/dashboard/sections/hooks/usePageBuilder';
 import {
+  visiblePageShowWhenFilters,
+  shouldShowPageVisibilityStep,
+} from '@/pages/dashboard/sections/utils/page-visibility-filters';
+import {
   UnifiedSectionSchema,
   type UnifiedSectionFormValues,
 } from '@/pages/dashboard/sections/validation/page-builder.validation';
-import { isBannerContentType } from '@/pages/dashboard/sections/utils/content-type-config';
+import {
+  FormStep,
+  ChoiceCard,
+  CARD_SHAPES,
+  LayoutPreview,
+  SECTION_LAYOUTS,
+  CardShapePreview,
+} from '@/pages/dashboard/sections/components/section-form-ui';
 
 import { CONFIG } from 'src/global-config';
 import { Box, Typography } from 'src/shared/ui';
-import { RHFSelect } from 'src/shared/components/hook-form/rhf-select';
 import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
 import { RHFColorPicker } from 'src/shared/components/hook-form/rhf-color-picker';
 import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
@@ -33,8 +48,6 @@ import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout
 // ----------------------------------------------------------------------
 
 const VISIBILITY_NULL_FILTER_KEYS = new Set(['type', 'shop_id', 'category_id', 'brand_id']);
-
-const VARIANTS = ['horizontal', 'vertical', 'square'] as const;
 
 function buildShowWhenPayload(
   schema: Record<string, FilterConfig>,
@@ -56,6 +69,11 @@ function buildShowWhenPayload(
   return Object.keys(result).length > 0 ? result : undefined;
 }
 
+function sectionDisplayName(item: SliderLibraryItem): string {
+  if (typeof item.name === 'string') return item.name;
+  return formatTranslated(item.name as { en?: string; ar?: string }) || `#${item.id}`;
+}
+
 export default function PageAddSection() {
   const { t } = useTranslation('table');
   const { pageId } = useParams<{ pageId: string }>();
@@ -63,6 +81,8 @@ export default function PageAddSection() {
 
   const [showWhenValues, setShowWhenValues] = useState<Record<string, any>>({});
   const [selectedSection, setSelectedSection] = useState<SliderLibraryItem | null>(null);
+  const [filterContentType, setFilterContentType] = useState('');
+  const [showColors, setShowColors] = useState(false);
 
   const { data: pagesData } = useFetchPages();
   const { data: pageDetailsData } = useFetchPageBuilderPage(pageId || '');
@@ -78,10 +98,17 @@ export default function PageAddSection() {
   const pageFilters = useMemo(() => {
     const filters = page?.filters;
     if (filters && typeof filters === 'object' && !Array.isArray(filters)) {
-      return filters as Record<string, FilterConfig>;
+      return normalizeFilterSchema(filters as Record<string, FilterConfig>);
     }
     return {};
   }, [page]);
+
+  const isCategoryPage = isCategoryCmsPage(pageDetailsData?.data ?? page);
+  const visibleShowWhenFilters = useMemo(
+    () => visiblePageShowWhenFilters(pageFilters, isCategoryPage),
+    [pageFilters, isCategoryPage]
+  );
+  const hasVisibilityStep = shouldShowPageVisibilityStep(pageFilters, isCategoryPage);
 
   const hasBannerSectionOnPage = useMemo(() => {
     const sections = (pageDetailsData?.data as any)?.sections ?? [];
@@ -96,6 +123,7 @@ export default function PageAddSection() {
     resolver: zodResolver(UnifiedSectionSchema),
     defaultValues: {
       position: 'after',
+      layout: 'slider',
       variant: 'horizontal',
       order: '',
       background_color: '',
@@ -103,38 +131,31 @@ export default function PageAddSection() {
     },
   });
 
-  const { handleSubmit, setValue } = methods;
+  const { handleSubmit, setValue, watch } = methods;
+
+  const watchedPosition = watch('position') ?? 'after';
+  const watchedLayout = watch('layout') ?? 'slider';
+  const watchedVariant = watch('variant') ?? 'horizontal';
+  const watchedBg = watch('background_color');
+  const watchedCardBg = watch('background_card_color');
 
   useEffect(() => {
     if (!selectedSection) return;
+    if (selectedSection.content_type) {
+      setFilterContentType(selectedSection.content_type);
+    }
     setValue('background_color', selectedSection.background_color ?? '');
     setValue('background_card_color', selectedSection.background_card_color ?? '');
-    if (isBannerContentType(selectedSection.content_type)) {
-      setValue('variant', 'horizontal');
-      return;
+    if (selectedSection.background_color || selectedSection.background_card_color) {
+      setShowColors(true);
     }
-    const nextVariant = (VARIANTS as readonly string[]).includes(selectedSection.variant ?? '')
-      ? (selectedSection.variant as (typeof VARIANTS)[number])
-      : 'horizontal';
-    setValue('variant', nextVariant);
+    const { layout, variant } = normalizeLayoutAndCardShape({
+      layout: selectedSection.layout,
+      variant: selectedSection.variant,
+    });
+    setValue('layout', layout, { shouldValidate: true });
+    setValue('variant', variant, { shouldValidate: true });
   }, [selectedSection, setValue]);
-
-  const positionOptions = useMemo(
-    () => [
-      { value: 'before', label: t('form.positionBefore') },
-      { value: 'after', label: t('form.positionAfter') },
-    ],
-    [t]
-  );
-
-  const variantOptions = useMemo(
-    () =>
-      VARIANTS.map((v) => ({
-        value: v,
-        label: t(`form.pageSectionVariant_${v}`),
-      })),
-    [t]
-  );
 
   const handleShowWhenChange = (filterKey: string, value: any) => {
     setShowWhenValues((prev) => ({ ...prev, [filterKey]: value }));
@@ -149,18 +170,23 @@ export default function PageAddSection() {
     }
 
     const orderNumber = data.order === '' || data.order == null ? undefined : Number(data.order);
+    const layout = data.layout ?? 'slider';
+    const variant = data.variant ?? 'horizontal';
 
     const payload: UnifiedSectionCreatePayload = {
       section_id: selectedSection.id,
       position: data.position,
-      ...(data.variant && !isBannerSection ? { variant: data.variant } : {}),
+      // layout = slider|list|grid · variant = horizontal|vertical|square
+      // Never send display_type_id — backend sets it from the section content type.
+      layout,
+      variant,
       ...(data.background_color ? { background_color: data.background_color } : {}),
       ...(data.background_card_color ? { background_card_color: data.background_card_color } : {}),
       ...(orderNumber != null && Number.isFinite(orderNumber) && orderNumber >= 1
         ? { order: orderNumber }
         : {}),
-      ...(buildShowWhenPayload(pageFilters, showWhenValues)
-        ? { show_when: buildShowWhenPayload(pageFilters, showWhenValues) }
+      ...(buildShowWhenPayload(visibleShowWhenFilters, showWhenValues)
+        ? { show_when: buildShowWhenPayload(visibleShowWhenFilters, showWhenValues) }
         : {}),
     };
 
@@ -178,6 +204,10 @@ export default function PageAddSection() {
   };
 
   const pageLabel = page ? cmsPageSelectLabel(page) : (pageId ?? '');
+  const hasColors = Boolean(watchedBg || watchedCardBg);
+  const showLookSteps = Boolean(filterContentType || selectedSection);
+  const positionStep = showLookSteps ? 4 : 2;
+  const visibilityStep = hasVisibilityStep ? positionStep + 1 : positionStep;
 
   return (
     <>
@@ -198,30 +228,44 @@ export default function PageAddSection() {
         isEditMode={false}
         isLoading={false}
         loadingText=""
-        infoText={t('form.pageBuilderAddSectionInfo')}
         submitLabel={t('form.pageBuilderAddSectionSubmit')}
         submittingLabel={t('form.creatingPageSection')}
+        maxWidth="xl"
+        formInnerClassName="flex flex-col gap-8"
       >
         <CategoryPageBanner page={pageDetailsData?.data} />
 
-        <SliderLibraryPicker
-          pageId={pageId ?? ''}
-          selectedId={selectedSection?.id ?? null}
-          onSelect={setSelectedSection}
-        />
+        <FormStep n={1} title={t('form.pageBuilderAddStep1Title')}>
+          <SliderLibraryPicker
+            pageId={pageId ?? ''}
+            selectedId={selectedSection?.id ?? null}
+            selectedContentType={selectedSection?.content_type ?? filterContentType}
+            onSelect={setSelectedSection}
+            onContentTypeChange={setFilterContentType}
+          />
 
-        {isBannerSection && (
-          <Box className="rounded-2xl border border-amber-500/20 bg-amber-500/[0.06] px-4 py-3">
-            <Box className="flex items-start gap-3">
-              <Iconify icon="solar:gallery-bold" className="mt-0.5 shrink-0 text-amber-700" width={18} />
-              <Typography variant="body2" className="min-w-0 flex-1 text-muted-foreground">
-                {t('form.pageBuilderBannerPickHelper')}
-              </Typography>
+          {selectedSection && (
+            <Box className="flex items-center gap-3 rounded-2xl border border-primary/25 bg-primary/[0.05] px-4 py-3">
+              <Iconify icon="solar:check-circle-bold" className="shrink-0 text-primary" width={22} />
+              <Box className="min-w-0 flex-1">
+                <Typography variant="caption" className="text-muted-foreground">
+                  {t('form.pageBuilderSelectedSection')}
+                </Typography>
+                <Typography variant="subtitle2" className="font-bold text-foreground truncate">
+                  {sectionDisplayName(selectedSection)}
+                </Typography>
+              </Box>
+              <button
+                type="button"
+                onClick={() => setSelectedSection(null)}
+                className="shrink-0 text-sm font-medium text-primary hover:underline"
+              >
+                {t('form.pageBuilderChangeSection')}
+              </button>
             </Box>
-          </Box>
-        )}
+          )}
 
-        {isBannerSection && hasBannerSectionOnPage && (
+          {isBannerSection && hasBannerSectionOnPage && (
             <Box className="rounded-2xl border border-amber-500/20 bg-amber-500/[0.06] px-4 py-3">
               <Box className="flex items-start gap-3">
                 <Iconify icon="solar:info-circle-bold" className="mt-0.5 shrink-0 text-amber-700" width={18} />
@@ -231,156 +275,221 @@ export default function PageAddSection() {
               </Box>
             </Box>
           )}
+        </FormStep>
 
-        <Box className="rounded-2xl border border-border/50 bg-card/50 shadow-sm">
-          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-emerald-500/[0.06] via-emerald-500/[0.02] to-transparent">
-            <Box className="h-8 w-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
-              <Iconify
-                icon="solar:align-vertical-spacing-bold"
-                className="text-emerald-500"
-                width={15}
-              />
-            </Box>
-            <Typography variant="subtitle2" className="font-semibold text-foreground">
-              {isBannerSection
-                ? `${t('form.pageSectionFormPositionLabel')} · ${t('form.pageSectionFormOrderLabel')}`
-                : `${t('form.pageSectionFormPositionLabel')} · ${t('form.pageSectionFormOrderLabel')} · ${t('form.pageSectionFormVariantLabel')}`}
-            </Typography>
+        {showLookSteps && (
+          <>
+            <FormStep n={2} title={t('form.pageBuilderLayoutTitle')} hint={t('form.pageBuilderLayoutHint')}>
+              <Box className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                {SECTION_LAYOUTS.map((layout) => {
+                  const active = watchedLayout === layout;
+                  return (
+                    <ChoiceCard
+                      key={layout}
+                      active={active}
+                      onClick={() =>
+                        setValue('layout', layout, {
+                          shouldValidate: true,
+                          shouldDirty: true,
+                        })
+                      }
+                    >
+                      <LayoutPreview layout={layout} />
+                      <Typography variant="subtitle2" className="mt-2 font-bold">
+                        {t(`form.pageBuilderLayout_${layout}`)}
+                      </Typography>
+                      <Typography variant="caption" className="mt-1 block text-muted-foreground">
+                        {t(`form.pageBuilderLayoutHint_${layout}`)}
+                      </Typography>
+                    </ChoiceCard>
+                  );
+                })}
+              </Box>
+            </FormStep>
+
+            <FormStep n={3} title={t('form.pageBuilderCardShapeTitle')} hint={t('form.pageBuilderCardShapeHint')}>
+              <Box className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                {CARD_SHAPES.map((shape) => {
+                  const active = watchedVariant === shape;
+                  return (
+                    <ChoiceCard
+                      key={shape}
+                      active={active}
+                      onClick={() =>
+                        setValue('variant', shape, {
+                          shouldValidate: true,
+                          shouldDirty: true,
+                        })
+                      }
+                    >
+                      <CardShapePreview shape={shape} />
+                      <Typography variant="subtitle2" className="mt-2 font-bold">
+                        {t(`form.pageBuilderCardShape_${shape}`)}
+                      </Typography>
+                      <Typography variant="caption" className="mt-1 block text-muted-foreground">
+                        {t(`form.pageBuilderCardShapeHint_${shape}`)}
+                      </Typography>
+                    </ChoiceCard>
+                  );
+                })}
+              </Box>
+            </FormStep>
+          </>
+        )}
+
+        {selectedSection && (
+          <>
+        <FormStep n={positionStep} title={t('form.pageBuilderAddStep2Title')} hint={t('form.pageBuilderAddStep2Hint')}>
+          <Box className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <ChoiceCard
+              active={watchedPosition === 'before'}
+              onClick={() => setValue('position', 'before', { shouldValidate: true, shouldDirty: true })}
+            >
+              <Box className="flex items-start gap-3">
+                <Box
+                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border ${
+                    watchedPosition === 'before'
+                      ? 'border-primary/30 bg-primary/10 text-primary'
+                      : 'border-border/50 bg-muted/50 text-muted-foreground'
+                  }`}
+                >
+                  <Iconify icon="solar:arrow-up-bold" width={20} />
+                </Box>
+                <Box>
+                  <Typography variant="subtitle2" className="font-bold">
+                    {t('form.positionBefore')}
+                  </Typography>
+                  <Typography variant="body2" className="mt-1 text-muted-foreground">
+                    {t('form.pageBuilderPositionBeforeHint')}
+                  </Typography>
+                </Box>
+              </Box>
+            </ChoiceCard>
+            <ChoiceCard
+              active={watchedPosition === 'after'}
+              onClick={() => setValue('position', 'after', { shouldValidate: true, shouldDirty: true })}
+            >
+              <Box className="flex items-start gap-3">
+                <Box
+                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border ${
+                    watchedPosition === 'after'
+                      ? 'border-primary/30 bg-primary/10 text-primary'
+                      : 'border-border/50 bg-muted/50 text-muted-foreground'
+                  }`}
+                >
+                  <Iconify icon="solar:arrow-down-bold" width={20} />
+                </Box>
+                <Box>
+                  <Typography variant="subtitle2" className="font-bold">
+                    {t('form.positionAfter')}
+                  </Typography>
+                  <Typography variant="body2" className="mt-1 text-muted-foreground">
+                    {t('form.pageBuilderPositionAfterHint')}
+                  </Typography>
+                </Box>
+              </Box>
+            </ChoiceCard>
           </Box>
-          <Box className="p-6">
-            <Typography variant="body2" className="text-muted-foreground mb-4">
-              {t('form.pageBuilderLibraryCopiedNote')}
+
+          <Box className="mt-4 rounded-2xl border border-border/60 bg-card p-5">
+            <Typography variant="subtitle2" className="mb-1.5 font-semibold text-foreground">
+              {t('form.pageSectionFormOrderLabel')}
             </Typography>
-            <Box className={`grid grid-cols-1 gap-5 ${isBannerSection ? 'md:grid-cols-2' : 'md:grid-cols-3'}`}>
-              <Box className="group">
-                <Box className="flex items-center gap-2 mb-2">
-                  <Iconify
-                    icon="solar:align-vertical-spacing-bold"
-                    className="text-emerald-500"
-                    width={20}
-                    height={20}
-                  />
-                  <Typography variant="subtitle2" className="font-semibold text-foreground">
-                    {t('form.pageSectionFormPositionLabel')}
-                  </Typography>
-                </Box>
-                <RHFSelect
-                  name="position"
-                  options={positionOptions}
-                  placeholder={t('form.selectPosition')}
-                  helperText={t('form.selectPositionHelper')}
-                  className="transition-all duration-200"
-                />
-              </Box>
+            <Typography variant="body2" className="mb-3 text-muted-foreground">
+              {t('form.pageBuilderOrderOptionalHelper')}
+            </Typography>
+            <RHFTextField
+              name="order"
+              type="number"
+              placeholder={t('form.displayOrderPlaceholder')}
+              className="max-w-xs"
+            />
+          </Box>
+        </FormStep>
 
-              <Box className="group">
-                <Box className="flex items-center gap-2 mb-2">
-                  <Iconify
-                    icon="solar:sort-bold"
-                    className="text-emerald-500"
-                    width={20}
-                    height={20}
-                  />
-                  <Typography variant="subtitle2" className="font-semibold text-foreground">
-                    {t('form.pageSectionFormOrderLabel')}
-                  </Typography>
-                </Box>
-                <RHFTextField
-                  name="order"
-                  type="number"
-                  placeholder={t('form.displayOrderPlaceholder')}
-                  helperText={t('form.pageBuilderOrderOptionalHelper')}
-                  className="transition-all duration-200"
-                />
+        <Box>
+            <button
+              type="button"
+              onClick={() => setShowColors((v) => !v)}
+              className="flex w-full items-center gap-3 rounded-2xl border border-border/60 bg-card px-4 py-3 text-start hover:bg-muted/20"
+            >
+              <Iconify icon="solar:pallete-bold" className="text-muted-foreground" width={20} />
+              <Box className="min-w-0 flex-1">
+                <Typography variant="subtitle2" className="font-semibold">
+                  {t('form.sectionEasyColorsTitle')}
+                </Typography>
+                <Typography variant="caption" className="text-muted-foreground">
+                  {t('form.sectionEasyColorsHint')}
+                </Typography>
               </Box>
-
-              {!isBannerSection && (
-              <Box className="group">
-                <Box className="flex items-center gap-2 mb-2">
-                  <Iconify
-                    icon="solar:box-minimalistic-bold"
-                    className="text-emerald-500"
-                    width={20}
-                    height={20}
-                  />
-                  <Typography variant="subtitle2" className="font-semibold text-foreground">
-                    {t('form.pageSectionFormVariantLabel')}
-                  </Typography>
-                </Box>
-                <RHFSelect
-                  name="variant"
-                  options={variantOptions}
-                  placeholder={t('form.selectVariant')}
-                  helperText={t('form.pageSectionVariantHelper')}
-                  className="transition-all duration-200"
-                />
-              </Box>
+              {hasColors && !showColors && (
+                <span className="flex gap-1">
+                  {watchedBg && (
+                    <span
+                      className="h-5 w-5 rounded-md border border-border/60"
+                      style={{ backgroundColor: watchedBg }}
+                    />
+                  )}
+                  {watchedCardBg && (
+                    <span
+                      className="h-5 w-5 rounded-md border border-border/60"
+                      style={{ backgroundColor: watchedCardBg }}
+                    />
+                  )}
+                </span>
               )}
-            </Box>
-          </Box>
-        </Box>
-
-        <Box className="rounded-2xl border border-border/50 bg-card/50 shadow-sm">
-          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-rose-500/[0.06] via-rose-500/[0.02] to-transparent">
-            <Box className="h-8 w-8 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center shrink-0">
-              <Iconify icon="solar:pallete-bold" className="text-rose-500" width={15} />
-            </Box>
-            <Typography variant="subtitle2" className="font-semibold text-foreground">
-              {t('form.pageSectionFormBackgroundColorOptional')}
-            </Typography>
-          </Box>
-          <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
-            <Box className="group">
-              <Box className="flex items-center gap-2 mb-2">
-                <Iconify
-                  icon="solar:pallete-bold"
-                  className="text-rose-500"
-                  width={20}
-                  height={20}
-                />
-                <Typography variant="subtitle2" className="font-semibold text-foreground">
-                  {t('form.pageSectionFormBackgroundColorOptional')}
-                </Typography>
-              </Box>
-              <RHFColorPicker name="background_color" helperText={t('form.bgColorHelper')} />
-            </Box>
-
-            <Box className="group">
-              <Box className="flex items-center gap-2 mb-2">
-                <Iconify
-                  icon="solar:pallete-2-bold"
-                  className="text-rose-500"
-                  width={20}
-                  height={20}
-                />
-                <Typography variant="subtitle2" className="font-semibold text-foreground">
-                  {t('form.pageSectionFormBackgroundCardColorOptional')}
-                </Typography>
-              </Box>
-              <RHFColorPicker
-                name="background_card_color"
-                helperText={t('form.bgCardColorHelper')}
+              <Iconify
+                icon={showColors ? 'solar:alt-arrow-up-bold' : 'solar:alt-arrow-down-bold'}
+                width={18}
+                className="text-muted-foreground"
               />
-            </Box>
-          </Box>
+            </button>
+            {showColors && (
+              <Box className="mt-3 grid grid-cols-1 gap-4 rounded-2xl border border-border/60 bg-card p-5 md:grid-cols-2">
+                <Box>
+                  <Typography variant="subtitle2" className="mb-1.5 font-semibold">
+                    {t('form.sectionEasyColorBg')}
+                  </Typography>
+                  <RHFColorPicker name="background_color" helperText={t('form.bgColorHelper')} />
+                </Box>
+                <Box>
+                  <Typography variant="subtitle2" className="mb-1.5 font-semibold">
+                    {t('form.sectionEasyColorCard')}
+                  </Typography>
+                  <RHFColorPicker
+                    name="background_card_color"
+                    helperText={t('form.bgCardColorHelper')}
+                  />
+                </Box>
+              </Box>
+            )}
         </Box>
 
-        {Object.keys(pageFilters).length > 0 && (
-          <Box className="rounded-2xl border border-border/50 bg-card/50 shadow-sm">
-            <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-indigo-500/[0.06] via-indigo-500/[0.02] to-transparent">
-              <Box className="h-8 w-8 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shrink-0">
-                <Iconify icon="solar:eye-bold" className="text-indigo-500" width={15} />
+        {hasVisibilityStep && (
+          <FormStep
+            n={visibilityStep}
+            title={t('form.pageBuilderAddStep4Title')}
+            hint={
+              isCategoryPage
+                ? t('form.pageBuilderAddStep4HintCategory')
+                : t('form.pageBuilderAddStep4Hint')
+            }
+          >
+            <Box className="rounded-2xl border border-border/60 bg-card p-5">
+              <Box className="mb-4 flex items-start gap-2 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3">
+                <Iconify
+                  icon="solar:eye-bold"
+                  width={18}
+                  className="mt-0.5 shrink-0 text-primary"
+                />
+                <Typography variant="body2" className="text-foreground">
+                  {isCategoryPage
+                    ? t('form.pageSectionEditVisibilityCategoryNotice')
+                    : t('form.pageSliderVisibilityFiltersNotice')}
+                </Typography>
               </Box>
-              <Typography variant="subtitle2" className="font-semibold text-foreground">
-                {t('form.pageSliderVisibilityFiltersTitle')}
-              </Typography>
-            </Box>
-            <Box className="p-6">
-              <Typography variant="body2" className="text-muted-foreground mb-4">
-                {t('form.pageSectionFormShowWhenHint')}
-              </Typography>
-              <Box className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                {Object.entries(pageFilters).map(([filterKey, filterConfig]) => (
+              <Box className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                {Object.entries(visibleShowWhenFilters).map(([filterKey, filterConfig]) => (
                   <DynamicFilterField
                     key={`show_when_${filterKey}`}
                     filterKey={filterKey}
@@ -392,7 +501,9 @@ export default function PageAddSection() {
                 ))}
               </Box>
             </Box>
-          </Box>
+          </FormStep>
+        )}
+          </>
         )}
       </CreateFormLayout>
     </>

@@ -196,6 +196,8 @@ export const apiRoutes = {
     pagePreview: (id: number | string) => `${ROOTS.ADMIN}/page-sections/pages/${id}/preview`,
     /** Persist section order on a CMS page. Body: `{ sections: [{ id, order, position }] }`. */
     pageReorder: (pageId: number | string) => `${ROOTS.ADMIN}/page-sections/pages/${pageId}/reorder`,
+    /** Card layout templates for a content type (`?manual_model=product`). */
+    displayTypes: `${ROOTS.ADMIN}/sections/display-types`,
   },
   /**
    * Storefront navigation menu items (the public top bar).

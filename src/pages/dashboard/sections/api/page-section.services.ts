@@ -6,6 +6,7 @@ import type {
 } from '../types/page-preview.types';
 import type {
   PagesResponse,
+  DisplayTypesResponse,
   SectionsListResponse,
   PageSectionListResponse,
   PageSectionUpdatePayload,
@@ -89,6 +90,24 @@ export const _PageSectionApi = {
 
   getFilterData: async (url: string, params?: any): Promise<any> => {
     const response = await axiosInstance.get(url, { params });
+    return response.data;
+  },
+
+  getDisplayTypes: async (params?: {
+    manual_model?: string;
+    page_id?: number | string;
+  }): Promise<DisplayTypesResponse> => {
+    const response = await axiosInstance.get<DisplayTypesResponse>(
+      apiRoutes.pageSection.displayTypes,
+      {
+        params: {
+          ...(params?.manual_model ? { manual_model: params.manual_model } : {}),
+          ...(params?.page_id != null && String(params.page_id).trim() !== ''
+            ? { page_id: params.page_id }
+            : {}),
+        },
+      }
+    );
     return response.data;
   },
 };

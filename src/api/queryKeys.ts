@@ -206,6 +206,8 @@ export const queryKeys = {
     pages: () => ['pageSection', 'pages'] as const,
     pagePreview: (id: number | string, paramsKey?: string) =>
       ['pageSection', 'pagePreview', id, paramsKey ?? ''] as const,
+    displayTypes: (manualModel?: string, pageId?: number | string) =>
+      ['pageSection', 'displayTypes', manualModel ?? '', pageId ?? ''] as const,
   },
   // Order query keys
   order: {

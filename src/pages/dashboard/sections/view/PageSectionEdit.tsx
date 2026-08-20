@@ -2,6 +2,7 @@ import type {
   Page,
   SectionItem,
   FilterConfig,
+  PageSectionLayout,
   PageSectionVariant,
   PageSectionUpdatePayload,
 } from '../types/page-section.types';
@@ -24,9 +25,13 @@ import { _PageBuilderApi } from '@/pages/dashboard/sections/api/page-builder.ser
 import { contentTypeLabel } from '@/pages/dashboard/sections/utils/content-type-config';
 import { useFetchPageBuilderPage } from '@/pages/dashboard/sections/hooks/usePageBuilder';
 import { cmsPageSelectLabel } from '@/pages/dashboard/sections/utils/cms-page-select-label';
+import { normalizeLayoutAndCardShape } from '@/pages/dashboard/sections/utils/section-layout';
 import { DynamicFilterField } from '@/pages/dashboard/sections/components/dynamic-filter-field';
 import { CategoryPageBanner } from '@/pages/dashboard/sections/components/category-page-banner';
 import { normalizeFilterSchema } from '@/pages/dashboard/sections/utils/filter-config-normalize';
+import {
+  visiblePageShowWhenFilters,
+} from '@/pages/dashboard/sections/utils/page-visibility-filters';
 import { isCategoryCmsPage, resolveLinkedCategoryId } from '@/pages/dashboard/sections/utils/category-page';
 import {
   PageSectionSchema,
@@ -50,6 +55,7 @@ import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout
 
 const VISIBILITY_NULL_FILTER_KEYS = new Set(['type', 'shop_id', 'category_id', 'brand_id']);
 
+const PAGE_SECTION_LAYOUTS: PageSectionLayout[] = ['slider', 'list', 'grid'];
 const PAGE_SECTION_VARIANTS: PageSectionVariant[] = ['horizontal', 'vertical', 'square'];
 
 function hydrateShowWhenValues(
@@ -119,6 +125,7 @@ const SERVER_ERROR_FORM_PATHS = new Set([
   'section_id',
   'position',
   'order',
+  'layout',
   'variant',
   'background_color',
   'background_card_color',
@@ -143,6 +150,11 @@ function FilterNoticeCallout({ text }: { text: string }) {
       </Typography>
     </Box>
   );
+}
+
+function parsePageSectionLayout(value: unknown): PageSectionLayout {
+  if (value === 'slider' || value === 'list' || value === 'grid') return value;
+  return 'slider';
 }
 
 function parsePageSectionVariant(value: unknown): PageSectionVariant {
@@ -182,6 +194,7 @@ export default function PageSectionEditPage() {
     },
     section_id: '',
     position: 'after' as const,
+    layout: 'slider' as PageSectionLayout,
     variant: 'horizontal' as PageSectionVariant,
     order: 1,
     background_color: '',
@@ -241,6 +254,10 @@ export default function PageSectionEditPage() {
           ? (pageSection.name as { en?: string; ar?: string })
           : null;
       const nameStr = typeof pageSection.name === 'string' ? pageSection.name : '';
+      const { layout, variant } = normalizeLayoutAndCardShape({
+        layout: ps.layout,
+        variant: ps.variant,
+      });
       reset({
         name: {
           en: nameObj?.en ?? nameStr,
@@ -248,7 +265,8 @@ export default function PageSectionEditPage() {
         },
         section_id: ps.section_id ?? ps.section?.id ?? '',
         position: pageSection.position ?? 'after',
-        variant: parsePageSectionVariant(ps.variant),
+        layout: parsePageSectionLayout(layout),
+        variant: parsePageSectionVariant(variant),
         order: pageSection.order ?? 1,
         background_color: pageSection.background_color || '',
         background_card_color: pageSection.background_card_color || '',
@@ -322,13 +340,18 @@ export default function PageSectionEditPage() {
     const nextBackgroundCardColor = data.background_card_color ?? '';
     // Only keys the linked section declares, so a swapped section can't leak stale filters.
     const nextFilters = pickSchemaFilters(sectionFilters, filterValues);
-    const nextShowWhen = buildShowWhenPayload(pageFilters, showWhenValues) ?? {};
+    const nextShowWhen =
+      buildShowWhenPayload(
+        visiblePageShowWhenFilters(pageFilters, isCategoryCmsPage(pageBuilderDetails?.data)),
+        showWhenValues
+      ) ?? {};
 
     // Layout fields are always sent; everything else only when the user changed it.
-    // `page_id` is read-only server-side and `display_type_id` is rejected outright,
-    // so neither is ever part of the body.
+    // `page_id` is read-only server-side, so it is never part of the body.
+    // `display_type_id` is owned by the backend (from content type) — never send it.
     const payload: PageSectionUpdatePayload = {
       position: data.position,
+      layout: data.layout ?? 'slider',
       variant: data.variant,
     };
 
@@ -393,6 +416,15 @@ export default function PageSectionEditPage() {
       { value: 'before', label: t('form.positionBefore') },
       { value: 'after', label: t('form.positionAfter') },
     ],
+    [t]
+  );
+
+  const layoutOptions = useMemo(
+    () =>
+      PAGE_SECTION_LAYOUTS.map((v) => ({
+        value: v,
+        label: t(`form.pageSectionLayout_${v}`),
+      })),
     [t]
   );
 
@@ -502,9 +534,7 @@ export default function PageSectionEditPage() {
   }, [sectionFilters, t]);
 
   const orderedPageFilterEntries = useMemo(() => {
-    const entries = Object.entries(pageFilters).filter(
-      ([key]) => !(isCategoryPage && key === 'category_id')
-    );
+    const entries = Object.entries(visiblePageShowWhenFilters(pageFilters, isCategoryPage));
     return entries.sort(([a], [b]) => filterFieldLabel(t, a).localeCompare(filterFieldLabel(t, b)));
   }, [pageFilters, isCategoryPage, t]);
 
@@ -754,7 +784,7 @@ export default function PageSectionEditPage() {
                 <FilterNoticeCallout text={t('form.pageSliderPageFixedNotice')} />
               </Box>
 
-              {pageIdForLookup > 0 && Object.keys(pageFilters).length > 0 && (
+              {pageIdForLookup > 0 && orderedPageFilterEntries.length > 0 && (
                 <Box className="mt-5 border-t border-border/40 pt-5 bg-muted/20 -mx-6 px-6 pb-1">
                   <Box className="flex items-center justify-between gap-3 mb-3">
                     <Box className="flex items-center gap-2 min-w-0">
@@ -857,10 +887,10 @@ export default function PageSectionEditPage() {
             </Box>
             <Typography variant="subtitle2" className="font-semibold text-foreground">
               {t('form.pageSectionFormPositionLabel')} · {t('form.pageSectionFormOrderLabel')} ·{' '}
-              {t('form.pageSectionFormVariantLabel')}
+              {t('form.pageSectionFormLayoutLabel')} · {t('form.pageSectionFormVariantLabel')}
             </Typography>
           </Box>
-          <Box className="p-6 grid grid-cols-1 md:grid-cols-3 gap-5">
+          <Box className="p-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
             <Box className="group">
               <Box className="flex items-center gap-2 mb-2">
                 <Iconify icon="solar:align-vertical-spacing-bold" className="text-emerald-500" width={20} height={20} />
@@ -890,6 +920,22 @@ export default function PageSectionEditPage() {
                 type="number"
                 placeholder={t('form.displayOrderPlaceholder')}
                 helperText={t('form.displayOrderHelper')}
+                className="transition-all duration-200"
+              />
+            </Box>
+
+            <Box className="group">
+              <Box className="flex items-center gap-2 mb-2">
+                <Iconify icon="solar:slider-horizontal-bold" className="text-emerald-500" width={20} height={20} />
+                <Typography variant="subtitle2" className="font-semibold text-foreground">
+                  {t('form.pageSectionFormLayoutLabel')}
+                </Typography>
+              </Box>
+              <RHFSelect
+                name="layout"
+                options={layoutOptions}
+                placeholder={t('form.selectLayout')}
+                helperText={t('form.pageSectionLayoutHelper')}
                 className="transition-all duration-200"
               />
             </Box>

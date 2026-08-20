@@ -12,7 +12,9 @@ export const SectionSchema = zod.object({
     en: zod.string().min(1, { message: t('section.nameEnRequired') }),
     ar: zod.string().min(1, { message: t('section.nameArRequired') }),
   }),
-  /** Display shape — `horizontal` is a slider. Copied to pages that link this section. */
+  /** Section arrangement: slider | list | grid. */
+  layout: zod.enum(['slider', 'list', 'grid']).optional(),
+  /** Card shape inside the section: horizontal | vertical | square. */
   variant: zod.enum(['horizontal', 'vertical', 'square']).optional(),
   background_color: zod.string().optional(),
   background_card_color: zod.string().optional(),
