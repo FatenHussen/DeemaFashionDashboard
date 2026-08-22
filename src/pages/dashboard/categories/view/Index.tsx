@@ -26,6 +26,13 @@ import {
   buildCategorySelectRows,
   nativeSelectCategoryLabel,
 } from '@/pages/dashboard/categories/utils/build-parent-picker-options';
+import {
+  type CategoryTrailSegment,
+  trailIdsEqual,
+  hydrateCategoryTrail,
+  parseCategoryTrailParam,
+  serializeCategoryTrailParam,
+} from '@/pages/dashboard/categories/utils/category-trail-params';
 
 import { CONFIG } from 'src/global-config';
 
@@ -58,7 +65,69 @@ export default function Page() {
     searchParams.get('tab') === 'restaurant' ? 'restaurant' : 'normal';
   const isRestaurantTab = activeTab === 'restaurant';
 
-  const [trail, setTrail] = useState<{ id: number; name: string }[]>([]);
+  const [trail, setTrail] = useState<CategoryTrailSegment[]>([]);
+
+  const urlTrailIds = useMemo(
+    () => parseCategoryTrailParam(searchParams.get('trail'), MAX_CATEGORY_DEPTH),
+    [searchParams]
+  );
+  const trailIds = useMemo(() => trail.map((s) => s.id), [trail]);
+
+  const updateTrail = useCallback(
+    (
+      next:
+        | CategoryTrailSegment[]
+        | ((prev: CategoryTrailSegment[]) => CategoryTrailSegment[])
+    ) => {
+      setTrail((prev) => {
+        const resolved = typeof next === 'function' ? next(prev) : next;
+        setSearchParams(
+          (sp) => {
+            const params = new URLSearchParams(sp);
+            const serialized = serializeCategoryTrailParam(resolved.map((s) => s.id));
+            if (serialized) params.set('trail', serialized);
+            else params.delete('trail');
+            return params;
+          },
+          { replace: true }
+        );
+        return resolved;
+      });
+    },
+    [setSearchParams]
+  );
+
+  const { data: hydratedTrail, isError: isTrailHydrateError, error: trailHydrateError } =
+    useQuery({
+      queryKey: ['categories', 'trail-hydrate', urlTrailIds.join(',')],
+      queryFn: () => hydrateCategoryTrail(urlTrailIds),
+      enabled: urlTrailIds.length > 0 && !trailIdsEqual(urlTrailIds, trailIds),
+      retry: false,
+    });
+
+  useEffect(() => {
+    if (urlTrailIds.length === 0) {
+      if (trail.length > 0) setTrail([]);
+      return;
+    }
+    if (hydratedTrail && trailIdsEqual(urlTrailIds, hydratedTrail.map((s) => s.id))) {
+      setTrail(hydratedTrail);
+    }
+  }, [urlTrailIds, hydratedTrail, trail.length]);
+
+  useEffect(() => {
+    if (!isTrailHydrateError) return;
+    toast.error(getApiErrorMessage(trailHydrateError, t('form.categoriesLoadErrorFallback')));
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete('trail');
+        return next;
+      },
+      { replace: true }
+    );
+    setTrail([]);
+  }, [isTrailHydrateError, trailHydrateError, setSearchParams, t]);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [deletingId, setDeletingId] = useState<number | null>(null);
@@ -99,13 +168,13 @@ export default function Page() {
         }
         return next;
       });
-      setTrail([]);
+      updateTrail([]);
       setCurrentPage(1);
       setIsActiveFilter('');
       setSortField('');
       setSortOrder('asc');
     },
-    [setSearchParams]
+    [setSearchParams, updateTrail]
   );
 
   useEffect(() => {
@@ -207,9 +276,9 @@ export default function Page() {
         return;
       }
       const name = formatTranslated(row.name);
-      setTrail((prev) => [...prev, { id: row.id, name }]);
+      updateTrail((prev) => [...prev, { id: row.id, name }]);
     },
-    [trail.length, t]
+    [trail.length, t, updateTrail]
   );
 
   const categoryData: CategoryFormValues[] = categoriesResponse?.data?.items || [];
@@ -245,7 +314,7 @@ export default function Page() {
     setIsActiveFilter('');
     setSortField('');
     setSortOrder('asc');
-    setTrail([]);
+    updateTrail([]);
     setCurrentPage(1);
   };
 
@@ -299,7 +368,7 @@ export default function Page() {
             const v = e.target.value;
             setCurrentPage(1);
             if (v === '0') {
-              setTrail([]);
+              updateTrail([]);
               return;
             }
             const id = Number(v);
@@ -310,7 +379,7 @@ export default function Page() {
                   ? formatTranslated(cat.name as { en?: string; ar?: string })
                   : String(cat.name)
                 : '';
-            setTrail(cat ? [{ id: cat.id, name: label }] : []);
+            updateTrail(cat ? [{ id: cat.id, name: label }] : []);
           }}
         >
           <option value={0}>{t('categoryBreadcrumbRoot')}</option>
@@ -426,7 +495,7 @@ export default function Page() {
               rootLabel={t('categoryBreadcrumbRoot')}
               items={trail.map((s) => ({ id: s.id, label: s.name }))}
               onNavigate={(next) =>
-                setTrail(next.map((s) => ({ id: Number(s.id), name: s.label })))
+                updateTrail(next.map((s) => ({ id: Number(s.id), name: s.label })))
               }
             />
             {hasPermission('update', 'category') ? (

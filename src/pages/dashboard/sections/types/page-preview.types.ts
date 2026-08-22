@@ -29,7 +29,7 @@ export interface PagePreviewSeeMore {
 
 export interface PagePreviewSection {
   id: number;
-  name: string;
+  name: string | { ar?: string; en?: string };
   type: 'api' | 'manual';
   position: 'before' | 'after';
   order: number;

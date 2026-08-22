@@ -40,6 +40,12 @@ import {
   useReorderPageSections,
 } from '@/pages/dashboard/sections/hooks/usePageSections';
 
+import {
+  formatTranslated,
+  type TranslatedValue,
+  resolveItemDisplayLabel,
+} from 'src/utils/format-translated';
+
 import { CONFIG } from 'src/global-config';
 import { Box, Typography } from 'src/shared/ui';
 import { LoadingScreen } from 'src/shared/components/loading-screen';
@@ -61,8 +67,14 @@ function getItemTitle(item: Record<string, unknown>): string {
     item.item && typeof item.item === 'object' && !Array.isArray(item.item)
       ? (item.item as Record<string, unknown>)
       : null;
-  const title = item.title ?? item.name ?? nested?.title ?? nested?.name;
-  return title != null && String(title).trim() !== '' ? String(title) : '—';
+  return (
+    resolveItemDisplayLabel(
+      item.title as TranslatedValue,
+      item.name as TranslatedValue,
+      nested?.title as TranslatedValue,
+      nested?.name as TranslatedValue
+    ) || '—'
+  );
 }
 
 function getItemImage(item: Record<string, unknown>): string | null {
@@ -269,7 +281,9 @@ function SortablePreviewSection({
             className="min-w-0 flex-1 text-start"
           >
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-              <span className="font-semibold text-foreground">{section.name}</span>
+              <span className="font-semibold text-foreground">
+                {formatTranslated(section.name as TranslatedValue) || '—'}
+              </span>
               <span
                 className={`rounded px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide ${sectionTypeStyles(section.type)}`}
               >

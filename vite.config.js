@@ -10,7 +10,7 @@ export default defineConfig(function (_a) {
     var mode = _a.mode;
     var env = loadEnv(mode, process.cwd(), '');
     // Must match the host in your production `VITE_SERVER_URL` when using the dev proxy below.
-    var devProxyTarget = env.VITE_DEV_PROXY_TARGET || 'https://tickdash.tickmartsy.com';
+    var devProxyTarget = (env.VITE_DEV_PROXY_TARGET || 'https://tickdash.tickmartsy.com').replace(/\/api\/?$/, '');
     // The proxy only matters when the app calls the API on a relative path
     // (`VITE_SERVER_URL=/api`); with an absolute URL the browser goes straight to
     // the host and nothing hits the dev server. Enabling it conditionally keeps an

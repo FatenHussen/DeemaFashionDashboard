@@ -10,8 +10,12 @@ const PORT = 8082;
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
-  // Must match the host in your production `VITE_SERVER_URL` when using the dev proxy below.
-  const devProxyTarget = env.VITE_DEV_PROXY_TARGET || 'https://tickdash.tickmartsy.com';
+  // API host only (e.g. http://127.0.0.1:8000). The browser already requests `/api/...`;
+  // if this value also ends with `/api`, the proxy forwards to `/api/api/...` and Laravel 404s.
+  const devProxyTarget = (env.VITE_DEV_PROXY_TARGET || 'https://tickdash.tickmartsy.com').replace(
+    /\/api\/?$/,
+    ''
+  );
   // The proxy only matters when the app calls the API on a relative path
   // (`VITE_SERVER_URL=/api`); with an absolute URL the browser goes straight to
   // the host and nothing hits the dev server. Enabling it conditionally keeps an

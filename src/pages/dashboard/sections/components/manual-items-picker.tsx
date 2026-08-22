@@ -14,6 +14,8 @@ import { MANUAL_ITEM_PICKER_FILTERS } from '@/pages/dashboard/sections/utils/con
 
 import { paths } from 'src/routes/paths';
 
+import { type TranslatedValue, resolveItemDisplayLabel } from 'src/utils/format-translated';
+
 import { CONFIG } from 'src/global-config';
 import { Box, Input, Button, Typography } from 'src/shared/ui';
 import { SortableItem } from 'src/shared/ui/table-data/sortable-item';
@@ -122,8 +124,11 @@ export function ManualItemsPicker({
 
   const itemLabelById = useMemo(() => {
     const map = new Map<number, string>(labelOverrides ?? []);
-    for (const row of allItems as { id: number; name?: string; title?: string }[]) {
-      map.set(row.id, row.name || row.title || '');
+    for (const row of allItems as { id: number; name?: TranslatedValue; title?: TranslatedValue }[]) {
+      map.set(
+        row.id,
+        resolveItemDisplayLabel(row.name, row.title)
+      );
     }
     return map;
   }, [allItems, labelOverrides]);
@@ -475,9 +480,10 @@ export function ManualItemsPicker({
                       <Box className="flex-1 min-w-0">
                         <Box className="flex items-center gap-2 mb-1">
                           <Typography variant="body1" className="font-semibold text-foreground">
-                            {item.name ||
-                              item.title ||
-                              t('form.itemNumberFallback', { id: item.id })}
+                            {resolveItemDisplayLabel(
+                              item.name as TranslatedValue,
+                              item.title as TranslatedValue
+                            ) || t('form.itemNumberFallback', { id: item.id })}
                           </Typography>
                           <Box className="px-2 py-0.5 rounded bg-muted text-xs text-muted-foreground">
                             {t('form.itemIdBadgeShort', { id: item.id })}

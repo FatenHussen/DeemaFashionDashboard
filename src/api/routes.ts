@@ -5,7 +5,7 @@ import { ROOTS } from 'src/routes/paths';
 export const apiRoutes = {
   // Auth routes
   auth: {
-    me: '/api/auth/me',
+    me: '/admin/auth/me',
     signIn: '/admin/auth/login',
     logout: '/admin/auth/logout',
     profile: '/admin/auth/profile',

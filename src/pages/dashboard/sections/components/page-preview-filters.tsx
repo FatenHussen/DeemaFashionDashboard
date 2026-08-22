@@ -10,6 +10,8 @@ import {
   filterOptionLabel,
 } from '@/pages/dashboard/sections/utils/filter-field-label';
 
+import { type TranslatedValue, resolveItemDisplayLabel } from 'src/utils/format-translated';
+
 import { Box, Typography, SimpleSelect } from 'src/shared/ui';
 
 // ----------------------------------------------------------------------
@@ -126,11 +128,10 @@ function PagePreviewFilterField({
         };
         return {
           data: {
-            items: items.map((item: { id: number; name?: string; title?: string }) => ({
+            items: items.map((item: { id: number; name?: TranslatedValue; title?: TranslatedValue }) => ({
               id: item.id,
               label:
-                item.name ||
-                item.title ||
+                resolveItemDisplayLabel(item.name, item.title) ||
                 t('form.filterItemFallbackLabel', { id: item.id }),
             })),
             pagination,

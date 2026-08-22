@@ -26,3 +26,14 @@ export function formatTranslated(value: TranslatedValue, fallback = '-'): string
   }
   return fallback;
 }
+
+/** Pick the first non-empty label from title/name fields (string or `{ ar, en }`). */
+export function resolveItemDisplayLabel(
+  ...values: (TranslatedValue | undefined)[]
+): string {
+  for (const value of values) {
+    const label = formatTranslated(value, '');
+    if (label) return label;
+  }
+  return '';
+}
