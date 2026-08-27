@@ -38,6 +38,8 @@ export interface ProductData {
   /** Shelf life / expiry (ISO or YYYY-MM-DD from API) */
   expiry_date?: string | null;
   is_restaurant?: boolean;
+  /** `platform` = site/Tikmool; `shop` = linked to branch(es). */
+  sale_channel?: 'platform' | 'shop' | string | null;
 }
 
 /** Per-currency breakdown from product detail API (`price_currencies`, `cost_price_currencies`, etc.) */
@@ -56,6 +58,8 @@ export interface ProductDetailData {
   category_id: number;
   brand_id: number | null;
   vendor_id?: number | null;
+  /** `platform` = sold on site (auto platform shop); `shop` = explicit branch links. */
+  sale_channel?: 'platform' | 'shop' | string | null;
   name: { en: string; ar: string };
   description: { en: string; ar: string };
   full_description: { en: string; ar: string } | null;
@@ -210,15 +214,22 @@ export interface ProductCreateUpdatePayload {
   category_id: number;
   brand_id?: number | null;
   vendor_id?: number;
+  /** `platform` = site product (no shop_variants); `shop` = must send shop_variants. */
+  sale_channel?: 'platform' | 'shop';
   name: { en: string; ar: string };
   description: { en: string; ar: string };
   full_description?: { en: string; ar: string };
   country_id?: number;
   sale_country_id?: number;
+  /** Sale price in USD. Prefer this over `price_syp` when both are set (API ignores SYP). */
   price?: number;
+  /** Sale price in SYP — converted server-side when `price` is omitted. */
+  price_syp?: number;
   discount?: number;
   discount_type?: ProductDiscountType;
   cost_price?: number;
+  /** Cost in SYP — converted server-side when `cost_price` is omitted. */
+  cost_price_syp?: number;
   quantity: number;
   unit_id?: number;
   warranty_period?: number;
@@ -251,6 +262,8 @@ export interface ProductCreateUpdatePayload {
     name?: { en: string; ar: string };
     /** Sale price for this SKU, shared across every shop. */
     price?: number;
+    /** Sale price in SYP when `price` is omitted. */
+    price_syp?: number;
     /** Stock for this SKU, shared across every shop. */
     quantity?: number;
     stock?: number;
@@ -345,4 +358,23 @@ export interface AdminProductVariantsListApiResponse {
       total: number;
     };
   };
+}
+
+/** `POST /api/admin/products/import` row failure. */
+export interface ProductImportFailedRow {
+  row: number;
+  errors: string[];
+}
+
+export interface ProductImportResultData {
+  created: number;
+  updated: number;
+  failed: ProductImportFailedRow[];
+}
+
+export interface ProductImportResponse {
+  status?: boolean;
+  success?: boolean;
+  message?: string;
+  data: ProductImportResultData;
 }

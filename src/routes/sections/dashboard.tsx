@@ -144,6 +144,14 @@ const AffiliateIndexPage = lazyWithRetry(() => import('@/pages/dashboard/affilia
 const OrderIndexPage = lazyWithRetry(() => import('@/pages/dashboard/orders/view/Index'));
 const OrderDetailsPage = lazyWithRetry(() => import('@/pages/dashboard/orders/view/Details'));
 
+// Custom order requests
+const CustomOrderRequestIndexPage = lazyWithRetry(
+  () => import('@/pages/dashboard/custom-order-requests/view/Index')
+);
+const CustomOrderRequestDetailsPage = lazyWithRetry(
+  () => import('@/pages/dashboard/custom-order-requests/view/Details')
+);
+
 // Baskets
 const BasketIndexPage = lazyWithRetry(() => import('@/pages/dashboard/baskets/view/basket/Index'));
 const BasketCreatePage = lazyWithRetry(() => import('@/pages/dashboard/baskets/view/basket/Create'));
@@ -1385,6 +1393,40 @@ export const dashboardRoutes: RouteObject[] = [
         element: (
           <RequirePermission permission="order.view">
             <OrderDetailsPage />
+          </RequirePermission>
+        ),
+      },
+    ],
+  },
+  {
+    path: 'custom-order-requests',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: (
+          <RequirePermission
+            permissionAny={[
+              'customorderrequest.view',
+              'custom_order_request.view',
+              'order.view',
+            ]}
+          >
+            <CustomOrderRequestIndexPage />
+          </RequirePermission>
+        ),
+        index: true,
+      },
+      {
+        path: 'details/:id',
+        element: (
+          <RequirePermission
+            permissionAny={[
+              'customorderrequest.view',
+              'custom_order_request.view',
+              'order.view',
+            ]}
+          >
+            <CustomOrderRequestDetailsPage />
           </RequirePermission>
         ),
       },

@@ -9,7 +9,6 @@ export const SaleCountryFormSchema = z.object({
     en: z.string().min(1, tv('nameEnRequired')),
     ar: z.string().min(1, tv('nameArRequired')),
   }),
-  icon: z.any().optional().nullable(),
   is_active: z.boolean(),
 });
 

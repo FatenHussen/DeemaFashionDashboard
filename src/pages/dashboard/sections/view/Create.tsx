@@ -38,6 +38,7 @@ import {
   CardShapePreview,
 } from '@/pages/dashboard/sections/components/section-form-ui';
 import {
+  isHomeCmsPage,
   autoFeedPreview,
   contentTypeLabel,
   CONTENT_TYPE_ICONS,
@@ -45,12 +46,14 @@ import {
   isApiOnlyContentType,
   contentTypeToApiMethod,
   apiMethodToContentType,
+  isQuickOrderContentType,
   CONTENT_TYPE_API_FILTERS,
   ALL_SECTION_CONTENT_TYPES,
   CONTENT_TYPE_ITEM_SOURCES,
 } from '@/pages/dashboard/sections/utils/content-type-config';
 
 import { CONFIG } from 'src/global-config';
+import { Button } from 'src/shared/ui/button';
 import { Box, Typography } from 'src/shared/ui';
 import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
 import { RHFColorPicker } from 'src/shared/components/hook-form/rhf-color-picker';
@@ -131,8 +134,12 @@ export default function CreatePage() {
   const watchedCardBg = watch('background_card_color');
 
   const contentTypesToShow = useMemo(() => {
-    const list = [...ALL_SECTION_CONTENT_TYPES];
-    if (watchedContentType && !list.includes(watchedContentType)) {
+    const list = ALL_SECTION_CONTENT_TYPES.filter((type) => !isQuickOrderContentType(type));
+    if (
+      watchedContentType &&
+      !list.includes(watchedContentType) &&
+      !isQuickOrderContentType(watchedContentType)
+    ) {
       list.unshift(watchedContentType);
     }
     return list;
@@ -143,6 +150,8 @@ export default function CreatePage() {
   const showFillStep = Boolean(watchedContentType) && !isBannerContent && !isApiOnlyContent;
 
   const isCategoryPage = isCategoryCmsPage(returnPageDetails?.data);
+  const showQuickOrderSettingsHint =
+    Boolean(returnPage) && !isCategoryPage && isHomeCmsPage(returnPageDetails?.data ?? { id: returnPage });
   const hasBannerSectionOnPage = useMemo(() => {
     const sections = returnPageDetails?.data?.sections ?? [];
     return sections.some((section) => isBannerContentType(section.content_type));
@@ -419,6 +428,30 @@ export default function CreatePage() {
         formInnerClassName="flex flex-col gap-8"
       >
         {returnPage && <CategoryPageBanner page={returnPageDetails?.data} />}
+
+        {returnPage && showQuickOrderSettingsHint && (
+          <Box className="rounded-2xl border border-sky-500/20 bg-sky-500/[0.06] px-4 py-3">
+            <Box className="flex flex-col gap-3 sm:flex-row sm:items-start">
+              <Iconify
+                icon="solar:info-circle-bold"
+                className="mt-0.5 shrink-0 text-sky-700"
+                width={18}
+              />
+              <Typography variant="body2" className="min-w-0 flex-1 text-muted-foreground">
+                {t('form.pageBuilderQuickOrderNotASectionNotice')}
+              </Typography>
+              <Button
+                type="button"
+                variant="outlined"
+                onClick={() => navigate('/settings?tab=quick_order')}
+                className="shrink-0 gap-2 self-start whitespace-nowrap"
+              >
+                <Iconify icon="solar:bolt-bold" width={16} />
+                {t('form.pageBuilderOpenQuickOrderSettings')}
+              </Button>
+            </Box>
+          </Box>
+        )}
 
         {returnPage && isBannerContent && hasBannerSectionOnPage && (
           <Box className="rounded-2xl border border-amber-500/20 bg-amber-500/[0.06] px-4 py-3">

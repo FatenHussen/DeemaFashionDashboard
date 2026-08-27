@@ -79,6 +79,45 @@ export function isBannerContentType(contentType: string | undefined | null): boo
   return (contentType ?? '').trim().toLowerCase() === 'banner';
 }
 
+/**
+ * Home "quick order" block is settings-driven (`quick_order_*` keys), not a CMS section.
+ * Backend may still inject it into page preview — exclude from the page builder UI.
+ */
+const QUICK_ORDER_CONTENT_TYPES = new Set([
+  'quick_order',
+  'quick-order',
+  'custom_order',
+  'custom-order',
+  'custom_order_request',
+]);
+
+export function isQuickOrderContentType(contentType: string | undefined | null): boolean {
+  const key = (contentType ?? '').trim().toLowerCase();
+  return Boolean(key) && QUICK_ORDER_CONTENT_TYPES.has(key);
+}
+
+export function isQuickOrderSection(section: {
+  content_type?: string | null;
+  manual_model?: string | null;
+  type?: string | null;
+  api_method?: string | null;
+}): boolean {
+  return (
+    isQuickOrderContentType(section.content_type) ||
+    isQuickOrderContentType(section.manual_model) ||
+    isQuickOrderContentType(section.type) ||
+    isQuickOrderContentType(section.api_method)
+  );
+}
+
+/** Home / landing CMS page — where the settings-driven quick-order block appears in the app. */
+export function isHomeCmsPage(page?: { slug?: string | null; id?: number | string | null } | null): boolean {
+  const slug = (page?.slug ?? '').trim().toLowerCase();
+  if (slug === 'home' || slug === 'index' || slug === 'main') return true;
+  // Seeded home is usually page id 1 in this project.
+  return String(page?.id ?? '') === '1';
+}
+
 /** Every pickable content type in section create step 2 (manual + api-only extras). */
 export const ALL_SECTION_CONTENT_TYPES: readonly string[] = [
   ...SECTION_CONTENT_TYPES,

@@ -11,6 +11,7 @@ import { normalizeLayoutAndCardShape } from '@/pages/dashboard/sections/utils/se
 import {
   contentTypeLabel,
   CONTENT_TYPE_ICONS,
+  isQuickOrderContentType,
   ALL_SECTION_CONTENT_TYPES,
 } from '@/pages/dashboard/sections/utils/content-type-config';
 
@@ -108,7 +109,7 @@ export function SliderLibraryPicker({
       </Box>
 
       <Box className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-        {ALL_SECTION_CONTENT_TYPES.map((type) => {
+        {ALL_SECTION_CONTENT_TYPES.filter((type) => !isQuickOrderContentType(type)).map((type) => {
           const active = contentType === type;
           const icon = CONTENT_TYPE_ICONS[type] ?? 'solar:widget-bold';
           return (

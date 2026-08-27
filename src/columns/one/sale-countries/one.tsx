@@ -29,15 +29,22 @@ export const saleCountryColumns = (
     id: 'icon',
     accessorKey: 'icon',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.image')} />,
-    cell: ({ row }) => (
-      <div className="w-10 h-10 rounded-lg border border-border overflow-hidden bg-muted/30">
-        {row.original.icon ? (
-          <img src={row.original.icon} alt="" className="w-full h-full object-cover" />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">—</div>
-        )}
-      </div>
-    ),
+    cell: ({ row }) => {
+      const icon = row.original.icon;
+      // Seeder icons are emoji flags (e.g. 🇸🇾); legacy rows may still be image URLs.
+      const isUrl = typeof icon === 'string' && /^https?:\/\//i.test(icon);
+      return (
+        <div className="w-10 h-10 rounded-lg border border-border overflow-hidden bg-muted/30 flex items-center justify-center text-xl leading-none">
+          {!icon ? (
+            <span className="text-muted-foreground text-xs">—</span>
+          ) : isUrl ? (
+            <img src={icon} alt="" className="w-full h-full object-cover" />
+          ) : (
+            <span aria-hidden>{icon}</span>
+          )}
+        </div>
+      );
+    },
   },
   {
     id: 'name',

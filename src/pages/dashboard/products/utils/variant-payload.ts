@@ -62,7 +62,12 @@ export function toVariantPayload(
   if (r.barcode !== undefined && r.barcode !== null) payload.barcode = String(r.barcode);
 
   const price = toFiniteNumber(r.price);
-  if (price !== undefined) payload.price = price;
+  const priceSyp = toFiniteNumber(r.price_syp);
+  if (price !== undefined) {
+    payload.price = price;
+  } else if (priceSyp !== undefined) {
+    payload.price_syp = priceSyp;
+  }
   const quantity = toFiniteNumber(r.quantity);
   if (quantity !== undefined) payload.quantity = Math.max(0, Math.floor(quantity));
 

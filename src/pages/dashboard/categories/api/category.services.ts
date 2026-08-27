@@ -3,11 +3,26 @@ import type {
   CategoryListResponse,
   CategoryDetailResponse,
   CategoryCreateUpdatePayload,
+  CategoryDeleteImpactResponse,
+  CategoryLinkedItemsResponse,
 } from '../types/category.types';
 
 import { apiRoutes, axiosInstance } from '@/api';
 
 export type { CategoryCreateUpdatePayload };
+
+function appendIf(
+  target: URLSearchParams,
+  key: string,
+  value: string | number | boolean | undefined | null
+) {
+  if (value === undefined || value === null || value === '') return;
+  if (typeof value === 'boolean') {
+    target.set(key, value ? '1' : '0');
+    return;
+  }
+  target.set(key, String(value));
+}
 
 /** Serialize list filter: root level uses `parent_id=null` in the query string. */
 function appendParentIdParam(searchParams: URLSearchParams, parent_id: number | null | undefined) {
@@ -170,8 +185,43 @@ export const _CategoryApi = {
     });
     return response.data;
   },
-  deleteCategory: async (id: number | string): Promise<any> => {
-    const response = await axiosInstance.delete(apiRoutes.category.delete(id));
+  /**
+   * Deletes the category. Without `confirm`, linked records yield `409`
+   * (`ConfirmationRequiredError`) instead of acting — pass `confirm: true` after the user acks.
+   */
+  deleteCategory: async (
+    id: number | string,
+    options?: { confirm?: boolean }
+  ): Promise<any> => {
+    const response = await axiosInstance.delete(apiRoutes.category.delete(id), {
+      params: options?.confirm ? { confirm: true } : undefined,
+    });
+    return response.data;
+  },
+  /**
+   * Preview of what the delete would affect. Best-effort: the dialog falls back to a plain
+   * "are you sure?" when this is unavailable, so a failure here is not worth a toast.
+   */
+  getDeleteImpact: async (id: number | string): Promise<CategoryDeleteImpactResponse> => {
+    const response = await axiosInstance.get<CategoryDeleteImpactResponse>(
+      apiRoutes.category.deleteImpact(id),
+      { skipErrorToast: true }
+    );
+    return response.data;
+  },
+  getLinkedItems: async (
+    id: number | string,
+    params: { page?: number; per_page?: number } = {}
+  ): Promise<CategoryLinkedItemsResponse> => {
+    const searchParams = new URLSearchParams();
+    appendIf(searchParams, 'page', params.page ?? 1);
+    appendIf(searchParams, 'per_page', params.per_page ?? 10);
+    const query = searchParams.toString();
+    const response = await axiosInstance.get<CategoryLinkedItemsResponse>(
+      `${apiRoutes.category.linkedItems(id)}?${query}`,
+      // Same as the impact preview: the tab renders its own empty state on failure.
+      { skipErrorToast: true }
+    );
     return response.data;
   },
   /**

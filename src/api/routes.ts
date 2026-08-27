@@ -108,6 +108,10 @@ export const apiRoutes = {
     details: (id: number | string) => `${ROOTS.ADMIN}/categories/${id}`,
     /** Persist drag-and-drop ordering. Body: `{ ordered_ids: number[], parent_id?: number }`. */
     sort: `${ROOTS.ADMIN}/categories/sort`,
+    /** Preview of what a delete would affect (children/products/baskets/pages/recipes). */
+    deleteImpact: (id: number | string) => `${ROOTS.ADMIN}/categories/${id}/delete-impact`,
+    /** Paginated linked entities that would be affected by deleting this category. */
+    linkedItems: (id: number | string) => `${ROOTS.ADMIN}/categories/${id}/linked-items`,
   },
   // Category Attribute routes
   categoryAttribute: {
@@ -263,6 +267,8 @@ export const apiRoutes = {
     variants: (id: number | string) => `${ROOTS.ADMIN}/products/${id}/variants`,
     approve: (id: number | string) => `${ROOTS.ADMIN}/products/${id}/approve`,
     reject: (id: number | string) => `${ROOTS.ADMIN}/products/${id}/reject`,
+    importTemplate: `${ROOTS.ADMIN}/products/import-template`,
+    import: `${ROOTS.ADMIN}/products/import`,
   },
   // Order routes
   order: {
@@ -275,6 +281,13 @@ export const apiRoutes = {
     assignDriver: (id: number | string) => `${ROOTS.ADMIN}/orders/${id}/assign-driver`,
     changeItemStatus: (itemId: number | string) =>
       `${ROOTS.ADMIN}/orders/items/${itemId}/change-status`,
+  },
+  // Custom order requests (quick / text+image → priced system order)
+  customOrderRequest: {
+    list: `${ROOTS.ADMIN}/custom-order-requests`,
+    getOne: (id: number | string) => `${ROOTS.ADMIN}/custom-order-requests/${id}/get_one`,
+    convert: (id: number | string) => `${ROOTS.ADMIN}/custom-order-requests/${id}/convert`,
+    cancel: (id: number | string) => `${ROOTS.ADMIN}/custom-order-requests/${id}/cancel`,
   },
   // Basket routes
   basket: {

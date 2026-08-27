@@ -23,6 +23,7 @@ import { cmsPageSelectLabel } from '@/pages/dashboard/sections/utils/cms-page-se
 import { useSensor, DndContext, useSensors, PointerSensor, closestCenter } from '@dnd-kit/core';
 import { PagePreviewFilters } from '@/pages/dashboard/sections/components/page-preview-filters';
 import { CategoryPageBanner } from '@/pages/dashboard/sections/components/category-page-banner';
+import { isHomeCmsPage, isQuickOrderSection } from '@/pages/dashboard/sections/utils/content-type-config';
 import { arrayMove , useSortable, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import {
   isCategoryCmsPage,
@@ -465,7 +466,9 @@ export default function PageDetails() {
   );
 
   const syncFromPreview = useCallback((sections: PagePreviewSection[]) => {
-    const sorted = [...sections].sort((a, b) => a.order - b.order);
+    const sorted = [...sections]
+      .filter((section) => !isQuickOrderSection(section))
+      .sort((a, b) => a.order - b.order);
     setOrderedSections(sorted);
     setBaselineIds(sorted.map((s) => s.id));
     setExpandedIds(new Set(sorted.length > 0 ? [sorted[0].id] : []));
@@ -726,6 +729,30 @@ export default function PageDetails() {
             <p className="mb-4 text-sm text-muted-foreground">
               {t('form.pageBuilderCategoryDefaultSectionsNotice')}
             </p>
+          )}
+
+          {!isCategoryPage && isHomeCmsPage(page) && (
+            <Box className="mb-4 rounded-2xl border border-sky-500/20 bg-sky-500/[0.06] px-4 py-3">
+              <Box className="flex flex-col gap-3 sm:flex-row sm:items-start">
+                <Iconify
+                  icon="solar:info-circle-bold"
+                  className="mt-0.5 shrink-0 text-sky-700"
+                  width={18}
+                />
+                <Typography variant="body2" className="min-w-0 flex-1 text-muted-foreground">
+                  {t('form.pageBuilderQuickOrderNotASectionNotice')}
+                </Typography>
+                <Button
+                  type="button"
+                  variant="outlined"
+                  onClick={() => navigate('/settings?tab=quick_order')}
+                  className="shrink-0 gap-2 self-start whitespace-nowrap"
+                >
+                  <Iconify icon="solar:bolt-bold" width={16} />
+                  {t('form.pageBuilderOpenQuickOrderSettings')}
+                </Button>
+              </Box>
+            </Box>
           )}
 
           {pageFilterSchema && Object.keys(pageFilterSchema).length > 0 && (

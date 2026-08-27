@@ -306,7 +306,7 @@ export default function Page() {
       ) : null}
 
       <DataTable
-        tableName={t('tableNames.product')}
+        tableName="products"
         columns={productColumns(
           {
             update: hasPermission('update', 'product'),

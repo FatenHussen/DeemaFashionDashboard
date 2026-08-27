@@ -17,9 +17,9 @@ import { SortItemsDialog } from '@/shared/ui/table-data/sort-items-dialog';
 import { _CategoryApi } from '@/pages/dashboard/categories/api/category.services';
 import { DataTableBreadcrumb } from '@/shared/ui/table-data/data-table-breadcrumb';
 import { categoryColumns, type CategoryFormValues } from '@/columns/one/categories/one';
+import { CategoryDeleteDialog } from '@/pages/dashboard/categories/components/category-delete-dialog';
 import {
   useSortCategories,
-  useDeleteCategory,
   useFetchCategories,
 } from '@/pages/dashboard/categories/hooks/category';
 import {
@@ -27,10 +27,10 @@ import {
   nativeSelectCategoryLabel,
 } from '@/pages/dashboard/categories/utils/build-parent-picker-options';
 import {
-  type CategoryTrailSegment,
   trailIdsEqual,
   hydrateCategoryTrail,
   parseCategoryTrailParam,
+  type CategoryTrailSegment,
   serializeCategoryTrailParam,
 } from '@/pages/dashboard/categories/utils/category-trail-params';
 
@@ -194,7 +194,6 @@ export default function Page() {
         : { sort_field: 'order', sort_order: 'asc' as const }),
     }
   );
-  const deleteCategoryMutation = useDeleteCategory(currentPage, pageSize);
   const sortCategoriesMutation = useSortCategories();
 
   const { data: sortItemsResp, isFetching: isSortItemsLoading } = useQuery({
@@ -249,19 +248,7 @@ export default function Page() {
     setDeletingId(id);
   };
 
-  const onDeleteConfirm = async () => {
-    if (deletingId) {
-      try {
-        await deleteCategoryMutation.mutateAsync(deletingId);
-        toast.success(t('deleteSuccess'));
-        setDeletingId(null);
-      } catch {
-        return;
-      }
-    }
-  };
-
-  const onDeleteCancel = () => {
+  const onDeleteDialogClose = () => {
     setDeletingId(null);
   };
 
@@ -521,11 +508,6 @@ export default function Page() {
           },
           t,
           onDelete,
-          deleteCategoryMutation.isPending,
-          deletingId !== null,
-          onDeleteConfirm,
-          onDeleteCancel,
-          deletingId,
           {
             onSubcategoriesClick: tryDrillIntoCategory,
             hideParentColumn: trail.length === 0,
@@ -585,6 +567,14 @@ export default function Page() {
         isSubmitting={sortCategoriesMutation.isPending}
         isLoading={isSortItemsLoading}
       />
+
+      {deletingId != null && (
+        <CategoryDeleteDialog
+          id={deletingId}
+          onCancel={onDeleteDialogClose}
+          onDeleted={onDeleteDialogClose}
+        />
+      )}
     </>
   );
 }

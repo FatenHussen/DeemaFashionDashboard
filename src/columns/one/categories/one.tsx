@@ -58,11 +58,6 @@ export const categoryColumns = (
   },
   t: TFunction<'table'>,
   onDelete?: (id: number) => void,
-  isDeleting?: boolean,
-  isDeleteDialogOpen?: boolean,
-  onDeleteConfirm?: () => void,
-  onDeleteCancel?: () => void,
-  deletingId?: number | null,
   options?: {
     subcategoriesPath?: (id: number) => string;
     /** Same as row drill-down; when set, overrides navigation via `subcategoriesPath`. */
@@ -281,12 +276,6 @@ export const categoryColumns = (
         viewDetails={editPath(row.original.id)}
         editItem={editPath(row.original.id)}
         onDelete={onDelete}
-        isDeleting={isDeleting}
-        isDeleteDialogOpen={isDeleteDialogOpen}
-        onDeleteConfirm={onDeleteConfirm}
-        onDeleteCancel={onDeleteCancel}
-        deletingId={deletingId}
-        deleteWarning={t('categoryDeleteHasPageWarning')}
         permissions={permissions}
       />
     ),

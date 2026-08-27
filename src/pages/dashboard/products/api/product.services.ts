@@ -2,6 +2,7 @@ import type {
   ProductDetailData,
   ProductListResponse,
   ProductDetailResponse,
+  ProductImportResponse,
   ProductCreateUpdatePayload,
   AdminProductVariantsListApiResponse,
 } from '../types/product.types';
@@ -16,6 +17,35 @@ import {
 
 // ----------------------------------------------------------------------
 
+const getFilenameFromHeaders = (
+  headers: Record<string, string>,
+  fallback = 'products-import-template.xlsx'
+): string => {
+  const disposition = headers['content-disposition'] || headers['Content-Disposition'];
+  const match = disposition?.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+  if (match) {
+    const filename = match[1].replace(/['"]/g, '').trim();
+    if (filename) {
+      try {
+        return decodeURIComponent(filename);
+      } catch {
+        return filename;
+      }
+    }
+  }
+  return fallback;
+};
+
+const triggerBlobDownload = (blob: Blob, filename: string) => {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+};
 const splitKeywords = (s: string) =>
   s
     .split(',')
@@ -72,6 +102,8 @@ const appendVariantRows = (
     }
     if (cleaned.price !== undefined) {
       formData.append(`variants[${vIndex}][price]`, String(cleaned.price));
+    } else if (cleaned.price_syp !== undefined) {
+      formData.append(`variants[${vIndex}][price_syp]`, String(cleaned.price_syp));
     }
     if (cleaned.quantity !== undefined) {
       formData.append(`variants[${vIndex}][quantity]`, String(cleaned.quantity));
@@ -119,6 +151,12 @@ const buildProductFormData = (data: ProductCreateUpdatePayload): FormData => {
   formData.append('description[ar]', data.description.ar);
   if (data.price !== undefined && data.price !== null && !Number.isNaN(Number(data.price))) {
     formData.append('price', String(data.price));
+  } else if (
+    data.price_syp !== undefined &&
+    data.price_syp !== null &&
+    !Number.isNaN(Number(data.price_syp))
+  ) {
+    formData.append('price_syp', String(data.price_syp));
   }
   formData.append('quantity', data.quantity.toString());
   formData.append('is_instant_delivery', data.is_instant_delivery.toString());
@@ -132,14 +170,34 @@ const buildProductFormData = (data: ProductCreateUpdatePayload): FormData => {
   } else if (data.brand_id != null && data.brand_id > 0) {
     formData.append('brand_id', String(data.brand_id));
   }
-  formData.append('vendor_id', String(data.vendor_id ?? 0));
+
+  const saleChannel =
+    data.sale_channel === 'shop'
+      ? 'shop'
+      : data.sale_channel === 'platform'
+        ? 'platform'
+        : undefined;
+  // Omit on name-only updates — sending platform again would re-bind the default branch.
+  if (saleChannel != null) {
+    formData.append('sale_channel', saleChannel);
+  }
+  // Platform / omitted channel: backend owns Tikmool vendor + default branch — do not send vendor_id.
+  if (saleChannel === 'shop' && data.vendor_id != null && Number(data.vendor_id) > 0) {
+    formData.append('vendor_id', String(data.vendor_id));
+  }
 
   const discountType = data.discount_type ?? 'none';
   formData.append('discount_type', discountType);
-  formData.append('discount', String(data.discount ?? 0));
+  formData.append('discount', String(discountType === 'none' ? 0 : (data.discount ?? 0)));
 
   if (data.cost_price !== undefined && data.cost_price !== null) {
     formData.append('cost_price', String(data.cost_price));
+  } else if (
+    data.cost_price_syp !== undefined &&
+    data.cost_price_syp !== null &&
+    !Number.isNaN(Number(data.cost_price_syp))
+  ) {
+    formData.append('cost_price_syp', String(data.cost_price_syp));
   }
   if (data.unit_id != null && data.unit_id > 0) {
     formData.append('unit_id', String(data.unit_id));
@@ -150,8 +208,16 @@ const buildProductFormData = (data: ProductCreateUpdatePayload): FormData => {
 
   formData.append('full_description[en]', data.full_description?.en ?? '');
   formData.append('full_description[ar]', data.full_description?.ar ?? '');
-  formData.append('country_id', String(data.country_id ?? 0));
-  formData.append('sale_country_id', String(data.sale_country_id ?? 0));
+  // Origin country is optional — omit when empty (do not send 0).
+  if (data.country_id != null && Number(data.country_id) > 0) {
+    formData.append('country_id', String(data.country_id));
+  } else if (data.id != null) {
+    // Explicit clear on update so the backend can unset origin country.
+    formData.append('country_id', '');
+  }
+  if (data.sale_country_id != null && Number(data.sale_country_id) > 0) {
+    formData.append('sale_country_id', String(data.sale_country_id));
+  }
   formData.append('sku', data.sku ?? '');
   formData.append('model', data.model ?? '');
   formData.append('barcode', data.barcode ?? '');
@@ -196,7 +262,11 @@ const buildProductFormData = (data: ProductCreateUpdatePayload): FormData => {
   // Whitelist-only. Empty arrays are omitted so the backend keeps current rows
   // (sending `variants: []` soft-deletes everything and seeds a default SKU).
   appendVariantRows(formData, data.variants);
-  appendShopVariantRows(formData, data.shop_variants);
+  // Shop channel only. Platform / omitted channel: never send shop_variants
+  // (name-only edit must leave existing links alone; platform convert rebinds on the backend).
+  if (saleChannel === 'shop') {
+    appendShopVariantRows(formData, data.shop_variants);
+  }
 
   const validCategoryDetails = (data.category_details ?? []).filter(
     (d) => d.category_detail_id && d.category_detail_id > 0
@@ -460,6 +530,33 @@ export const _ProductApi = {
     formData.append('quantity', String(quantity));
     formData.append('_method', 'PUT');
     const response = await axiosInstance.post(apiRoutes.product.update(id), formData);
+    return response.data;
+  },
+
+  /** Download the fixed SPBS Excel import template. */
+  downloadImportTemplate: async (): Promise<void> => {
+    const response = await axiosInstance.get(apiRoutes.product.importTemplate, {
+      responseType: 'blob',
+    });
+    const filename = getFilenameFromHeaders(
+      response.headers as unknown as Record<string, string>
+    );
+    triggerBlobDownload(response.data as Blob, filename);
+  },
+
+  /** Upload a products Excel file (fixed columns — no UI mapping). */
+  importProducts: async (file: File): Promise<ProductImportResponse> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await axiosInstance.post<ProductImportResponse>(
+      apiRoutes.product.import,
+      formData,
+      {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        maxBodyLength: Infinity,
+        maxContentLength: Infinity,
+      }
+    );
     return response.data;
   },
 };

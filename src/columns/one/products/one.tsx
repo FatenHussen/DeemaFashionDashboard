@@ -326,12 +326,31 @@ export type ProductApprovalActions = {
 };
 
 /**
- * True only when the list row carries explicit evidence that no variant is linked to a
- * branch (`shop_variants` were ignored during the backend bug window — such products are
- * not purchasable on the web). Rows that don't embed variant/shop data are left unflagged.
+ * True only when the list row is a shop-channel product with explicit evidence that no
+ * variant is linked to a branch. Platform products are auto-linked — never flag them.
  */
 function productHasNoShopLink(row: ProductFormValues): boolean {
+  if (String(row.sale_channel ?? 'platform') !== 'shop') return false;
   return productRowHasNoShopLink(row as Record<string, unknown>);
+}
+
+function saleChannelBadge(
+  row: ProductFormValues,
+  t: TFunction<'table'>
+): { label: string; className: string } | null {
+  const channel = String(row.sale_channel ?? 'platform');
+  if (channel === 'shop') {
+    return {
+      label: t('columns.saleChannelShop'),
+      className:
+        'border-sky-500/30 bg-sky-500/10 text-sky-800 dark:text-sky-300',
+    };
+  }
+  return {
+    label: t('columns.saleChannelPlatform'),
+    className:
+      'border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300',
+  };
 }
 
 export const productColumns = (
@@ -396,12 +415,25 @@ export const productColumns = (
           <div className="text-xs text-muted-foreground truncate">
             {formatTranslated(row.original.description)}
           </div>
-          {productHasNoShopLink(row.original) && (
-            <span className="mt-1 inline-flex items-center gap-1 rounded-full border border-destructive/30 bg-destructive/10 px-2 py-0.5 text-[11px] font-medium text-destructive">
-              <Iconify icon="solar:danger-triangle-bold" width={12} height={12} />
-              {t('columns.noShopLink')}
-            </span>
-          )}
+          <div className="mt-1 flex flex-wrap items-center gap-1.5">
+            {(() => {
+              const badge = saleChannelBadge(row.original, t);
+              if (!badge) return null;
+              return (
+                <span
+                  className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium ${badge.className}`}
+                >
+                  {badge.label}
+                </span>
+              );
+            })()}
+            {productHasNoShopLink(row.original) && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-destructive/30 bg-destructive/10 px-2 py-0.5 text-[11px] font-medium text-destructive">
+                <Iconify icon="solar:danger-triangle-bold" width={12} height={12} />
+                {t('columns.noShopLink')}
+              </span>
+            )}
+          </div>
         </div>
       </div>
     ),
