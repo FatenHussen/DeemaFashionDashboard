@@ -1,6 +1,7 @@
 import type { TFunction } from 'i18next';
 import type { DragEndEvent } from '@dnd-kit/core';
 import type { FilterConfig } from '../types/page-section.types';
+import type { PageSectionListItem } from '../types/page-section.types';
 import type {
   PagePreviewPage,
   PagePreviewSection,
@@ -10,10 +11,12 @@ import type {
 import { toast } from 'react-toastify';
 import { CSS } from '@dnd-kit/utilities';
 import { Button } from '@/shared/ui/button';
+import { queryKeys } from '@/api';
 import { useTranslation } from 'react-i18next';
 import { Iconify } from '@/shared/components/iconify';
 import { useQueryClient } from '@tanstack/react-query';
 import { usePermissions } from '@/auth/hooks/use-permissions';
+import { useAdminToggleStatus } from '@/hooks/use-admin-toggle-status';
 import { Dialog, DialogContent } from '@/shared/ui/dialogTable';
 import { useRef, useMemo, useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useLocation, useSearchParams } from 'react-router';
@@ -121,6 +124,54 @@ function layoutLabel(t: TFunction<'table'>, layout?: string) {
   return translated !== key ? translated : layout;
 }
 
+function resolveIsActive(value: unknown): boolean {
+  if (value === undefined || value === null) return true;
+  if (typeof value === 'boolean') return value;
+  if (value === 1 || value === '1') return true;
+  if (value === 0 || value === '0') return false;
+  return Boolean(value);
+}
+
+function mergePageSections(
+  builderSections: PageSectionListItem[] | undefined,
+  previewSections: PagePreviewSection[] | undefined
+): PagePreviewSection[] {
+  const previewById = new Map((previewSections ?? []).map((section) => [section.id, section]));
+  const source = builderSections?.length ? builderSections : (previewSections ?? []);
+
+  return [...source]
+    .filter((section) => !isQuickOrderSection(section))
+    .sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0))
+    .map((section) => {
+      const preview = previewById.get(section.id);
+      const builder = builderSections?.length ? (section as PageSectionListItem) : null;
+      const isActive = resolveIsActive(builder?.is_active ?? preview?.is_active);
+
+      if (preview) {
+        return { ...preview, is_active: isActive };
+      }
+
+      const row = section as PageSectionListItem;
+      return {
+        id: row.id,
+        name: row.name as PagePreviewSection['name'],
+        type: (row.type ?? 'manual') as PagePreviewSection['type'],
+        position: (row.position as PagePreviewSection['position']) ?? 'after',
+        order: row.order ?? 0,
+        is_default: row.is_default,
+        is_active: isActive,
+        layout: row.layout,
+        variant: row.variant,
+        content_type: row.content_type,
+        manual_model: row.manual_model as string | undefined,
+        display_type_id: row.display_type_id,
+        background_color: row.background_color,
+        background_card_color: row.background_card_color,
+        items: [],
+      } satisfies PagePreviewSection;
+    });
+}
+
 function sectionTypeStyles(type: PagePreviewSection['type']) {
   return type === 'api'
     ? 'bg-blue-500/10 text-blue-700 dark:text-blue-300'
@@ -225,6 +276,8 @@ function SortablePreviewSection({
   onToggle,
   onEdit,
   onDelete,
+  onToggleVisibility,
+  isTogglingVisibility,
   t,
 }: {
   section: PagePreviewSection;
@@ -233,6 +286,8 @@ function SortablePreviewSection({
   onToggle: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
+  onToggleVisibility?: () => void;
+  isTogglingVisibility?: boolean;
   t: TFunction<'table'>;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -246,6 +301,7 @@ function SortablePreviewSection({
 
   const previewItems = section.items.slice(0, 8);
   const wideBanners = isBannerSection(section);
+  const isActive = section.is_active !== false;
 
   return (
     <div
@@ -255,7 +311,7 @@ function SortablePreviewSection({
         isDragging
           ? 'z-10 border-primary/40 shadow-md ring-1 ring-primary/20'
           : 'hover:border-border hover:shadow-sm'
-      } ${sectionAccentBorder(section.type)} border-l-[3px]`}
+      } ${sectionAccentBorder(section.type)} border-l-[3px] ${!isActive ? 'opacity-60' : ''}`}
     >
       <div
         className="px-4 py-4 sm:px-5"
@@ -290,6 +346,11 @@ function SortablePreviewSection({
               >
                 {sectionTypeLabel(t, section.type)}
               </span>
+              {!isActive && (
+                <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                  {t('form.pageSectionHiddenBadge')}
+                </span>
+              )}
             </div>
             <p className="mt-0.5 text-xs text-muted-foreground">
               {t('form.pageSectionFormOrderLabel')} {section.order}
@@ -306,6 +367,21 @@ function SortablePreviewSection({
           </button>
 
           <div className="flex shrink-0 items-center gap-0.5">
+            {onToggleVisibility && (
+              <button
+                type="button"
+                onClick={onToggleVisibility}
+                disabled={isTogglingVisibility}
+                title={isActive ? t('form.pageSectionHide') : t('form.pageSectionShow')}
+                className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50"
+                aria-label={isActive ? t('form.pageSectionHide') : t('form.pageSectionShow')}
+              >
+                <Iconify
+                  icon={isActive ? 'solar:eye-bold' : 'solar:eye-closed-bold'}
+                  width={15}
+                />
+              </button>
+            )}
             {onEdit && (
               <button
                 type="button"
@@ -453,6 +529,7 @@ export default function PageDetails() {
   const { data: pageBuilderDetails } = useFetchPageBuilderPage(numericId);
   const reorderMutation = useReorderPageSections();
   const deleteSectionMutation = useDeletePageSection();
+  const toggleVisibilityMutation = useAdminToggleStatus();
   const queryClient = useQueryClient();
   const { can } = usePermissions();
 
@@ -460,31 +537,36 @@ export default function PageDetails() {
   const [baselineIds, setBaselineIds] = useState<number[]>([]);
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
   const [deletingSectionId, setDeletingSectionId] = useState<number | null>(null);
+  const lastSyncedPageRef = useRef('');
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   );
-
-  const syncFromPreview = useCallback((sections: PagePreviewSection[]) => {
-    const sorted = [...sections]
-      .filter((section) => !isQuickOrderSection(section))
-      .sort((a, b) => a.order - b.order);
-    setOrderedSections(sorted);
-    setBaselineIds(sorted.map((s) => s.id));
-    setExpandedIds(new Set(sorted.length > 0 ? [sorted[0].id] : []));
-  }, []);
-
-  useEffect(() => {
-    if (previewResponse?.data?.sections) {
-      syncFromPreview(previewResponse.data.sections);
-    }
-  }, [previewResponse, syncFromPreview]);
 
   const orderedIds = useMemo(() => orderedSections.map((s) => s.id), [orderedSections]);
   const isDirty = useMemo(() => {
     if (orderedIds.length !== baselineIds.length) return true;
     return orderedIds.some((sectionId, idx) => sectionId !== baselineIds[idx]);
   }, [orderedIds, baselineIds]);
+
+  useEffect(() => {
+    const builderSections = pageBuilderDetails?.data?.sections;
+    const previewSections = previewResponse?.data?.sections;
+    const hasBuilder = Boolean(pageBuilderDetails?.data);
+    const hasPreview = Boolean(previewResponse?.data);
+
+    if (!hasBuilder && !hasPreview) return;
+    if (isDirty) return;
+
+    const merged = mergePageSections(builderSections, previewSections);
+    setOrderedSections(merged);
+    setBaselineIds(merged.map((section) => section.id));
+
+    if (lastSyncedPageRef.current !== numericId) {
+      setExpandedIds(new Set(merged.length > 0 ? [merged[0].id] : []));
+      lastSyncedPageRef.current = numericId;
+    }
+  }, [pageBuilderDetails, previewResponse, numericId, isDirty]);
 
   const totalItems = useMemo(
     () => orderedSections.reduce((sum, section) => sum + section.items.length, 0),
@@ -504,8 +586,12 @@ export default function PageDetails() {
   };
 
   const handleResetOrder = () => {
-    if (!previewResponse?.data?.sections) return;
-    syncFromPreview(previewResponse.data.sections);
+    const merged = mergePageSections(
+      pageBuilderDetails?.data?.sections,
+      previewResponse?.data?.sections
+    );
+    setOrderedSections(merged);
+    setBaselineIds(merged.map((section) => section.id));
   };
 
   const handleSaveOrder = async () => {
@@ -547,6 +633,33 @@ export default function PageDetails() {
     navigate(`/sections/pages/${numericId}/sections/update/${sectionId}`);
   };
 
+  const handleToggleSectionVisibility = async (section: PagePreviewSection) => {
+    const previous = section.is_active !== false;
+    const next = !previous;
+
+    setOrderedSections((prev) =>
+      prev.map((row) => (row.id === section.id ? { ...row, is_active: next } : row))
+    );
+
+    try {
+      await toggleVisibilityMutation.mutateAsync({
+        type: 'page_section',
+        id: section.id,
+        is_active: next,
+      });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.pageBuilder.details(numericId) }),
+        queryClient.invalidateQueries({ queryKey: ['pageSection', 'pagePreview', numericId] }),
+      ]);
+    } catch (err) {
+      console.error('Failed to toggle page section visibility:', err);
+      setOrderedSections((prev) =>
+        prev.map((row) => (row.id === section.id ? { ...row, is_active: previous } : row))
+      );
+      toast.error(t('form.pageSectionVisibilityToggleFailed'));
+    }
+  };
+
   const handleDeleteSectionConfirm = async () => {
     if (!deletingSectionId) return;
     try {
@@ -564,6 +677,7 @@ export default function PageDetails() {
   useEffect(() => {
     if (prevPageIdRef.current === numericId) return;
     prevPageIdRef.current = numericId;
+    lastSyncedPageRef.current = '';
     setActiveFilters({});
     setSearchParams({}, { replace: true });
   }, [numericId, setSearchParams]);
@@ -785,6 +899,16 @@ export default function PageDetails() {
                       index={index}
                       expanded={expandedIds.has(section.id)}
                       onToggle={() => toggleExpanded(section.id)}
+                      onToggleVisibility={
+                        can('pagesection.update')
+                          ? () => handleToggleSectionVisibility(section)
+                          : undefined
+                      }
+                      isTogglingVisibility={
+                        toggleVisibilityMutation.isPending &&
+                        toggleVisibilityMutation.variables?.type === 'page_section' &&
+                        toggleVisibilityMutation.variables?.id === section.id
+                      }
                       onEdit={
                         can('pagesection.update') ? () => handleEditSection(section.id) : undefined
                       }
