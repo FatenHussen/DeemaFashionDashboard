@@ -3,8 +3,8 @@ import type {
   CategoryListResponse,
   CategoryDetailResponse,
   CategoryCreateUpdatePayload,
-  CategoryDeleteImpactResponse,
   CategoryLinkedItemsResponse,
+  CategoryDeleteImpactResponse,
 } from '../types/category.types';
 
 import { apiRoutes, axiosInstance } from '@/api';

@@ -5,11 +5,11 @@
  * arrays use `[]` suffix, and media must be sent as an uploaded file under `media_path`.
  */
 import type {
+  LocalizedString,
   PopupCampaignDetail,
   PopupCampaignListResponse,
-  PopupCampaignDetailResponse,
   PopupCampaignUpsertPayload,
-  LocalizedString,
+  PopupCampaignDetailResponse,
 } from '../types';
 
 import { apiRoutes, axiosInstance } from '@/api';

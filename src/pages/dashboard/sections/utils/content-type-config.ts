@@ -3,7 +3,7 @@ import type { FilterConfig } from '../types/page-section.types';
 
 import { apiRoutes } from '@/api';
 
-import { API_METHOD_FILTERS, type ApiMethod } from './api-method-config';
+import { type ApiMethod, API_METHOD_FILTERS } from './api-method-config';
 
 // ----------------------------------------------------------------------
 

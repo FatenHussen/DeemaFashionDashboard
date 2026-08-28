@@ -22,8 +22,8 @@ import { useCreateRecipe, useUpdateRecipe, useFetchRecipeById } from '@/pages/da
 import { resolveStorageImageUrl, shopVariantOptionImage, shopVariantOptionColorHex } from '@/utils/shop-variant-image';
 import {
   buildCategorySelectRows,
-  collectSelfAndDescendantIds,
   paginateSelectRowsLocal,
+  collectSelfAndDescendantIds,
 } from '@/pages/dashboard/categories/utils/build-parent-picker-options';
 
 import { CONFIG } from 'src/global-config';

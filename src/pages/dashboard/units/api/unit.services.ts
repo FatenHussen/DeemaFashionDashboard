@@ -1,8 +1,8 @@
 import type {
+  UnitData,
   UnitListResponse,
   UnitDetailsResponse,
   UnitCreateUpdatePayload,
-  UnitData,
 } from '../types/unit.types';
 
 import { apiRoutes, axiosInstance } from '@/api';

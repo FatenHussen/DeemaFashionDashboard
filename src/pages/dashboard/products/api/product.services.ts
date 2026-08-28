@@ -10,9 +10,9 @@ import type {
 import { apiRoutes, axiosInstance } from '@/api';
 
 import {
-  toShopVariantPayloadList,
   toVariantPayload,
   toVariantPayloadList,
+  toShopVariantPayloadList,
 } from '../utils/variant-payload';
 
 // ----------------------------------------------------------------------

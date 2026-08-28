@@ -1,4 +1,4 @@
-import { normalizeShopTypeFromApi, type ShopType } from '../types/shop.types';
+import { type ShopType, normalizeShopTypeFromApi } from '../types/shop.types';
 
 /**
  * API may send `country` as a string (`country_id` legacy) or as a nested
