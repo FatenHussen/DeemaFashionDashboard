@@ -94,12 +94,6 @@ const appendVariantRows = (
     if (cleaned.barcode !== undefined) {
       formData.append(`variants[${vIndex}][barcode]`, cleaned.barcode ?? '');
     }
-    if (cleaned.name?.en !== undefined) {
-      formData.append(`variants[${vIndex}][name][en]`, cleaned.name.en);
-    }
-    if (cleaned.name?.ar !== undefined) {
-      formData.append(`variants[${vIndex}][name][ar]`, cleaned.name.ar);
-    }
     if (cleaned.price !== undefined) {
       formData.append(`variants[${vIndex}][price]`, String(cleaned.price));
     } else if (cleaned.price_syp !== undefined) {
@@ -107,6 +101,15 @@ const appendVariantRows = (
     }
     if (cleaned.quantity !== undefined) {
       formData.append(`variants[${vIndex}][quantity]`, String(cleaned.quantity));
+    }
+    if (cleaned.discount_type !== undefined) {
+      formData.append(`variants[${vIndex}][discount_type]`, cleaned.discount_type);
+      formData.append(
+        `variants[${vIndex}][discount]`,
+        String(cleaned.discount_type === 'none' ? 0 : (cleaned.discount ?? 0))
+      );
+    } else if (cleaned.discount !== undefined) {
+      formData.append(`variants[${vIndex}][discount]`, String(cleaned.discount));
     }
     if (cleaned.is_trend !== undefined) {
       formData.append(`variants[${vIndex}][is_trend]`, Number(cleaned.is_trend) === 1 ? '1' : '0');

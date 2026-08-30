@@ -144,7 +144,6 @@ export const ProductSchema = zod
           sku: zod.string().optional(),
           model: zod.string().optional(),
           barcode: zod.string().optional(),
-          name: zod.object({ en: zod.string(), ar: zod.string() }).optional(),
           price: zod.preprocess(
             (v) => (v === '' || v === null || v === undefined ? undefined : v),
             zod.coerce.number().min(0, { message: t('product.pricePositive') }).optional()
@@ -166,15 +165,15 @@ export const ProductSchema = zod
               .min(0, { message: t('product.quantityPositive') })
               .optional()
           ),
-          stock: zod.preprocess(
+          discount: zod.preprocess(
             (v) => (v === '' || v === null || v === undefined ? undefined : v),
             zod.coerce.number().min(0).optional()
           ),
+          discount_type: zod.enum(['none', 'percentage', 'fixed']).optional().default('none'),
           max_purchase_quantity: zod.preprocess(
             (v) => (v === '' || v === null || v === undefined ? undefined : v),
             zod.coerce.number().min(0).optional()
           ),
-          delivery_time: zod.string().optional(),
           is_trend: zod.coerce.number().min(0).max(1).optional().default(0),
           is_active: zod.coerce.number().min(0).max(1).optional().default(1),
         })

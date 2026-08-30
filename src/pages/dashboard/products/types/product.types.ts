@@ -136,8 +136,9 @@ export interface ProductDetailData {
     /** Sale price/stock now live on the variant itself — shared across every shop. */
     price: number;
     price_currencies?: Record<string, ProductDetailCurrencyAmount> | null;
-    /** Read-only: computed from the product's own discount (spec §9), not independently settable. */
     discount?: number | null;
+    discount_type?: 'none' | 'percentage' | 'fixed' | string | null;
+    discount_amount?: number | null;
     discount_currencies?: Record<string, ProductDetailCurrencyAmount> | null;
     price_after_discount?: number | null;
     price_after_discount_currencies?: Record<string, ProductDetailCurrencyAmount> | null;
@@ -259,16 +260,15 @@ export interface ProductCreateUpdatePayload {
     sku?: string;
     model?: string;
     barcode?: string;
-    name?: { en: string; ar: string };
     /** Sale price for this SKU, shared across every shop. */
     price?: number;
     /** Sale price in SYP when `price` is omitted. */
     price_syp?: number;
     /** Stock for this SKU, shared across every shop. */
     quantity?: number;
-    stock?: number;
+    discount?: number;
+    discount_type?: ProductDiscountType;
     max_purchase_quantity?: number;
-    delivery_time?: string;
     /** 0 | 1 for multipart */
     is_trend?: number;
     /** 0 | 1 for multipart */

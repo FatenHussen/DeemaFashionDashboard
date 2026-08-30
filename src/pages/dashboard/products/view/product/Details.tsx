@@ -22,6 +22,7 @@ import {
   useUpdateProductVariant,
   useUpdateShopProductVariant,
 } from '@/pages/dashboard/products/hooks/product-variant';
+import { priceAfterDiscount } from '@/pages/dashboard/products/utils/variant-combinations';
 
 import { paths } from 'src/routes/paths';
 
@@ -268,9 +269,10 @@ function EditVariantModal({
   const [model, setModel] = useState<string>(variant?.model ?? '');
   const [barcode, setBarcode] = useState<string>(variant?.barcode ?? '');
   const [price, setPrice] = useState<string>('');
+  const [priceSyp, setPriceSyp] = useState<string>('');
   const [quantity, setQuantity] = useState<string>('');
-  const [nameEn, setNameEn] = useState<string>('');
-  const [nameAr, setNameAr] = useState<string>('');
+  const [discountType, setDiscountType] = useState<'none' | 'percentage' | 'fixed'>('none');
+  const [discount, setDiscount] = useState<string>('');
   const [newImages, setNewImages] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -282,22 +284,29 @@ function EditVariantModal({
       setModel(variant.model != null ? String(variant.model) : '');
       setBarcode(variant.barcode != null ? String(variant.barcode) : '');
       setPrice(variant.price != null ? String(variant.price) : '');
-      setQuantity(variant.quantity != null ? String(variant.quantity) : '');
-      const rawName = variant.name as unknown;
-      if (rawName && typeof rawName === 'object') {
-        const obj = rawName as { en?: unknown; ar?: unknown };
-        setNameEn(obj.en != null ? String(obj.en) : '');
-        setNameAr(obj.ar != null ? String(obj.ar) : '');
-      } else if (typeof rawName === 'string') {
-        setNameEn(rawName);
-        setNameAr(rawName);
+      const sypFromApi =
+        variant.price_currencies?.SYP?.amount ??
+        (variant.price_syp != null ? variant.price_syp : undefined);
+      if (sypFromApi != null && Number(sypFromApi) > 0) {
+        setPriceSyp(String(sypFromApi));
+      } else if (variant.price != null && dualPriceReady) {
+        setPriceSyp(String(Math.round(Number(variant.price) * sypRate)));
       } else {
-        setNameEn('');
-        setNameAr('');
+        setPriceSyp('');
       }
+      setQuantity(variant.quantity != null ? String(variant.quantity) : '');
+      const dt = String(variant.discount_type ?? 'none').toLowerCase();
+      setDiscountType(
+        dt === 'percentage' || dt === 'fixed' ? dt : 'none'
+      );
+      setDiscount(
+        variant.discount != null && Number(variant.discount) > 0
+          ? String(variant.discount)
+          : ''
+      );
       setNewImages([]);
     }
-  }, [open, variant]);
+  }, [open, variant, dualPriceReady, sypRate]);
 
   const existingImages: { id: number; url: string }[] = variant?.images ?? [];
   const [keptImageIds, setKeptImageIds] = useState<number[]>([]);
@@ -313,6 +322,14 @@ function EditVariantModal({
     const attrIds: number[] = (variant.attributes ?? []).map((a: any) => a.value_id ?? a.id).filter(Boolean);
     const images =
       newImages.length > 0 ? await compressImages(newImages) : undefined;
+    const priceNum = price !== '' ? Number(price) : undefined;
+    const priceSypNum =
+      priceNum != null
+        ? undefined
+        : priceSyp !== ''
+          ? Number(priceSyp)
+          : undefined;
+    const discountNum = discount !== '' ? Number(discount) : undefined;
     updateVariant(
       {
         id: variant.id,
@@ -324,9 +341,11 @@ function EditVariantModal({
           images,
           sku,
           ...(isRestaurant ? { model: '', barcode: '' } : { model, barcode }),
-          name: { en: nameEn, ar: nameAr },
-          price: price !== '' ? Number(price) : undefined,
+          price: priceNum,
+          price_syp: priceSypNum,
           quantity: quantity !== '' ? Math.max(0, Math.floor(Number(quantity))) : undefined,
+          discount_type: discountType,
+          discount: discountType === 'none' ? 0 : discountNum,
         },
       },
       {
@@ -395,29 +414,6 @@ function EditVariantModal({
 
           <Box>
             <Typography variant="body2" className="text-muted-foreground mb-1 font-medium">
-              {t('form.nameEn')}
-            </Typography>
-            <input
-              type="text"
-              value={nameEn}
-              onChange={(e) => setNameEn(e.target.value)}
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-            />
-          </Box>
-          <Box>
-            <Typography variant="body2" className="text-muted-foreground mb-1 font-medium">
-              {t('form.nameAr')}
-            </Typography>
-            <input
-              type="text"
-              dir="rtl"
-              value={nameAr}
-              onChange={(e) => setNameAr(e.target.value)}
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-            />
-          </Box>
-          <Box>
-            <Typography variant="body2" className="text-muted-foreground mb-1 font-medium">
               {t('form.productSku')}
             </Typography>
             <div className="flex gap-2">
@@ -477,7 +473,18 @@ function EditVariantModal({
                   step="any"
                   min={0}
                   value={price}
-                  onChange={(e) => setPrice(e.target.value)}
+                  onChange={(e) => {
+                    const next = e.target.value;
+                    setPrice(next);
+                    if (dualPriceReady && next !== '') {
+                      const n = Number(next);
+                      if (Number.isFinite(n)) {
+                        setPriceSyp(String(Math.round(n * sypRate)));
+                      }
+                    } else if (next === '') {
+                      setPriceSyp('');
+                    }
+                  }}
                   className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
                 />
               </Box>
@@ -492,17 +499,18 @@ function EditVariantModal({
                   type="number"
                   step="any"
                   min={0}
-                  value={(() => {
-                    const u = parseFloat(price) || 0;
-                    const syp = shopVariantUsdToLocal(u, sypRate);
-                    return u === 0 && syp === 0 ? '' : syp;
-                  })()}
+                  value={priceSyp}
                   onChange={(e) => {
                     const raw = e.target.value;
-                    const v = raw === '' ? 0 : parseFloat(raw);
-                    setPrice(
-                      String(shopVariantLocalToUsd(Number.isFinite(v) ? v : 0, sypRate))
-                    );
+                    setPriceSyp(raw);
+                    if (raw === '') {
+                      setPrice('');
+                      return;
+                    }
+                    const v = Number(raw);
+                    if (Number.isFinite(v)) {
+                      setPrice(String(Math.round((v / sypRate) * 100) / 100));
+                    }
                   }}
                   className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
                 />
@@ -539,6 +547,65 @@ function EditVariantModal({
               {t('form.variantPriceQuantityHint')}
             </Typography>
           </Box>
+
+          <Box className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Box>
+              <Typography variant="body2" className="text-muted-foreground mb-1 font-medium">
+                {t('form.productDiscountType')}
+              </Typography>
+              <select
+                value={discountType}
+                onChange={(e) =>
+                  setDiscountType(e.target.value as 'none' | 'percentage' | 'fixed')
+                }
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+              >
+                <option value="none">{t('form.discountTypeNone')}</option>
+                <option value="percentage">{t('form.discountTypePercentage')}</option>
+                <option value="fixed">{t('form.discountTypeFixed')}</option>
+              </select>
+            </Box>
+            <Box>
+              <Typography variant="body2" className="text-muted-foreground mb-1 font-medium">
+                {t('form.productDiscountValue')}
+              </Typography>
+              <input
+                type="number"
+                min={0}
+                step="any"
+                disabled={discountType === 'none'}
+                value={discount}
+                onChange={(e) => setDiscount(e.target.value)}
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
+              />
+            </Box>
+          </Box>
+          {price !== '' ? (
+            <Box>
+              <Typography variant="body2" className="text-muted-foreground mb-1 font-medium">
+                {t('form.variantPriceAfterDiscount')}
+              </Typography>
+              <input
+                type="text"
+                readOnly
+                value={(() => {
+                  const p = Number(price);
+                  if (!Number.isFinite(p)) return '';
+                  const after = priceAfterDiscount(
+                    p,
+                    discountType,
+                    discount !== '' ? Number(discount) : undefined
+                  );
+                  const parts = [`$${after}`];
+                  if (dualPriceReady) {
+                    parts.push(`${Math.round(after * sypRate)} SYP`);
+                  }
+                  return parts.join(' · ');
+                })()}
+                className="w-full rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground"
+              />
+            </Box>
+          ) : null}
 
           {/* existing images */}
           {existingImages.length > 0 && (
