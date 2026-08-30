@@ -2384,6 +2384,13 @@ export default function CreatePage() {
         toast.error(t('form.variantAttributesRequired'));
         return;
       }
+
+      // Create product: variants stay in form state until POST /products (spec §2).
+      if (!id) {
+        toast.success(t('form.variantLocalSaveSuccess'));
+        return;
+      }
+
       const newImgs = getValues(`variants.${variantIndex}.images`);
       const rawImages = Array.isArray(newImgs) && newImgs.length > 0 ? newImgs : undefined;
       const images = rawImages?.length
@@ -2440,10 +2447,6 @@ export default function CreatePage() {
         return;
       }
 
-      if (!id) {
-        toast.error(t('form.variantSaveProductFirst'));
-        return;
-      }
       try {
         setVariantCreateBusyIdx(variantIndex);
         const newId = await createSingleVariantOnProduct({

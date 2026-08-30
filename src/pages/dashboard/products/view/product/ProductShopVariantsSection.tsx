@@ -327,17 +327,13 @@ export function ProductShopVariantsSection({
                           size="small"
                           disabled={shopVariantCreateBusyIdx === svIdx}
                           onClick={async () => {
-                            if (!productId) {
-                              toast.error(t('form.variantSaveProductFirst'));
-                              return;
-                            }
                             const parentIdx = Number(
                               watch(`shop_variants.${svIdx}.variant_index`)
                             );
                             const parentVarId = Number(
                               watch(`variants.${parentIdx}.id`) ?? 0
                             );
-                            if (!parentVarId) {
+                            if (!productId || !parentVarId) {
                               toast.error(t('form.shopVariantSaveParentFirst'));
                               return;
                             }

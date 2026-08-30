@@ -1,3 +1,5 @@
+import { formatTranslated } from '@/utils/format-translated';
+
 /** Bilingual label on category attribute values. */
 export type AttributeValueName = { ar?: string; en?: string } | string | null | undefined;
 
@@ -121,9 +123,10 @@ export function isAttributeMultiSelect(_attr?: { type?: string | null } | null):
   return false;
 }
 
+/** UI display — respects active locale (ar/en); SKU uses {@link attributeValueEnglishLabel}. */
 export function attributeValueLabel(name: AttributeValueName): string {
   if (name == null) return '';
-  if (typeof name === 'object') return String(name.en ?? name.ar ?? '').trim();
+  if (typeof name === 'object') return formatTranslated(name, '').trim();
   return String(name).trim();
 }
 

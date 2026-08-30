@@ -174,7 +174,48 @@ export function ProductVariantInlineRow({
             {t('form.variantBasicInfoSectionTitle')}
           </Typography>
 
-          {/* Row 1 — pricing & discount (single line) */}
+          {/* SKU — spec §4: first field in basic info */}
+          <Box className="min-w-0">
+            <VariantFieldLabel optionalLabel={t('form.optionalTag')}>
+              {t('form.variantSku')}
+            </VariantFieldLabel>
+            <Box className="flex gap-2">
+              <Controller
+                name={`variants.${variantIndex}.sku`}
+                control={control}
+                render={({ field, fieldState: { error } }) => (
+                  <div className="min-w-0 flex-1">
+                    <input
+                      {...field}
+                      value={field.value ?? ''}
+                      type="text"
+                      placeholder={t('form.variantSkuPlaceholder')}
+                      className={fieldInputClass(!!error)}
+                    />
+                    <FieldErrorText message={error?.message} />
+                  </div>
+                )}
+              />
+              <Button
+                type="button"
+                variant="outlined"
+                size="small"
+                className="h-9 w-9 shrink-0 p-0"
+                title={t('form.regenerateSku')}
+                onClick={() =>
+                  setValue(
+                    `variants.${variantIndex}.sku`,
+                    regenerateVariantSku(watchedProductSku, valueRefs, colorsHexLookup),
+                    { shouldDirty: true, shouldValidate: true }
+                  )
+                }
+              >
+                <Iconify icon="solar:refresh-bold" width={16} />
+              </Button>
+            </Box>
+          </Box>
+
+          {/* Pricing & discount */}
           <Box
             className={`grid grid-cols-2 gap-3 sm:grid-cols-3 ${
               productDualPriceReady ? 'xl:grid-cols-5' : 'xl:grid-cols-4'
@@ -183,7 +224,9 @@ export function ProductVariantInlineRow({
             {productDualPriceReady ? (
               <>
                 <Box className="min-w-0">
-                  <VariantFieldLabel>{t('form.variantPriceUsdLabel')}</VariantFieldLabel>
+                  <VariantFieldLabel optionalLabel={t('form.optionalTag')}>
+                    {t('form.variantPriceUsdLabel')}
+                  </VariantFieldLabel>
                   <Controller
                     name={`variants.${variantIndex}.price`}
                     control={control}
@@ -219,7 +262,9 @@ export function ProductVariantInlineRow({
                   />
                 </Box>
                 <Box className="min-w-0">
-                  <VariantFieldLabel>{t('form.variantPriceSypLabel')}</VariantFieldLabel>
+                  <VariantFieldLabel optionalLabel={t('form.optionalTag')}>
+                    {t('form.variantPriceSypLabel')}
+                  </VariantFieldLabel>
                   <Controller
                     name={`variants.${variantIndex}.price_syp`}
                     control={control}
@@ -257,7 +302,9 @@ export function ProductVariantInlineRow({
               </>
             ) : (
               <Box className="min-w-0">
-                <VariantFieldLabel>{t('form.variantPriceLabel')}</VariantFieldLabel>
+                <VariantFieldLabel optionalLabel={t('form.optionalTag')}>
+                  {t('form.variantPriceLabel')}
+                </VariantFieldLabel>
                 <Controller
                   name={`variants.${variantIndex}.price`}
                   control={control}
@@ -283,7 +330,9 @@ export function ProductVariantInlineRow({
             )}
 
             <Box className="min-w-0">
-              <VariantFieldLabel>{t('form.productDiscountType')}</VariantFieldLabel>
+              <VariantFieldLabel optionalLabel={t('form.optionalTag')}>
+                {t('form.productDiscountType')}
+              </VariantFieldLabel>
               <Controller
                 name={`variants.${variantIndex}.discount_type`}
                 control={control}
@@ -305,7 +354,9 @@ export function ProductVariantInlineRow({
             </Box>
 
             <Box className="min-w-0">
-              <VariantFieldLabel>{t('form.productDiscountValue')}</VariantFieldLabel>
+              <VariantFieldLabel optionalLabel={t('form.optionalTag')}>
+                {t('form.productDiscountValue')}
+              </VariantFieldLabel>
               <Controller
                 name={`variants.${variantIndex}.discount`}
                 control={control}
@@ -348,14 +399,16 @@ export function ProductVariantInlineRow({
             </Box>
           </Box>
 
-          {/* Row 2 — quantity · SKU · barcode */}
+          {/* Quantity · barcode · cost */}
           <Box
             className={`grid grid-cols-1 gap-3 ${
               restaurantMode ? 'sm:grid-cols-2' : 'sm:grid-cols-3'
             }`}
           >
             <Box className="min-w-0">
-              <VariantFieldLabel>{t('form.variantQuantityLabel')}</VariantFieldLabel>
+              <VariantFieldLabel optionalLabel={t('form.optionalTag')}>
+                {t('form.variantQuantityLabel')}
+              </VariantFieldLabel>
               <Controller
                 name={`variants.${variantIndex}.quantity`}
                 control={control}
@@ -386,47 +439,11 @@ export function ProductVariantInlineRow({
               />
             </Box>
 
-            <Box className="min-w-0">
-              <VariantFieldLabel>{t('form.variantSku')}</VariantFieldLabel>
-              <Box className="flex gap-2">
-                <Controller
-                  name={`variants.${variantIndex}.sku`}
-                  control={control}
-                  render={({ field, fieldState: { error } }) => (
-                    <div className="min-w-0 flex-1">
-                      <input
-                        {...field}
-                        value={field.value ?? ''}
-                        type="text"
-                        placeholder={t('form.variantSkuPlaceholder')}
-                        className={fieldInputClass(!!error)}
-                      />
-                      <FieldErrorText message={error?.message} />
-                    </div>
-                  )}
-                />
-                <Button
-                  type="button"
-                  variant="outlined"
-                  size="small"
-                  className="h-9 w-9 shrink-0 p-0"
-                  title={t('form.regenerateSku')}
-                  onClick={() =>
-                    setValue(
-                      `variants.${variantIndex}.sku`,
-                      regenerateVariantSku(watchedProductSku, valueRefs, colorsHexLookup),
-                      { shouldDirty: true, shouldValidate: true }
-                    )
-                  }
-                >
-                  <Iconify icon="solar:refresh-bold" width={16} />
-                </Button>
-              </Box>
-            </Box>
-
             {!restaurantMode ? (
               <Box className="min-w-0">
-                <VariantFieldLabel>{t('form.variantBarcode')}</VariantFieldLabel>
+                <VariantFieldLabel optionalLabel={t('form.optionalTag')}>
+                  {t('form.variantBarcode')}
+                </VariantFieldLabel>
                 <Controller
                   name={`variants.${variantIndex}.barcode`}
                   control={control}
@@ -449,7 +466,9 @@ export function ProductVariantInlineRow({
 
           {isShopSaleChannel && shopSvIndex >= 0 ? (
             <Box className="max-w-xs">
-              <VariantFieldLabel>{t('form.productCostPriceOptional')}</VariantFieldLabel>
+              <VariantFieldLabel optionalLabel={t('form.optionalTag')}>
+                {t('form.productCostPriceOptional')}
+              </VariantFieldLabel>
               <Controller
                 name={`shop_variants.${shopSvIndex}.cost_price`}
                 control={control}
@@ -653,11 +672,9 @@ export function ProductVariantInlineRow({
           onClick={() => void onSave()}
         >
           <Iconify icon="solar:diskette-bold" width={16} className="me-1.5" />
-          {variantId
+          {variantId || !isEditMode
             ? t('form.saveChanges')
-            : isEditMode
-              ? t('form.createVariant')
-              : t('form.updateVariant')}
+            : t('form.createVariant')}
         </Button>
       </Box>
     </Box>

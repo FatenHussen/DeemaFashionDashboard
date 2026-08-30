@@ -76,6 +76,7 @@ function AttributeSingleSelect({
   colorsHexLookup,
   t,
   formatAttributeLabel,
+  resetNonce,
 }: {
   attr: CategoryAttributeRow;
   selectedId: number;
@@ -83,6 +84,8 @@ function AttributeSingleSelect({
   colorsHexLookup: ReturnType<typeof buildColorsHexLookup>;
   t: TFunction;
   formatAttributeLabel: (name: unknown) => string;
+  /** Bumps after each successful add so Radix Select remounts with empty value. */
+  resetNonce: number;
 }) {
   const values = Array.isArray(attr.values) ? attr.values : [];
   const label = formatAttributeLabel(attr.name);
@@ -92,6 +95,7 @@ function AttributeSingleSelect({
     <Box className="min-w-0 space-y-1">
       <VariantFieldLabel>{label}</VariantFieldLabel>
       <Select
+        key={`${attr.id}-${resetNonce}`}
         value={selectedId > 0 ? String(selectedId) : undefined}
         onValueChange={(v) => onChange(Number(v))}
       >
@@ -134,6 +138,7 @@ export function VariantGeneratorPanel({
   formatAttributeLabel,
 }: Props) {
   const [selections, setSelections] = React.useState<Record<number, number>>({});
+  const [resetNonce, setResetNonce] = React.useState(0);
 
   const { data: colorsResp } = useQuery({
     queryKey: queryKeys.color.list({ per_page: 500, is_active: true, picker: 'variant-generator' }),
@@ -169,6 +174,7 @@ export function VariantGeneratorPanel({
 
   const resetSelections = React.useCallback(() => {
     setSelections({});
+    setResetNonce((n) => n + 1);
   }, []);
 
   const handleAdd = () => {
@@ -194,7 +200,7 @@ export function VariantGeneratorPanel({
       is_trend: 0,
       is_active: 1,
     });
-    requestAnimationFrame(resetSelections);
+    resetSelections();
   };
 
   return (
@@ -209,7 +215,7 @@ export function VariantGeneratorPanel({
         <Box className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {categoryAttributes.map((attr) => (
             <AttributeSingleSelect
-              key={attr.id}
+              key={`${attr.id}-${resetNonce}`}
               attr={attr}
               selectedId={selections[Number(attr.id)] ?? 0}
               onChange={(valueId) =>
@@ -218,6 +224,7 @@ export function VariantGeneratorPanel({
               colorsHexLookup={colorsHexLookup}
               t={t}
               formatAttributeLabel={formatAttributeLabel}
+              resetNonce={resetNonce}
             />
           ))}
         </Box>
