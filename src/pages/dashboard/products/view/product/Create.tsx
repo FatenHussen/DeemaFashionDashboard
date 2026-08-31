@@ -570,6 +570,46 @@ function LocalFilePreview({
   );
 }
 
+function RemovableLocalImageThumb({
+  file,
+  onRemove,
+  removeAriaLabel,
+  alt,
+}: {
+  file: File;
+  onRemove: () => void;
+  removeAriaLabel: string;
+  alt?: string;
+}) {
+  const [previewUrl, setPreviewUrl] = useState('');
+
+  useEffect(() => {
+    const objectUrl = URL.createObjectURL(file);
+    setPreviewUrl(objectUrl);
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [file]);
+
+  return (
+    <Box className="relative overflow-hidden rounded-lg group">
+      {previewUrl ? (
+        <img
+          src={previewUrl}
+          alt={alt || file.name}
+          className="w-full h-32 object-cover rounded-lg border-2 border-primary/40"
+        />
+      ) : null}
+      <button
+        type="button"
+        onClick={onRemove}
+        className="absolute top-2 start-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-red-600 text-xl font-bold leading-none text-white shadow-lg ring-2 ring-white hover:bg-red-700"
+        aria-label={removeAriaLabel}
+      >
+        ×
+      </button>
+    </Box>
+  );
+}
+
 /** API returns `attribute` in one locale (often AR); category `name` may be {en, ar} — match any. */
 function categoryAttrLabelMatches(attr: any, apiAttributeLabel: string): boolean {
   const api = String(apiAttributeLabel ?? '').trim().toLowerCase();
@@ -729,7 +769,6 @@ export default function CreatePage() {
   const navigate = useNavigate();
   const isEditMode = !!id;
 
-  const [previewImages, setPreviewImages] = useState<string[]>([]);
   const [mainCategoryId, setMainCategoryId] = useState(0);
   /** Create mode: gate form until user picks retail vs restaurant. Edit mode: true once product loads. */
   const [hasSelectedProductType, setHasSelectedProductType] = useState(isEditMode);
@@ -1007,7 +1046,6 @@ export default function CreatePage() {
 
   // ──────────────────────────────────────────────────────────────────────
 
-  const imagesFiles = watch('images');
   const existingMediaIds = watch('existing_media_ids') ?? [];
   const watchedVariants = watch('variants') || [];
   const watchedShopVariants = watch('shop_variants') || [];
@@ -1932,25 +1970,6 @@ export default function CreatePage() {
     }
   }, [isEditMode, productResponse, categoryAttributes, setValue, id, sypCurrency]);
 
-  // Image preview
-  useEffect(() => {
-    if (imagesFiles && imagesFiles.length > 0) {
-      const previews: string[] = [];
-      Array.from(imagesFiles).forEach((file) => {
-        if (file instanceof File) {
-          const reader = new FileReader();
-          reader.onloadend = () => {
-            previews.push(reader.result as string);
-            if (previews.length === imagesFiles.length) setPreviewImages([...previews]);
-          };
-          reader.readAsDataURL(file);
-        }
-      });
-    } else {
-      setPreviewImages([]);
-    }
-  }, [imagesFiles]);
-
   const isSubmitting = createProductMutation.isPending || updateProductMutation.isPending;
   const errorMessage =
     createProductMutation.error?.message || updateProductMutation.error?.message || null;
@@ -2550,7 +2569,7 @@ export default function CreatePage() {
           <Tab value="extras" label={t('form.productFormTabExtras')} />
         </Tabs>
 
-        {hasSelectedProductType && (
+        {hasSelectedProductType && productFormTab === 'basic' && (
           <Box className="mb-6 rounded-xl border border-border bg-card p-6 space-y-4">
             <Typography variant="subtitle1" className="font-bold text-foreground">
               {t('form.productCategorySection')}
@@ -3655,13 +3674,14 @@ export default function CreatePage() {
                     {t('form.productImagesHelper')}
                   </Typography>
                 )}
-                {(isEditMode && existingMediaIds.length > 0) || previewImages.length > 0 ? (
+                {(isEditMode && existingMediaIds.length > 0) ||
+                (Array.isArray(value) && value.some((f) => f instanceof File)) ? (
                   <Box className="mt-4 grid grid-cols-4 gap-4">
                     {isEditMode &&
                       productResponse?.images
                         ?.filter((img: any) => existingMediaIds.includes(Number(img.id)))
                         .map((img: any) => (
-                          <Box key={`ex-${img.id}`} className="relative group">
+                          <Box key={`ex-${img.id}`} className="relative overflow-hidden rounded-lg group">
                             <img
                               src={img.url ?? img}
                               alt=""
@@ -3676,21 +3696,24 @@ export default function CreatePage() {
                                   { shouldDirty: true }
                                 )
                               }
-                              className="absolute top-1 right-1 rounded-full bg-destructive text-destructive-foreground p-1 opacity-90 hover:opacity-100"
+                              className="absolute top-2 start-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-red-600 text-xl font-bold leading-none text-white shadow-lg ring-2 ring-white hover:bg-red-700"
                               aria-label={t('form.removeImageAria')}
                             >
-                              <Iconify icon="solar:close-circle-bold" width={20} />
+                              ×
                             </button>
                           </Box>
                         ))}
-                    {previewImages.map((src, i) => (
-                      <img
-                        key={`new-${i}`}
-                        src={src}
-                        alt={t('form.productGalleryPreviewAlt', { n: i + 1 })}
-                        className="w-full h-32 object-cover rounded-lg border-2 border-primary/40"
-                      />
-                    ))}
+                    {(Array.isArray(value) ? value : [])
+                      .filter((f): f is File => f instanceof File)
+                      .map((file, i, files) => (
+                        <RemovableLocalImageThumb
+                          key={`${file.name}-${file.size}-${file.lastModified}-${i}`}
+                          file={file}
+                          alt={t('form.productGalleryPreviewAlt', { n: i + 1 })}
+                          removeAriaLabel={t('form.removeImageAria')}
+                          onRemove={() => onChange(files.filter((_, idx) => idx !== i))}
+                        />
+                      ))}
                   </Box>
                 ) : null}
               </div>

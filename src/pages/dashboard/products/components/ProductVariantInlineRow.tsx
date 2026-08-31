@@ -54,6 +54,44 @@ function FieldErrorText({ message }: { message?: string }) {
   );
 }
 
+function RemovableLocalVariantImageThumb({
+  file,
+  onRemove,
+  removeAriaLabel,
+}: {
+  file: File;
+  onRemove: () => void;
+  removeAriaLabel: string;
+}) {
+  const [previewUrl, setPreviewUrl] = React.useState('');
+
+  React.useEffect(() => {
+    const objectUrl = URL.createObjectURL(file);
+    setPreviewUrl(objectUrl);
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [file]);
+
+  return (
+    <Box className="relative">
+      {previewUrl ? (
+        <img
+          src={previewUrl}
+          alt=""
+          className="h-16 w-16 object-cover rounded-lg border border-border/60"
+        />
+      ) : null}
+      <button
+        type="button"
+        onClick={onRemove}
+        className="absolute -top-1.5 -start-1.5 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-red-600 text-base font-bold leading-none text-white shadow-md ring-2 ring-white hover:bg-red-700"
+        aria-label={removeAriaLabel}
+      >
+        ×
+      </button>
+    </Box>
+  );
+}
+
 export type ProductVariantInlineRowProps = {
   variantIndex: number;
   variantFieldId: string;
@@ -175,47 +213,6 @@ export function ProductVariantInlineRow({
             {t('form.variantBasicInfoSectionTitle')}
           </Typography>
 
-          {/* SKU — spec §4: first field in basic info */}
-          <Box className="min-w-0">
-            <VariantFieldLabel optionalLabel={t('form.optionalTag')}>
-              {t('form.variantSku')}
-            </VariantFieldLabel>
-            <Box className="flex gap-2">
-              <Controller
-                name={`variants.${variantIndex}.sku`}
-                control={control}
-                render={({ field, fieldState: { error } }) => (
-                  <div className="min-w-0 flex-1">
-                    <input
-                      {...field}
-                      value={field.value ?? ''}
-                      type="text"
-                      placeholder={t('form.variantSkuPlaceholder')}
-                      className={fieldInputClass(!!error)}
-                    />
-                    <FieldErrorText message={error?.message} />
-                  </div>
-                )}
-              />
-              <Button
-                type="button"
-                variant="outlined"
-                size="small"
-                className="h-9 w-9 shrink-0 p-0"
-                title={t('form.regenerateSku')}
-                onClick={() =>
-                  setValue(
-                    `variants.${variantIndex}.sku`,
-                    regenerateVariantSku(watchedProductSku, valueRefs, colorsHexLookup),
-                    { shouldDirty: true, shouldValidate: true }
-                  )
-                }
-              >
-                <Iconify icon="solar:refresh-bold" width={16} />
-              </Button>
-            </Box>
-          </Box>
-
           {/* Pricing & discount */}
           <Box
             className={`grid grid-cols-2 gap-3 sm:grid-cols-3 ${
@@ -225,7 +222,7 @@ export function ProductVariantInlineRow({
             {productDualPriceReady ? (
               <>
                 <Box className="min-w-0">
-                  <VariantFieldLabel optionalLabel={t('form.optionalTag')}>
+                  <VariantFieldLabel>
                     {t('form.variantPriceUsdLabel')}
                   </VariantFieldLabel>
                   <Controller
@@ -263,7 +260,7 @@ export function ProductVariantInlineRow({
                   />
                 </Box>
                 <Box className="min-w-0">
-                  <VariantFieldLabel optionalLabel={t('form.optionalTag')}>
+                  <VariantFieldLabel>
                     {t('form.variantPriceSypLabel')}
                   </VariantFieldLabel>
                   <Controller
@@ -303,7 +300,7 @@ export function ProductVariantInlineRow({
               </>
             ) : (
               <Box className="min-w-0">
-                <VariantFieldLabel optionalLabel={t('form.optionalTag')}>
+                <VariantFieldLabel>
                   {t('form.variantPriceLabel')}
                 </VariantFieldLabel>
                 <Controller
@@ -331,7 +328,7 @@ export function ProductVariantInlineRow({
             )}
 
             <Box className="min-w-0">
-              <VariantFieldLabel optionalLabel={t('form.optionalTag')}>
+              <VariantFieldLabel>
                 {t('form.productDiscountType')}
               </VariantFieldLabel>
               <Controller
@@ -355,7 +352,7 @@ export function ProductVariantInlineRow({
             </Box>
 
             <Box className="min-w-0">
-              <VariantFieldLabel optionalLabel={t('form.optionalTag')}>
+              <VariantFieldLabel>
                 {t('form.productDiscountValue')}
               </VariantFieldLabel>
               <Controller
@@ -400,16 +397,14 @@ export function ProductVariantInlineRow({
             </Box>
           </Box>
 
-          {/* Quantity · barcode · cost */}
+          {/* Quantity · barcode · SKU — one row */}
           <Box
             className={`grid grid-cols-1 gap-3 ${
               restaurantMode ? 'sm:grid-cols-2' : 'sm:grid-cols-3'
             }`}
           >
             <Box className="min-w-0">
-              <VariantFieldLabel optionalLabel={t('form.optionalTag')}>
-                {t('form.variantQuantityLabel')}
-              </VariantFieldLabel>
+              <VariantFieldLabel>{t('form.variantQuantityLabel')}</VariantFieldLabel>
               <Controller
                 name={`variants.${variantIndex}.quantity`}
                 control={control}
@@ -442,9 +437,7 @@ export function ProductVariantInlineRow({
 
             {!restaurantMode ? (
               <Box className="min-w-0">
-                <VariantFieldLabel optionalLabel={t('form.optionalTag')}>
-                  {t('form.variantBarcode')}
-                </VariantFieldLabel>
+                <VariantFieldLabel>{t('form.variantBarcode')}</VariantFieldLabel>
                 <Controller
                   name={`variants.${variantIndex}.barcode`}
                   control={control}
@@ -463,11 +456,52 @@ export function ProductVariantInlineRow({
                 />
               </Box>
             ) : null}
+
+            <Box className="min-w-0">
+              <VariantFieldLabel>{t('form.variantSku')}</VariantFieldLabel>
+              <Controller
+                name={`variants.${variantIndex}.sku`}
+                control={control}
+                render={({ field, fieldState: { error } }) => (
+                  <div>
+                    <Box className="flex gap-2">
+                      <input
+                        {...field}
+                        value={field.value ?? ''}
+                        type="text"
+                        placeholder={t('form.variantSkuPlaceholder')}
+                        className={`${fieldInputClass(!!error)} min-w-0 flex-1`}
+                      />
+                      <button
+                        type="button"
+                        className="inline-flex h-9 shrink-0 items-center gap-1 rounded-lg border border-border bg-background px-2.5 text-xs font-medium text-foreground hover:bg-muted"
+                        title={t('form.regenerateSku')}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          field.onChange(
+                            regenerateVariantSku(
+                              watchedProductSku,
+                              valueRefs,
+                              colorsHexLookup
+                            )
+                          );
+                        }}
+                      >
+                        <Iconify icon="solar:refresh-bold" width={15} />
+                        {t('form.generateSkuShort')}
+                      </button>
+                    </Box>
+                    <FieldErrorText message={error?.message} />
+                  </div>
+                )}
+              />
+            </Box>
           </Box>
 
           {isShopSaleChannel && shopSvIndex >= 0 ? (
             <Box className="max-w-xs">
-              <VariantFieldLabel optionalLabel={t('form.optionalTag')}>
+              <VariantFieldLabel>
                 {t('form.productCostPriceOptional')}
               </VariantFieldLabel>
               <Controller
@@ -539,6 +573,24 @@ export function ProductVariantInlineRow({
                   </Typography>
                 </div>
                 <FieldErrorText message={error?.message} />
+                {(() => {
+                  const files = (Array.isArray(value) ? value : []).filter(
+                    (f): f is File => f instanceof File
+                  );
+                  if (!files.length) return null;
+                  return (
+                    <Box className="mt-2 flex flex-wrap gap-2">
+                      {files.map((file, i) => (
+                        <RemovableLocalVariantImageThumb
+                          key={`${file.name}-${file.size}-${file.lastModified}-${i}`}
+                          file={file}
+                          removeAriaLabel={t('form.removeVariantImageAria')}
+                          onRemove={() => onChange(files.filter((_, idx) => idx !== i))}
+                        />
+                      ))}
+                    </Box>
+                  );
+                })()}
               </div>
             );
           }}
@@ -571,10 +623,10 @@ export function ProductVariantInlineRow({
                         { shouldDirty: true }
                       )
                     }
-                    className="absolute -top-1 -right-1 rounded-full bg-destructive text-destructive-foreground p-0.5"
+                    className="absolute -top-1.5 -start-1.5 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-red-600 text-base font-bold leading-none text-white shadow-md ring-2 ring-white hover:bg-red-700"
                     aria-label={t('form.removeVariantImageAria')}
                   >
-                    <Iconify icon="solar:close-circle-bold" width={16} />
+                    ×
                   </button>
                 </Box>
               ))}

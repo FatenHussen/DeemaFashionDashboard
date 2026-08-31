@@ -190,6 +190,23 @@ export function regenerateVariantSku(
   return `${base}-${suffix}`;
 }
 
+/** Unique 13-digit barcode for a variant row (EAN-13 check digit). */
+export function generateVariantBarcode(
+  productSku: string | null | undefined,
+  variantIndex: number
+): string {
+  const fromSku = String(productSku ?? '').replace(/\D/g, '');
+  const raw = `${Date.now()}${variantIndex}${fromSku}629110000000`.replace(/\D/g, '');
+  const body = raw.slice(0, 12).padStart(12, '0');
+  let sum = 0;
+  for (let i = 0; i < 12; i += 1) {
+    const n = Number(body[i]);
+    sum += i % 2 === 0 ? n : n * 3;
+  }
+  const check = (10 - (sum % 10)) % 10;
+  return `${body}${check}`;
+}
+
 export function priceAfterDiscount(
   price: number | null | undefined,
   discountType: string | null | undefined,

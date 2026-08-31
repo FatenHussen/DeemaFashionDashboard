@@ -60,6 +60,9 @@ type CategoryAttributeRow = {
 const selectTriggerCls =
   'h-10 w-full rounded-lg border border-border/45 bg-background px-3 text-sm shadow-none transition-colors hover:border-border focus:border-primary/50 focus:ring-1 focus:ring-primary/15';
 
+/** Radix Select cannot use an empty string; this marks an unset optional attribute. */
+const ATTRIBUTE_NONE_VALUE = '__none__';
+
 type Props = {
   categoryAttributes: CategoryAttributeRow[];
   productSku: string;
@@ -74,7 +77,6 @@ function AttributeSingleSelect({
   selectedId,
   onChange,
   colorsHexLookup,
-  t,
   formatAttributeLabel,
   resetNonce,
 }: {
@@ -82,7 +84,6 @@ function AttributeSingleSelect({
   selectedId: number;
   onChange: (valueId: number) => void;
   colorsHexLookup: ReturnType<typeof buildColorsHexLookup>;
-  t: TFunction;
   formatAttributeLabel: (name: unknown) => string;
   /** Bumps after each successful add so Radix Select remounts with empty value. */
   resetNonce: number;
@@ -96,13 +97,16 @@ function AttributeSingleSelect({
       <VariantFieldLabel>{label}</VariantFieldLabel>
       <Select
         key={`${attr.id}-${resetNonce}`}
-        value={selectedId > 0 ? String(selectedId) : undefined}
-        onValueChange={(v) => onChange(Number(v))}
+        value={selectedId > 0 ? String(selectedId) : ATTRIBUTE_NONE_VALUE}
+        onValueChange={(v) => onChange(v === ATTRIBUTE_NONE_VALUE ? 0 : Number(v))}
       >
         <SelectTrigger className={selectTriggerCls}>
-          <SelectValue placeholder={t('form.selectAttribute', { name: label })} />
+          <SelectValue placeholder="—" />
         </SelectTrigger>
         <SelectContent className="max-h-64 min-w-[var(--radix-select-trigger-width)] p-1">
+          <SelectItem value={ATTRIBUTE_NONE_VALUE} textValue="—" className="rounded-md py-2">
+            <span className="text-muted-foreground">—</span>
+          </SelectItem>
           {values.map((val) => {
             const valLabel = attributeValueLabel(val.name) || String(val.id);
             const valHex = isColor
@@ -151,18 +155,15 @@ export function VariantGeneratorPanel({
     [colorsResp?.data?.items]
   );
 
-  const allSelected = categoryAttributes.every((attr) => {
-    const id = selections[Number(attr.id)];
-    return id != null && id > 0;
-  });
-
   const selectedCombo = React.useMemo(
     () =>
-      allSelected
-        ? categoryAttributes.map((attr) => Number(selections[Number(attr.id)]))
-        : [],
-    [allSelected, categoryAttributes, selections]
+      categoryAttributes
+        .map((attr) => Number(selections[Number(attr.id)]))
+        .filter((id) => Number.isFinite(id) && id > 0),
+    [categoryAttributes, selections]
   );
+
+  const hasAnySelected = selectedCombo.length > 0;
 
   const selectedValueRefs = React.useMemo(
     () =>
@@ -178,7 +179,7 @@ export function VariantGeneratorPanel({
   }, []);
 
   const handleAdd = () => {
-    if (!allSelected) {
+    if (!hasAnySelected) {
       toast.error(t('form.variantAddSelectAllAttributes'));
       return;
     }
@@ -219,10 +220,15 @@ export function VariantGeneratorPanel({
               attr={attr}
               selectedId={selections[Number(attr.id)] ?? 0}
               onChange={(valueId) =>
-                setSelections((prev) => ({ ...prev, [Number(attr.id)]: valueId }))
+                setSelections((prev) => {
+                  const next = { ...prev };
+                  const attrId = Number(attr.id);
+                  if (valueId > 0) next[attrId] = valueId;
+                  else delete next[attrId];
+                  return next;
+                })
               }
               colorsHexLookup={colorsHexLookup}
-              t={t}
               formatAttributeLabel={formatAttributeLabel}
               resetNonce={resetNonce}
             />
@@ -234,7 +240,7 @@ export function VariantGeneratorPanel({
             type="button"
             variant="contained"
             size="medium"
-            disabled={!allSelected}
+            disabled={!hasAnySelected}
             onClick={handleAdd}
           >
             <Iconify icon="solar:add-circle-bold" width={18} className="me-1.5" />

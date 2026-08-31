@@ -9,11 +9,17 @@ import type {
 
 import { apiRoutes, axiosInstance } from '@/api';
 
+import { _BrandApi } from './brand.services';
 import {
   toVariantPayload,
   toVariantPayloadList,
   toShopVariantPayloadList,
 } from '../utils/variant-payload';
+import {
+  buildProductsImportTemplateBlob,
+  PRODUCT_IMPORT_TEMPLATE_FILENAME,
+  sanitizeProductsImportFile,
+} from '../utils/product-import-template';
 
 // ----------------------------------------------------------------------
 
@@ -536,21 +542,50 @@ export const _ProductApi = {
     return response.data;
   },
 
-  /** Download the fixed SPBS Excel import template. */
+  /** Download the fixed SPBS Excel import template (API, then local fallback). */
   downloadImportTemplate: async (): Promise<void> => {
-    const response = await axiosInstance.get(apiRoutes.product.importTemplate, {
-      responseType: 'blob',
-    });
-    const filename = getFilenameFromHeaders(
-      response.headers as unknown as Record<string, string>
-    );
-    triggerBlobDownload(response.data as Blob, filename);
+    try {
+      const response = await axiosInstance.get(apiRoutes.product.importTemplate, {
+        responseType: 'blob',
+        skipErrorToast: true,
+        headers: {
+          Accept:
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/octet-stream',
+        },
+      });
+      const blob = response.data as Blob;
+      const isFile =
+        blob instanceof Blob &&
+        blob.size > 0 &&
+        !/json|html|text\/plain/i.test(blob.type || '');
+      if (!isFile) {
+        throw new Error('invalid-template-payload');
+      }
+      const filename = getFilenameFromHeaders(
+        response.headers as unknown as Record<string, string>,
+        PRODUCT_IMPORT_TEMPLATE_FILENAME
+      );
+      triggerBlobDownload(blob, filename);
+    } catch {
+      triggerBlobDownload(
+        buildProductsImportTemplateBlob(),
+        PRODUCT_IMPORT_TEMPLATE_FILENAME
+      );
+    }
   },
 
   /** Upload a products Excel file (fixed columns — no UI mapping). */
   importProducts: async (file: File): Promise<ProductImportResponse> => {
+    let brands: Array<{ name?: unknown }> = [];
+    try {
+      const list = await _BrandApi.getListBrands({ page: 1, per_page: 1000 });
+      brands = list?.data?.items ?? [];
+    } catch {
+      brands = [];
+    }
+    const sanitized = await sanitizeProductsImportFile(file, brands);
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('file', sanitized);
     const response = await axiosInstance.post<ProductImportResponse>(
       apiRoutes.product.import,
       formData,

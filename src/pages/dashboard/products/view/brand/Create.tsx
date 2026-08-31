@@ -210,15 +210,14 @@ export default function CreatePage() {
       const catIds = (data.category_ids ?? []).filter((n) => n > 0);
       const payload = {
         name: {
-          en: data.name.en,
-          ar: data.name.ar,
+          en: data.name.en.trim(),
+          ar: data.name.ar.trim(),
         },
-        image:
-          data.image instanceof File ? await compressImage(data.image) : undefined,
-        category_ids: catIds,
-        category_id: catIds[0] ?? 0,
-        governorate_id: data.governorate_id,
-        city_id: data.city_id,
+        image: data.image instanceof File ? await compressImage(data.image) : null,
+        category_ids: catIds.length ? catIds : null,
+        category_id: catIds[0] ?? null,
+        governorate_id: data.governorate_id > 0 ? data.governorate_id : null,
+        city_id: data.city_id > 0 ? data.city_id : null,
       };
 
       if (isEditMode && id) {

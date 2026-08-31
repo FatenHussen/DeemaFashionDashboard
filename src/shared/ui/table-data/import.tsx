@@ -13,6 +13,7 @@ import {
   DialogHeader,
   DialogContent,
   DialogTrigger,
+  DialogDescription,
 } from '@/shared/ui/dialogTable';
 
 interface ImportModalProps {
@@ -94,6 +95,7 @@ export function Import({ tableName, onImportSuccess }: ImportModalProps) {
             defaultValue: response.message || t('import.success'),
           })
         );
+        onImportSuccess?.();
       } else {
         toast.warning(
           t('import.partialSummary', {
@@ -102,9 +104,10 @@ export function Import({ tableName, onImportSuccess }: ImportModalProps) {
             failed: failedCount,
           })
         );
+        if (summary.created > 0 || summary.updated > 0) {
+          onImportSuccess?.();
+        }
       }
-
-      onImportSuccess?.();
     } catch (error: any) {
       const errorMessage = error?.response?.data?.message || error?.message || t('import.error');
       const detailedErrors = error?.response?.data?.errors;
@@ -155,10 +158,11 @@ export function Import({ tableName, onImportSuccess }: ImportModalProps) {
           <DialogTitle className="text-foreground">
             {t('import.title', { table: t('tableNames.product', { defaultValue: tableName }) })}
           </DialogTitle>
+          <DialogDescription>{t('import.productsHint')}</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
-          <p className="text-sm text-muted-foreground">{t('import.productsHint')}</p>
+          <p className="text-sm text-muted-foreground">{t('import.productsHintCategoryBrand')}</p>
 
           <div className="space-y-2">
             <label className="text-sm font-medium text-foreground">{t('import.file')}</label>
@@ -222,13 +226,19 @@ export function Import({ tableName, onImportSuccess }: ImportModalProps) {
                 </li>
               </ul>
               {result.failed.length > 0 ? (
-                <div className="mt-2 max-h-40 space-y-2 overflow-y-auto rounded-md border border-destructive/30 bg-destructive/5 p-2">
+                <div className="mt-2 max-h-48 space-y-2 overflow-y-auto rounded-md border border-destructive/30 bg-destructive/5 p-2">
                   {result.failed.map((row) => (
-                    <div key={`fail-${row.row}`} className="text-xs text-destructive">
-                      <span className="font-semibold">
-                        {t('import.failedRow', { row: row.row })}
-                      </span>
-                      {row.errors.length > 0 ? `: ${row.errors.join(' — ')}` : null}
+                    <div key={`fail-${row.row}`} className="text-xs text-destructive" dir="auto">
+                      <p className="font-semibold">{t('import.failedRow', { row: row.row })}</p>
+                      {row.errors.length > 0 ? (
+                        <ul className="mt-1 list-disc space-y-0.5 ps-4">
+                          {row.errors.map((err, idx) => (
+                            <li key={`${row.row}-${idx}`} className="text-destructive/90" dir="auto">
+                              {err}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : null}
                     </div>
                   ))}
                 </div>

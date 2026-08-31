@@ -9,6 +9,7 @@ import type {
 } from 'react-hook-form';
 
 import React from 'react';
+import { toast } from 'react-toastify';
 import { queryKeys } from '@/api/queryKeys';
 import { useQuery } from '@tanstack/react-query';
 import { Iconify } from '@/shared/components/iconify';
@@ -19,7 +20,8 @@ import { Box, Typography } from 'src/shared/ui';
 import { ProductVariantInlineRow } from './ProductVariantInlineRow';
 import { ProductVariantsSkuToolbar } from './ProductVariantsSkuToolbar';
 import {
-  generateVariantSku,
+  generateVariantBarcode,
+  regenerateVariantSku,
   buildColorsHexLookup,
   type ColorsHexLookup,
   type CategoryAttributeValueRef,
@@ -94,21 +96,42 @@ export function ProductVariantsCardList({
   const skuStats = React.useMemo(() => {
     const total = watchedVariants.length;
     const withSku = watchedVariants.filter((v) => String(v?.sku ?? '').trim()).length;
-    return { total, withSku, missing: total - withSku };
-  }, [watchedVariants]);
+    const missingFillable = watchedVariants.filter((v) => {
+      const skuEmpty = !String(v?.sku ?? '').trim();
+      const barcodeEmpty = !rowProps.restaurantMode && !String(v?.barcode ?? '').trim();
+      return skuEmpty || barcodeEmpty;
+    }).length;
+    return { total, withSku, missing: missingFillable };
+  }, [watchedVariants, rowProps.restaurantMode]);
 
   const handleGenerateAllMissingSku = () => {
-    watchedVariants.forEach((_, i) => {
-      const sku = String(rowProps.watch(`variants.${i}.sku`) ?? '').trim();
-      if (sku) return;
-      const valueIds = (rowProps.watch(`variants.${i}.attributes_values_ids`) ?? []) as number[];
+    const rows = rowProps.watch('variants') ?? [];
+    let filled = 0;
+    rows.forEach((row, i) => {
+      const valueIds = (row?.attributes_values_ids ?? []) as number[];
       const valueRefs = resolveValueRefs(valueIds);
-      rowProps.setValue(
-        `variants.${i}.sku`,
-        generateVariantSku(rowProps.watchedProductSku, valueRefs, colorsHexLookup),
-        { shouldDirty: true }
-      );
+
+      if (!String(row?.sku ?? '').trim()) {
+        rowProps.setValue(
+          `variants.${i}.sku`,
+          regenerateVariantSku(rowProps.watchedProductSku, valueRefs, colorsHexLookup),
+          { shouldDirty: true, shouldTouch: true }
+        );
+        filled += 1;
+      }
+
+      if (!rowProps.restaurantMode && !String(row?.barcode ?? '').trim()) {
+        rowProps.setValue(
+          `variants.${i}.barcode`,
+          generateVariantBarcode(rowProps.watchedProductSku, i),
+          { shouldDirty: true, shouldTouch: true }
+        );
+        filled += 1;
+      }
     });
+    if (filled > 0) {
+      toast.success(rowProps.t('form.variantGenerateAllMissingDone'));
+    }
   };
 
   if (variants.length === 0) {
