@@ -3,11 +3,14 @@ import type { PageBuilderListItem } from '@/pages/dashboard/sections/types/page-
 import { toast } from 'react-toastify';
 import { useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
+import { useQuery } from '@tanstack/react-query';
 import { useState, useEffect, useCallback } from 'react';
+import { formatTranslated } from '@/utils/format-translated';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { usePermissions } from '@/auth/hooks/use-permissions';
 import { pagesColumns } from '@/columns/one/sections/pages/columns';
 import { useFetchPages } from '@/pages/dashboard/sections/hooks/usePageSections';
+import { _CategoryApi } from '@/pages/dashboard/categories/api/category.services';
 import { canDeleteCmsPage } from '@/pages/dashboard/sections/utils/category-page';
 import { cmsPageSelectLabel } from '@/pages/dashboard/sections/utils/cms-page-select-label';
 import {
@@ -21,6 +24,9 @@ import { Iconify } from 'src/shared/components/iconify';
 
 type PagesTab = 'content' | 'category';
 
+const selectClassName =
+  'h-10 w-full rounded-xl border border-border/80 bg-background px-3 text-sm text-foreground shadow-sm focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/15';
+
 export default function Page() {
   const { t } = useTranslation('table');
   const [searchParams, setSearchParams] = useSearchParams();
@@ -30,10 +36,15 @@ export default function Page() {
   const [pageSize, setPageSize] = useState(10);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [search, setSearch] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [search, activeTab]);
+  }, [search, activeTab, categoryFilter]);
+
+  useEffect(() => {
+    if (!isCategoryTab) setCategoryFilter('');
+  }, [isCategoryTab]);
 
   const handleTabChange = useCallback(
     (tab: PagesTab) => {
@@ -47,6 +58,14 @@ export default function Page() {
     [setSearchParams]
   );
 
+  const categoryIdForApi =
+    isCategoryTab &&
+    categoryFilter &&
+    !Number.isNaN(Number(categoryFilter)) &&
+    Number(categoryFilter) > 0
+      ? Number(categoryFilter)
+      : undefined;
+
   // `type` splits the tabs server-side, so each tab fetches only its own page of rows.
   const {
     data: response,
@@ -57,10 +76,18 @@ export default function Page() {
     per_page: pageSize,
     ...(search.trim() ? { search: search.trim() } : {}),
     type: activeTab,
+    ...(categoryIdForApi != null ? { category_id: categoryIdForApi } : {}),
   });
   // Fallback: keep the screen usable on backends without `page.*` yet (already cached — feeds the pickers).
   const { data: legacyPagesData } = useFetchPages();
   const deleteMutation = useDeletePage();
+
+  const { data: categoriesResp } = useQuery({
+    queryKey: ['categories', 'pages-index-filter'],
+    queryFn: () => _CategoryApi.getListCategoriesPaginated({ page: 1, per_page: 500 }),
+    enabled: isCategoryTab,
+  });
+  const flatCategories = categoriesResp?.data?.items ?? [];
 
   const handlePageChange = (page: number) => setCurrentPage(page);
   const handlePageSizeChange = (size: number) => {
@@ -247,6 +274,27 @@ export default function Page() {
         isLoading={isLoading}
         onSearchChange={setSearch}
         searchPlaceholder={t('search')}
+        filterSidebar={
+          isCategoryTab ? (
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                {t('form.sectionListCategoryFilter')}
+              </label>
+              <select
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                className={selectClassName}
+              >
+                <option value="">{t('form.sectionListCategoryAll')}</option>
+                {flatCategories.map((c: { id: number; name: unknown }) => (
+                  <option key={c.id} value={String(c.id)}>
+                    {formatTranslated(c.name as Parameters<typeof formatTranslated>[0])}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : undefined
+        }
         columnTranslations={{
           id: t('columns.id'),
           title: t('columns.title'),

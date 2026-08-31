@@ -106,6 +106,9 @@ export const queryKeys = {
       is_restaurant?: 0 | 1 | boolean;
     }) => ['category', 'list', params] as const,
     details: (id: number | string) => ['category', 'details', id] as const,
+    deleteImpact: (id: number | string) => ['category', 'delete-impact', id] as const,
+    linkedItems: (id: number | string, page: number, perPage: number) =>
+      ['category', 'linked-items', id, page, perPage] as const,
   },
   // Category Attribute query keys
   categoryAttribute: {
@@ -443,6 +446,11 @@ export const queryKeys = {
     list: (params?: { page?: number; per_page?: number; status?: string; search?: string }) =>
       ['promotionRequest', 'list', params] as const,
     details: (id: number | string) => ['promotionRequest', 'details', id] as const,
+  },
+  // Custom order request query keys
+  customOrderRequest: {
+    list: (params?: Record<string, unknown>) => ['customOrderRequest', 'list', params] as const,
+    details: (id: number | string) => ['customOrderRequest', 'details', id] as const,
   },
   // Point Rule query keys
   pointRule: {

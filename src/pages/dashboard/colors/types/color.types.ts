@@ -49,5 +49,5 @@ export type ColorListParams = {
   sort_field?: 'id' | 'hex' | 'is_active' | 'created_at';
   sort_order?: 'asc' | 'desc';
   hex?: string;
-  is_active?: boolean;
+  is_active?: boolean | 0 | 1;
 };

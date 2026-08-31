@@ -20,9 +20,11 @@ export interface ProductVariantUpdatePayload {
   sku?: string | null;
   model?: string | null;
   barcode?: string | null;
-  name?: { en?: string | null; ar?: string | null };
   price?: number;
+  price_syp?: number;
   quantity?: number;
+  discount?: number;
+  discount_type?: 'none' | 'percentage' | 'fixed';
 }
 
 export interface ProductVariantListParams {
@@ -59,10 +61,21 @@ const buildVariantFormData = (data: ProductVariantUpdatePayload): FormData => {
   if (data.sku !== undefined) formData.append('sku', data.sku == null ? '' : data.sku);
   if (data.model !== undefined) formData.append('model', data.model == null ? '' : data.model);
   if (data.barcode !== undefined) formData.append('barcode', data.barcode == null ? '' : data.barcode);
-  if (data.name?.en !== undefined) formData.append('name[en]', data.name.en == null ? '' : data.name.en);
-  if (data.name?.ar !== undefined) formData.append('name[ar]', data.name.ar == null ? '' : data.name.ar);
-  if (data.price !== undefined) formData.append('price', String(data.price));
+  if (data.price !== undefined) {
+    formData.append('price', String(data.price));
+  } else if (data.price_syp !== undefined) {
+    formData.append('price_syp', String(data.price_syp));
+  }
   if (data.quantity !== undefined) formData.append('quantity', String(data.quantity));
+  if (data.discount_type !== undefined) {
+    formData.append('discount_type', data.discount_type);
+    formData.append(
+      'discount',
+      String(data.discount_type === 'none' ? 0 : (data.discount ?? 0))
+    );
+  } else if (data.discount !== undefined) {
+    formData.append('discount', String(data.discount));
+  }
 
   (data.attributes_values_ids ?? []).forEach((id) => {
     formData.append('attributes_values_ids[]', String(id));

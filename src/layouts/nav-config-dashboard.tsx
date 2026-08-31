@@ -263,6 +263,16 @@ export function getNavData(t: TFunction<'nav'>): NavSectionProps['data'] {
       ) as any,
       items: [
         { title: t('orders'), path: paths.dashboard.orders, icon: ICONS.order, requiredPermission: 'order.view' },
+        {
+          title: t('customOrderRequests'),
+          path: paths.dashboard.customOrderRequests,
+          icon: ICONS.file,
+          requiredPermissionAny: [
+            'customorderrequest.view',
+            'custom_order_request.view',
+            'order.view',
+          ],
+        },
         { title: t('serviceOrders'), path: paths.dashboard.serviceOrders, icon: ICONS.invoice, requiredPermission: 'serviceorder.view' },
       ],
     },

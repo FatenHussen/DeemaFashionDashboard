@@ -1,6 +1,6 @@
 import type {
-  ContactMethodDetailsResponse,
   ContactMethodListResponse,
+  ContactMethodDetailsResponse,
   ContactMethodMutationPayload,
 } from '../types/contact-method.types';
 

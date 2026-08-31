@@ -71,6 +71,8 @@ export type ProductShopVariantsSectionProps = {
     shopId: number;
     costPrice: number | undefined;
   }) => Promise<number>;
+  /** Hide cost_price row when shown on the parent variant card (§17). */
+  hideCostPrice?: boolean;
   /** When true, skip border-top styling (e.g. General tab placement). */
   embedded?: boolean;
   /** In restaurant mode, parent variant may not exist in form until backend creates it. */
@@ -98,6 +100,7 @@ export function ProductShopVariantsSection({
   updateShopVariantMutation,
   createSingleShopVariantOnProduct,
   embedded = false,
+  hideCostPrice = false,
   requireParentVariantId = true,
   hideShopSelect = false,
   hideAddButton = false,
@@ -227,6 +230,7 @@ export function ProductShopVariantsSection({
                   />
                 </Box>
                 ) : null}
+                {!hideCostPrice ? (
                 <Box>
                   <Typography variant="caption" className="text-muted-foreground mb-1 block">
                     {t('form.branchCostPriceLabel')}
@@ -270,6 +274,7 @@ export function ProductShopVariantsSection({
                     {t('form.branchCostPriceHint')}
                   </Typography>
                 </Box>
+                ) : null}
                 {isEditMode && (
                   <Box className="flex items-center gap-2 col-span-full border-t border-border pt-2 mt-1">
                     {watch(`shop_variants.${svIdx}.id`) ? (
@@ -322,17 +327,13 @@ export function ProductShopVariantsSection({
                           size="small"
                           disabled={shopVariantCreateBusyIdx === svIdx}
                           onClick={async () => {
-                            if (!productId) {
-                              toast.error(t('form.variantSaveProductFirst'));
-                              return;
-                            }
                             const parentIdx = Number(
                               watch(`shop_variants.${svIdx}.variant_index`)
                             );
                             const parentVarId = Number(
                               watch(`variants.${parentIdx}.id`) ?? 0
                             );
-                            if (!parentVarId) {
+                            if (!productId || !parentVarId) {
                               toast.error(t('form.shopVariantSaveParentFirst'));
                               return;
                             }

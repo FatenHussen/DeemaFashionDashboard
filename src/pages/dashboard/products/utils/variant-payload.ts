@@ -20,15 +20,6 @@ function toIdList(value: unknown): number[] {
   return value.map(Number).filter((n) => Number.isFinite(n) && n > 0);
 }
 
-function toBilingualName(value: unknown): { en: string; ar: string } | undefined {
-  if (!value || typeof value !== 'object') return undefined;
-  const o = value as { en?: unknown; ar?: unknown };
-  return {
-    en: o.en != null ? String(o.en) : '',
-    ar: o.ar != null ? String(o.ar) : '',
-  };
-}
-
 /**
  * Backend whitelist for `variants[]`. Extra GET fields (`shops`, `price_currencies`,
  * `attributes`, `stock`, …) are ignored by the API and must not be forwarded.
@@ -54,17 +45,32 @@ export function toVariantPayload(
 
   if (id != null && id > 0) payload.id = id;
 
-  const name = toBilingualName(r.name);
-  if (name) payload.name = name;
-
   if (r.sku !== undefined && r.sku !== null) payload.sku = String(r.sku);
   if (r.model !== undefined && r.model !== null) payload.model = String(r.model);
   if (r.barcode !== undefined && r.barcode !== null) payload.barcode = String(r.barcode);
 
   const price = toFiniteNumber(r.price);
-  if (price !== undefined) payload.price = price;
+  const priceSyp = toFiniteNumber(r.price_syp);
+  if (price !== undefined) {
+    payload.price = price;
+  } else if (priceSyp !== undefined) {
+    payload.price_syp = priceSyp;
+  }
   const quantity = toFiniteNumber(r.quantity);
   if (quantity !== undefined) payload.quantity = Math.max(0, Math.floor(quantity));
+
+  const discountTypeRaw = r.discount_type ?? r.discountType;
+  const discountType =
+    discountTypeRaw === 'percentage' || discountTypeRaw === 'fixed' || discountTypeRaw === 'none'
+      ? discountTypeRaw
+      : undefined;
+  const discount = toFiniteNumber(r.discount);
+  if (discountType !== undefined) {
+    payload.discount_type = discountType;
+    payload.discount = discountType === 'none' ? 0 : (discount ?? 0);
+  } else if (discount !== undefined) {
+    payload.discount = discount;
+  }
 
   const isTrend = toFlag01(r.is_trend ?? r.isTrend, 0);
   if (isTrend !== undefined) payload.is_trend = isTrend;

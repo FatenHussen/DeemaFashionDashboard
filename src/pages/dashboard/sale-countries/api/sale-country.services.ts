@@ -37,30 +37,20 @@ function normalizeListResponse(
 
   const items = (body?.data?.items ?? []) as SaleCountryListItem[];
   const p = body?.data?.pagination;
-  if (p) {
-    return {
-      success: Boolean(body.success ?? body.status ?? true),
-      data: {
-        items,
-        pagination: {
-          current_page: p.current_page,
-          last_page: p.last_page,
-          per_page: p.per_page,
-          total: p.total,
-        },
-      },
-    };
-  }
+  const total = p?.total ?? items.length;
+  const perPageResolved = p?.per_page ?? perPage;
+  const current = p?.current_page ?? page;
+  const lastPage = p?.last_page ?? Math.max(1, Math.ceil(total / perPageResolved) || 1);
 
   return {
-    success: true,
+    success: Boolean(body.success ?? body.status ?? true),
     data: {
-      items: [],
+      items,
       pagination: {
-        current_page: 1,
-        last_page: 1,
-        per_page: perPage,
-        total: 0,
+        current_page: current,
+        last_page: lastPage,
+        per_page: perPageResolved,
+        total,
       },
     },
   };
@@ -94,13 +84,9 @@ export const _SaleCountryApi = {
   },
 
   createSaleCountry: async (data: SaleCountryCreatePayload): Promise<unknown> => {
-    const formData = new FormData();
-    formData.append('name[ar]', data.name.ar);
-    formData.append('name[en]', data.name.en);
-    if (data.icon instanceof File) formData.append('icon', data.icon);
-    formData.append('is_active', data.is_active !== false ? '1' : '0');
-    const response = await axiosInstance.post(apiRoutes.saleCountry.create, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+    const response = await axiosInstance.post(apiRoutes.saleCountry.create, {
+      name: { ar: data.name.ar, en: data.name.en },
+      is_active: data.is_active !== false,
     });
     return response.data;
   },
@@ -109,15 +95,10 @@ export const _SaleCountryApi = {
     id: number | string,
     data: Partial<SaleCountryCreatePayload>
   ): Promise<unknown> => {
-    const formData = new FormData();
-    formData.append('_method', 'PUT');
-    if (data.name?.ar != null) formData.append('name[ar]', data.name.ar);
-    if (data.name?.en != null) formData.append('name[en]', data.name.en);
-    if (data.icon instanceof File) formData.append('icon', data.icon);
-    if (data.is_active !== undefined) formData.append('is_active', data.is_active ? '1' : '0');
-    const response = await axiosInstance.post(apiRoutes.saleCountry.update(id), formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    const payload: Record<string, unknown> = {};
+    if (data.name) payload.name = { ar: data.name.ar, en: data.name.en };
+    if (data.is_active !== undefined) payload.is_active = data.is_active;
+    const response = await axiosInstance.put(apiRoutes.saleCountry.update(id), payload);
     return response.data;
   },
 

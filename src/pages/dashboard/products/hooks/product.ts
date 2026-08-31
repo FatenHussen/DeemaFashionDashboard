@@ -126,3 +126,13 @@ export const useUpdateProductQuantity = () => {
     },
   });
 };
+
+export const useImportProducts = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (file: File) => _ProductApi.importProducts(file),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['product', 'list'] });
+    },
+  });
+};

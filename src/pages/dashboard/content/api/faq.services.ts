@@ -1,8 +1,8 @@
 import type {
+  FaqItem,
   FaqPayload,
   FaqListResponse,
   FaqDetailsResponse,
-  FaqItem,
 } from '../types/faq.types';
 
 import { apiRoutes, axiosInstance } from '@/api';

@@ -15,7 +15,8 @@ export interface CountryListResponse {
   message: string;
   data: {
     items: CountryItem[];
-    pagination: {
+    /** Optional — `/admin/countries` may return the full list without pagination. */
+    pagination?: {
       current_page: number;
       last_page: number;
       per_page: number;

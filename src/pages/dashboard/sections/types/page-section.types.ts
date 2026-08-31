@@ -27,6 +27,9 @@ export interface PageSectionListItem {
   variant?: PageSectionVariantResponse;
   position?: 'before' | 'after';
   order?: number;
+  /** When false, the section stays on the page but is hidden from the user-facing app. */
+  is_active?: boolean | 0 | 1;
+  is_default?: boolean;
   display_type_id?: number;
   background_color?: string | null;
   background_card_color?: string | null;

@@ -8,8 +8,8 @@ import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-
 import { cmsPageSelectLabel } from '@/pages/dashboard/sections/utils/cms-page-select-label';
 import {
   canDeleteCmsPage,
-  canEditPageMetadata,
   isCategoryCmsPage,
+  canEditPageMetadata,
 } from '@/pages/dashboard/sections/utils/category-page';
 
 const PageRowSchema = z.object({

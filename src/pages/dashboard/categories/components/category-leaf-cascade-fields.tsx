@@ -248,9 +248,11 @@ export function CategoryLeafCascadeFields({
 
   return (
     <Box className="space-y-5">
-      <Typography variant="caption" className="text-muted-foreground block">
-        {t(allowAnyLevel ? 'form.productCategoryCascadeHelper' : 'form.categoryHierarchyCascadeHelper')}
-      </Typography>
+      {!allowAnyLevel ? (
+        <Typography variant="caption" className="text-muted-foreground block">
+          {t('form.categoryHierarchyCascadeHelper')}
+        </Typography>
+      ) : null}
 
       <Box>
         <Box className="flex items-center gap-2 mb-2">

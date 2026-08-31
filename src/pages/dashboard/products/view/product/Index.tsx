@@ -306,7 +306,7 @@ export default function Page() {
       ) : null}
 
       <DataTable
-        tableName={t('tableNames.product')}
+        tableName="products"
         columns={productColumns(
           {
             update: hasPermission('update', 'product'),
@@ -336,7 +336,7 @@ export default function Page() {
         data={productData as ProductFormValues[]}
         createPath="/products/create"
         hasDetails
-        rowClickToDetails={false}
+        detailsLink="/products/details"
         permissions={{
           create: hasPermission('create', 'product'),
           update: hasPermission('update', 'product'),

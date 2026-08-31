@@ -15,6 +15,7 @@ import { formatTranslated } from '@/utils/format-translated';
 import { getApiErrorMessage } from '@/lib/get-api-error-message';
 import { useFetchProductById } from '@/pages/dashboard/products/hooks/product';
 import { useFetchCurrencies } from '@/pages/dashboard/currencies/hooks/currency';
+import { priceAfterDiscount } from '@/pages/dashboard/products/utils/variant-combinations';
 import { useVariantDeleteFlow } from '@/pages/dashboard/products/hooks/use-variant-delete-flow';
 import { VariantDeleteImpactDialog } from '@/pages/dashboard/products/components/VariantDeleteImpactDialog';
 import { formatDecimal, normalizeFormattedMoneyText, formatApiCurrencyAmountForLanguage } from '@/utils/format-currency';
@@ -22,6 +23,20 @@ import {
   useUpdateProductVariant,
   useUpdateShopProductVariant,
 } from '@/pages/dashboard/products/hooks/product-variant';
+import {
+  ProductDetailsTag,
+  ProductDetailsChip,
+  ProductDetailsField,
+  ProductDetailsSection,
+  ProductDetailsDenseRow,
+  ProductDetailsFieldGrid,
+  ProductDetailsPageShell,
+  ProductDetailsMetricCell,
+  ProductDetailsVariantCard,
+  ProductDetailsPricingPanel,
+  ProductDetailsPricingSummary,
+  ProductDetailsDualCurrencyInline,
+} from '@/pages/dashboard/products/components/product-details-ui';
 
 import { paths } from 'src/routes/paths';
 
@@ -122,16 +137,7 @@ function ProductRichDescriptionHtml({
 }
 
 function DetailRow({ label, value, emptyLabel }: { label: string; value: ReactNode; emptyLabel: string }) {
-  return (
-    <Box className="space-y-1">
-      <Typography variant="body2" className="text-muted-foreground font-medium">
-        {label}
-      </Typography>
-      <Typography variant="body1" component="div" className="text-foreground">
-        {value ?? emptyLabel}
-      </Typography>
-    </Box>
-  );
+  return <ProductDetailsField label={label} value={value} emptyLabel={emptyLabel} />;
 }
 
 /** Renders `*_currencies` maps, then `*_formatted`, then legacy amount + label. */
@@ -143,15 +149,17 @@ function productMoneyDisplay(args: {
   singleFormatted?: string | null | undefined;
   amount?: number | null | undefined;
   legacyAmountPrefix: string;
+  emphasis?: boolean;
 }): ReactNode {
-  const { currencies, singleFormatted, amount, legacyAmountPrefix } = args;
+  const { currencies, singleFormatted, amount, legacyAmountPrefix, emphasis } = args;
+  const valueCls = emphasis ? 'text-xl font-bold tabular-nums' : 'tabular-nums';
   const entries = currencies ? Object.entries(currencies).filter(([, v]) => v && typeof v === 'object') : [];
   if (entries.length > 0) {
     entries.sort(([a], [b]) => a.localeCompare(b));
     return (
       <Box className="flex flex-col gap-0.5">
         {entries.map(([code, row]) => (
-          <Typography key={code} variant="body1" className="tabular-nums">
+          <Typography key={code} variant={emphasis ? 'h6' : 'body1'} className={valueCls}>
             {row != null &&
             typeof row.amount === 'number' &&
             Number.isFinite(row.amount) &&
@@ -167,26 +175,29 @@ function productMoneyDisplay(args: {
       </Box>
     );
   }
-  if (singleFormatted) return normalizeFormattedMoneyText(singleFormatted);
+  if (singleFormatted) {
+    const text = normalizeFormattedMoneyText(singleFormatted);
+    return emphasis ? (
+      <Typography variant="h6" className={valueCls}>
+        {text}
+      </Typography>
+    ) : (
+      text
+    );
+  }
   if (amount != null && !Number.isNaN(Number(amount))) {
-    return `${legacyAmountPrefix} ${formatDecimal(amount)}`;
+    const text = `${legacyAmountPrefix} ${formatDecimal(amount)}`;
+    return emphasis ? (
+      <Typography variant="h6" className={valueCls}>
+        {text}
+      </Typography>
+    ) : (
+      text
+    );
   }
   return '—';
 }
 
-function approvalChipClass(statusRaw: string | null | undefined): string {
-  const s = String(statusRaw ?? '').toLowerCase();
-  if (s.includes('reject')) {
-    return 'border-rose-500/35 bg-rose-500/10 text-rose-800 dark:text-rose-300';
-  }
-  if (s.includes('pending') || s.includes('draft') || s.includes('review')) {
-    return 'border-amber-500/35 bg-amber-500/12 text-amber-950 dark:text-amber-300';
-  }
-  if (s.includes('approv')) {
-    return 'border-emerald-500/35 bg-emerald-500/10 text-emerald-900 dark:text-emerald-300';
-  }
-  return 'border-border/60 bg-muted/45 text-muted-foreground';
-}
 
 function formatDiscountTypeLabel(dt: string | null | undefined, tr: TFunction<'table'>): string {
   const v = String(dt ?? '').toLowerCase().trim();
@@ -268,9 +279,10 @@ function EditVariantModal({
   const [model, setModel] = useState<string>(variant?.model ?? '');
   const [barcode, setBarcode] = useState<string>(variant?.barcode ?? '');
   const [price, setPrice] = useState<string>('');
+  const [priceSyp, setPriceSyp] = useState<string>('');
   const [quantity, setQuantity] = useState<string>('');
-  const [nameEn, setNameEn] = useState<string>('');
-  const [nameAr, setNameAr] = useState<string>('');
+  const [discountType, setDiscountType] = useState<'none' | 'percentage' | 'fixed'>('none');
+  const [discount, setDiscount] = useState<string>('');
   const [newImages, setNewImages] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -282,22 +294,29 @@ function EditVariantModal({
       setModel(variant.model != null ? String(variant.model) : '');
       setBarcode(variant.barcode != null ? String(variant.barcode) : '');
       setPrice(variant.price != null ? String(variant.price) : '');
-      setQuantity(variant.quantity != null ? String(variant.quantity) : '');
-      const rawName = variant.name as unknown;
-      if (rawName && typeof rawName === 'object') {
-        const obj = rawName as { en?: unknown; ar?: unknown };
-        setNameEn(obj.en != null ? String(obj.en) : '');
-        setNameAr(obj.ar != null ? String(obj.ar) : '');
-      } else if (typeof rawName === 'string') {
-        setNameEn(rawName);
-        setNameAr(rawName);
+      const sypFromApi =
+        variant.price_currencies?.SYP?.amount ??
+        (variant.price_syp != null ? variant.price_syp : undefined);
+      if (sypFromApi != null && Number(sypFromApi) > 0) {
+        setPriceSyp(String(sypFromApi));
+      } else if (variant.price != null && dualPriceReady) {
+        setPriceSyp(String(Math.round(Number(variant.price) * sypRate)));
       } else {
-        setNameEn('');
-        setNameAr('');
+        setPriceSyp('');
       }
+      setQuantity(variant.quantity != null ? String(variant.quantity) : '');
+      const dt = String(variant.discount_type ?? 'none').toLowerCase();
+      setDiscountType(
+        dt === 'percentage' || dt === 'fixed' ? dt : 'none'
+      );
+      setDiscount(
+        variant.discount != null && Number(variant.discount) > 0
+          ? String(variant.discount)
+          : ''
+      );
       setNewImages([]);
     }
-  }, [open, variant]);
+  }, [open, variant, dualPriceReady, sypRate]);
 
   const existingImages: { id: number; url: string }[] = variant?.images ?? [];
   const [keptImageIds, setKeptImageIds] = useState<number[]>([]);
@@ -313,6 +332,14 @@ function EditVariantModal({
     const attrIds: number[] = (variant.attributes ?? []).map((a: any) => a.value_id ?? a.id).filter(Boolean);
     const images =
       newImages.length > 0 ? await compressImages(newImages) : undefined;
+    const priceNum = price !== '' ? Number(price) : undefined;
+    const priceSypNum =
+      priceNum != null
+        ? undefined
+        : priceSyp !== ''
+          ? Number(priceSyp)
+          : undefined;
+    const discountNum = discount !== '' ? Number(discount) : undefined;
     updateVariant(
       {
         id: variant.id,
@@ -324,9 +351,11 @@ function EditVariantModal({
           images,
           sku,
           ...(isRestaurant ? { model: '', barcode: '' } : { model, barcode }),
-          name: { en: nameEn, ar: nameAr },
-          price: price !== '' ? Number(price) : undefined,
+          price: priceNum,
+          price_syp: priceSypNum,
           quantity: quantity !== '' ? Math.max(0, Math.floor(Number(quantity))) : undefined,
+          discount_type: discountType,
+          discount: discountType === 'none' ? 0 : discountNum,
         },
       },
       {
@@ -395,29 +424,6 @@ function EditVariantModal({
 
           <Box>
             <Typography variant="body2" className="text-muted-foreground mb-1 font-medium">
-              {t('form.nameEn')}
-            </Typography>
-            <input
-              type="text"
-              value={nameEn}
-              onChange={(e) => setNameEn(e.target.value)}
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-            />
-          </Box>
-          <Box>
-            <Typography variant="body2" className="text-muted-foreground mb-1 font-medium">
-              {t('form.nameAr')}
-            </Typography>
-            <input
-              type="text"
-              dir="rtl"
-              value={nameAr}
-              onChange={(e) => setNameAr(e.target.value)}
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-            />
-          </Box>
-          <Box>
-            <Typography variant="body2" className="text-muted-foreground mb-1 font-medium">
               {t('form.productSku')}
             </Typography>
             <div className="flex gap-2">
@@ -477,7 +483,18 @@ function EditVariantModal({
                   step="any"
                   min={0}
                   value={price}
-                  onChange={(e) => setPrice(e.target.value)}
+                  onChange={(e) => {
+                    const next = e.target.value;
+                    setPrice(next);
+                    if (dualPriceReady && next !== '') {
+                      const n = Number(next);
+                      if (Number.isFinite(n)) {
+                        setPriceSyp(String(Math.round(n * sypRate)));
+                      }
+                    } else if (next === '') {
+                      setPriceSyp('');
+                    }
+                  }}
                   className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
                 />
               </Box>
@@ -492,17 +509,18 @@ function EditVariantModal({
                   type="number"
                   step="any"
                   min={0}
-                  value={(() => {
-                    const u = parseFloat(price) || 0;
-                    const syp = shopVariantUsdToLocal(u, sypRate);
-                    return u === 0 && syp === 0 ? '' : syp;
-                  })()}
+                  value={priceSyp}
                   onChange={(e) => {
                     const raw = e.target.value;
-                    const v = raw === '' ? 0 : parseFloat(raw);
-                    setPrice(
-                      String(shopVariantLocalToUsd(Number.isFinite(v) ? v : 0, sypRate))
-                    );
+                    setPriceSyp(raw);
+                    if (raw === '') {
+                      setPrice('');
+                      return;
+                    }
+                    const v = Number(raw);
+                    if (Number.isFinite(v)) {
+                      setPrice(String(Math.round((v / sypRate) * 100) / 100));
+                    }
                   }}
                   className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
                 />
@@ -539,6 +557,65 @@ function EditVariantModal({
               {t('form.variantPriceQuantityHint')}
             </Typography>
           </Box>
+
+          <Box className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Box>
+              <Typography variant="body2" className="text-muted-foreground mb-1 font-medium">
+                {t('form.productDiscountType')}
+              </Typography>
+              <select
+                value={discountType}
+                onChange={(e) =>
+                  setDiscountType(e.target.value as 'none' | 'percentage' | 'fixed')
+                }
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+              >
+                <option value="none">{t('form.discountTypeNone')}</option>
+                <option value="percentage">{t('form.discountTypePercentage')}</option>
+                <option value="fixed">{t('form.discountTypeFixed')}</option>
+              </select>
+            </Box>
+            <Box>
+              <Typography variant="body2" className="text-muted-foreground mb-1 font-medium">
+                {t('form.productDiscountValue')}
+              </Typography>
+              <input
+                type="number"
+                min={0}
+                step="any"
+                disabled={discountType === 'none'}
+                value={discount}
+                onChange={(e) => setDiscount(e.target.value)}
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
+              />
+            </Box>
+          </Box>
+          {price !== '' ? (
+            <Box>
+              <Typography variant="body2" className="text-muted-foreground mb-1 font-medium">
+                {t('form.variantPriceAfterDiscount')}
+              </Typography>
+              <input
+                type="text"
+                readOnly
+                value={(() => {
+                  const p = Number(price);
+                  if (!Number.isFinite(p)) return '';
+                  const after = priceAfterDiscount(
+                    p,
+                    discountType,
+                    discount !== '' ? Number(discount) : undefined
+                  );
+                  const parts = [`$${after}`];
+                  if (dualPriceReady) {
+                    parts.push(`${Math.round(after * sypRate)} SYP`);
+                  }
+                  return parts.join(' · ');
+                })()}
+                className="w-full rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground"
+              />
+            </Box>
+          ) : null}
 
           {/* existing images */}
           {existingImages.length > 0 && (
@@ -794,37 +871,35 @@ export default function DetailsPage() {
     [product.seo_title?.en, product.seo_title?.ar].filter(Boolean).join(' — ') ||
     t('form.productDetailsSeoImage');
 
-  const sectionShell =
-    'rounded-2xl border border-border/40 bg-card/60 shadow-lg shadow-black/[0.04] ring-1 ring-border/30 backdrop-blur-sm';
+  const approvalChipTone = (
+    statusRaw: string | null | undefined
+  ): 'success' | 'warning' | 'danger' | 'neutral' => {
+    const s = String(statusRaw ?? '').toLowerCase();
+    if (s.includes('reject')) return 'danger';
+    if (s.includes('pending') || s.includes('draft') || s.includes('review')) return 'warning';
+    if (s.includes('approv')) return 'success';
+    return 'neutral';
+  };
 
   return (
-    <Box className="relative min-h-screen w-full overflow-x-hidden bg-background">
-      <Box className="pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_90%_60%_at_50%_-30%,hsl(var(--primary)/0.14),transparent_55%)]" />
-      <Box className="pointer-events-none fixed inset-0 bg-gradient-to-br from-background via-background to-muted/30" />
-      <Box className="pointer-events-none fixed inset-0 opacity-[0.035] dark:opacity-[0.06]">
-        <Box className="absolute inset-0 bg-[linear-gradient(to_right,rgba(0,0,0,0.035)_1px,transparent_1px),linear-gradient(to_bottom,rgba(0,0,0,0.035)_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.06)_1px,transparent_1px)] bg-[size:40px_40px]" />
-      </Box>
-      <Box className="pointer-events-none fixed -right-24 -top-28 h-[28rem] w-[28rem] rounded-full bg-primary/20 blur-[120px]" />
-      <Box className="pointer-events-none fixed -bottom-32 -left-20 h-96 w-96 rounded-full bg-violet-500/15 blur-[100px] dark:bg-violet-400/10" />
-
-      <Box className="relative w-full px-4 pb-14 pt-4 sm:px-6 lg:px-8 xl:px-12">
+    <ProductDetailsPageShell>
         {/* Hero */}
-        <Box
-          className={`relative mb-8 overflow-hidden p-6 shadow-2xl shadow-black/[0.07] md:p-8 lg:p-10 ${sectionShell}`}
-        >
-          <Box className="pointer-events-none absolute -right-16 top-1/2 h-72 w-72 -translate-y-1/2 rounded-full bg-gradient-to-br from-primary/20 to-transparent blur-3xl" />
+        <Box className="relative mb-5 overflow-hidden rounded-xl border border-border/60 bg-card shadow-sm">
+          <Box className="border-b border-border/50 bg-muted/20 px-4 py-2.5">
           <Button
             variant="text"
             onClick={() => navigate(paths.dashboard.products)}
-            className="-ml-2 mb-2 text-muted-foreground hover:text-foreground"
+            className="-ml-2 h-8 text-muted-foreground hover:text-foreground"
           >
-            <Iconify icon="solar:arrow-left-bold" width={20} className="mr-2 rtl:rotate-180" />
+            <Iconify icon="solar:arrow-left-bold" width={18} className="mr-2 rtl:rotate-180" />
             {t('form.productDetailsBack')}
           </Button>
+          </Box>
 
-          <Box className="relative flex flex-col gap-8 lg:flex-row lg:items-stretch lg:gap-12">
-            <Box className="flex w-full shrink-0 flex-col gap-4 lg:max-w-[min(100%,440px)]">
-              <Box className="relative aspect-square w-full overflow-hidden rounded-2xl bg-gradient-to-br from-muted/80 to-muted/40 shadow-inner ring-2 ring-primary/20">
+          <Box className="p-4 md:p-5">
+          <Box className="flex flex-col gap-5 lg:flex-row lg:items-start lg:gap-6">
+            <Box className="flex w-full shrink-0 flex-col gap-3 lg:w-[220px] xl:w-[260px]">
+              <Box className="relative aspect-[4/5] w-full max-h-[280px] overflow-hidden rounded-xl border border-border/60 bg-muted/20">
                 {heroSrc ? (
                   <img
                     src={heroSrc}
@@ -836,7 +911,7 @@ export default function DetailsPage() {
                     <Iconify icon="solar:gallery-bold" className="text-muted-foreground/40" width={80} height={80} />
                   </Box>
                 )}
-                <Box className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-background/90 via-background/20 to-transparent px-4 py-6 pt-16">
+                <Box className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-background/90 via-background/20 to-transparent px-3 py-3 pt-10">
                   <Typography variant="caption" className="font-mono text-muted-foreground">
                     ID · {product.id}
                   </Typography>
@@ -849,7 +924,7 @@ export default function DetailsPage() {
                       key={img.id ?? i}
                       type="button"
                       onClick={() => setHeroImageIndex(i)}
-                      className={`h-16 w-16 shrink-0 overflow-hidden rounded-xl border-2 transition-all ${
+                      className={`h-14 w-14 shrink-0 overflow-hidden rounded-lg border-2 transition-all ${
                         i === heroImageIndex
                           ? 'border-primary ring-2 ring-primary/30'
                           : 'border-border/60 opacity-80 hover:border-primary/50 hover:opacity-100'
@@ -862,46 +937,36 @@ export default function DetailsPage() {
               ) : null}
             </Box>
 
-            <Box className="flex min-w-0 flex-1 flex-col justify-between gap-6">
+            <Box className="flex min-w-0 flex-1 flex-col gap-4">
               <Box>
-                <Box className="mb-3 flex flex-wrap items-center gap-2">
-                  <Box className="rounded-full border border-border/60 bg-muted/40 px-3 py-1 text-xs font-medium text-muted-foreground">
+                <Box className="mb-2 flex flex-wrap items-center gap-1.5">
+                  <ProductDetailsChip tone="neutral">
                     {formatTranslated(product.category?.name) ?? product.category_id}
-                  </Box>
+                  </ProductDetailsChip>
                   {(product.approval_status_label ?? product.approval_status) ? (
-                    <Box
-                      className={`rounded-full border px-3 py-1 text-xs font-semibold ${approvalChipClass(product.approval_status ?? product.approval_status_label)}`}
-                    >
+                    <ProductDetailsChip tone={approvalChipTone(product.approval_status ?? product.approval_status_label)}>
                       {product.approval_status_label ?? product.approval_status}
-                    </Box>
+                    </ProductDetailsChip>
                   ) : null}
-                  <Box
-                    className={`rounded-full border px-3 py-1 text-xs font-medium ${
-                      product.is_visible !== false && product.is_visible !== 0
-                        ? 'border-sky-500/35 bg-sky-500/10 text-sky-900 dark:text-sky-300'
-                        : 'border-border/60 bg-muted/40 text-muted-foreground'
-                    }`}
+                  <ProductDetailsChip
+                    tone={
+                      product.is_visible !== false && product.is_visible !== 0 ? 'info' : 'neutral'
+                    }
                   >
                     {product.is_visible !== false && product.is_visible !== 0
                       ? t('form.productDetailsVisible')
                       : t('form.productDetailsHidden')}
-                  </Box>
-                  <Box
-                    className={`rounded-full border px-3 py-1 text-xs font-medium ${
-                      boolFromApi(product.is_active ?? true)
-                        ? 'border-violet-500/35 bg-violet-500/10 text-violet-900 dark:text-violet-300'
-                        : 'border-border/60 bg-muted/40 text-muted-foreground'
-                    }`}
-                  >
+                  </ProductDetailsChip>
+                  <ProductDetailsChip tone={boolFromApi(product.is_active ?? true) ? 'primary' : 'neutral'}>
                     {boolFromApi(product.is_active ?? true)
                       ? t('form.productDetailsListingActive')
                       : t('form.productDetailsListingInactive')}
-                  </Box>
+                  </ProductDetailsChip>
                 </Box>
-                <Typography variant="h3" className="mb-2 text-3xl font-bold tracking-tight text-foreground md:text-4xl">
+                <Typography variant="h4" className="mb-1 text-2xl font-bold tracking-tight text-foreground md:text-3xl">
                   {formatTranslated(product.name)}
                 </Typography>
-                <Typography variant="body2" className="max-w-2xl text-muted-foreground">
+                <Typography variant="caption" className="text-muted-foreground">
                   {t('form.productDetailsIdLabel')} · {product.id}
                   {product.product_number ? (
                     <>
@@ -916,6 +981,22 @@ export default function DetailsPage() {
                     </>
                   ) : null}
                 </Typography>
+                <Box className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                  <span>
+                    {t('form.productDetailsCatalogQty')}:{' '}
+                    <span className="font-semibold text-foreground">{product.quantity ?? '—'}</span>
+                  </span>
+                  <span>
+                    {t('form.productDetailsStock')}:{' '}
+                    <span className="font-semibold text-foreground">
+                      {product.stock != null ? product.stock : '—'}
+                    </span>
+                  </span>
+                  <span>
+                    {t('form.productDetailsVariants')}:{' '}
+                    <span className="font-semibold text-foreground">{variantCount}</span>
+                  </span>
+                </Box>
                 {product.rating_count != null && Number(product.rating_count) > 0 ? (
                   <Typography variant="caption" className="mt-2 block text-muted-foreground">
                     {t('form.productDetailsRatingLine', {
@@ -936,57 +1017,12 @@ export default function DetailsPage() {
                 ) : null}
               </Box>
 
-              <Box className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                <Box className="rounded-xl border border-border/50 bg-background/50 p-3 text-center sm:text-start">
-                  <Typography variant="caption" className="text-muted-foreground">
-                    {t('form.productDetailsCatalogQty')}
-                  </Typography>
-                  <Typography variant="h6" className="font-semibold tabular-nums">
-                    {product.quantity ?? '—'}
-                  </Typography>
-                </Box>
-                <Box className="rounded-xl border border-border/50 bg-background/50 p-3 text-center sm:text-start">
-                  <Typography variant="caption" className="text-muted-foreground">
-                    {t('form.productDetailsStock')}
-                  </Typography>
-                  <Typography variant="h6" className="font-semibold tabular-nums">
-                    {product.stock != null ? product.stock : '—'}
-                  </Typography>
-                </Box>
-                <Box className="rounded-xl border border-border/50 bg-background/50 p-3 text-center sm:text-start">
-                  <Typography variant="caption" className="text-muted-foreground">
-                    {t('form.productDetailsVariants')}
-                  </Typography>
-                  <Typography variant="h6" className="font-semibold tabular-nums">
-                    {variantCount}
-                  </Typography>
-                </Box>
-                {product.max_purchase_quantity != null ? (
-                  <Box className="rounded-xl border border-border/50 bg-background/50 p-3 text-center sm:text-start">
-                    <Typography variant="caption" className="text-muted-foreground">
-                      {t('form.productDetailsMaxPurchase')}
-                    </Typography>
-                    <Typography variant="h6" className="font-semibold tabular-nums">
-                      {product.max_purchase_quantity}
-                    </Typography>
-                  </Box>
-                ) : null}
-                <Box className="rounded-xl border border-border/50 bg-background/50 p-3 text-center sm:text-start">
-                  <Typography variant="caption" className="text-muted-foreground">
-                    {t('form.instantDelivery')}
-                  </Typography>
-                  <Typography variant="h6" className="font-semibold">
-                    {product.is_instant_delivery ? yes : no}
-                  </Typography>
-                </Box>
-              </Box>
-
-              <Box className="flex flex-wrap gap-3">
+              <Box className="flex flex-wrap gap-2">
                 <Button
                   variant="contained"
                   size="large"
                   onClick={() => id && navigate(paths.dashboard.product.update(id))}
-                  className="gap-2 shadow-lg shadow-primary/25"
+                  className="gap-2"
                 >
                   <Iconify icon="solar:pen-bold" width={18} />
                   {t('form.productDetailsEdit')}
@@ -994,19 +1030,16 @@ export default function DetailsPage() {
               </Box>
             </Box>
           </Box>
+          </Box>
         </Box>
 
-        <Box className="flex flex-col gap-6 xl:grid xl:grid-cols-12 xl:items-start xl:gap-8">
-          <Box className="order-2 space-y-6 xl:order-1 xl:col-span-8">
-            {/* Admin essentials — identifiers & logistics */}
-            <Box className={`p-6 md:p-8 ${sectionShell}`}>
-              <Typography variant="h6" className="mb-4 flex items-center gap-2 font-semibold">
-                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                  <Iconify icon="solar:clipboard-list-bold" width={22} />
-                </span>
-                {t('form.productDetailsSectionEssentials')}
-              </Typography>
-              <Box className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <Box className="flex flex-col gap-4 xl:grid xl:grid-cols-12 xl:items-start xl:gap-4">
+          <Box className="order-2 space-y-4 xl:order-1 xl:col-span-9">
+            <ProductDetailsSection
+              title={t('form.productDetailsSectionEssentials')}
+              icon="solar:info-circle-bold"
+            >
+              <ProductDetailsFieldGrid cols={2}>
                 <DetailRow label={t('form.nameEn')} value={product.name?.en} emptyLabel={na} />
                 <DetailRow label={t('form.nameAr')} value={product.name?.ar} emptyLabel={na} />
                 {product.product_number ? (
@@ -1035,18 +1068,16 @@ export default function DetailsPage() {
                 />
                 {!isRestaurant && (
                   <>
-                    <Box className="col-span-1 md:col-span-2 lg:col-span-3 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <DetailRow
-                        label={t('form.countryOriginSelect')}
-                        value={productCountryOriginDisplay(product)}
-                        emptyLabel={na}
-                      />
-                      <DetailRow
-                        label={t('form.countrySaleSelect')}
-                        value={productCountrySaleDisplay(product)}
-                        emptyLabel={na}
-                      />
-                    </Box>
+                    <DetailRow
+                      label={t('form.countryOriginSelect')}
+                      value={productCountryOriginDisplay(product)}
+                      emptyLabel={na}
+                    />
+                    <DetailRow
+                      label={t('form.countrySaleSelect')}
+                      value={productCountrySaleDisplay(product)}
+                      emptyLabel={na}
+                    />
                     <DetailRow label={t('columns.sku')} value={product.sku} emptyLabel={na} />
                     <DetailRow label={t('form.model')} value={product.model} emptyLabel={na} />
                     <DetailRow label={t('form.barcode')} value={product.barcode} emptyLabel={na} />
@@ -1071,146 +1102,54 @@ export default function DetailsPage() {
                   }
                   emptyLabel={na}
                 />
-              </Box>
-            </Box>
+              </ProductDetailsFieldGrid>
+            </ProductDetailsSection>
 
             {/* Description */}
-            <Box className={`p-6 md:p-8 ${sectionShell}`}>
-              <Typography variant="h6" className="font-semibold mb-4 flex items-center gap-2">
-                <Iconify icon="solar:document-text-bold" width={20} />
-                {t('form.productDetailsSectionDescription')}
-              </Typography>
-              <Box className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Box>
-                  <Typography variant="body2" className="text-muted-foreground font-medium mb-1">
-                    {t('form.productDetailsDescriptionShortEn')}
-                  </Typography>
-                  <Typography variant="body1">{product.description?.en || '—'}</Typography>
-                </Box>
-                <Box>
-                  <Typography variant="body2" className="text-muted-foreground font-medium mb-1">
-                    {t('form.productDetailsDescriptionShortAr')}
-                  </Typography>
-                  <Typography variant="body1">{product.description?.ar || '—'}</Typography>
-                </Box>
-                <Box>
-                  <Typography variant="body2" className="text-muted-foreground font-medium mb-1">
+            <ProductDetailsSection
+              title={t('form.productDetailsSectionDescription')}
+              icon="solar:document-text-bold"
+            >
+              <Box className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <ProductDetailsField label={t('form.productDetailsDescriptionShortEn')} value={product.description?.en || '—'} />
+                <ProductDetailsField label={t('form.productDetailsDescriptionShortAr')} value={product.description?.ar || '—'} />
+                <Box className="rounded-xl border border-border/45 bg-muted/15 px-4 py-3 md:col-span-1">
+                  <Typography variant="caption" className="mb-2 block text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                     {t('form.productFullDescEn')}
                   </Typography>
                   <ProductRichDescriptionHtml html={product.full_description?.en} dir="ltr" />
                 </Box>
-                <Box>
-                  <Typography variant="body2" className="text-muted-foreground font-medium mb-1">
+                <Box className="rounded-xl border border-border/45 bg-muted/15 px-4 py-3 md:col-span-1">
+                  <Typography variant="caption" className="mb-2 block text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                     {t('form.productFullDescAr')}
                   </Typography>
                   <ProductRichDescriptionHtml html={product.full_description?.ar} dir="rtl" />
                 </Box>
               </Box>
-            </Box>
-
-            {/* SEO */}
-            {(product.seo_title ||
-              product.seo_description ||
-              product.seo_keywords ||
-              product.seo_image) && (
-              <Box className={`p-6 md:p-8 ${sectionShell}`}>
-                <Typography variant="h6" className="font-semibold mb-4 flex items-center gap-2">
-                  <Iconify icon="solar:globe-bold" width={20} />
-                  {t('form.seoTitle')}
-                </Typography>
-                <Box className="flex flex-col gap-6 lg:flex-row lg:items-start">
-                  <Box className="min-w-0 flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <DetailRow
-                      label={t('form.productDetailsSeoTitleEn')}
-                      value={product.seo_title?.en}
-                      emptyLabel={na}
-                    />
-                    <DetailRow
-                      label={t('form.productDetailsSeoTitleAr')}
-                      value={product.seo_title?.ar}
-                      emptyLabel={na}
-                    />
-                    <DetailRow
-                      label={t('form.productDetailsSeoDescEn')}
-                      value={product.seo_description?.en}
-                      emptyLabel={na}
-                    />
-                    <DetailRow
-                      label={t('form.productDetailsSeoDescAr')}
-                      value={product.seo_description?.ar}
-                      emptyLabel={na}
-                    />
-                    <DetailRow
-                      label={t('form.productDetailsSeoKeywordsEn')}
-                      value={seoKw.en}
-                      emptyLabel={na}
-                    />
-                    <DetailRow
-                      label={t('form.productDetailsSeoKeywordsAr')}
-                      value={seoKw.ar}
-                      emptyLabel={na}
-                    />
-                  </Box>
-                  {product.seo_image ? (
-                    <Box className="w-full shrink-0 lg:max-w-md">
-                      <Typography variant="body2" className="text-muted-foreground font-medium mb-2">
-                        {t('form.productDetailsSeoImage')}
-                      </Typography>
-                      <a
-                        href={product.seo_image}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="block overflow-hidden rounded-lg border border-border/60 bg-muted/20"
-                      >
-                        <img
-                          src={product.seo_image}
-                          alt={seoImageAlt}
-                          className="mx-auto max-h-72 w-full object-contain"
-                        />
-                      </a>
-                      <Typography variant="caption" className="mt-2 block">
-                        <a
-                          href={product.seo_image}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-primary underline-offset-4 hover:underline"
-                        >
-                          {t('form.productDetailsSeoImageOpenFull')}
-                        </a>
-                      </Typography>
-                    </Box>
-                  ) : null}
-                </Box>
-              </Box>
-            )}
+            </ProductDetailsSection>
 
             {/* Icons */}
             {product.icons?.length > 0 && (
-              <Box className={`p-6 md:p-8 ${sectionShell}`}>
-                <Typography variant="h6" className="font-semibold mb-4 flex items-center gap-2">
-                  <Iconify icon="solar:star-bold" width={20} />
-                  {t('form.productDetailsIcons')}
-                </Typography>
+              <ProductDetailsSection title={t('form.productDetailsIcons')} icon="solar:star-bold">
                 <Box className="flex flex-wrap gap-3">
                   {product.icons.map((ic: any) => (
-                    <Box key={ic.id} className="flex items-center gap-2 rounded-lg border border-border/50 px-3 py-2">
+                    <Box
+                      key={ic.id}
+                      className="flex items-center gap-2.5 rounded-xl border border-border/50 bg-muted/15 px-3 py-2.5"
+                    >
                       {ic.icon ? (
-                        <img src={ic.icon} alt="" className="w-8 h-8 object-contain" />
+                        <img src={ic.icon} alt="" className="h-8 w-8 object-contain" />
                       ) : null}
-                      <Typography variant="body2">{ic.name ?? ic.id}</Typography>
+                      <Typography variant="body2" className="font-medium">{ic.name ?? ic.id}</Typography>
                     </Box>
                   ))}
                 </Box>
-              </Box>
+              </ProductDetailsSection>
             )}
 
             {/* Badges (product merchandising) */}
             {product.badges?.length > 0 && (
-              <Box className={`p-6 md:p-8 ${sectionShell}`}>
-                <Typography variant="h6" className="mb-4 flex items-center gap-2 font-semibold">
-                  <Iconify icon="solar:medal-ribbon-star-bold" width={20} />
-                  {t('form.productDetailsBadges')}
-                </Typography>
+              <ProductDetailsSection title={t('form.productDetailsBadges')} icon="solar:medal-ribbon-star-bold">
                 <Box className="flex flex-wrap gap-2">
                   {product.badges.map((bd: any) => (
                     <Box
@@ -1230,22 +1169,21 @@ export default function DetailsPage() {
                     </Box>
                   ))}
                 </Box>
-              </Box>
+              </ProductDetailsSection>
             )}
 
             {/* Variants */}
             {product.variants?.length > 0 && (
-              <Box className={`p-6 md:p-8 ${sectionShell}`}>
-                <Typography variant="h6" className="font-semibold mb-4 flex items-center gap-2">
-                  <Iconify icon="solar:widget-bold" width={20} />
-                  {t('form.productDetailsVariants')} ({product.variants.length})
-                </Typography>
+              <ProductDetailsSection
+                title={`${t('form.productDetailsVariants')} (${product.variants.length})`}
+                icon="solar:widget-bold"
+              >
                 <Box className="space-y-4">
                   {product.variants.map((variant: any, i: number) => (
-                    <Box key={variant.id ?? i} className="space-y-3 rounded-xl border border-border/40 bg-card/30 p-4">
-                      {/* Variant header with actions */}
-                      <Box className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                        <Box className="min-w-0 flex-1 space-y-1">
+                    <ProductDetailsVariantCard
+                      key={variant.id ?? i}
+                      header={
+                        <>
                           <Typography variant="subtitle1" className="font-semibold leading-snug text-foreground">
                             {variant.name
                               ? formatTranslated(variant.name)
@@ -1257,26 +1195,24 @@ export default function DetailsPage() {
                           <Typography variant="caption" className="font-mono text-muted-foreground">
                             ID #{variant.id}
                           </Typography>
-                          <Box className="flex flex-wrap gap-1.5 pt-1">
+                          <Box className="mt-2 flex flex-wrap gap-1.5">
                             {boolFromApi(variant.is_trend) ? (
-                              <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-semibold text-amber-900 dark:text-amber-300">
+                              <ProductDetailsChip tone="warning">
                                 {t('form.productDetailsVariantIsTrendLabel')}
-                              </span>
+                              </ProductDetailsChip>
                             ) : null}
-                            <span
-                              className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-                                boolFromApi(variant.is_active ?? true)
-                                  ? 'bg-emerald-500/15 text-emerald-900 dark:text-emerald-300'
-                                  : 'bg-muted text-muted-foreground'
-                              }`}
+                            <ProductDetailsChip
+                              tone={boolFromApi(variant.is_active ?? true) ? 'success' : 'neutral'}
                             >
                               {boolFromApi(variant.is_active ?? true)
                                 ? t('form.productDetailsVariantIsActiveLabel')
                                 : t('inactive')}
-                            </span>
+                            </ProductDetailsChip>
                           </Box>
-                        </Box>
-                        <Box className="flex shrink-0 items-center gap-1">
+                        </>
+                      }
+                      actions={
+                        <>
                           <Button
                             size="small"
                             variant="text"
@@ -1294,9 +1230,9 @@ export default function DetailsPage() {
                           >
                             <Iconify icon="solar:trash-bin-minimalistic-bold" width={16} />
                           </Button>
-                        </Box>
-                      </Box>
-
+                        </>
+                      }
+                    >
                       <Box className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
                         <span>
                           {t('form.productSku')}:{' '}
@@ -1327,23 +1263,12 @@ export default function DetailsPage() {
                               const attrValue = toDisplayString(attr.value);
                               const isColor = attr.type === 'color';
                               return (
-                                <Box
+                                <ProductDetailsTag
                                   key={ai}
-                                  className="flex items-center gap-1.5 rounded-md border border-border/50 bg-muted/30 px-2 py-1 text-xs"
-                                >
-                                  <span className="font-medium">{toDisplayString(attr.attribute)}:</span>
-                                  {isColor ? (
-                                    <span className="flex items-center gap-1">
-                                      <span
-                                        className="inline-block w-3 h-3 rounded-full border border-border/50"
-                                        style={{ backgroundColor: attrValue }}
-                                      />
-                                      {attrValue}
-                                    </span>
-                                  ) : (
-                                    <span>{attrValue}</span>
-                                  )}
-                                </Box>
+                                  label={toDisplayString(attr.attribute)}
+                                  value={attrValue}
+                                  colorDot={isColor ? attrValue : undefined}
+                                />
                               );
                             })}
                           </Box>
@@ -1377,50 +1302,30 @@ export default function DetailsPage() {
                           {t('form.productDetailsVariantPriceStockTitle')}
                         </Typography>
                         <Box className="grid gap-2 text-xs sm:grid-cols-2 lg:grid-cols-4">
-                          <Box className="rounded-lg bg-background/60 px-2 py-1.5">
-                            <Typography variant="caption" className="text-muted-foreground">
-                              {t('form.priceLabel')}
-                            </Typography>
-                            <Typography variant="body2" component="div" className="font-medium tabular-nums">
-                              {productMoneyDisplay({
-                                currencies: variant.price_currencies,
-                                amount: variant.price,
-                                legacyAmountPrefix: t('currencySyrianPound'),
-                              })}
-                            </Typography>
-                          </Box>
-                          <Box className="rounded-lg bg-background/60 px-2 py-1.5">
-                            <Typography variant="caption" className="text-muted-foreground">
-                              {t('columns.discount')}
-                            </Typography>
-                            <Typography variant="body2" component="div" className="tabular-nums">
-                              {productMoneyDisplay({
-                                currencies: variant.discount_currencies,
-                                amount: variant.discount,
-                                legacyAmountPrefix: t('currencySyrianPound'),
-                              })}
-                            </Typography>
-                          </Box>
-                          <Box className="rounded-lg bg-background/60 px-2 py-1.5">
-                            <Typography variant="caption" className="text-muted-foreground">
-                              {t('columns.priceAfterDiscount')}
-                            </Typography>
-                            <Typography variant="body2" component="div" className="font-medium tabular-nums">
-                              {productMoneyDisplay({
-                                currencies: variant.price_after_discount_currencies,
-                                amount: variant.price_after_discount,
-                                legacyAmountPrefix: t('currencySyrianPound'),
-                              })}
-                            </Typography>
-                          </Box>
-                          <Box className="rounded-lg bg-background/60 px-2 py-1.5">
-                            <Typography variant="caption" className="text-muted-foreground">
-                              {t('form.variantQuantityLabel')}
-                            </Typography>
-                            <Typography variant="body2" className="font-semibold tabular-nums">
-                              {variant.quantity ?? na}
-                            </Typography>
-                          </Box>
+                          <ProductDetailsMetricCell label={t('form.priceLabel')}>
+                            {productMoneyDisplay({
+                              currencies: variant.price_currencies,
+                              amount: variant.price,
+                              legacyAmountPrefix: t('currencySyrianPound'),
+                            })}
+                          </ProductDetailsMetricCell>
+                          <ProductDetailsMetricCell label={t('columns.discount')}>
+                            {productMoneyDisplay({
+                              currencies: variant.discount_currencies,
+                              amount: variant.discount,
+                              legacyAmountPrefix: t('currencySyrianPound'),
+                            })}
+                          </ProductDetailsMetricCell>
+                          <ProductDetailsMetricCell label={t('columns.priceAfterDiscount')}>
+                            {productMoneyDisplay({
+                              currencies: variant.price_after_discount_currencies,
+                              amount: variant.price_after_discount,
+                              legacyAmountPrefix: t('currencySyrianPound'),
+                            })}
+                          </ProductDetailsMetricCell>
+                          <ProductDetailsMetricCell label={t('form.variantQuantityLabel')}>
+                            {variant.quantity ?? na}
+                          </ProductDetailsMetricCell>
                         </Box>
                       </Box>
 
@@ -1469,27 +1374,22 @@ export default function DetailsPage() {
                                     </Button>
                                   </Box>
                                 </Box>
-                                <Box className="mt-3 rounded-lg bg-background/60 px-2 py-1.5 text-xs">
-                                  <Typography variant="caption" className="text-muted-foreground">
-                                    {t('form.branchCostPriceLabel')}
-                                  </Typography>
-                                  <Typography variant="body2" component="div" className="tabular-nums">
-                                    {productMoneyDisplay({
-                                      currencies: shop.cost_price_currencies,
-                                      amount: shop.cost_price,
-                                      legacyAmountPrefix: t('currencySyrianPound'),
-                                    })}
-                                  </Typography>
-                                </Box>
+                                <ProductDetailsMetricCell label={t('form.branchCostPriceLabel')}>
+                                  {productMoneyDisplay({
+                                    currencies: shop.cost_price_currencies,
+                                    amount: shop.cost_price,
+                                    legacyAmountPrefix: t('currencySyrianPound'),
+                                  })}
+                                </ProductDetailsMetricCell>
                               </Box>
                             ))}
                           </Box>
                         </Box>
                       )}
-                    </Box>
+                    </ProductDetailsVariantCard>
                   ))}
                 </Box>
-              </Box>
+              </ProductDetailsSection>
             )}
 
             {/* Edit Variant Modal */}
@@ -1521,40 +1421,39 @@ export default function DetailsPage() {
 
             {/* Category Details */}
             {product.category_details?.length > 0 && (
-              <Box className={`p-6 md:p-8 ${sectionShell}`}>
-                <Typography variant="h6" className="font-semibold mb-4 flex items-center gap-2">
-                  <Iconify icon="solar:list-bold" width={20} />
-                  {t('form.productDetailsCategoryDetailsSection')}
-                </Typography>
-                <Box className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <ProductDetailsSection
+                title={t('form.productDetailsCategoryDetailsSection')}
+                icon="solar:list-bold"
+              >
+                <ProductDetailsFieldGrid>
                   {product.category_details.map((cd: any) => (
-                    <Box key={cd.id} className="rounded-lg border border-border/40 bg-muted/20 p-3">
-                      <Typography variant="caption" className="text-muted-foreground font-medium block mb-1">
-                        {cd.name}
-                      </Typography>
-                      <Box className="flex gap-4 text-sm">
-                        <span>
-                          <span className="text-muted-foreground">{t('form.productDetailsLangEn')}: </span>
-                          {cd.value?.en}
-                        </span>
-                        <span>
-                          <span className="text-muted-foreground">{t('form.productDetailsLangAr')}: </span>
-                          {cd.value?.ar}
-                        </span>
-                      </Box>
-                    </Box>
+                    <ProductDetailsField
+                      key={cd.id}
+                      label={cd.name}
+                      value={
+                        <Box className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+                          <span>
+                            <span className="text-muted-foreground">{t('form.productDetailsLangEn')}: </span>
+                            {cd.value?.en}
+                          </span>
+                          <span>
+                            <span className="text-muted-foreground">{t('form.productDetailsLangAr')}: </span>
+                            {cd.value?.ar}
+                          </span>
+                        </Box>
+                      }
+                    />
                   ))}
-                </Box>
-              </Box>
+                </ProductDetailsFieldGrid>
+              </ProductDetailsSection>
             )}
 
             {/* Extra Details */}
             {product.extra_details?.length > 0 && (
-              <Box className={`p-6 md:p-8 ${sectionShell}`}>
-                <Typography variant="h6" className="font-semibold mb-4 flex items-center gap-2">
-                  <Iconify icon="solar:notes-bold" width={20} />
-                  {t('form.productDetailsExtraDetailsSection')}
-                </Typography>
+              <ProductDetailsSection
+                title={t('form.productDetailsExtraDetailsSection')}
+                icon="solar:notes-bold"
+              >
                 <Box className="space-y-3">
                   {product.extra_details.map((ed: any) => (
                     <Box key={ed.id} className="rounded-lg border border-border/40 bg-muted/20 p-3">
@@ -1606,16 +1505,15 @@ export default function DetailsPage() {
                     </Box>
                   ))}
                 </Box>
-              </Box>
+              </ProductDetailsSection>
             )}
 
             {/* Bought With */}
             {product.bought_with?.length > 0 && (
-              <Box className={`p-6 md:p-8 ${sectionShell}`}>
-                <Typography variant="h6" className="font-semibold mb-4 flex items-center gap-2">
-                  <Iconify icon="solar:cart-bold" width={20} />
-                  {t('form.productDetailsBoughtWithSection')}
-                </Typography>
+              <ProductDetailsSection
+                title={t('form.productDetailsBoughtWithSection')}
+                icon="solar:cart-bold"
+              >
                 <Box className="flex flex-wrap gap-2">
                   {product.bought_with.map((item: number | { id: number; name?: string }) => {
                     const boughtWithId =
@@ -1630,69 +1528,51 @@ export default function DetailsPage() {
                     );
                   })}
                 </Box>
-              </Box>
+              </ProductDetailsSection>
             )}
           </Box>
 
-          {/* Pricing & stock — prominent column on large screens */}
-          <Box className="order-1 xl:order-2 xl:col-span-4 xl:sticky xl:top-6 xl:self-start">
-            <Box
-              className={`border-primary/25 bg-gradient-to-br from-primary/[0.07] via-card/90 to-muted/20 p-6 shadow-xl shadow-primary/5 md:p-8 ${sectionShell}`}
+          <Box className="order-1 space-y-4 xl:order-2 xl:col-span-3 xl:sticky xl:top-4 xl:self-start">
+            <ProductDetailsSection
+              title={t('form.productDetailsSectionPricing')}
+              icon="solar:tag-price-bold"
+              accent="primary"
             >
-              <Typography variant="h6" className="mb-6 flex items-center gap-3 font-semibold">
-                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/15 text-primary shadow-inner">
-                  <Iconify icon="solar:tag-price-bold" width={24} />
-                </span>
-                {t('form.productDetailsSectionPricing')}
-              </Typography>
-              <Box className="space-y-5">
-                <DetailRow
-                  label={t('columns.price')}
-                  value={productMoneyDisplay({
-                    currencies: product.price_currencies,
-                    singleFormatted: product.price_formatted,
-                    amount: product.price,
-                    legacyAmountPrefix: t('currencySyrianPound'),
-                  })}
-                  emptyLabel={na}
-                />
-                <DetailRow
-                  label={t('columns.priceAfterDiscount')}
-                  value={productMoneyDisplay({
-                    currencies: product.price_after_discount_currencies,
-                    singleFormatted: product.price_after_discount_formatted,
-                    amount: product.price_after_discount,
-                    legacyAmountPrefix: t('currencySyrianPound'),
-                  })}
-                  emptyLabel={na}
-                />
-                <DetailRow
+              <ProductDetailsPricingPanel
+                summary={
+                  <ProductDetailsPricingSummary
+                    afterDiscountLabel={t('columns.priceAfterDiscount')}
+                    beforeDiscountLabel={t('columns.price')}
+                    afterDiscount={{
+                      currencies: product.price_after_discount_currencies,
+                      singleFormatted: product.price_after_discount_formatted,
+                      amount: product.price_after_discount,
+                      legacySypPrefix: t('currencySyrianPound'),
+                    }}
+                    beforeDiscount={{
+                      currencies: product.price_currencies,
+                      singleFormatted: product.price_formatted,
+                      amount: product.price,
+                      legacySypPrefix: t('currencySyrianPound'),
+                    }}
+                  />
+                }
+              >
+                <ProductDetailsDenseRow
                   label={t('form.productDetailsCostPrice')}
-                  value={productMoneyDisplay({
-                    currencies: product.cost_price_currencies,
-                    singleFormatted: product.cost_price_formatted,
-                    amount: product.cost_price,
-                    legacyAmountPrefix: t('currencySyrianPound'),
-                  })}
-                  emptyLabel={na}
-                />
-                <Box className="h-px bg-border/60" />
-                <DetailRow label={t('form.productDetailsCatalogQty')} value={product.quantity} emptyLabel={na} />
-                <DetailRow
-                  label={t('form.productDetailsStock')}
-                  value={product.stock != null ? String(product.stock) : undefined}
-                  emptyLabel={na}
-                />
-                <DetailRow
-                  label={t('form.productDetailsMaxPurchase')}
                   value={
-                    product.max_purchase_quantity != null
-                      ? String(product.max_purchase_quantity)
-                      : undefined
+                    <ProductDetailsDualCurrencyInline
+                      input={{
+                        currencies: product.cost_price_currencies,
+                        singleFormatted: product.cost_price_formatted,
+                        amount: product.cost_price,
+                        legacySypPrefix: t('currencySyrianPound'),
+                      }}
+                    />
                   }
                   emptyLabel={na}
                 />
-                <DetailRow
+                <ProductDetailsDenseRow
                   label={t('form.productDetailsDiscount')}
                   value={
                     product.discount != null
@@ -1701,16 +1581,35 @@ export default function DetailsPage() {
                             ? '%'
                             : ''
                         }`
-                      : '—'
+                      : undefined
                   }
                   emptyLabel={na}
                 />
-                <DetailRow
+                <ProductDetailsDenseRow
                   label={t('form.productDetailsDiscountType')}
                   value={formatDiscountTypeLabel(product.discount_type, t)}
                   emptyLabel={na}
                 />
-                <DetailRow
+                <ProductDetailsDenseRow
+                  label={t('form.productDetailsCatalogQty')}
+                  value={product.quantity}
+                  emptyLabel={na}
+                />
+                <ProductDetailsDenseRow
+                  label={t('form.productDetailsStock')}
+                  value={product.stock != null ? String(product.stock) : undefined}
+                  emptyLabel={na}
+                />
+                <ProductDetailsDenseRow
+                  label={t('form.productDetailsMaxPurchase')}
+                  value={
+                    product.max_purchase_quantity != null
+                      ? String(product.max_purchase_quantity)
+                      : undefined
+                  }
+                  emptyLabel={na}
+                />
+                <ProductDetailsDenseRow
                   label={t('form.productDetailsUnit')}
                   value={(() => {
                     const u = product as ProductDetailData & {
@@ -1721,20 +1620,88 @@ export default function DetailsPage() {
                       return formatTranslated(raw.name as { en?: string; ar?: string });
                     }
                     if (typeof raw === 'string' && raw.trim()) return raw;
-                    return '—';
+                    return undefined;
                   })()}
                   emptyLabel={na}
                 />
-                <DetailRow
+                <ProductDetailsDenseRow
                   label={t('form.productDetailsWarrantyMonths')}
-                  value={product.warranty_period ?? '—'}
+                  value={product.warranty_period ?? undefined}
                   emptyLabel={na}
                 />
-              </Box>
-            </Box>
+              </ProductDetailsPricingPanel>
+            </ProductDetailsSection>
+
+            {(product.seo_title ||
+              product.seo_description ||
+              product.seo_keywords ||
+              product.seo_image) && (
+              <ProductDetailsSection title={t('form.seoTitle')} icon="solar:globe-bold">
+                <Box className="space-y-2">
+                  <DetailRow
+                    label={t('form.productDetailsSeoTitleEn')}
+                    value={product.seo_title?.en}
+                    emptyLabel={na}
+                  />
+                  <DetailRow
+                    label={t('form.productDetailsSeoTitleAr')}
+                    value={product.seo_title?.ar}
+                    emptyLabel={na}
+                  />
+                  <DetailRow
+                    label={t('form.productDetailsSeoDescEn')}
+                    value={product.seo_description?.en}
+                    emptyLabel={na}
+                  />
+                  <DetailRow
+                    label={t('form.productDetailsSeoDescAr')}
+                    value={product.seo_description?.ar}
+                    emptyLabel={na}
+                  />
+                  <DetailRow
+                    label={t('form.productDetailsSeoKeywordsEn')}
+                    value={seoKw.en}
+                    emptyLabel={na}
+                  />
+                  <DetailRow
+                    label={t('form.productDetailsSeoKeywordsAr')}
+                    value={seoKw.ar}
+                    emptyLabel={na}
+                  />
+                  {product.seo_image ? (
+                    <Box className="w-full">
+                      <Typography variant="caption" className="mb-1.5 block text-muted-foreground">
+                        {t('form.productDetailsSeoImage')}
+                      </Typography>
+                      <a
+                        href={product.seo_image}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block overflow-hidden rounded-lg border border-border/60 bg-muted/20"
+                      >
+                        <img
+                          src={product.seo_image}
+                          alt={seoImageAlt}
+                          className="mx-auto max-h-40 w-full object-contain"
+                        />
+                      </a>
+                      <Typography variant="caption" className="mt-1.5 block">
+                        <a
+                          href={product.seo_image}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary underline-offset-4 hover:underline"
+                        >
+                          {t('form.productDetailsSeoImageOpenFull')}
+                        </a>
+                      </Typography>
+                    </Box>
+                  ) : null}
+                </Box>
+              </ProductDetailsSection>
+            )}
           </Box>
         </Box>
-      </Box>
-    </Box>
+    </ProductDetailsPageShell>
   );
 }

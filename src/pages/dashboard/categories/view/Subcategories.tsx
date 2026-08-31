@@ -1,4 +1,3 @@
-import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
 import { useMemo, useState, useEffect } from 'react';
 import { formatTranslated } from '@/utils/format-translated';
@@ -6,8 +5,8 @@ import { usePermissions } from '@/auth/hooks/use-permissions';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { Navigate, useNavigate, useSearchParams } from 'react-router';
 import { categoryColumns, type CategoryFormValues } from '@/columns/one/categories/one';
+import { CategoryDeleteDialog } from '@/pages/dashboard/categories/components/category-delete-dialog';
 import {
-  useDeleteCategory,
   useFetchCategories,
   useFetchCategoryById,
 } from '@/pages/dashboard/categories/hooks/category';
@@ -54,7 +53,6 @@ export default function Page() {
       : undefined,
     { enabled: validParentId }
   );
-  const deleteCategoryMutation = useDeleteCategory(currentPage, pageSize);
 
   const { can } = usePermissions();
   const hasPermission = (action: string, resource: string) => can(`${resource}.${action}`);
@@ -76,19 +74,7 @@ export default function Page() {
     setDeletingId(id);
   };
 
-  const onDeleteConfirm = async () => {
-    if (deletingId) {
-      try {
-        await deleteCategoryMutation.mutateAsync(deletingId);
-        toast.success(t('deleteSuccess'));
-        setDeletingId(null);
-      } catch {
-        return;
-      }
-    }
-  };
-
-  const onDeleteCancel = () => {
+  const onDeleteDialogClose = () => {
     setDeletingId(null);
   };
 
@@ -151,11 +137,6 @@ export default function Page() {
           },
           t,
           onDelete,
-          deleteCategoryMutation.isPending,
-          deletingId !== null,
-          onDeleteConfirm,
-          onDeleteCancel,
-          deletingId,
           {
             subcategoriesPath: subPath,
             hideParentColumn: false,
@@ -193,6 +174,14 @@ export default function Page() {
         onPageSizeChange={handlePageSizeChange}
         onSearchChange={setSearch}
       />
+
+      {deletingId != null && (
+        <CategoryDeleteDialog
+          id={deletingId}
+          onCancel={onDeleteDialogClose}
+          onDeleted={onDeleteDialogClose}
+        />
+      )}
     </>
   );
 }
