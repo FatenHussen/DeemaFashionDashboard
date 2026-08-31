@@ -15,6 +15,7 @@ import { formatTranslated } from '@/utils/format-translated';
 import { getApiErrorMessage } from '@/lib/get-api-error-message';
 import { useFetchProductById } from '@/pages/dashboard/products/hooks/product';
 import { useFetchCurrencies } from '@/pages/dashboard/currencies/hooks/currency';
+import { priceAfterDiscount } from '@/pages/dashboard/products/utils/variant-combinations';
 import { useVariantDeleteFlow } from '@/pages/dashboard/products/hooks/use-variant-delete-flow';
 import { VariantDeleteImpactDialog } from '@/pages/dashboard/products/components/VariantDeleteImpactDialog';
 import { formatDecimal, normalizeFormattedMoneyText, formatApiCurrencyAmountForLanguage } from '@/utils/format-currency';
@@ -22,7 +23,6 @@ import {
   useUpdateProductVariant,
   useUpdateShopProductVariant,
 } from '@/pages/dashboard/products/hooks/product-variant';
-import { priceAfterDiscount } from '@/pages/dashboard/products/utils/variant-combinations';
 
 import { paths } from 'src/routes/paths';
 

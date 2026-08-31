@@ -33,12 +33,17 @@ import { _SaleCountryApi } from '@/pages/dashboard/sale-countries/api/sale-count
 import { useVariantDeleteFlow } from '@/pages/dashboard/products/hooks/use-variant-delete-flow';
 import { useFetchCategoryAttributes } from '@/pages/dashboard/categories/hooks/category-attribute';
 import { useFetchProductExtraDetails } from '@/pages/dashboard/categories/hooks/product-extra-detail';
+import { ProductVariantsCardList } from '@/pages/dashboard/products/components/ProductVariantsCardList';
 import { VariantDeleteImpactDialog } from '@/pages/dashboard/products/components/VariantDeleteImpactDialog';
 import { CategoryLeafCascadeFields } from '@/pages/dashboard/categories/components/category-leaf-cascade-fields';
 import {
   ProductSchema,
   type ProductFormValues,
 } from '@/pages/dashboard/products/validation/product.validation';
+import {
+  sortedComboKey,
+  resolveAttributeValuesByIds,
+} from '@/pages/dashboard/products/utils/variant-combinations';
 import {
   useCreateProduct,
   useUpdateProduct,
@@ -48,7 +53,6 @@ import {
   useUpdateProductVariant,
   useUpdateShopProductVariant,
 } from '@/pages/dashboard/products/hooks/product-variant';
-import { ProductVariantsCardList } from '@/pages/dashboard/products/components/ProductVariantsCardList';
 import {
   VariantGeneratorPanel,
   type GeneratedVariantRow,
@@ -59,10 +63,6 @@ import {
   savedProductHasShopLink,
   responseIncludesVariants,
 } from '@/pages/dashboard/products/utils/variant-payload';
-import {
-  sortedComboKey,
-  resolveAttributeValuesByIds,
-} from '@/pages/dashboard/products/utils/variant-combinations';
 
 import { paths } from 'src/routes/paths';
 

@@ -2,8 +2,8 @@ import type { TFunction } from 'i18next';
 
 import React from 'react';
 import { toast } from 'react-toastify';
-import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '@/api/queryKeys';
+import { useQuery } from '@tanstack/react-query';
 import { Iconify } from '@/shared/components/iconify';
 import { _ColorApi } from '@/pages/dashboard/colors/api/color.services';
 import {
@@ -16,7 +16,7 @@ import {
 
 import { Box, Button, Typography } from 'src/shared/ui';
 
-import { ColorAttributeOption, VariantFieldLabel } from './variant-field-ui';
+import { VariantFieldLabel, ColorAttributeOption } from './variant-field-ui';
 import {
   sortedComboKey,
   generateVariantSku,

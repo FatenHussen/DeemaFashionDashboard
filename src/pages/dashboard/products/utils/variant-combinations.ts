@@ -135,7 +135,7 @@ export function attributeValueEnglishLabel(name: AttributeValueName): string {
   if (name == null) return '';
   if (typeof name === 'object') return String(name.en ?? '').trim();
   const s = String(name).trim();
-  return /^[\x00-\x7F]+$/.test(s) ? s : '';
+  return s.length > 0 && [...s].every((ch) => ch.charCodeAt(0) <= 0x7f) ? s : '';
 }
 
 function sanitizeSkuBase(productSku: string | null | undefined): string {

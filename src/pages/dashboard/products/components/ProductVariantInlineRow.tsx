@@ -4,37 +4,38 @@ import type { ProductFormValues } from '@/pages/dashboard/products/validation/pr
 import type {
   Control,
   FieldErrors,
-  UseFormSetValue,
   UseFormWatch,
+  UseFormSetValue,
 } from 'react-hook-form';
 
-import { Controller } from 'react-hook-form';
 import React from 'react';
+import { Controller } from 'react-hook-form';
 import { Iconify } from '@/shared/components/iconify';
+
 import { Box, Button, Typography } from 'src/shared/ui';
 
 import { ProductShopVariantsSection } from '../view/product/ProductShopVariantsSection';
 import {
-  VariantAttributeChain,
+  regenerateVariantSku,
+  type ColorsHexLookup,
+  type CategoryAttributeValueRef,
+} from '../utils/variant-combinations';
+import {
   VariantFieldLabel,
   VariantStatusBadge,
+  VariantAttributeChain,
   variantFieldInputClass,
 } from './variant-field-ui';
 import {
-  formatLiveAfterDiscountPreview,
-  localAmountToUsd,
-  optionalNumberInputDisplay,
-  parseCurrencyRate,
-  toOptionalNumber,
   toOptionalInt,
-  toTwoDecimalNumber,
+  localAmountToUsd,
+  toOptionalNumber,
   usdToLocalAmount,
+  parseCurrencyRate,
+  toTwoDecimalNumber,
+  optionalNumberInputDisplay,
+  formatLiveAfterDiscountPreview,
 } from './variant-field-helpers';
-import {
-  regenerateVariantSku,
-  type CategoryAttributeValueRef,
-  type ColorsHexLookup,
-} from '../utils/variant-combinations';
 
 // ----------------------------------------------------------------------
 

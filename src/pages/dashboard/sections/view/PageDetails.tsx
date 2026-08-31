@@ -1,23 +1,22 @@
 import type { TFunction } from 'i18next';
 import type { DragEndEvent } from '@dnd-kit/core';
-import type { FilterConfig } from '../types/page-section.types';
-import type { PageSectionListItem } from '../types/page-section.types';
+import type { FilterConfig , PageSectionListItem } from '../types/page-section.types';
 import type {
   PagePreviewPage,
   PagePreviewSection,
   PagePreviewQueryParams,
 } from '../types/page-preview.types';
 
+import { queryKeys } from '@/api';
 import { toast } from 'react-toastify';
 import { CSS } from '@dnd-kit/utilities';
 import { Button } from '@/shared/ui/button';
-import { queryKeys } from '@/api';
 import { useTranslation } from 'react-i18next';
 import { Iconify } from '@/shared/components/iconify';
 import { useQueryClient } from '@tanstack/react-query';
 import { usePermissions } from '@/auth/hooks/use-permissions';
-import { useAdminToggleStatus } from '@/hooks/use-admin-toggle-status';
 import { Dialog, DialogContent } from '@/shared/ui/dialogTable';
+import { useAdminToggleStatus } from '@/hooks/use-admin-toggle-status';
 import { useRef, useMemo, useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useLocation, useSearchParams } from 'react-router';
 import { sectionTypeLabel } from '@/pages/dashboard/sections/utils/section-type-label';

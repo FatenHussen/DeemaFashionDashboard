@@ -1,10 +1,6 @@
 import type { TFunction } from 'i18next';
 
-
-
 import { Iconify } from '@/shared/components/iconify';
-
-
 
 import { Box, Button, Typography } from 'src/shared/ui';
 

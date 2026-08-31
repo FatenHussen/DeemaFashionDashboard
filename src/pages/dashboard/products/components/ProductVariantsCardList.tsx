@@ -4,13 +4,13 @@ import type { ProductFormValues } from '@/pages/dashboard/products/validation/pr
 import type {
   Control,
   FieldErrors,
-  UseFormSetValue,
   UseFormWatch,
+  UseFormSetValue,
 } from 'react-hook-form';
 
 import React from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '@/api/queryKeys';
+import { useQuery } from '@tanstack/react-query';
 import { Iconify } from '@/shared/components/iconify';
 import { _ColorApi } from '@/pages/dashboard/colors/api/color.services';
 
@@ -19,10 +19,10 @@ import { Box, Typography } from 'src/shared/ui';
 import { ProductVariantInlineRow } from './ProductVariantInlineRow';
 import { ProductVariantsSkuToolbar } from './ProductVariantsSkuToolbar';
 import {
-  buildColorsHexLookup,
   generateVariantSku,
-  type CategoryAttributeValueRef,
+  buildColorsHexLookup,
   type ColorsHexLookup,
+  type CategoryAttributeValueRef,
 } from '../utils/variant-combinations';
 
 // ----------------------------------------------------------------------

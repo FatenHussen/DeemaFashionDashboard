@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+
 import { normalizeHexColorForCss } from '@/utils/shop-variant-image';
 
 import { Typography } from 'src/shared/ui';
