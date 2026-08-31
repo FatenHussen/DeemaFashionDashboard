@@ -908,13 +908,15 @@ export default function CreatePage() {
   });
 
   const hydrateLeafCategoryId = useMemo(() => {
+    const fromForm = categoryId ? Number(categoryId) : 0;
+    if (fromForm > 0) return fromForm;
     if (!isEditMode || !productResponse?.category?.id) return null;
     const savedIsRestaurant = Boolean(
       productResponse.is_restaurant ?? productResponse.category?.is_restaurant
     );
     if (Boolean(isRestaurantToggle) !== savedIsRestaurant) return null;
     return Number(productResponse.category.id) || null;
-  }, [isEditMode, productResponse, isRestaurantToggle]);
+  }, [categoryId, isEditMode, productResponse, isRestaurantToggle]);
 
   const categoryHydrationKey = `${id ?? 'new-product'}|${isRestaurantToggle ? 'restaurant' : 'retail'}`;
 
@@ -2548,6 +2550,85 @@ export default function CreatePage() {
           <Tab value="extras" label={t('form.productFormTabExtras')} />
         </Tabs>
 
+        {hasSelectedProductType && (
+          <Box className="mb-6 rounded-xl border border-border bg-card p-6 space-y-4">
+            <Typography variant="subtitle1" className="font-bold text-foreground">
+              {t('form.productCategorySection')}
+            </Typography>
+
+            <CategoryLeafCascadeFields
+              t={t}
+              legacyMode={false}
+              flatItems={flatCategoryItems}
+              flatParentFetched={flatCategoriesFetched}
+              flatParentDataUpdatedAt={flatCategoriesUpdatedAt ?? 0}
+              hydrateLeafCategoryId={hydrateLeafCategoryId}
+              hydrationKey={categoryHydrationKey}
+              onEffectiveLeafChange={syncSelectedCategory}
+              isRestaurant={categoryRestaurantFilter}
+              onMainCategoryChange={setMainCategoryId}
+              allowAnyLevel
+            />
+
+            {isRestaurantToggle && categoryId > 0 ? (
+              <Box className="group">
+                <Box className="flex items-center gap-2 mb-2">
+                  <Iconify icon="solar:shop-2-bold" className="text-orange-500" width={20} />
+                  <Typography variant="subtitle2" className="font-semibold text-foreground">
+                    {t('form.selectRestaurant')}
+                  </Typography>
+                </Box>
+                <Typography variant="caption" className="text-muted-foreground mb-2 block">
+                  {t('form.selectRestaurantHelper')}
+                </Typography>
+                <InfiniteScrollSelect
+                  value={selectedRestaurantShopId}
+                  onChange={(shopId) => handleRestaurantShopSelect(shopId)}
+                  queryKey={[
+                    'shops',
+                    'infinite',
+                    'product-form',
+                    'restaurant-by-category',
+                    categoryId,
+                  ]}
+                  fetcher={restaurantShopFetcher}
+                  placeholder={t('form.selectRestaurantPlaceholder')}
+                  initialLabel={selectedRestaurantShopInitialLabel}
+                  clearable
+                />
+              </Box>
+            ) : null}
+
+            {isRestaurantToggle && selectedRestaurantShopId > 0 ? (
+              <ProductShopVariantsSection
+                variantIndex={0}
+                shops={
+                  shops.length > 0
+                    ? shops
+                    : [{ id: selectedRestaurantShopId, name: selectedRestaurantShopInitialLabel ?? '' }]
+                }
+                shopVariantsFields={shopVariantsFields}
+                watchedShopVariants={watchedShopVariants}
+                control={control}
+                watch={watch}
+                setValue={setValue}
+                appendShopVariant={appendShopVariant}
+                removeShopVariant={removeShopVariant}
+                isEditMode={isEditMode}
+                productId={id}
+                shopVariantCreateBusyIdx={shopVariantCreateBusyIdx}
+                setShopVariantCreateBusyIdx={setShopVariantCreateBusyIdx}
+                updateShopVariantMutation={updateShopVariantMutation}
+                createSingleShopVariantOnProduct={createSingleShopVariantOnProduct}
+                embedded
+                hideShopSelect
+                hideAddButton
+                requireParentVariantId={false}
+              />
+            ) : null}
+          </Box>
+        )}
+
         {(errors.category_id || errors.vendor_id) && (
           <Box className="mb-4 rounded-lg border border-destructive/40 bg-destructive/5 px-3 py-2 space-y-1">
             {errors.category_id?.message ? (
@@ -2655,86 +2736,6 @@ export default function CreatePage() {
             </div>
           </Box>
         )}
-
-        {/* ════════════════════════════════════════════════════════
-            Card: Categories (الفئات)
-           ════════════════════════════════════════════════════════ */}
-        <Box className="rounded-xl border border-border bg-card p-6 space-y-4">
-          <Typography variant="subtitle1" className="font-bold text-foreground">
-            {t('form.productCategorySection')}
-          </Typography>
-
-          <CategoryLeafCascadeFields
-            t={t}
-            legacyMode={false}
-            flatItems={flatCategoryItems}
-            flatParentFetched={flatCategoriesFetched}
-            flatParentDataUpdatedAt={flatCategoriesUpdatedAt ?? 0}
-            hydrateLeafCategoryId={hydrateLeafCategoryId}
-            hydrationKey={categoryHydrationKey}
-            onEffectiveLeafChange={syncSelectedCategory}
-            isRestaurant={categoryRestaurantFilter}
-            onMainCategoryChange={setMainCategoryId}
-            allowAnyLevel
-          />
-
-          {isRestaurantToggle && categoryId > 0 ? (
-            <Box className="group">
-              <Box className="flex items-center gap-2 mb-2">
-                <Iconify icon="solar:shop-2-bold" className="text-orange-500" width={20} />
-                <Typography variant="subtitle2" className="font-semibold text-foreground">
-                  {t('form.selectRestaurant')}
-                </Typography>
-              </Box>
-              <Typography variant="caption" className="text-muted-foreground mb-2 block">
-                {t('form.selectRestaurantHelper')}
-              </Typography>
-              <InfiniteScrollSelect
-                value={selectedRestaurantShopId}
-                onChange={(shopId) => handleRestaurantShopSelect(shopId)}
-                queryKey={[
-                  'shops',
-                  'infinite',
-                  'product-form',
-                  'restaurant-by-category',
-                  categoryId,
-                ]}
-                fetcher={restaurantShopFetcher}
-                placeholder={t('form.selectRestaurantPlaceholder')}
-                initialLabel={selectedRestaurantShopInitialLabel}
-                clearable
-              />
-            </Box>
-          ) : null}
-
-          {isRestaurantToggle && selectedRestaurantShopId > 0 ? (
-            <ProductShopVariantsSection
-              variantIndex={0}
-              shops={
-                shops.length > 0
-                  ? shops
-                  : [{ id: selectedRestaurantShopId, name: selectedRestaurantShopInitialLabel ?? '' }]
-              }
-              shopVariantsFields={shopVariantsFields}
-              watchedShopVariants={watchedShopVariants}
-              control={control}
-              watch={watch}
-              setValue={setValue}
-              appendShopVariant={appendShopVariant}
-              removeShopVariant={removeShopVariant}
-              isEditMode={isEditMode}
-              productId={id}
-              shopVariantCreateBusyIdx={shopVariantCreateBusyIdx}
-              setShopVariantCreateBusyIdx={setShopVariantCreateBusyIdx}
-              updateShopVariantMutation={updateShopVariantMutation}
-              createSingleShopVariantOnProduct={createSingleShopVariantOnProduct}
-              embedded
-              hideShopSelect
-              hideAddButton
-              requireParentVariantId={false}
-            />
-          ) : null}
-        </Box>
 
         {/* ════════════════════════════════════════════════════════
             Card: General Info (المعلومات العامة)

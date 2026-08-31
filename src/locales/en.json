@@ -3109,7 +3109,7 @@
       "productDetailsErrorTitle": "Unable to load product",
       "productDetailsErrorMessage": "Something went wrong while loading this product.",
       "productDetailsSectionBasic": "Basic information",
-      "productDetailsSectionEssentials": "Catalog & logistics",
+      "productDetailsSectionEssentials": "General information",
       "productDetailsStock": "Stock on hand",
       "productDetailsCatalogQty": "Listed quantity",
       "productDetailsMaxPurchase": "Max purchase per order",

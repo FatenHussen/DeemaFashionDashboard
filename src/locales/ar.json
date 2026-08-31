@@ -3108,7 +3108,7 @@
       "productDetailsErrorTitle": "تعذّر تحميل المنتج",
       "productDetailsErrorMessage": "حدث خطأ أثناء تحميل هذا المنتج.",
       "productDetailsSectionBasic": "المعلومات الأساسية",
-      "productDetailsSectionEssentials": "الكتالوج واللوجستيات",
+      "productDetailsSectionEssentials": "المعلومات العامة",
       "productDetailsStock": "المخزون المتاح",
       "productDetailsCatalogQty": "الكمية المعروضة",
       "productDetailsMaxPurchase": "الحد الأقصى للشراء",
