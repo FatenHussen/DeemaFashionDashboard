@@ -21,55 +21,63 @@ export const ScheduledBasketSchema = z
       ar: z.string().min(1, t('scheduledBasket.nameArRequired')),
     }),
     description: translationField.optional(),
-  discount: z.coerce.number().min(0).optional(),
-  discount_type: z.enum(['fixed', 'percentage']),
-  delivery_price: z.coerce.number().min(0).optional(),
-  image: z.instanceof(File).optional().or(z.literal('')).or(z.null()),
-  images: z.array(z.instanceof(File)).optional().default([]),
-  items: z
-    .array(
-      z.object({
-        shop_product_variant_id: z.coerce.number().min(1, t('scheduledBasket.productVariantRequired')),
-        shop_product_variant_ids: z.array(z.coerce.number()).optional().default([]),
-        quantity: z.coerce.number().min(1, t('scheduledBasket.quantityMin')),
-        is_required: z.boolean().default(false),
-        is_extra: z.boolean().default(false),
-        min_quantity: z.coerce.number().min(0).optional(),
-        max_quantity: z.coerce.number().min(0).optional(),
-      })
-    )
-    .min(1, t('scheduledBasket.atLeastOneItem')),
-  schedules: z
-    .array(
-      z.object({
-        title: z.object({
-          en: z.string().optional().default(''),
-          ar: z.string().optional().default(''),
-        }),
-        number_of_days: z.coerce.number().min(1, t('scheduledBasket.numberOfDaysMin')),
-        discount_type: z.enum(['percentage', 'fixed']).nullable().optional(),
-        discount_value: z.coerce.number().min(0).nullable().optional(),
-        is_active: z.boolean().default(true),
-        is_default: z.boolean().default(false),
-      })
-    )
-    .min(1, t('scheduledBasket.atLeastOneSchedule'))
-    .refine((rows) => rows.filter((r) => r.is_default).length === 1, {
-      message: t('scheduledBasket.exactlyOneDefaultSchedule'),
-    }),
-  is_active: z.boolean(),
-  badges: z
-    .array(z.number())
-    .default([]),
+    schedule_id: z.coerce.number().min(1, t('scheduledBasket.scheduleRequired')),
+    has_custom_discount: z.boolean().default(false),
+    discount: z.preprocess(
+      (v) => (v === '' || v === null || v === undefined ? undefined : v),
+      z.coerce.number().min(0).optional()
+    ),
+    discount_type: z.enum(['fixed', 'percentage']).optional(),
+    delivery_price: z.coerce.number().min(0).optional(),
+    image: z.instanceof(File).optional().or(z.literal('')).or(z.null()),
+    images: z.array(z.instanceof(File)).optional().default([]),
+    items: z
+      .array(
+        z.object({
+          shop_product_variant_id: z.coerce.number().min(1, t('scheduledBasket.productVariantRequired')),
+          shop_product_variant_ids: z.array(z.coerce.number()).optional().default([]),
+          quantity: z.coerce.number().min(1, t('scheduledBasket.quantityMin')),
+          is_required: z.boolean().default(false),
+          is_extra: z.boolean().default(false),
+          min_quantity: z.preprocess(
+            (v) => (v === '' || v === null || v === undefined || Number(v) === 0 ? undefined : v),
+            z.coerce.number().int().min(1).optional()
+          ),
+          max_quantity: z.preprocess(
+            (v) => (v === '' || v === null || v === undefined || Number(v) === 0 ? undefined : v),
+            z.coerce.number().int().min(1).optional()
+          ),
+        })
+      )
+      .min(1, t('scheduledBasket.atLeastOneItem')),
+    is_active: z.boolean(),
+    badges: z.array(z.number()).default([]),
   })
   .superRefine((data, ctx) => {
+    if (!data.has_custom_discount) return;
+    if (data.discount == null) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: t('scheduledBasket.customDiscountRequired'),
+        path: ['discount'],
+      });
+    }
+    if (!data.discount_type) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: t('scheduledBasket.customDiscountRequired'),
+        path: ['discount_type'],
+      });
+    }
     issueIfPercentageDiscountOver100(ctx, data.discount_type, data.discount, ['discount']);
-    (data.schedules ?? []).forEach((row, i) => {
-      issueIfPercentageDiscountOver100(ctx, row.discount_type ?? undefined, row.discount_value, [
-        'schedules',
-        i,
-        'discount_value',
-      ]);
+    data.items.forEach((item, index) => {
+      if (item.min_quantity != null && item.max_quantity != null && item.max_quantity < item.min_quantity) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: t('scheduledBasket.maxQuantityGteMin'),
+          path: ['items', index, 'max_quantity'],
+        });
+      }
     });
   });
 

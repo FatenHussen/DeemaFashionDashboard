@@ -66,6 +66,11 @@ export const ProductSchema = zod
     discount_type: zod.enum(['none', 'percentage', 'fixed']).default('none'),
     cost_price: optionalNonNegNumber(),
     cost_price_syp: optionalNonNegNumber(),
+    /**
+     * Product-level stock — optional. Hidden when the category has attributes
+     * (quantity lives on `variants[]`). Never required; omit when empty.
+     */
+    quantity: optionalNonNegInt(t('product.quantityPositive')),
     /** From `/admin/units`; `0` = not selected. */
     unit_id: zod.coerce.number().min(0).optional().default(0),
     warranty_id: zod.coerce.number().min(0).optional().default(0),

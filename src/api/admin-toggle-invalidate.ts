@@ -37,4 +37,5 @@ export const ADMIN_TOGGLE_QUERY_ROOT: Partial<Record<AdminToggleEntityType, read
   brand: ['brand'],
   service: ['service'],
   system_setting: ['setting'],
+  page_section: ['pageBuilder'],
 };

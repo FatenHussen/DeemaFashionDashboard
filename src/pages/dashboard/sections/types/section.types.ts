@@ -95,6 +95,8 @@ export interface SectionCreateUpdatePayload {
   };
   /** Simplified content key — mapped server-side to `manual_model` / `api_method`. */
   content_type?: string;
+  /** Sent with `type=manual` so the backend knows which catalog to pick from. */
+  manual_model?: string;
   /** Sent with `type=api` so the backend knows which feed to run. */
   api_method?: string;
   /** `manual` (hand-picked `item_ids`) or `api` (automatic feed with `filters`). */

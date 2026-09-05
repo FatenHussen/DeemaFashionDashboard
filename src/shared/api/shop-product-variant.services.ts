@@ -147,6 +147,13 @@ export const _ShopProductVariantApi = {
     category_id?: number;
     /** When set, backend may filter variants in any of these categories */
     category_ids?: number[];
+    brand_id?: number;
+    product_id?: number;
+    search?: string;
+    price_min?: number;
+    price_max?: number;
+    cost_price_min?: number;
+    cost_price_max?: number;
     /** When false, dropdown shows product/variant name only (no appended price numbers). */
     include_pricing_in_label?: boolean;
   }): Promise<ShopProductVariantListResponse> => {

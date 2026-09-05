@@ -567,7 +567,7 @@ export const apiRoutes = {
     details: (id: number | string) => `${ROOTS.ADMIN}/delivery-distance-ranges/${id}`,
   },
   // Schedule routes
-  /** Delivery schedules (subscriptions discounts). Backend: `/api/admin/schedules`. */
+  /** Schedule categories (user cards). Backend: `/api/admin/schedules`. */
   schedule: {
     list: `${ROOTS.ADMIN}/schedules`,
     create: `${ROOTS.ADMIN}/schedules`,

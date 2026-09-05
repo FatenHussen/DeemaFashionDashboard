@@ -1,5 +1,8 @@
 // ----------------------------------------------------------------------
 
+import type { ScheduleItem } from '@/pages/dashboard/schedules/types/schedule.types';
+
+/** Legacy inline rows from older APIs. New baskets use `schedule_id` + catalog `schedule`. */
 export interface ScheduledBasketSchedule {
   id?: number;
   title: { en: string; ar: string } | string;
@@ -101,7 +104,13 @@ export interface ScheduledBasketData {
   is_schedule?: boolean;
   has_schedule?: boolean;
   schedule_count?: number;
+  /** Catalog schedule this basket belongs to (one basket = one schedule). */
+  schedule_id?: number | null;
+  schedule?: ScheduleItem | null;
+  /** True when this basket overrides the catalog discount. */
+  has_custom_discount?: boolean;
   items?: ScheduledBasketItem[];
+  /** Legacy inline windows. Prefer `schedule` / `schedule_id`. */
   schedules?: ScheduledBasketSchedule[];
   extras?: ScheduledBasketItem[];
   is_active: boolean;
@@ -118,6 +127,7 @@ export interface ScheduledBasketListParams {
   per_page?: number;
   search?: string;
   category_id?: number;
+  schedule_id?: number;
   sort_field?: ScheduledBasketSortField;
   sort_order?: ScheduledBasketSortOrder;
 }
@@ -144,22 +154,18 @@ export interface ScheduledBasketDetailsResponse {
   data: ScheduledBasketData;
 }
 
-export interface ScheduledBasketSchedulePayload {
-  title: { en: string; ar: string };
-  number_of_days: number;
-  discount_type: 'percentage' | 'fixed' | null;
-  discount_value: number | null;
-  is_active: boolean;
-  is_default?: boolean;
-}
-
 export interface ScheduledBasketCreateUpdatePayload {
   category_ids: number[];
   category_id?: number;
   name: { ar: string; en: string };
   description?: { ar: string; en: string };
-  discount?: number;
-  discount_type: 'fixed' | 'percentage';
+  schedule_id: number;
+  /**
+   * Optional override of the catalog discount.
+   * Omit on create to inherit. Send `null` on edit to clear a previous override.
+   */
+  discount?: number | null;
+  discount_type?: 'fixed' | 'percentage' | null;
   delivery_price?: number;
   image?: File | string | null;
   images?: File[];
@@ -172,7 +178,6 @@ export interface ScheduledBasketCreateUpdatePayload {
     min_quantity?: number;
     max_quantity?: number;
   }>;
-  schedules: ScheduledBasketSchedulePayload[];
   is_active: boolean;
   badges?: number[];
 }

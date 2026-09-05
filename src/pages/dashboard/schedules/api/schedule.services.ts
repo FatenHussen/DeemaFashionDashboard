@@ -8,6 +8,7 @@ import type {
 } from '../types/schedule.types';
 
 import { apiRoutes, axiosInstance } from '@/api';
+import { parseRecordIsActive } from '@/utils/parse-record-is-active';
 
 // ----------------------------------------------------------------------
 
@@ -18,6 +19,14 @@ const defaultPagination = {
   total: 0,
 } as const;
 
+function normalizeScheduleItem(raw: unknown): ScheduleItem {
+  const row = (raw ?? {}) as Record<string, unknown>;
+  return {
+    ...(row as unknown as ScheduleItem),
+    is_active: parseRecordIsActive(row, Boolean(row.is_active)),
+  };
+}
+
 function normalizeListData(raw: unknown): ScheduleListResponse['data'] {
   const root = raw as Record<string, unknown> | null | undefined;
   if (!root || typeof root !== 'object') {
@@ -27,7 +36,7 @@ function normalizeListData(raw: unknown): ScheduleListResponse['data'] {
     root.data != null && typeof root.data === 'object' && !Array.isArray(root.data) && 'items' in (root.data as object)
       ? (root.data as Record<string, unknown>)
       : root;
-  const items = Array.isArray(nested.items) ? (nested.items as ScheduleItem[]) : [];
+  const items = Array.isArray(nested.items) ? nested.items.map((item) => normalizeScheduleItem(item)) : [];
   const p = nested.pagination as ScheduleListResponse['data']['pagination'] | undefined;
   return {
     items,
@@ -41,17 +50,63 @@ function normalizeDetailData(raw: unknown): ScheduleItem {
     throw new Error('Invalid schedule response');
   }
   if (root.data != null && typeof root.data === 'object' && !Array.isArray(root.data) && 'id' in (root.data as object)) {
-    return root.data as ScheduleItem;
+    return normalizeScheduleItem(root.data);
   }
   if ('id' in root) {
-    return root as unknown as ScheduleItem;
+    return normalizeScheduleItem(root);
   }
   throw new Error(typeof root.message === 'string' ? root.message : 'Invalid schedule response');
 }
 
+/** Laravel list filter expects `is_active=1` / `is_active=0`. */
+function toListQuery(params?: ScheduleListParams): Record<string, unknown> | undefined {
+  if (!params) return undefined;
+  const { is_active, ...rest } = params;
+  const query: Record<string, unknown> = { ...rest };
+  if (is_active === true) query.is_active = 1;
+  if (is_active === false) query.is_active = 0;
+  return query;
+}
+
+function buildScheduleFormData(data: ScheduleCreatePayload | ScheduleUpdatePayload): FormData {
+  const fd = new FormData();
+  fd.append('name[ar]', data.name.ar);
+  fd.append('name[en]', data.name.en);
+
+  fd.append('description[en]', (data.description?.en ?? '').trim());
+  fd.append('description[ar]', (data.description?.ar ?? '').trim());
+
+  fd.append('interval_days', String(data.interval_days));
+  fd.append('is_active', data.is_active ? '1' : '0');
+
+  if (data.discount_type) {
+    fd.append('discount_type', data.discount_type);
+    fd.append('discount_value', String(data.discount_value ?? 0));
+  }
+
+  if (data.image instanceof File) fd.append('image', data.image);
+
+  if (data.images?.length) {
+    data.images.forEach((file) => {
+      if (file instanceof File) fd.append('images[]', file);
+    });
+  }
+
+  (data.deleted_image_ids ?? []).forEach((id) => {
+    fd.append('deleted_image_ids[]', String(id));
+  });
+
+  (data.badges ?? []).forEach((badge, i) => {
+    fd.append(`badges[${i}][id]`, String(badge.id));
+    fd.append(`badges[${i}][position]`, badge.position);
+  });
+
+  return fd;
+}
+
 export const _ScheduleApi = {
   getList: async (params?: ScheduleListParams): Promise<ScheduleListResponse> => {
-    const response = await axiosInstance.get(apiRoutes.schedule.list, { params });
+    const response = await axiosInstance.get(apiRoutes.schedule.list, { params: toListQuery(params) });
     const body = response.data as Record<string, unknown> | undefined;
     return {
       success: body?.success as boolean | undefined,
@@ -73,12 +128,15 @@ export const _ScheduleApi = {
   },
 
   create: async (data: ScheduleCreatePayload): Promise<unknown> => {
-    const response = await axiosInstance.post(apiRoutes.schedule.create, data);
+    const response = await axiosInstance.post(apiRoutes.schedule.create, buildScheduleFormData(data));
     return response.data;
   },
 
   update: async (id: number | string, data: ScheduleUpdatePayload): Promise<unknown> => {
-    const response = await axiosInstance.put(apiRoutes.schedule.update(id), data);
+    const formData = buildScheduleFormData(data);
+    // Multipart PUT is not parsed by PHP; spoof PUT via POST.
+    formData.append('_method', 'PUT');
+    const response = await axiosInstance.post(apiRoutes.schedule.update(id), formData);
     return response.data;
   },
 

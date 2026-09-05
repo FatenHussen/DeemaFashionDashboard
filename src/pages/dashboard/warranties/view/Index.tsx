@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { usePermissions } from '@/auth/hooks/use-permissions';
 import { warrantyColumns, type WarrantyTableItem } from '@/columns/one/warranties/one';
-import { useFetchWarranties, useDeleteWarranty } from '@/pages/dashboard/warranties/hooks/warranty';
+import { useDeleteWarranty, useFetchWarranties } from '@/pages/dashboard/warranties/hooks/warranty';
 
 import { paths } from 'src/routes/paths';
 

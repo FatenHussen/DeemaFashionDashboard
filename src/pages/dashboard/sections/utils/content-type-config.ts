@@ -17,13 +17,14 @@ export const SECTION_CONTENT_TYPES = [
   'category',
   'recipe',
   'basket',
+  'schedule',
+  'schedule-basket',
 ] as const;
 
 export type SectionContentType = (typeof SECTION_CONTENT_TYPES)[number];
 
 /** Automatic-only feeds that map 1:1 to an `api_method`. */
 export const API_EXTRA_CONTENT_TYPES = [
-  'schedule-basket',
   'suggested_products',
   'suggested_shops',
   'suggested_baskets',
@@ -39,6 +40,7 @@ export const API_SECTION_CONTENT_TYPES: readonly ApiSectionContentType[] = [
   'category',
   'recipe',
   'basket',
+  'schedule',
   'schedule-basket',
   'suggested_products',
   'suggested_shops',
@@ -55,6 +57,7 @@ export const CONTENT_TYPE_TO_API_METHOD: Record<string, ApiMethod> = {
   category: 'categories',
   recipe: 'recipes',
   basket: 'baskets',
+  schedule: 'schedules',
   'schedule-basket': 'schedule-basket',
   suggested_products: 'suggested_products',
   suggested_shops: 'suggested_shops',
@@ -142,6 +145,8 @@ export const CONTENT_TYPE_ITEM_SOURCES: Record<
   category: { url: apiRoutes.category.list },
   recipe: { url: apiRoutes.recipe.list },
   basket: { url: apiRoutes.basket.list },
+  schedule: { url: apiRoutes.schedule.list },
+  'schedule-basket': { url: apiRoutes.scheduledBasket.list },
 };
 
 /**
@@ -169,6 +174,7 @@ export const CONTENT_TYPE_API_FILTERS: Record<string, Record<string, FilterConfi
   category: API_METHOD_FILTERS.categories,
   recipe: API_METHOD_FILTERS.recipes,
   basket: API_METHOD_FILTERS.baskets,
+  schedule: API_METHOD_FILTERS.schedules,
   'schedule-basket': API_METHOD_FILTERS['schedule-basket'],
   suggested_products: API_METHOD_FILTERS.suggested_products,
   suggested_shops: API_METHOD_FILTERS.suggested_shops,
@@ -199,11 +205,17 @@ export const CONTENT_TYPE_ICONS: Record<string, string> = {
   brand: 'solar:medal-star-bold',
   recipe: 'solar:notebook-bold',
   basket: 'solar:bag-bold',
-  'schedule-basket': 'solar:calendar-bold',
+  schedule: 'solar:calendar-bold',
+  'schedule-basket': 'solar:bag-smile-bold',
   suggested_products: 'solar:star-bold',
   suggested_shops: 'solar:map-point-bold',
   suggested_baskets: 'solar:heart-bold',
 };
+
+/** Card shape recommended by the backend for this content type. */
+export function recommendedVariantForContentType(contentType: string): 'vertical' | undefined {
+  return contentType === 'schedule' ? 'vertical' : undefined;
+}
 
 export function autoFeedPreview(
   t: TFunction<'table'>,
@@ -212,6 +224,10 @@ export function autoFeedPreview(
 ): string {
   if (contentType.startsWith('suggested_')) {
     return t(`form.sectionEasyPreview_${contentType}`);
+  }
+
+  if (contentType === 'schedule') {
+    return t('form.sectionEasyPreview_schedule');
   }
 
   if (contentType === 'schedule-basket') {

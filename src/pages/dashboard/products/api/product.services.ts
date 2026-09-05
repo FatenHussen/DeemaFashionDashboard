@@ -210,6 +210,13 @@ const buildProductFormData = (data: ProductCreateUpdatePayload): FormData => {
   ) {
     formData.append('cost_price_syp', String(data.cost_price_syp));
   }
+  if (
+    data.quantity !== undefined &&
+    data.quantity !== null &&
+    !Number.isNaN(Number(data.quantity))
+  ) {
+    formData.append('quantity', String(data.quantity));
+  }
   if (data.unit_id != null && data.unit_id > 0) {
     formData.append('unit_id', String(data.unit_id));
   }

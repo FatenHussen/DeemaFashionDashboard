@@ -154,13 +154,42 @@ function EmptyBadgesState({ message }: { message: string }) {
   );
 }
 
+export type BadgeSelectionWithPosition = { id: number; position: 'top' | 'bottom' };
+
 interface RHFBadgeSelectorProps {
   name: string;
   label?: string;
   helperText?: string;
+  /** Store `{ id, position }[]` (e.g. schedule cards). Default is `number[]`. */
+  withPosition?: boolean;
 }
 
-export function RHFBadgeSelector({ name, label, helperText }: RHFBadgeSelectorProps) {
+function selectedBadgeIds(value: unknown): number[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((v) => (typeof v === 'number' ? v : Number((v as { id?: number })?.id)))
+    .filter((id) => Number.isFinite(id) && id > 0);
+}
+
+function selectedBadgesWithPosition(value: unknown): BadgeSelectionWithPosition[] {
+  if (!Array.isArray(value)) return [];
+  const out: BadgeSelectionWithPosition[] = [];
+  for (const v of value) {
+    if (typeof v === 'number') {
+      out.push({ id: v, position: 'top' });
+      continue;
+    }
+    if (v && typeof v === 'object' && 'id' in v) {
+      const id = Number((v as { id: unknown }).id);
+      if (!Number.isFinite(id) || id <= 0) continue;
+      const position = (v as { position?: string }).position === 'bottom' ? 'bottom' : 'top';
+      out.push({ id, position });
+    }
+  }
+  return out;
+}
+
+export function RHFBadgeSelector({ name, label, helperText, withPosition = false }: RHFBadgeSelectorProps) {
   const { t } = useTranslation('table');
   const uiLanguage = useLocalizationStore((s) => s.language);
   const { control } = useFormContext();
@@ -193,11 +222,29 @@ export function RHFBadgeSelector({ name, label, helperText }: RHFBadgeSelectorPr
       name={name}
       control={control}
       render={({ field }) => {
-        const selectedIds: number[] = field.value || [];
+        const selectedIds = selectedBadgeIds(field.value);
         const topIds = topBadges.map((b) => b.id);
 
         function handleToggle(badge: BadgeItem) {
           const isSelected = selectedIds.includes(badge.id);
+          const position: 'top' | 'bottom' = badge.position === 'bottom' ? 'bottom' : 'top';
+
+          if (withPosition) {
+            const current = selectedBadgesWithPosition(field.value);
+            if (badge.position === 'top') {
+              const withoutOtherTops = current.filter((b) => !topIds.includes(b.id));
+              field.onChange(
+                isSelected ? withoutOtherTops : [...withoutOtherTops, { id: badge.id, position: 'top' }]
+              );
+              return;
+            }
+            field.onChange(
+              isSelected
+                ? current.filter((b) => b.id !== badge.id)
+                : [...current, { id: badge.id, position }]
+            );
+            return;
+          }
 
           if (badge.position === 'top') {
             const withoutOtherTops = selectedIds.filter((id) => !topIds.includes(id));

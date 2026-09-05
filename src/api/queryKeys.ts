@@ -248,6 +248,7 @@ export const queryKeys = {
       per_page?: number;
       search?: string;
       category_id?: number;
+      schedule_id?: number;
       sort_field?: string;
       sort_order?: string;
     }) => ['scheduledBasket', 'list', params] as const,

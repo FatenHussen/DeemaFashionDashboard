@@ -50,6 +50,7 @@ import {
   CONTENT_TYPE_API_FILTERS,
   ALL_SECTION_CONTENT_TYPES,
   CONTENT_TYPE_ITEM_SOURCES,
+  recommendedVariantForContentType,
 } from '@/pages/dashboard/sections/utils/content-type-config';
 
 import { CONFIG } from 'src/global-config';
@@ -292,6 +293,10 @@ export default function CreatePage() {
     } else if (isApiOnlyContentType(type)) {
       setValue('type', 'api', { shouldValidate: true, shouldDirty: true });
     }
+    const recommendedVariant = recommendedVariantForContentType(type);
+    if (recommendedVariant) {
+      setValue('variant', recommendedVariant, { shouldValidate: true, shouldDirty: true });
+    }
   };
 
   const handleTypeChange = (type: 'manual' | 'api') => {
@@ -333,6 +338,7 @@ export default function CreatePage() {
         : {}),
       ...(data.type === 'manual'
         ? {
+            manual_model: data.content_type,
             item_ids: orderedItems.map((entry, index) => {
               const base = { item_id: entry.item_id, order: index };
               if (!isGifManualModel(data.content_type)) return base;

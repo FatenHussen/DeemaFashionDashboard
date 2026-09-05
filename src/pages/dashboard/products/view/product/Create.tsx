@@ -25,9 +25,9 @@ import { useForm, useWatch, Controller, useFieldArray } from 'react-hook-form';
 import { _CountryApi } from '@/pages/dashboard/countries/api/country.services';
 import { useId, useRef, useMemo, useState, useEffect, useCallback } from 'react';
 import { useFetchCurrencies } from '@/pages/dashboard/currencies/hooks/currency';
+import { useFetchWarranties } from '@/pages/dashboard/warranties/hooks/warranty';
 import { InfiniteScrollSelect } from '@/shared/components/infinite-scroll-select';
 import { _CategoryApi } from '@/pages/dashboard/categories/api/category.services';
-import { useFetchWarranties } from '@/pages/dashboard/warranties/hooks/warranty';
 import { useFetchCategoryById } from '@/pages/dashboard/categories/hooks/category';
 import { TinyMCEEditorField } from '@/shared/components/tinymce-editor/tinymce-editor';
 import { _SaleCountryApi } from '@/pages/dashboard/sale-countries/api/sale-country.services';
@@ -89,17 +89,17 @@ const brandFetcher = (page: number, limit: number) =>
 
 const countryFetcher = (page: number, limit: number) =>
   _CountryApi.getListCountries({ page, per_page: limit }).then((r) => {
-    // API may return all countries without pagination (`data.items[]` only).
-    const items = r.data?.items ?? [];
-    return {
-      data: {
-        items: items.map((c) => ({
-          id: c.id,
-          label: typeof c.name === 'string' ? c.name : formatTranslated(c.name),
-        })),
-        pagination: r.data?.pagination,
-      },
+    const items = r.data.items.map((c) => ({
+      id: c.id,
+      label: formatTranslated(c.name as Parameters<typeof formatTranslated>[0]),
+    }));
+    const pagination = r.data.pagination ?? {
+      current_page: page,
+      last_page: page,
+      per_page: limit,
+      total: items.length,
     };
+    return { data: { items, pagination } };
   });
 
 const saleCountryFetcher = (page: number, limit: number) =>
@@ -281,6 +281,43 @@ function resolveUsdOrSyp(
     usd: hasUsd ? Number(usd) : undefined,
     syp: !hasUsd && hasSyp ? Number(syp) : undefined,
   };
+}
+
+function priceAfterDiscount(
+  price: number | null | undefined,
+  discountType: string | null | undefined,
+  discount: number | null | undefined
+): number {
+  const p = Number(price) || 0;
+  const d = Number(discount) || 0;
+  if (!p || !discountType || discountType === 'none' || d <= 0) return p;
+  if (discountType === 'percentage') return Math.round((p - p * (d / 100)) * 100) / 100;
+  if (discountType === 'fixed') return Math.max(0, Math.round((p - d) * 100) / 100);
+  return p;
+}
+
+function formatProductAfterDiscountPreview(
+  priceUsd: number | null | undefined,
+  discountType: string | null | undefined,
+  discount: number | null | undefined,
+  sypRate: number | null | undefined
+): string {
+  if (priceUsd == null || priceUsd === undefined) return '';
+  const usd = Number(priceUsd);
+  if (!Number.isFinite(usd)) return '';
+  const afterUsd = priceAfterDiscount(usd, discountType, discount);
+  const parts: string[] = [`$${afterUsd}`];
+  if (sypRate != null && sypRate > 0) {
+    parts.push(`${usdToLocalAmount(afterUsd, sypRate)} SYP`);
+  }
+  return parts.join(' · ');
+}
+
+function numberInputDisplayKeepZero(v: unknown): string | number {
+  if (v === undefined || v === null || v === '') return '';
+  const n = Number(v);
+  if (!Number.isFinite(n)) return '';
+  return n;
 }
 
 /** Platform vendor id sent when "For me" is selected. */
@@ -850,6 +887,7 @@ export default function CreatePage() {
     discount_type: 'none',
     cost_price: undefined,
     cost_price_syp: undefined,
+    quantity: undefined,
     product_number: '',
     unit_id: 0,
     warranty_id: 0,
@@ -1156,7 +1194,7 @@ export default function CreatePage() {
       const meta = restaurantShopMetaRef.current.get(shopId);
       const vendorId = meta?.vendorId ?? 0;
       setValue('vendor_scope', 'external');
-      if (vendorId > 0) setValue('vendor_id', vendorId);
+      if (vendorId > 0)       setValue('vendor_id', vendorId);
 
       const existing = getValues('shop_variants') ?? [];
       const idx = existing.findIndex((sv) => Number(sv.variant_index) === 0);
@@ -1166,12 +1204,6 @@ export default function CreatePage() {
         setValue('shop_variants', next);
       } else {
         setValue('shop_variants', [...existing, { shop_id: shopId, variant_index: 0 }]);
-      }
-
-      // Seed the sole variant so create/update always has a row to send with shop_variants.
-      const existingVariants = getValues('variants') ?? [];
-      if (!existingVariants[0]) {
-        setValue('variants', [makeBlankVariantRow()]);
       }
     },
     [getValues, setValue]
@@ -1221,6 +1253,30 @@ export default function CreatePage() {
     (categoryAttributesAll?.data as { items?: unknown[]; data?: unknown[] } | undefined)?.items ??
     (categoryAttributesAll?.data as { data?: unknown[] } | undefined)?.data ??
     [];
+  const hasCategoryAttributes = !restaurantMode && categoryAttributes.length > 0;
+
+  const { data: originCountriesRaw } = useQuery({
+    queryKey: ['countries', 'all', 'product-origin'],
+    queryFn: async () => {
+      const r = await _CountryApi.getListCountries({ per_page: 1000 });
+      const nested = r.data as
+        | { items?: Array<{ id: number; name?: string | { en?: string; ar?: string } }> }
+        | Array<{ id: number; name?: string | { en?: string; ar?: string } }>
+        | undefined;
+      if (Array.isArray(nested)) return nested;
+      if (nested && Array.isArray(nested.items)) return nested.items;
+      return [];
+    },
+  });
+  const originCountryOptions = useMemo(() => {
+    const items = originCountriesRaw ?? [];
+    return items
+      .map((c) => ({
+        id: c.id,
+        label: typeof c.name === 'string' ? c.name : formatTranslated(c.name as { en?: string; ar?: string }),
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [originCountriesRaw]);
 
   // Fetch category details filtered by category_id
   const { data: categoryDetailsResponse } = useQuery({
@@ -1622,6 +1678,8 @@ export default function CreatePage() {
           (p.cost_price != null && !Number.isNaN(Number(p.cost_price)) && sypCurrency
             ? usdToLocalAmount(Number(p.cost_price), parseCurrencyRate(sypCurrency))
             : undefined),
+        quantity:
+          p.quantity != null && !Number.isNaN(Number(p.quantity)) ? Number(p.quantity) : undefined,
         product_number: p.product_number != null ? String(p.product_number) : '',
         unit_id: p.unit_id != null && Number(p.unit_id) > 0 ? Number(p.unit_id) : 0,
         warranty_id:
@@ -2107,13 +2165,15 @@ export default function CreatePage() {
           toNum(row0?.price) ?? toNum(payload.price),
           toNum(row0?.price_syp) ?? toNum((payload as { price_syp?: number }).price_syp)
         );
+        const rowQty =
+          toNum(row0?.quantity) ?? toNum((payload as { quantity?: number }).quantity);
         variantsForPayload = [
           {
             ...(row0?.id ? { id: row0.id } : {}),
             attributes_values_ids: [],
             ...(rowSale.usd !== undefined ? { price: rowSale.usd } : {}),
             ...(rowSale.syp !== undefined ? { price_syp: rowSale.syp } : {}),
-            ...(toNum(row0?.quantity) != null ? { quantity: toNum(row0?.quantity) } : {}),
+            ...(rowQty != null ? { quantity: rowQty } : {}),
             existing_images_ids: Array.isArray(row0?.existing_images_ids)
               ? row0!.existing_images_ids
               : [],
@@ -2216,11 +2276,13 @@ export default function CreatePage() {
         price_currency_id: _omitPriceCurrencyId,
         price_local: _omitPriceLocal,
         is_restaurant: _omitIsRestaurant,
-        quantity: _omitProductQuantity,
         ...apiPayload
       } = uploadPayload as typeof uploadPayload & { quantity?: number };
 
-      delete (apiPayload as { quantity?: number }).quantity;
+      const qtyRaw = (apiPayload as { quantity?: number }).quantity;
+      if (qtyRaw === undefined || qtyRaw === null || Number.isNaN(Number(qtyRaw))) {
+        delete (apiPayload as { quantity?: number }).quantity;
+      }
 
       const stripSeoIfNoFile = (p: Record<string, unknown>) => {
         if (!(p.seo_image instanceof File)) {
