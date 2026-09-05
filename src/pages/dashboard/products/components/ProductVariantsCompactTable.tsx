@@ -356,7 +356,7 @@ function VariantTableRow({
             render={({ field: f, fieldState: { error } }) => (
               <input
                 type="number"
-                placeholder="0"
+                placeholder=""
                 step={1}
                 min={0}
                 name={f.name}

@@ -3,7 +3,7 @@ import type { CurrencyData } from '@/pages/dashboard/currencies/types/currency.t
 export function optionalNumberInputDisplay(v: unknown): string | number {
   if (v === undefined || v === null || v === '') return '';
   const n = Number(v);
-  if (!Number.isFinite(n) || n === 0) return '';
+  if (!Number.isFinite(n)) return '';
   return n;
 }
 

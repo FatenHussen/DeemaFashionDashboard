@@ -75,6 +75,13 @@ export const apiRoutes = {
     delete: (id: number | string) => `${ROOTS.ADMIN}/units/${id}`,
     details: (id: number | string) => `${ROOTS.ADMIN}/units/${id}`,
   },
+  warranty: {
+    list: `${ROOTS.ADMIN}/warranties`,
+    create: `${ROOTS.ADMIN}/warranties`,
+    update: (id: number | string) => `${ROOTS.ADMIN}/warranties/${id}`,
+    delete: (id: number | string) => `${ROOTS.ADMIN}/warranties/${id}`,
+    details: (id: number | string) => `${ROOTS.ADMIN}/warranties/${id}`,
+  },
   // Governorate routes
   governorate: {
     list: `${ROOTS.ADMIN}/governorates`,

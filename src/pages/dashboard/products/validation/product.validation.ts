@@ -6,8 +6,27 @@ import i18n from 'src/lib/i18n';
 
 const t = (key: string) => i18n.t(key, { ns: 'validation' });
 
+/** Empty input → `undefined`. Do not use `z.coerce.number().optional()` — coerce turns `undefined` into `NaN`. */
+function optionalNonNegNumber(message?: string) {
+  return zod.preprocess((v) => {
+    if (v === '' || v === null || v === undefined) return undefined;
+    const n = typeof v === 'number' ? v : Number(v);
+    return Number.isFinite(n) ? n : undefined;
+  }, (message ? zod.number().min(0, { message }) : zod.number().min(0)).optional());
+}
+
+function optionalNonNegInt(message?: string) {
+  return zod.preprocess((v) => {
+    if (v === '' || v === null || v === undefined) return undefined;
+    const n = typeof v === 'number' ? v : Number(v);
+    return Number.isFinite(n) ? Math.floor(n) : undefined;
+  }, (message
+    ? zod.number().int({ message }).min(0, { message })
+    : zod.number().int().min(0)
+  ).optional());
+}
+
 // ----------------------------------------------------------------------
-// Use coerce for numeric fields - inputs/API often return strings
 
 export const ProductSchema = zod
   .object({
@@ -39,46 +58,20 @@ export const ProductSchema = zod
     sale_country_id: zod.coerce.number().min(0).optional(),
     /** UI: amount in selected currency; `price` is always USD for the API. */
     price_currency_id: zod.coerce.number().min(0).optional().default(0),
-    price_local: zod.preprocess(
-      (v) => (v === '' || v === null || v === undefined ? undefined : v),
-      zod.coerce.number().min(0).optional()
-    ),
-    price: zod.preprocess(
-      (v) => (v === '' || v === null || v === undefined ? undefined : v),
-      zod.coerce.number().min(0, { message: t('product.pricePositive') }).optional()
-    ),
+    price_local: optionalNonNegNumber(),
+    price: optionalNonNegNumber(t('product.pricePositive')),
     /** UI + API: SYP sale amount when USD `price` is empty. */
-    price_syp: zod.preprocess(
-      (v) => (v === '' || v === null || v === undefined ? undefined : v),
-      zod.coerce.number().min(0).optional()
-    ),
-    discount: zod.preprocess(
-      (v) => (v === '' || v === null || v === undefined ? undefined : v),
-      zod.coerce.number().min(0).optional()
-    ),
+    price_syp: optionalNonNegNumber(),
+    discount: optionalNonNegNumber(),
     discount_type: zod.enum(['none', 'percentage', 'fixed']).default('none'),
-    cost_price: zod.preprocess(
-      (v) => (v === '' || v === null || v === undefined ? undefined : v),
-      zod.coerce.number().min(0).optional()
-    ),
-    cost_price_syp: zod.preprocess(
-      (v) => (v === '' || v === null || v === undefined ? undefined : v),
-      zod.coerce.number().min(0).optional()
-    ),
-    quantity: zod.preprocess(
-      (v) => (v === '' || v === null || v === undefined ? undefined : v),
-      zod.coerce.number({
-        invalid_type_error: t('product.quantityPositive'),
-        required_error: t('product.quantityPositive'),
-      }).min(0, { message: t('product.quantityPositive') })
-    ),
+    cost_price: optionalNonNegNumber(),
+    cost_price_syp: optionalNonNegNumber(),
     /** From `/admin/units`; `0` = not selected. */
     unit_id: zod.coerce.number().min(0).optional().default(0),
-    warranty_period: zod.preprocess(
-      (v) => (v === '' || v === null || v === undefined ? undefined : v),
-      zod.coerce.number().min(0).optional()
-    ),
+    warranty_id: zod.coerce.number().min(0).optional().default(0),
     sku: zod.string().optional(),
+    /** Admin product code — optional, unique on the backend when sent. */
+    product_number: zod.string().optional(),
     model: zod.string().optional(),
     barcode: zod.string().optional(),
     time_prepare: zod.string().optional(),
@@ -132,8 +125,7 @@ export const ProductSchema = zod
           id: zod.coerce.number().optional(),
           /** UI-only: which category attribute this card represents (not sent to the API). */
           category_attribute_id: zod.coerce.number().optional(),
-          // Defaulted so the attribute-less restaurant row (seeded with price/quantity only)
-          // passes validation; the backend's own minimal variant also has [].
+          // Defaulted so the attribute-less restaurant row passes validation; the backend's own minimal variant also has [].
           attributes_values_ids: zod.array(zod.coerce.number()).default([]),
           images: zod.preprocess(
             (val) =>
@@ -144,36 +136,12 @@ export const ProductSchema = zod
           sku: zod.string().optional(),
           model: zod.string().optional(),
           barcode: zod.string().optional(),
-          price: zod.preprocess(
-            (v) => (v === '' || v === null || v === undefined ? undefined : v),
-            zod.coerce.number().min(0, { message: t('product.pricePositive') }).optional()
-          ),
-          price_syp: zod.preprocess(
-            (v) => (v === '' || v === null || v === undefined ? undefined : v),
-            zod.coerce.number().min(0).optional()
-          ),
-          quantity: zod.preprocess(
-            (v) => {
-              if (v === '' || v === null || v === undefined) return undefined;
-              const n = Number(v);
-              if (!Number.isFinite(n)) return v;
-              return Math.floor(n);
-            },
-            zod.coerce
-              .number()
-              .int({ message: t('product.quantityPositive') })
-              .min(0, { message: t('product.quantityPositive') })
-              .optional()
-          ),
-          discount: zod.preprocess(
-            (v) => (v === '' || v === null || v === undefined ? undefined : v),
-            zod.coerce.number().min(0).optional()
-          ),
+          price: optionalNonNegNumber(t('product.pricePositive')),
+          price_syp: optionalNonNegNumber(),
+          quantity: optionalNonNegInt(t('product.quantityPositive')),
+          discount: optionalNonNegNumber(),
           discount_type: zod.enum(['none', 'percentage', 'fixed']).optional().default('none'),
-          max_purchase_quantity: zod.preprocess(
-            (v) => (v === '' || v === null || v === undefined ? undefined : v),
-            zod.coerce.number().min(0).optional()
-          ),
+          max_purchase_quantity: optionalNonNegNumber(),
           is_trend: zod.coerce.number().min(0).max(1).optional().default(0),
           is_active: zod.coerce.number().min(0).max(1).optional().default(1),
         })
@@ -265,10 +233,7 @@ export const ProductSchema = zod
           id: zod.coerce.number().optional(),
           shop_id: zod.coerce.number(),
           variant_index: zod.coerce.number(),
-          cost_price: zod.preprocess(
-            (v) => (v === '' || v === null || v === undefined ? undefined : v),
-            zod.coerce.number().min(0).optional()
-          ),
+          cost_price: optionalNonNegNumber(),
         })
       )
       .optional(),

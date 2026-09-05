@@ -9,7 +9,6 @@ import type {
 } from 'react-hook-form';
 
 import React from 'react';
-import { toast } from 'react-toastify';
 import { queryKeys } from '@/api/queryKeys';
 import { useQuery } from '@tanstack/react-query';
 import { Iconify } from '@/shared/components/iconify';
@@ -18,10 +17,7 @@ import { _ColorApi } from '@/pages/dashboard/colors/api/color.services';
 import { Box, Typography } from 'src/shared/ui';
 
 import { ProductVariantInlineRow } from './ProductVariantInlineRow';
-import { ProductVariantsSkuToolbar } from './ProductVariantsSkuToolbar';
 import {
-  generateVariantBarcode,
-  regenerateVariantSku,
   buildColorsHexLookup,
   type ColorsHexLookup,
   type CategoryAttributeValueRef,
@@ -91,48 +87,21 @@ export function ProductVariantsCardList({
     [colorsResp?.data?.items]
   );
 
-  const watchedVariants = rowProps.watch('variants') ?? [];
+  const [openIndex, setOpenIndex] = React.useState<number | null>(null);
+  const prevLenRef = React.useRef(variants.length);
 
-  const skuStats = React.useMemo(() => {
-    const total = watchedVariants.length;
-    const withSku = watchedVariants.filter((v) => String(v?.sku ?? '').trim()).length;
-    const missingFillable = watchedVariants.filter((v) => {
-      const skuEmpty = !String(v?.sku ?? '').trim();
-      const barcodeEmpty = !rowProps.restaurantMode && !String(v?.barcode ?? '').trim();
-      return skuEmpty || barcodeEmpty;
-    }).length;
-    return { total, withSku, missing: missingFillable };
-  }, [watchedVariants, rowProps.restaurantMode]);
-
-  const handleGenerateAllMissingSku = () => {
-    const rows = rowProps.watch('variants') ?? [];
-    let filled = 0;
-    rows.forEach((row, i) => {
-      const valueIds = (row?.attributes_values_ids ?? []) as number[];
-      const valueRefs = resolveValueRefs(valueIds);
-
-      if (!String(row?.sku ?? '').trim()) {
-        rowProps.setValue(
-          `variants.${i}.sku`,
-          regenerateVariantSku(rowProps.watchedProductSku, valueRefs, colorsHexLookup),
-          { shouldDirty: true, shouldTouch: true }
-        );
-        filled += 1;
-      }
-
-      if (!rowProps.restaurantMode && !String(row?.barcode ?? '').trim()) {
-        rowProps.setValue(
-          `variants.${i}.barcode`,
-          generateVariantBarcode(rowProps.watchedProductSku, i),
-          { shouldDirty: true, shouldTouch: true }
-        );
-        filled += 1;
-      }
-    });
-    if (filled > 0) {
-      toast.success(rowProps.t('form.variantGenerateAllMissingDone'));
+  React.useEffect(() => {
+    const prev = prevLenRef.current;
+    const next = variants.length;
+    if (next > prev) {
+      setOpenIndex(next - 1);
+    } else if (next === 0) {
+      setOpenIndex(null);
+    } else if (next < prev) {
+      setOpenIndex((current) => (current != null && current >= next ? next - 1 : current));
     }
-  };
+    prevLenRef.current = next;
+  }, [variants.length]);
 
   if (variants.length === 0) {
     return (
@@ -143,22 +112,12 @@ export function ProductVariantsCardList({
         <Typography variant="body2" className="font-medium text-foreground">
           {rowProps.t('form.noVariantsYetTitle')}
         </Typography>
-        <Typography variant="caption" className="mt-1 block text-muted-foreground">
-          {rowProps.t('form.noVariantsYet')}
-        </Typography>
       </Box>
     );
   }
 
   return (
-    <Box className="space-y-5">
-      <ProductVariantsSkuToolbar
-        totalCount={skuStats.total}
-        withSkuCount={skuStats.withSku}
-        missingSkuCount={skuStats.missing}
-        onGenerateAllMissing={handleGenerateAllMissingSku}
-        t={rowProps.t}
-      />
+    <Box className="space-y-3">
       {variants.map((variant, variantIndex) => {
         const rowSelectedIds = (rowProps.watch(`variants.${variantIndex}.attributes_values_ids`) ||
           []) as number[];
@@ -171,11 +130,15 @@ export function ProductVariantsCardList({
             variantFieldId={variant.id}
             valueRefs={valueRefs}
             colorsHexLookup={colorsHexLookup}
+            {...rowProps}
             onRemove={() => onRemove(variantIndex)}
             onSave={() => onSave(variantIndex)}
             isSaving={isSavingIndex === variantIndex || updatePending}
             isDeleting={isDeleting ?? false}
-            {...rowProps}
+            isExpanded={openIndex === variantIndex}
+            onToggle={() =>
+              setOpenIndex((current) => (current === variantIndex ? null : variantIndex))
+            }
           />
         );
       })}

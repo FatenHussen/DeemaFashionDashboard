@@ -66,7 +66,9 @@ const buildVariantFormData = (data: ProductVariantUpdatePayload): FormData => {
   } else if (data.price_syp !== undefined) {
     formData.append('price_syp', String(data.price_syp));
   }
-  if (data.quantity !== undefined) formData.append('quantity', String(data.quantity));
+  if (data.quantity != null && !Number.isNaN(Number(data.quantity))) {
+    formData.append('quantity', String(data.quantity));
+  }
   if (data.discount_type !== undefined) {
     formData.append('discount_type', data.discount_type);
     formData.append(

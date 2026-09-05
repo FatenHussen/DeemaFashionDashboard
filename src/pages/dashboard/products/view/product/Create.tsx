@@ -27,15 +27,18 @@ import { useId, useRef, useMemo, useState, useEffect, useCallback } from 'react'
 import { useFetchCurrencies } from '@/pages/dashboard/currencies/hooks/currency';
 import { InfiniteScrollSelect } from '@/shared/components/infinite-scroll-select';
 import { _CategoryApi } from '@/pages/dashboard/categories/api/category.services';
+import { useFetchWarranties } from '@/pages/dashboard/warranties/hooks/warranty';
 import { useFetchCategoryById } from '@/pages/dashboard/categories/hooks/category';
 import { TinyMCEEditorField } from '@/shared/components/tinymce-editor/tinymce-editor';
 import { _SaleCountryApi } from '@/pages/dashboard/sale-countries/api/sale-country.services';
 import { useVariantDeleteFlow } from '@/pages/dashboard/products/hooks/use-variant-delete-flow';
+import { ProductFormExtrasTab } from '@/pages/dashboard/products/components/ProductFormExtrasTab';
 import { useFetchCategoryAttributes } from '@/pages/dashboard/categories/hooks/category-attribute';
 import { useFetchProductExtraDetails } from '@/pages/dashboard/categories/hooks/product-extra-detail';
 import { ProductVariantsCardList } from '@/pages/dashboard/products/components/ProductVariantsCardList';
 import { VariantDeleteImpactDialog } from '@/pages/dashboard/products/components/VariantDeleteImpactDialog';
 import { CategoryLeafCascadeFields } from '@/pages/dashboard/categories/components/category-leaf-cascade-fields';
+import { ProductFormBoughtWithSection } from '@/pages/dashboard/products/components/ProductFormBoughtWithSection';
 import {
   ProductSchema,
   type ProductFormValues,
@@ -68,10 +71,8 @@ import { paths } from 'src/routes/paths';
 
 import { CONFIG } from 'src/global-config';
 import { Label } from 'src/shared/components/label';
-import { MultiSelect } from 'src/shared/ui/multi-select';
 import { Box, Tab, Tabs, Button, Typography } from 'src/shared/ui';
 import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
-import { RHFBadgeSelector } from 'src/shared/components/hook-form/rhf-badge-selector';
 import { RHFInfiniteSelect } from 'src/shared/components/hook-form/rhf-infinite-select';
 
 import { ProductShopVariantsSection } from './ProductShopVariantsSection';
@@ -134,6 +135,20 @@ function isDeepDirty(value: unknown): boolean {
 
 function generateRandomSku(): string {
   return 'SKU-' + Math.random().toString(36).substring(2, 10).toUpperCase();
+}
+
+function makeBlankVariantRow(): GeneratedVariantRow {
+  return {
+    attributes_values_ids: [],
+    sku: '',
+    discount_type: 'none',
+    images: [],
+    existing_images_ids: [],
+    model: '',
+    barcode: '',
+    is_trend: 0,
+    is_active: 1,
+  };
 }
 
 type CategoryDetailValueOption = { en: string; ar: string };
@@ -266,38 +281,6 @@ function resolveUsdOrSyp(
     usd: hasUsd ? Number(usd) : undefined,
     syp: !hasUsd && hasSyp ? Number(syp) : undefined,
   };
-}
-
-/** Live UI calc — do not send; backend recomputes after save. Fixed discount is USD. */
-function priceAfterDiscount(
-  price: number | null | undefined,
-  discountType: string | null | undefined,
-  discount: number | null | undefined
-): number {
-  const p = Number(price) || 0;
-  const d = Number(discount) || 0;
-  if (!p || !discountType || discountType === 'none' || d <= 0) return p;
-  if (discountType === 'percentage') return Math.round((p - p * (d / 100)) * 100) / 100;
-  if (discountType === 'fixed') return Math.max(0, Math.round((p - d) * 100) / 100);
-  return p;
-}
-
-function formatLiveAfterDiscountPreview(
-  priceUsd: number | null | undefined,
-  discountType: string | null | undefined,
-  discount: number | null | undefined,
-  sypRate: number | null | undefined
-): string {
-  const usd = Number(priceUsd);
-  if (!Number.isFinite(usd) || (usd === 0 && (priceUsd == null || priceUsd === undefined))) {
-    return '';
-  }
-  const afterUsd = priceAfterDiscount(usd, discountType, discount);
-  const parts: string[] = [`$${afterUsd}`];
-  if (sypRate != null && sypRate > 0) {
-    parts.push(`${usdToLocalAmount(afterUsd, sypRate)} SYP`);
-  }
-  return parts.join(' · ');
 }
 
 /** Platform vendor id sent when "For me" is selected. */
@@ -821,7 +804,16 @@ export default function CreatePage() {
     }));
   }, [unitsListResponse?.data?.items]);
 
-  const { data: iconsListResponse } = useQuery({
+  const { data: warrantiesListResponse } = useFetchWarranties({ page: 1, per_page: 500, is_active: 1 });
+  const warrantySelectOptions = useMemo(() => {
+    const items = warrantiesListResponse?.data?.items ?? [];
+    return items.map((w) => ({
+      id: w.id,
+      label: formatTranslated(w.name as { en?: string; ar?: string }),
+    }));
+  }, [warrantiesListResponse?.data?.items]);
+
+  const { data: iconsListResponse, isLoading: isLoadingIcons } = useQuery({
     queryKey: ['icons', 'product-form'],
     queryFn: () =>
       axiosInstance.get(apiRoutes.icon.list, { params: { per_page: 200 } }).then((r) => r.data),
@@ -858,9 +850,9 @@ export default function CreatePage() {
     discount_type: 'none',
     cost_price: undefined,
     cost_price_syp: undefined,
-    quantity: undefined as unknown as number,
+    product_number: '',
     unit_id: 0,
-    warranty_period: undefined,
+    warranty_id: 0,
     sku: '',
     model: '',
     barcode: '',
@@ -1065,15 +1057,7 @@ export default function CreatePage() {
   const saleChannelWatch = watch('sale_channel');
   const isShopSaleChannel =
     saleChannelWatch === 'shop' || isRestaurantToggle === true;
-  const discountTypeWatch = watch('discount_type');
-  const discountWatch = watch('discount');
   const sypRate = sypCurrency ? parseCurrencyRate(sypCurrency) : null;
-  const liveAfterDiscountPreview = formatLiveAfterDiscountPreview(
-    priceWatch,
-    discountTypeWatch,
-    discountWatch,
-    sypRate
-  );
   /** Optional vendor filter for shop-channel branch list (0 = all vendors). */
   const shopVendorFilterId = Number(watchedVendorId) || 0;
   const { data: shopsResponse } = useFetchShops(1, 100, {
@@ -1187,36 +1171,7 @@ export default function CreatePage() {
       // Seed the sole variant so create/update always has a row to send with shop_variants.
       const existingVariants = getValues('variants') ?? [];
       if (!existingVariants[0]) {
-        const price = getValues('price');
-        const quantity = getValues('quantity');
-        setValue('variants', [
-          {
-            attributes_values_ids: [],
-            images: [],
-            existing_images_ids: [],
-            price: price != null && !Number.isNaN(Number(price)) ? Number(price) : undefined,
-            quantity:
-              quantity != null && !Number.isNaN(Number(quantity)) ? Number(quantity) : undefined,
-            is_trend: 0,
-            is_active: 1,
-            discount_type: 'none' as const,
-          },
-        ]);
-      } else {
-        if (getValues('variants.0.price') == null) {
-          const price = getValues('price');
-          setValue(
-            'variants.0.price',
-            price != null && !Number.isNaN(Number(price)) ? Number(price) : undefined
-          );
-        }
-        if (getValues('variants.0.quantity') == null) {
-          const quantity = getValues('quantity');
-          setValue(
-            'variants.0.quantity',
-            quantity != null && !Number.isNaN(Number(quantity)) ? Number(quantity) : undefined
-          );
-        }
+        setValue('variants', [makeBlankVariantRow()]);
       }
     },
     [getValues, setValue]
@@ -1266,10 +1221,6 @@ export default function CreatePage() {
     (categoryAttributesAll?.data as { items?: unknown[]; data?: unknown[] } | undefined)?.items ??
     (categoryAttributesAll?.data as { data?: unknown[] } | undefined)?.data ??
     [];
-
-  /** Category has attribute-based variants — price/discount/qty live on the Variants tab, not Basic. */
-  const usesVariantPricing =
-    !restaurantMode && mainCategoryId > 0 && categoryAttributes.length > 0;
 
   // Fetch category details filtered by category_id
   const { data: categoryDetailsResponse } = useQuery({
@@ -1671,12 +1622,10 @@ export default function CreatePage() {
           (p.cost_price != null && !Number.isNaN(Number(p.cost_price)) && sypCurrency
             ? usdToLocalAmount(Number(p.cost_price), parseCurrencyRate(sypCurrency))
             : undefined),
-        quantity:
-          p.quantity != null && String(p.quantity).trim() !== '' && !Number.isNaN(Number(p.quantity))
-            ? Number(p.quantity)
-            : undefined,
+        product_number: p.product_number != null ? String(p.product_number) : '',
         unit_id: p.unit_id != null && Number(p.unit_id) > 0 ? Number(p.unit_id) : 0,
-        warranty_period: p.warranty_period != null ? Number(p.warranty_period) : undefined,
+        warranty_id:
+          Number((p as ProductDetailData).warranty_id ?? (p as ProductDetailData).warranty?.id) || 0,
         sku: p.sku ?? '',
         model: p.model ?? '',
         barcode: p.barcode ?? '',
@@ -2110,16 +2059,12 @@ export default function CreatePage() {
         };
       }
 
-      // Keep existing rows (by id) even without attributes — dropping them would
-      // soft-delete the backend default variant and break shop links. New rows
-      // still need at least one attribute value, except the restaurant SKU.
+      // Keep every card the admin added. Do not inject a default empty row on create.
       const rawVariantRows = payload.variants ?? [];
       const keepVariantRow = (v: (typeof rawVariantRows)[number], origIdx: number) => {
         const hasId = v.id != null && Number(v.id) > 0;
-        const hasAttrs =
-          Array.isArray(v.attributes_values_ids) && v.attributes_values_ids.length > 0;
         if (restaurantMode) return origIdx === 0 || hasId;
-        return hasId || hasAttrs;
+        return true;
       };
       const validVariantEntries = rawVariantRows
         .map((v, origIdx) => ({ row: v, origIdx }))
@@ -2143,9 +2088,10 @@ export default function CreatePage() {
         : validVariants;
       let shopVariantsForPayload = remappedShopVariants;
 
-      // Restaurant products have no attribute-based variants. If the seeded row
-      // is missing, send one minimal SKU and rebind shop rows to index 0.
-      if (restaurantMode && variantsForPayload.length === 0) {
+      // Restaurant products have no attribute-based variants. If the shop SKU row
+      // is missing after a branch was selected, send one minimal variant.
+      const hasShopLink = (payload.shop_variants ?? []).some((sv) => Number(sv.shop_id) > 0);
+      if (restaurantMode && variantsForPayload.length === 0 && hasShopLink) {
         const row0 = rawVariantRows[0] as
           | {
               id?: number;
@@ -2167,7 +2113,7 @@ export default function CreatePage() {
             attributes_values_ids: [],
             ...(rowSale.usd !== undefined ? { price: rowSale.usd } : {}),
             ...(rowSale.syp !== undefined ? { price_syp: rowSale.syp } : {}),
-            quantity: toNum(row0?.quantity) ?? toNum(payload.quantity),
+            ...(toNum(row0?.quantity) != null ? { quantity: toNum(row0?.quantity) } : {}),
             existing_images_ids: Array.isArray(row0?.existing_images_ids)
               ? row0!.existing_images_ids
               : [],
@@ -2222,6 +2168,7 @@ export default function CreatePage() {
           (cd) => cd.category_detail_id && cd.category_detail_id > 0
         ),
         unit_id: payload.unit_id && payload.unit_id > 0 ? payload.unit_id : undefined,
+        warranty_id: payload.warranty_id && payload.warranty_id > 0 ? payload.warranty_id : undefined,
         ...(restaurantMode && {
           brand_id: undefined,
           sku: null,
@@ -2269,8 +2216,11 @@ export default function CreatePage() {
         price_currency_id: _omitPriceCurrencyId,
         price_local: _omitPriceLocal,
         is_restaurant: _omitIsRestaurant,
+        quantity: _omitProductQuantity,
         ...apiPayload
-      } = uploadPayload;
+      } = uploadPayload as typeof uploadPayload & { quantity?: number };
+
+      delete (apiPayload as { quantity?: number }).quantity;
 
       const stripSeoIfNoFile = (p: Record<string, unknown>) => {
         if (!(p.seo_image instanceof File)) {
@@ -2373,6 +2323,10 @@ export default function CreatePage() {
     setValue('bought_with', next, { shouldDirty: true });
   };
 
+  const clearBoughtWith = () => {
+    setValue('bought_with', [], { shouldDirty: true });
+  };
+
   const watchedIconIds = watch('icon_ids') ?? [];
   const toggleIcon = (iconId: number) => {
     const current = watchedIconIds;
@@ -2384,12 +2338,6 @@ export default function CreatePage() {
 
   const [productFormTab, setProductFormTab] = useState<string>('basic');
 
-  useEffect(() => {
-    if (restaurantMode && productFormTab === 'variants') {
-      setProductFormTab('basic');
-    }
-  }, [restaurantMode, productFormTab]);
-
   /** Index of the variant row currently being created via PUT /products/{id}. */
   const [variantCreateBusyIdx, setVariantCreateBusyIdx] = useState<number | null>(null);
   /** Field-array index of the shop-variant row currently being created via PUT /products/{id}. */
@@ -2400,11 +2348,6 @@ export default function CreatePage() {
       const variantId = getValues(`variants.${variantIndex}.id`);
       const isTrendChecked = Number(getValues(`variants.${variantIndex}.is_trend`)) === 1;
       const isActiveChecked = Number(getValues(`variants.${variantIndex}.is_active`) ?? 1) === 1;
-      const attrIds = getValues(`variants.${variantIndex}.attributes_values_ids`) || [];
-      if (!variantId && (!Array.isArray(attrIds) || attrIds.length === 0)) {
-        toast.error(t('form.variantAttributesRequired'));
-        return;
-      }
 
       // Create product: variants stay in form state until POST /products (spec §2).
       if (!id) {
@@ -2440,6 +2383,9 @@ export default function CreatePage() {
       const vDiscRaw = getValues(`variants.${variantIndex}.discount`);
       const vDiscVal =
         vDiscRaw == null || vDiscRaw === ('' as any) ? undefined : Number(vDiscRaw);
+      const attrIds = (getValues(`variants.${variantIndex}.attributes_values_ids`) ?? [])
+        .map(Number)
+        .filter((n) => Number.isFinite(n) && n > 0);
 
       if (variantId) {
         try {
@@ -2456,7 +2402,7 @@ export default function CreatePage() {
               is_active: isActiveChecked ? 1 : 0,
               price: savePriceVal,
               price_syp: savePriceSypVal,
-              quantity: quantityVal,
+              ...(quantityVal != null ? { quantity: quantityVal } : {}),
               discount_type: vDiscType,
               discount: vDiscType === 'none' ? 0 : vDiscVal,
             },
@@ -2559,14 +2505,28 @@ export default function CreatePage() {
           value={productFormTab}
           onChange={(v) => setProductFormTab(String(v))}
           variant="scrollable"
-          className="mb-6"
+          className="mb-6 w-full gap-1 rounded-xl border border-border/60 bg-muted/60 p-1.5"
         >
-          <Tab value="basic" label={t('form.productFormTabBasic')} />
-          {!restaurantMode && (
-            <Tab value="variants" label={t('form.productFormTabVariants')} />
-          )}
-          <Tab value="seo" label={t('form.productFormTabSeo')} />
-          <Tab value="extras" label={t('form.productFormTabExtras')} />
+          <Tab
+            value="basic"
+            icon={<Iconify icon="solar:box-minimalistic-bold" width={16} />}
+            label={t('form.productFormTabBasic')}
+          />
+          <Tab
+            value="variants"
+            icon={<Iconify icon="solar:layers-bold" width={16} />}
+            label={t('form.productFormTabVariants')}
+          />
+          <Tab
+            value="seo"
+            icon={<Iconify icon="solar:graph-up-bold" width={16} />}
+            label={t('form.productFormTabSeo')}
+          />
+          <Tab
+            value="extras"
+            icon={<Iconify icon="solar:medal-ribbons-star-bold" width={16} />}
+            label={t('form.productFormTabExtras')}
+          />
         </Tabs>
 
         {hasSelectedProductType && productFormTab === 'basic' && (
@@ -2816,9 +2776,33 @@ export default function CreatePage() {
             </Box>
           </Box>
 
-          {/* SKU, Model, Barcode — three columns */}
+          {/* Product number, SKU, Model, Barcode — optional */}
           {!restaurantMode && (
-            <Box className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Box className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Box className="group">
+                <Box className="flex items-center gap-2 mb-2">
+                  <Iconify icon="solar:hashtag-bold" className="text-primary" width={20} />
+                  <Typography variant="subtitle2" className="font-semibold text-foreground">
+                    {t('form.productDetailsProductNumber')}
+                  </Typography>
+                </Box>
+                <Controller
+                  name="product_number"
+                  control={control}
+                  render={({ field, fieldState: { error } }) => (
+                    <div>
+                      <input
+                        {...field}
+                        value={field.value ?? ''}
+                        type="text"
+                        placeholder={t('form.productNumberPlaceholder')}
+                        className={fieldInputClass(!!error)}
+                      />
+                      <FieldErrorText message={error?.message} />
+                    </div>
+                  )}
+                />
+              </Box>
               <Box className="group">
                 <Box className="flex items-center gap-2 mb-2">
                   <Iconify icon="solar:tag-bold" className="text-primary" width={20} />
@@ -2985,9 +2969,6 @@ export default function CreatePage() {
             />
             {saleChannelWatch === 'platform' ? (
               <Box className="mt-3 space-y-2">
-                <Typography variant="caption" className="text-muted-foreground block">
-                  {t('form.saleChannelPlatformHint')}
-                </Typography>
                 <Box>
                   <Typography variant="caption" className="text-muted-foreground mb-1 block">
                     {t('form.productDeliveryTime')}
@@ -2999,9 +2980,6 @@ export default function CreatePage() {
                     className={`${inputCls} bg-muted/40 text-muted-foreground cursor-default`}
                     value={t('form.variantDeliveryTimeAuto')}
                   />
-                  <Typography variant="caption" className="text-muted-foreground mt-1 block">
-                    {t('form.saleChannelPlatformDeliveryHint')}
-                  </Typography>
                 </Box>
               </Box>
             ) : null}
@@ -3248,301 +3226,10 @@ export default function CreatePage() {
         </Box>
         )}
 
-        {/* ─── Pricing & stock (2 compact rows) ─ */}
+        {/* ─── Unit · warranty · expiry ─ */}
         <Box className="rounded-xl border border-border bg-card p-6 space-y-4">
-          <Box className="flex flex-col gap-1">
-            <Box className="flex items-center gap-2">
-              <Iconify icon="solar:dollar-bold" className="text-primary" width={20} />
-              <Typography variant="subtitle2" className="font-semibold text-foreground">
-                {t('form.productPriceOptionalSection')}
-              </Typography>
-            </Box>
-            <Typography variant="caption" className="text-muted-foreground max-w-3xl">
-              {usesVariantPricing
-                ? t('form.productPricingOnVariantsHint')
-                : t('form.productPriceOptionalHint')}
-            </Typography>
-          </Box>
-
-          {!usesVariantPricing ? (
-          <>
-          {/* Row 1: $ · SYP · discount type · discount · after · cost $ · cost SYP */}
-          <Box className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3 items-start">
-            <Box className="group min-w-0">
-              <Typography variant="caption" className="text-muted-foreground mb-1 block">
-                {t('form.productPriceUsdLabel')}
-              </Typography>
-              <Controller
-                name="price"
-                control={control}
-                render={({ field, fieldState: { error } }) => (
-                  <div>
-                    <input
-                      {...field}
-                      type="number"
-                      placeholder=""
-                      value={field.value === undefined || field.value === null ? '' : field.value}
-                      onChange={(e) => {
-                        const next = toTwoDecimalNumber(e.target.value);
-                        field.onChange(next);
-                        if (sypCurrency) {
-                          if (next == null) {
-                            setValue('price_syp', undefined, { shouldDirty: true });
-                          } else {
-                            setValue(
-                              'price_syp',
-                              usdToLocalAmount(next, parseCurrencyRate(sypCurrency)),
-                              { shouldDirty: true }
-                            );
-                          }
-                        }
-                      }}
-                      className={fieldInputClass(!!error)}
-                      step="any"
-                      min={0}
-                    />
-                    <FieldErrorText message={error?.message} />
-                  </div>
-                )}
-              />
-            </Box>
-            <Box className="group min-w-0">
-              <Typography variant="caption" className="text-muted-foreground mb-1 block">
-                {t('form.productPriceSypLabel')}
-              </Typography>
-              <Controller
-                name="price_syp"
-                control={control}
-                render={({ field, fieldState: { error } }) => (
-                  <div>
-                    <input
-                      type="number"
-                      placeholder=""
-                      value={field.value === undefined || field.value === null ? '' : field.value}
-                      onChange={(e) => {
-                        const next = toTwoDecimalNumber(e.target.value);
-                        field.onChange(next);
-                        if (sypCurrency) {
-                          if (next == null) {
-                            setValue('price', undefined, {
-                              shouldValidate: true,
-                              shouldDirty: true,
-                            });
-                          } else {
-                            // Keep 6 decimal places — high SYP rates lose cents if rounded to 2dp.
-                            setValue(
-                              'price',
-                              localAmountToUsd(next, parseCurrencyRate(sypCurrency)),
-                              { shouldValidate: true, shouldDirty: true }
-                            );
-                          }
-                        }
-                      }}
-                      onBlur={field.onBlur}
-                      name={field.name}
-                      ref={field.ref}
-                      className={fieldInputClass(!!error)}
-                      step="0.01"
-                      min={0}
-                    />
-                    <FieldErrorText message={error?.message} />
-                  </div>
-                )}
-              />
-            </Box>
-            <Box className="group min-w-0">
-              <Typography variant="caption" className="text-muted-foreground mb-1 block">
-                {t('form.productDiscountType')}
-              </Typography>
-              <Controller
-                name="discount_type"
-                control={control}
-                render={({ field, fieldState: { error } }) => (
-                  <div>
-                    <select
-                      {...field}
-                      className={fieldInputClass(!!error)}
-                      onChange={(e) => {
-                        field.onChange(e.target.value);
-                        if (e.target.value === 'none') {
-                          setValue('discount', undefined, { shouldDirty: true });
-                        }
-                      }}
-                    >
-                      <option value="none">{t('form.discountTypeNone')}</option>
-                      <option value="percentage">{t('form.discountTypePercentage')}</option>
-                      <option value="fixed">{t('form.discountTypeFixed')}</option>
-                    </select>
-                    <FieldErrorText message={error?.message} />
-                  </div>
-                )}
-              />
-            </Box>
-            <Box className="group min-w-0">
-              <Typography variant="caption" className="text-muted-foreground mb-1 block">
-                {t('form.productDiscountValue')}
-              </Typography>
-              <Controller
-                name="discount"
-                control={control}
-                render={({ field, fieldState: { error } }) => (
-                  <div>
-                    <input
-                      {...field}
-                      type="number"
-                      placeholder=""
-                      disabled={discountTypeWatch === 'none'}
-                      value={
-                        field.value === undefined || field.value === null || field.value === 0
-                          ? ''
-                          : field.value
-                      }
-                      min={0}
-                      max={discountTypeWatch === 'percentage' ? 100 : undefined}
-                      onChange={(e) => field.onChange(toTwoDecimalNumber(e.target.value))}
-                      className={fieldInputClass(!!error)}
-                      step="0.01"
-                    />
-                    <FieldErrorText message={error?.message} />
-                  </div>
-                )}
-              />
-            </Box>
-            <Box className="group min-w-0">
-              <Typography variant="caption" className="text-muted-foreground mb-1 block">
-                {t('form.productPriceAfterDiscountReadonly')}
-              </Typography>
-              <input
-                type="text"
-                readOnly
-                tabIndex={-1}
-                value={liveAfterDiscountPreview}
-                placeholder="—"
-                className={`${fieldInputClass(false)} bg-muted/40 text-muted-foreground cursor-default`}
-              />
-            </Box>
-            <Box className="group min-w-0">
-              <Typography variant="caption" className="text-muted-foreground mb-1 block">
-                {t('form.productCostPriceUsdLabel')}
-              </Typography>
-              <Controller
-                name="cost_price"
-                control={control}
-                render={({ field, fieldState: { error } }) => (
-                  <div>
-                    <input
-                      {...field}
-                      type="number"
-                      placeholder=""
-                      value={field.value === undefined || field.value === null ? '' : field.value}
-                      onChange={(e) => {
-                        const next = toTwoDecimalNumber(e.target.value);
-                        field.onChange(next);
-                        if (sypCurrency) {
-                          if (next == null) {
-                            setValue('cost_price_syp', undefined, { shouldDirty: true });
-                          } else {
-                            setValue(
-                              'cost_price_syp',
-                              usdToLocalAmount(next, parseCurrencyRate(sypCurrency)),
-                              { shouldDirty: true }
-                            );
-                          }
-                        }
-                      }}
-                      className={fieldInputClass(!!error)}
-                      step="any"
-                      min={0}
-                    />
-                    <FieldErrorText message={error?.message} />
-                  </div>
-                )}
-              />
-            </Box>
-            <Box className="group min-w-0">
-              <Typography variant="caption" className="text-muted-foreground mb-1 block">
-                {t('form.productCostPriceSypLabel')}
-              </Typography>
-              <Controller
-                name="cost_price_syp"
-                control={control}
-                render={({ field, fieldState: { error } }) => (
-                  <div>
-                    <input
-                      type="number"
-                      placeholder=""
-                      value={field.value === undefined || field.value === null ? '' : field.value}
-                      onChange={(e) => {
-                        const next = toTwoDecimalNumber(e.target.value);
-                        field.onChange(next);
-                        if (sypCurrency) {
-                          if (next == null) {
-                            setValue('cost_price', undefined, {
-                              shouldValidate: true,
-                              shouldDirty: true,
-                            });
-                          } else {
-                            setValue(
-                              'cost_price',
-                              localAmountToUsd(next, parseCurrencyRate(sypCurrency)),
-                              { shouldValidate: true, shouldDirty: true }
-                            );
-                          }
-                        }
-                      }}
-                      onBlur={field.onBlur}
-                      name={field.name}
-                      ref={field.ref}
-                      className={fieldInputClass(!!error)}
-                      step="0.01"
-                      min={0}
-                    />
-                    <FieldErrorText message={error?.message} />
-                  </div>
-                )}
-              />
-            </Box>
-          </Box>
-          </>
-          ) : null}
-
-          {/* Row 2: quantity · unit · warranty · expiry */}
-          <Box className="grid grid-cols-2 sm:grid-cols-4 gap-3 items-start">
-            {!usesVariantPricing ? (
-            <Box className="group min-w-0">
-              <Typography variant="caption" className="text-muted-foreground mb-1 block">
-                {t('form.productQuantityRequired')}
-              </Typography>
-              <Controller
-                name="quantity"
-                control={control}
-                render={({ field, fieldState: { error } }) => (
-                  <div>
-                    <input
-                      {...field}
-                      type="number"
-                      placeholder=""
-                      value={field.value === undefined || field.value === null ? '' : field.value}
-                      onChange={(e) => {
-                        const raw = e.target.value;
-                        if (raw === '') {
-                          field.onChange(undefined as unknown as ProductFormValues['quantity']);
-                          return;
-                        }
-                        const n = Number(raw);
-                        field.onChange(
-                          (Number.isNaN(n) ? undefined : n) as ProductFormValues['quantity']
-                        );
-                      }}
-                      className={fieldInputClass(!!error)}
-                      min={0}
-                    />
-                    <FieldErrorText message={error?.message} />
-                  </div>
-                )}
-              />
-            </Box>
-            ) : null}
+          {/* unit · warranty · expiry */}
+          <Box className="grid grid-cols-2 sm:grid-cols-3 gap-3 items-start">
             <Box className="group min-w-0">
               <Typography variant="caption" className="text-muted-foreground mb-1 block">
                 {t('form.unitSelectLabel')}
@@ -3574,23 +3261,28 @@ export default function CreatePage() {
             </Box>
             <Box className="group min-w-0">
               <Typography variant="caption" className="text-muted-foreground mb-1 block">
-                {t('form.productWarrantyMonths')}
+                {t('form.warrantySelectLabel')}
               </Typography>
               <Controller
-                name="warranty_period"
+                name="warranty_id"
                 control={control}
                 render={({ field, fieldState: { error } }) => (
                   <div>
-                    <input
-                      {...field}
-                      type="number"
-                      placeholder=""
-                      value={field.value ?? ''}
-                      onChange={(e) =>
-                        field.onChange(e.target.value === '' ? undefined : Number(e.target.value))
-                      }
+                    <select
                       className={fieldInputClass(!!error)}
-                    />
+                      value={!field.value ? '' : String(field.value)}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        field.onChange(v ? Number(v) : 0);
+                      }}
+                    >
+                      <option value="">{t('form.warrantySelectPlaceholder')}</option>
+                      {warrantySelectOptions.map((o) => (
+                        <option key={o.id} value={o.id}>
+                          {o.label}
+                        </option>
+                      ))}
+                    </select>
                     <FieldErrorText message={error?.message} />
                   </div>
                 )}
@@ -3669,11 +3361,6 @@ export default function CreatePage() {
                   </Typography>
                 </div>
                 <FieldErrorText message={error?.message} />
-                {!error && (
-                  <Typography variant="caption" className="text-muted-foreground mt-1 block">
-                    {t('form.productImagesHelper')}
-                  </Typography>
-                )}
                 {(isEditMode && existingMediaIds.length > 0) ||
                 (Array.isArray(value) && value.some((f) => f instanceof File)) ? (
                   <Box className="mt-4 grid grid-cols-4 gap-4">
@@ -3770,8 +3457,8 @@ export default function CreatePage() {
           />
         </Box>
 
-        {/* ─── Instant Delivery ─────────────────────────────────── */}
-        <Box className="group">
+        {/* ─── Instant Delivery + visibility ─────────────────────── */}
+        <Box className="flex flex-wrap gap-6">
           <Controller
             name="is_instant_delivery"
             control={control}
@@ -3789,83 +3476,37 @@ export default function CreatePage() {
               </Label>
             )}
           />
+          <Controller
+            name="is_visible"
+            control={control}
+            render={({ field: { onChange, value } }) => (
+              <Label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={value !== 0}
+                  onChange={(e) => onChange(e.target.checked ? 1 : 0)}
+                  className="w-4 h-4 rounded border-border"
+                />
+                <Typography variant="body2" className="text-foreground">
+                  {t('form.productVisibleInStore')}
+                </Typography>
+              </Label>
+            )}
+          />
         </Box>
 
-        {/* ─── Bought With ──────────────────────────────────────── */}
-        <Box>
-          <Box className="flex items-center gap-2 mb-4">
-            <Iconify icon="solar:shop-bold" className="text-primary" width={20} />
-            <Typography variant="h6" className="font-semibold text-foreground">
-              {t('form.boughtWithTitle')}
-            </Typography>
-          </Box>
-          {!categoryId || Number(categoryId) <= 0 ? (
-            <Typography variant="body2" className="text-muted-foreground">
-              {t('form.selectCategoryFirstBoughtWith')}
-            </Typography>
-          ) : isFetchingBoughtWithList && allProducts.length === 0 ? (
-            <Typography variant="body2" className="text-muted-foreground">
-              {t('loading')}
-            </Typography>
-          ) : allProducts.length === 0 ? (
-            <Typography variant="body2" className="text-muted-foreground">
-              {t('form.noProductsInCategoryBoughtWith')}
-            </Typography>
-          ) : (
-            <>
-            {categoryIdNum > 0 && boughtWithCategoryOptions.length > 0 ? (
-              <Box className="mb-4 rounded-lg border border-border/60 bg-muted/20 p-3">
-                <Typography variant="subtitle2" className="mb-1 font-semibold text-foreground">
-                  {t('form.boughtWithExtraCategoriesLabel')}
-                </Typography>
-                <Typography variant="caption" className="mb-2 block text-muted-foreground">
-                  {t('form.boughtWithExtraCategoriesHelper')}
-                </Typography>
-                <MultiSelect
-                  options={boughtWithCategoryOptions.filter((o) => Number(o.value) !== categoryIdNum)}
-                  value={boughtWithExtraCategoryIds}
-                  onChange={(vals) => setBoughtWithExtraCategoryIds(vals.map((v) => Number(v)))}
-                  placeholder={t('form.boughtWithExtraCategoriesPlaceholder')}
-                  helperText={t('form.boughtWithExtraCategoriesHint')}
-                  fullWidth
-                />
-              </Box>
-            ) : null}
-            <Box className="grid grid-cols-1 gap-2 md:grid-cols-2 max-h-52 overflow-y-auto rounded-lg border border-border p-3 lg:grid-cols-3">
-              {allProducts
-                .filter((p: any) => String(p.id) !== String(id))
-                .map((p: any) => {
-                  const pName =
-                    typeof p.name === 'object' ? p.name?.en ?? p.name?.ar : p.name;
-                  const selected = watchedBoughtWith.includes(Number(p.id));
-                  return (
-                    <Label
-                      key={p.id}
-                      className={`flex min-h-[2.75rem] cursor-pointer items-center gap-2 rounded-lg border p-2 transition-colors ${
-                        selected
-                          ? 'border-primary bg-primary/10'
-                          : 'border-border hover:bg-muted'
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selected}
-                        onChange={() => toggleBoughtWith(Number(p.id))}
-                        className="h-4 w-4 shrink-0"
-                      />
-                      <Typography variant="caption" className="min-w-0 flex-1 text-foreground">
-                        <span className="tabular-nums font-medium" dir="ltr">
-                          #{p.id}
-                        </span>{' '}
-                        <span className="break-words">{pName}</span>
-                      </Typography>
-                    </Label>
-                  );
-                })}
-            </Box>
-            </>
-          )}
-        </Box>
+        <ProductFormBoughtWithSection
+          currentProductId={id}
+          products={allProducts}
+          selectedIds={watchedBoughtWith}
+          onToggle={toggleBoughtWith}
+          onClear={clearBoughtWith}
+          isLoading={isFetchingBoughtWithList && allProducts.length === 0}
+          hasCategory={categoryIdNum > 0}
+          categoryOptions={boughtWithCategoryOptions.filter((o) => Number(o.value) !== categoryIdNum)}
+          extraCategoryIds={boughtWithExtraCategoryIds}
+          onExtraCategoriesChange={setBoughtWithExtraCategoryIds}
+        />
 
         {/* ─── Category Details ─────────────────────────────────── */}
         <Box className="border-t border-border pt-6">
@@ -4347,21 +3988,8 @@ export default function CreatePage() {
           </Box>
         )}
 
-        {!restaurantMode && productFormTab === 'variants' && (
+        {productFormTab === 'variants' && (
           <Box className="space-y-6">
-        {!isEditMode && (
-          <Box className="flex items-start gap-3 p-4 rounded-lg border border-primary/30 bg-primary/5">
-            <Iconify icon="solar:info-circle-bold" className="text-primary shrink-0 mt-0.5" width={20} />
-            <div>
-              <Typography variant="subtitle2" className="font-semibold text-primary">
-                {t('form.variantsTabCreateModeTitle')}
-              </Typography>
-              <Typography variant="caption" className="text-foreground/80">
-                {t('form.variantsTabCreateModeHint')}
-              </Typography>
-            </div>
-          </Box>
-        )}
         <Box className="space-y-5">
           <Box className="flex items-center gap-2">
             <Iconify icon="solar:settings-bold" className="text-primary" width={20} />
@@ -4378,12 +4006,9 @@ export default function CreatePage() {
             <Typography variant="body2" className="text-muted-foreground">
               {t('form.loadingAttributes')}
             </Typography>
-          ) : categoryAttributes.length === 0 ? (
-            <Typography variant="body2" className="text-muted-foreground">
-              {t('form.noAttributesForCategory')}
-            </Typography>
           ) : (
             <>
+              {!restaurantMode && categoryAttributes.length > 0 ? (
               <VariantGeneratorPanel
                 categoryAttributes={categoryAttributes as Array<{
                   id: number;
@@ -4401,6 +4026,19 @@ export default function CreatePage() {
                 t={t}
                 formatAttributeLabel={attributeLabel}
               />
+              ) : !restaurantMode ? (
+                <Box className="flex justify-end">
+                  <Button
+                    type="button"
+                    variant="contained"
+                    size="medium"
+                    onClick={() => appendVariant(makeBlankVariantRow())}
+                  >
+                    <Iconify icon="solar:add-circle-bold" width={18} className="me-1.5" />
+                    {t('form.addVariant')}
+                  </Button>
+                </Box>
+              ) : null}
 
               <ProductVariantsCardList
                   variants={variantsFields}
@@ -4591,54 +4229,12 @@ export default function CreatePage() {
         )}
 
         {productFormTab === 'extras' && (
-          <Box className="space-y-6">
-        {/* ─── Badges ────────────────────────────────────────────── */}
-        <Box className="space-y-4 border-t border-border pt-6">
-          <Typography variant="h6" className="font-semibold text-foreground">
-            {t('form.badgesTitle')}
-          </Typography>
-          <RHFBadgeSelector name="badges" />
-        </Box>
-
-        {/* ─── Icons ─────────────────────────────────────────────── */}
-        <Box className="border-t border-border pt-6">
-          <Typography variant="h6" className="font-semibold text-foreground mb-4">
-            {t('form.iconsTitle')}
-          </Typography>
-          {iconOptions.length === 0 ? (
-            <Typography variant="body2" className="text-muted-foreground">
-              {t('form.noIconsLoaded')}
-            </Typography>
-          ) : (
-            <Box className="flex flex-wrap gap-2">
-              {iconOptions.map((ic: any) => {
-                const iid = Number(ic.id);
-                const label = typeof ic.name === 'object' ? ic.name?.en ?? ic.name?.ar : ic.name;
-                const selected = watchedIconIds.includes(iid);
-                return (
-                  <Label
-                    key={iid}
-                    className={`flex items-center gap-2 cursor-pointer rounded-lg border px-3 py-2 text-sm ${
-                      selected ? 'border-primary bg-primary/10' : 'border-border'
-                    }`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selected}
-                      onChange={() => toggleIcon(iid)}
-                      className="w-4 h-4"
-                    />
-                    {ic.icon || ic.image ? (
-                      <img src={ic.icon || ic.image} alt="" className="w-6 h-6 object-contain" />
-                    ) : null}
-                    <span>{label ?? `#${iid}`}</span>
-                  </Label>
-                );
-              })}
-            </Box>
-          )}
-        </Box>
-          </Box>
+          <ProductFormExtrasTab
+            iconOptions={iconOptions}
+            selectedIconIds={watchedIconIds}
+            onToggleIcon={toggleIcon}
+            isLoadingIcons={isLoadingIcons}
+          />
         )}
 
         {/* Shown before any saved variant is deleted — lists what the delete touches. */}

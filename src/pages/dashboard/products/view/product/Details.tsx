@@ -1625,8 +1625,12 @@ export default function DetailsPage() {
                   emptyLabel={na}
                 />
                 <ProductDetailsDenseRow
-                  label={t('form.productDetailsWarrantyMonths')}
-                  value={product.warranty_period ?? undefined}
+                  label={t('form.productDetailsWarranty')}
+                  value={(() => {
+                    const w = product.warranty;
+                    if (w?.name) return formatTranslated(w.name as any);
+                    return undefined;
+                  })()}
                   emptyLabel={na}
                 />
               </ProductDetailsPricingPanel>

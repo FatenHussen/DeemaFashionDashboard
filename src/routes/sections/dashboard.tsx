@@ -59,6 +59,8 @@ const BrandDetailsPage = lazyWithRetry(() => import('@/pages/dashboard/products/
 
 const UnitIndexPage = lazyWithRetry(() => import('@/pages/dashboard/units/view/Index'));
 const UnitCreatePage = lazyWithRetry(() => import('@/pages/dashboard/units/view/Create'));
+const WarrantyIndexPage = lazyWithRetry(() => import('@/pages/dashboard/warranties/view/Index'));
+const WarrantyCreatePage = lazyWithRetry(() => import('@/pages/dashboard/warranties/view/Create'));
 
 const ProductIndexPage = lazyWithRetry(() => import('@/pages/dashboard/products/view/product/Index'));
 const ProductCreatePage = lazyWithRetry(() => import('@/pages/dashboard/products/view/product/Create'));
@@ -819,6 +821,36 @@ export const dashboardRoutes: RouteObject[] = [
         element: (
           <RequirePermission permission="unit.update">
             <UnitCreatePage />
+          </RequirePermission>
+        ),
+      },
+    ],
+  },
+  {
+    path: 'products/warranties',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: (
+          <RequirePermission permission="warranty.view">
+            <WarrantyIndexPage />
+          </RequirePermission>
+        ),
+        index: true,
+      },
+      {
+        path: 'create',
+        element: (
+          <RequirePermission permission="warranty.create">
+            <WarrantyCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'update/:id',
+        element: (
+          <RequirePermission permission="warranty.update">
+            <WarrantyCreatePage />
           </RequirePermission>
         ),
       },

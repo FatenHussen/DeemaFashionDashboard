@@ -60,6 +60,10 @@ export const queryKeys = {
     list: (params?: Record<string, unknown>) => ['unit', 'list', params] as const,
     details: (id: number | string) => ['unit', 'details', id] as const,
   },
+  warranty: {
+    list: (params?: Record<string, unknown>) => ['warranty', 'list', params] as const,
+    details: (id: number | string) => ['warranty', 'details', id] as const,
+  },
   // Product query keys (admin `/admin/products` list filters)
   product: {
     list: (params?: Record<string, unknown>) => ['product', 'list', params] as const,

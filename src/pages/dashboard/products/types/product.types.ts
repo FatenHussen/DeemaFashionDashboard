@@ -95,8 +95,14 @@ export interface ProductDetailData {
   /** Aggregated sellable stock when API provides it (may differ from `quantity`). */
   stock?: number | null;
   max_purchase_quantity?: number | null;
-  unit?: string | { id?: number; name?: string | { en: string; ar: string } } | null;
+    unit?: string | { id?: number; name?: string | { en: string; ar: string } } | null;
   warranty_period?: number | null;
+  warranty_id?: number | null;
+  warranty?: {
+    id: number;
+    name?: string | { en?: string; ar?: string } | null;
+    description?: string | { en?: string; ar?: string } | null;
+  } | null;
   sku: string | null;
   model: string | null;
   barcode: string | null;
@@ -231,9 +237,12 @@ export interface ProductCreateUpdatePayload {
   cost_price?: number;
   /** Cost in SYP — converted server-side when `cost_price` is omitted. */
   cost_price_syp?: number;
-  quantity: number;
+  /** Product-level stock is not used. Send `variants[].quantity` only. */
+  quantity?: number;
+  /** Optional unique product code (رقم المنتج). */
+  product_number?: string;
   unit_id?: number;
-  warranty_period?: number;
+  warranty_id?: number;
   sku?: string;
   model?: string;
   barcode?: string;

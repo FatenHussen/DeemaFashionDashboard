@@ -130,6 +130,8 @@ export type ProductVariantInlineRowProps = {
   onSave: () => void | Promise<void>;
   isSaving: boolean;
   isDeleting: boolean;
+  isExpanded: boolean;
+  onToggle: () => void;
   t: TFunction;
 };
 
@@ -165,6 +167,8 @@ export function ProductVariantInlineRow({
   onSave,
   isSaving,
   isDeleting,
+  isExpanded,
+  onToggle,
   t,
 }: ProductVariantInlineRowProps) {
   const variantRowErrors = errors.variants?.[variantIndex];
@@ -177,16 +181,32 @@ export function ProductVariantInlineRow({
 
   return (
     <Box className="overflow-hidden rounded-xl border border-border/60 bg-card shadow-sm">
-      <Box className="flex flex-wrap items-center justify-between gap-3 border-b border-border/40 bg-muted/15 px-5 py-3">
-        <Box className="min-w-0 flex-1">
-          {valueRefs.length > 0 ? (
-            <VariantAttributeChain valueRefs={valueRefs} />
-          ) : (
-            <Typography variant="body2" className="text-muted-foreground">
-              {t('form.variantSummaryIncomplete')}
-            </Typography>
-          )}
-        </Box>
+      <Box
+        className={`flex flex-wrap items-center justify-between gap-3 bg-muted/15 px-5 py-3 ${
+          isExpanded ? 'border-b border-border/40' : ''
+        }`}
+      >
+        <button
+          type="button"
+          onClick={onToggle}
+          className="flex min-w-0 flex-1 items-center gap-2 text-start"
+          aria-expanded={isExpanded}
+        >
+          <Iconify
+            icon={isExpanded ? 'solar:alt-arrow-up-bold' : 'solar:alt-arrow-down-bold'}
+            width={18}
+            className="shrink-0 text-muted-foreground"
+          />
+          <Box className="min-w-0 flex-1">
+            {valueRefs.length > 0 ? (
+              <VariantAttributeChain valueRefs={valueRefs} />
+            ) : (
+              <Typography variant="body2" className="font-medium text-foreground">
+                {t('form.variantOption', { n: variantIndex + 1 })}
+              </Typography>
+            )}
+          </Box>
+        </button>
         <Box className="flex items-center gap-2 shrink-0">
           <VariantStatusBadge
             active={isActive}
@@ -207,12 +227,10 @@ export function ProductVariantInlineRow({
         </Box>
       </Box>
 
+      {isExpanded ? (
+        <>
       <Box className="space-y-4 p-5">
-        <Box className="space-y-3 border-t border-border/25 pt-1">
-          <Typography variant="caption" className="block text-xs font-semibold text-foreground">
-            {t('form.variantBasicInfoSectionTitle')}
-          </Typography>
-
+        <Box className="space-y-3">
           {/* Pricing & discount */}
           <Box
             className={`grid grid-cols-2 gap-3 sm:grid-cols-3 ${
@@ -730,6 +748,8 @@ export function ProductVariantInlineRow({
             : t('form.createVariant')}
         </Button>
       </Box>
+        </>
+      ) : null}
     </Box>
   );
 }

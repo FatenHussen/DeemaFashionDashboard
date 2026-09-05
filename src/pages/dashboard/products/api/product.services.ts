@@ -105,7 +105,7 @@ const appendVariantRows = (
     } else if (cleaned.price_syp !== undefined) {
       formData.append(`variants[${vIndex}][price_syp]`, String(cleaned.price_syp));
     }
-    if (cleaned.quantity !== undefined) {
+    if (cleaned.quantity != null && !Number.isNaN(Number(cleaned.quantity))) {
       formData.append(`variants[${vIndex}][quantity]`, String(cleaned.quantity));
     }
     if (cleaned.discount_type !== undefined) {
@@ -167,7 +167,9 @@ const buildProductFormData = (data: ProductCreateUpdatePayload): FormData => {
   ) {
     formData.append('price_syp', String(data.price_syp));
   }
-  formData.append('quantity', data.quantity.toString());
+  if (data.product_number != null && String(data.product_number).trim() !== '') {
+    formData.append('product_number', String(data.product_number).trim());
+  }
   formData.append('is_instant_delivery', data.is_instant_delivery.toString());
 
   formData.append('is_visible', String(data.is_visible ?? 1));
@@ -211,8 +213,10 @@ const buildProductFormData = (data: ProductCreateUpdatePayload): FormData => {
   if (data.unit_id != null && data.unit_id > 0) {
     formData.append('unit_id', String(data.unit_id));
   }
-  if (data.warranty_period !== undefined && data.warranty_period !== null) {
-    formData.append('warranty_period', String(data.warranty_period));
+  if (data.warranty_id != null && data.warranty_id > 0) {
+    formData.append('warranty_id', String(data.warranty_id));
+  } else if (data.id != null) {
+    formData.append('warranty_id', '');
   }
 
   formData.append('full_description[en]', data.full_description?.en ?? '');
