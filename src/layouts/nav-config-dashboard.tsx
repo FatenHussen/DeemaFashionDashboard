@@ -1,10 +1,10 @@
 import type { TFunction } from 'i18next';
 import type { NavSectionProps } from 'src/shared/components/nav-section';
 
+import { WARRANTY_PERMISSION } from '@/pages/dashboard/warranties/permissions';
 import { FLASH_SALE_PERMISSION } from '@/pages/dashboard/flash-sales/permissions';
 import { NAV_MENU_ITEM_VIEW_ANY } from '@/pages/dashboard/nav-menu-items/permissions';
 import { CONTACT_METHOD_VIEW_ANY } from '@/pages/dashboard/contact-methods/permissions';
-import { WARRANTY_PERMISSION } from '@/pages/dashboard/warranties/permissions';
 
 import { paths } from 'src/routes/paths';
 

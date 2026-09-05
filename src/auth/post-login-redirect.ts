@@ -1,7 +1,8 @@
-import { toPermissionString } from 'src/auth/permissions';
 import { paths } from 'src/routes/paths';
 
 import { apiRoutes, axiosInstance } from 'src/api';
+
+import { toPermissionString } from 'src/auth/permissions';
 
 function pickUserFromAuthPayload(payload: any): any | null {
   if (!payload || typeof payload !== 'object') return null;
@@ -19,7 +20,7 @@ function pickUserFromAuthPayload(payload: any): any | null {
  */
 export function extractPermissionsFromLoginResponse(
   user: any,
-  responseData?: { data?: any }
+  responseData?: { data?: any; permissions?: unknown }
 ): string[] {
   const result = new Set<string>();
 

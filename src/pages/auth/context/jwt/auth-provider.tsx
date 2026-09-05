@@ -4,7 +4,8 @@ import { useSetState } from 'minimal-shared/hooks';
 import { useMemo, useEffect, useCallback } from 'react';
 
 import { apiRoutes, axiosInstance } from 'src/api';
-import { extractPermissionsFromLoginResponse, mergeAuthUser } from 'src/auth/post-login-redirect';
+
+import { mergeAuthUser, extractPermissionsFromLoginResponse } from 'src/auth/post-login-redirect';
 
 import { isValidToken } from './utils';
 import { JWT_STORAGE_KEY } from './constant';

@@ -245,7 +245,7 @@ export interface ProductCreateUpdatePayload {
   /** Optional unique product code (رقم المنتج). */
   product_number?: string;
   unit_id?: number;
-  /** Omit on create when empty; send `null` on update to clear. */
+  /** Omit when empty. Never send `""` — MySQL rejects empty integer. */
   warranty_id?: number | null;
   sku?: string;
   model?: string;

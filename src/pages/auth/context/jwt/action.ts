@@ -1,5 +1,6 @@
-import { mergeAuthUser } from 'src/auth/post-login-redirect';
 import { apiRoutes, axiosInstance } from 'src/api';
+
+import { mergeAuthUser } from 'src/auth/post-login-redirect';
 
 import { setSession } from './utils';
 

@@ -2228,12 +2228,8 @@ export default function CreatePage() {
           (cd) => cd.category_detail_id && cd.category_detail_id > 0
         ),
         unit_id: payload.unit_id && payload.unit_id > 0 ? payload.unit_id : undefined,
-        warranty_id:
-          payload.warranty_id && payload.warranty_id > 0
-            ? payload.warranty_id
-            : isEditMode
-              ? null
-              : undefined,
+        // Empty optional FKs: omit the key (or null). Never send "".
+        warranty_id: payload.warranty_id && payload.warranty_id > 0 ? payload.warranty_id : undefined,
         ...(restaurantMode && {
           brand_id: undefined,
           sku: null,

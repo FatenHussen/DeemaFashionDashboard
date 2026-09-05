@@ -144,6 +144,14 @@ const appendShopVariantRows = (
   });
 };
 
+/** Optional FK select: send a positive id only. Never send `""` (MySQL integer error). */
+const appendOptionalPositiveInt = (formData: FormData, key: string, value: unknown) => {
+  if (value == null || value === '') return;
+  const n = Number(value);
+  if (!Number.isFinite(n) || n <= 0) return;
+  formData.append(key, String(n));
+};
+
 const buildProductFormData = (data: ProductCreateUpdatePayload): FormData => {
   const formData = new FormData();
 
@@ -173,14 +181,7 @@ const buildProductFormData = (data: ProductCreateUpdatePayload): FormData => {
   formData.append('is_instant_delivery', data.is_instant_delivery.toString());
 
   formData.append('is_visible', String(data.is_visible ?? 1));
-  if (data.id != null) {
-    formData.append(
-      'brand_id',
-      data.brand_id != null && data.brand_id > 0 ? String(data.brand_id) : ''
-    );
-  } else if (data.brand_id != null && data.brand_id > 0) {
-    formData.append('brand_id', String(data.brand_id));
-  }
+  appendOptionalPositiveInt(formData, 'brand_id', data.brand_id);
 
   const saleChannel =
     data.sale_channel === 'shop'
@@ -217,27 +218,13 @@ const buildProductFormData = (data: ProductCreateUpdatePayload): FormData => {
   ) {
     formData.append('quantity', String(data.quantity));
   }
-  if (data.unit_id != null && data.unit_id > 0) {
-    formData.append('unit_id', String(data.unit_id));
-  }
-  if (data.warranty_id != null && data.warranty_id > 0) {
-    formData.append('warranty_id', String(data.warranty_id));
-  } else if (data.id != null || data.warranty_id === null) {
-    formData.append('warranty_id', '');
-  }
+  appendOptionalPositiveInt(formData, 'unit_id', data.unit_id);
+  appendOptionalPositiveInt(formData, 'warranty_id', data.warranty_id);
 
   formData.append('full_description[en]', data.full_description?.en ?? '');
   formData.append('full_description[ar]', data.full_description?.ar ?? '');
-  // Origin country is optional — omit when empty (do not send 0).
-  if (data.country_id != null && Number(data.country_id) > 0) {
-    formData.append('country_id', String(data.country_id));
-  } else if (data.id != null) {
-    // Explicit clear on update so the backend can unset origin country.
-    formData.append('country_id', '');
-  }
-  if (data.sale_country_id != null && Number(data.sale_country_id) > 0) {
-    formData.append('sale_country_id', String(data.sale_country_id));
-  }
+  appendOptionalPositiveInt(formData, 'country_id', data.country_id);
+  appendOptionalPositiveInt(formData, 'sale_country_id', data.sale_country_id);
   formData.append('sku', data.sku ?? '');
   formData.append('model', data.model ?? '');
   formData.append('barcode', data.barcode ?? '');

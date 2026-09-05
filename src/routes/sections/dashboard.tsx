@@ -3,8 +3,8 @@ import type { RouteObject } from 'react-router';
 import { Suspense } from 'react';
 import { Outlet } from 'react-router';
 import { RequirePermission } from '@/auth/components/require-permission';
-import { FLASH_SALE_PERMISSION } from '@/pages/dashboard/flash-sales/permissions';
 import { WARRANTY_PERMISSION } from '@/pages/dashboard/warranties/permissions';
+import { FLASH_SALE_PERMISSION } from '@/pages/dashboard/flash-sales/permissions';
 import {
   NAV_MENU_ITEM_VIEW_ANY,
   NAV_MENU_ITEM_CREATE_ANY,
