@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { usePermissions } from '@/auth/hooks/use-permissions';
 import { warrantyColumns, type WarrantyTableItem } from '@/columns/one/warranties/one';
+import { WARRANTY_PERMISSION } from '@/pages/dashboard/warranties/permissions';
 import { useDeleteWarranty, useFetchWarranties } from '@/pages/dashboard/warranties/hooks/warranty';
 
 import { paths } from 'src/routes/paths';
@@ -24,7 +25,7 @@ export default function Page() {
   const { data: response, isLoading } = useFetchWarranties({
     page: currentPage,
     per_page: pageSize,
-    ...(search.trim() ? { search: search.trim() } : {}),
+    ...(search.trim() ? { name: search.trim() } : {}),
   });
   const deleteMutation = useDeleteWarranty();
 
@@ -61,7 +62,7 @@ export default function Page() {
     : { current_page: 1, last_page: 1, per_page: 10, total: 0, from: 0, to: 0 };
 
   const { can } = usePermissions();
-  const canAct = (action: 'create' | 'update' | 'delete') => can(`warranty.${action}`);
+  const canAct = (action: 'create' | 'update' | 'delete') => can(WARRANTY_PERMISSION[action]);
 
   return (
     <>

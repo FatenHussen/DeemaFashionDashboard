@@ -1,13 +1,15 @@
+import { toPermissionString } from 'src/auth/permissions';
 import { paths } from 'src/routes/paths';
 
 import { apiRoutes, axiosInstance } from 'src/api';
 
-/**
- * Normalize a permission value to string (handles objects like { name: "user.view" })
- */
-function toPermissionString(p: unknown): string | null {
-  if (typeof p === 'string' && p) return p;
-  if (p && typeof p === 'object' && typeof (p as any).name === 'string') return (p as any).name;
+function pickUserFromAuthPayload(payload: any): any | null {
+  if (!payload || typeof payload !== 'object') return null;
+  if (payload.data?.user && typeof payload.data.user === 'object') return payload.data.user;
+  if (payload.user && typeof payload.user === 'object') return payload.user;
+  if (payload.data && typeof payload.data === 'object' && !Array.isArray(payload.data)) {
+    return payload.data;
+  }
   return null;
 }
 
@@ -32,10 +34,12 @@ export function extractPermissionsFromLoginResponse(
 
   tryAdd(user?.permissions);
   tryAdd(user?.data?.permissions);
+  tryAdd(responseData?.permissions);
   tryAdd(responseData?.data?.permissions);
   tryAdd(responseData?.data?.user?.permissions);
+  tryAdd(responseData?.data?.data?.permissions);
 
-  const roles = user?.roles ?? responseData?.data?.user?.roles;
+  const roles = user?.roles ?? responseData?.data?.user?.roles ?? responseData?.data?.roles;
   if (Array.isArray(roles)) {
     roles.forEach((r: any) => tryAdd(r?.permissions));
   }
@@ -43,11 +47,37 @@ export function extractPermissionsFromLoginResponse(
   return Array.from(result);
 }
 
+/** Merge login / cached user with `GET /admin/auth/profile` so nav keys like `warranty.view` stay current. */
+export function mergeAuthUser(base: any, profileResponse?: any): any {
+  const profileUser = pickUserFromAuthPayload(profileResponse);
+  const merged = { ...(base ?? {}), ...(profileUser ?? {}) };
+  return {
+    ...merged,
+    permissions: extractPermissionsFromLoginResponse(merged, {
+      data: profileResponse?.data ?? profileResponse,
+    }),
+  };
+}
+
+/**
+ * Fetch the admin profile (`GET /admin/auth/profile`) — source of `profile.permissions`.
+ */
+export async function fetchAdminProfileUser(): Promise<any | null> {
+  const res = await axiosInstance.get(apiRoutes.auth.profile);
+  return mergeAuthUser(pickUserFromAuthPayload(res.data), res.data);
+}
+
 /**
  * Fetch permissions from /me API (used when login response lacks permissions).
  * The /me endpoint typically returns full user data including roles/permissions.
  */
 export async function fetchPermissionsFromMe(): Promise<string[]> {
+  try {
+    const profile = await fetchAdminProfileUser();
+    if (profile?.permissions?.length) return profile.permissions;
+  } catch {
+    /* fall through to /me */
+  }
   try {
     const res = await axiosInstance.get(apiRoutes.auth.me);
     const responseData = res.data;

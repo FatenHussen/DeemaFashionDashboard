@@ -10,6 +10,8 @@ import { apiRoutes, axiosInstance } from '@/api';
 export type WarrantyListQueryParams = {
   page?: number;
   per_page?: number;
+  /** List filter — backend key is `name`, not `search`. */
+  name?: string;
   search?: string;
   is_active?: 0 | 1 | boolean;
 };
@@ -39,7 +41,8 @@ export const _WarrantyApi = {
     const searchParams = new URLSearchParams();
     if (params?.page) searchParams.set('page', String(params.page));
     if (params?.per_page) searchParams.set('per_page', String(params.per_page));
-    if (params?.search?.trim()) searchParams.set('search', params.search.trim());
+    const nameFilter = (params?.name ?? params?.search)?.trim();
+    if (nameFilter) searchParams.set('name', nameFilter);
     if (params?.is_active === true || params?.is_active === 1) searchParams.set('is_active', '1');
     else if (params?.is_active === false || params?.is_active === 0) searchParams.set('is_active', '0');
 

@@ -245,7 +245,8 @@ export interface ProductCreateUpdatePayload {
   /** Optional unique product code (رقم المنتج). */
   product_number?: string;
   unit_id?: number;
-  warranty_id?: number;
+  /** Omit on create when empty; send `null` on update to clear. */
+  warranty_id?: number | null;
   sku?: string;
   model?: string;
   barcode?: string;

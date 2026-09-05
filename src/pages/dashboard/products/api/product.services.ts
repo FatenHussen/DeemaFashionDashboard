@@ -222,7 +222,7 @@ const buildProductFormData = (data: ProductCreateUpdatePayload): FormData => {
   }
   if (data.warranty_id != null && data.warranty_id > 0) {
     formData.append('warranty_id', String(data.warranty_id));
-  } else if (data.id != null) {
+  } else if (data.id != null || data.warranty_id === null) {
     formData.append('warranty_id', '');
   }
 

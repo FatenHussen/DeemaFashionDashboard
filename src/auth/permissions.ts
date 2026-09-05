@@ -1,9 +1,29 @@
 /**
  * Permission helper functions
- * 
+ *
  * These functions safely check if a user has required permissions.
  * They return false if permissions are undefined or null.
  */
+
+/** Normalize a permission value to string (handles `{ name: "warranty.view" }`). */
+export function toPermissionString(p: unknown): string | null {
+  if (typeof p === 'string' && p.trim()) return p.trim();
+  if (p && typeof p === 'object' && typeof (p as { name?: unknown }).name === 'string') {
+    const name = (p as { name: string }).name.trim();
+    return name || null;
+  }
+  return null;
+}
+
+export function asPermissionStrings(permissions: unknown): string[] {
+  if (!Array.isArray(permissions)) return [];
+  const out: string[] = [];
+  for (const p of permissions) {
+    const s = toPermissionString(p);
+    if (s) out.push(s);
+  }
+  return out;
+}
 
 /**
  * Check if user has a specific permission
@@ -12,10 +32,7 @@
  * @returns true if user has the permission, false otherwise
  */
 export function can(permissions: string[] | undefined | null, permission: string): boolean {
-  if (!permissions || !Array.isArray(permissions)) {
-    return false;
-  }
-  return permissions.includes(permission);
+  return asPermissionStrings(permissions).includes(permission);
 }
 
 /**
@@ -28,10 +45,11 @@ export function canAny(
   permissions: string[] | undefined | null,
   permissionList: string[]
 ): boolean {
-  if (!permissions || !Array.isArray(permissions) || !permissionList || permissionList.length === 0) {
+  if (!permissionList || permissionList.length === 0) {
     return false;
   }
-  return permissionList.some((perm) => permissions.includes(perm));
+  const list = asPermissionStrings(permissions);
+  return permissionList.some((perm) => list.includes(perm));
 }
 
 /**
@@ -44,9 +62,10 @@ export function canAll(
   permissions: string[] | undefined | null,
   permissionList: string[]
 ): boolean {
-  if (!permissions || !Array.isArray(permissions) || !permissionList || permissionList.length === 0) {
+  if (!permissionList || permissionList.length === 0) {
     return false;
   }
-  return permissionList.every((perm) => permissions.includes(perm));
+  const list = asPermissionStrings(permissions);
+  return permissionList.every((perm) => list.includes(perm));
 }
 

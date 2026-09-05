@@ -4,6 +4,7 @@ import { Suspense } from 'react';
 import { Outlet } from 'react-router';
 import { RequirePermission } from '@/auth/components/require-permission';
 import { FLASH_SALE_PERMISSION } from '@/pages/dashboard/flash-sales/permissions';
+import { WARRANTY_PERMISSION } from '@/pages/dashboard/warranties/permissions';
 import {
   NAV_MENU_ITEM_VIEW_ANY,
   NAV_MENU_ITEM_CREATE_ANY,
@@ -832,7 +833,7 @@ export const dashboardRoutes: RouteObject[] = [
     children: [
       {
         element: (
-          <RequirePermission permission="warranty.view">
+          <RequirePermission permission={WARRANTY_PERMISSION.view}>
             <WarrantyIndexPage />
           </RequirePermission>
         ),
@@ -841,7 +842,7 @@ export const dashboardRoutes: RouteObject[] = [
       {
         path: 'create',
         element: (
-          <RequirePermission permission="warranty.create">
+          <RequirePermission permission={WARRANTY_PERMISSION.create}>
             <WarrantyCreatePage />
           </RequirePermission>
         ),
@@ -849,7 +850,7 @@ export const dashboardRoutes: RouteObject[] = [
       {
         path: 'update/:id',
         element: (
-          <RequirePermission permission="warranty.update">
+          <RequirePermission permission={WARRANTY_PERMISSION.update}>
             <WarrantyCreatePage />
           </RequirePermission>
         ),
