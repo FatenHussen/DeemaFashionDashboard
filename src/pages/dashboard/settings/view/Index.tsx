@@ -3,6 +3,7 @@ import type { TFunction } from 'i18next';
 import { useState } from 'react';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
+import { useSearchParams } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
 import { usePermissions } from '@/auth/hooks/use-permissions';
 import { useAdminToggleStatus } from '@/hooks/use-admin-toggle-status';
@@ -10,11 +11,21 @@ import { useFetchSettings } from '@/pages/dashboard/settings/hooks/setting';
 import { settingKeyLabel } from '@/pages/dashboard/settings/utils/setting-key-label';
 import { SettingEditModal } from '@/pages/dashboard/settings/components/setting-edit-modal';
 import { type SettingItem, settingsItemsFromListData } from '@/pages/dashboard/settings/types/setting.types';
+import {
+  QuickOrderSettingsPanel,
+  QUICK_ORDER_SETTING_KEYS,
+} from '@/pages/dashboard/settings/components/QuickOrderSettingsPanel';
 
 import { CONFIG } from 'src/global-config';
 import { Button } from 'src/shared/ui/button';
 import { Box, Typography } from 'src/shared/ui';
 import { LoadingScreen } from 'src/shared/components/loading-screen';
+
+type SettingsTab = 'general' | 'quick_order';
+
+function parseSettingsTab(raw: string | null): SettingsTab {
+  return raw === 'quick_order' ? 'quick_order' : 'general';
+}
 
 function formatTypeLabel(type: SettingItem['type'], t: TFunction<'table'>): string {
   const dash = t('form.emptyEmDash');
@@ -40,6 +51,10 @@ function settingRowIsActive(item: SettingItem): boolean | undefined {
   return Boolean(v);
 }
 
+function isQuickOrderKey(key: string): boolean {
+  return (QUICK_ORDER_SETTING_KEYS as readonly string[]).includes(key);
+}
+
 function SettingRow({
   item,
   onEdit,
@@ -51,8 +66,7 @@ function SettingRow({
   const { can } = usePermissions();
   const toggleMutation = useAdminToggleStatus();
   const active = settingRowIsActive(item);
-  const canToggle =
-    active !== undefined && can('setting.update');
+  const canToggle = active !== undefined && can('setting.update');
   const keyLabel = settingKeyLabel(t, item.key);
 
   return (
@@ -135,8 +149,20 @@ function SettingRow({
 
 export default function Page() {
   const { t } = useTranslation('table');
-  const { data, isLoading, error } = useFetchSettings();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { data, isLoading, error } = useFetchSettings(1, 200);
   const [editingItem, setEditingItem] = useState<SettingItem | null>(null);
+  const tab = parseSettingsTab(searchParams.get('tab'));
+
+  const setTab = (next: SettingsTab) => {
+    const params = new URLSearchParams(searchParams);
+    if (next === 'general') {
+      params.delete('tab');
+    } else {
+      params.set('tab', next);
+    }
+    setSearchParams(params, { replace: true });
+  };
 
   if (isLoading) return <LoadingScreen />;
   if (error)
@@ -149,6 +175,12 @@ export default function Page() {
     );
 
   const items = settingsItemsFromListData(data?.data);
+  const generalItems = items.filter((item) => !isQuickOrderKey(item.key));
+
+  const tabs: Array<{ id: SettingsTab; label: string; icon: string }> = [
+    { id: 'general', label: t('form.settingsTabGeneral'), icon: 'solar:settings-minimalistic-bold' },
+    { id: 'quick_order', label: t('form.settingsTabQuickOrder'), icon: 'solar:bolt-bold' },
+  ];
 
   return (
     <>
@@ -165,44 +197,70 @@ export default function Page() {
             </Typography>
           </Box>
         </Box>
-        <Box className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[640px]">
-              <thead>
-                <tr className="border-b border-border bg-muted/40">
-                  <th className="px-4 py-3 text-start text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    {t('form.columnSettingName')}
-                  </th>
-                  <th className="px-4 py-3 text-start text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    {t('columns.type')}
-                  </th>
-                  <th className="px-4 py-3 text-start text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    {t('form.columnValue')}
-                  </th>
-                  <th className="px-4 py-3 text-start text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    {t('columns.updatedAt')}
-                  </th>
-                  <th className="px-4 py-3 text-start text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    {t('form.columnActions')}
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="py-12 text-center text-muted-foreground">
-                      {t('form.settingsNotFound')}
-                    </td>
-                  </tr>
-                ) : (
-                  items.map((item) => (
-                    <SettingRow key={item.id} item={item} onEdit={setEditingItem} />
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+
+        <Box className="mb-4 flex flex-wrap gap-2 border-b border-border pb-3">
+          {tabs.map(({ id, label, icon }) => {
+            const active = tab === id;
+            return (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setTab(id)}
+                className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
+                  active
+                    ? 'border-primary/30 bg-primary text-primary-foreground'
+                    : 'border-border/60 bg-background text-muted-foreground hover:border-primary/25 hover:bg-primary/5 hover:text-foreground'
+                }`}
+              >
+                <Iconify icon={icon} width={16} />
+                {label}
+              </button>
+            );
+          })}
         </Box>
+
+        {tab === 'general' ? (
+          <Box className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[640px]">
+                <thead>
+                  <tr className="border-b border-border bg-muted/40">
+                    <th className="px-4 py-3 text-start text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      {t('form.columnSettingName')}
+                    </th>
+                    <th className="px-4 py-3 text-start text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      {t('columns.type')}
+                    </th>
+                    <th className="px-4 py-3 text-start text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      {t('form.columnValue')}
+                    </th>
+                    <th className="px-4 py-3 text-start text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      {t('columns.updatedAt')}
+                    </th>
+                    <th className="px-4 py-3 text-start text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      {t('form.columnActions')}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {generalItems.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="py-12 text-center text-muted-foreground">
+                        {t('form.settingsNotFound')}
+                      </td>
+                    </tr>
+                  ) : (
+                    generalItems.map((item) => (
+                      <SettingRow key={item.id} item={item} onEdit={setEditingItem} />
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </Box>
+        ) : (
+          <QuickOrderSettingsPanel settings={items} />
+        )}
       </Box>
 
       {editingItem && (

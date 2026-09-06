@@ -203,6 +203,17 @@ export default function Page() {
           delete: hasPermission('delete', 'schedule'),
         }}
         isLoading={isLoading}
+        columnTranslations={{
+          image: t('columns.image'),
+          name: t('columns.name'),
+          description: t('columns.description'),
+          badges: t('form.badgesLabel'),
+          interval_days: t('form.intervalDays'),
+          discount: t('columns.discount'),
+          status: t('columns.status'),
+          created_at: t('columns.created'),
+          actions: t('columns.action'),
+        }}
         pagination={pagination}
         currentPage={currentPage}
         pageSize={pageSize}

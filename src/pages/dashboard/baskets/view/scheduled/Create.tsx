@@ -1,25 +1,31 @@
 import { toast } from 'react-toastify';
 import { Button } from '@/shared/ui/button';
 import { useTranslation } from 'react-i18next';
-import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState, useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Iconify } from '@/shared/components/iconify';
-import { MultiSelect } from '@/shared/ui/multi-select';
 import { compressImage } from '@/utils/compress-image';
 import { formatTranslated } from '@/utils/format-translated';
 import { resolveBasketGalleryUrls } from '@/utils/basket-gallery';
 import { useParams, useNavigate, useLocation } from 'react-router';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
+import { _ScheduleApi } from '@/pages/dashboard/schedules/api/schedule.services';
 import { InfiniteScrollSelect } from '@/shared/components/infinite-scroll-select';
 import { _CategoryApi } from '@/pages/dashboard/categories/api/category.services';
-import { _ShopProductVariantApi } from '@/shared/api/shop-product-variant.services';
 import { TinyMCEEditorField } from '@/shared/components/tinymce-editor/tinymce-editor';
+import { schedulePrimaryImageUrl } from '@/pages/dashboard/schedules/utils/schedule-media';
+import {
+  useFetchSchedules,
+  useFetchScheduleById,
+} from '@/pages/dashboard/schedules/hooks/schedule';
 import {
   useFetchCategories,
   useFetchCategoryById,
 } from '@/pages/dashboard/categories/hooks/category';
-import { resolveStorageImageUrl, shopVariantOptionImage, shopVariantOptionColorHex } from '@/utils/shop-variant-image';
+import {
+  ScheduledBasketItemCard,
+  emptyScheduledBasketLineItem,
+} from '@/pages/dashboard/baskets/components/scheduled-basket-item-card';
 import {
   ScheduledBasketSchema,
   type ScheduledBasketFormValues,
@@ -30,11 +36,19 @@ import {
   useFetchScheduledBasketById,
 } from '@/pages/dashboard/baskets/hooks/scheduled-basket';
 import {
+  scheduleNameLabel,
+  scheduleSelectLabel,
+  formatScheduleDiscount,
+  resolveScheduledBasketScheduleId,
+} from '@/pages/dashboard/baskets/utils/scheduled-basket-schedule';
+import {
   type ScheduledBasketData,
   type ScheduledBasketItem,
   type ScheduledBasketCreateUpdatePayload,
   badgesFormValueFromScheduledBasketResponse,
 } from '@/pages/dashboard/baskets/types/scheduled-basket.types';
+
+import { paths } from 'src/routes/paths';
 
 import { CONFIG } from 'src/global-config';
 import { Label } from 'src/shared/components/label';
@@ -58,6 +72,14 @@ const mainCategoryFetcher = (page: number, limit: number) =>
   }));
 
 // ----------------------------------------------------------------------
+
+function StepBadge({ step }: { step: number }) {
+  return (
+    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary/10 border border-primary/20 text-sm font-bold text-primary">
+      {step}
+    </span>
+  );
+}
 
 function FieldErrorText({ message }: { message?: string }) {
   if (!message) return null;
@@ -86,80 +108,21 @@ function mapScheduledBasketLineItem(it: ScheduledBasketItem) {
     quantity: it.quantity,
     is_required: it.is_required ?? false,
     is_extra: it.is_extra ?? false,
-    min_quantity: it.min_quantity ?? 0,
-    max_quantity: it.max_quantity ?? 0,
+    min_quantity: it.min_quantity && it.min_quantity > 0 ? it.min_quantity : undefined,
+    max_quantity: it.max_quantity && it.max_quantity > 0 ? it.max_quantity : undefined,
   };
 }
 
-function scheduledBasketLineVariantInitialLabel(row: ScheduledBasketItem | undefined): string | undefined {
-  if (!row) return undefined;
-  const productName =
-    row.product?.name != null
-      ? typeof row.product.name === 'string'
-        ? row.product.name
-        : formatTranslated(row.product.name as Parameters<typeof formatTranslated>[0])
-      : '';
-  const variantStr = Array.isArray(row.variant)
-    ? row.variant.map((value) => String(value)).filter(Boolean).join(' · ')
-    : '';
-  const parts = [productName, variantStr].filter(Boolean);
-  if (parts.length) return parts.join(' — ');
-  const spvid = row.shop_product_variant_id;
-  if (spvid != null && Number(spvid) > 0) return `#${spvid}`;
-  return undefined;
-}
-
-/** API may return `title` as string or { en, ar } */
-function normalizeScheduleTitleFromApi(raw: unknown): { en: string; ar: string } {
-  if (raw && typeof raw === 'object' && raw !== null) {
-    const o = raw as { en?: string; ar?: string };
-    if ('en' in o || 'ar' in o) {
-      return { en: o.en ?? '', ar: o.ar ?? '' };
-    }
-  }
-  const str = String(raw ?? '');
-  return { en: str, ar: str };
-}
-
-/** Map API schedules to form rows; drops legacy rows that only linked another basket by id. */
-function schedulesFromApi(source: ScheduledBasketData): ScheduledBasketFormValues['schedules'] {
-  const raw = source.schedules ?? [];
-  const inline = raw.filter((s: any) => {
-    const legacyLink = Number(s?.scheduled_basket_id) > 0 && s?.number_of_days == null;
-    return !legacyLink;
-  });
-  const mapped: ScheduledBasketFormValues['schedules'] = inline.map((s: any) => ({
-    title: normalizeScheduleTitleFromApi(s.title),
-    number_of_days: s.number_of_days ?? 1,
-    discount_type: s.discount_type ?? null,
-    discount_value: s.discount_value ?? null,
-    is_active: Boolean(s.is_active),
-    is_default: Boolean(s.is_default),
+const scheduleCatalogFetcher = (page: number, limit: number) =>
+  _ScheduleApi.getList({ page, per_page: limit, is_active: true }).then((r) => ({
+    data: {
+      items: r.data.items.map((s) => ({
+        id: s.id,
+        label: scheduleSelectLabel(s),
+      })),
+      pagination: r.data.pagination,
+    },
   }));
-  if (mapped.length === 0) {
-    return [
-      {
-        title: { en: '', ar: '' },
-        number_of_days: 1,
-        discount_type: null,
-        discount_value: null,
-        is_active: true,
-        is_default: true,
-      },
-    ];
-  }
-  if (!mapped.some((r) => r.is_default)) {
-    mapped[0].is_default = true;
-  }
-  let seenDefault = false;
-  return mapped.map((r) => {
-    if (r.is_default) {
-      if (seenDefault) return { ...r, is_default: false };
-      seenDefault = true;
-    }
-    return r;
-  });
-}
 
 export default function CreatePage() {
   const { t } = useTranslation('table');
@@ -177,22 +140,14 @@ export default function CreatePage() {
     category_ids: [],
     name: { en: '', ar: '' },
     description: { en: '', ar: '' },
-    discount: 0,
+    schedule_id: 0,
+    has_custom_discount: false,
+    discount: undefined,
     discount_type: 'percentage',
     delivery_price: 0,
     image: null,
     images: [],
-    items: [{ shop_product_variant_id: 0, quantity: 1, shop_product_variant_ids: [], is_required: false, is_extra: false, min_quantity: 0, max_quantity: 0 }],
-    schedules: [
-      {
-        title: { en: '', ar: '' },
-        number_of_days: 1,
-        discount_type: null,
-        discount_value: null,
-        is_active: true,
-        is_default: true,
-      },
-    ],
+    items: [emptyScheduledBasketLineItem()],
     is_active: true,
     badges: [],
   };
@@ -202,19 +157,21 @@ export default function CreatePage() {
     defaultValues,
   });
 
-  const { handleSubmit, reset, control, watch, getValues, setValue, formState: { errors } } = methods;
+  const { handleSubmit, reset, control, watch, setValue, formState: { errors } } = methods;
   const { fields, append, remove } = useFieldArray({ control, name: 'items' });
-  const {
-    fields: scheduleFields,
-    append: appendSchedule,
-    remove: removeScheduleRow,
-  } = useFieldArray({ control, name: 'schedules' });
-  const schedulesWatch = watch('schedules');
   const imageValue = watch('image');
   const extraImageFiles = watch('images') ?? [];
   const categoryIds = watch('category_ids') ?? [];
+  const scheduleId = Number(watch('schedule_id') || 0);
+  const hasCustomDiscount = Boolean(watch('has_custom_discount'));
   const [mainCategoryId, setMainCategoryId] = useState(0);
   const mainBasketDiscountType = watch('discount_type');
+  const { data: catalogScheduleResponse } = useFetchScheduleById(scheduleId > 0 ? scheduleId : '');
+  const catalogSchedule = catalogScheduleResponse?.data;
+  const { data: activeSchedulesCheck } = useFetchSchedules({ page: 1, per_page: 1, is_active: true });
+  const hasActiveSchedules =
+    (activeSchedulesCheck?.data?.pagination?.total ?? activeSchedulesCheck?.data?.items?.length ?? 0) > 0;
+  const selectedScheduleImage = catalogSchedule ? schedulePrimaryImageUrl(catalogSchedule) : null;
 
   const scheduledSource = scheduledBasketResponse?.data ?? scheduledBasketFromState;
   const existingGallery = useMemo(
@@ -336,60 +293,6 @@ export default function CreatePage() {
     }
   }, [mainCategoryId, hasChildCategories, isLoadingSubCats, setValue]);
 
-  const { data: shopVariantListResponse } = useQuery({
-    queryKey: ['shopProductVariant', 'scheduled-basket', 'multi-options', categoryIds.join(',')],
-    queryFn: () =>
-      categoryIds.length === 1
-        ? _ShopProductVariantApi.getList({ page: 1, per_page: 500, category_id: categoryIds[0] })
-        : categoryIds.length > 1
-          ? _ShopProductVariantApi.getList({
-              page: 1,
-              per_page: 500,
-              category_ids: categoryIds,
-            })
-          : Promise.resolve({
-            status: true,
-            message: '',
-            data: {
-              items: [],
-              pagination: {
-                current_page: 1,
-                last_page: 1,
-                per_page: 500,
-                total: 0,
-              },
-            },
-          }),
-  });
-
-  const shopVariantMultiOptions = useMemo(() => {
-    const items = shopVariantListResponse?.data?.items ?? [];
-    return items.map((v) => ({
-      value: v.id,
-      label: typeof v.label === 'string' ? v.label : formatTranslated(v.label as Parameters<typeof formatTranslated>[0]),
-      imageUrl: shopVariantOptionImage(v),
-      colorHex: shopVariantOptionColorHex(v),
-    }));
-  }, [shopVariantListResponse?.data?.items]);
-
-  const handleRemoveScheduleRow = (index: number) => {
-    const wasDefault = getValues(`schedules.${index}.is_default`);
-    removeScheduleRow(index);
-    window.setTimeout(() => {
-      const next = getValues('schedules');
-      if (next.length && wasDefault && !next.some((r) => r.is_default)) {
-        setValue('schedules.0.is_default', true);
-      }
-    }, 0);
-  };
-
-  const setScheduleAsDefault = (index: number) => {
-    const rows = getValues('schedules');
-    rows.forEach((_, i) => {
-      setValue(`schedules.${i}.is_default`, i === index);
-    });
-  };
-
   useEffect(() => {
     const source = isEditMode ? (scheduledBasketResponse?.data ?? scheduledBasketFromState) : null;
     if (source) {
@@ -406,6 +309,7 @@ export default function CreatePage() {
       const leafNum =
         rawIds.length > 1 ? Number(rawIds[rawIds.length - 1]) : rawIds[0] != null ? Number(rawIds[0]) : 0;
       const category_ids = leafNum > 0 ? [leafNum] : [];
+      const hasCustom = Boolean(source.has_custom_discount);
 
       reset({
         category_ids,
@@ -414,15 +318,16 @@ export default function CreatePage() {
           en: getTranslation(source.description, 'en'),
           ar: getTranslation(source.description, 'ar'),
         },
-        discount: Number(source.discount) || 0,
+        schedule_id: resolveScheduledBasketScheduleId(source),
+        has_custom_discount: hasCustom,
+        discount: hasCustom ? Number(source.discount) || 0 : undefined,
         discount_type: source.discount_type || 'percentage',
         delivery_price: source.delivery_price || 0,
         image: null,
         images: [],
         items: combinedLines.length
           ? combinedLines.map(mapScheduledBasketLineItem)
-          : [{ shop_product_variant_id: 0, quantity: 1, shop_product_variant_ids: [], is_required: false, is_extra: false, min_quantity: 0, max_quantity: 0 }],
-        schedules: schedulesFromApi(source),
+          : [emptyScheduledBasketLineItem()],
         is_active: Boolean((source as any).is_active),
         badges: badgesFormValueFromScheduledBasketResponse(source),
       });
@@ -446,23 +351,28 @@ export default function CreatePage() {
         category_id: data.category_ids[0],
         name: data.name,
         description: data.description,
-        discount: data.discount,
-        discount_type: data.discount_type,
+        schedule_id: data.schedule_id,
         delivery_price: data.delivery_price,
         image,
         images,
-        items: data.items,
-        schedules: data.schedules.map((s) => ({
-          title: s.title,
-          number_of_days: s.number_of_days,
-          discount_type: s.discount_type ?? null,
-          discount_value: s.discount_value ?? null,
-          is_active: s.is_active,
-          is_default: s.is_default,
+        items: data.items.map((item) => ({
+          ...item,
+          shop_product_variant_ids: (item.shop_product_variant_ids ?? []).filter(
+            (variantId) => variantId > 0 && variantId !== item.shop_product_variant_id
+          ),
+          min_quantity: item.min_quantity && item.min_quantity > 0 ? item.min_quantity : undefined,
+          max_quantity: item.max_quantity && item.max_quantity > 0 ? item.max_quantity : undefined,
         })),
         is_active: data.is_active,
         badges: data.badges,
       };
+      if (data.has_custom_discount) {
+        payload.discount = data.discount ?? 0;
+        payload.discount_type = data.discount_type ?? 'percentage';
+      } else if (isEditMode) {
+        payload.discount = null;
+        payload.discount_type = null;
+      }
       if (isEditMode && id) {
         await updateScheduledBasketMutation.mutateAsync({ id, data: payload });
         toast.success(t('form.scheduledBasketUpdatedSuccess'));
@@ -508,14 +418,161 @@ export default function CreatePage() {
           isEditMode ? t('form.updatingScheduledBasket') : t('form.creatingScheduledBasket')
         }
       >
-        {/* ── Section: Category & Names ── */}
-        <Box className="rounded-2xl border border-border/50 bg-card/50 shadow-sm">
-          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-violet-500/[0.06] via-violet-500/[0.02] to-transparent">
-            <Box className="h-8 w-8 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center shrink-0">
-              <Iconify icon="solar:widget-5-bold" className="text-violet-500" width={15} />
+        {/* ── 1. Schedule category ── */}
+        <Box className="create-form-section-keep-header rounded-2xl border border-border/50 bg-card/50 shadow-sm">
+          <Box className="flex items-center justify-between px-6 py-4 border-b border-border/40 bg-gradient-to-r from-sky-500/[0.06] via-sky-500/[0.02] to-transparent">
+            <Box className="flex items-center gap-3">
+              <StepBadge step={1} />
+              <Typography variant="subtitle2" className="font-semibold text-foreground">
+                {t('form.scheduledBasketStepSchedule')}
+              </Typography>
             </Box>
+            <Button
+              type="button"
+              variant="outlined"
+              size="small"
+              onClick={() => window.open(`${paths.dashboard.schedules}/create`, '_blank')}
+              className="text-xs"
+            >
+              <Iconify icon="solar:add-circle-bold" width={16} className="mr-1" />
+              {t('form.openSchedulesCatalog')}
+            </Button>
+          </Box>
+          <Box className="p-6 space-y-5">
+            <Typography variant="body2" className="text-muted-foreground">
+              {t('form.catalogScheduleHelper')}
+            </Typography>
+            {!hasActiveSchedules && activeSchedulesCheck ? (
+              <Box className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm">
+                {t('form.scheduledBasketNoSchedules')}
+              </Box>
+            ) : null}
+            <Box>
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground text-sm">
+                {t('form.scheduleLabel')} *
+              </Typography>
+              <Controller
+                name="schedule_id"
+                control={control}
+                render={({ field, fieldState: { error } }) => (
+                  <div>
+                    <InfiniteScrollSelect
+                      value={Number(field.value) || 0}
+                      onChange={(val) => field.onChange(Number(val) || 0)}
+                      queryKey={['schedules', 'infinite', 'scheduled-basket-form', 'active']}
+                      fetcher={scheduleCatalogFetcher}
+                      placeholder={t('form.selectScheduleCategory')}
+                      initialLabel={
+                        scheduledSource?.schedule
+                          ? scheduleSelectLabel(scheduledSource.schedule)
+                          : catalogSchedule
+                            ? scheduleSelectLabel(catalogSchedule)
+                            : undefined
+                      }
+                    />
+                    <FieldErrorText message={error?.message} />
+                  </div>
+                )}
+              />
+            </Box>
+            {catalogSchedule ? (
+              <Box className="flex flex-col sm:flex-row sm:items-center gap-4 rounded-2xl border border-sky-500/30 bg-sky-500/[0.06] p-4">
+                {selectedScheduleImage ? (
+                  <img
+                    src={selectedScheduleImage}
+                    alt=""
+                    className="h-16 w-16 rounded-full object-cover border border-border/60 shrink-0"
+                  />
+                ) : (
+                  <Box className="h-16 w-16 rounded-full bg-muted border border-border/60 shrink-0 flex items-center justify-center">
+                    <Iconify icon="solar:calendar-bold" className="text-sky-500" width={28} />
+                  </Box>
+                )}
+                <Box className="min-w-0 flex-1">
+                  <Typography variant="subtitle1" className="font-semibold">
+                    {scheduleNameLabel(catalogSchedule.name)}
+                  </Typography>
+                  <Typography variant="body2" className="text-muted-foreground">
+                    {t('form.scheduledBasketRepeatEvery', { count: catalogSchedule.interval_days })}
+                    {formatScheduleDiscount(catalogSchedule)
+                      ? ` · ${t('form.scheduleInheritedDiscount')}: ${formatScheduleDiscount(catalogSchedule)}`
+                      : ''}
+                  </Typography>
+                </Box>
+              </Box>
+            ) : null}
+            <Controller
+              name="has_custom_discount"
+              control={control}
+              render={({ field }) => (
+                <div className="flex items-center gap-3 p-3 rounded-lg border border-border/60 bg-background/50">
+                  <Switch
+                    checked={field.value}
+                    onChange={(e) => field.onChange((e.target as HTMLInputElement).checked)}
+                  />
+                  <Box>
+                    <Typography variant="subtitle2" className="font-semibold text-foreground text-sm">
+                      {t('form.scheduleCustomDiscount')}
+                    </Typography>
+                    <Typography variant="caption" className="text-muted-foreground">
+                      {t('form.scheduleCustomDiscountHelper')}
+                    </Typography>
+                  </Box>
+                </div>
+              )}
+            />
+            {hasCustomDiscount ? (
+              <Box className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Box className="group">
+                  <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground text-sm">
+                    {t('form.discountType')}
+                  </Typography>
+                  <Controller
+                    name="discount_type"
+                    control={control}
+                    render={({ field, fieldState: { error } }) => (
+                      <div>
+                        <select
+                          value={field.value ?? 'percentage'}
+                          onChange={(e) => field.onChange(e.target.value)}
+                          className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
+                        >
+                          <option value="percentage">{t('form.percentageDiscount')}</option>
+                          <option value="fixed">{t('form.fixedDiscount')}</option>
+                        </select>
+                        <FieldErrorText message={error?.message} />
+                      </div>
+                    )}
+                  />
+                </Box>
+                <Box className="group">
+                  <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground text-sm">
+                    {t('form.discountValue')}
+                  </Typography>
+                  <RHFTextField
+                    name="discount"
+                    type="number"
+                    placeholder={t('form.placeholderZero')}
+                    fullWidth
+                    min={0}
+                    max={mainBasketDiscountType === 'percentage' ? 100 : undefined}
+                  />
+                </Box>
+              </Box>
+            ) : (
+              <Typography variant="caption" className="text-muted-foreground block">
+                {t('form.inheritScheduleDiscount')}
+              </Typography>
+            )}
+          </Box>
+        </Box>
+
+        {/* ── 2. Category & Names ── */}
+        <Box className="create-form-section-keep-header rounded-2xl border border-border/50 bg-card/50 shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-violet-500/[0.06] via-violet-500/[0.02] to-transparent">
+            <StepBadge step={2} />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              {t('form.categoryLabel')} · {t('columns.name')} · {t('columns.description')}
+              {t('form.scheduledBasketStepDetails')}
             </Typography>
           </Box>
           <Box className="p-6 flex flex-col gap-5">
@@ -532,17 +589,7 @@ export default function CreatePage() {
                   onChange={(val) => {
                     setMainCategoryId(val);
                     setValue('category_ids', []);
-                    setValue('items', [
-                      {
-                        shop_product_variant_id: 0,
-                        quantity: 1,
-                        shop_product_variant_ids: [],
-                        is_required: false,
-                        is_extra: false,
-                        min_quantity: 0,
-                        max_quantity: 0,
-                      },
-                    ]);
+                    setValue('items', [emptyScheduledBasketLineItem()]);
                   }}
                   queryKey={['categories', 'infinite', 'scheduled-basket-form', 'roots']}
                   fetcher={mainCategoryFetcher}
@@ -560,17 +607,7 @@ export default function CreatePage() {
                     onChange={(leafId) => {
                       const n = Number(leafId) || 0;
                       setValue('category_ids', n > 0 ? [n] : [], { shouldValidate: true });
-                      setValue('items', [
-                        {
-                          shop_product_variant_id: 0,
-                          quantity: 1,
-                          shop_product_variant_ids: [],
-                          is_required: false,
-                          is_extra: false,
-                          min_quantity: 0,
-                          max_quantity: 0,
-                        },
-                      ]);
+                      setValue('items', [emptyScheduledBasketLineItem()]);
                     }}
                     queryKey={['categories', 'infinite', 'scheduled-basket-form', 'children', mainCategoryId]}
                     fetcher={childCategoryFetcher}
@@ -606,101 +643,18 @@ export default function CreatePage() {
                 <RHFTextField name="name.ar" placeholder={t('form.basketNameAr')} dir="rtl" fullWidth />
               </Box>
             </Box>
-
-            <Box className="border-t border-border pt-5 mt-2 space-y-5">
-              <Box className="group">
-                <Box className="flex items-center gap-2 mb-2">
-                  <Iconify icon="solar:document-bold" className="text-primary" width={20} />
-                  <Typography variant="subtitle2" className="font-semibold text-foreground">
-                    {t('form.productFullDescAr')}
-                  </Typography>
-                </Box>
-                <Controller
-                  name="description.ar"
-                  control={control}
-                  render={({ field, fieldState: { error } }) => (
-                    <div>
-                      <TinyMCEEditorField
-                        value={field.value ?? ''}
-                        onChange={field.onChange}
-                        onBlur={field.onBlur}
-                        placeholder={t('form.fullDescArPlaceholder')}
-                        dir="rtl"
-                        menubar
-                        toolsMenuWordCount
-                        height={320}
-                      />
-                      <FieldErrorText message={error?.message} />
-                    </div>
-                  )}
-                />
-              </Box>
-
-              <Box className="group">
-                <Box className="flex items-center gap-2 mb-2">
-                  <Iconify icon="solar:document-bold" className="text-primary" width={20} />
-                  <Typography variant="subtitle2" className="font-semibold text-foreground">
-                    {t('form.productFullDescEn')}
-                  </Typography>
-                </Box>
-                <Controller
-                  name="description.en"
-                  control={control}
-                  render={({ field, fieldState: { error } }) => (
-                    <div>
-                      <TinyMCEEditorField
-                        value={field.value ?? ''}
-                        onChange={field.onChange}
-                        onBlur={field.onBlur}
-                        placeholder={t('form.fullDescPlaceholder')}
-                        dir="ltr"
-                        menubar
-                        toolsMenuWordCount
-                        height={320}
-                      />
-                      <FieldErrorText message={error?.message} />
-                    </div>
-                  )}
-                />
-              </Box>
-            </Box>
           </Box>
         </Box>
 
-        {/* ── Section: Pricing & Image ── */}
-        <Box className="rounded-2xl border border-border/50 bg-card/50 shadow-sm">
+        {/* ── 3. Pricing & Image ── */}
+        <Box className="create-form-section-keep-header rounded-2xl border border-border/50 bg-card/50 shadow-sm">
           <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-amber-500/[0.06] via-amber-500/[0.02] to-transparent">
-            <Box className="h-8 w-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
-              <Iconify icon="solar:tag-price-bold" className="text-amber-500" width={15} />
-            </Box>
+            <StepBadge step={3} />
             <Typography variant="subtitle2" className="font-semibold text-foreground">
-              {t('form.discountType')} · {t('form.deliveryPrice')} · {t('form.basketImage')}
+              {t('form.scheduledBasketStepMedia')}
             </Typography>
           </Box>
           <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
-            <Box className="group">
-              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5">
-                <Iconify icon="solar:percent-bold" className="text-amber-500" width={16} />
-                {t('form.discountType')}
-              </Typography>
-              <Controller
-                name="discount_type"
-                control={control}
-                render={({ field }) => (
-                  <select {...field} className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm">
-                    <option value="percentage">{t('form.percentageDiscount')}</option>
-                    <option value="fixed">{t('form.fixedDiscount')}</option>
-                  </select>
-                )}
-              />
-            </Box>
-            <Box className="group">
-              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5">
-                <Iconify icon="solar:tag-price-bold" className="text-amber-500" width={16} />
-                {t('form.discountValue')}
-              </Typography>
-              <RHFTextField name="discount" type="number" placeholder={t('form.placeholderZero')} fullWidth min={0} max={mainBasketDiscountType === 'percentage' ? 100 : undefined} />
-            </Box>
             <Box className="group">
               <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5">
                 <Iconify icon="solar:delivery-bold" className="text-amber-500" width={16} />
@@ -728,7 +682,7 @@ export default function CreatePage() {
                     <Input
                       {...field}
                       type="file"
-                      accept="image/jpeg,image/png,image/jpg,image/gif"
+                      accept="image/jpeg,image/png,image/jpg,image/gif,image/webp"
                       onChange={(e) => { const file = e.target.files?.[0]; onChange(file || null); }}
                       error={!!error}
                       helperText={error?.message || t('form.basketImageHelperPrimary')}
@@ -764,7 +718,7 @@ export default function CreatePage() {
                       {...field}
                       value=""
                       type="file"
-                      accept="image/jpeg,image/png,image/jpg,image/gif"
+                      accept="image/jpeg,image/png,image/jpg,image/gif,image/webp"
                       multiple
                       onChange={(e) => onChange(e.target.files ? Array.from(e.target.files) : [])}
                       error={!!error}
@@ -785,160 +739,17 @@ export default function CreatePage() {
           </Box>
         </Box>
 
-        {/* ── Section: Status ── */}
-        <Box className="rounded-2xl border border-border/50 bg-card/50 shadow-sm">
-          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-emerald-500/[0.06] via-emerald-500/[0.02] to-transparent">
-            <Box className="h-8 w-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
-              <Iconify icon="solar:bolt-bold" className="text-emerald-500" width={15} />
-            </Box>
-            <Typography variant="subtitle2" className="font-semibold text-foreground">{t('active')}</Typography>
-          </Box>
-          <Box className="p-6">
-            <Controller
-              name="is_active"
-              control={control}
-              render={({ field }) => (
-                <div className="flex items-center gap-3 p-4 rounded-xl border border-border/60 bg-background/60 hover:border-emerald-500/40 transition-colors">
-                  <Switch checked={field.value} onChange={(e) => field.onChange((e.target as HTMLInputElement).checked)} />
-                  <Box>
-                    <Typography variant="subtitle2" className="font-semibold text-foreground">{t('active')}</Typography>
-                    <Typography variant="caption" className="text-muted-foreground">{t('form.basketActiveHelper')}</Typography>
-                  </Box>
-                </div>
-              )}
-            />
-          </Box>
-        </Box>
-
-        {/* ── Section: Delivery Schedules ── */}
-        <Box className="rounded-2xl border border-border/50 bg-card/50 shadow-sm">
-          <Box className="flex items-center justify-between px-6 py-4 border-b border-border/40 bg-gradient-to-r from-sky-500/[0.06] via-sky-500/[0.02] to-transparent">
-            <Box className="flex items-center gap-3">
-              <Box className="h-8 w-8 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center shrink-0">
-                <Iconify icon="solar:calendar-bold" className="text-sky-500" width={15} />
-              </Box>
-              <Typography variant="subtitle2" className="font-semibold text-foreground">{t('form.scheduleSection')}</Typography>
-            </Box>
-            <Button type="button" variant="outlined" size="small"
-              onClick={() => appendSchedule({ title: { en: '', ar: '' }, number_of_days: 1, discount_type: null, discount_value: null, is_active: true, is_default: false })}
-              className="text-xs"
-            >
-              <Iconify icon="solar:add-circle-bold" width={16} className="mr-1" />
-              {t('form.addSchedule')}
-            </Button>
-          </Box>
-          <Box className="p-6 flex flex-col gap-4">
-            {scheduleFields.map((scheduleField, index) => {
-              const rowDiscountType = schedulesWatch?.[index]?.discount_type;
-              return (
-                <Box key={scheduleField.id} className="rounded-xl border border-border/40 bg-background/60 overflow-hidden">
-                  <Box className="flex items-center justify-between px-4 py-3 border-b border-border/30 bg-muted/30">
-                    <Typography variant="subtitle2" className="font-semibold text-foreground">
-                      {t('form.scheduledBasketScheduleHeading', { number: index + 1 })}
-                    </Typography>
-                    {scheduleFields.length > 1 && (
-                      <Button type="button" variant="text" onClick={() => handleRemoveScheduleRow(index)} className="text-destructive">
-                        <Iconify icon="solar:trash-bin-trash-bold" width={18} />
-                      </Button>
-                    )}
-                  </Box>
-                  <Box className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Box className="group">
-                      <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground text-sm">{t('form.scheduleTitleEn')}</Typography>
-                      <RHFTextField name={`schedules.${index}.title.en`} placeholder={t('form.scheduleTitleEnPlaceholder')} fullWidth />
-                    </Box>
-                    <Box className="group">
-                      <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground text-sm">{t('form.scheduleTitleAr')}</Typography>
-                      <RHFTextField name={`schedules.${index}.title.ar`} placeholder={t('form.scheduleTitleArPlaceholder')} dir="rtl" fullWidth />
-                    </Box>
-                    <Box className="group">
-                      <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground text-sm">{t('form.numberOfDays')}</Typography>
-                      <RHFTextField name={`schedules.${index}.number_of_days`} type="number" placeholder={t('form.placeholderOne')} fullWidth />
-                      <Typography variant="caption" className="text-muted-foreground mt-1">{t('form.numberOfDaysHelper')}</Typography>
-                    </Box>
-                    <Box className="group">
-                      <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground text-sm">{t('form.scheduleDiscountType')}</Typography>
-                      <Controller
-                        name={`schedules.${index}.discount_type`}
-                        control={control}
-                        render={({ field }) => (
-                          <select value={field.value ?? ''} onChange={(e) => field.onChange(e.target.value || null)} className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm">
-                            <option value="">{t('form.noDiscount')}</option>
-                            <option value="percentage">{t('form.percentageDiscount')}</option>
-                            <option value="fixed">{t('form.fixedDiscount')}</option>
-                          </select>
-                        )}
-                      />
-                    </Box>
-                    {rowDiscountType ? (
-                      <Box className="group">
-                        <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground text-sm">{t('form.scheduleDiscountValue')}</Typography>
-                        <RHFTextField
-                          name={`schedules.${index}.discount_value`}
-                          type="number"
-                          placeholder={rowDiscountType === 'percentage' ? t('form.scheduleDiscountPlaceholderPercentage') : t('form.scheduleDiscountPlaceholderFixed')}
-                          fullWidth min={0} max={rowDiscountType === 'percentage' ? 100 : undefined}
-                        />
-                      </Box>
-                    ) : null}
-                    <Box className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <Controller
-                        name={`schedules.${index}.is_active`}
-                        control={control}
-                        render={({ field }) => (
-                          <div className="flex items-center gap-3 p-3 rounded-lg border border-border/60 bg-background/50">
-                            <Switch checked={field.value} onChange={(e) => field.onChange((e.target as HTMLInputElement).checked)} />
-                            <Box>
-                              <Typography variant="subtitle2" className="font-semibold text-foreground text-sm">{t('form.scheduleActive')}</Typography>
-                              <Typography variant="caption" className="text-muted-foreground">{t('form.scheduleActiveHelper')}</Typography>
-                            </Box>
-                          </div>
-                        )}
-                      />
-                      <Controller
-                        name={`schedules.${index}.is_default`}
-                        control={control}
-                        render={({ field }) => (
-                          <div className="flex items-center gap-3 p-3 rounded-lg border border-border/60 bg-background/50">
-                            <Switch checked={field.value} onChange={(e) => {
-                              const on = (e.target as HTMLInputElement).checked;
-                              if (on) { setScheduleAsDefault(index); } else {
-                                field.onChange(false);
-                                window.setTimeout(() => {
-                                  const next = getValues('schedules');
-                                  if (next.length && !next.some((r) => r.is_default)) {
-                                    const other = next.findIndex((_, i) => i !== index);
-                                    if (other >= 0) setValue(`schedules.${other}.is_default`, true);
-                                  }
-                                }, 0);
-                              }
-                            }} />
-                            <Box>
-                              <Typography variant="subtitle2" className="font-semibold text-foreground text-sm">{t('form.scheduledBasketDetailScheduleDefault')}</Typography>
-                              <Typography variant="caption" className="text-muted-foreground">{t('form.scheduleDefaultHelper')}</Typography>
-                            </Box>
-                          </div>
-                        )}
-                      />
-                    </Box>
-                  </Box>
-                </Box>
-              );
-            })}
-          </Box>
-        </Box>
-
-        {/* ── Section: Items ── */}
-        <Box className="rounded-2xl border border-border/50 bg-card/50 shadow-sm">
+        {/* ── 4. Items ── */}
+        <Box className="create-form-section-keep-header rounded-2xl border border-border/50 bg-card/50 shadow-sm">
           <Box className="flex items-center justify-between px-6 py-4 border-b border-border/40 bg-gradient-to-r from-rose-500/[0.06] via-rose-500/[0.02] to-transparent">
             <Box className="flex items-center gap-3">
-              <Box className="h-8 w-8 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center shrink-0">
-                <Iconify icon="solar:box-bold" className="text-rose-500" width={15} />
-              </Box>
-              <Typography variant="subtitle2" className="font-semibold text-foreground">{t('form.basketItems')}</Typography>
+              <StepBadge step={4} />
+              <Typography variant="subtitle2" className="font-semibold text-foreground">
+                {t('form.scheduledBasketStepItems')}
+              </Typography>
             </Box>
             <Button type="button" variant="outlined" size="small"
-              onClick={() => append({ shop_product_variant_id: 0, quantity: 1, shop_product_variant_ids: [], is_required: false, is_extra: false, min_quantity: 0, max_quantity: 0 })}
+              onClick={() => append(emptyScheduledBasketLineItem())}
               className="text-xs"
             >
               <Iconify icon="solar:add-circle-bold" width={16} className="mr-1" />
@@ -946,128 +757,109 @@ export default function CreatePage() {
             </Button>
           </Box>
           <Box className="p-6 flex flex-col gap-4">
-            {fields.map((field, index) => (
-              <Box key={field.id} className="rounded-xl border border-border/40 bg-background/60 overflow-hidden">
-                <Box className="flex items-center justify-between px-4 py-3 border-b border-border/30 bg-muted/30">
-                  <Typography variant="subtitle2" className="font-semibold text-foreground">
-                    {t('form.scheduledBasketItemHeading', { number: index + 1 })}
-                  </Typography>
-                  {fields.length > 1 && (
-                    <Button type="button" variant="text" onClick={() => remove(index)} className="text-destructive">
-                      <Iconify icon="solar:trash-bin-trash-bold" width={18} />
-                    </Button>
-                  )}
-                </Box>
-                <Box className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Box className="md:col-span-2">
-                    <Typography variant="caption" className="mb-1 text-muted-foreground">{t('form.primaryVariant')}</Typography>
-                    <Controller
-                      name={`items.${index}.shop_product_variant_id`}
-                      control={control}
-                      render={({ field: f }) => {
-                        const src = scheduledBasketResponse?.data ?? scheduledBasketFromState;
-                        const apiLines = [...(src?.items ?? []), ...(src?.extras ?? [])];
-                        const lineFromApi = Array.isArray(apiLines) ? apiLines[index] : undefined;
-                        return (
-                          <InfiniteScrollSelect
-                            value={Number(f.value) || 0}
-                            onChange={(variantId) => f.onChange(Number(variantId) || 0)}
-                            queryKey={['shopProductVariant', 'scheduled-basket', 'line', index, categoryIds.join(',')]}
-                            fetcher={(page, limit) => {
-                              const perPage = limit ?? 10;
-                              if (!categoryIds.length) {
-                                return Promise.resolve({ data: { items: page === 1 ? [{ id: 0, label: t('form.selectCategoryBeforeVariants') }] : [], pagination: { current_page: page, last_page: page, per_page: perPage, total: 0 } } });
-                              }
-                              if (categoryIds.length === 1) {
-                                return _ShopProductVariantApi.getList({ page, per_page: perPage, category_id: categoryIds[0] });
-                              }
-                              return _ShopProductVariantApi.getList({
-                                page,
-                                per_page: perPage,
-                                category_ids: categoryIds,
-                              });
-                            }}
-                            placeholder={t('form.variantId')}
-                            initialLabel={scheduledBasketLineVariantInitialLabel(lineFromApi)}
-                            initialImage={resolveStorageImageUrl(
-                              lineFromApi?.variant_image ?? lineFromApi?.product?.image
-                            )}
-                            getOptionImage={(item) => shopVariantOptionImage(item)}
-                            getOptionColorHex={(item) => shopVariantOptionColorHex(item)}
-                            disabled={categoryIds.length === 0}
-                          />
-                        );
-                      }}
-                    />
-                  </Box>
-                  <Box className="grid grid-cols-3 gap-3 md:col-span-2">
-                    <Box>
-                      <Typography variant="caption" className="mb-1 text-muted-foreground">{t('form.quantity')}</Typography>
-                      <RHFTextField name={`items.${index}.quantity`} placeholder={t('form.placeholderOne')} type="number" fullWidth />
-                    </Box>
-                    <Box>
-                      <Typography variant="caption" className="mb-1 text-muted-foreground">{t('form.minQuantity')}</Typography>
-                      <RHFTextField name={`items.${index}.min_quantity`} placeholder={t('form.placeholderZero')} type="number" fullWidth />
-                    </Box>
-                    <Box>
-                      <Typography variant="caption" className="mb-1 text-muted-foreground">{t('form.maxQuantity')}</Typography>
-                      <RHFTextField name={`items.${index}.max_quantity`} placeholder={t('form.placeholderZero')} type="number" fullWidth />
-                    </Box>
-                  </Box>
-                  <Box className="md:col-span-2">
-                    <Typography variant="caption" className="mb-1 text-muted-foreground">{t('form.alternativeScheduledBaskets')}</Typography>
-                    <Controller
-                      name={`items.${index}.shop_product_variant_ids`}
-                      control={control}
-                      render={({ field: f }) => {
-                        const ids = Array.isArray(f.value) ? f.value.filter(Boolean).map(Number) : [];
-                        const extraOpts = ids.filter((v) => !shopVariantMultiOptions.some((o) => Number(o.value) === v)).map((v) => ({ value: v, label: `#${v}` }));
-                        const options = [...extraOpts, ...shopVariantMultiOptions];
-                        return (
-                          <MultiSelect
-                            options={options} value={ids}
-                            onChange={(vals) => f.onChange((vals as (string | number)[]).map((x) => Number(x)))}
-                            placeholder={categoryIds.length === 0 ? t('form.selectCategoryBeforeVariants') : t('form.alternativeScheduledBasketsPlaceholder')}
-                            noOptionsMessage={t('noOptionsFound')} fullWidth isDisabled={categoryIds.length === 0}
-                            showOptionImages
-                          />
-                        );
-                      }}
-                    />
-                  </Box>
-                  <Box className="md:col-span-2 flex flex-wrap gap-4">
-                    <Controller name={`items.${index}.is_required`} control={control}
-                      render={({ field: f }) => (
-                        <div className="flex items-center gap-2 p-3 rounded-lg border border-border/50 flex-1 min-w-[140px]">
-                          <Switch checked={f.value} onChange={(e) => f.onChange((e.target as HTMLInputElement).checked)} />
-                          <Typography variant="body2">{t('form.isRequired')}</Typography>
-                        </div>
-                      )}
-                    />
-                    <Controller name={`items.${index}.is_extra`} control={control}
-                      render={({ field: f }) => (
-                        <div className="flex items-center gap-2 p-3 rounded-lg border border-border/50 flex-1 min-w-[140px]">
-                          <Switch checked={f.value} onChange={(e) => f.onChange((e.target as HTMLInputElement).checked)} />
-                          <Typography variant="body2">{t('form.isExtra')}</Typography>
-                        </div>
-                      )}
-                    />
-                  </Box>
-                </Box>
-              </Box>
-            ))}
+            {fields.map((field, index) => {
+              const src = scheduledBasketResponse?.data ?? scheduledBasketFromState;
+              const apiLines = [...(src?.items ?? []), ...(src?.extras ?? [])];
+              const lineFromApi = Array.isArray(apiLines) ? apiLines[index] : undefined;
+              return (
+                <ScheduledBasketItemCard
+                  key={field.id}
+                  index={index}
+                  control={control}
+                  categoryIds={categoryIds}
+                  lineFromApi={lineFromApi}
+                  canRemove={fields.length > 1}
+                  onRemove={() => remove(index)}
+                  t={t}
+                />
+              );
+            })}
           </Box>
         </Box>
 
-        {/* ── Section: Badges ── */}
-        <Box className="rounded-2xl border border-border/50 bg-card/50 shadow-sm">
+        {/* ── 5. Description, visibility, badges ── */}
+        <Box className="create-form-section-keep-header rounded-2xl border border-border/50 bg-card/50 shadow-sm">
           <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-primary/[0.06] via-primary/[0.02] to-transparent">
-            <Box className="h-8 w-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
-              <Iconify icon="solar:medal-ribbons-star-bold" className="text-primary" width={15} />
-            </Box>
-            <Typography variant="subtitle2" className="font-semibold text-foreground">{t('form.badgesLabel')}</Typography>
+            <StepBadge step={5} />
+            <Typography variant="subtitle2" className="font-semibold text-foreground">
+              {t('form.scheduledBasketStepExtra')}
+            </Typography>
           </Box>
-          <Box className="p-6">
+          <Box className="p-6 space-y-5">
+            <Box className="group">
+              <Box className="flex items-center gap-2 mb-2">
+                <Iconify icon="solar:document-bold" className="text-primary" width={20} />
+                <Typography variant="subtitle2" className="font-semibold text-foreground">
+                  {t('form.productFullDescAr')}
+                </Typography>
+              </Box>
+              <Controller
+                name="description.ar"
+                control={control}
+                render={({ field, fieldState: { error } }) => (
+                  <div>
+                    <TinyMCEEditorField
+                      value={field.value ?? ''}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      placeholder={t('form.fullDescArPlaceholder')}
+                      dir="rtl"
+                      menubar
+                      toolsMenuWordCount
+                      height={200}
+                    />
+                    <FieldErrorText message={error?.message} />
+                  </div>
+                )}
+              />
+            </Box>
+            <Box className="group">
+              <Box className="flex items-center gap-2 mb-2">
+                <Iconify icon="solar:document-bold" className="text-primary" width={20} />
+                <Typography variant="subtitle2" className="font-semibold text-foreground">
+                  {t('form.productFullDescEn')}
+                </Typography>
+              </Box>
+              <Controller
+                name="description.en"
+                control={control}
+                render={({ field, fieldState: { error } }) => (
+                  <div>
+                    <TinyMCEEditorField
+                      value={field.value ?? ''}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      placeholder={t('form.fullDescPlaceholder')}
+                      dir="ltr"
+                      menubar
+                      toolsMenuWordCount
+                      height={200}
+                    />
+                    <FieldErrorText message={error?.message} />
+                  </div>
+                )}
+              />
+            </Box>
+            <Controller
+              name="is_active"
+              control={control}
+              render={({ field }) => (
+                <div className="flex items-center gap-3 p-4 rounded-xl border border-border/60 bg-background/60">
+                  <Switch
+                    checked={field.value}
+                    onChange={(e) => field.onChange((e.target as HTMLInputElement).checked)}
+                  />
+                  <Box>
+                    <Typography variant="subtitle2" className="font-semibold text-foreground">
+                      {t('active')}
+                    </Typography>
+                    <Typography variant="caption" className="text-muted-foreground">
+                      {t('form.basketActiveHelper')}
+                    </Typography>
+                  </Box>
+                </div>
+              )}
+            />
             <RHFBadgeSelector name="badges" label={t('form.badgesLabel')} />
           </Box>
         </Box>

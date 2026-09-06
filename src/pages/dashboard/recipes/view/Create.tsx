@@ -22,8 +22,8 @@ import { useCreateRecipe, useUpdateRecipe, useFetchRecipeById } from '@/pages/da
 import { resolveStorageImageUrl, shopVariantOptionImage, shopVariantOptionColorHex } from '@/utils/shop-variant-image';
 import {
   buildCategorySelectRows,
-  collectSelfAndDescendantIds,
   paginateSelectRowsLocal,
+  collectSelfAndDescendantIds,
 } from '@/pages/dashboard/categories/utils/build-parent-picker-options';
 
 import { CONFIG } from 'src/global-config';
@@ -602,7 +602,7 @@ export default function CreatePage() {
         </Box>
 
         {/* ── Items ── */}
-        <Box className="rounded-2xl border border-border/50 bg-card/50 shadow-sm">
+        <Box className="create-form-section-keep-header rounded-2xl border border-border/50 bg-card/50 shadow-sm">
           <Box className="flex items-center justify-between px-6 py-4 border-b border-border/40 bg-gradient-to-r from-emerald-500/[0.06] via-emerald-500/[0.02] to-transparent">
             <Box className="flex items-center gap-3">
               <Box className="h-8 w-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
@@ -841,7 +841,7 @@ export default function CreatePage() {
         </Box>
 
         {/* ── Steps ── */}
-        <Box className="rounded-2xl border border-border/50 bg-card/50 shadow-sm">
+        <Box className="create-form-section-keep-header rounded-2xl border border-border/50 bg-card/50 shadow-sm">
           <Box className="flex items-center justify-between px-6 py-4 border-b border-border/40 bg-gradient-to-r from-rose-500/[0.06] via-rose-500/[0.02] to-transparent">
             <Box className="flex items-center gap-3">
               <Box className="h-8 w-8 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center shrink-0">

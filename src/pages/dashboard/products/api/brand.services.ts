@@ -6,6 +6,32 @@ import type {
 
 import { apiRoutes, axiosInstance } from '@/api';
 
+/** Name is required. Empty optional fields are omitted so the API stores null. */
+function buildBrandFormData(data: BrandCreateUpdatePayload): FormData {
+  const formData = new FormData();
+  formData.append('name[en]', data.name.en.trim());
+  formData.append('name[ar]', data.name.ar.trim());
+  if (data.image instanceof File) {
+    formData.append('image', data.image);
+  }
+  const categoryIds = (data.category_ids ?? []).filter((id) => id > 0);
+  const primaryCategoryId =
+    categoryIds[0] ?? (data.category_id != null && data.category_id > 0 ? data.category_id : null);
+  if (primaryCategoryId != null) {
+    formData.append('category_id', String(primaryCategoryId));
+    categoryIds.forEach((cid) => {
+      formData.append('category_ids[]', String(cid));
+    });
+  }
+  if (data.governorate_id != null && data.governorate_id > 0) {
+    formData.append('governorate_id', String(data.governorate_id));
+  }
+  if (data.city_id != null && data.city_id > 0) {
+    formData.append('city_id', String(data.city_id));
+  }
+  return formData;
+}
+
 export type BrandListQueryParams = {
   name?: string;
   search?: string;
@@ -64,27 +90,7 @@ export const _BrandApi = {
     return response.data;
   },
   createBrand: async (data: BrandCreateUpdatePayload): Promise<any> => {
-    const formData = new FormData();
-    formData.append('name[en]', data.name.en);
-    formData.append('name[ar]', data.name.ar);
-    if (data.image instanceof File) {
-      formData.append('image', data.image);
-    }
-    if (data.category_ids?.length) {
-      data.category_ids.forEach((cid) => {
-        formData.append('category_ids[]', String(cid));
-      });
-    }
-    if (data.category_id != null && data.category_id > 0) {
-      formData.append('category_id', String(data.category_id));
-    }
-    if (data.governorate_id != null && data.governorate_id > 0) {
-      formData.append('governorate_id', String(data.governorate_id));
-    }
-    if (data.city_id != null && data.city_id > 0) {
-      formData.append('city_id', String(data.city_id));
-    }
-
+    const formData = buildBrandFormData(data);
     const response = await axiosInstance.post(apiRoutes.brand.create, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
@@ -93,26 +99,7 @@ export const _BrandApi = {
     return response.data;
   },
   updateBrand: async (id: number | string, data: BrandCreateUpdatePayload): Promise<any> => {
-    const formData = new FormData();
-    formData.append('name[en]', data.name.en);
-    formData.append('name[ar]', data.name.ar);
-    if (data.image instanceof File) {
-      formData.append('image', data.image);
-    }
-    if (data.category_ids?.length) {
-      data.category_ids.forEach((cid) => {
-        formData.append('category_ids[]', String(cid));
-      });
-    }
-    if (data.category_id != null && data.category_id > 0) {
-      formData.append('category_id', String(data.category_id));
-    }
-    if (data.governorate_id != null && data.governorate_id > 0) {
-      formData.append('governorate_id', String(data.governorate_id));
-    }
-    if (data.city_id != null && data.city_id > 0) {
-      formData.append('city_id', String(data.city_id));
-    }
+    const formData = buildBrandFormData(data);
 
     const response = await axiosInstance.patch(apiRoutes.brand.update(id), formData, {
       headers: {

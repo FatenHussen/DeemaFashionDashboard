@@ -8,6 +8,10 @@ import { formatTranslated } from '@/utils/format-translated';
 import { formatBasketBrandLabel, resolveBasketGalleryUrls } from '@/utils/basket-gallery';
 import { resolveShopVariantSaleFields } from '@/shared/api/shop-product-variant.services';
 import { useFetchScheduledBasketById } from '@/pages/dashboard/baskets/hooks/scheduled-basket';
+import {
+  scheduleNameLabel,
+  formatScheduleDiscount,
+} from '@/pages/dashboard/baskets/utils/scheduled-basket-schedule';
 
 import { CONFIG } from 'src/global-config';
 import { Box, Typography } from 'src/shared/ui';
@@ -147,7 +151,7 @@ export default function DetailsPage() {
               <Typography variant="h6" className="mb-4 font-semibold">
                 {t('statistics', { ns: 'nav' })}
               </Typography>
-              <Box className="grid gap-4 sm:grid-cols-4">
+              <Box className="grid gap-4 sm:grid-cols-3">
                 <Box className="rounded-xl border border-border/50 bg-background p-3 text-center">
                   <Typography variant="caption" className="text-muted-foreground">{t('columns.rating')}</Typography>
                   <Typography variant="h5" className="font-bold">
@@ -163,26 +167,54 @@ export default function DetailsPage() {
                   <Typography variant="caption" className="text-muted-foreground">{t('columns.varieties')}</Typography>
                   <Typography variant="h5" className="font-bold">{scheduledBasket.num_varieties ?? '—'}</Typography>
                 </Box>
-                <Box className="rounded-xl border border-border/50 bg-background p-3 text-center">
-                  <Typography variant="caption" className="text-muted-foreground">{t('columns.scheduleCount')}</Typography>
-                  <Typography variant="h5" className="font-bold">{scheduledBasket.schedule_count ?? '—'}</Typography>
+              </Box>
+              {scheduledBasket.has_custom_discount ? (
+                <Box className="mt-4">
+                  <span className="inline-flex rounded-md bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-700">
+                    {t('form.hasCustomDiscount')}
+                  </span>
                 </Box>
-              </Box>
-              <Box className="mt-4 flex flex-wrap gap-4 text-sm">
-                <span>
-                  <span className="text-muted-foreground">{t('form.scheduledBasketDetailsIsSchedule')}: </span>
-                  {scheduledBasket.is_schedule ? t('yes') : t('no')}
-                </span>
-                <span>
-                  <span className="text-muted-foreground">{t('form.scheduledBasketDetailsHasSchedule')}: </span>
-                  {scheduledBasket.has_schedule ? t('yes') : t('no')}
-                </span>
-              </Box>
+              ) : null}
             </Box>
           </Box>
 
-          {/* Delivery schedules (API: schedules[]) */}
-          {scheduledBasket.schedules && scheduledBasket.schedules.length > 0 && (
+          {/* Catalog schedule */}
+          {scheduledBasket.schedule ? (
+            <Box className="mb-4 overflow-hidden rounded-2xl border border-border/50 bg-card/80 shadow-sm backdrop-blur-sm">
+              <Box className="p-6">
+                <Typography variant="h6" className="mb-4 font-semibold">
+                  {t('form.catalogSchedule')}
+                </Typography>
+                <Box className="rounded-xl border border-border/50 bg-background p-4">
+                  <Typography variant="subtitle1" className="font-semibold">
+                    {scheduleNameLabel(scheduledBasket.schedule.name)}
+                  </Typography>
+                  <Box className="mt-2 grid gap-2 sm:grid-cols-2 text-sm">
+                    <span>
+                      <span className="text-muted-foreground">{t('form.intervalDays')}: </span>
+                      {scheduledBasket.schedule.interval_days}
+                    </span>
+                    <span>
+                      <span className="text-muted-foreground">{t('form.scheduleInheritedDiscount')}: </span>
+                      {formatScheduleDiscount(scheduledBasket.schedule) || '—'}
+                    </span>
+                    <span>
+                      <span className="text-muted-foreground">{t('form.scheduleActive')}: </span>
+                      {scheduledBasket.schedule.is_active ? t('active') : t('inactive')}
+                    </span>
+                    {scheduledBasket.has_custom_discount ? (
+                      <span>
+                        <span className="text-muted-foreground">{t('form.hasCustomDiscount')}: </span>
+                        {scheduledBasket.discount_type === 'percentage'
+                          ? `${scheduledBasket.discount}%`
+                          : scheduledBasket.discount}
+                      </span>
+                    ) : null}
+                  </Box>
+                </Box>
+              </Box>
+            </Box>
+          ) : scheduledBasket.schedules && scheduledBasket.schedules.length > 0 ? (
             <Box className="mb-4 overflow-hidden rounded-2xl border border-border/50 bg-card/80 shadow-sm backdrop-blur-sm">
               <Box className="p-6">
                 <Typography variant="h6" className="mb-4 font-semibold">
@@ -205,19 +237,13 @@ export default function DetailsPage() {
                           <span className="text-muted-foreground">{t('form.scheduleActive')}: </span>
                           {sch.is_active ? t('active') : t('inactive')}
                         </span>
-                        {sch.is_default != null && (
-                          <span>
-                            <span className="text-muted-foreground">{t('form.scheduledBasketDetailsDefault')}: </span>
-                            {sch.is_default ? t('yes') : t('no')}
-                          </span>
-                        )}
                       </Box>
                     </Box>
                   ))}
                 </Box>
               </Box>
             </Box>
-          )}
+          ) : null}
 
           {/* Badges */}
           {scheduledBasket.badges && scheduledBasket.badges.length > 0 && (

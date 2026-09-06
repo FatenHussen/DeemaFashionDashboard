@@ -23,9 +23,9 @@ import {
   useFetchCouponById,
 } from '@/pages/dashboard/coupons/hooks/coupon';
 import {
+  type CouponScope,
   CouponCreateSchema,
   CouponUpdateSchema,
-  type CouponScope,
   type CouponFormValues,
   couponLocalDateTimeToISO,
 } from '@/pages/dashboard/coupons/validation/coupon.validation';

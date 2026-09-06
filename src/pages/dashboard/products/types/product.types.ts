@@ -38,6 +38,8 @@ export interface ProductData {
   /** Shelf life / expiry (ISO or YYYY-MM-DD from API) */
   expiry_date?: string | null;
   is_restaurant?: boolean;
+  /** `platform` = site/Tikmool; `shop` = linked to branch(es). */
+  sale_channel?: 'platform' | 'shop' | string | null;
 }
 
 /** Per-currency breakdown from product detail API (`price_currencies`, `cost_price_currencies`, etc.) */
@@ -56,6 +58,8 @@ export interface ProductDetailData {
   category_id: number;
   brand_id: number | null;
   vendor_id?: number | null;
+  /** `platform` = sold on site (auto platform shop); `shop` = explicit branch links. */
+  sale_channel?: 'platform' | 'shop' | string | null;
   name: { en: string; ar: string };
   description: { en: string; ar: string };
   full_description: { en: string; ar: string } | null;
@@ -91,8 +95,14 @@ export interface ProductDetailData {
   /** Aggregated sellable stock when API provides it (may differ from `quantity`). */
   stock?: number | null;
   max_purchase_quantity?: number | null;
-  unit?: string | { id?: number; name?: string | { en: string; ar: string } } | null;
+    unit?: string | { id?: number; name?: string | { en: string; ar: string } } | null;
   warranty_period?: number | null;
+  warranty_id?: number | null;
+  warranty?: {
+    id: number;
+    name?: string | { en?: string; ar?: string } | null;
+    description?: string | { en?: string; ar?: string } | null;
+  } | null;
   sku: string | null;
   model: string | null;
   barcode: string | null;
@@ -132,8 +142,9 @@ export interface ProductDetailData {
     /** Sale price/stock now live on the variant itself — shared across every shop. */
     price: number;
     price_currencies?: Record<string, ProductDetailCurrencyAmount> | null;
-    /** Read-only: computed from the product's own discount (spec §9), not independently settable. */
     discount?: number | null;
+    discount_type?: 'none' | 'percentage' | 'fixed' | string | null;
+    discount_amount?: number | null;
     discount_currencies?: Record<string, ProductDetailCurrencyAmount> | null;
     price_after_discount?: number | null;
     price_after_discount_currencies?: Record<string, ProductDetailCurrencyAmount> | null;
@@ -210,18 +221,32 @@ export interface ProductCreateUpdatePayload {
   category_id: number;
   brand_id?: number | null;
   vendor_id?: number;
+  /** `platform` = site product (no shop_variants); `shop` = must send shop_variants. */
+  sale_channel?: 'platform' | 'shop';
   name: { en: string; ar: string };
   description: { en: string; ar: string };
   full_description?: { en: string; ar: string };
   country_id?: number;
   sale_country_id?: number;
+  /** Sale price in USD. Prefer this over `price_syp` when both are set (API ignores SYP). */
   price?: number;
+  /** Sale price in SYP — converted server-side when `price` is omitted. */
+  price_syp?: number;
   discount?: number;
   discount_type?: ProductDiscountType;
   cost_price?: number;
-  quantity: number;
+  /** Cost in SYP — converted server-side when `cost_price` is omitted. */
+  cost_price_syp?: number;
+  /**
+   * Product-level stock for simple products (no category attributes).
+   * Optional — omit when empty. Variant stock is `variants[].quantity`.
+   */
+  quantity?: number;
+  /** Optional unique product code (رقم المنتج). */
+  product_number?: string;
   unit_id?: number;
-  warranty_period?: number;
+  /** Omit when empty. Never send `""` — MySQL rejects empty integer. */
+  warranty_id?: number | null;
   sku?: string;
   model?: string;
   barcode?: string;
@@ -248,14 +273,15 @@ export interface ProductCreateUpdatePayload {
     sku?: string;
     model?: string;
     barcode?: string;
-    name?: { en: string; ar: string };
     /** Sale price for this SKU, shared across every shop. */
     price?: number;
+    /** Sale price in SYP when `price` is omitted. */
+    price_syp?: number;
     /** Stock for this SKU, shared across every shop. */
     quantity?: number;
-    stock?: number;
+    discount?: number;
+    discount_type?: ProductDiscountType;
     max_purchase_quantity?: number;
-    delivery_time?: string;
     /** 0 | 1 for multipart */
     is_trend?: number;
     /** 0 | 1 for multipart */
@@ -345,4 +371,23 @@ export interface AdminProductVariantsListApiResponse {
       total: number;
     };
   };
+}
+
+/** `POST /api/admin/products/import` row failure. */
+export interface ProductImportFailedRow {
+  row: number;
+  errors: string[];
+}
+
+export interface ProductImportResultData {
+  created: number;
+  updated: number;
+  failed: ProductImportFailedRow[];
+}
+
+export interface ProductImportResponse {
+  status?: boolean;
+  success?: boolean;
+  message?: string;
+  data: ProductImportResultData;
 }

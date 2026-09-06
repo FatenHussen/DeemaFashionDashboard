@@ -1,5 +1,7 @@
 import { apiRoutes, axiosInstance } from 'src/api';
 
+import { mergeAuthUser } from 'src/auth/post-login-redirect';
+
 import { setSession } from './utils';
 
 // ----------------------------------------------------------------------
@@ -38,13 +40,19 @@ export const signInWithPassword = async ({
       throw new Error('User data not found in response');
     }
 
-    // Set the session with the token
     await setSession(token);
 
-    // Store user data in sessionStorage for quick access
-    sessionStorage.setItem('user_data', JSON.stringify(user));
+    let sessionUser = mergeAuthUser(user, responseData);
+    try {
+      const profileRes = await axiosInstance.get(apiRoutes.auth.profile);
+      sessionUser = mergeAuthUser(sessionUser, profileRes.data);
+    } catch {
+      /* login payload is enough to enter the app; profile refresh happens on next load */
+    }
 
-    return { user, token, responseData };
+    sessionStorage.setItem('user_data', JSON.stringify(sessionUser));
+
+    return { user: sessionUser, token, responseData };
   } catch (error) {
     console.error('Error during login:', error);
     throw error;

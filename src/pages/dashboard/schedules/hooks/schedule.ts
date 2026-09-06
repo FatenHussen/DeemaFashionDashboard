@@ -25,7 +25,8 @@ export const useCreateSchedule = () => {
   return useMutation({
     mutationFn: (data: ScheduleCreatePayload) => _ScheduleApi.create(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['schedule', 'list'] });
+      queryClient.invalidateQueries({ queryKey: ['schedule'] });
+      queryClient.invalidateQueries({ queryKey: ['schedules'] });
     },
   });
 };
@@ -36,7 +37,8 @@ export const useUpdateSchedule = () => {
     mutationFn: ({ id, data }: { id: number | string; data: ScheduleUpdatePayload }) =>
       _ScheduleApi.update(id, data),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['schedule', 'list'] });
+      queryClient.invalidateQueries({ queryKey: ['schedule'] });
+      queryClient.invalidateQueries({ queryKey: ['schedules'] });
       queryClient.invalidateQueries({ queryKey: queryKeys.schedule.details(variables.id) });
     },
   });
@@ -47,7 +49,8 @@ export const useDeleteSchedule = () => {
   return useMutation({
     mutationFn: (id: number | string) => _ScheduleApi.delete(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['schedule', 'list'] });
+      queryClient.invalidateQueries({ queryKey: ['schedule'] });
+      queryClient.invalidateQueries({ queryKey: ['schedules'] });
     },
   });
 };

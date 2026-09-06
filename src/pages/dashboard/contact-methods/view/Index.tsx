@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 
 import { toast } from 'react-toastify';
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { usePermissions } from '@/auth/hooks/use-permissions';

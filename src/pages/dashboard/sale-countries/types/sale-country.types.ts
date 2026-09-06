@@ -37,6 +37,5 @@ export interface SaleCountryDetailsResponse {
 
 export interface SaleCountryCreatePayload {
   name: { en: string; ar: string };
-  icon: File | null;
   is_active?: boolean;
 }

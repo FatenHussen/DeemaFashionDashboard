@@ -44,9 +44,9 @@ export interface BrandCreateUpdatePayload {
   };
   image?: File | string | null;
   /** Selected category ids (multipart `category_ids[]`) */
-  category_ids?: number[];
+  category_ids?: number[] | null;
   /** Optional legacy / primary; often the first selected id */
-  category_id?: number;
-  governorate_id?: number;
-  city_id?: number;
+  category_id?: number | null;
+  governorate_id?: number | null;
+  city_id?: number | null;
 }

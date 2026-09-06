@@ -36,6 +36,7 @@ export const ADMIN_TOGGLE_ENTITY_TYPES = [
   'badge',
   'color',
   'coupon',
+  'page_section',
 ] as const;
 
 export type AdminToggleEntityType = (typeof ADMIN_TOGGLE_ENTITY_TYPES)[number];

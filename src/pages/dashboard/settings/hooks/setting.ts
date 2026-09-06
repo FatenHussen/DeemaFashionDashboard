@@ -21,8 +21,11 @@ export const useUpdateSetting = () => {
   return useMutation({
     mutationFn: ({ key, value, isFile }: { key: string; value: any; isFile?: boolean }) =>
       _SettingApi.updateSetting(key, value, isFile),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['setting', 'list'] });
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['setting'] });
+      if (variables?.key) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.setting.details(variables.key) });
+      }
     },
   });
 };

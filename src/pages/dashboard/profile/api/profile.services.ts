@@ -6,6 +6,7 @@ export type ProfileData = {
   email: string;
   is_active: number;
   roles: string[];
+  permissions?: string[];
   created_at: string;
 };
 

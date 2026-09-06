@@ -16,8 +16,8 @@ interface InfiniteScrollSelectProps {
   onChange: (value: number) => void;
   /** TanStack Query cache key */
   queryKey: (string | number | undefined | null)[];
-  /** Fetches one page of options */
-  fetcher: (page: number, limit: number) => Promise<any>;
+  /** Fetches one page of options. When `serverSearch` is on, the third arg is the debounced query. */
+  fetcher: (page: number, limit: number, search?: string) => Promise<any>;
   placeholder?: string;
   className?: string;
   disabled?: boolean;
@@ -40,6 +40,8 @@ interface InfiniteScrollSelectProps {
   /** When true, the trigger shows `nullOptionLabel` instead of a fetched item */
   isNullValue?: boolean;
   onSelectNull?: () => void;
+  /** Debounce the dropdown search (300ms) and pass it to `fetcher` instead of filtering locally. */
+  serverSearch?: boolean;
 }
 
 /**
@@ -64,18 +66,30 @@ export function InfiniteScrollSelect({
   nullOptionLabel,
   isNullValue = false,
   onSelectNull,
+  serverSearch = false,
 }: InfiniteScrollSelectProps) {
   const { t } = useTranslation('table');
   const placeholder = placeholderProp ?? t('select');
 
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
   const triggerRef = useRef<HTMLButtonElement>(null);
   const listContainerRef = useRef<HTMLDivElement>(null);
 
+  useEffect(() => {
+    if (!serverSearch) return undefined;
+    const timer = window.setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    return () => window.clearTimeout(timer);
+  }, [search, serverSearch]);
+
   const { allItems, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
-    useInfiniteSelect(queryKey, fetcher, pageSize);
+    useInfiniteSelect(
+      serverSearch ? [...queryKey, debouncedSearch] : queryKey,
+      (page, limit) => fetcher(page, limit, serverSearch ? debouncedSearch : undefined),
+      pageSize
+    );
 
   // Position dropdown below trigger (render in portal to avoid overflow clipping)
   useEffect(() => {
@@ -152,12 +166,14 @@ export function InfiniteScrollSelect({
 
   const showLeadMedia = Boolean(getOptionImage || getOptionColorHex);
 
-  const filtered = search
-    ? allItems.filter((item: InfiniteSelectOption) => {
-        const label = formatTranslated((item as any).label, '');
-        return label.toLowerCase().includes(search.toLowerCase());
-      })
-    : allItems;
+  const filtered = serverSearch
+    ? allItems
+    : search
+      ? allItems.filter((item: InfiniteSelectOption) => {
+          const label = formatTranslated((item as any).label, '');
+          return label.toLowerCase().includes(search.toLowerCase());
+        })
+      : allItems;
 
   const handleClose = () => {
     setIsOpen(false);

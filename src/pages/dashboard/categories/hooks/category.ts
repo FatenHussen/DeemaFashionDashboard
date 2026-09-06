@@ -58,6 +58,30 @@ export const useFetchCategoryById = (id: number | string) => useQuery({
     enabled: !!id,
   });
 
+/** Preview of what deleting this category would affect — fetched right before showing the delete dialog. */
+export const useFetchCategoryDeleteImpact = (id: number | string | null) =>
+  useQuery({
+    queryKey: queryKeys.category.deleteImpact(id as number | string),
+    queryFn: () => _CategoryApi.getDeleteImpact(id as number | string),
+    enabled: id != null,
+    // The user is waiting on a modal; a retry only delays the fallback confirm.
+    retry: false,
+  });
+
+/** Paginated linked entities affected by deleting this category — the delete dialog's "linked items" tab. */
+export const useFetchCategoryLinkedItems = (
+  id: number | string | null,
+  page: number,
+  perPage = 10
+) =>
+  useQuery({
+    queryKey: queryKeys.category.linkedItems(id as number | string, page, perPage),
+    queryFn: () =>
+      _CategoryApi.getLinkedItems(id as number | string, { page, per_page: perPage }),
+    enabled: id != null,
+    retry: false,
+  });
+
 /** Creating/renaming/deleting a category also creates/renames/deletes its CMS page. */
 function invalidateCategoryPages(queryClient: ReturnType<typeof useQueryClient>) {
   queryClient.invalidateQueries({ queryKey: ['pageBuilder'] });
@@ -126,8 +150,9 @@ export const useDeleteCategory = (page?: number, limit?: number) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: number | string) => _CategoryApi.deleteCategory(id),
-    onSuccess: (_, id) => {
+    mutationFn: ({ id, confirm }: { id: number | string; confirm?: boolean }) =>
+      _CategoryApi.deleteCategory(id, { confirm }),
+    onSuccess: (_, { id }) => {
       invalidateCategoryLists(queryClient);
       invalidateCategoryPages(queryClient);
       queryClient.invalidateQueries({

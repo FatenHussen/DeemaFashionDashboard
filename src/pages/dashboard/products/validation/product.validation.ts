@@ -6,8 +6,27 @@ import i18n from 'src/lib/i18n';
 
 const t = (key: string) => i18n.t(key, { ns: 'validation' });
 
+/** Empty input → `undefined`. Do not use `z.coerce.number().optional()` — coerce turns `undefined` into `NaN`. */
+function optionalNonNegNumber(message?: string) {
+  return zod.preprocess((v) => {
+    if (v === '' || v === null || v === undefined) return undefined;
+    const n = typeof v === 'number' ? v : Number(v);
+    return Number.isFinite(n) ? n : undefined;
+  }, (message ? zod.number().min(0, { message }) : zod.number().min(0)).optional());
+}
+
+function optionalNonNegInt(message?: string) {
+  return zod.preprocess((v) => {
+    if (v === '' || v === null || v === undefined) return undefined;
+    const n = typeof v === 'number' ? v : Number(v);
+    return Number.isFinite(n) ? Math.floor(n) : undefined;
+  }, (message
+    ? zod.number().int({ message }).min(0, { message })
+    : zod.number().int().min(0)
+  ).optional());
+}
+
 // ----------------------------------------------------------------------
-// Use coerce for numeric fields - inputs/API often return strings
 
 export const ProductSchema = zod
   .object({
@@ -16,6 +35,11 @@ export const ProductSchema = zod
     /** internal = platform (vendor_id 1); external = pick vendor from list */
     vendor_scope: zod.enum(['internal', 'external']),
     vendor_id: zod.coerce.number().min(0).optional(),
+    /**
+     * `platform` = site (default); hide shops/vendor and omit shop_variants.
+     * `shop` = must link at least one branch via shop_variants.
+     */
+    sale_channel: zod.enum(['platform', 'shop']).default('platform'),
     name: zod.object({
       en: zod.string().min(1, { message: t('product.nameEnRequired') }),
       ar: zod.string().min(1, { message: t('product.nameArRequired') }),
@@ -34,37 +58,25 @@ export const ProductSchema = zod
     sale_country_id: zod.coerce.number().min(0).optional(),
     /** UI: amount in selected currency; `price` is always USD for the API. */
     price_currency_id: zod.coerce.number().min(0).optional().default(0),
-    price_local: zod.preprocess(
-      (v) => (v === '' || v === null || v === undefined ? undefined : v),
-      zod.coerce.number().min(0).optional()
-    ),
-    price: zod.preprocess(
-      (v) => (v === '' || v === null || v === undefined ? undefined : v),
-      zod.coerce.number().min(0, { message: t('product.pricePositive') }).optional()
-    ),
-    discount: zod.preprocess(
-      (v) => (v === '' || v === null || v === undefined ? undefined : v),
-      zod.coerce.number().min(0).optional().default(0)
-    ),
+    price_local: optionalNonNegNumber(),
+    price: optionalNonNegNumber(t('product.pricePositive')),
+    /** UI + API: SYP sale amount when USD `price` is empty. */
+    price_syp: optionalNonNegNumber(),
+    discount: optionalNonNegNumber(),
     discount_type: zod.enum(['none', 'percentage', 'fixed']).default('none'),
-    cost_price: zod.preprocess(
-      (v) => (v === '' || v === null || v === undefined ? undefined : v),
-      zod.coerce.number().min(0).optional()
-    ),
-    quantity: zod.preprocess(
-      (v) => (v === '' || v === null || v === undefined ? undefined : v),
-      zod.coerce.number({
-        invalid_type_error: t('product.quantityPositive'),
-        required_error: t('product.quantityPositive'),
-      }).min(0, { message: t('product.quantityPositive') })
-    ),
+    cost_price: optionalNonNegNumber(),
+    cost_price_syp: optionalNonNegNumber(),
+    /**
+     * Product-level stock — optional. Hidden when the category has attributes
+     * (quantity lives on `variants[]`). Never required; omit when empty.
+     */
+    quantity: optionalNonNegInt(t('product.quantityPositive')),
     /** From `/admin/units`; `0` = not selected. */
     unit_id: zod.coerce.number().min(0).optional().default(0),
-    warranty_period: zod.preprocess(
-      (v) => (v === '' || v === null || v === undefined ? undefined : v),
-      zod.coerce.number().min(0).optional()
-    ),
+    warranty_id: zod.coerce.number().min(0).optional().default(0),
     sku: zod.string().optional(),
+    /** Admin product code — optional, unique on the backend when sent. */
+    product_number: zod.string().optional(),
     model: zod.string().optional(),
     barcode: zod.string().optional(),
     time_prepare: zod.string().optional(),
@@ -118,8 +130,7 @@ export const ProductSchema = zod
           id: zod.coerce.number().optional(),
           /** UI-only: which category attribute this card represents (not sent to the API). */
           category_attribute_id: zod.coerce.number().optional(),
-          // Defaulted so the attribute-less restaurant row (seeded with price/quantity only)
-          // passes validation; the backend's own minimal variant also has [].
+          // Defaulted so the attribute-less restaurant row passes validation; the backend's own minimal variant also has [].
           attributes_values_ids: zod.array(zod.coerce.number()).default([]),
           images: zod.preprocess(
             (val) =>
@@ -130,33 +141,12 @@ export const ProductSchema = zod
           sku: zod.string().optional(),
           model: zod.string().optional(),
           barcode: zod.string().optional(),
-          name: zod.object({ en: zod.string(), ar: zod.string() }).optional(),
-          price: zod.preprocess(
-            (v) => (v === '' || v === null || v === undefined ? undefined : v),
-            zod.coerce.number().min(0, { message: t('product.pricePositive') }).optional()
-          ),
-          quantity: zod.preprocess(
-            (v) => {
-              if (v === '' || v === null || v === undefined) return undefined;
-              const n = Number(v);
-              if (!Number.isFinite(n)) return v;
-              return Math.floor(n);
-            },
-            zod.coerce
-              .number()
-              .int({ message: t('product.quantityPositive') })
-              .min(0, { message: t('product.quantityPositive') })
-              .optional()
-          ),
-          stock: zod.preprocess(
-            (v) => (v === '' || v === null || v === undefined ? undefined : v),
-            zod.coerce.number().min(0).optional()
-          ),
-          max_purchase_quantity: zod.preprocess(
-            (v) => (v === '' || v === null || v === undefined ? undefined : v),
-            zod.coerce.number().min(0).optional()
-          ),
-          delivery_time: zod.string().optional(),
+          price: optionalNonNegNumber(t('product.pricePositive')),
+          price_syp: optionalNonNegNumber(),
+          quantity: optionalNonNegInt(t('product.quantityPositive')),
+          discount: optionalNonNegNumber(),
+          discount_type: zod.enum(['none', 'percentage', 'fixed']).optional().default('none'),
+          max_purchase_quantity: optionalNonNegNumber(),
           is_trend: zod.coerce.number().min(0).max(1).optional().default(0),
           is_active: zod.coerce.number().min(0).max(1).optional().default(1),
         })
@@ -248,10 +238,7 @@ export const ProductSchema = zod
           id: zod.coerce.number().optional(),
           shop_id: zod.coerce.number(),
           variant_index: zod.coerce.number(),
-          cost_price: zod.preprocess(
-            (v) => (v === '' || v === null || v === undefined ? undefined : v),
-            zod.coerce.number().min(0).optional()
-          ),
+          cost_price: optionalNonNegNumber(),
         })
       )
       .optional(),
@@ -263,22 +250,21 @@ export const ProductSchema = zod
     icon_ids: zod.array(zod.coerce.number()).default([]),
   })
   .superRefine((data, ctx) => {
-    if (data.vendor_scope === 'external' && (!data.vendor_id || data.vendor_id < 1)) {
-      ctx.addIssue({
-        code: zod.ZodIssueCode.custom,
-        message: t('product.vendorRequiredExternal'),
-        path: ['vendor_id'],
-      });
+    const isShopChannel = data.sale_channel === 'shop' || data.is_restaurant === true;
+    // Vendor is optional (filter only). Branch via shop_variants is required for shop channel.
+    if (isShopChannel) {
+      const links = (data.shop_variants ?? []).filter(
+        (sv) => sv != null && Number(sv.shop_id) > 0
+      );
+      if (links.length === 0) {
+        ctx.addIssue({
+          code: zod.ZodIssueCode.custom,
+          message: t('product.shopRequiredForShopChannel'),
+          path: ['shop_variants'],
+        });
+      }
     }
-    const hasNew = Array.isArray(data.images) && data.images.length > 0;
-    const hasKept = Array.isArray(data.existing_media_ids) && data.existing_media_ids.length > 0;
-    if (!hasNew && !hasKept) {
-      ctx.addIssue({
-        code: zod.ZodIssueCode.custom,
-        message: t('product.mediaRequired'),
-        path: ['images'],
-      });
-    }
+    // media / images are optional — products can be created without gallery photos
     issueIfPercentageDiscountOver100(ctx, data.discount_type, data.discount, ['discount']);
   });
 

@@ -82,6 +82,8 @@ const RESOURCE_WORDS = [
   'icon',
   'badge',
   'color',
+  'warranty',
+  'unit',
 ];
 
 const RESOURCE_WORDS_SORTED = [...RESOURCE_WORDS].sort((a, b) => b.length - a.length);

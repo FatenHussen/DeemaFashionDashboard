@@ -9,16 +9,19 @@ import { apiRoutes, axiosInstance } from '@/api';
 
 export const _ColorApi = {
   getListColors: async (params?: ColorListParams): Promise<ColorListResponse> => {
+    const query: Record<string, string | number> = {
+      page: params?.page ?? 1,
+      per_page: params?.per_page ?? 15,
+    };
+    if (params?.search) query.search = params.search;
+    if (params?.sort_field) query.sort_field = params.sort_field;
+    if (params?.sort_order) query.sort_order = params.sort_order;
+    if (params?.hex) query.hex = params.hex;
+    if (params?.is_active === true || params?.is_active === 1) query.is_active = '1';
+    else if (params?.is_active === false || params?.is_active === 0) query.is_active = '0';
+
     const response = await axiosInstance.get<ColorListResponse>(apiRoutes.color.list, {
-      params: {
-        page: params?.page,
-        per_page: params?.per_page,
-        ...(params?.search ? { search: params.search } : {}),
-        ...(params?.sort_field ? { sort_field: params.sort_field } : {}),
-        ...(params?.sort_order ? { sort_order: params.sort_order } : {}),
-        ...(params?.hex ? { hex: params.hex } : {}),
-        ...(params?.is_active !== undefined ? { is_active: params.is_active } : {}),
-      },
+      params: query,
     });
     return response.data;
   },

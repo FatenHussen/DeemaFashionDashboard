@@ -1,12 +1,14 @@
 import type { Table } from '@tanstack/react-table';
 import type { RecycleBinType } from '@/types/recycleBin/recycleBin';
 
+import { toast } from 'react-toastify';
 import { createPortal } from 'react-dom';
 import { Input } from '@/shared/ui/input';
 import { useNavigate } from 'react-router';
 import { Button } from '@/shared/ui/button';
 import { useTranslation } from 'react-i18next';
 import { useRef, useState, useEffect, type ReactNode } from 'react';
+import { _ProductApi } from '@/pages/dashboard/products/api/product.services';
 import { X, Plus, Search, Filter, Download, Sparkles, RotateCcw, SlidersHorizontal } from 'lucide-react';
 
 import { Import } from './import';
@@ -15,10 +17,6 @@ import { CustomizeColumnsModal } from './customize-columns-modal';
 import DataTableRecycleFilterButton from './data-Table-RecycleFilter-Button ';
 
 const VALID_IMPORT_TYPES = ['products'];
-
-const TEMPLATE_FILES: Record<string, string> = {
-  products: '/templates/products_import_template.xlsx',
-};
 
 interface ColumnItem {
   id: number;
@@ -238,6 +236,7 @@ export function DataTableToolbar<TData>({
 }: DataTableToolbarProps<TData>) {
   const [searchValue, setSearchValue] = useState('');
   const [filterSidebarOpen, setFilterSidebarOpen] = useState(false);
+  const [isDownloadingTemplate, setIsDownloadingTemplate] = useState(false);
   const navigate = useNavigate();
   const { t } = useTranslation('table');
 
@@ -287,16 +286,18 @@ export function DataTableToolbar<TData>({
   };
 
   const canImport = VALID_IMPORT_TYPES.includes(tableName);
+  const canDownloadTemplate = canImport;
+  const canRunImport = canImport && permissions?.create !== false;
 
-  const downloadTemplate = () => {
-    const templatePath = TEMPLATE_FILES[tableName];
-    if (templatePath) {
-      const link = document.createElement('a');
-      link.href = templatePath;
-      link.download = `${tableName}-template.xlsx`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+  const downloadTemplate = async () => {
+    if (tableName !== 'products') return;
+    setIsDownloadingTemplate(true);
+    try {
+      await _ProductApi.downloadImportTemplate();
+    } catch (error: any) {
+      toast.error(error?.message || t('import.templateDownloadFailed'));
+    } finally {
+      setIsDownloadingTemplate(false);
     }
   };
 
@@ -411,16 +412,23 @@ export function DataTableToolbar<TData>({
           {/* Import Section */}
           {canImport && (
             <div className="flex items-center gap-2">
-              <Button
-                variant="outlined"
-                size="small"
-                onClick={downloadTemplate}
-                className="h-10 px-4 rounded-xl bg-background/80 border-border/50 hover:border-primary/50 hover:bg-primary/5 hover:shadow-md hover:shadow-primary/10 hover:scale-105 active:scale-95 transition-all duration-300 group"
-              >
-                <Download className="w-4 h-4 me-2 transition-transform duration-300 group-hover:translate-y-0.5" />
-                <span className="font-medium">{t('downloadTemplate')}</span>
-              </Button>
-              <Import tableName={tableName} onImportSuccess={onImportSuccess} />
+              {canDownloadTemplate ? (
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={() => void downloadTemplate()}
+                  disabled={isDownloadingTemplate}
+                  className="h-10 px-4 rounded-xl bg-background/80 border-border/50 hover:border-primary/50 hover:bg-primary/5 hover:shadow-md hover:shadow-primary/10 hover:scale-105 active:scale-95 transition-all duration-300 group"
+                >
+                  <Download className="w-4 h-4 me-2 transition-transform duration-300 group-hover:translate-y-0.5" />
+                  <span className="font-medium">
+                    {isDownloadingTemplate ? t('import.downloadingTemplate') : t('downloadTemplate')}
+                  </span>
+                </Button>
+              ) : null}
+              {canRunImport ? (
+                <Import tableName={tableName} onImportSuccess={onImportSuccess} />
+              ) : null}
             </div>
           )}
 

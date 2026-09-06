@@ -35,6 +35,8 @@ export interface PagePreviewSection {
   order: number;
   /** Category pages: two default sections are auto-generated (`is_default: true`). */
   is_default?: boolean;
+  /** When false, the section is hidden from the user-facing app but remains on the page. */
+  is_active?: boolean;
   display_type_id?: number;
   layout?: string;
   variant?: string;

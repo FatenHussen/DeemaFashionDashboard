@@ -18,12 +18,8 @@ import { _ShopProductVariantApi } from '@/shared/api/shop-product-variant.servic
 import { ShopVariantColorSwatch } from '@/shared/components/shop-variant-color-swatch';
 import { resolveStorageImageUrl, shopVariantOptionImage, shopVariantOptionColorHex } from '@/utils/shop-variant-image';
 import { useCreateGift, useUpdateGift, useFetchGiftById, useBulkCreateGifts } from '@/pages/dashboard/gifts/hooks/gift';
+import { GiftSchema, type GiftFormMode, type GiftFormValues } from '@/pages/dashboard/gifts/validation/gift.validation';
 import { buildCategorySelectRows, paginateSelectRowsLocal } from '@/pages/dashboard/categories/utils/build-parent-picker-options';
-import {
-  GiftSchema,
-  type GiftFormMode,
-  type GiftFormValues,
-} from '@/pages/dashboard/gifts/validation/gift.validation';
 
 import { CONFIG } from 'src/global-config';
 import { Iconify } from 'src/shared/components/iconify';

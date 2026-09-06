@@ -1,6 +1,7 @@
 import type { TFunction } from 'i18next';
 import type { NavSectionProps } from 'src/shared/components/nav-section';
 
+import { WARRANTY_PERMISSION } from '@/pages/dashboard/warranties/permissions';
 import { FLASH_SALE_PERMISSION } from '@/pages/dashboard/flash-sales/permissions';
 import { NAV_MENU_ITEM_VIEW_ANY } from '@/pages/dashboard/nav-menu-items/permissions';
 import { CONTACT_METHOD_VIEW_ANY } from '@/pages/dashboard/contact-methods/permissions';
@@ -101,6 +102,7 @@ export function getNavData(t: TFunction<'nav'>): NavSectionProps['data'] {
         },
         { title: t('brands'), path: paths.dashboard.brands, icon: ICONS.ecommerce, requiredPermission: 'brand.view' },
         { title: t('units'), path: paths.dashboard.units, icon: ICONS.params, requiredPermission: 'unit.view' },
+        { title: t('warranties'), path: paths.dashboard.warranties, icon: ICONS.label, requiredPermission: WARRANTY_PERMISSION.view },
         { title: t('products'), path: paths.dashboard.products, icon: ICONS.product, requiredPermission: 'product.view' },
         { title: t('inventory'), path: paths.dashboard.inventory, icon: ICONS.folder, requiredPermission: 'product.view' },
         // { title: t('crimage.pngeateProductNav'), path: paths.dashboard.product.create, icon: ICONS.ecommerce, requiredPermission: 'product.create' },
@@ -263,6 +265,16 @@ export function getNavData(t: TFunction<'nav'>): NavSectionProps['data'] {
       ) as any,
       items: [
         { title: t('orders'), path: paths.dashboard.orders, icon: ICONS.order, requiredPermission: 'order.view' },
+        {
+          title: t('customOrderRequests'),
+          path: paths.dashboard.customOrderRequests,
+          icon: ICONS.file,
+          requiredPermissionAny: [
+            'customorderrequest.view',
+            'custom_order_request.view',
+            'order.view',
+          ],
+        },
         { title: t('serviceOrders'), path: paths.dashboard.serviceOrders, icon: ICONS.invoice, requiredPermission: 'serviceorder.view' },
       ],
     },

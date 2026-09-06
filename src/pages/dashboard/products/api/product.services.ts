@@ -2,20 +2,56 @@ import type {
   ProductDetailData,
   ProductListResponse,
   ProductDetailResponse,
+  ProductImportResponse,
   ProductCreateUpdatePayload,
   AdminProductVariantsListApiResponse,
 } from '../types/product.types';
 
 import { apiRoutes, axiosInstance } from '@/api';
 
+import { _BrandApi } from './brand.services';
 import {
-  toShopVariantPayloadList,
   toVariantPayload,
   toVariantPayloadList,
+  toShopVariantPayloadList,
 } from '../utils/variant-payload';
+import {
+  buildProductsImportTemplateBlob,
+  PRODUCT_IMPORT_TEMPLATE_FILENAME,
+  sanitizeProductsImportFile,
+} from '../utils/product-import-template';
 
 // ----------------------------------------------------------------------
 
+const getFilenameFromHeaders = (
+  headers: Record<string, string>,
+  fallback = 'products-import-template.xlsx'
+): string => {
+  const disposition = headers['content-disposition'] || headers['Content-Disposition'];
+  const match = disposition?.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+  if (match) {
+    const filename = match[1].replace(/['"]/g, '').trim();
+    if (filename) {
+      try {
+        return decodeURIComponent(filename);
+      } catch {
+        return filename;
+      }
+    }
+  }
+  return fallback;
+};
+
+const triggerBlobDownload = (blob: Blob, filename: string) => {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+};
 const splitKeywords = (s: string) =>
   s
     .split(',')
@@ -64,17 +100,22 @@ const appendVariantRows = (
     if (cleaned.barcode !== undefined) {
       formData.append(`variants[${vIndex}][barcode]`, cleaned.barcode ?? '');
     }
-    if (cleaned.name?.en !== undefined) {
-      formData.append(`variants[${vIndex}][name][en]`, cleaned.name.en);
-    }
-    if (cleaned.name?.ar !== undefined) {
-      formData.append(`variants[${vIndex}][name][ar]`, cleaned.name.ar);
-    }
     if (cleaned.price !== undefined) {
       formData.append(`variants[${vIndex}][price]`, String(cleaned.price));
+    } else if (cleaned.price_syp !== undefined) {
+      formData.append(`variants[${vIndex}][price_syp]`, String(cleaned.price_syp));
     }
-    if (cleaned.quantity !== undefined) {
+    if (cleaned.quantity != null && !Number.isNaN(Number(cleaned.quantity))) {
       formData.append(`variants[${vIndex}][quantity]`, String(cleaned.quantity));
+    }
+    if (cleaned.discount_type !== undefined) {
+      formData.append(`variants[${vIndex}][discount_type]`, cleaned.discount_type);
+      formData.append(
+        `variants[${vIndex}][discount]`,
+        String(cleaned.discount_type === 'none' ? 0 : (cleaned.discount ?? 0))
+      );
+    } else if (cleaned.discount !== undefined) {
+      formData.append(`variants[${vIndex}][discount]`, String(cleaned.discount));
     }
     if (cleaned.is_trend !== undefined) {
       formData.append(`variants[${vIndex}][is_trend]`, Number(cleaned.is_trend) === 1 ? '1' : '0');
@@ -103,6 +144,14 @@ const appendShopVariantRows = (
   });
 };
 
+/** Optional FK select: send a positive id only. Never send `""` (MySQL integer error). */
+const appendOptionalPositiveInt = (formData: FormData, key: string, value: unknown) => {
+  if (value == null || value === '') return;
+  const n = Number(value);
+  if (!Number.isFinite(n) || n <= 0) return;
+  formData.append(key, String(n));
+};
+
 const buildProductFormData = (data: ProductCreateUpdatePayload): FormData => {
   const formData = new FormData();
 
@@ -119,39 +168,63 @@ const buildProductFormData = (data: ProductCreateUpdatePayload): FormData => {
   formData.append('description[ar]', data.description.ar);
   if (data.price !== undefined && data.price !== null && !Number.isNaN(Number(data.price))) {
     formData.append('price', String(data.price));
+  } else if (
+    data.price_syp !== undefined &&
+    data.price_syp !== null &&
+    !Number.isNaN(Number(data.price_syp))
+  ) {
+    formData.append('price_syp', String(data.price_syp));
   }
-  formData.append('quantity', data.quantity.toString());
+  if (data.product_number != null && String(data.product_number).trim() !== '') {
+    formData.append('product_number', String(data.product_number).trim());
+  }
   formData.append('is_instant_delivery', data.is_instant_delivery.toString());
 
   formData.append('is_visible', String(data.is_visible ?? 1));
-  if (data.id != null) {
-    formData.append(
-      'brand_id',
-      data.brand_id != null && data.brand_id > 0 ? String(data.brand_id) : ''
-    );
-  } else if (data.brand_id != null && data.brand_id > 0) {
-    formData.append('brand_id', String(data.brand_id));
+  appendOptionalPositiveInt(formData, 'brand_id', data.brand_id);
+
+  const saleChannel =
+    data.sale_channel === 'shop'
+      ? 'shop'
+      : data.sale_channel === 'platform'
+        ? 'platform'
+        : undefined;
+  // Omit on name-only updates — sending platform again would re-bind the default branch.
+  if (saleChannel != null) {
+    formData.append('sale_channel', saleChannel);
   }
-  formData.append('vendor_id', String(data.vendor_id ?? 0));
+  // Platform / omitted channel: backend owns Tikmool vendor + default branch — do not send vendor_id.
+  if (saleChannel === 'shop' && data.vendor_id != null && Number(data.vendor_id) > 0) {
+    formData.append('vendor_id', String(data.vendor_id));
+  }
 
   const discountType = data.discount_type ?? 'none';
   formData.append('discount_type', discountType);
-  formData.append('discount', String(data.discount ?? 0));
+  formData.append('discount', String(discountType === 'none' ? 0 : (data.discount ?? 0)));
 
   if (data.cost_price !== undefined && data.cost_price !== null) {
     formData.append('cost_price', String(data.cost_price));
+  } else if (
+    data.cost_price_syp !== undefined &&
+    data.cost_price_syp !== null &&
+    !Number.isNaN(Number(data.cost_price_syp))
+  ) {
+    formData.append('cost_price_syp', String(data.cost_price_syp));
   }
-  if (data.unit_id != null && data.unit_id > 0) {
-    formData.append('unit_id', String(data.unit_id));
+  if (
+    data.quantity !== undefined &&
+    data.quantity !== null &&
+    !Number.isNaN(Number(data.quantity))
+  ) {
+    formData.append('quantity', String(data.quantity));
   }
-  if (data.warranty_period !== undefined && data.warranty_period !== null) {
-    formData.append('warranty_period', String(data.warranty_period));
-  }
+  appendOptionalPositiveInt(formData, 'unit_id', data.unit_id);
+  appendOptionalPositiveInt(formData, 'warranty_id', data.warranty_id);
 
   formData.append('full_description[en]', data.full_description?.en ?? '');
   formData.append('full_description[ar]', data.full_description?.ar ?? '');
-  formData.append('country_id', String(data.country_id ?? 0));
-  formData.append('sale_country_id', String(data.sale_country_id ?? 0));
+  appendOptionalPositiveInt(formData, 'country_id', data.country_id);
+  appendOptionalPositiveInt(formData, 'sale_country_id', data.sale_country_id);
   formData.append('sku', data.sku ?? '');
   formData.append('model', data.model ?? '');
   formData.append('barcode', data.barcode ?? '');
@@ -196,7 +269,11 @@ const buildProductFormData = (data: ProductCreateUpdatePayload): FormData => {
   // Whitelist-only. Empty arrays are omitted so the backend keeps current rows
   // (sending `variants: []` soft-deletes everything and seeds a default SKU).
   appendVariantRows(formData, data.variants);
-  appendShopVariantRows(formData, data.shop_variants);
+  // Shop channel only. Platform / omitted channel: never send shop_variants
+  // (name-only edit must leave existing links alone; platform convert rebinds on the backend).
+  if (saleChannel === 'shop') {
+    appendShopVariantRows(formData, data.shop_variants);
+  }
 
   const validCategoryDetails = (data.category_details ?? []).filter(
     (d) => d.category_detail_id && d.category_detail_id > 0
@@ -460,6 +537,62 @@ export const _ProductApi = {
     formData.append('quantity', String(quantity));
     formData.append('_method', 'PUT');
     const response = await axiosInstance.post(apiRoutes.product.update(id), formData);
+    return response.data;
+  },
+
+  /** Download the fixed SPBS Excel import template (API, then local fallback). */
+  downloadImportTemplate: async (): Promise<void> => {
+    try {
+      const response = await axiosInstance.get(apiRoutes.product.importTemplate, {
+        responseType: 'blob',
+        skipErrorToast: true,
+        headers: {
+          Accept:
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/octet-stream',
+        },
+      });
+      const blob = response.data as Blob;
+      const isFile =
+        blob instanceof Blob &&
+        blob.size > 0 &&
+        !/json|html|text\/plain/i.test(blob.type || '');
+      if (!isFile) {
+        throw new Error('invalid-template-payload');
+      }
+      const filename = getFilenameFromHeaders(
+        response.headers as unknown as Record<string, string>,
+        PRODUCT_IMPORT_TEMPLATE_FILENAME
+      );
+      triggerBlobDownload(blob, filename);
+    } catch {
+      triggerBlobDownload(
+        buildProductsImportTemplateBlob(),
+        PRODUCT_IMPORT_TEMPLATE_FILENAME
+      );
+    }
+  },
+
+  /** Upload a products Excel file (fixed columns — no UI mapping). */
+  importProducts: async (file: File): Promise<ProductImportResponse> => {
+    let brands: Array<{ name?: unknown }> = [];
+    try {
+      const list = await _BrandApi.getListBrands({ page: 1, per_page: 1000 });
+      brands = list?.data?.items ?? [];
+    } catch {
+      brands = [];
+    }
+    const sanitized = await sanitizeProductsImportFile(file, brands);
+    const formData = new FormData();
+    formData.append('file', sanitized);
+    const response = await axiosInstance.post<ProductImportResponse>(
+      apiRoutes.product.import,
+      formData,
+      {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        maxBodyLength: Infinity,
+        maxContentLength: Infinity,
+      }
+    );
     return response.data;
   },
 };

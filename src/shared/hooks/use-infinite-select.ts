@@ -15,7 +15,7 @@ export interface InfiniteSelectOption {
 interface PaginatedSelectResponse {
   data: {
     items: InfiniteSelectOption[];
-    pagination: {
+    pagination?: {
       current_page: number;
       last_page: number;
       per_page: number;

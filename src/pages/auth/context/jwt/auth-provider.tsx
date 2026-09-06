@@ -5,6 +5,8 @@ import { useMemo, useEffect, useCallback } from 'react';
 
 import { apiRoutes, axiosInstance } from 'src/api';
 
+import { mergeAuthUser, extractPermissionsFromLoginResponse } from 'src/auth/post-login-redirect';
+
 import { isValidToken } from './utils';
 import { JWT_STORAGE_KEY } from './constant';
 import { AuthContext } from '../auth-context';
@@ -22,63 +24,64 @@ export function AuthProvider({ children }: Props) {
     try {
       const accessToken = sessionStorage.getItem(JWT_STORAGE_KEY);
 
-      if (accessToken && isValidToken(accessToken)) {
-        // Try to get user from sessionStorage first (from login response)
-        const storedUser = sessionStorage.getItem('user_data');
-
-        if (storedUser) {
-          try {
-            const user = JSON.parse(storedUser);
-            setState({ user, loading: false });
-            return;
-          } catch (e) {
-            // If parsing fails, fetch from API
-          }
-        }
-
-        // If no stored user, fetch from API
-        try {
-          const res = await axiosInstance.get(apiRoutes.auth.me);
-
-          // Handle different response structures
-          const userData = res.data?.data?.user || res.data?.user || res.data;
-
-          if (userData) {
-            // Store user data
-            sessionStorage.setItem('user_data', JSON.stringify(userData));
-            setState({ user: userData, loading: false });
-          } else {
-            setState({ user: null, loading: false });
-          }
-        } catch (error: any) {
-          console.error('Error fetching user data:', error);
-
-          // If 401/403, token is invalid - clear everything
-          if (error?.response?.status === 401 || error?.response?.status === 403) {
-            sessionStorage.removeItem(JWT_STORAGE_KEY);
-            sessionStorage.removeItem('user_data');
-            setState({ user: null, loading: false });
-            return;
-          }
-
-          // For other errors, try to use stored user
-          const fallbackUser = sessionStorage.getItem('user_data');
-          if (fallbackUser) {
-            try {
-              const user = JSON.parse(fallbackUser);
-              setState({ user, loading: false });
-            } catch (e) {
-              setState({ user: null, loading: false });
-            }
-          } else {
-            setState({ user: null, loading: false });
-          }
-        }
-      } else {
-        // No valid token, clear user data
+      if (!accessToken || !isValidToken(accessToken)) {
         sessionStorage.removeItem('user_data');
         setState({ user: null, loading: false });
+        return;
       }
+
+      let storedUser: any = null;
+      const rawStored = sessionStorage.getItem('user_data');
+      if (rawStored) {
+        try {
+          storedUser = JSON.parse(rawStored);
+        } catch {
+          storedUser = null;
+        }
+      }
+
+      // Paint cached user immediately, then refresh from GET /admin/auth/profile.
+      if (storedUser) {
+        setState({ user: mergeAuthUser(storedUser), loading: false });
+      }
+
+      try {
+        const res = await axiosInstance.get(apiRoutes.auth.profile);
+        const userData = mergeAuthUser(storedUser, res.data);
+        if (userData && (userData.id || userData.email || storedUser)) {
+          sessionStorage.setItem('user_data', JSON.stringify(userData));
+          setState({ user: userData, loading: false });
+          return;
+        }
+      } catch (error: any) {
+        console.error('Error fetching profile:', error);
+
+        if (error?.response?.status === 401) {
+          sessionStorage.removeItem(JWT_STORAGE_KEY);
+          sessionStorage.removeItem('user_data');
+          setState({ user: null, loading: false });
+          return;
+        }
+      }
+
+      if (storedUser) {
+        setState({ user: mergeAuthUser(storedUser), loading: false });
+        return;
+      }
+
+      try {
+        const res = await axiosInstance.get(apiRoutes.auth.me);
+        const userData = mergeAuthUser(res.data?.data?.user || res.data?.user || res.data, res.data);
+        if (userData) {
+          sessionStorage.setItem('user_data', JSON.stringify(userData));
+          setState({ user: userData, loading: false });
+          return;
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      }
+
+      setState({ user: null, loading: false });
     } catch (error) {
       console.error('Error checking user session:', error);
       setState({ user: null, loading: false });
@@ -92,7 +95,6 @@ export function AuthProvider({ children }: Props) {
   const status = state.loading ? 'loading' : state.user ? 'authenticated' : 'unauthenticated';
 
   const memoizedValue = useMemo(() => {
-    // Extract role from user data (could be in roles array or role field)
     let userRole = 'admin';
     if (state.user) {
       if (Array.isArray((state.user as any)?.roles) && (state.user as any).roles.length > 0) {
@@ -102,10 +104,7 @@ export function AuthProvider({ children }: Props) {
       }
     }
 
-    // Extract permissions from user data
-    const userPermissions: string[] = Array.isArray((state.user as any)?.permissions)
-      ? (state.user as any).permissions
-      : [];
+    const userPermissions = extractPermissionsFromLoginResponse(state.user);
 
     return {
       user: state.user ? { ...state.user, role: userRole } : null,

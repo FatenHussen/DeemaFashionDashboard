@@ -120,7 +120,8 @@ export interface UserCreatePayload {
 export interface UserUpdatePayload {
   name: string;
   last_name?: string;
-  email: string;
+  /** Omit when unchanged so unique email rules don't block password-only updates. */
+  email?: string;
   phone: string;
   password?: string;
   password_confirmation?: string;

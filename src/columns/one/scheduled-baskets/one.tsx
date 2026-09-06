@@ -9,6 +9,10 @@ import { TableActiveBadge } from '@/shared/components/table-status-badges';
 import { createToggleColumn } from '@/shared/ui/table-data/data-table-toggle-cell';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
+import {
+  scheduleNameLabel,
+  formatScheduleDiscount,
+} from '@/pages/dashboard/baskets/utils/scheduled-basket-schedule';
 
 const ScheduledBasketSchema = z.object({
   id: z.number(),
@@ -129,12 +133,25 @@ export const scheduledBasketColumns = (
     ),
   },
   {
-    id: 'schedule_count',
-    accessorKey: 'schedule_count',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.scheduleCount')} />,
-    cell: ({ row }) => (
-      <span className="text-sm">{row.original.schedule_count ?? '—'}</span>
-    ),
+    id: 'schedule',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.schedule')} />,
+    cell: ({ row }) => {
+      const schedule = row.original.schedule;
+      const name = schedule ? scheduleNameLabel(schedule.name) : '';
+      const disc = schedule ? formatScheduleDiscount(schedule) : '';
+      const custom = row.original.has_custom_discount;
+      return (
+        <div className="text-sm">
+          <div className="font-medium">{name || '—'}</div>
+          {disc ? <div className="text-xs text-muted-foreground">{disc}</div> : null}
+          {custom ? (
+            <span className="mt-0.5 inline-flex rounded bg-orange-100 px-1.5 py-0.5 text-[10px] font-medium text-orange-700">
+              {t('form.hasCustomDiscount')}
+            </span>
+          ) : null}
+        </div>
+      );
+    },
   },
   {
     id: 'is_active',

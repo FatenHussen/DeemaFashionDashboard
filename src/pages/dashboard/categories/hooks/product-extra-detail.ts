@@ -1,10 +1,10 @@
 import { queryKeys } from '@/api';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import {
   _ProductExtraDetailApi,
-  type ProductExtraDetailCreateUpdatePayload,
   type ProductExtraDetailListParams,
+  type ProductExtraDetailCreateUpdatePayload,
 } from '../api/product-extra-detail.services';
 
 export type UseFetchProductExtraDetailsOptions = {

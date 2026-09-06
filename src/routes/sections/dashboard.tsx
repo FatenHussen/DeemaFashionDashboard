@@ -3,6 +3,7 @@ import type { RouteObject } from 'react-router';
 import { Suspense } from 'react';
 import { Outlet } from 'react-router';
 import { RequirePermission } from '@/auth/components/require-permission';
+import { WARRANTY_PERMISSION } from '@/pages/dashboard/warranties/permissions';
 import { FLASH_SALE_PERMISSION } from '@/pages/dashboard/flash-sales/permissions';
 import {
   NAV_MENU_ITEM_VIEW_ANY,
@@ -59,6 +60,8 @@ const BrandDetailsPage = lazyWithRetry(() => import('@/pages/dashboard/products/
 
 const UnitIndexPage = lazyWithRetry(() => import('@/pages/dashboard/units/view/Index'));
 const UnitCreatePage = lazyWithRetry(() => import('@/pages/dashboard/units/view/Create'));
+const WarrantyIndexPage = lazyWithRetry(() => import('@/pages/dashboard/warranties/view/Index'));
+const WarrantyCreatePage = lazyWithRetry(() => import('@/pages/dashboard/warranties/view/Create'));
 
 const ProductIndexPage = lazyWithRetry(() => import('@/pages/dashboard/products/view/product/Index'));
 const ProductCreatePage = lazyWithRetry(() => import('@/pages/dashboard/products/view/product/Create'));
@@ -143,6 +146,14 @@ const AffiliateIndexPage = lazyWithRetry(() => import('@/pages/dashboard/affilia
 // Orders
 const OrderIndexPage = lazyWithRetry(() => import('@/pages/dashboard/orders/view/Index'));
 const OrderDetailsPage = lazyWithRetry(() => import('@/pages/dashboard/orders/view/Details'));
+
+// Custom order requests
+const CustomOrderRequestIndexPage = lazyWithRetry(
+  () => import('@/pages/dashboard/custom-order-requests/view/Index')
+);
+const CustomOrderRequestDetailsPage = lazyWithRetry(
+  () => import('@/pages/dashboard/custom-order-requests/view/Details')
+);
 
 // Baskets
 const BasketIndexPage = lazyWithRetry(() => import('@/pages/dashboard/baskets/view/basket/Index'));
@@ -817,6 +828,36 @@ export const dashboardRoutes: RouteObject[] = [
     ],
   },
   {
+    path: 'products/warranties',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: (
+          <RequirePermission permission={WARRANTY_PERMISSION.view}>
+            <WarrantyIndexPage />
+          </RequirePermission>
+        ),
+        index: true,
+      },
+      {
+        path: 'create',
+        element: (
+          <RequirePermission permission={WARRANTY_PERMISSION.create}>
+            <WarrantyCreatePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'update/:id',
+        element: (
+          <RequirePermission permission={WARRANTY_PERMISSION.update}>
+            <WarrantyCreatePage />
+          </RequirePermission>
+        ),
+      },
+    ],
+  },
+  {
     path: 'locations',
     element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
     children: [
@@ -1385,6 +1426,40 @@ export const dashboardRoutes: RouteObject[] = [
         element: (
           <RequirePermission permission="order.view">
             <OrderDetailsPage />
+          </RequirePermission>
+        ),
+      },
+    ],
+  },
+  {
+    path: 'custom-order-requests',
+    element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
+    children: [
+      {
+        element: (
+          <RequirePermission
+            permissionAny={[
+              'customorderrequest.view',
+              'custom_order_request.view',
+              'order.view',
+            ]}
+          >
+            <CustomOrderRequestIndexPage />
+          </RequirePermission>
+        ),
+        index: true,
+      },
+      {
+        path: 'details/:id',
+        element: (
+          <RequirePermission
+            permissionAny={[
+              'customorderrequest.view',
+              'custom_order_request.view',
+              'order.view',
+            ]}
+          >
+            <CustomOrderRequestDetailsPage />
           </RequirePermission>
         ),
       },

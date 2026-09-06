@@ -90,3 +90,68 @@ export interface CategoryCreateUpdatePayload {
   is_restaurant?: boolean;
 }
 
+// ----------------------------------------------------------------------
+// Delete impact preview
+
+export interface CategoryDeleteWarning {
+  key: string;
+  count: number;
+  /** Already translated server-side per the request's language. */
+  message: string;
+}
+
+export interface CategoryDeleteImpactData {
+  type: string;
+  id: number;
+  name: { ar: string; en: string } | string;
+  requires_confirmation: boolean;
+  counts?: Partial<{
+    child_categories: number;
+    products: number;
+    baskets: number;
+    pages: number;
+    recipe_links: number;
+  }>;
+  warnings?: CategoryDeleteWarning[];
+}
+
+export interface CategoryDeleteImpactResponse {
+  status: boolean;
+  message: string;
+  data: CategoryDeleteImpactData;
+}
+
+export type CategoryLinkedItemType =
+  | 'child_category'
+  | 'product'
+  | 'basket'
+  | 'page'
+  | 'recipe_link'
+  | string;
+
+export interface CategoryLinkedItem {
+  type: CategoryLinkedItemType;
+  id: number;
+  name?: string | { ar?: string; en?: string };
+  image?: string | null;
+  icon?: string | null;
+  product_number?: string | null;
+  sku?: string | null;
+  /** Optional secondary label (e.g. parent name). */
+  meta?: string | null;
+}
+
+export interface CategoryLinkedItemsResponse {
+  status: boolean;
+  message: string;
+  data: {
+    items: CategoryLinkedItem[];
+    pagination: {
+      current_page: number;
+      last_page: number;
+      per_page: number;
+      total: number;
+    };
+  };
+}
+

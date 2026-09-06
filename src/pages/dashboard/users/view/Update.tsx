@@ -218,11 +218,18 @@ export default function UpdatePage() {
       const payload: Record<string, unknown> = {
         name: data.name,
         last_name: '',
-        email: data.email,
         phone: data.phone || '',
         area_id: data.area_id,
       };
-      if (data.password) {
+      // Only send email when it actually changed. Re-sending the same email
+      // triggers unique validation ("email already in use") on some backends
+      // that don't ignore the current user id — blocking password-only updates.
+      const nextEmail = data.email.trim();
+      const currentEmail = String(sourceUser?.email ?? '').trim();
+      if (nextEmail.toLowerCase() !== currentEmail.toLowerCase()) {
+        payload.email = nextEmail;
+      }
+      if (data.password?.trim()) {
         payload.password = data.password;
         payload.password_confirmation = data.password_confirmation;
       }

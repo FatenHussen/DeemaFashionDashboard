@@ -1,11 +1,14 @@
 import type { TFunction } from 'i18next';
 import type { ColumnDef } from '@tanstack/react-table';
+import type { ScheduleItem } from '@/pages/dashboard/schedules/types/schedule.types';
 
 import { z } from 'zod';
+import { formatTranslated } from '@/utils/format-translated';
 import { TableActiveBadge } from '@/shared/components/table-status-badges';
 import { createToggleColumn } from '@/shared/ui/table-data/data-table-toggle-cell';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
+import { schedulePrimaryImageUrl } from '@/pages/dashboard/schedules/utils/schedule-media';
 
 const ScheduleSchema = z.object({
   id: z.number(),
@@ -16,15 +19,7 @@ const ScheduleSchema = z.object({
   discount_value: z.any(),
 });
 
-export interface ScheduleTableItem {
-  id: number;
-  name: any;
-  interval_days: number;
-  is_active: boolean;
-  discount_type: 'percentage' | 'fixed' | null;
-  discount_value: number | null;
-  created_at?: string;
-}
+export type ScheduleTableItem = ScheduleItem;
 
 export const scheduleColumns = (
   permissions: { update: boolean; delete: boolean },
@@ -38,13 +33,54 @@ export const scheduleColumns = (
   onEdit?: (row: any) => void
 ): ColumnDef<ScheduleTableItem>[] => [
   {
+    id: 'image',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.image')} />,
+    cell: ({ row }) => {
+      const img = schedulePrimaryImageUrl(row.original);
+      return img ? (
+        <img src={img} alt="" className="h-10 w-10 rounded-full object-cover border border-border/50" />
+      ) : (
+        <div className="h-10 w-10 rounded-full bg-muted border border-border/50" />
+      );
+    },
+  },
+  {
     id: 'name',
     accessorKey: 'name',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.name')} />,
+    cell: ({ row }) => (
+      <span className="font-semibold text-foreground">
+        {formatTranslated(row.original.name as Parameters<typeof formatTranslated>[0])}
+      </span>
+    ),
+  },
+  {
+    id: 'description',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.description')} />,
     cell: ({ row }) => {
-      const name = row.original.name;
-      const display = typeof name === 'string' ? name : name?.en || name?.ar || '—';
-      return <span className="font-semibold text-foreground">{display}</span>;
+      const text = formatTranslated(row.original.description as Parameters<typeof formatTranslated>[0], '');
+      return (
+        <span className="text-sm text-muted-foreground line-clamp-2 max-w-[220px]">
+          {text || '—'}
+        </span>
+      );
+    },
+  },
+  {
+    id: 'badges',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('form.badgesLabel')} />,
+    cell: ({ row }) => {
+      const top = row.original.top_badges?.length ?? 0;
+      const bottom = row.original.bottom_badges?.length ?? 0;
+      const fallback = row.original.badges?.length ?? 0;
+      const count = top + bottom || fallback;
+      if (!count) return <span className="text-muted-foreground">—</span>;
+      return (
+        <span className="text-xs text-muted-foreground">
+          {count}
+          {top || bottom ? ` · ${t('form.badgePositionTop')} ${top} / ${t('form.badgePositionBottom')} ${bottom}` : ''}
+        </span>
+      );
     },
   },
   {

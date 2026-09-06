@@ -1,6 +1,6 @@
 import type {
-  LegalDocumentCreatePayload,
   LegalDocumentListParams,
+  LegalDocumentCreatePayload,
   LegalDocumentUpdatePayload,
 } from '../types/legal-document.types';
 

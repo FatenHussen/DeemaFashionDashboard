@@ -21,8 +21,14 @@ function buildScheduledBasketFormData(data: ScheduledBasketCreateUpdatePayload):
     formData.append('description[en]', data.description.en || '');
     formData.append('description[ar]', data.description.ar || '');
   }
-  formData.append('discount_type', data.discount_type);
-  if (data.discount !== undefined) formData.append('discount', String(data.discount));
+  formData.append('schedule_id', String(data.schedule_id));
+  if (data.discount === null) {
+    formData.append('discount', '');
+    formData.append('discount_type', '');
+  } else if (data.discount !== undefined) {
+    formData.append('discount', String(data.discount));
+    if (data.discount_type) formData.append('discount_type', data.discount_type);
+  }
   if (data.delivery_price !== undefined) formData.append('delivery_price', String(data.delivery_price));
   if (data.image instanceof File) formData.append('image', data.image);
   if (data.images?.length) {
@@ -30,21 +36,7 @@ function buildScheduledBasketFormData(data: ScheduledBasketCreateUpdatePayload):
       if (file instanceof File) formData.append('images[]', file);
     });
   }
-  formData.append('is_active', String(data.is_active));
-
-  data.schedules.forEach((sch, i) => {
-    formData.append(`schedules[${i}][title][en]`, sch.title.en || '');
-    formData.append(`schedules[${i}][title][ar]`, sch.title.ar || '');
-    formData.append(`schedules[${i}][number_of_days]`, String(sch.number_of_days || 1));
-    if (sch.discount_type) {
-      formData.append(`schedules[${i}][discount_type]`, sch.discount_type);
-    }
-    if (sch.discount_value != null) {
-      formData.append(`schedules[${i}][discount_value]`, String(sch.discount_value));
-    }
-    formData.append(`schedules[${i}][is_active]`, sch.is_active ? '1' : '0');
-    formData.append(`schedules[${i}][is_default]`, sch.is_default ? '1' : '0');
-  });
+  formData.append('is_active', data.is_active ? '1' : '0');
 
   // Items — Laravel expects boolean fields as 0/1 in multipart
   data.items.forEach((item, i) => {
@@ -53,10 +45,10 @@ function buildScheduledBasketFormData(data: ScheduledBasketCreateUpdatePayload):
 
     formData.append(`items[${i}][is_required]`, item.is_required ? '1' : '0');
     formData.append(`items[${i}][is_extra]`, item.is_extra ? '1' : '0');
-    if (item.min_quantity !== undefined) {
+    if (item.min_quantity != null && item.min_quantity >= 1) {
       formData.append(`items[${i}][min_quantity]`, String(item.min_quantity));
     }
-    if (item.max_quantity !== undefined) {
+    if (item.max_quantity != null && item.max_quantity >= 1) {
       formData.append(`items[${i}][max_quantity]`, String(item.max_quantity));
     }
 

@@ -1,7 +1,7 @@
 import type { ContactMethodMutationPayload } from '../types/contact-method.types';
 
 import { queryKeys } from '@/api';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { _ContactMethodApi } from '../api/contact-method.services';
 
