@@ -147,11 +147,7 @@ export const _CategoryApi = {
     formData.append('is_active', data.is_active ? '1' : '0');
     formData.append('is_restaurant', data.is_restaurant ? '1' : '0');
 
-    const response = await axiosInstance.post(apiRoutes.category.create, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+    const response = await axiosInstance.post(apiRoutes.category.create, formData);
     return response.data;
   },
   updateCategory: async (
@@ -159,11 +155,11 @@ export const _CategoryApi = {
     data: CategoryCreateUpdatePayload
   ): Promise<any> => {
     const formData = new FormData();
-
+    formData.append('_method', 'PUT');
     formData.append('name[en]', data.name.en);
     formData.append('name[ar]', data.name.ar);
 
-    if (data.icon) {
+    if (data.icon instanceof File) {
       formData.append('icon', data.icon);
     }
 
@@ -178,11 +174,7 @@ export const _CategoryApi = {
     formData.append('is_active', data.is_active ? '1' : '0');
     formData.append('is_restaurant', data.is_restaurant ? '1' : '0');
 
-    const response = await axiosInstance.put(apiRoutes.category.update(id), formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+    const response = await axiosInstance.post(apiRoutes.category.update(id), formData);
     return response.data;
   },
   /**
