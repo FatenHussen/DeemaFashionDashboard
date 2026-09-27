@@ -67,20 +67,6 @@ function unwrapPagination(raw: unknown, fallbackPerPage: number, itemCount: numb
   };
 }
 
-const ICON_MIME_BY_EXT: Record<string, string> = {
-  jpg: 'image/jpeg',
-  jpeg: 'image/jpeg',
-  png: 'image/png',
-  gif: 'image/gif',
-  svg: 'image/svg+xml',
-  webp: 'image/webp',
-};
-
-function iconMime(filename: string, fallbackType: string): string {
-  const ext = filename.split('.').pop()?.toLowerCase() ?? '';
-  return ICON_MIME_BY_EXT[ext] || (fallbackType.startsWith('image/') ? fallbackType : fallbackType || 'application/octet-stream');
-}
-
 function readFileAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -90,33 +76,15 @@ function readFileAsDataUrl(file: File): Promise<string> {
   });
 }
 
-function bytesToDataUrl(bytes: ArrayBuffer, mime: string): string {
-  const view = new Uint8Array(bytes);
-  let binary = '';
-  const chunkSize = 8192;
-  for (let index = 0; index < view.length; index += chunkSize) {
-    binary += String.fromCharCode(...view.subarray(index, index + chunkSize));
-  }
-  return `data:${mime};base64,${btoa(binary)}`;
-}
-
-/**
- * Read the bytes first, then send the file, its original name, and the same bytes as a data URL.
- * A cloned or detached File can make the multipart part empty while the text fields still save.
- */
+/** Original file, original filename, and FileReader's data URL, including `application/octet-stream`. */
 async function appendIconImage(formData: FormData, file: File) {
   const filename = file.name || 'icon.webp';
-  const bytes = await file.arrayBuffer();
-  if (!bytes.byteLength) {
-    throw new Error('ICON_IMAGE_EMPTY');
-  }
-  const type = iconMime(filename, file.type);
-  const upload = new File([bytes], filename, { type, lastModified: file.lastModified });
-  formData.append('image', upload, filename);
+  formData.append('image', file, filename);
   formData.append('image_filename', filename);
-  const dataUrl = await readFileAsDataUrl(upload);
-  // Windows often labels a .webp as application/octet-stream. Send that data URL too.
-  formData.append('image_base64', dataUrl.includes(';base64,') ? dataUrl : bytesToDataUrl(bytes, type));
+  const dataUrl = await readFileAsDataUrl(file);
+  if (dataUrl.includes(';base64,')) {
+    formData.append('image_base64', dataUrl);
+  }
 }
 
 function iconApiUrl(path: string): string {

@@ -17,14 +17,9 @@ import {
   type IconFormValues,
 } from '@/pages/dashboard/icons/validation/icon.validation';
 import { iconArtworkSrc, iconPreviewUrl, iconImageWasReplaced } from '@/pages/dashboard/icons/utils/icon-artwork';
-import {
-  isIconDataUrl,
-  snapshotIconFile,
-  fileFromIconDataUrl,
-} from '@/pages/dashboard/icons/utils/icon-upload-file';
 
 import { CONFIG } from 'src/global-config';
-import { Box, Input, Typography } from 'src/shared/ui';
+import { Box, Typography } from 'src/shared/ui';
 import { LoadingScreen } from 'src/shared/components/loading-screen';
 import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
 import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
@@ -67,10 +62,6 @@ export default function CreatePage() {
   const [fileInputKey, setFileInputKey] = useState(0);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const pickedFileRef = useRef<File | null>(null);
-  const pickedDataUrlRef = useRef<string | null>(null);
-  const pickedNameRef = useRef('');
-  const snapshotRef = useRef<Promise<File | null> | null>(null);
-  const snapshotGenerationRef = useRef(0);
   const baselineImageRef = useRef('');
   const previewTokenRef = useRef(0);
 
@@ -128,13 +119,7 @@ export default function CreatePage() {
     const token = ++previewTokenRef.current;
     const reader = new FileReader();
     reader.onloadend = () => {
-      const url = String(reader.result ?? '');
-      if (token !== previewTokenRef.current) return;
-      if (isIconDataUrl(url)) {
-        pickedDataUrlRef.current = url;
-        pickedNameRef.current = imageFile.name || pickedNameRef.current;
-      }
-      setPreviewImage(url);
+      if (token === previewTokenRef.current) setPreviewImage(String(reader.result ?? ''));
     };
     reader.readAsDataURL(imageFile);
     return () => {
@@ -142,51 +127,11 @@ export default function CreatePage() {
     };
   }, [imageFile]);
 
-  const rememberFile = (file: File | null) => {
-    const generation = ++snapshotGenerationRef.current;
-    if (!(file instanceof File) || file.size <= 0) {
-      pickedFileRef.current = null;
-      pickedDataUrlRef.current = null;
-      pickedNameRef.current = '';
-      snapshotRef.current = null;
-      return;
-    }
-    pickedNameRef.current = file.name || 'icon.webp';
-    snapshotRef.current = snapshotIconFile(file).then((snapshot) => {
-      if (generation !== snapshotGenerationRef.current) return snapshot;
-      if (snapshot) pickedFileRef.current = snapshot;
-      return snapshot;
-    });
-  };
-
-  const takeSelectedFile = async (formValue: unknown) => {
-    const fromInput = fileInputRef.current?.files?.[0];
-    if (fromInput instanceof File && fromInput.size > 0) rememberFile(fromInput);
-    if (snapshotRef.current) {
-      const snapshot = await snapshotRef.current;
-      if (snapshot && snapshot.size > 0) return snapshot;
-    }
-    if (pickedFileRef.current instanceof File && pickedFileRef.current.size > 0) {
-      return pickedFileRef.current;
-    }
-    if (formValue instanceof File && formValue.size > 0) {
-      const snapshot = await snapshotIconFile(formValue);
-      if (snapshot) {
-        pickedFileRef.current = snapshot;
-        return snapshot;
-      }
-    }
-    if (isIconDataUrl(pickedDataUrlRef.current)) {
-      const fromPreview = await fileFromIconDataUrl(
-        pickedDataUrlRef.current,
-        pickedNameRef.current || 'icon.webp'
-      );
-      if (fromPreview) {
-        pickedFileRef.current = fromPreview;
-        return fromPreview;
-      }
-    }
-    return null;
+  /** `input.files[0]` at click time. The ref keeps that File if the input is cleared before send. */
+  const captureSelectedFile = () => {
+    const live = fileInputRef.current?.files?.[0] ?? null;
+    if (live instanceof File) pickedFileRef.current = live;
+    return pickedFileRef.current instanceof File ? pickedFileRef.current : null;
   };
 
   const showSavedPreview = (url: string | null) => {
@@ -213,14 +158,7 @@ export default function CreatePage() {
 
   const onSubmit = async (data: IconFormValues) => {
     clearErrors();
-    const image = await takeSelectedFile(data.image);
-    const inputHasFile = (fileInputRef.current?.files?.[0]?.size ?? 0) > 0;
-    if ((inputHasFile || isIconDataUrl(pickedDataUrlRef.current)) && !image) {
-      const message = t('form.iconImageNotSaved');
-      setError('image', { type: 'server', message });
-      toast.error(message);
-      return;
-    }
+    const image = captureSelectedFile();
     if (image && image.size > ICON_IMAGE_MAX_BYTES) {
       const message = t('form.iconImageTooLarge');
       setError('image', { type: 'server', message });
@@ -245,9 +183,6 @@ export default function CreatePage() {
         }
         showSavedPreview(nextImage);
         pickedFileRef.current = null;
-        pickedDataUrlRef.current = null;
-        pickedNameRef.current = '';
-        snapshotRef.current = null;
         baselineImageRef.current = nextImage || previousImage;
         setValue('image', null, { shouldDirty: false });
         setFileInputKey((key) => key + 1);
@@ -279,13 +214,8 @@ export default function CreatePage() {
     }
   };
 
-  const captureLiveFile = () => {
-    const fromInput = fileInputRef.current?.files?.[0];
-    if (fromInput instanceof File && fromInput.size > 0) rememberFile(fromInput);
-  };
-
   const submitForm = (event?: React.BaseSyntheticEvent) => {
-    captureLiveFile();
+    captureSelectedFile();
     return handleSubmit(onSubmit)(event);
   };
 
@@ -301,8 +231,8 @@ export default function CreatePage() {
       <CreateFormLayout
         methods={methods as any}
         onSubmit={submitForm}
-        onSubmitButtonPointerDown={captureLiveFile}
-        onSubmitButtonClick={captureLiveFile}
+        onSubmitButtonPointerDown={captureSelectedFile}
+        onSubmitButtonClick={captureSelectedFile}
         onCancel={() => navigate('/icons')}
         isSubmitting={createMutation.isPending || updateMutation.isPending}
         errorMessage={createMutation.error?.message || updateMutation.error?.message || null}
@@ -335,25 +265,27 @@ export default function CreatePage() {
             </Box>
             <Box className="md:col-span-2">
               <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5"><Iconify icon="solar:gallery-add-bold" className="text-primary" width={16} />{isEditMode ? t('form.imageLabel') : t('form.imageLabelRequired')}</Typography>
-              <Controller name="image" control={control} render={({ field: { onChange, ref: _fieldRef, value: _value, ...field }, fieldState: { error } }) => (
+              <Controller name="image" control={control} render={({ field: { onChange }, fieldState: { error } }) => (
                 <div className="w-full">
-                  <Input
-                    {...field}
+                  <input
                     key={fileInputKey}
                     ref={fileInputRef}
-                    value={undefined}
                     type="file"
                     accept=".jpg,.jpeg,.png,.gif,.svg,.webp,image/jpeg,image/png,image/gif,image/svg+xml,image/webp"
+                    className="block w-full text-sm text-foreground file:me-3 file:rounded-lg file:border-0 file:bg-primary/10 file:px-3 file:py-2 file:text-sm file:font-medium file:text-primary"
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                      const file = e.target.files?.[0] ?? null;
-                      pickedFileRef.current = file instanceof File && file.size > 0 ? file : null;
-                      rememberFile(file instanceof File ? file : null);
+                      const file = e.currentTarget.files?.[0] ?? null;
+                      pickedFileRef.current = file;
                       onChange(file);
                     }}
-                    error={!!error}
-                    helperText={error?.message || (isEditMode ? t('form.iconImageHelperEdit') : t('form.iconImageHelper'))}
-                    fullWidth
                   />
+                  {error?.message ? (
+                    <FieldErrorText message={error.message} />
+                  ) : (
+                    <Typography variant="caption" className="text-muted-foreground mt-1.5 block">
+                      {isEditMode ? t('form.iconImageHelperEdit') : t('form.iconImageHelper')}
+                    </Typography>
+                  )}
                   {previewImage && (
                     <Box className="mt-3">
                       <img
