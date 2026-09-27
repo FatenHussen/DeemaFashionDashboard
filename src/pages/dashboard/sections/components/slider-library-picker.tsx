@@ -28,6 +28,17 @@ function sectionName(item: SliderLibraryItem, imageOnlyFallback: boolean): strin
   return imageOnlyFallback ? '' : `#${item.id}`;
 }
 
+/** List titles are a string or `{ ar, en }` where a cleared locale is `null`. */
+function bannerLibraryName(
+  title: string | { ar?: string | null; en?: string | null } | null | undefined
+): SliderLibraryItem['name'] {
+  if (title == null || typeof title === 'string') return title ?? '';
+  const ar = title.ar?.trim() || undefined;
+  const en = title.en?.trim() || undefined;
+  if (!ar && !en) return '';
+  return { ar, en };
+}
+
 function sectionPreviewImage(imageUrl: string | null | undefined): string | null {
   if (typeof imageUrl !== 'string') return null;
   const src = imageUrl.trim();
@@ -89,7 +100,7 @@ export function SliderLibraryPicker({
     ? bannersFeed.banners.map((banner) => ({
         id: banner.id,
         banner_id: banner.id,
-        name: banner.title ?? '',
+        name: bannerLibraryName(banner.title),
         content_type: 'banner',
         image_url: banner.image_url ?? null,
       }))
