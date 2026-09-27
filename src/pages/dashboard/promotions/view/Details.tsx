@@ -1,20 +1,17 @@
+import type { PromotionType } from '@/pages/dashboard/promotions/types/promotion.types';
+
 import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
 import { useFetchPromotionById } from '@/pages/dashboard/promotions/hooks/promotion';
+import {
+  PROMOTION_TYPE_COLORS,
+  PROMOTION_TYPE_LABEL_KEYS,
+} from '@/pages/dashboard/promotions/utils/promotion-fields';
 
 import { CONFIG } from 'src/global-config';
 import { Box, Button, Typography } from 'src/shared/ui';
 import { LoadingScreen } from 'src/shared/components/loading-screen';
-
-const typeColors: Record<string, string> = {
-  simple_discount: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-  spend_x_discount: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
-  spend_x_get_gift: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-  spend_x_get_points: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
-  free_shipping: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400',
-  spend_x_get_free_shipping: 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400',
-};
 
 function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
   if (value === null || value === undefined || value === '') return null;
@@ -26,21 +23,25 @@ function DetailRow({ label, value }: { label: string; value: React.ReactNode }) 
   );
 }
 
+function giftDescriptionText(raw: unknown, lang: 'en' | 'ar'): string | null {
+  if (raw && typeof raw === 'object') {
+    const value = (raw as { en?: unknown; ar?: unknown })[lang];
+    return typeof value === 'string' && value.trim() ? value : null;
+  }
+  if (typeof raw === 'string' && raw.trim()) return raw;
+  return null;
+}
+
 export default function DetailsPage() {
   const { t } = useTranslation('table');
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: response, isLoading } = useFetchPromotionById(id || '');
 
-  const promotionTypeLabel = (type: string) =>
-    ({
-      simple_discount: t('promotionTypes.simpleDiscount'),
-      spend_x_discount: t('promotionTypes.spendXDiscount'),
-      spend_x_get_gift: t('promotionTypes.spendXGetGift'),
-      spend_x_get_points: t('promotionTypes.spendXGetPoints'),
-      free_shipping: t('promotionTypes.freeShipping'),
-      spend_x_get_free_shipping: t('promotionTypes.spendXGetFreeShipping'),
-    } as Record<string, string>)[type] ?? type;
+  const promotionTypeLabel = (type: string) => {
+    const key = PROMOTION_TYPE_LABEL_KEYS[type as PromotionType];
+    return key ? t(key) : type;
+  };
 
   const item = response?.data;
 
@@ -52,6 +53,10 @@ export default function DetailsPage() {
   );
 
   const pageSlugs: string[] = Array.isArray(item.page_slugs) ? item.page_slugs : [];
+  const isPoints = item.type === 'spend_x_get_points';
+  const pointsValue = item.reward_points ?? item.discount_value;
+  const giftEn = giftDescriptionText(item.gift_description, 'en');
+  const giftAr = giftDescriptionText(item.gift_description, 'ar');
 
   return (
     <>
@@ -67,7 +72,7 @@ export default function DetailsPage() {
             <Typography variant="h5" className="font-bold">{item.name?.en}</Typography>
             <Typography variant="body2" className="text-muted-foreground">{item.description?.en}</Typography>
           </Box>
-          <span className={`text-xs px-3 py-1 rounded-full font-medium ${typeColors[item.type] ?? 'bg-muted text-muted-foreground'}`}>
+          <span className={`text-xs px-3 py-1 rounded-full font-medium ${PROMOTION_TYPE_COLORS[item.type] ?? 'bg-muted text-muted-foreground'}`}>
             {promotionTypeLabel(item.type)}
           </span>
         </Box>
@@ -85,13 +90,18 @@ export default function DetailsPage() {
             } />
             <DetailRow label={t('form.startAt')} value={item.starts_at} />
             <DetailRow label={t('form.endAt')} value={item.ends_at} />
-            {item.discount_value != null && (
+            {!isPoints && item.discount_value != null && (
               <DetailRow
                 label={t('form.discountValueLabel')}
                 value={`${item.discount_value}${item.discount_type === 'percentage' ? '%' : ''}`}
               />
             )}
+            {isPoints && pointsValue != null && (
+              <DetailRow label={t('form.pointsAmountLabel')} value={pointsValue} />
+            )}
             {item.min_spend != null && <DetailRow label={t('form.minSpendLabel')} value={item.min_spend} />}
+            <DetailRow label={t('form.giftDescriptionEn')} value={giftEn} />
+            <DetailRow label={t('form.giftDescriptionAr')} value={giftAr} />
             {item.buy_quantity != null && <DetailRow label={t('form.buyQuantityLabel')} value={item.buy_quantity} />}
             {item.get_quantity != null && <DetailRow label={t('form.getQuantityLabel')} value={item.get_quantity} />}
             {item.gift_product_ids != null && item.gift_product_ids.length > 0 && (

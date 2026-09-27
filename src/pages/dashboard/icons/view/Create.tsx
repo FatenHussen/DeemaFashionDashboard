@@ -1,11 +1,11 @@
 import { toast } from 'react-toastify';
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { isApiValidationError } from '@/api/errors';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Iconify } from '@/shared/components/iconify';
 import { useParams, useNavigate } from 'react-router';
-import { compressImage } from '@/utils/compress-image';
 import { iconArtworkSrc } from '@/pages/dashboard/icons/utils/icon-artwork';
 import { TinyMCEEditorField } from '@/shared/components/tinymce-editor/tinymce-editor';
 import {
@@ -33,12 +33,30 @@ function FieldErrorText({ message }: { message?: string }) {
   );
 }
 
+const ICON_FORM_PATHS = new Set([
+  'name.en',
+  'name.ar',
+  'description.en',
+  'description.ar',
+  'full_description.en',
+  'full_description.ar',
+  'image',
+  'is_active',
+]);
+
+function savedIconImage(body: unknown): string | null {
+  if (!body || typeof body !== 'object') return null;
+  const record = body as { data?: { image?: string | null; icon?: string | null }; image?: string | null; icon?: string | null };
+  return iconArtworkSrc(record.data ?? record);
+}
+
 export default function CreatePage() {
   const { t } = useTranslation('table');
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
   const isEditMode = !!id;
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [fileInputKey, setFileInputKey] = useState(0);
 
   const { data: detailsResponse, isLoading: isLoadingDetails } = useFetchIconById(id || '');
   const createMutation = useCreateIcon();
@@ -57,13 +75,14 @@ export default function CreatePage() {
     defaultValues,
   });
 
-  const { handleSubmit, reset, control, watch } = methods;
+  const { handleSubmit, reset, control, watch, setError, clearErrors, setValue, formState } = methods;
+  const { isDirty } = formState;
   const imageFile = watch('image');
 
   useEffect(() => {
-    if (isEditMode && detailsResponse?.data) {
+    if (isEditMode && detailsResponse?.data && !isDirty) {
       const item = detailsResponse.data;
-      setPreviewImage(iconArtworkSrc(item) || item.image || null);
+      setPreviewImage(iconArtworkSrc(item));
       const name = item.name;
       const desc = item.description;
       const fd = item.full_description;
@@ -84,36 +103,48 @@ export default function CreatePage() {
         is_active: Boolean(item.is_active),
       });
     }
-  }, [detailsResponse?.data, isEditMode, reset]);
+  }, [detailsResponse?.data, isEditMode, isDirty, reset]);
 
   useEffect(() => {
-    if (imageFile instanceof File) {
-      const reader = new FileReader();
-      reader.onloadend = () => setPreviewImage(reader.result as string);
-      reader.readAsDataURL(imageFile);
-    }
+    if (!(imageFile instanceof File)) return;
+    const reader = new FileReader();
+    reader.onloadend = () => setPreviewImage(reader.result as string);
+    reader.readAsDataURL(imageFile);
   }, [imageFile]);
 
+  const applyServerFieldErrors = (error: unknown) => {
+    if (!isApiValidationError(error)) return;
+    for (const [field, messages] of Object.entries(error.fieldErrors)) {
+      const normalized = field.replace(/\[(\w+)\]/g, '.$1');
+      const path = normalized === 'icon' ? 'image' : normalized;
+      if (!ICON_FORM_PATHS.has(path)) continue;
+      setError(path as keyof IconFormValues, { type: 'server', message: messages.join(' ') });
+    }
+  };
+
   const onSubmit = async (data: IconFormValues) => {
+    clearErrors();
+    const image = data.image instanceof File ? data.image : null;
     try {
-      const prepared =
-        data.image instanceof File
-          ? { ...data, image: await compressImage(data.image) }
-          : data;
       if (isEditMode && id) {
-        await updateMutation.mutateAsync({ id, data: prepared as any });
+        const body = await updateMutation.mutateAsync({ id, data: { ...data, image } });
+        const nextImage = savedIconImage(body);
+        if (nextImage) setPreviewImage(nextImage);
+        setValue('image', null, { shouldDirty: false });
+        setFileInputKey((key) => key + 1);
         toast.success(t('form.iconUpdatedSuccess'));
         navigate('/icons');
       } else {
-        if (!(prepared.image instanceof File)) {
+        if (!image) {
           toast.error(t('form.imageRequired'));
           return;
         }
-        await createMutation.mutateAsync(prepared as any);
+        await createMutation.mutateAsync({ ...data, image });
         toast.success(t('form.iconCreatedSuccess'));
         navigate('/icons');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
+      applyServerFieldErrors(err);
       console.error(err);
     }
   };
@@ -132,6 +163,7 @@ export default function CreatePage() {
         onSubmit={handleSubmit(onSubmit as any)}
         onCancel={() => navigate('/icons')}
         isSubmitting={createMutation.isPending || updateMutation.isPending}
+        errorMessage={createMutation.error?.message || updateMutation.error?.message || null}
         title={isEditMode ? t('form.editIcon') : t('form.createIcon')}
         description={isEditMode ? t('form.editIconDesc') : t('form.createIconDesc')}
         isEditMode={isEditMode}
@@ -163,8 +195,29 @@ export default function CreatePage() {
               <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5"><Iconify icon="solar:gallery-add-bold" className="text-primary" width={16} />{isEditMode ? t('form.imageLabel') : t('form.imageLabelRequired')}</Typography>
               <Controller name="image" control={control} render={({ field: { onChange, ...field }, fieldState: { error } }) => (
                 <div className="w-full">
-                  <Input {...field} value={undefined} type="file" accept="image/jpeg,image/png,image/jpg,image/gif,image/svg+xml,image/webp" onChange={(e: React.ChangeEvent<HTMLInputElement>) => { const file = e.target.files?.[0]; onChange(file || null); }} error={!!error} helperText={error?.message || (isEditMode ? t('form.imageHelperEdit') : t('form.imageHelper'))} fullWidth />
-                  {previewImage && (<Box className="mt-3"><img src={previewImage} alt={t('form.iconPreviewAlt')} className="w-16 h-16 object-contain rounded-lg border border-border p-1 bg-muted/20" /></Box>)}
+                  <Input
+                    {...field}
+                    key={fileInputKey}
+                    value={undefined}
+                    type="file"
+                    accept="image/jpeg,image/png,image/jpg,image/gif,image/svg+xml,image/webp"
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                      onChange(e.target.files?.[0] ?? null);
+                    }}
+                    error={!!error}
+                    helperText={error?.message || (isEditMode ? t('form.iconImageHelperEdit') : t('form.iconImageHelper'))}
+                    fullWidth
+                  />
+                  {previewImage && (
+                    <Box className="mt-3">
+                      <img
+                        key={previewImage}
+                        src={previewImage}
+                        alt={t('form.iconPreviewAlt')}
+                        className="w-16 h-16 object-contain rounded-lg border border-border p-1 bg-muted/20"
+                      />
+                    </Box>
+                  )}
                 </div>
               )} />
             </Box>

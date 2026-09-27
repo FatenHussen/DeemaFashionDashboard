@@ -85,9 +85,10 @@ export default function Page() {
           discount_amount: t('columns.discountAmount'),
           final_price: t('columns.finalPrice'),
           discount: t('columns.discount'),
-          schedule: t('form.scheduleLabel'),
-          start_date: t('columns.startDate'),
-          next_run_date: t('columns.nextRunDate'),
+          schedule: t('form.userBasketScheduleRecurrence'),
+          start_date: t('form.userBasketScheduleDeliveryDate'),
+          delivery_time: t('form.userBasketScheduleDeliveryTime'),
+          next_run_date: t('form.userBasketScheduleNextDelivery'),
           status: t('columns.status'),
           actions: t('columns.action'),
         }}

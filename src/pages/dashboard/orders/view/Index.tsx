@@ -8,10 +8,7 @@ import { orderColumns, type OrderFormValues } from '@/columns/one/orders/one';
 import { useMemo, useState, useEffect, useCallback, type ReactNode } from 'react';
 import { RejectOrderModal } from '@/pages/dashboard/orders/components/RejectOrderModal';
 import { AssignDriverModal } from '@/pages/dashboard/orders/components/AssignDriverModal';
-import {
-  type OrderStatus,
-  ORDER_STATUS_OPTIONS,
-} from '@/pages/dashboard/orders/types/order.types';
+import { type OrderStatus, ORDER_STATUS_OPTIONS } from '@/pages/dashboard/orders/types/order.types';
 
 import { CONFIG } from 'src/global-config';
 
@@ -27,12 +24,11 @@ export default function Page() {
     setCurrentPage(1);
   }, [search]);
 
-  const { data: ordersResponse, isLoading, error } = useFetchOrders(
-    currentPage,
-    pageSize,
-    statusFilter,
-    search.trim() || undefined
-  );
+  const {
+    data: ordersResponse,
+    isLoading,
+    error,
+  } = useFetchOrders(currentPage, pageSize, statusFilter, search.trim() || undefined);
   const [assignDriverOrder, setAssignDriverOrder] = useState<OrderFormValues | null>(null);
   const [rejectOrder, setRejectOrder] = useState<OrderFormValues | null>(null);
 
@@ -90,15 +86,10 @@ export default function Page() {
 
   const columns = useMemo(
     () =>
-      orderColumns(
-        { update: hasPermission('update', 'order'), delete: false },
-        t,
-        navigate,
-        {
-          onOpenAssignDriverModal: openAssignDriverModal,
-          onOpenRejectModal: openRejectModal,
-        }
-      ),
+      orderColumns({ update: hasPermission('update', 'order'), delete: false }, t, navigate, {
+        onOpenAssignDriverModal: openAssignDriverModal,
+        onOpenRejectModal: openRejectModal,
+      }),
     [t, navigate, hasPermission, openAssignDriverModal, openRejectModal]
   );
 
@@ -146,7 +137,10 @@ export default function Page() {
             <button
               key={s}
               type="button"
-              onClick={() => { setStatusFilter(s === 'all' ? undefined : s); setCurrentPage(1); }}
+              onClick={() => {
+                setStatusFilter(s === 'all' ? undefined : s);
+                setCurrentPage(1);
+              }}
               className={`inline-flex w-full items-center gap-2 rounded-lg border px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
                 active
                   ? 'border-primary/30 bg-primary text-primary-foreground shadow-sm'
@@ -173,22 +167,20 @@ export default function Page() {
         t={t}
       />
 
-      <RejectOrderModal
-        open={!!rejectOrder}
-        onClose={closeRejectModal}
-        order={rejectOrder}
-        t={t}
-      />
+      <RejectOrderModal open={!!rejectOrder} onClose={closeRejectModal} order={rejectOrder} t={t} />
 
       <DataTable
-        tableName={t("tableNames.order")}
+        tableName={t('tableNames.order')}
         columns={columns}
         data={orderData}
         hasDetails
         detailsLink="/orders/details"
         filterSidebar={sidebarContent}
         activeFilterCount={statusFilter ? 1 : 0}
-        onFilterReset={() => { setStatusFilter(undefined); setCurrentPage(1); }}
+        onFilterReset={() => {
+          setStatusFilter(undefined);
+          setCurrentPage(1);
+        }}
         permissions={{
           create: false,
           update: hasPermission('update', 'order'),
@@ -202,6 +194,8 @@ export default function Page() {
           total: t('columns.total'),
           payment_method: t('columns.paymentMethod'),
           status: t('columns.status'),
+          is_instant_delivery: t('columns.instantDelivery'),
+          scheduled_delivery_at: t('columns.scheduledDelivery'),
           driver: t('columns.driver'),
           created_at: t('columns.date'),
           actions: t('columns.action'),
@@ -221,7 +215,9 @@ export default function Page() {
 function FilterGroup({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{label}</label>
+      <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+        {label}
+      </label>
       {children}
     </div>
   );

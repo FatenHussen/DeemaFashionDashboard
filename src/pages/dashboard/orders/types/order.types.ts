@@ -78,6 +78,16 @@ export function orderStatusBlocksAssignDriver(status: OrderStatus): boolean {
   );
 }
 
+/** Delivered or cancelled orders cannot save a scheduled delivery time. */
+export function orderStatusBlocksScheduledDelivery(status: OrderStatus): boolean {
+  return (
+    status === 'delivered' ||
+    status === 'cancelled' ||
+    status === 'cancelled_by_admin' ||
+    status === 'returned_by_user'
+  );
+}
+
 /** Blocks “reject order” when already in a terminal outcome. */
 export function orderStatusBlocksReject(status: OrderStatus): boolean {
   return (
@@ -100,9 +110,7 @@ export function getAllowedOrderStatusTransitions(current: OrderStatus): OrderSta
 
 /** Statuses strictly after the current step in the pipeline (skip allowed), or full pipeline when reopening. */
 export function getUpcomingOrderStatuses(current: OrderStatus): OrderStatus[] {
-  return getAllowedOrderStatusTransitions(current).filter((s) =>
-    ORDER_STATUS_PIPELINE.includes(s)
-  );
+  return getAllowedOrderStatusTransitions(current).filter((s) => ORDER_STATUS_PIPELINE.includes(s));
 }
 
 /**
@@ -114,7 +122,10 @@ export function parseOrderStatus(
 ): OrderStatus | null {
   // Never treat boolean success flags (`response.status`) as order status.
   if (raw == null || raw === '' || typeof raw === 'boolean') return null;
-  const s = String(raw).trim().toLowerCase().replace(/[\s-]+/g, '_');
+  const s = String(raw)
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, '_');
   if (!s || s === 'true' || s === 'false') return null;
 
   const aliases: Record<string, OrderStatus> = {
@@ -225,6 +236,9 @@ export interface OrderData {
   subscription_discount?: string | number;
   price_after_discount?: number;
   rating?: number;
+  is_instant_delivery?: boolean | number | null;
+  /** `Y-m-d H:i`, or null when no appointment is set. */
+  scheduled_delivery_at?: string | null;
   user: OrderUser;
   driver?: OrderDriver;
   payment_method?: OrderPaymentMethod | null;
@@ -351,6 +365,8 @@ export interface OrderDetailData {
   rejection_reason?: string | null;
   cart_type: string;
   is_instant_delivery: boolean;
+  /** `Y-m-d H:i`, or null when no appointment is set. */
+  scheduled_delivery_at?: string | null;
   is_paid: boolean;
   delivery_price: number;
   currency?: string;
@@ -424,4 +440,18 @@ export interface AssignDriverPayload {
 
 export interface ChangeItemStatusPayload {
   status: OrderStatus;
+}
+
+export interface UpdateScheduledDeliveryPayload {
+  scheduled_delivery_at: string | null;
+}
+
+export interface UpdateScheduledDeliveryResponse {
+  status: boolean;
+  message: string;
+  data: {
+    id: number;
+    is_instant_delivery: boolean;
+    scheduled_delivery_at: string | null;
+  };
 }

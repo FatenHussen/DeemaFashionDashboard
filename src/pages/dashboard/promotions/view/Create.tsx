@@ -28,7 +28,15 @@ import {
   useCreatePromotion,
   useUpdatePromotion,
   useFetchPromotionById,
+  usePromotionFieldsForType,
 } from '@/pages/dashboard/promotions/hooks/promotion';
+import {
+  PROMOTION_TYPES,
+  promotionTrigger,
+  resolvePromotionFields,
+  type PromotionFieldName,
+  PROMOTION_TYPE_LABEL_KEYS,
+} from '@/pages/dashboard/promotions/utils/promotion-fields';
 
 import { CONFIG } from 'src/global-config';
 import { Box, Typography } from 'src/shared/ui';
@@ -93,6 +101,34 @@ function parseShopVendorServiceIds(raw: {
   return Number.isFinite(n) && n > 0 ? [n] : [];
 }
 
+function normalizeGiftDescription(raw: unknown): { en: string; ar: string } {
+  if (raw && typeof raw === 'object') {
+    const value = raw as { en?: unknown; ar?: unknown };
+    return {
+      en: typeof value.en === 'string' ? value.en : '',
+      ar: typeof value.ar === 'string' ? value.ar : '',
+    };
+  }
+  if (typeof raw === 'string') return { en: raw, ar: raw };
+  return { en: '', ar: '' };
+}
+
+function normalizeRewardPoints(item: {
+  type?: string;
+  reward_points?: number | null;
+  discount_value?: number | null;
+}): number | null {
+  if (item.reward_points != null) {
+    const n = Number(item.reward_points);
+    if (Number.isFinite(n)) return n;
+  }
+  if (item.type === 'spend_x_get_points' && item.discount_value != null) {
+    const n = Number(item.discount_value);
+    if (Number.isFinite(n)) return n;
+  }
+  return null;
+}
+
 function parseIdArray(v: unknown): number[] {
   if (!Array.isArray(v)) return [];
   return v
@@ -107,14 +143,10 @@ function parseIdArray(v: unknown): number[] {
 export default function CreatePage() {
   const { t } = useTranslation('table');
 
-  const PROMOTION_TYPES = [
-    { value: 'simple_discount', label: t('promotionTypes.simpleDiscount') },
-    { value: 'spend_x_discount', label: t('promotionTypes.spendXDiscount') },
-    { value: 'spend_x_get_gift', label: t('promotionTypes.spendXGetGift') },
-    { value: 'spend_x_get_points', label: t('promotionTypes.spendXGetPoints') },
-    { value: 'free_shipping', label: t('promotionTypes.freeShipping') },
-    { value: 'spend_x_get_free_shipping', label: t('promotionTypes.spendXGetFreeShipping') },
-  ];
+  const promotionTypeOptions = PROMOTION_TYPES.map((value) => ({
+    value,
+    label: t(PROMOTION_TYPE_LABEL_KEYS[value]),
+  }));
 
   const DISCOUNT_TYPES = [
     { value: 'percentage', label: t('promotionTypes.percentage') },
@@ -299,6 +331,8 @@ export default function CreatePage() {
     get_quantity: null,
     discount_value: null,
     discount_type: null,
+    gift_description: { en: '', ar: '' },
+    reward_points: null,
     gift_product_ids: [],
     product_ids: [],
     shop_ids: [],
@@ -314,9 +348,15 @@ export default function CreatePage() {
     defaultValues,
   });
 
-  const { handleSubmit, reset, watch, control } = methods;
+  const { handleSubmit, reset, watch, control, formState: { errors } } = methods;
   const selectedType = watch('type');
   const promotionDiscountType = watch('discount_type');
+  const fieldsQuery = usePromotionFieldsForType(selectedType);
+  const activeFields = useMemo(() => {
+    const names = resolvePromotionFields(selectedType, fieldsQuery.data, fieldsQuery.isSuccess);
+    return new Set<PromotionFieldName>(names);
+  }, [selectedType, fieldsQuery.data, fieldsQuery.isSuccess]);
+  const showField = (name: PromotionFieldName) => activeFields.has(name);
 
   useEffect(() => {
     if (isEditMode && detailsResponse?.data) {
@@ -334,8 +374,10 @@ export default function CreatePage() {
         min_spend: item.min_spend ?? null,
         buy_quantity: item.buy_quantity ?? null,
         get_quantity: item.get_quantity ?? null,
-        discount_value: item.discount_value ?? null,
+        discount_value: item.type === 'spend_x_get_points' ? null : item.discount_value ?? null,
         discount_type: discountType,
+        gift_description: normalizeGiftDescription(item.gift_description),
+        reward_points: normalizeRewardPoints(item),
         gift_product_ids: item.gift_product_ids ?? [],
         product_ids: item.product_ids ?? [],
         shop_ids: item.shop_ids ?? [],
@@ -362,28 +404,28 @@ export default function CreatePage() {
       if (data.starts_at) payload.starts_at = data.starts_at;
       if (data.ends_at) payload.ends_at = data.ends_at;
 
-      const usesDiscount = data.type === 'simple_discount' || data.type === 'spend_x_discount';
-      const usesMinSpend =
-        data.type === 'spend_x_discount' ||
-        data.type === 'spend_x_get_gift' ||
-        data.type === 'spend_x_get_points' ||
-        data.type === 'spend_x_get_free_shipping';
+      const fields = resolvePromotionFields(data.type, fieldsQuery.data, fieldsQuery.isSuccess);
 
-      if (usesDiscount && data.discount_value != null) payload.discount_value = data.discount_value;
-      if (data.type === 'spend_x_get_points' && data.discount_value != null)
+      if (fields.includes('discount_value') && data.discount_value != null) {
         payload.discount_value = data.discount_value;
-
-      if (usesDiscount) {
-        const discountTypeForPayload =
-          isEditMode
-            ? data.discount_type ?? originalDiscountTypeRef.current
-            : data.discount_type;
+      }
+      if (fields.includes('discount_type')) {
+        const discountTypeForPayload = isEditMode
+          ? data.discount_type ?? originalDiscountTypeRef.current
+          : data.discount_type;
         if (discountTypeForPayload) payload.discount_type = discountTypeForPayload;
       }
-
-      if (usesMinSpend && data.min_spend != null) payload.min_spend = data.min_spend;
-
-      if (data.type === 'spend_x_get_gift') {
+      if (fields.includes('min_spend') && data.min_spend != null) payload.min_spend = data.min_spend;
+      if (fields.includes('gift_description') && data.gift_description) {
+        payload.gift_description = {
+          ar: data.gift_description.ar?.trim() ?? '',
+          en: data.gift_description.en?.trim() ?? '',
+        };
+      }
+      if (fields.includes('reward_points') && data.reward_points != null) {
+        payload.reward_points = data.reward_points;
+      }
+      if (fields.includes('gift_product_ids')) {
         payload.gift_product_ids = data.gift_product_ids ?? [];
       }
       payload.product_ids = data.product_ids ?? [];
@@ -481,16 +523,30 @@ export default function CreatePage() {
                 control={control}
                 render={({ field }) => (
                   <select {...field} className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-violet-500/30">
-                    {PROMOTION_TYPES.map((pt) => (
+                    {promotionTypeOptions.map((pt) => (
                       <option key={pt.value} value={pt.value}>{pt.label}</option>
                     ))}
                   </select>
                 )}
               />
+              {promotionTrigger(selectedType) === 'first_order' && (
+                <Typography variant="caption" className="text-muted-foreground mt-1 block">
+                  {t('form.promotionHintFirstOrder')}
+                </Typography>
+              )}
+              {promotionTrigger(selectedType) === 'spend' && (
+                <Typography variant="caption" className="text-muted-foreground mt-1 block">
+                  {t('form.promotionHintSpend')}
+                </Typography>
+              )}
+              {promotionTrigger(selectedType) === 'signup' && (
+                <Typography variant="caption" className="text-muted-foreground mt-1 block">
+                  {t('form.promotionHintSignup')}
+                </Typography>
+              )}
             </Box>
 
-            {/* Discount fields — simple_discount & spend_x_discount */}
-            {(selectedType === 'simple_discount' || selectedType === 'spend_x_discount') && (
+            {(showField('discount_value') || showField('discount_type')) && (
               <Box className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <Box>
                   <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5"><Iconify icon="solar:percent-bold" className="text-violet-500" width={16} />{t('form.discountValueLabel')}</Typography>
@@ -509,31 +565,43 @@ export default function CreatePage() {
                       </select>
                     )}
                   />
+                  {errors.discount_type?.message && (
+                    <Typography variant="caption" className="text-destructive mt-1 block">
+                      {errors.discount_type.message}
+                    </Typography>
+                  )}
                 </Box>
               </Box>
             )}
 
-            {/* Min spend — spend_x_discount, spend_x_get_gift, spend_x_get_points, spend_x_get_free_shipping */}
-            {(selectedType === 'spend_x_discount' ||
-              selectedType === 'spend_x_get_gift' ||
-              selectedType === 'spend_x_get_points' ||
-              selectedType === 'spend_x_get_free_shipping') && (
+            {showField('min_spend') && (
               <Box>
                 <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5"><Iconify icon="solar:cart-bold" className="text-violet-500" width={16} />{t('form.minSpendLabel')}</Typography>
                 <RHFTextField name="min_spend" type="number" placeholder={t('form.minSpendPlaceholder')} helperText={t('form.minSpendHelper')} />
               </Box>
             )}
 
-            {/* Points amount — spend_x_get_points */}
-            {selectedType === 'spend_x_get_points' && (
+            {showField('reward_points') && (
               <Box>
                 <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5"><Iconify icon="solar:star-bold" className="text-violet-500" width={16} />{t('form.pointsAmountLabel')}</Typography>
-                <RHFTextField name="discount_value" type="number" placeholder={t('form.pointsAmountPlaceholder')} helperText={t('form.pointsAmountHelper')} min={0} />
+                <RHFTextField name="reward_points" type="number" placeholder={t('form.pointsAmountPlaceholder')} helperText={t('form.pointsAmountHelper')} min={0} />
               </Box>
             )}
 
-            {/* Gift products — spend_x_get_gift */}
-            {selectedType === 'spend_x_get_gift' && (
+            {showField('gift_description') && (
+              <Box className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <Box>
+                  <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5"><Iconify icon="solar:gift-bold" className="text-violet-500" width={16} />{t('form.giftDescriptionEn')}</Typography>
+                  <RHFTextField name="gift_description.en" placeholder={t('form.giftDescriptionEnPlaceholder')} helperText={t('form.giftDescriptionHint')} />
+                </Box>
+                <Box>
+                  <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">{t('form.giftDescriptionAr')}</Typography>
+                  <RHFTextField name="gift_description.ar" placeholder={t('form.giftDescriptionArPlaceholder')} dir="rtl" />
+                </Box>
+              </Box>
+            )}
+
+            {showField('gift_product_ids') && (
               <Box>
                 <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground flex items-center gap-1.5"><Iconify icon="solar:gift-bold" className="text-violet-500" width={16} />{t('form.giftProductsLabel')}</Typography>
                 <RHFMultiSelect

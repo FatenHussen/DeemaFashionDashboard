@@ -14,6 +14,7 @@ import { joinOrderRoom, leaveOrderRoom, useOrderLocation } from '@/lib/socket';
 import { RHFInfiniteSelect } from '@/shared/components/hook-form/rhf-infinite-select';
 import { RejectOrderModal } from '@/pages/dashboard/orders/components/RejectOrderModal';
 import { OrderLineItemCard } from '@/pages/dashboard/orders/components/OrderLineItemCard';
+import { ScheduledDeliveryForm } from '@/pages/dashboard/orders/components/ScheduledDeliveryForm';
 import {
   useAssignDriver,
   useFetchOrderById,
@@ -87,8 +88,12 @@ const driverFetcher = (page: number, limit: number) =>
         id: d.id,
         label: d.name || d.phone,
       })),
-      pagination:
-        r.data?.pagination ?? { current_page: 1, last_page: 1, per_page: limit, total: 0 },
+      pagination: r.data?.pagination ?? {
+        current_page: 1,
+        last_page: 1,
+        per_page: limit,
+        total: 0,
+      },
     },
   }));
 
@@ -153,7 +158,7 @@ export default function DetailsPage() {
 
   // Live order tracking via socket
   const isTrackable = order ? parseOrderStatus(order.status) === 'out_delivery' : false;
-  const liveLocation = useOrderLocation(isTrackable ? order?.id ?? null : null);
+  const liveLocation = useOrderLocation(isTrackable ? (order?.id ?? null) : null);
 
   useEffect(() => {
     if (!isTrackable || !order?.id) return undefined;
@@ -258,7 +263,9 @@ export default function DetailsPage() {
       });
       toast.success(t('form.driverAssignedSuccess'));
       resetDriverForm({ driver_id: 0 });
-    } catch { return; }
+    } catch {
+      return;
+    }
   };
 
   const handleChangeItemStatus = async (itemId: number, status: OrderStatus) => {
@@ -270,7 +277,9 @@ export default function DetailsPage() {
         queryId: id,
       });
       toast.success(t('form.itemStatusUpdated'));
-    } catch { return; }
+    } catch {
+      return;
+    }
   };
 
   return (
@@ -308,10 +317,7 @@ export default function DetailsPage() {
                   <Iconify icon="solar:bag-bold" className="text-primary" width={28} height={28} />
                 </Box>
                 <Box className="min-w-0">
-                  <Typography
-                    variant="overline"
-                    className="mb-0.5 block text-muted-foreground"
-                  >
+                  <Typography variant="overline" className="mb-0.5 block text-muted-foreground">
                     {t('orders.orderOverview')}
                   </Typography>
                   <Typography variant="h4" className="mb-1 font-bold text-foreground">
@@ -332,7 +338,10 @@ export default function DetailsPage() {
 
           {/* Actions: status + driver */}
           <Box className="mb-4 grid gap-4 lg:mb-5 lg:grid-cols-2 lg:gap-5">
-            <OrderSection title={t('orders.changeOrderStatus')} icon="solar:transfer-horizontal-bold">
+            <OrderSection
+              title={t('orders.changeOrderStatus')}
+              icon="solar:transfer-horizontal-bold"
+            >
               <Box className="flex flex-col gap-4">
                 <Box className="flex flex-wrap items-center gap-3">
                   <span
@@ -378,7 +387,9 @@ export default function DetailsPage() {
                     }
                     className="w-full shrink-0 sm:w-auto"
                   >
-                    {changeStatusMutation.isPending ? t('orders.updatingStatus') : t('orders.applyOrderStatus')}
+                    {changeStatusMutation.isPending
+                      ? t('orders.updatingStatus')
+                      : t('orders.applyOrderStatus')}
                   </Button>
                 </Box>
               </Box>
@@ -451,13 +462,23 @@ export default function DetailsPage() {
                     {order.cart_type}
                   </Typography>
                 </Box>
-                <Box>
-                  <Typography variant="caption" className="text-muted-foreground">
-                    {t('orders.instantDelivery')}
-                  </Typography>
-                  <Typography variant="body1" className="font-medium">
-                    {order.is_instant_delivery ? t('common.yes') : t('common.no')}
-                  </Typography>
+                <Box className="sm:col-span-2">
+                  <Box className="grid gap-4 sm:grid-cols-2">
+                    <Box>
+                      <Typography variant="caption" className="text-muted-foreground">
+                        {t('orders.instantDelivery')}
+                      </Typography>
+                      <Typography variant="body1" className="font-medium">
+                        {order.is_instant_delivery ? t('common.yes') : t('common.no')}
+                      </Typography>
+                    </Box>
+                    <ScheduledDeliveryForm
+                      orderId={order.id}
+                      queryId={id}
+                      status={order.status}
+                      scheduledDeliveryAt={order.scheduled_delivery_at}
+                    />
+                  </Box>
                 </Box>
                 <Box>
                   <Typography variant="caption" className="text-muted-foreground">
@@ -496,7 +517,10 @@ export default function DetailsPage() {
                     <Typography variant="caption" className="text-muted-foreground">
                       {t('rejectionReason')}
                     </Typography>
-                    <Typography variant="body2" className="mt-1 rounded-lg border border-border/60 bg-muted/30 p-3 text-foreground">
+                    <Typography
+                      variant="body2"
+                      className="mt-1 rounded-lg border border-border/60 bg-muted/30 p-3 text-foreground"
+                    >
                       {order.rejection_reason}
                     </Typography>
                   </Box>
@@ -790,133 +814,133 @@ export default function DetailsPage() {
               {order.affiliate && (
                 <OrderSection title={t('orders.affiliate')} icon="solar:users-group-rounded-bold">
                   <Box className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  <Box>
-                    <Typography variant="caption" className="text-muted-foreground">
-                      {t('orders.rate')}
-                    </Typography>
-                    <Typography variant="body1" className="font-medium">
-                      {order.affiliate.affiliate_rate}
-                    </Typography>
-                  </Box>
-                  <Box>
-                    <Typography variant="caption" className="text-muted-foreground">
-                      {t('orders.source')}
-                    </Typography>
-                    <Typography variant="body1" className="font-medium">
-                      {order.affiliate.affiliate_source}
-                    </Typography>
-                  </Box>
-                  <Box>
-                    <Typography variant="caption" className="text-muted-foreground">
-                      {t('orders.commission')}
-                    </Typography>
-                    <Typography variant="body1" className="font-medium">
-                      {order.affiliate.affiliate_commission}
-                    </Typography>
-                  </Box>
-                  {order.affiliate.affiliate_commission_type && (
                     <Box>
                       <Typography variant="caption" className="text-muted-foreground">
-                        {t('orders.affiliateCommissionType')}
+                        {t('orders.rate')}
                       </Typography>
                       <Typography variant="body1" className="font-medium">
-                        {order.affiliate.affiliate_commission_type}
+                        {order.affiliate.affiliate_rate}
                       </Typography>
                     </Box>
-                  )}
-                  {order.affiliate.affiliate_fixed_commission != null &&
-                    order.affiliate.affiliate_fixed_commission !== '' && (
+                    <Box>
+                      <Typography variant="caption" className="text-muted-foreground">
+                        {t('orders.source')}
+                      </Typography>
+                      <Typography variant="body1" className="font-medium">
+                        {order.affiliate.affiliate_source}
+                      </Typography>
+                    </Box>
+                    <Box>
+                      <Typography variant="caption" className="text-muted-foreground">
+                        {t('orders.commission')}
+                      </Typography>
+                      <Typography variant="body1" className="font-medium">
+                        {order.affiliate.affiliate_commission}
+                      </Typography>
+                    </Box>
+                    {order.affiliate.affiliate_commission_type && (
                       <Box>
                         <Typography variant="caption" className="text-muted-foreground">
-                          {t('orders.affiliateFixedCommission')}
+                          {t('orders.affiliateCommissionType')}
                         </Typography>
                         <Typography variant="body1" className="font-medium">
-                          {String(order.affiliate.affiliate_fixed_commission)}
+                          {order.affiliate.affiliate_commission_type}
                         </Typography>
                       </Box>
                     )}
-                  {order.affiliate.affiliate_commission_amount != null && (
-                    <Box>
-                      <Typography variant="caption" className="text-muted-foreground">
-                        {t('orders.affiliateCommissionAmount')}
-                      </Typography>
-                      <Typography variant="body1" className="font-medium">
-                        {order.affiliate.affiliate_commission_amount}
-                      </Typography>
-                    </Box>
-                  )}
-                </Box>
+                    {order.affiliate.affiliate_fixed_commission != null &&
+                      order.affiliate.affiliate_fixed_commission !== '' && (
+                        <Box>
+                          <Typography variant="caption" className="text-muted-foreground">
+                            {t('orders.affiliateFixedCommission')}
+                          </Typography>
+                          <Typography variant="body1" className="font-medium">
+                            {String(order.affiliate.affiliate_fixed_commission)}
+                          </Typography>
+                        </Box>
+                      )}
+                    {order.affiliate.affiliate_commission_amount != null && (
+                      <Box>
+                        <Typography variant="caption" className="text-muted-foreground">
+                          {t('orders.affiliateCommissionAmount')}
+                        </Typography>
+                        <Typography variant="body1" className="font-medium">
+                          {order.affiliate.affiliate_commission_amount}
+                        </Typography>
+                      </Box>
+                    )}
+                  </Box>
                 </OrderSection>
               )}
 
               {order.driver && (
                 <OrderSection title={t('orders.driver')} icon="solar:scooter-bold">
                   <Box className="grid gap-4 sm:grid-cols-2">
-                  <Box>
-                    <Typography variant="caption" className="text-muted-foreground">
-                      {t('orders.name')}
-                    </Typography>
-                    <Typography variant="body1" className="font-medium">
-                      {order.driver.name}
-                    </Typography>
+                    <Box>
+                      <Typography variant="caption" className="text-muted-foreground">
+                        {t('orders.name')}
+                      </Typography>
+                      <Typography variant="body1" className="font-medium">
+                        {order.driver.name}
+                      </Typography>
+                    </Box>
+                    <Box>
+                      <Typography variant="caption" className="text-muted-foreground">
+                        {t('orders.phone')}
+                      </Typography>
+                      <Typography variant="body1" className="font-medium">
+                        {order.driver.phone}
+                      </Typography>
+                    </Box>
+                    <Box>
+                      <Typography variant="caption" className="text-muted-foreground">
+                        {t('orders.status')}
+                      </Typography>
+                      <Typography variant="body1" className="font-medium capitalize">
+                        {order.driver.status}
+                      </Typography>
+                    </Box>
+                    <Box>
+                      <Typography variant="caption" className="text-muted-foreground">
+                        {t('orders.averageRating')}
+                      </Typography>
+                      <Typography variant="body1" className="font-medium">
+                        {order.driver.average_rating}
+                      </Typography>
+                    </Box>
+                    <Box>
+                      <Typography variant="caption" className="text-muted-foreground">
+                        {t('orders.totalOrders')}
+                      </Typography>
+                      <Typography variant="body1" className="font-medium">
+                        {order.driver.total_orders}
+                      </Typography>
+                    </Box>
+                    <Box>
+                      <Typography variant="caption" className="text-muted-foreground">
+                        {t('orders.completedOrders')}
+                      </Typography>
+                      <Typography variant="body1" className="font-medium">
+                        {order.driver.completed_orders}
+                      </Typography>
+                    </Box>
+                    <Box>
+                      <Typography variant="caption" className="text-muted-foreground">
+                        {t('orders.totalEarnings')}
+                      </Typography>
+                      <Typography variant="body1" className="font-medium">
+                        {order.driver.total_earnings}
+                      </Typography>
+                    </Box>
+                    <Box>
+                      <Typography variant="caption" className="text-muted-foreground">
+                        {t('orders.ratePerOrder')}
+                      </Typography>
+                      <Typography variant="body1" className="font-medium">
+                        {order.driver.rate_per_order}
+                      </Typography>
+                    </Box>
                   </Box>
-                  <Box>
-                    <Typography variant="caption" className="text-muted-foreground">
-                      {t('orders.phone')}
-                    </Typography>
-                    <Typography variant="body1" className="font-medium">
-                      {order.driver.phone}
-                    </Typography>
-                  </Box>
-                  <Box>
-                    <Typography variant="caption" className="text-muted-foreground">
-                      {t('orders.status')}
-                    </Typography>
-                    <Typography variant="body1" className="font-medium capitalize">
-                      {order.driver.status}
-                    </Typography>
-                  </Box>
-                  <Box>
-                    <Typography variant="caption" className="text-muted-foreground">
-                      {t('orders.averageRating')}
-                    </Typography>
-                    <Typography variant="body1" className="font-medium">
-                      {order.driver.average_rating}
-                    </Typography>
-                  </Box>
-                  <Box>
-                    <Typography variant="caption" className="text-muted-foreground">
-                      {t('orders.totalOrders')}
-                    </Typography>
-                    <Typography variant="body1" className="font-medium">
-                      {order.driver.total_orders}
-                    </Typography>
-                  </Box>
-                  <Box>
-                    <Typography variant="caption" className="text-muted-foreground">
-                      {t('orders.completedOrders')}
-                    </Typography>
-                    <Typography variant="body1" className="font-medium">
-                      {order.driver.completed_orders}
-                    </Typography>
-                  </Box>
-                  <Box>
-                    <Typography variant="caption" className="text-muted-foreground">
-                      {t('orders.totalEarnings')}
-                    </Typography>
-                    <Typography variant="body1" className="font-medium">
-                      {order.driver.total_earnings}
-                    </Typography>
-                  </Box>
-                  <Box>
-                    <Typography variant="caption" className="text-muted-foreground">
-                      {t('orders.ratePerOrder')}
-                    </Typography>
-                    <Typography variant="body1" className="font-medium">
-                      {order.driver.rate_per_order}
-                    </Typography>
-                  </Box>
-                </Box>
                 </OrderSection>
               )}
             </Box>
@@ -937,7 +961,11 @@ export default function DetailsPage() {
             <Box className="space-y-5">
               {!order.items?.length ? (
                 <Box className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-border/60 bg-muted/10 py-14">
-                  <Iconify icon="solar:cart-cross-bold" width={48} className="text-muted-foreground/40" />
+                  <Iconify
+                    icon="solar:cart-cross-bold"
+                    width={48}
+                    className="text-muted-foreground/40"
+                  />
                   <Typography variant="body2" className="text-muted-foreground">
                     {t('orders.noOrderItems')}
                   </Typography>

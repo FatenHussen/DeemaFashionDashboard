@@ -70,7 +70,10 @@ export interface UserBasketScheduleItem {
     is_active?: boolean;
   };
   is_active: boolean;
+  /** Customer delivery day (`Y-m-d`). Not a period start. */
   start_date: string;
+  /** Clock time inside `start_date` (`HH:mm`). Older rows without a time are `null`. */
+  delivery_time: string | null;
   next_run_date: string;
   created_at: string;
   updated_at: string;

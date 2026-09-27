@@ -8,6 +8,10 @@ import { formatDecimal } from '@/utils/format-currency';
 import { TableTonedStatusPill } from '@/shared/components/table-status-badges';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 import {
+  readInstantDeliveryFlag,
+  formatScheduledDeliveryAt,
+} from '@/pages/dashboard/orders/utils/scheduled-delivery';
+import {
   type OrderData,
   type OrderStatus,
   parseOrderStatus,
@@ -36,10 +40,7 @@ export interface OrderFormValues extends OrderData {
   [key: string]: any;
 }
 
-const ORDER_STATUS_BADGE: Record<
-  OrderStatus,
-  { icon: string; className: string }
-> = {
+const ORDER_STATUS_BADGE: Record<OrderStatus, { icon: string; className: string }> = {
   pending: {
     icon: 'solar:hourglass-bold',
     className: 'border-amber-700 bg-amber-500',
@@ -123,11 +124,7 @@ const ORDER_CANCELLED_STATES: OrderStatus[] = [
 function sumOrderDiscounts(row: OrderFormValues): number {
   const legacy = toNum(row.discount);
   if (legacy > 0) return legacy;
-  return (
-    toNum(row.basket_discount) +
-    toNum(row.coupon_discount) +
-    toNum(row.subscription_discount)
-  );
+  return toNum(row.basket_discount) + toNum(row.coupon_discount) + toNum(row.subscription_discount);
 }
 
 /** Items total after discounts, excluding delivery (matches list API shape). */
@@ -150,7 +147,9 @@ export const orderColumns = (
   {
     id: 'order_code',
     accessorFn: (row) => row.order_code ?? row.order_number ?? '',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.orderNumber')} />,
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title={t('columns.orderNumber')} />
+    ),
     cell: ({ row }) => {
       const ref = row.original.order_code ?? row.original.order_number;
       return (
@@ -165,9 +164,7 @@ export const orderColumns = (
     accessorKey: 'user',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('customer')} />,
     cell: ({ row }) => (
-      <div className="font-medium text-foreground truncate">
-        {row.original.user?.name || '-'}
-      </div>
+      <div className="font-medium text-foreground truncate">{row.original.user?.name || '-'}</div>
     ),
   },
   // {
@@ -198,13 +195,13 @@ export const orderColumns = (
   {
     id: 'price_after_discount',
     accessorFn: (row) => priceAfterDiscountValue(row),
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.priceAfterDiscount')} />,
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title={t('columns.priceAfterDiscount')} />
+    ),
     cell: ({ row }) => {
       const v = priceAfterDiscountValue(row.original);
       return (
-        <span className="text-sm">
-          {v != null && Number.isFinite(v) ? formatDecimal(v) : '-'}
-        </span>
+        <span className="text-sm">{v != null && Number.isFinite(v) ? formatDecimal(v) : '-'}</span>
       );
     },
   },
@@ -257,9 +254,10 @@ export const orderColumns = (
             icon="solar:info-circle-bold"
             className="border-slate-600 bg-slate-500"
           >
-            {labelFromApi?.trim() || (raw != null && String(raw).trim() !== ''
-              ? String(raw).replace(/_/g, ' ')
-              : t('statusPending'))}
+            {labelFromApi?.trim() ||
+              (raw != null && String(raw).trim() !== ''
+                ? String(raw).replace(/_/g, ' ')
+                : t('statusPending'))}
           </TableTonedStatusPill>
         );
       }
@@ -272,12 +270,44 @@ export const orderColumns = (
     },
   },
   {
+    id: 'is_instant_delivery',
+    accessorFn: (row) => readInstantDeliveryFlag(row.is_instant_delivery),
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title={t('columns.instantDelivery')} />
+    ),
+    cell: ({ row }) => {
+      const instant = readInstantDeliveryFlag(row.original.is_instant_delivery);
+      if (instant == null) {
+        return <span className="text-sm text-muted-foreground">—</span>;
+      }
+      return (
+        <span className="text-sm font-medium">{instant ? t('common.yes') : t('common.no')}</span>
+      );
+    },
+  },
+  {
+    id: 'scheduled_delivery_at',
+    accessorFn: (row) => formatScheduledDeliveryAt(row.scheduled_delivery_at) ?? '',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title={t('columns.scheduledDelivery')} />
+    ),
+    cell: ({ row }) => {
+      const label = formatScheduledDeliveryAt(row.original.scheduled_delivery_at);
+      if (!label) {
+        return <span className="text-sm text-muted-foreground">—</span>;
+      }
+      return <span className="whitespace-nowrap text-sm font-medium tabular-nums">{label}</span>;
+    },
+  },
+  {
     id: 'driver',
     accessorFn: (row) => row.driver?.name ?? row.driver?.phone ?? '',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.driver')} />,
     cell: ({ row }) => {
       const label = row.original.driver?.name?.trim() || row.original.driver?.phone?.trim();
-      return <span className="text-sm text-muted-foreground">{label || t('columns.notAssigned')}</span>;
+      return (
+        <span className="text-sm text-muted-foreground">{label || t('columns.notAssigned')}</span>
+      );
     },
   },
   {
@@ -302,7 +332,6 @@ export const orderColumns = (
         !ORDER_CANCELLED_STATES.includes(st);
       const canRejectOrder =
         permissions.update && st !== 'delivered' && !ORDER_CANCELLED_STATES.includes(st);
-
 
       return (
         <div className="flex items-center justify-end">
@@ -340,7 +369,11 @@ export const orderColumns = (
                     }}
                     className="gap-2"
                   >
-                    <Iconify icon="solar:user-id-bold" width={18} className="text-muted-foreground" />
+                    <Iconify
+                      icon="solar:user-id-bold"
+                      width={18}
+                      className="text-muted-foreground"
+                    />
                     {t('assignOrderToDriver')}
                   </DropdownMenuItem>
                   <DropdownMenuItem

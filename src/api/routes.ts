@@ -206,7 +206,8 @@ export const apiRoutes = {
     pages: `${ROOTS.ADMIN}/sections/pages`,
     pagePreview: (id: number | string) => `${ROOTS.ADMIN}/page-sections/pages/${id}/preview`,
     /** Persist section order on a CMS page. Body: `{ sections: [{ id, order, position }] }`. */
-    pageReorder: (pageId: number | string) => `${ROOTS.ADMIN}/page-sections/pages/${pageId}/reorder`,
+    pageReorder: (pageId: number | string) =>
+      `${ROOTS.ADMIN}/page-sections/pages/${pageId}/reorder`,
     /** Card layout templates for a content type (`?manual_model=product`). */
     displayTypes: `${ROOTS.ADMIN}/sections/display-types`,
   },
@@ -264,8 +265,7 @@ export const apiRoutes = {
     details: (id: number | string) => `${ROOTS.ADMIN}/users/${id}`,
     marketers: `${ROOTS.ADMIN}/users/markters`,
     demoteAffiliate: (id: number | string) => `${ROOTS.ADMIN}/users/${id}/demote-affiliate`,
-    reactivateAffiliate: (id: number | string) =>
-      `${ROOTS.ADMIN}/users/${id}/reactivate-affiliate`,
+    reactivateAffiliate: (id: number | string) => `${ROOTS.ADMIN}/users/${id}/reactivate-affiliate`,
   },
   product: {
     list: `${ROOTS.ADMIN}/products`,
@@ -288,6 +288,7 @@ export const apiRoutes = {
     getOne: (id: number | string) => `${ROOTS.ADMIN}/orders/${id}/get_one`,
     changeStatus: (id: number | string) => `${ROOTS.ADMIN}/orders/${id}/change-status`,
     assignDriver: (id: number | string) => `${ROOTS.ADMIN}/orders/${id}/assign-driver`,
+    scheduledDelivery: (id: number | string) => `${ROOTS.ADMIN}/orders/${id}/scheduled-delivery`,
     changeItemStatus: (itemId: number | string) =>
       `${ROOTS.ADMIN}/orders/items/${itemId}/change-status`,
   },
@@ -528,6 +529,7 @@ export const apiRoutes = {
     update: (id: number | string) => `${ROOTS.ADMIN}/promotions/${id}`,
     delete: (id: number | string) => `${ROOTS.ADMIN}/promotions/${id}`,
     details: (id: number | string) => `${ROOTS.ADMIN}/promotions/${id}`,
+    fieldsForType: (type: string) => `${ROOTS.ADMIN}/promotions/fields-for-type/${type}`,
   },
   // Country routes
   country: {

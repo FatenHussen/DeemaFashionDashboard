@@ -5,6 +5,11 @@ import { z } from 'zod';
 import { TableActiveBadge } from '@/shared/components/table-status-badges';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
+import {
+  formatUserBasketDeliveryDate,
+  formatUserBasketDeliveryTime,
+  formatUserBasketNextDelivery,
+} from '@/pages/dashboard/user-basket-schedules/utils/delivery-slot';
 
 const UserBasketScheduleRowSchema = z.object({
   id: z.number(),
@@ -26,6 +31,7 @@ export interface UserBasketScheduleTableItem {
   discount_amount?: number;
   schedule: { id: number; name: string; interval_days: number };
   start_date: string;
+  delivery_time?: string | null;
   next_run_date: string;
   is_active: boolean | number;
 }
@@ -142,7 +148,9 @@ export const userBasketScheduleColumns = (
   {
     id: 'schedule',
     accessorKey: 'schedule',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('form.scheduleLabel')} />,
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title={t('form.userBasketScheduleRecurrence')} />
+    ),
     cell: ({ row }) => {
       const s = row.original.schedule;
       if (!s) return <span className="text-muted-foreground">—</span>;
@@ -159,14 +167,38 @@ export const userBasketScheduleColumns = (
   {
     id: 'start_date',
     accessorKey: 'start_date',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.startDate')} />,
-    cell: ({ row }) => <span className="text-sm tabular-nums">{row.original.start_date || '—'}</span>,
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title={t('form.userBasketScheduleDeliveryDate')} />
+    ),
+    cell: ({ row }) => (
+      <span className="text-sm tabular-nums" dir="ltr">
+        {formatUserBasketDeliveryDate(row.original.start_date)}
+      </span>
+    ),
+  },
+  {
+    id: 'delivery_time',
+    accessorKey: 'delivery_time',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title={t('form.userBasketScheduleDeliveryTime')} />
+    ),
+    cell: ({ row }) => (
+      <span className="text-sm tabular-nums" dir="ltr">
+        {formatUserBasketDeliveryTime(row.original.delivery_time) ?? '—'}
+      </span>
+    ),
   },
   {
     id: 'next_run_date',
     accessorKey: 'next_run_date',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.nextRunDate')} />,
-    cell: ({ row }) => <span className="text-sm tabular-nums">{row.original.next_run_date || '—'}</span>,
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title={t('form.userBasketScheduleNextDelivery')} />
+    ),
+    cell: ({ row }) => (
+      <span className="text-sm tabular-nums" dir="ltr">
+        {formatUserBasketNextDelivery(row.original.next_run_date, row.original.delivery_time)}
+      </span>
+    ),
   },
   {
     id: 'status',

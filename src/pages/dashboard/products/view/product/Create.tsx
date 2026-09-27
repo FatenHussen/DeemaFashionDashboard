@@ -994,7 +994,6 @@ export default function CreatePage() {
   const watchedBoughtWith = watch('bought_with') || [];
   const watchedVendorId = watch('vendor_id');
   const saleChannelWatch = watch('sale_channel');
-  const deliveryTimeWatch = watch('delivery_time');
   const isShopSaleChannel =
     saleChannelWatch === 'shop' || isRestaurantToggle === true;
   const sypRate = sypCurrency ? parseCurrencyRate(sypCurrency) : null;
@@ -2136,18 +2135,24 @@ export default function CreatePage() {
 
         delete editApiPayload.shop_variants;
 
-        if (saleChannel === 'platform') {
-          editApiPayload.sale_channel = 'platform';
-          delete editApiPayload.vendor_id;
-          delete editApiPayload.shop_id;
-        } else if (channelChanged || shopIdDirty || vendorDirty || selectedShopId > 0) {
-          editApiPayload.sale_channel = 'shop';
-          if (selectedShopId > 0) editApiPayload.shop_id = selectedShopId;
-        } else {
+        // Name-only edits omit sale_channel, shop_id, and vendor_id.
+        // Sending them again re-links the shop and can reject a user id as vendor_id.
+        if (!channelChanged && !shopIdDirty && !vendorDirty) {
           delete editApiPayload.sale_channel;
           delete editApiPayload.shop_id;
           delete editApiPayload.vendor_id;
+        } else if (saleChannel === 'platform') {
+          editApiPayload.sale_channel = 'platform';
+          delete editApiPayload.vendor_id;
+          delete editApiPayload.shop_id;
+        } else {
+          editApiPayload.sale_channel = 'shop';
+          if (selectedShopId > 0) editApiPayload.shop_id = selectedShopId;
+          else delete editApiPayload.shop_id;
+          const vendorId = Number(editApiPayload.vendor_id);
+          if (!Number.isFinite(vendorId) || vendorId <= 0) delete editApiPayload.vendor_id;
         }
+        if (saleChannel === 'platform') delete editApiPayload.delivery_time;
 
         console.log('[Product Form] Sending update payload:', { id, data: editApiPayload });
         const updateResponse = await updateProductMutation.mutateAsync({
@@ -2159,6 +2164,14 @@ export default function CreatePage() {
         const createPayload = { ...(apiPayload as object) } as Record<string, unknown>;
         stripSeoIfNoFile(createPayload);
         stripEmptyNestedArrays(createPayload);
+        if (saleChannel === 'platform') {
+          delete createPayload.vendor_id;
+          delete createPayload.shop_id;
+          delete createPayload.delivery_time;
+        } else {
+          const vendorId = Number(createPayload.vendor_id);
+          if (!Number.isFinite(vendorId) || vendorId <= 0) delete createPayload.vendor_id;
+        }
         console.log('[Product Form] Sending create payload:', createPayload);
         const createResponse = await createProductMutation.mutateAsync(
           createPayload as unknown as ProductCreateUpdatePayload
@@ -2767,25 +2780,13 @@ export default function CreatePage() {
               )}
             />
             {saleChannelWatch === 'platform' ? (
-              <Box className="mt-3 space-y-2">
+              <Box className="mt-3 space-y-1">
                 <Typography variant="caption" className="text-muted-foreground block">
                   {t('form.saleChannelPlatformHint')}
                 </Typography>
-                <Box>
-                  <Typography variant="caption" className="text-muted-foreground mb-1 block">
-                    {t('form.productDeliveryTime')}
-                  </Typography>
-                  <input
-                    type="text"
-                    readOnly
-                    tabIndex={-1}
-                    className={`${inputCls} bg-muted/40 text-muted-foreground cursor-default`}
-                    value={
-                      String(deliveryTimeWatch ?? '').trim() ||
-                      t('form.variantDeliveryTimeAuto')
-                    }
-                  />
-                </Box>
+                <Typography variant="body2" className="text-foreground">
+                  {t('form.productDeliveryTime')}: {t('form.variantDeliveryTimeAuto')}
+                </Typography>
               </Box>
             ) : null}
             {saleChannelWatch === 'shop' ? (

@@ -6,6 +6,8 @@ import type {
   ChangeItemStatusPayload,
   ChangeOrderStatusPayload,
   ChangeOrderStatusResponse,
+  UpdateScheduledDeliveryPayload,
+  UpdateScheduledDeliveryResponse,
 } from '../types/order.types';
 
 import { apiRoutes, axiosInstance } from '@/api';
@@ -104,10 +106,7 @@ export const _OrderApi = {
     return response.data;
   },
 
-  assignDriver: async (
-    id: number | string,
-    data: AssignDriverPayload
-  ): Promise<any> => {
+  assignDriver: async (id: number | string, data: AssignDriverPayload): Promise<any> => {
     const response = await axiosInstance.post(apiRoutes.order.assignDriver(id), data);
     return response.data;
   },
@@ -117,6 +116,17 @@ export const _OrderApi = {
     data: ChangeItemStatusPayload
   ): Promise<any> => {
     const response = await axiosInstance.patch(apiRoutes.order.changeItemStatus(itemId), data);
+    return response.data;
+  },
+
+  updateScheduledDelivery: async (
+    id: number | string,
+    data: UpdateScheduledDeliveryPayload
+  ): Promise<UpdateScheduledDeliveryResponse> => {
+    const response = await axiosInstance.patch<UpdateScheduledDeliveryResponse>(
+      apiRoutes.order.scheduledDelivery(id),
+      data
+    );
     return response.data;
   },
 };

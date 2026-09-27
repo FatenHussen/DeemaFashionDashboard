@@ -18,6 +18,15 @@ export const useFetchPromotionById = (id: number | string) =>
     enabled: !!id,
   });
 
+export const usePromotionFieldsForType = (type: string) =>
+  useQuery({
+    queryKey: queryKeys.promotion.fieldsForType(type),
+    queryFn: () => _PromotionApi.getFieldsForType(type),
+    enabled: !!type,
+    retry: false,
+    staleTime: 5 * 60 * 1000,
+  });
+
 export const useCreatePromotion = () => {
   const queryClient = useQueryClient();
   return useMutation({

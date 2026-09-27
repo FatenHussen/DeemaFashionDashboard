@@ -11,8 +11,8 @@ export const IconCreateSchema = z.object({
   }),
   image: z.any().optional().nullable(),
   description: z.object({
-    en: z.string().optional(),
-    ar: z.string().optional(),
+    en: z.string().max(1000, t('icon.descriptionMax')).optional(),
+    ar: z.string().max(1000, t('icon.descriptionMax')).optional(),
   }).optional(),
   full_description: z
     .object({

@@ -1,9 +1,10 @@
-import type { IconCreatePayload } from '../types/icon.types';
+import type { IconListResponse, IconCreatePayload, IconDetailsResponse } from '../types/icon.types';
 
 import { queryKeys } from '@/api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { _IconApi } from '../api/icon.services';
+import { iconArtworkSrc } from '../utils/icon-artwork';
 
 export const useFetchIcons = (
   page: number = 1,
@@ -37,7 +38,32 @@ export const useUpdateIcon = () => {
   return useMutation({
     mutationFn: ({ id, data }: { id: number | string; data: Partial<IconCreatePayload> }) =>
       _IconApi.updateIcon(id, data),
-    onSuccess: (_, variables) => {
+    onSuccess: (body: { data?: { image?: string | null; icon?: string | null } } | undefined, variables) => {
+      const src = iconArtworkSrc(body?.data);
+      if (src) {
+        queryClient.setQueryData(
+          queryKeys.icon.details(variables.id),
+          (current: IconDetailsResponse | undefined) => {
+            if (!current?.data) return current;
+            return {
+              ...current,
+              data: { ...current.data, image: src, icon: src },
+            };
+          }
+        );
+        queryClient.setQueriesData<IconListResponse>({ queryKey: ['icon', 'list'] }, (current) => {
+          if (!current?.data?.items) return current;
+          return {
+            ...current,
+            data: {
+              ...current.data,
+              items: current.data.items.map((item) =>
+                String(item.id) === String(variables.id) ? { ...item, image: src, icon: src } : item
+              ),
+            },
+          };
+        });
+      }
       queryClient.invalidateQueries({ queryKey: ['icon', 'list'] });
       queryClient.invalidateQueries({ queryKey: queryKeys.icon.details(variables.id) });
     },

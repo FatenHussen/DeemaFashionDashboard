@@ -1,6 +1,6 @@
 import type { IconItem, IconListResponse, IconCreatePayload, IconDetailsResponse } from '../types/icon.types';
 
-import { apiRoutes, axiosInstance } from '@/api';
+import { apiRoutes, putMultipart, axiosInstance, postMultipart } from '@/api';
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   return value && typeof value === 'object' && !Array.isArray(value)
@@ -13,9 +13,11 @@ function normalizeIconItem(raw: unknown): IconItem | null {
   if (!row) return null;
   const id = Number(row.id);
   if (!Number.isFinite(id) || id <= 0) return null;
-  const icon = typeof row.icon === 'string' && row.icon.trim() ? row.icon.trim() : null;
-  const image = typeof row.image === 'string' && row.image.trim() ? row.image.trim() : null;
-  const src = icon || image || '';
+  const icon = typeof row.icon === 'string' && row.icon.trim() ? row.icon.trim() : '';
+  const image = typeof row.image === 'string' && row.image.trim() ? row.image.trim() : '';
+  // Keep `?v=` from the save response so the preview is not the pre-save URL.
+  const versioned = [image, icon].find((url) => /[?&]v=/.test(url));
+  const src = versioned || icon || image || '';
   return {
     ...(row as unknown as IconItem),
     id,
@@ -57,6 +59,28 @@ function unwrapPagination(raw: unknown, fallbackPerPage: number, itemCount: numb
   };
 }
 
+function appendIconFields(formData: FormData, data: Partial<IconCreatePayload>) {
+  if (data.name) {
+    formData.append('name[en]', data.name.en ?? '');
+    formData.append('name[ar]', data.name.ar ?? '');
+  }
+  // Only a real file. An empty field or a stored URL must not be posted as `image`.
+  if (data.image instanceof File) {
+    formData.append('image', data.image);
+  }
+  if (data.description?.en) formData.append('description[en]', data.description.en);
+  if (data.description?.ar) formData.append('description[ar]', data.description.ar);
+  formData.append('full_description[en]', data.full_description?.en ?? '');
+  formData.append('full_description[ar]', data.full_description?.ar ?? '');
+  if (data.is_active !== undefined) formData.append('is_active', data.is_active ? '1' : '0');
+}
+
+function withNormalizedIcon(body: unknown) {
+  const root = asRecord(body);
+  const item = normalizeIconItem(asRecord(root?.data) ?? root);
+  return { ...(root ?? {}), data: item };
+}
+
 export const _IconApi = {
   getListIcons: async (params?: {
     page?: number;
@@ -85,35 +109,19 @@ export const _IconApi = {
 
   createIcon: async (data: IconCreatePayload): Promise<any> => {
     const formData = new FormData();
-    formData.append('name[en]', data.name.en);
-    formData.append('name[ar]', data.name.ar);
-    if (data.image instanceof File) formData.append('image', data.image);
-    if (data.description?.en) formData.append('description[en]', data.description.en);
-    if (data.description?.ar) formData.append('description[ar]', data.description.ar);
-    formData.append('full_description[en]', data.full_description?.en ?? '');
-    formData.append('full_description[ar]', data.full_description?.ar ?? '');
-    if (data.is_active !== undefined) formData.append('is_active', data.is_active ? '1' : '0');
-    const response = await axiosInstance.post(apiRoutes.icon.create, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-    return response.data;
+    appendIconFields(formData, data);
+    // Do not set Content-Type — the browser must add the multipart boundary.
+    const response = await postMultipart(apiRoutes.icon.create, formData);
+    return withNormalizedIcon(response.data);
   },
 
   updateIcon: async (id: number | string, data: Partial<IconCreatePayload>): Promise<any> => {
     const formData = new FormData();
-    formData.append('_method', 'PATCH');
-    if (data.name?.en) formData.append('name[en]', data.name.en);
-    if (data.name?.ar) formData.append('name[ar]', data.name.ar);
-    if (data.image instanceof File) formData.append('image', data.image);
-    if (data.description?.en) formData.append('description[en]', data.description.en);
-    if (data.description?.ar) formData.append('description[ar]', data.description.ar);
-    formData.append('full_description[en]', data.full_description?.en ?? '');
-    formData.append('full_description[ar]', data.full_description?.ar ?? '');
-    if (data.is_active !== undefined) formData.append('is_active', data.is_active ? '1' : '0');
-    const response = await axiosInstance.post(apiRoutes.icon.update(id), formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-    return response.data;
+    appendIconFields(formData, data);
+    // PHP only parses files on POST. `_method=PUT` still hits the update route.
+    // Do not set Content-Type — the browser must add the multipart boundary.
+    const response = await putMultipart(apiRoutes.icon.update(id), formData);
+    return withNormalizedIcon(response.data);
   },
 
   deleteIcon: async (id: number | string): Promise<any> => {

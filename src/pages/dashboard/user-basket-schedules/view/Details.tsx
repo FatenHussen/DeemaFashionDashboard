@@ -24,6 +24,11 @@ import { Box, Typography } from 'src/shared/ui';
 import { LoadingScreen } from 'src/shared/components/loading-screen';
 
 import { useFetchUserBasketScheduleById } from '../hooks/user-basket-schedule';
+import {
+  formatUserBasketDeliveryDate,
+  formatUserBasketDeliveryTime,
+  formatUserBasketNextDelivery,
+} from '../utils/delivery-slot';
 
 // ----------------------------------------------------------------------
 
@@ -263,7 +268,7 @@ function QuickAside({
         <Box className="grid gap-3">
           <Box>
             <Typography variant="caption" className="text-muted-foreground">
-              {t('form.scheduleLabel')}
+              {t('form.userBasketScheduleRecurrence')}
             </Typography>
             <Typography variant="body2" className="mt-0.5 font-medium">
               {row.schedule?.name || '—'}
@@ -271,10 +276,26 @@ function QuickAside({
           </Box>
           <Box>
             <Typography variant="caption" className="text-muted-foreground">
-              {t('columns.nextRunDate')}
+              {t('form.userBasketScheduleDeliveryDate')}
             </Typography>
-            <Typography variant="body2" className="mt-0.5 font-semibold tabular-nums">
-              {displaySmartDate(row.next_run_date, false)}
+            <Typography variant="body2" className="mt-0.5 font-semibold tabular-nums" dir="ltr">
+              {formatUserBasketDeliveryDate(row.start_date)}
+            </Typography>
+          </Box>
+          <Box>
+            <Typography variant="caption" className="text-muted-foreground">
+              {t('form.userBasketScheduleDeliveryTime')}
+            </Typography>
+            <Typography variant="body2" className="mt-0.5 font-semibold tabular-nums" dir="ltr">
+              {formatUserBasketDeliveryTime(row.delivery_time) ?? '—'}
+            </Typography>
+          </Box>
+          <Box>
+            <Typography variant="caption" className="text-muted-foreground">
+              {t('form.userBasketScheduleNextDelivery')}
+            </Typography>
+            <Typography variant="body2" className="mt-0.5 font-semibold tabular-nums" dir="ltr">
+              {formatUserBasketNextDelivery(row.next_run_date, row.delivery_time)}
             </Typography>
           </Box>
           <Box>
@@ -636,7 +657,7 @@ export default function DetailsPage() {
                    
                     {row.schedule?.name ? (
                       <Typography variant="body2" className="mt-2 text-muted-foreground">
-                        <span className="font-medium text-foreground/85">{t('form.scheduleLabel')}:</span>{' '}
+                        <span className="font-medium text-foreground/85">{t('form.userBasketScheduleRecurrence')}:</span>{' '}
                         {row.schedule.name}
                       </Typography>
                     ) : null}
@@ -650,8 +671,8 @@ export default function DetailsPage() {
                   />
                   <StatChip
                     icon="solar:calendar-mark-bold"
-                    label={t('columns.nextRunDate')}
-                    value={displaySmartDate(row.next_run_date, false)}
+                    label={t('form.userBasketScheduleNextDelivery')}
+                    value={formatUserBasketNextDelivery(row.next_run_date, row.delivery_time)}
                   />
                   <StatChip
                     icon="solar:wallet-money-bold"
@@ -712,8 +733,27 @@ export default function DetailsPage() {
 
                 <SectionShell id="ubs-schedule" title={t('form.userBasketScheduleDetailRecurrence')} icon="solar:history-bold">
                   <Box className="space-y-4">
-                    <DetailField label={t('form.scheduleLabel')} value={row.schedule?.name || '—'} />
+                    <DetailField label={t('form.userBasketScheduleRecurrence')} value={row.schedule?.name || '—'} />
                     <DetailField label={t('form.intervalDays')} value={intervalLabel} />
+                    <DetailField
+                      label={t('form.userBasketScheduleDeliveryDate')}
+                      value={<span dir="ltr">{formatUserBasketDeliveryDate(row.start_date)}</span>}
+                      mono
+                    />
+                    <DetailField
+                      label={t('form.userBasketScheduleDeliveryTime')}
+                      value={<span dir="ltr">{formatUserBasketDeliveryTime(row.delivery_time) ?? '—'}</span>}
+                      mono
+                    />
+                    <DetailField
+                      label={t('form.userBasketScheduleNextDelivery')}
+                      value={
+                        <span dir="ltr">
+                          {formatUserBasketNextDelivery(row.next_run_date, row.delivery_time)}
+                        </span>
+                      }
+                      mono
+                    />
                     {scheduleDiscountText ? (
                       <DetailField
                         label={t('columns.discount')}
@@ -754,18 +794,6 @@ export default function DetailsPage() {
 
               <SectionShell id="ubs-meta" title={t('form.userBasketScheduleDetailMeta')} icon="solar:clock-circle-bold">
                 <Box className="grid gap-6 sm:grid-cols-2">
-                  <DetailField
-                    label={t('columns.startDate')}
-                    value={displaySmartDate(row.start_date, false)}
-                    mono
-                    hint={row.start_date && dayjs(row.start_date).isValid() ? row.start_date : undefined}
-                  />
-                  <DetailField
-                    label={t('columns.nextRunDate')}
-                    value={displaySmartDate(row.next_run_date, false)}
-                    mono
-                    hint={row.next_run_date && dayjs(row.next_run_date).isValid() ? row.next_run_date : undefined}
-                  />
                   <DetailField
                     label={t('columns.createdAt')}
                     value={displaySmartDate(row.created_at, true)}

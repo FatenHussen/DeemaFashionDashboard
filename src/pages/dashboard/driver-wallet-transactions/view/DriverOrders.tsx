@@ -141,6 +141,8 @@ export default function DriverOrdersPage() {
             total: t('columns.total'),
             payment_method: t('columns.paymentMethod'),
             status: t('columns.status'),
+            is_instant_delivery: t('columns.instantDelivery'),
+            scheduled_delivery_at: t('columns.scheduledDelivery'),
             driver: t('columns.driver'),
             created_at: t('columns.date'),
             actions: t('columns.action'),

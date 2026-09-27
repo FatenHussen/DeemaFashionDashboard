@@ -1,8 +1,9 @@
 import type {
   AssignDriverPayload,
+  OrderDetailsResponse,
   ChangeItemStatusPayload,
   ChangeOrderStatusPayload,
-  OrderDetailsResponse,
+  UpdateScheduledDeliveryPayload,
 } from '../types/order.types';
 
 import { queryKeys } from '@/api';
@@ -141,6 +142,43 @@ export const useFetchOrdersToAssign = (
       }),
     enabled: enabled && Number.isFinite(driverId) && driverId > 0,
   });
+
+export const useUpdateScheduledDelivery = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: number | string;
+      data: UpdateScheduledDeliveryPayload;
+      queryId?: number | string;
+    }) => _OrderApi.updateScheduledDelivery(id, data),
+    onSuccess: async (response, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['order', 'list'] });
+      const refetchId = variables.queryId ?? variables.id;
+      const detailsKey = queryKeys.order.details(refetchId);
+      const nextAt =
+        response?.data && 'scheduled_delivery_at' in response.data
+          ? response.data.scheduled_delivery_at
+          : variables.data.scheduled_delivery_at;
+      queryClient.setQueryData<OrderDetailsResponse>(detailsKey, (old) => {
+        if (!old?.data) return old;
+        return {
+          ...old,
+          data: {
+            ...old.data,
+            scheduled_delivery_at: nextAt,
+            is_instant_delivery:
+              response?.data?.is_instant_delivery ?? old.data.is_instant_delivery,
+          },
+        };
+      });
+      await queryClient.refetchQueries({ queryKey: detailsKey });
+    },
+  });
+};
 
 export const useChangeItemStatus = () => {
   const queryClient = useQueryClient();

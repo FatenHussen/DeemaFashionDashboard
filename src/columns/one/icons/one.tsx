@@ -36,7 +36,7 @@ export const iconColumns = (
       return (
         <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-lg border border-border bg-muted/30 p-1">
           {src ? (
-            <img src={src} alt="" className="h-full w-full object-contain" />
+            <img key={src} src={src} alt="" className="h-full w-full object-contain" />
           ) : (
             <div className="text-muted-foreground text-xs">—</div>
           )}

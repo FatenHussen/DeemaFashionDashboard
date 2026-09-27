@@ -1,12 +1,26 @@
-export type PromotionType =
-  | 'simple_discount'
-  | 'spend_x_discount'
-  | 'spend_x_get_gift'
-  | 'spend_x_get_points'
-  | 'free_shipping'
-  | 'spend_x_get_free_shipping';
+export const PROMOTION_TYPES = [
+  'simple_discount',
+  'free_shipping',
+  'first_order_discount',
+  'first_order_free_shipping',
+  'first_order_gift',
+  'spend_x_discount',
+  'spend_x_get_free_shipping',
+  'spend_x_get_gift',
+  'spend_x_get_points',
+  'signup_discount',
+  'signup_free_shipping',
+  'signup_gift',
+] as const;
+
+export type PromotionType = (typeof PROMOTION_TYPES)[number];
 export type DiscountType = 'percentage' | 'fixed';
 export type PromotionPosition = 'top' | 'bottom';
+
+export interface PromotionGiftDescription {
+  en: string;
+  ar: string;
+}
 
 export interface PromotionListItem {
   id: number;
@@ -30,6 +44,8 @@ export interface PromotionDetailItem {
   get_quantity: number | null;
   discount_value: number | null;
   discount_type: DiscountType | null;
+  gift_description?: PromotionGiftDescription | string | null;
+  reward_points?: number | null;
   gift_product_ids: number[];
   product_ids?: number[];
   shop_ids?: number[];
@@ -74,6 +90,8 @@ export interface PromotionCreatePayload {
   get_quantity?: number;
   discount_value?: number;
   discount_type?: DiscountType;
+  gift_description?: PromotionGiftDescription;
+  reward_points?: number;
   gift_product_ids?: number[];
   product_ids?: number[];
   shop_ids?: number[];

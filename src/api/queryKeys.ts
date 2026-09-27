@@ -435,6 +435,7 @@ export const queryKeys = {
   promotion: {
     list: (params?: { page?: number; per_page?: number; search?: string }) => ['promotion', 'list', params] as const,
     details: (id: number | string) => ['promotion', 'details', id] as const,
+    fieldsForType: (type: string) => ['promotion', 'fieldsForType', type] as const,
   },
   // Country query keys
   country: {

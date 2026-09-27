@@ -32,4 +32,11 @@ export const _PromotionApi = {
     const response = await axiosInstance.delete(apiRoutes.promotion.delete(id));
     return response.data;
   },
+
+  getFieldsForType: async (type: string): Promise<unknown> => {
+    const response = await axiosInstance.get(apiRoutes.promotion.fieldsForType(type), {
+      skipErrorToast: true,
+    });
+    return response.data;
+  },
 };
