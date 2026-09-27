@@ -5,10 +5,21 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { _SectionApi } from '../api/section.services';
 
+/** Drops cached section rows so pickers and page details reload the current API payload. */
+function invalidateSectionSurfaces(queryClient: ReturnType<typeof useQueryClient>) {
+  queryClient.invalidateQueries({ queryKey: ['section', 'list'] });
+  queryClient.invalidateQueries({ queryKey: ['section', 'manual-items'] });
+  queryClient.invalidateQueries({ queryKey: ['pageBuilder', 'sliders'] });
+  queryClient.invalidateQueries({ queryKey: ['pageBuilder', 'details'] });
+  queryClient.invalidateQueries({ queryKey: ['pageSection', 'pagePreview'] });
+}
+
 export const useFetchSections = (params?: SectionListQueryParams) =>
   useQuery({
     queryKey: queryKeys.section.list(params),
     queryFn: () => _SectionApi.getListSections(params),
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
 export const useFetchSectionDetails = (id: number | string) =>
@@ -16,6 +27,8 @@ export const useFetchSectionDetails = (id: number | string) =>
     queryKey: queryKeys.section.details(id),
     queryFn: () => _SectionApi.getSectionDetails(id),
     enabled: !!id && /^\d+$/.test(String(id).trim()),
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
 export const useCreateSection = () => {
@@ -24,7 +37,7 @@ export const useCreateSection = () => {
   return useMutation({
     mutationFn: (data: SectionCreateUpdatePayload) => _SectionApi.createSection(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['section', 'list'] });
+      invalidateSectionSurfaces(queryClient);
     },
   });
 };
@@ -36,7 +49,7 @@ export const useUpdateSection = () => {
     mutationFn: ({ id, data }: { id: number | string; data: SectionCreateUpdatePayload }) =>
       _SectionApi.updateSection(id, data),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['section', 'list'] });
+      invalidateSectionSurfaces(queryClient);
       queryClient.invalidateQueries({ queryKey: queryKeys.section.details(variables.id) });
     },
   });
@@ -48,7 +61,7 @@ export const useDeleteSection = () => {
   return useMutation({
     mutationFn: (id: number | string) => _SectionApi.deleteSection(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['section', 'list'] });
+      invalidateSectionSurfaces(queryClient);
     },
   });
 };

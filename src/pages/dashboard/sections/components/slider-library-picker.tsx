@@ -174,7 +174,8 @@ export function SliderLibraryPicker({
             />
           </Box>
 
-          {infiniteQuery.isLoading && (
+          {(infiniteQuery.isLoading ||
+            (infiniteQuery.isFetching && !infiniteQuery.isFetchingNextPage)) && (
             <Box className="rounded-2xl border border-dashed border-border/60 p-8 text-center">
               <Iconify
                 icon="solar:refresh-circle-bold"
@@ -195,7 +196,9 @@ export function SliderLibraryPicker({
             </Box>
           )}
 
-          {!infiniteQuery.isLoading && !infiniteQuery.isError && (
+          {!infiniteQuery.isLoading &&
+          !infiniteQuery.isError &&
+          !(infiniteQuery.isFetching && !infiniteQuery.isFetchingNextPage) && (
             <Box
               ref={listScrollRef}
               className="max-h-[min(70vh,560px)] overflow-y-auto rounded-2xl border border-border/60"

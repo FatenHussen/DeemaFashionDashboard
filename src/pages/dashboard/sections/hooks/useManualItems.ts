@@ -128,6 +128,8 @@ export const useInfiniteManualItems = (
     },
     initialPageParam: 1,
     enabled: !!url && !!manualModel,
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
   const allItems = infiniteQuery.data?.pages.flatMap((page) => page.data?.items ?? []) ?? [];

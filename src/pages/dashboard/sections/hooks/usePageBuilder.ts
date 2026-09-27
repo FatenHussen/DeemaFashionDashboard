@@ -14,6 +14,8 @@ export const useFetchPageBuilderPages = (params?: PageBuilderListQueryParams) =>
   useQuery({
     queryKey: queryKeys.pageBuilder.list(params),
     queryFn: () => _PageBuilderApi.getListPages(params),
+    // One rejection is enough. The pages table falls back; retrying reprints the stack.
+    retry: false,
   });
 
 export const useFetchPageBuilderPage = (id: number | string) =>
@@ -21,6 +23,8 @@ export const useFetchPageBuilderPage = (id: number | string) =>
     queryKey: queryKeys.pageBuilder.details(id),
     queryFn: () => _PageBuilderApi.getPageDetails(id),
     enabled: !!id,
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
 /** Invalidates both the new paginated list and the legacy pages dropdown feed. */
@@ -76,6 +80,8 @@ export const useInfinitePageSliders = (
     },
     initialPageParam: 1,
     enabled: !!pageId && (options?.enabled ?? true),
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
   const allSliders = infiniteQuery.data?.pages.flatMap((page) => page.data?.items ?? []) ?? [];
@@ -99,6 +105,7 @@ export const useAddSectionToPage = () => {
       queryClient.invalidateQueries({ queryKey: ['pageBuilder', 'list'] });
       queryClient.invalidateQueries({ queryKey: ['pageSection', 'list'] });
       queryClient.invalidateQueries({ queryKey: ['pageSection', 'pagePreview', variables.pageId] });
+      queryClient.invalidateQueries({ queryKey: ['pageBuilder', 'sliders'] });
       queryClient.invalidateQueries({ queryKey: ['section', 'list'] });
     },
   });

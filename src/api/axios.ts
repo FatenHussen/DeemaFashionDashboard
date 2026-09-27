@@ -126,10 +126,18 @@ axiosInstance.interceptors.response.use(
 
     const message = validationMessage || baseMessage;
 
-    // 401 Unauthorized: token expired or invalid -> redirect to login
+    // 401 Unauthorized: token expired or invalid -> redirect to login.
+    // `GET /admin/pages` is optional: the pages screen falls back when this route is
+    // missing or forbidden. A 401 here must not wipe the session, or the banner
+    // picker (`/pages/{id}/sliders`) keeps showing a stale cache.
+    const requestUrl = String(error?.config?.url ?? '').split('?')[0];
+    const isOptionalPagesList =
+      Boolean(error?.config?.skipErrorToast) && /\/pages\/?$/.test(requestUrl);
     if (status === 401) {
-      clearSessionAndRedirectToLogin();
-      toast.error(message);
+      if (!isOptionalPagesList) {
+        clearSessionAndRedirectToLogin();
+        toast.error(message);
+      }
       return Promise.reject(new Error(message));
     }
 

@@ -32,6 +32,7 @@ export const useFetchPagePreview = (id: string | number, params?: PagePreviewQue
     queryFn: () => _PageSectionApi.getPagePreview(id, toPagePreviewRequestParams(params ?? {})),
     enabled: !!id,
     staleTime: 0,
+    refetchOnMount: 'always',
   });
 };
 
@@ -39,6 +40,8 @@ export const useFetchPagePreview = (id: string | number, params?: PagePreviewQue
 export const useFetchSectionsForDropdown = () => useQuery({
     queryKey: queryKeys.section.list({ page: 1, limit: 100 }),
     queryFn: () => _PageSectionApi.getSections(1, 100),
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
 // Fetch filter data from dynamic URL

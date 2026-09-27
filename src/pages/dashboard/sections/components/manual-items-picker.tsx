@@ -404,7 +404,8 @@ export function ManualItemsPicker({
         </Box>
 
         {/* Loading State */}
-        {infiniteQuery.isLoading && (
+        {(infiniteQuery.isLoading ||
+          (infiniteQuery.isFetching && !infiniteQuery.isFetchingNextPage)) && (
           <Box className="text-center p-8 border border-dashed rounded-lg">
             <Iconify
               icon="solar:refresh-circle-bold"
@@ -427,7 +428,9 @@ export function ManualItemsPicker({
         )}
 
         {/* Items List */}
-        {!infiniteQuery.isLoading && !infiniteQuery.isError && (
+        {!infiniteQuery.isLoading &&
+          !infiniteQuery.isError &&
+          !(infiniteQuery.isFetching && !infiniteQuery.isFetchingNextPage) && (
           <Box
             ref={listScrollRef}
             className="max-h-[min(70vh,560px)] overflow-y-auto rounded-lg border"
