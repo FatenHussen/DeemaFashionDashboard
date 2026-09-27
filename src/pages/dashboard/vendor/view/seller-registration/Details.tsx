@@ -12,6 +12,7 @@ import { CONFIG } from 'src/global-config';
 import { Box, Typography } from 'src/shared/ui';
 import { LoadingScreen } from 'src/shared/components/loading-screen';
 
+import { formatShopMetric } from '../../types/shop.types';
 import {
   formatSellerRegistrationCountry,
   normalizeSellerRegistrationShopType,
@@ -381,7 +382,31 @@ export default function DetailsPage() {
                       : item.city ?? t('form.emptyEmDash')
                   }
                 />
+                {regShopType !== 'service_provider' ? (
+                  <>
+                    <InfoRow
+                      icon="solar:tag-price-bold"
+                      label={t('columns.minOrderAmount')}
+                      value={formatShopMetric(item.min_order_amount) ?? t('form.emptyEmDash')}
+                    />
+                    <InfoRow
+                      icon="solar:clock-circle-bold"
+                      label={t('columns.deliveryMinHours')}
+                      value={formatShopMetric(item.delivery_min_hours) ?? t('form.emptyEmDash')}
+                    />
+                    <InfoRow
+                      icon="solar:clock-circle-bold"
+                      label={t('columns.deliveryMaxHours')}
+                      value={formatShopMetric(item.delivery_max_hours) ?? t('form.emptyEmDash')}
+                    />
+                  </>
+                ) : null}
               </div>
+              {regShopType !== 'service_provider' ? (
+                <Typography variant="caption" className="mt-3 block text-muted-foreground">
+                  {t('form.sellerRegDeliveryCopiedOnApprove')}
+                </Typography>
+              ) : null}
             </SectionCard>
           </div>
 

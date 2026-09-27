@@ -2,6 +2,7 @@ import type {
   ShopData,
   ShopListResponse,
   ShopCreateUpdatePayload,
+  ShopDeliveryLimitsPayload,
 } from '../types/shop.types';
 
 import { apiRoutes, axiosInstance } from '@/api';
@@ -55,8 +56,21 @@ const buildFormDataPayload = (data: ShopCreateUpdatePayload): FormData => {
   (data.category_ids ?? []).forEach((cid) => {
     formData.append('category_ids[]', String(cid));
   });
+  appendOptionalShopNumber(formData, 'min_order_amount', data.min_order_amount);
+  appendOptionalShopNumber(formData, 'delivery_min_hours', data.delivery_min_hours);
+  appendOptionalShopNumber(formData, 'delivery_max_hours', data.delivery_max_hours);
   return formData;
 };
+
+/** `undefined` omits the field. `null` sends an empty value so the API can clear it. */
+function appendOptionalShopNumber(
+  formData: FormData,
+  key: 'min_order_amount' | 'delivery_min_hours' | 'delivery_max_hours',
+  value: number | null | undefined
+) {
+  if (value === undefined) return;
+  formData.append(key, value == null ? '' : String(value));
+}
 
 export const _ShopApi = {
   getListShop: async (params?: {
@@ -101,6 +115,14 @@ export const _ShopApi = {
     const response = await axiosInstance.post(apiRoutes.shop.update(id), formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
+    return response.data;
+  },
+  /** JSON body with only the three cart-limit fields. Unsent keys are left unchanged. */
+  updateShopDeliveryLimits: async (
+    id: number | string,
+    data: ShopDeliveryLimitsPayload
+  ): Promise<unknown> => {
+    const response = await axiosInstance.put(apiRoutes.shop.update(id), data);
     return response.data;
   },
   deleteShop: async (id: number | string): Promise<any> => {

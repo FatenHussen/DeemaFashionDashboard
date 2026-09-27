@@ -241,7 +241,11 @@ function PreviewItemCard({
         : null;
 
   return (
-    <div className="flex items-start gap-3 rounded-xl border border-border/50 bg-card p-3.5 transition-colors hover:border-border hover:bg-muted/20">
+    <div
+      className={`flex items-start gap-3 rounded-xl border border-border/50 bg-card p-3.5 transition-colors hover:border-border hover:bg-muted/20 ${
+        wide ? 'w-64 shrink-0 sm:w-auto sm:shrink' : ''
+      }`}
+    >
       {!wide && (
         <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-muted/40">
           {imageSrc ? (
@@ -429,10 +433,12 @@ function SortablePreviewSection({
         </div>
 
         {!expanded && section.items.length > 0 && (
-          <div className="mt-3 flex w-full min-w-0 max-w-full gap-2 overflow-x-auto pb-0.5 ps-[4.5rem]">
-            {section.items.map((item, itemIndex) => (
-              <ItemThumb key={`${section.id}-thumb-${itemIndex}`} item={item} wide={wideBanners} />
-            ))}
+          <div className="mt-3 w-full min-w-0 max-w-full overflow-x-auto overscroll-x-contain pb-1 ps-[4.5rem] [scrollbar-width:thin] touch-pan-x">
+            <div className="flex w-max gap-2 pe-2">
+              {section.items.map((item, itemIndex) => (
+                <ItemThumb key={`${section.id}-thumb-${itemIndex}`} item={item} wide={wideBanners} />
+              ))}
+            </div>
           </div>
         )}
       </div>
@@ -493,11 +499,17 @@ function SortablePreviewSection({
             {section.items.length > 0 ? (
               <div
                 className={
-                  wideBanners ? 'max-h-[min(70vh,560px)] overflow-y-auto pe-1' : undefined
+                  wideBanners
+                    ? 'max-w-full max-sm:overflow-x-auto max-sm:overscroll-x-contain max-sm:pb-1 max-sm:[scrollbar-width:thin] max-sm:touch-pan-x sm:max-h-[min(70vh,560px)] sm:overflow-y-auto sm:pe-1'
+                    : undefined
                 }
               >
                 <div
-                  className={`grid grid-cols-1 gap-3 ${wideBanners ? 'sm:grid-cols-2 xl:grid-cols-3' : 'sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5'}`}
+                  className={
+                    wideBanners
+                      ? 'flex w-max gap-3 max-sm:pe-1 sm:grid sm:w-auto sm:grid-cols-2 sm:gap-3 xl:grid-cols-3'
+                      : 'grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5'
+                  }
                 >
                   {section.items.map((item, itemIndex) => (
                     <PreviewItemCard

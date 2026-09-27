@@ -237,6 +237,10 @@ export interface OrderData {
   price_after_discount?: number;
   rating?: number;
   is_instant_delivery?: boolean | number | null;
+  /** `asap` when the customer did not pick a slot; `scheduled` when they did. */
+  delivery_choice?: 'asap' | 'scheduled' | string | null;
+  /** «أقرب وقت ممكن» or the saved appointment label from the API. */
+  delivery_choice_label?: string | null;
   /** `Y-m-d H:i`, or null when no appointment is set. */
   scheduled_delivery_at?: string | null;
   user: OrderUser;
@@ -365,6 +369,10 @@ export interface OrderDetailData {
   rejection_reason?: string | null;
   cart_type: string;
   is_instant_delivery: boolean;
+  /** `asap` when the customer did not pick a slot; `scheduled` when they did. */
+  delivery_choice?: 'asap' | 'scheduled' | string | null;
+  /** «أقرب وقت ممكن» or the saved appointment label from the API. */
+  delivery_choice_label?: string | null;
   /** `Y-m-d H:i`, or null when no appointment is set. */
   scheduled_delivery_at?: string | null;
   is_paid: boolean;
@@ -436,6 +444,8 @@ export interface ChangeOrderStatusPayload {
 
 export interface AssignDriverPayload {
   driver_id: number;
+  /** Optional. Sent when assigning a driver to an “as soon as possible” order. `Y-m-d H:i`. */
+  scheduled_delivery_at?: string;
 }
 
 export interface ChangeItemStatusPayload {

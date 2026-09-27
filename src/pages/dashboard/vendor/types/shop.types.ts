@@ -96,6 +96,25 @@ export interface ShopData {
   category_ids?: number[];
   /** Resolved category rows from API. */
   categories?: Array<{ id: number; name: string | { ar: string; en: string } }>;
+  /** Platform TikMart shop. Cart limits come from delivery settings, not these columns. */
+  is_default?: boolean | number | string | null;
+  /** Empty clears the minimum. Ignored for the platform shop. */
+  min_order_amount?: number | string | null;
+  delivery_min_hours?: number | string | null;
+  delivery_max_hours?: number | string | null;
+}
+
+/** Platform shop (`is_default`). Its cart limits are edited from delivery settings. */
+export function isPlatformDefaultShop(shop: { is_default?: boolean | number | string | null }): boolean {
+  const value = shop.is_default;
+  return value === true || value === 1 || value === '1' || value === 'true';
+}
+
+/** Display a numeric shop/registration metric, or null when the API left it empty. */
+export function formatShopMetric(value: unknown): string | null {
+  if (value == null || value === '') return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? String(n) : null;
 }
 
 /** Resolves `shop_type` from API (explicit enum or legacy booleans). */
@@ -207,4 +226,15 @@ export interface ShopCreateUpdatePayload {
   pricing_tier: ShopPriceLevel;
   is_recommended: boolean;
   category_ids?: number[];
+  /** Omitted for the platform shop and service providers. `null` clears the value. */
+  min_order_amount?: number | null;
+  delivery_min_hours?: number | null;
+  delivery_max_hours?: number | null;
+}
+
+/** Partial shop update. Omitted keys stay unchanged. `null` clears the value. */
+export interface ShopDeliveryLimitsPayload {
+  min_order_amount?: number | null;
+  delivery_min_hours?: number | null;
+  delivery_max_hours?: number | null;
 }

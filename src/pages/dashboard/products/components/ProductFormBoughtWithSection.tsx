@@ -46,8 +46,8 @@ function resolveMediaUrl(raw: unknown): string | null {
 function productImageSrc(product: BoughtWithProduct): string | null {
   const firstGallery = Array.isArray(product.images) ? product.images[0] : null;
   return (
-    resolveMediaUrl(product.thumbnail) ||
     resolveMediaUrl(product.image) ||
+    resolveMediaUrl(product.thumbnail) ||
     resolveMediaUrl(firstGallery)
   );
 }

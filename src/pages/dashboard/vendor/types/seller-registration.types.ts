@@ -36,6 +36,10 @@ export interface SellerRegistrationItem {
   seller_type?: string | null;
   is_service_provider?: boolean | null;
   is_restaurant?: boolean | null;
+  /** Copied onto the shop when the registration is approved. Empty for service providers. */
+  min_order_amount?: number | string | null;
+  delivery_min_hours?: number | string | null;
+  delivery_max_hours?: number | string | null;
   registered_at: string;
   created_at: string;
   /** May be omitted on list endpoints */

@@ -149,7 +149,7 @@ export default function Page() {
             viewDetailsBase: '/service-providers/details',
             editItemBase: '/service-providers/update',
           },
-          { hideShopTypeColumn: true }
+          { hideShopTypeColumn: true, hideDeliveryLimitColumns: true }
         )}
         data={shopData}
         createPath="/service-providers/create"

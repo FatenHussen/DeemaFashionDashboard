@@ -3,6 +3,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 import type { SellerRegistrationItem } from '@/pages/dashboard/vendor/types/seller-registration.types';
 
 import { z } from 'zod';
+import { formatShopMetric } from '@/pages/dashboard/vendor/types/shop.types';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 import {
@@ -13,6 +14,23 @@ import {
 // ----------------------------------------------------------------------
 
 const SellerRegistrationSchema = z.object({ id: z.number() });
+
+function RegistrationMetricCell({
+  row,
+  field,
+  empty,
+}: {
+  row: SellerRegistrationFormValues;
+  field: 'min_order_amount' | 'delivery_min_hours' | 'delivery_max_hours';
+  empty: string;
+}) {
+  if (normalizeSellerRegistrationShopType(row) === 'service_provider') {
+    return <span className="text-sm text-muted-foreground">{empty}</span>;
+  }
+  return (
+    <span className="text-sm font-medium tabular-nums">{formatShopMetric(row[field]) ?? empty}</span>
+  );
+}
 
 export interface SellerRegistrationFormValues extends SellerRegistrationItem {
   [key: string]: any;
@@ -100,6 +118,36 @@ export const sellerRegistrationColumns = (
         </span>
       );
     },
+  },
+  {
+    id: 'min_order_amount',
+    accessorKey: 'min_order_amount',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title={t('columns.minOrderAmount')} />
+    ),
+    cell: ({ row }) => (
+      <RegistrationMetricCell row={row.original} field="min_order_amount" empty={t('form.emptyEmDash')} />
+    ),
+  },
+  {
+    id: 'delivery_min_hours',
+    accessorKey: 'delivery_min_hours',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title={t('columns.deliveryMinHours')} />
+    ),
+    cell: ({ row }) => (
+      <RegistrationMetricCell row={row.original} field="delivery_min_hours" empty={t('form.emptyEmDash')} />
+    ),
+  },
+  {
+    id: 'delivery_max_hours',
+    accessorKey: 'delivery_max_hours',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title={t('columns.deliveryMaxHours')} />
+    ),
+    cell: ({ row }) => (
+      <RegistrationMetricCell row={row.original} field="delivery_max_hours" empty={t('form.emptyEmDash')} />
+    ),
   },
   {
     id: 'country',

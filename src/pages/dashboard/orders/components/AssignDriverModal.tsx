@@ -10,10 +10,16 @@ import { useForm, FormProvider } from 'react-hook-form';
 import { useAssignDriver } from '@/pages/dashboard/orders/hooks/order';
 import { _DriverApi } from '@/pages/dashboard/driver/api/driver.services';
 import { RHFInfiniteSelect } from '@/shared/components/hook-form/rhf-infinite-select';
+import { AssignDriverScheduleFields } from '@/pages/dashboard/orders/components/AssignDriverScheduleFields';
 import {
   normalizeOrderStatus,
   orderStatusBlocksAssignDriver,
 } from '@/pages/dashboard/orders/types/order.types';
+import {
+  isAsapDelivery,
+  buildScheduledDeliveryAt,
+  splitScheduledDeliveryAt,
+} from '@/pages/dashboard/orders/utils/scheduled-delivery';
 
 const driverFetcher = (page: number, limit: number) =>
   _DriverApi.getListDrivers({ page, per_page: limit }).then((r) => ({
@@ -37,16 +43,25 @@ type Props = {
 export function AssignDriverModal({ open, onClose, order, t }: Props) {
   const assignDriverMutation = useAssignDriver();
 
-  const form = useForm<{ driver_id: number }>({
-    defaultValues: { driver_id: 0 },
+  const form = useForm<{ driver_id: number; scheduled_date: string; scheduled_time: string }>({
+    defaultValues: { driver_id: 0, scheduled_date: '', scheduled_time: '' },
   });
 
-  const { watch, reset, handleSubmit } = form;
+  const { watch, reset, setValue, handleSubmit } = form;
   const selectedDriverId = watch('driver_id');
+
+  const asap = order ? isAsapDelivery(order) : false;
 
   useEffect(() => {
     if (!open || !order) return;
-    reset({ driver_id: order.driver?.id ?? 0 });
+    const parts = isAsapDelivery(order)
+      ? splitScheduledDeliveryAt(order.scheduled_delivery_at)
+      : { date: '', time: '' };
+    reset({
+      driver_id: order.driver?.id ?? 0,
+      scheduled_date: parts.date,
+      scheduled_time: parts.time,
+    });
   }, [open, order, reset]);
 
   const orderRef =
@@ -57,10 +72,23 @@ export function AssignDriverModal({ open, onClose, order, t }: Props) {
 
   const onSubmit = handleSubmit(async (data) => {
     if (!order || !canAssignDriver || !data.driver_id || data.driver_id === 0) return;
+
+    const payload: { driver_id: number; scheduled_delivery_at?: string } = {
+      driver_id: Number(data.driver_id),
+    };
+    if (asap) {
+      const scheduled = buildScheduledDeliveryAt(data.scheduled_date, data.scheduled_time);
+      if (scheduled === 'incomplete') {
+        toast.error(t('orders.scheduledDeliveryIncomplete'));
+        return;
+      }
+      if (scheduled) payload.scheduled_delivery_at = scheduled;
+    }
+
     try {
       await assignDriverMutation.mutateAsync({
         id: order.id,
-        data: { driver_id: Number(data.driver_id) },
+        data: payload,
       });
       toast.success(t('form.driverAssignedSuccess'));
       onClose();
@@ -142,6 +170,15 @@ export function AssignDriverModal({ open, onClose, order, t }: Props) {
 
           <FormProvider {...form}>
             <form onSubmit={onSubmit} className="mt-6 space-y-4">
+              {asap ? (
+                <AssignDriverScheduleFields
+                  date={watch('scheduled_date')}
+                  time={watch('scheduled_time')}
+                  disabled={isBusy || !canAssignDriver}
+                  onDateChange={(value) => setValue('scheduled_date', value)}
+                  onTimeChange={(value) => setValue('scheduled_time', value)}
+                />
+              ) : null}
               <RHFInfiniteSelect
                 name="driver_id"
                 queryKey={['order', 'assign-driver', 'modal', order?.id ?? 0]}

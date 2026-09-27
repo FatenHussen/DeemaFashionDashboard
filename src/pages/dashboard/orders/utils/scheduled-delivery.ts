@@ -36,3 +36,32 @@ export function readInstantDeliveryFlag(value: unknown): boolean | null {
   if (value === false || value === 0 || value === '0') return false;
   return null;
 }
+
+/** Customer asked for the soonest slot and did not pick a clock time. */
+export function isAsapDelivery(order: {
+  delivery_choice?: string | null;
+  is_instant_delivery?: boolean | number | string | null;
+}): boolean {
+  const choice = String(order.delivery_choice ?? '')
+    .trim()
+    .toLowerCase();
+  if (choice === 'asap') return true;
+  if (choice === 'scheduled') return false;
+  return readInstantDeliveryFlag(order.is_instant_delivery) === true;
+}
+
+/** Prefer the API label. Fall back to a local ASAP / scheduled phrase. */
+export function deliveryChoiceLabel(
+  order: {
+    delivery_choice?: string | null;
+    delivery_choice_label?: string | null;
+    is_instant_delivery?: boolean | number | string | null;
+    scheduled_delivery_at?: string | null;
+  },
+  labels: { asap: string; scheduled: string }
+): string {
+  const fromApi = order.delivery_choice_label?.trim();
+  if (fromApi) return fromApi;
+  if (isAsapDelivery(order)) return labels.asap;
+  return formatScheduledDeliveryAt(order.scheduled_delivery_at) ?? labels.scheduled;
+}

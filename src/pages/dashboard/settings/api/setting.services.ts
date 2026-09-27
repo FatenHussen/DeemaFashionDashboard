@@ -13,6 +13,16 @@ export const _SettingApi = {
     return response.data;
   },
 
+  getSettingsGroup: async (group: string): Promise<unknown> => {
+    const response = await axiosInstance.get(apiRoutes.systemSetting.group(group));
+    return response.data;
+  },
+
+  updateSystemSetting: async (key: string, value: string): Promise<unknown> => {
+    const response = await axiosInstance.put(apiRoutes.systemSetting.update(key), { value });
+    return response.data;
+  },
+
   updateSetting: async (key: string, value: any, isFile?: boolean): Promise<any> => {
     if (isFile && value instanceof File) {
       const formData = new FormData();

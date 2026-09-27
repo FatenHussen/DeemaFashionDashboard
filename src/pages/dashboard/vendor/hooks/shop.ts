@@ -1,4 +1,4 @@
-import type { ShopCreateUpdatePayload } from '../types/shop.types';
+import type { ShopCreateUpdatePayload, ShopDeliveryLimitsPayload } from '../types/shop.types';
 
 import { queryKeys } from '@/api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -87,6 +87,19 @@ export const useUpdateShop = () => {
       _ShopApi.updateShop(id, data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['shop', 'list'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.shop.details(variables.id) });
+    },
+  });
+};
+
+export const useUpdateShopDeliveryLimits = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number | string; data: ShopDeliveryLimitsPayload }) =>
+      _ShopApi.updateShopDeliveryLimits(id, data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['shop'] });
       queryClient.invalidateQueries({ queryKey: queryKeys.shop.details(variables.id) });
     },
   });

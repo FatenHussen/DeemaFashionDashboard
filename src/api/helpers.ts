@@ -1,16 +1,25 @@
-import type { AxiosRequestConfig, AxiosResponse } from 'axios';
+import type { AxiosResponse, AxiosRequestConfig } from 'axios';
 
 import axiosInstance from './axios';
 
 /**
  * PHP only populates $_POST / $_FILES for POST. Laravel still honors Route::put / Route::patch
  * when the body includes `_method`. Never send FormData with a real PUT/PATCH.
+ *
+ * Do not set `Content-Type` here. Axios leaves it unset for FormData so the browser adds the
+ * multipart boundary. A manual `multipart/form-data` header, or replacing `transformRequest`,
+ * makes PHP save the text and drop the file.
  */
 export const postMultipart = <T = unknown>(
   url: string,
   fd: FormData,
   config?: AxiosRequestConfig
-): Promise<AxiosResponse<T>> => axiosInstance.post<T>(url, fd, config);
+): Promise<AxiosResponse<T>> =>
+  axiosInstance.post<T>(url, fd, {
+    ...config,
+    maxBodyLength: Infinity,
+    maxContentLength: Infinity,
+  });
 
 export const putMultipart = <T = unknown>(
   url: string,
@@ -18,7 +27,7 @@ export const putMultipart = <T = unknown>(
   config?: AxiosRequestConfig
 ): Promise<AxiosResponse<T>> => {
   if (!fd.has('_method')) fd.append('_method', 'PUT');
-  return axiosInstance.post<T>(url, fd, config);
+  return postMultipart(url, fd, config);
 };
 
 export const patchMultipart = <T = unknown>(
@@ -27,5 +36,5 @@ export const patchMultipart = <T = unknown>(
   config?: AxiosRequestConfig
 ): Promise<AxiosResponse<T>> => {
   if (!fd.has('_method')) fd.append('_method', 'PATCH');
-  return axiosInstance.post<T>(url, fd, config);
+  return postMultipart(url, fd, config);
 };

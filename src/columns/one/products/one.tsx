@@ -15,6 +15,8 @@ import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-
 
 import { paths } from 'src/routes/paths';
 
+import { resolveStorageImageUrl } from 'src/utils/shop-variant-image';
+
 import { CONFIG } from 'src/global-config';
 
 // Schema for brand validation
@@ -363,10 +365,7 @@ export const productColumns = (
     accessorKey: 'image',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.image')} />,
     cell: ({ row }) => {
-      const img = row.original.image ?? row.original.thumbnail;
-      const imageUrl = img
-        ? (String(img).startsWith('http') ? img : `${CONFIG.serverUrl}/${img}`)
-        : null;
+      const imageUrl = resolveStorageImageUrl(row.original.image);
       return (
         <div className="flex items-center gap-2">
           {imageUrl ? (

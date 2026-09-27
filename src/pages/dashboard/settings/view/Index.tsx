@@ -10,7 +10,12 @@ import { useAdminToggleStatus } from '@/hooks/use-admin-toggle-status';
 import { useFetchSettings } from '@/pages/dashboard/settings/hooks/setting';
 import { settingKeyLabel } from '@/pages/dashboard/settings/utils/setting-key-label';
 import { SettingEditModal } from '@/pages/dashboard/settings/components/setting-edit-modal';
+import { ShopDeliveryLimitsPanel } from '@/pages/dashboard/settings/components/ShopDeliveryLimitsPanel';
 import { type SettingItem, settingsItemsFromListData } from '@/pages/dashboard/settings/types/setting.types';
+import {
+  DeliverySettingsPanel,
+  DELIVERY_SETTING_KEYS,
+} from '@/pages/dashboard/settings/components/DeliverySettingsPanel';
 import {
   QuickOrderSettingsPanel,
   QUICK_ORDER_SETTING_KEYS,
@@ -21,10 +26,12 @@ import { Button } from 'src/shared/ui/button';
 import { Box, Typography } from 'src/shared/ui';
 import { LoadingScreen } from 'src/shared/components/loading-screen';
 
-type SettingsTab = 'general' | 'quick_order';
+type SettingsTab = 'general' | 'quick_order' | 'delivery';
 
 function parseSettingsTab(raw: string | null): SettingsTab {
-  return raw === 'quick_order' ? 'quick_order' : 'general';
+  if (raw === 'quick_order') return 'quick_order';
+  if (raw === 'delivery') return 'delivery';
+  return 'general';
 }
 
 function formatTypeLabel(type: SettingItem['type'], t: TFunction<'table'>): string {
@@ -53,6 +60,10 @@ function settingRowIsActive(item: SettingItem): boolean | undefined {
 
 function isQuickOrderKey(key: string): boolean {
   return (QUICK_ORDER_SETTING_KEYS as readonly string[]).includes(key);
+}
+
+function isDeliverySettingKey(key: string): boolean {
+  return (DELIVERY_SETTING_KEYS as readonly string[]).includes(key);
 }
 
 function SettingRow({
@@ -175,10 +186,13 @@ export default function Page() {
     );
 
   const items = settingsItemsFromListData(data?.data);
-  const generalItems = items.filter((item) => !isQuickOrderKey(item.key));
+  const generalItems = items.filter(
+    (item) => !isQuickOrderKey(item.key) && !isDeliverySettingKey(item.key)
+  );
 
   const tabs: Array<{ id: SettingsTab; label: string; icon: string }> = [
     { id: 'general', label: t('form.settingsTabGeneral'), icon: 'solar:settings-minimalistic-bold' },
+    { id: 'delivery', label: t('form.settingsTabDelivery'), icon: 'solar:delivery-bold' },
     { id: 'quick_order', label: t('form.settingsTabQuickOrder'), icon: 'solar:bolt-bold' },
   ];
 
@@ -219,7 +233,14 @@ export default function Page() {
           })}
         </Box>
 
-        {tab === 'general' ? (
+        {tab === 'delivery' ? (
+          <Box className="space-y-10">
+            <DeliverySettingsPanel />
+            <Box className="border-t border-border/60 pt-8">
+              <ShopDeliveryLimitsPanel />
+            </Box>
+          </Box>
+        ) : tab === 'general' ? (
           <Box className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
             <div className="overflow-x-auto">
               <table className="w-full min-w-[640px]">

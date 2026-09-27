@@ -394,6 +394,7 @@ export const queryKeys = {
   setting: {
     list: (params?: { page?: number; per_page?: number }) => ['setting', 'list', params] as const,
     details: (key: string) => ['setting', 'details', key] as const,
+    group: (group: string) => ['setting', 'group', group] as const,
   },
   // Badge query keys
   badge: {

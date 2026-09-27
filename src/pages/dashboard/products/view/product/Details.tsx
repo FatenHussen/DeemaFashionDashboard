@@ -13,6 +13,7 @@ import { compressImages } from '@/utils/compress-image';
 import { useRef, useMemo, useState, useEffect } from 'react';
 import { formatTranslated } from '@/utils/format-translated';
 import { getApiErrorMessage } from '@/lib/get-api-error-message';
+import { resolveStorageImageUrl } from '@/utils/shop-variant-image';
 import { iconArtworkSrc } from '@/pages/dashboard/icons/utils/icon-artwork';
 import { useFetchProductById } from '@/pages/dashboard/products/hooks/product';
 import { useRootCategoryId } from '@/pages/dashboard/categories/hooks/category';
@@ -852,9 +853,13 @@ export default function DetailsPage() {
   const product = productResponse as any;
   const isRestaurant = Boolean(product?.is_restaurant ?? product?.category?.is_restaurant);
 
-  const gallery: Array<{ id?: number; url: string }> = Array.isArray(product.images) ? product.images : [];
+  const gallery: Array<{ id?: number | null; url?: string | null; path?: string | null }> =
+    Array.isArray(product.images) ? product.images : [];
+  const gallerySrc = (img: { url?: string | null; path?: string | null } | undefined) =>
+    resolveStorageImageUrl(img?.url ?? img?.path ?? null) ?? undefined;
   const heroSrc =
-    gallery[heroImageIndex]?.url ?? (typeof product.thumbnail === 'string' ? product.thumbnail : undefined);
+    gallerySrc(gallery[heroImageIndex]) ??
+    (typeof product.thumbnail === 'string' ? resolveStorageImageUrl(product.thumbnail) ?? undefined : undefined);
   const visibleVariants = (Array.isArray(product.variants) ? product.variants : []).filter(
     (variant: unknown) => !isHiddenDefaultVariant(variant, categoryAttributes.length)
   );
@@ -924,7 +929,7 @@ export default function DetailsPage() {
                           : 'border-border/60 opacity-80 hover:border-primary/50 hover:opacity-100'
                       }`}
                     >
-                      <img src={img.url} alt="" className="h-full w-full object-cover" />
+                      <img src={gallerySrc(img) ?? ''} alt="" className="h-full w-full object-cover" />
                     </button>
                   ))}
                 </Box>

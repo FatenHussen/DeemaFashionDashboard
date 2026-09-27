@@ -104,6 +104,50 @@ export const ShopSchema = zod.object({
   pricing_tier: zod.enum(['cheap', 'medium', 'expensive']),
   is_recommended: zod.boolean(),
   category_ids: zod.array(zod.coerce.number().min(1)).default([]),
+  /** Platform TikMart shop. Limits are edited from delivery settings. */
+  is_default: zod.boolean().default(false),
+  min_order_amount: zod.string().default(''),
+  delivery_min_hours: zod.string().default(''),
+  delivery_max_hours: zod.string().default(''),
+}).superRefine((data, ctx) => {
+  if (data.is_default || data.shop_type === 'service_provider') return;
+
+  const minOrder = parseOptionalNonNegative(data.min_order_amount);
+  const minHours = parseOptionalNonNegative(data.delivery_min_hours);
+  const maxHours = parseOptionalNonNegative(data.delivery_max_hours);
+
+  if (!minOrder.ok) {
+    ctx.addIssue({ code: 'custom', path: ['min_order_amount'], message: t('shop.minOrderAmountMin') });
+  }
+  if (!minHours.ok) {
+    ctx.addIssue({ code: 'custom', path: ['delivery_min_hours'], message: t('shop.deliveryHoursMin') });
+  }
+  if (!maxHours.ok) {
+    ctx.addIssue({ code: 'custom', path: ['delivery_max_hours'], message: t('shop.deliveryHoursMin') });
+  }
+  if (
+    minHours.ok &&
+    maxHours.ok &&
+    minHours.value != null &&
+    maxHours.value != null &&
+    maxHours.value < minHours.value
+  ) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['delivery_max_hours'],
+      message: t('shop.deliveryMaxBeforeMin'),
+    });
+  }
 });
+
+function parseOptionalNonNegative(
+  raw: string | undefined
+): { ok: true; value: number | null } | { ok: false; value: null } {
+  const trimmed = (raw ?? '').trim();
+  if (!trimmed) return { ok: true, value: null };
+  const n = Number(trimmed);
+  if (!Number.isFinite(n) || n < 0) return { ok: false, value: null };
+  return { ok: true, value: n };
+}
 
 export type ShopFormValues = zod.infer<typeof ShopSchema>;

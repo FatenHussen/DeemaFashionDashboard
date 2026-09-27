@@ -8,7 +8,9 @@ import { formatTranslated } from '@/utils/format-translated';
 import { useParams, useNavigate, useLocation } from 'react-router';
 import { useFetchShopById } from '@/pages/dashboard/vendor/hooks/shop';
 import {
+  formatShopMetric,
   paymentMethodsFromShop,
+  isPlatformDefaultShop,
   normalizeShopTypeFromApi,
   normalizeShopPriceLevelFromApi,
 } from '@/pages/dashboard/vendor/types/shop.types';
@@ -180,6 +182,28 @@ export default function DetailsPage() {
           <Box className="mb-4">
           <ProductDetailsFieldGrid cols={2}>
             <DetailField label={t('columns.shopType')} value={shopTypeLabel} />
+            {isPlatformDefaultShop(item) ? (
+              <Box className="sm:col-span-2 rounded-xl border border-amber-500/40 bg-amber-500/10 p-4">
+                <Typography variant="body2" className="text-amber-900 dark:text-amber-100">
+                  {t('form.shopDefaultDeliveryNotice')}
+                </Typography>
+              </Box>
+            ) : shopType !== 'service_provider' ? (
+              <>
+                <DetailField
+                  label={t('columns.minOrderAmount')}
+                  value={formatShopMetric(item.min_order_amount) ?? '—'}
+                />
+                <DetailField
+                  label={t('columns.deliveryMinHours')}
+                  value={formatShopMetric(item.delivery_min_hours) ?? '—'}
+                />
+                <DetailField
+                  label={t('columns.deliveryMaxHours')}
+                  value={formatShopMetric(item.delivery_max_hours) ?? '—'}
+                />
+              </>
+            ) : null}
             <DetailField label={t('form.shopPriceLevelLabel')} value={priceLevelLabel} />
             <DetailField
               label={t('form.shopPaymentMethodsLabel')}

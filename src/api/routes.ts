@@ -478,6 +478,12 @@ export const apiRoutes = {
     details: (key: string) => `${ROOTS.ADMIN}/settings/${key}`,
     update: (key: string) => `${ROOTS.ADMIN}/settings/${key}`,
   },
+  /** Grouped system settings (delivery / TikMart cart limits). */
+  systemSetting: {
+    group: (group: string) => `${ROOTS.ADMIN}/system-settings/group/${group}`,
+    update: (key: string) => `${ROOTS.ADMIN}/system-settings/${key}`,
+    batch: `${ROOTS.ADMIN}/system-settings/batch`,
+  },
   // Badge routes
   badge: {
     list: `${ROOTS.ADMIN}/badges`,

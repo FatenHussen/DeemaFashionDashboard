@@ -331,7 +331,11 @@ function normalizeMediaUrl(url: string | null | undefined): string {
   }
 }
 
-/** Absolute URL for API media (handles relative paths and fixes `/storage//…`). */
+/**
+ * Absolute URL for API media.
+ * Full links already contain `/storage` — never prefix them again.
+ * Relative paths are joined to the API origin only.
+ */
 function resolveProductMediaUrl(url: string): string {
   const t = url.trim();
   if (!t) return '';
@@ -340,6 +344,40 @@ function resolveProductMediaUrl(url: string): string {
   }
   const base = (CONFIG.serverUrl || '').replace(/\/$/, '');
   return normalizeMediaUrl(`${base}/${t.replace(/^\//, '')}`);
+}
+
+/** Gallery media ids the backend can keep. `images[].id === null` is the thumbnail mirror, not media. */
+function positiveMediaIds(ids: unknown): number[] {
+  if (!Array.isArray(ids)) return [];
+  const out: number[] = [];
+  for (const raw of ids) {
+    const n = Number(raw);
+    if (Number.isInteger(n) && n > 0) out.push(n);
+  }
+  return out;
+}
+
+type SavedGalleryImage = { id: number | null; url: string };
+
+/** Edit gallery draws `images[].url` (or `path`). Null ids stay visible and are not removable media. */
+function savedGalleryImage(img: unknown): SavedGalleryImage | null {
+  if (typeof img === 'string') {
+    const url = resolveProductMediaUrl(img);
+    return url ? { id: null, url } : null;
+  }
+  if (!img || typeof img !== 'object') return null;
+  const rec = img as { id?: unknown; url?: unknown; path?: unknown };
+  const rawUrl =
+    typeof rec.url === 'string' && rec.url.trim()
+      ? rec.url
+      : typeof rec.path === 'string'
+        ? rec.path
+        : '';
+  const url = resolveProductMediaUrl(rawUrl);
+  if (!url) return null;
+  const n = Number(rec.id);
+  const id = Number.isInteger(n) && n > 0 ? n : null;
+  return { id, url };
 }
 
 /** RHF + zod sometimes drop `File` refs from parsed `data`; always prefer `getValues()` for uploads. */
@@ -389,13 +427,13 @@ function resolveExistingMediaIdsForPayload(
   product: ProductDetailData | null | undefined
 ): number[] {
   if (Array.isArray(live.existing_media_ids)) {
-    return live.existing_media_ids.map(Number).filter((x) => !Number.isNaN(x));
+    return positiveMediaIds(live.existing_media_ids);
   }
   if (Array.isArray(data.existing_media_ids)) {
-    return data.existing_media_ids.map(Number).filter((x) => !Number.isNaN(x));
+    return positiveMediaIds(data.existing_media_ids);
   }
   if (isEditMode && product?.images?.length) {
-    return product.images.map((img) => Number(img.id)).filter((x) => !Number.isNaN(x));
+    return positiveMediaIds(product.images.map((img) => img.id));
   }
   return [];
 }
@@ -1518,8 +1556,7 @@ export default function CreatePage() {
         is_visible: p.is_visible === false || p.is_visible === 0 ? 0 : 1,
         thumbnail: undefined,
         images: [],
-        existing_media_ids:
-          p.images?.map((img: any) => Number(img.id)).filter((mediaId) => !Number.isNaN(mediaId)) ?? [],
+        existing_media_ids: positiveMediaIds((p.images ?? []).map((img) => img.id)),
         seo_title: { en: p.seo_title?.en ?? '', ar: p.seo_title?.ar ?? '' },
         seo_description: { en: p.seo_description?.en ?? '', ar: p.seo_description?.ar ?? '' },
         seo_keywords: {
@@ -1843,7 +1880,10 @@ export default function CreatePage() {
           isEditMode,
           productResponse
         ),
-        thumbnail: live.thumbnail ?? data.thumbnail,
+        thumbnail:
+          (live.thumbnail ?? data.thumbnail) instanceof File
+            ? (live.thumbnail ?? data.thumbnail)
+            : undefined,
         seo_image: live.seo_image ?? data.seo_image,
         icon_ids: live.icon_ids ?? data.icon_ids,
         variants: (data.variants ?? []).map((dv, i) => {
@@ -2105,6 +2145,11 @@ export default function CreatePage() {
           delete p.seo_image;
         }
       };
+      const stripThumbnailIfNoFile = (p: Record<string, unknown>) => {
+        if (!(p.thumbnail instanceof File)) {
+          delete p.thumbnail;
+        }
+      };
       // Never send empty arrays: `[]` wipes all variants on the backend.
       const stripEmptyNestedArrays = (p: Record<string, unknown>) => {
         if (!Array.isArray(p.variants) || p.variants.length === 0) delete p.variants;
@@ -2121,6 +2166,7 @@ export default function CreatePage() {
       if (isEditMode && id) {
         const editApiPayload = { ...(apiPayload as object) } as Record<string, unknown>;
         stripSeoIfNoFile(editApiPayload);
+        stripThumbnailIfNoFile(editApiPayload);
         stripEmptyNestedArrays(editApiPayload);
 
         // Always send every variant row (id + attributes_values_ids + is_active).
@@ -2163,6 +2209,7 @@ export default function CreatePage() {
       } else {
         const createPayload = { ...(apiPayload as object) } as Record<string, unknown>;
         stripSeoIfNoFile(createPayload);
+        stripThumbnailIfNoFile(createPayload);
         stripEmptyNestedArrays(createPayload);
         if (saleChannel === 'platform') {
           delete createPayload.vendor_id;
@@ -3188,25 +3235,37 @@ export default function CreatePage() {
                   </Typography>
                 </div>
                 <FieldErrorText message={error?.message} />
-                {(isEditMode && existingMediaIds.length > 0) ||
-                (Array.isArray(value) && value.some((f) => f instanceof File)) ? (
+                {(() => {
+                  const keptIds = positiveMediaIds(existingMediaIds);
+                  const savedGallery = (productResponse?.images ?? [])
+                    .map((img) => savedGalleryImage(img))
+                    .filter((img): img is SavedGalleryImage => img != null)
+                    .filter((img) => img.id == null || keptIds.includes(img.id));
+                  const newFiles = (Array.isArray(value) ? value : []).filter(
+                    (f): f is File => f instanceof File
+                  );
+                  const showSaved = isEditMode && savedGallery.length > 0;
+                  if (!showSaved && newFiles.length === 0) return null;
+                  return (
                   <Box className="mt-4 grid grid-cols-4 gap-4">
-                    {isEditMode &&
-                      productResponse?.images
-                        ?.filter((img: any) => existingMediaIds.includes(Number(img.id)))
-                        .map((img: any) => (
-                          <Box key={`ex-${img.id}`} className="relative overflow-hidden rounded-lg group">
+                    {showSaved &&
+                      savedGallery.map((img) => (
+                          <Box
+                            key={img.id != null ? `ex-${img.id}` : `thumb-${img.url}`}
+                            className="relative overflow-hidden rounded-lg group"
+                          >
                             <img
-                              src={img.url ?? img}
+                              src={img.url}
                               alt=""
                               className="w-full h-32 object-cover rounded-lg border border-border/60"
                             />
+                            {img.id != null ? (
                             <button
                               type="button"
                               onClick={() =>
                                 setValue(
                                   'existing_media_ids',
-                                  existingMediaIds.filter((mid) => mid !== Number(img.id)),
+                                  keptIds.filter((mid) => mid !== img.id),
                                   { shouldDirty: true }
                                 )
                               }
@@ -3215,21 +3274,21 @@ export default function CreatePage() {
                             >
                               ×
                             </button>
+                            ) : null}
                           </Box>
                         ))}
-                    {(Array.isArray(value) ? value : [])
-                      .filter((f): f is File => f instanceof File)
-                      .map((file, i, files) => (
+                    {newFiles.map((file, i) => (
                         <RemovableLocalImageThumb
                           key={`${file.name}-${file.size}-${file.lastModified}-${i}`}
                           file={file}
                           alt={t('form.productGalleryPreviewAlt', { n: i + 1 })}
                           removeAriaLabel={t('form.removeImageAria')}
-                          onRemove={() => onChange(files.filter((_, idx) => idx !== i))}
+                          onRemove={() => onChange(newFiles.filter((_, idx) => idx !== i))}
                         />
                       ))}
                   </Box>
-                ) : null}
+                  );
+                })()}
               </div>
             )}
           />
@@ -3273,12 +3332,28 @@ export default function CreatePage() {
                   file={value instanceof File ? value : null}
                   label={t('form.thumbnailOptional')}
                 />
-                <ExistingImagePreview
-                  url={productResponse?.thumbnail}
-                  label={t('form.currentThumbnailServer')}
-                  active={isEditMode && !(value instanceof File)}
-                  fallbackUrl={productResponse?.images?.[0]?.url}
-                />
+                {isEditMode && !(value instanceof File)
+                  ? (() => {
+                      const savedThumb = resolveProductMediaUrl(
+                        typeof productResponse?.thumbnail === 'string'
+                          ? productResponse.thumbnail
+                          : ''
+                      );
+                      if (!savedThumb) return null;
+                      return (
+                        <Box className="mt-3 flex flex-col gap-2">
+                          <img
+                            src={savedThumb}
+                            alt=""
+                            className="max-h-32 max-w-[280px] rounded-lg border border-border/60 object-contain bg-muted"
+                          />
+                          <Typography variant="caption" className="text-muted-foreground">
+                            {t('form.currentThumbnailServer')}
+                          </Typography>
+                        </Box>
+                      );
+                    })()
+                  : null}
               </div>
             )}
           />

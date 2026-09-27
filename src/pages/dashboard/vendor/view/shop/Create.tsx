@@ -30,6 +30,7 @@ import {
   type DaySchedule,
   type WorkingHours,
   paymentMethodsFromShop,
+  isPlatformDefaultShop,
   normalizeShopTypeFromApi,
   normalizeShopPriceLevelFromApi,
 } from '@/pages/dashboard/vendor/types/shop.types';
@@ -222,6 +223,10 @@ function buildShopFormValuesFromApi(shop: ShopData): ShopFormValues {
     payment_methods: paymentMethodsFromShop(shop),
     pricing_tier: normalizeShopPriceLevelFromApi(shop),
     is_recommended: Boolean(shop.is_recommended ?? shop.recommended),
+    is_default: isPlatformDefaultShop(shop),
+    min_order_amount: metricInputValue(shop.min_order_amount),
+    delivery_min_hours: metricInputValue(shop.delivery_min_hours),
+    delivery_max_hours: metricInputValue(shop.delivery_max_hours),
     category_ids:
       shop.category_ids?.length
         ? shop.category_ids
@@ -244,8 +249,23 @@ const SHOP_STEP_VALIDATION_FIELDS: string[][] = [
     'payment_methods',
     'pricing_tier',
     'is_recommended',
+    'min_order_amount',
+    'delivery_min_hours',
+    'delivery_max_hours',
   ],
 ];
+
+function metricInputValue(value: unknown): string {
+  if (value == null || value === '') return '';
+  const n = Number(value);
+  return Number.isFinite(n) ? String(n) : '';
+}
+
+function optionalNumberFromInput(raw: string): number | null {
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  return Number(trimmed);
+}
 
 export default function CreatePage() {
   const { t } = useTranslation('table');
@@ -331,6 +351,10 @@ export default function CreatePage() {
     payment_methods: [],
     pricing_tier: 'medium',
     is_recommended: false,
+    is_default: false,
+    min_order_amount: '',
+    delivery_min_hours: '',
+    delivery_max_hours: '',
     category_ids: [],
   };
 
@@ -362,6 +386,9 @@ export default function CreatePage() {
     reset(editFormValues);
   }, [editFormValues, reset]);
   const logoFile = watch('logo');
+  const shopType = watch('shop_type');
+  const isPlatformDefault = Boolean(watch('is_default'));
+  const showDeliveryLimits = shopType !== 'service_provider' && !isPlatformDefault;
 
   const logoPreviewUrl = useMemo(() => {
     if (logoFile instanceof File) return URL.createObjectURL(logoFile);
@@ -388,6 +415,7 @@ export default function CreatePage() {
 
   const onSubmit = async (data: ShopFormValues) => {
     try {
+      const includeDeliveryLimits = !data.is_default && data.shop_type !== 'service_provider';
       const payload = {
         vendor_id: data.vendor_id,
         logo:
@@ -419,6 +447,13 @@ export default function CreatePage() {
         pricing_tier: data.pricing_tier,
         is_recommended: data.is_recommended,
         category_ids: (data.category_ids ?? []).filter((categoryId) => categoryId > 0),
+        ...(includeDeliveryLimits
+          ? {
+              min_order_amount: optionalNumberFromInput(data.min_order_amount),
+              delivery_min_hours: optionalNumberFromInput(data.delivery_min_hours),
+              delivery_max_hours: optionalNumberFromInput(data.delivery_max_hours),
+            }
+          : {}),
       };
 
       if (isEditMode && id) {
@@ -1033,6 +1068,51 @@ export default function CreatePage() {
                 </Box>
               )}
             </Box>
+
+            {isPlatformDefault ? (
+              <Box className="md:col-span-2 rounded-xl border border-amber-500/40 bg-amber-500/10 p-4">
+                <Typography variant="body2" className="text-amber-900 dark:text-amber-100">
+                  {t('form.shopDefaultDeliveryNotice')}
+                </Typography>
+              </Box>
+            ) : showDeliveryLimits ? (
+              <Box className="md:col-span-2 space-y-4 rounded-xl border border-border/60 bg-card/30 p-4">
+                <Box>
+                  <Typography variant="subtitle2" className="font-semibold text-foreground">
+                    {t('form.shopDeliveryLimitsSection')}
+                  </Typography>
+                  <Typography variant="caption" className="mt-1 block text-muted-foreground">
+                    {t('form.shopDeliveryLimitsHint')}
+                  </Typography>
+                </Box>
+                <Box className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                  <RHFTextField
+                    name="min_order_amount"
+                    type="text"
+                    inputMode="decimal"
+                    label={t('form.shopMinOrderAmount')}
+                    placeholder={t('form.shopMinOrderAmountPlaceholder')}
+                    helperText={t('form.shopMinOrderAmountHelper')}
+                  />
+                  <RHFTextField
+                    name="delivery_min_hours"
+                    type="text"
+                    inputMode="decimal"
+                    label={t('form.shopDeliveryMinHours')}
+                    placeholder={t('form.shopDeliveryHoursPlaceholder')}
+                    helperText={t('form.shopDeliveryHoursHelper')}
+                  />
+                  <RHFTextField
+                    name="delivery_max_hours"
+                    type="text"
+                    inputMode="decimal"
+                    label={t('form.shopDeliveryMaxHours')}
+                    placeholder={t('form.shopDeliveryHoursPlaceholder')}
+                    helperText={t('form.shopDeliveryMaxHelper')}
+                  />
+                </Box>
+              </Box>
+            ) : null}
 
             <Box className="group">
               <Box className="flex items-center gap-2.5 mb-3">

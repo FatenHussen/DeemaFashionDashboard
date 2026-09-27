@@ -7,8 +7,12 @@ import { formatTranslated } from '@/utils/format-translated';
 import { TableActiveBadge } from '@/shared/components/table-status-badges';
 import { createToggleColumn } from '@/shared/ui/table-data/data-table-toggle-cell';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
-import { normalizeShopTypeFromApi } from '@/pages/dashboard/vendor/types/shop.types';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
+import {
+  formatShopMetric,
+  isPlatformDefaultShop,
+  normalizeShopTypeFromApi,
+} from '@/pages/dashboard/vendor/types/shop.types';
 
 // Schema for shop validation
 const ShopSchema = z
@@ -57,6 +61,10 @@ export interface ShopFormValues {
   shop_type?: string;
   is_restaurant?: boolean;
   is_service_provider?: boolean;
+  is_default?: boolean | number | string | null;
+  min_order_amount?: number | string | null;
+  delivery_min_hours?: number | string | null;
+  delivery_max_hours?: number | string | null;
   categories?: Array<{ id: number; name?: string | { ar?: string; en?: string } }>;
   [key: string]: any;
 }
@@ -121,6 +129,80 @@ function PillStatusBadge({ label, variant }: { label: string; variant: PillStatu
   );
 }
 
+function DeliveryLimitCell({
+  row,
+  field,
+  fromSettingsLabel,
+  emptyLabel,
+}: {
+  row: ShopFormValues;
+  field: 'min_order_amount' | 'delivery_min_hours' | 'delivery_max_hours';
+  fromSettingsLabel: string;
+  emptyLabel: string;
+}) {
+  if (isPlatformDefaultShop(row)) {
+    return <span className="text-xs text-muted-foreground">{fromSettingsLabel}</span>;
+  }
+  const label = formatShopMetric(row[field]);
+  return (
+    <span className="text-sm font-medium tabular-nums text-foreground">
+      {label ?? emptyLabel}
+    </span>
+  );
+}
+
+function deliveryLimitColumns(t: TFunction<'table'>): ColumnDef<ShopFormValues>[] {
+  const fromSettingsLabel = t('form.shopDeliveryFromSettings');
+  const emptyLabel = t('form.emptyEmDash');
+  return [
+    {
+      id: 'min_order_amount',
+      accessorKey: 'min_order_amount',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={t('columns.minOrderAmount')} />
+      ),
+      cell: ({ row }) => (
+        <DeliveryLimitCell
+          row={row.original}
+          field="min_order_amount"
+          fromSettingsLabel={fromSettingsLabel}
+          emptyLabel={emptyLabel}
+        />
+      ),
+    },
+    {
+      id: 'delivery_min_hours',
+      accessorKey: 'delivery_min_hours',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={t('columns.deliveryMinHours')} />
+      ),
+      cell: ({ row }) => (
+        <DeliveryLimitCell
+          row={row.original}
+          field="delivery_min_hours"
+          fromSettingsLabel={fromSettingsLabel}
+          emptyLabel={emptyLabel}
+        />
+      ),
+    },
+    {
+      id: 'delivery_max_hours',
+      accessorKey: 'delivery_max_hours',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={t('columns.deliveryMaxHours')} />
+      ),
+      cell: ({ row }) => (
+        <DeliveryLimitCell
+          row={row.original}
+          field="delivery_max_hours"
+          fromSettingsLabel={fromSettingsLabel}
+          emptyLabel={emptyLabel}
+        />
+      ),
+    },
+  ];
+}
+
 export const shopColumns = (
   permissions: {
     update: boolean;
@@ -137,7 +219,7 @@ export const shopColumns = (
     viewDetailsBase?: string;
     editItemBase?: string;
   },
-  options?: { hideShopTypeColumn?: boolean }
+  options?: { hideShopTypeColumn?: boolean; hideDeliveryLimitColumns?: boolean }
 ): ColumnDef<ShopFormValues>[] => [
   {
     id: 'name',
@@ -235,6 +317,9 @@ export const shopColumns = (
           },
         } satisfies ColumnDef<ShopFormValues>,
       ]),
+  ...(options?.hideDeliveryLimitColumns
+    ? []
+    : deliveryLimitColumns(t)),
   {
     id: 'rating',
     accessorKey: 'average_rating',

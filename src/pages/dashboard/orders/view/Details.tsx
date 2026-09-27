@@ -15,6 +15,7 @@ import { RHFInfiniteSelect } from '@/shared/components/hook-form/rhf-infinite-se
 import { RejectOrderModal } from '@/pages/dashboard/orders/components/RejectOrderModal';
 import { OrderLineItemCard } from '@/pages/dashboard/orders/components/OrderLineItemCard';
 import { ScheduledDeliveryForm } from '@/pages/dashboard/orders/components/ScheduledDeliveryForm';
+import { AssignDriverScheduleFields } from '@/pages/dashboard/orders/components/AssignDriverScheduleFields';
 import {
   useAssignDriver,
   useFetchOrderById,
@@ -27,6 +28,13 @@ import {
   orderStatusBlocksAssignDriver,
   getAllowedOrderStatusTransitions,
 } from '@/pages/dashboard/orders/types/order.types';
+import {
+  isAsapDelivery,
+  deliveryChoiceLabel,
+  buildScheduledDeliveryAt,
+  splitScheduledDeliveryAt,
+  formatScheduledDeliveryAt,
+} from '@/pages/dashboard/orders/utils/scheduled-delivery';
 
 import { CONFIG } from 'src/global-config';
 import { Box, Typography } from 'src/shared/ui';
@@ -139,12 +147,19 @@ export default function DetailsPage() {
   const assignDriverMutation = useAssignDriver();
   const changeItemStatusMutation = useChangeItemStatus();
 
-  const assignDriverForm = useForm<{ driver_id: number }>({
-    defaultValues: { driver_id: 0 },
+  const assignDriverForm = useForm<{
+    driver_id: number;
+    scheduled_date: string;
+    scheduled_time: string;
+  }>({
+    defaultValues: { driver_id: 0, scheduled_date: '', scheduled_time: '' },
   });
 
-  const { watch: watchDriverId, reset: resetDriverForm, setValue: setDriverId } = assignDriverForm;
+  const { watch: watchDriverId, reset: resetDriverForm, setValue: setAssignDriverValue } =
+    assignDriverForm;
   const selectedDriverId = watchDriverId('driver_id');
+  const scheduledDate = watchDriverId('scheduled_date');
+  const scheduledTime = watchDriverId('scheduled_time');
   const order = orderResponse?.data;
 
   const [statusDraft, setStatusDraft] = useState<OrderStatus>('pending');
@@ -167,10 +182,23 @@ export default function DetailsPage() {
   }, [isTrackable, order?.id]);
 
   useEffect(() => {
-    if (order?.driver?.id) {
-      setDriverId('driver_id', order.driver.id);
-    }
-  }, [order?.driver?.id, setDriverId]);
+    if (!order) return;
+    const parts = isAsapDelivery(order)
+      ? splitScheduledDeliveryAt(order.scheduled_delivery_at)
+      : { date: '', time: '' };
+    resetDriverForm({
+      driver_id: order.driver?.id ?? 0,
+      scheduled_date: parts.date,
+      scheduled_time: parts.time,
+    });
+  }, [
+    order?.id,
+    order?.driver?.id,
+    order?.scheduled_delivery_at,
+    order?.delivery_choice,
+    order?.is_instant_delivery,
+    resetDriverForm,
+  ]);
 
   if (isLoading) {
     return (
@@ -251,18 +279,35 @@ export default function DetailsPage() {
     void handleChangeStatus(statusDraft);
   };
 
-  const handleAssignDriver = async (data: { driver_id: number }) => {
+  const handleAssignDriver = async (data: {
+    driver_id: number;
+    scheduled_date: string;
+    scheduled_time: string;
+  }) => {
     if (!canAssignDriver) return;
     const driverId = data.driver_id;
     if (!driverId || driverId === 0) return;
+
+    const payload: { driver_id: number; scheduled_delivery_at?: string } = {
+      driver_id: Number(driverId),
+    };
+    if (isAsapDelivery(order)) {
+      const scheduled = buildScheduledDeliveryAt(data.scheduled_date, data.scheduled_time);
+      if (scheduled === 'incomplete') {
+        toast.error(t('orders.scheduledDeliveryIncomplete'));
+        return;
+      }
+      if (scheduled) payload.scheduled_delivery_at = scheduled;
+    }
+
     try {
       await assignDriverMutation.mutateAsync({
         id: order.id,
-        data: { driver_id: Number(driverId) },
+        data: payload,
         queryId: id,
       });
       toast.success(t('form.driverAssignedSuccess'));
-      resetDriverForm({ driver_id: 0 });
+      resetDriverForm({ driver_id: 0, scheduled_date: '', scheduled_time: '' });
     } catch {
       return;
     }
@@ -411,8 +456,18 @@ export default function DetailsPage() {
               <FormProvider {...assignDriverForm}>
                 <form
                   onSubmit={assignDriverForm.handleSubmit(handleAssignDriver)}
-                  className="flex flex-col gap-3 sm:flex-row sm:items-end"
+                  className="flex flex-col gap-3"
                 >
+                  {isAsapDelivery(order) ? (
+                    <AssignDriverScheduleFields
+                      date={scheduledDate}
+                      time={scheduledTime}
+                      disabled={!canAssignDriver || assignDriverMutation.isPending}
+                      onDateChange={(value) => setAssignDriverValue('scheduled_date', value)}
+                      onTimeChange={(value) => setAssignDriverValue('scheduled_time', value)}
+                    />
+                  ) : null}
+                  <Box className="flex flex-col gap-3 sm:flex-row sm:items-end">
                   <Box className="min-w-0 flex-1">
                     <RHFInfiniteSelect
                       name="driver_id"
@@ -437,6 +492,7 @@ export default function DetailsPage() {
                   >
                     {t('orders.assign')}
                   </Button>
+                  </Box>
                 </form>
               </FormProvider>
             </OrderSection>
@@ -466,18 +522,32 @@ export default function DetailsPage() {
                   <Box className="grid gap-4 sm:grid-cols-2">
                     <Box>
                       <Typography variant="caption" className="text-muted-foreground">
-                        {t('orders.instantDelivery')}
+                        {t('orders.deliveryChoice')}
                       </Typography>
                       <Typography variant="body1" className="font-medium">
-                        {order.is_instant_delivery ? t('common.yes') : t('common.no')}
+                        {deliveryChoiceLabel(order, {
+                          asap: t('orders.deliveryChoiceAsap'),
+                          scheduled: t('orders.deliveryChoiceScheduled'),
+                        })}
                       </Typography>
                     </Box>
-                    <ScheduledDeliveryForm
-                      orderId={order.id}
-                      queryId={id}
-                      status={order.status}
-                      scheduledDeliveryAt={order.scheduled_delivery_at}
-                    />
+                    {isAsapDelivery(order) && !formatScheduledDeliveryAt(order.scheduled_delivery_at) ? (
+                      <Box>
+                        <Typography variant="caption" className="text-muted-foreground">
+                          {t('orders.scheduledDelivery')}
+                        </Typography>
+                        <Typography variant="body2" className="mt-0.5 text-muted-foreground">
+                          {t('orders.asapScheduleOnAssign')}
+                        </Typography>
+                      </Box>
+                    ) : (
+                      <ScheduledDeliveryForm
+                        orderId={order.id}
+                        queryId={id}
+                        status={order.status}
+                        scheduledDeliveryAt={order.scheduled_delivery_at}
+                      />
+                    )}
                   </Box>
                 </Box>
                 <Box>

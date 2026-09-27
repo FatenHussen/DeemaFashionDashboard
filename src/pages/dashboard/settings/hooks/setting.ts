@@ -16,6 +16,13 @@ export const useFetchSettingByKey = (key: string) =>
     enabled: !!key,
   });
 
+export const useFetchSettingsGroup = (group: string) =>
+  useQuery({
+    queryKey: queryKeys.setting.group(group),
+    queryFn: () => _SettingApi.getSettingsGroup(group),
+    enabled: !!group,
+  });
+
 export const useUpdateSetting = () => {
   const queryClient = useQueryClient();
   return useMutation({

@@ -8,15 +8,16 @@ import { formatDecimal } from '@/utils/format-currency';
 import { TableTonedStatusPill } from '@/shared/components/table-status-badges';
 import { DataTableColumnHeader } from '@/shared/ui/table-data/data-table-column-header';
 import {
-  readInstantDeliveryFlag,
-  formatScheduledDeliveryAt,
-} from '@/pages/dashboard/orders/utils/scheduled-delivery';
-import {
   type OrderData,
   type OrderStatus,
   parseOrderStatus,
   normalizeOrderStatus,
 } from '@/pages/dashboard/orders/types/order.types';
+import {
+  deliveryChoiceLabel,
+  readInstantDeliveryFlag,
+  formatScheduledDeliveryAt,
+} from '@/pages/dashboard/orders/utils/scheduled-delivery';
 import {
   DropdownMenu,
   DropdownMenuItem,
@@ -267,6 +268,24 @@ export const orderColumns = (
           {getOrderStatusLabel(parsed, t, labelFromApi)}
         </TableTonedStatusPill>
       );
+    },
+  },
+  {
+    id: 'delivery_choice',
+    accessorFn: (row) =>
+      deliveryChoiceLabel(row, {
+        asap: t('orders.deliveryChoiceAsap'),
+        scheduled: t('orders.deliveryChoiceScheduled'),
+      }),
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title={t('columns.deliveryChoice')} />
+    ),
+    cell: ({ row }) => {
+      const label = deliveryChoiceLabel(row.original, {
+        asap: t('orders.deliveryChoiceAsap'),
+        scheduled: t('orders.deliveryChoiceScheduled'),
+      });
+      return <span className="text-sm font-medium">{label}</span>;
     },
   },
   {

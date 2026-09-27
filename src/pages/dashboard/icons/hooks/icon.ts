@@ -4,7 +4,7 @@ import { queryKeys } from '@/api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { _IconApi } from '../api/icon.services';
-import { iconArtworkSrc } from '../utils/icon-artwork';
+import { iconPreviewUrl, iconImageWasReplaced } from '../utils/icon-artwork';
 
 export const useFetchIcons = (
   page: number = 1,
@@ -39,7 +39,15 @@ export const useUpdateIcon = () => {
     mutationFn: ({ id, data }: { id: number | string; data: Partial<IconCreatePayload> }) =>
       _IconApi.updateIcon(id, data),
     onSuccess: (body: { data?: { image?: string | null; icon?: string | null } } | undefined, variables) => {
-      const src = iconArtworkSrc(body?.data);
+      const nextUrl = body?.data?.image || body?.data?.icon || '';
+      const cached = queryClient.getQueryData<IconDetailsResponse>(queryKeys.icon.details(variables.id));
+      const previousUrl = cached?.data?.image || cached?.data?.icon || '';
+      const sentFile = variables.data.image instanceof File;
+      // A new path or a new `?v=` means the uploaded image was stored.
+      const src =
+        !sentFile || iconImageWasReplaced(previousUrl, nextUrl, true)
+          ? iconPreviewUrl(nextUrl)
+          : null;
       if (src) {
         queryClient.setQueryData(
           queryKeys.icon.details(variables.id),

@@ -189,7 +189,11 @@ export interface ProductDetailData {
     quantity?: number | null;
     product_extra_detail_id?: number | null;
   }>;
-  images: Array<{ id: number; url: string }>;
+  /**
+   * Gallery rows. A thumbnail-only product still has one entry (`id: null`, `url` = thumbnail).
+   * That null id must not be sent in `existing_media_ids`.
+   */
+  images: Array<{ id: number | null; url: string; path?: string | null }>;
   badges?: Array<{
     id: number;
     name?: string | { en: string; ar: string } | null;

@@ -260,14 +260,18 @@ const buildProductFormData = (data: ProductCreateUpdatePayload): FormData => {
     formData.append('seo_image', data.seo_image);
   }
 
+  // Omit the field when the admin did not pick a new file — sending it again clears the saved thumbnail.
   if (data.thumbnail instanceof File) {
     formData.append('thumbnail', data.thumbnail);
   }
 
   // Send every kept gallery id on update; omitting the key often drops all media.
+  // `images[].id === null` is the thumbnail mirror and must not be included (Number(null) === 0).
   if (data.id != null && Array.isArray(data.existing_media_ids)) {
     data.existing_media_ids.forEach((mediaId) => {
-      formData.append('existing_media_ids[]', String(mediaId));
+      const id = Number(mediaId);
+      if (!Number.isInteger(id) || id <= 0) return;
+      formData.append('existing_media_ids[]', String(id));
     });
   }
   if (data.images && data.images.length > 0) {
