@@ -313,7 +313,6 @@ function SortablePreviewSection({
     transition,
   };
 
-  const previewItems = section.items.slice(0, 8);
   const wideBanners = isBannerSection(section);
   const isActive = section.is_active !== false;
 
@@ -321,7 +320,7 @@ function SortablePreviewSection({
     <div
       ref={setNodeRef}
       style={style}
-      className={`overflow-hidden rounded-xl border border-border/60 bg-card transition-all ${
+      className={`min-w-0 overflow-hidden rounded-xl border border-border/60 bg-card transition-all ${
         isDragging
           ? 'z-10 border-primary/40 shadow-md ring-1 ring-primary/20'
           : 'hover:border-border hover:shadow-sm'
@@ -429,16 +428,11 @@ function SortablePreviewSection({
           </div>
         </div>
 
-        {!expanded && previewItems.length > 0 && (
-          <div className="mt-3 flex gap-2 overflow-x-auto pb-0.5 ps-[4.5rem]">
-            {previewItems.map((item, itemIndex) => (
+        {!expanded && section.items.length > 0 && (
+          <div className="mt-3 flex w-full min-w-0 max-w-full gap-2 overflow-x-auto pb-0.5 ps-[4.5rem]">
+            {section.items.map((item, itemIndex) => (
               <ItemThumb key={`${section.id}-thumb-${itemIndex}`} item={item} wide={wideBanners} />
             ))}
-            {section.items.length > 8 && (
-              <div className="flex w-16 shrink-0 items-center justify-center text-xs text-muted-foreground">
-                +{section.items.length - 8}
-              </div>
-            )}
           </div>
         )}
       </div>
@@ -497,16 +491,24 @@ function SortablePreviewSection({
             </p>
 
             {section.items.length > 0 ? (
-              <div className={`grid grid-cols-1 gap-3 ${wideBanners ? 'sm:grid-cols-2 xl:grid-cols-3' : 'sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5'}`}>
-                {section.items.map((item, itemIndex) => (
-                  <PreviewItemCard
-                    key={`${section.id}-item-${String(item.id ?? itemIndex)}`}
-                    item={item}
-                    index={itemIndex}
-                    t={t}
-                    wide={wideBanners}
-                  />
-                ))}
+              <div
+                className={
+                  wideBanners ? 'max-h-[min(70vh,560px)] overflow-y-auto pe-1' : undefined
+                }
+              >
+                <div
+                  className={`grid grid-cols-1 gap-3 ${wideBanners ? 'sm:grid-cols-2 xl:grid-cols-3' : 'sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5'}`}
+                >
+                  {section.items.map((item, itemIndex) => (
+                    <PreviewItemCard
+                      key={`${section.id}-item-${String(item.id ?? itemIndex)}`}
+                      item={item}
+                      index={itemIndex}
+                      t={t}
+                      wide={wideBanners}
+                    />
+                  ))}
+                </div>
               </div>
             ) : (
               <div className="rounded-lg border border-dashed border-border/50 py-8 text-center">

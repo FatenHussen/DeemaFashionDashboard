@@ -72,6 +72,7 @@ export function ManualItemsPicker({
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [listFilters, setListFilters] = useState<Record<string, unknown>>({});
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const listScrollRef = useRef<HTMLElement | null>(null);
   const isWide = isWideImageManualModel(manualModel);
   const hideItemLinks = !isGifManualModel(manualModel);
 
@@ -146,11 +147,11 @@ export function ManualItemsPicker({
           infiniteQuery.fetchNextPage();
         }
       },
-      { threshold: 0.1 }
+      { threshold: 0.1, root: isWide ? listScrollRef.current : null }
     );
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [infiniteQuery]);
+  }, [infiniteQuery, isWide, allItems.length]);
 
   const handleItemsDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -427,7 +428,14 @@ export function ManualItemsPicker({
 
         {/* Items List */}
         {!infiniteQuery.isLoading && !infiniteQuery.isError && (
-          <Box className="border rounded-lg overflow-hidden">
+          <Box
+            ref={listScrollRef}
+            className={
+              isWide
+                ? 'max-h-[min(70vh,560px)] overflow-y-auto rounded-lg border'
+                : 'overflow-hidden rounded-lg border'
+            }
+          >
             {allItems.length === 0 ? (
               <Box className="text-center p-8">
                 <Iconify
