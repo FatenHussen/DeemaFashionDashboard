@@ -1,7 +1,7 @@
 import type { BannerItem, BannerTextField, BannerFormValues, BannerListResponse } from '../types/banner.types';
 
 import { queryKeys } from '@/api';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
 
 import { isActiveLanguageArabic } from 'src/lib/language-code';
 
@@ -38,6 +38,34 @@ export const useFetchBanners = (
     queryKey: queryKeys.banner.list({ page, per_page: perPage, ...params }),
     queryFn: () => _BannerApi.getListBanners({ page, per_page: perPage, ...params }),
   });
+
+/** Live banner rows for the add-section picker. Same feed as the banners table. */
+export const useInfiniteBanners = (search: string, options?: { enabled?: boolean }) => {
+  const infiniteQuery = useInfiniteQuery({
+    queryKey: ['banner', 'list', 'picker', search] as const,
+    queryFn: ({ pageParam }) =>
+      _BannerApi.getListBanners({
+        page: pageParam,
+        per_page: 20,
+        ...(search ? { search } : {}),
+      }),
+    getNextPageParam: (lastPage) => {
+      const pagination = lastPage?.data?.pagination;
+      if (!pagination) return undefined;
+      return pagination.current_page < pagination.last_page
+        ? pagination.current_page + 1
+        : undefined;
+    },
+    initialPageParam: 1,
+    enabled: options?.enabled ?? true,
+    staleTime: 0,
+    refetchOnMount: 'always',
+  });
+
+  const banners = infiniteQuery.data?.pages.flatMap((page) => page.data?.items ?? []) ?? [];
+
+  return { infiniteQuery, banners };
+};
 
 export const useFetchBannerById = (id: number | string) =>
   useQuery({

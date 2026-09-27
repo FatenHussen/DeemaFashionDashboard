@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useRef, useState, useEffect } from 'react';
 import { Iconify } from '@/shared/components/iconify';
 import { bannerCardName } from '@/utils/format-translated';
+import { useInfiniteBanners } from '@/pages/dashboard/banners/hooks/banner';
 import { ChoiceCard } from '@/pages/dashboard/sections/components/section-form-ui';
 import { useInfinitePageSliders } from '@/pages/dashboard/sections/hooks/usePageBuilder';
 import { normalizeLayoutAndCardShape } from '@/pages/dashboard/sections/utils/section-layout';
@@ -55,9 +56,16 @@ export function SliderLibraryPicker({
   const { t } = useTranslation('table');
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [contentType, setContentType] = useState(selectedContentType ?? '');
   const sentinelRef = useRef<HTMLDivElement>(null);
   const listScrollRef = useRef<HTMLElement | null>(null);
+  const isBannerList = isBannerContentType(contentType);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedSearch(searchTerm.trim()), 300);
+    return () => window.clearTimeout(timer);
+  }, [searchTerm]);
 
   useEffect(() => {
     if (selectedContentType) {
@@ -65,34 +73,42 @@ export function SliderLibraryPicker({
     }
   }, [selectedContentType]);
 
-  const { infiniteQuery, allSliders } = useInfinitePageSliders(
+  const slidersFeed = useInfinitePageSliders(
     pageId,
     {
       per_page: 10,
       content_type: contentType,
-      ...(searchTerm.trim() ? { search: searchTerm.trim() } : {}),
+      ...(debouncedSearch ? { search: debouncedSearch } : {}),
     },
-    { enabled: Boolean(contentType) }
+    { enabled: Boolean(contentType) && !isBannerList }
   );
+  const bannersFeed = useInfiniteBanners(debouncedSearch, { enabled: isBannerList });
+
+  const listQuery = isBannerList ? bannersFeed.infiniteQuery : slidersFeed.infiniteQuery;
+  const rows: SliderLibraryItem[] = isBannerList
+    ? bannersFeed.banners.map((banner) => ({
+        id: banner.id,
+        banner_id: banner.id,
+        name: banner.title ?? '',
+        content_type: 'banner',
+        image_url: banner.image_url ?? null,
+      }))
+    : slidersFeed.allSliders;
 
   useEffect(() => {
     const sentinel = sentinelRef.current;
     if (!sentinel || !contentType) return undefined;
     const observer = new IntersectionObserver(
       (entries) => {
-        if (
-          entries[0].isIntersecting &&
-          infiniteQuery.hasNextPage &&
-          !infiniteQuery.isFetchingNextPage
-        ) {
-          infiniteQuery.fetchNextPage();
+        if (entries[0].isIntersecting && listQuery.hasNextPage && !listQuery.isFetchingNextPage) {
+          listQuery.fetchNextPage();
         }
       },
       { threshold: 0.1, root: listScrollRef.current }
     );
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [infiniteQuery, contentType, allSliders.length]);
+  }, [listQuery, contentType, rows.length]);
 
   const handleContentTypeChange = (type: string) => {
     const next = contentType === type ? '' : type;
@@ -174,8 +190,7 @@ export function SliderLibraryPicker({
             />
           </Box>
 
-          {(infiniteQuery.isLoading ||
-            (infiniteQuery.isFetching && !infiniteQuery.isFetchingNextPage)) && (
+          {(listQuery.isLoading || (listQuery.isFetching && !listQuery.isFetchingNextPage)) && (
             <Box className="rounded-2xl border border-dashed border-border/60 p-8 text-center">
               <Iconify
                 icon="solar:refresh-circle-bold"
@@ -187,7 +202,7 @@ export function SliderLibraryPicker({
             </Box>
           )}
 
-          {infiniteQuery.isError && (
+          {listQuery.isError && (
             <Box className="rounded-2xl border border-destructive/40 bg-destructive/5 p-8 text-center">
               <Iconify icon="solar:danger-bold" className="mx-auto mb-2 h-10 w-10 text-destructive" />
               <Typography variant="body2" className="text-destructive">
@@ -196,14 +211,14 @@ export function SliderLibraryPicker({
             </Box>
           )}
 
-          {!infiniteQuery.isLoading &&
-          !infiniteQuery.isError &&
-          !(infiniteQuery.isFetching && !infiniteQuery.isFetchingNextPage) && (
+          {!listQuery.isLoading &&
+          !listQuery.isError &&
+          !(listQuery.isFetching && !listQuery.isFetchingNextPage) && (
             <Box
               ref={listScrollRef}
               className="max-h-[min(70vh,560px)] overflow-y-auto rounded-2xl border border-border/60"
             >
-              {allSliders.length === 0 ? (
+              {rows.length === 0 ? (
                 <Box className="p-10 text-center">
                   <Iconify
                     icon="solar:inbox-line-bold"
@@ -227,7 +242,7 @@ export function SliderLibraryPicker({
                 </Box>
               ) : (
                 <Box className="divide-y divide-border/60">
-                  {allSliders.map((section) => {
+                  {rows.map((section) => {
                     const isSelected = selectedId === section.id;
                     const bannerCard = isBannerContentType(contentType) || contentType === 'gif';
                     const name = sectionName(section, bannerCard);
@@ -290,7 +305,7 @@ export function SliderLibraryPicker({
                     );
                   })}
                   <div ref={sentinelRef} className="py-2 text-center">
-                    {infiniteQuery.isFetchingNextPage && (
+                    {listQuery.isFetchingNextPage && (
                       <Typography variant="body2" className="text-muted-foreground">
                         {t('form.loadingMoreItems')}
                       </Typography>

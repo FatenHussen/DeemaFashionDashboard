@@ -84,6 +84,11 @@ export interface SliderLibraryItem {
   background_card_color?: string | null;
   /** First banner image when `content_type` is `banner`. `null` = no image. */
   image_url?: string | null;
+  /**
+   * Set when the row is a live banner from `GET /admin/banners`, not a saved section.
+   * Submit creates a banner section that contains this banner.
+   */
+  banner_id?: number;
   /** How many pages already use this section. */
   pages_count?: number;
 }

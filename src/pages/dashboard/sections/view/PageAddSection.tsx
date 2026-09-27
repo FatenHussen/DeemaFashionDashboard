@@ -74,6 +74,18 @@ function sectionDisplayName(item: SliderLibraryItem): string {
   return formatTranslated(item.name as { en?: string; ar?: string }) || `#${item.id}`;
 }
 
+/** Section name copied from the current banner title. Empty title still needs a pair for create. */
+function bannerSectionName(name: SliderLibraryItem['name']): { ar: string; en: string } {
+  if (typeof name === 'string') {
+    const text = name.trim();
+    return text ? { ar: text, en: text } : { ar: 'بانر', en: 'Banner' };
+  }
+  const ar = (name?.ar || '').trim();
+  const en = (name?.en || '').trim();
+  if (!ar && !en) return { ar: 'بانر', en: 'Banner' };
+  return { ar: ar || en, en: en || ar };
+}
+
 export default function PageAddSection() {
   const { t } = useTranslation('table');
   const { pageId } = useParams<{ pageId: string }>();
@@ -173,8 +185,7 @@ export default function PageAddSection() {
     const layout = data.layout ?? 'slider';
     const variant = data.variant ?? 'horizontal';
 
-    const payload: UnifiedSectionCreatePayload = {
-      section_id: selectedSection.id,
+    const sharedPlacement = {
       position: data.position,
       // layout = slider|list|grid · variant = horizontal|vertical|square
       // Never send display_type_id — backend sets it from the section content type.
@@ -189,6 +200,19 @@ export default function PageAddSection() {
         ? { show_when: buildShowWhenPayload(visibleShowWhenFilters, showWhenValues) }
         : {}),
     };
+
+    const payload: UnifiedSectionCreatePayload = selectedSection.banner_id
+      ? {
+          ...sharedPlacement,
+          type: 'manual',
+          content_type: 'banner',
+          name: bannerSectionName(selectedSection.name),
+          item_ids: [{ item_id: selectedSection.banner_id, order: 0 }],
+        }
+      : {
+          ...sharedPlacement,
+          section_id: selectedSection.id,
+        };
 
     try {
       await addSectionMutation.mutateAsync({ pageId, data: payload });
