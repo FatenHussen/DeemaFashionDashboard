@@ -18,9 +18,9 @@ import {
 } from '@/pages/dashboard/icons/validation/icon.validation';
 import { iconArtworkSrc, iconPreviewUrl, iconImageWasReplaced } from '@/pages/dashboard/icons/utils/icon-artwork';
 import {
-  fileFromIconDataUrl,
   isIconDataUrl,
   snapshotIconFile,
+  fileFromIconDataUrl,
 } from '@/pages/dashboard/icons/utils/icon-upload-file';
 
 import { CONFIG } from 'src/global-config';
@@ -70,6 +70,7 @@ export default function CreatePage() {
   const pickedDataUrlRef = useRef<string | null>(null);
   const pickedNameRef = useRef('');
   const snapshotRef = useRef<Promise<File | null> | null>(null);
+  const snapshotGenerationRef = useRef(0);
   const baselineImageRef = useRef('');
   const previewTokenRef = useRef(0);
 
@@ -142,6 +143,7 @@ export default function CreatePage() {
   }, [imageFile]);
 
   const rememberFile = (file: File | null) => {
+    const generation = ++snapshotGenerationRef.current;
     if (!(file instanceof File) || file.size <= 0) {
       pickedFileRef.current = null;
       pickedDataUrlRef.current = null;
@@ -151,6 +153,7 @@ export default function CreatePage() {
     }
     pickedNameRef.current = file.name || 'icon.webp';
     snapshotRef.current = snapshotIconFile(file).then((snapshot) => {
+      if (generation !== snapshotGenerationRef.current) return snapshot;
       if (snapshot) pickedFileRef.current = snapshot;
       return snapshot;
     });
@@ -211,6 +214,13 @@ export default function CreatePage() {
   const onSubmit = async (data: IconFormValues) => {
     clearErrors();
     const image = await takeSelectedFile(data.image);
+    const inputHasFile = (fileInputRef.current?.files?.[0]?.size ?? 0) > 0;
+    if ((inputHasFile || isIconDataUrl(pickedDataUrlRef.current)) && !image) {
+      const message = t('form.iconImageNotSaved');
+      setError('image', { type: 'server', message });
+      toast.error(message);
+      return;
+    }
     if (image && image.size > ICON_IMAGE_MAX_BYTES) {
       const message = t('form.iconImageTooLarge');
       setError('image', { type: 'server', message });

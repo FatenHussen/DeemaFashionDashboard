@@ -194,6 +194,16 @@ async function appendIconFields(formData: FormData, data: Partial<IconCreatePayl
   // A stored URL must not be posted as `image`. Text fields alone do not replace the file.
   if (data.image instanceof File) {
     await appendIconImage(formData, data.image);
+    const attached = formData.get('image');
+    const base64 = formData.get('image_base64');
+    if (
+      !(attached instanceof File) ||
+      attached.size < 1 ||
+      typeof base64 !== 'string' ||
+      !base64.includes(';base64,')
+    ) {
+      throw new Error('ICON_IMAGE_EMPTY');
+    }
   }
   if (data.name) {
     formData.append('name[en]', data.name.en ?? '');
