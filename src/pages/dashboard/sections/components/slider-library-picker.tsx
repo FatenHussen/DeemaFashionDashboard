@@ -57,6 +57,7 @@ export function SliderLibraryPicker({
   const [searchTerm, setSearchTerm] = useState('');
   const [contentType, setContentType] = useState(selectedContentType ?? '');
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const listScrollRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (selectedContentType) {
@@ -87,11 +88,11 @@ export function SliderLibraryPicker({
           infiniteQuery.fetchNextPage();
         }
       },
-      { threshold: 0.1 }
+      { threshold: 0.1, root: listScrollRef.current }
     );
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [infiniteQuery, contentType]);
+  }, [infiniteQuery, contentType, allSliders.length]);
 
   const handleContentTypeChange = (type: string) => {
     const next = contentType === type ? '' : type;
@@ -195,7 +196,10 @@ export function SliderLibraryPicker({
           )}
 
           {!infiniteQuery.isLoading && !infiniteQuery.isError && (
-            <Box className="overflow-hidden rounded-2xl border border-border/60">
+            <Box
+              ref={listScrollRef}
+              className="max-h-[min(70vh,560px)] overflow-y-auto rounded-2xl border border-border/60"
+            >
               {allSliders.length === 0 ? (
                 <Box className="p-10 text-center">
                   <Iconify

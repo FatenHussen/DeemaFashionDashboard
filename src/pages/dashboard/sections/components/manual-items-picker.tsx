@@ -147,11 +147,11 @@ export function ManualItemsPicker({
           infiniteQuery.fetchNextPage();
         }
       },
-      { threshold: 0.1, root: isWide ? listScrollRef.current : null }
+      { threshold: 0.1, root: listScrollRef.current }
     );
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [infiniteQuery, isWide, allItems.length]);
+  }, [infiniteQuery, allItems.length]);
 
   const handleItemsDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -430,11 +430,7 @@ export function ManualItemsPicker({
         {!infiniteQuery.isLoading && !infiniteQuery.isError && (
           <Box
             ref={listScrollRef}
-            className={
-              isWide
-                ? 'max-h-[min(70vh,560px)] overflow-y-auto rounded-lg border'
-                : 'overflow-hidden rounded-lg border'
-            }
+            className="max-h-[min(70vh,560px)] overflow-y-auto rounded-lg border"
           >
             {allItems.length === 0 ? (
               <Box className="text-center p-8">
