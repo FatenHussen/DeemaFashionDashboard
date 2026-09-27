@@ -2383,7 +2383,7 @@
       "createIconDesc": "Add a new icon to the system",
       "editIconDesc": "Update icon information",
       "iconCreatedSuccess": "Icon created successfully",
-      "iconImageNotSaved": "The new image was not saved. Choose any image and update again.",
+      "iconImageNotSaved": "The new image was not saved.",
       "iconImageTooLarge": "Image must be 8MB or smaller.",
       "iconUpdatedSuccess": "Icon updated successfully",
       "iconNameEnPlaceholder": "e.g., Star",

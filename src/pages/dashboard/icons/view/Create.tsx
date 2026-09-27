@@ -12,11 +12,11 @@ import {
   useUpdateIcon,
   useFetchIconById,
 } from '@/pages/dashboard/icons/hooks/icon';
-import { iconArtworkSrc, iconPreviewUrl, iconImageWasReplaced } from '@/pages/dashboard/icons/utils/icon-artwork';
 import {
   IconCreateSchema,
   type IconFormValues,
 } from '@/pages/dashboard/icons/validation/icon.validation';
+import { iconArtworkSrc, iconPreviewUrl, iconImageWasReplaced } from '@/pages/dashboard/icons/utils/icon-artwork';
 
 import { CONFIG } from 'src/global-config';
 import { Box, Input, Typography } from 'src/shared/ui';
@@ -46,15 +46,23 @@ const ICON_FORM_PATHS = new Set([
   'is_active',
 ]);
 
+/** Raw `data.image` from the save call. Null means the file was not stored. */
 function savedIconImage(body: unknown): string | null {
   if (!body || typeof body !== 'object') return null;
-  const record = body as {
-    data?: { image?: string | null; icon?: string | null };
-    image?: string | null;
-    icon?: string | null;
-  };
-  const source = record.data ?? record;
-  return iconPreviewUrl(source.image || source.icon);
+  const saved = (body as { savedImage?: unknown }).savedImage;
+  return typeof saved === 'string' && saved.trim() ? saved.trim() : null;
+}
+
+/** Keep the bytes even if the file input is cleared before the request is built. */
+function holdIconFile(file: File): File {
+  try {
+    return new File([file], file.name || 'icon.webp', {
+      type: file.type,
+      lastModified: file.lastModified,
+    });
+  } catch {
+    return file;
+  }
 }
 
 export default function CreatePage() {
@@ -133,7 +141,7 @@ export default function CreatePage() {
 
   const takeSelectedFile = () => {
     const fromInput = fileInputRef.current?.files?.[0];
-    if (fromInput instanceof File) pickedFileRef.current = fromInput;
+    if (fromInput instanceof File) pickedFileRef.current = holdIconFile(fromInput);
     return pickedFileRef.current instanceof File ? pickedFileRef.current : null;
   };
 
@@ -147,7 +155,11 @@ export default function CreatePage() {
     for (const [field, messages] of Object.entries(error.fieldErrors)) {
       const normalized = field.replace(/\[(\w+)\]/g, '.$1');
       const path =
-        normalized === 'icon' || normalized === 'image' || normalized.startsWith('image.')
+        normalized === 'icon' ||
+        normalized === 'image' ||
+        normalized === 'image_base64' ||
+        normalized === 'image_filename' ||
+        normalized.startsWith('image.')
           ? 'image'
           : normalized;
       if (!ICON_FORM_PATHS.has(path)) continue;
@@ -170,8 +182,9 @@ export default function CreatePage() {
       detailsResponse?.data?.icon ||
       '';
     try {
+      const payload = { ...data, image };
       if (isEditMode && id) {
-        const body = await updateMutation.mutateAsync({ id, data: { ...data, image } });
+        const body = await updateMutation.mutateAsync({ id, data: payload });
         const nextImage = savedIconImage(body);
         if (image && !iconImageWasReplaced(previousImage, nextImage, true)) {
           setError('image', { type: 'server', message: t('form.iconImageNotSaved') });
@@ -191,7 +204,13 @@ export default function CreatePage() {
           toast.error(t('form.imageRequired'));
           return;
         }
-        await createMutation.mutateAsync({ ...data, image });
+        const body = await createMutation.mutateAsync(payload);
+        const nextImage = savedIconImage(body);
+        if (!iconImageWasReplaced('', nextImage, true)) {
+          setError('image', { type: 'server', message: t('form.iconImageNotSaved') });
+          toast.error(t('form.iconImageNotSaved'));
+          return;
+        }
         toast.success(t('form.iconCreatedSuccess'));
         navigate('/icons');
       }
@@ -218,6 +237,7 @@ export default function CreatePage() {
       <CreateFormLayout
         methods={methods as any}
         onSubmit={submitForm}
+        onSubmitButtonPointerDown={takeSelectedFile}
         onSubmitButtonClick={takeSelectedFile}
         onCancel={() => navigate('/icons')}
         isSubmitting={createMutation.isPending || updateMutation.isPending}
@@ -259,10 +279,10 @@ export default function CreatePage() {
                     ref={fileInputRef}
                     value={undefined}
                     type="file"
-                    accept="image/*"
+                    accept=".jpg,.jpeg,.png,.gif,.svg,.webp,image/jpeg,image/png,image/gif,image/svg+xml,image/webp"
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                       const file = e.target.files?.[0] ?? null;
-                      pickedFileRef.current = file;
+                      pickedFileRef.current = file instanceof File ? holdIconFile(file) : null;
                       onChange(file);
                     }}
                     error={!!error}

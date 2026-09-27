@@ -38,14 +38,14 @@ export const useUpdateIcon = () => {
   return useMutation({
     mutationFn: ({ id, data }: { id: number | string; data: Partial<IconCreatePayload> }) =>
       _IconApi.updateIcon(id, data),
-    onSuccess: (body: { data?: { image?: string | null; icon?: string | null } } | undefined, variables) => {
-      const nextUrl = body?.data?.image || body?.data?.icon || '';
+    onSuccess: (body: { savedImage?: string | null } | undefined, variables) => {
+      const nextUrl = body?.savedImage || '';
       const cached = queryClient.getQueryData<IconDetailsResponse>(queryKeys.icon.details(variables.id));
       const previousUrl = cached?.data?.image || cached?.data?.icon || '';
       const sentFile = variables.data.image instanceof File;
-      // A new path or a new `?v=` means the uploaded image was stored.
+      // Only a changed path counts. A new `?v=` on the same file is not a replace.
       const src =
-        !sentFile || iconImageWasReplaced(previousUrl, nextUrl, true)
+        sentFile && iconImageWasReplaced(previousUrl, nextUrl, true)
           ? iconPreviewUrl(nextUrl)
           : null;
       if (src) {

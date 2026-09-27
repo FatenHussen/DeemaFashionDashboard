@@ -67,6 +67,8 @@ export interface CreateFormLayoutProps<T extends Record<string, any>> {
   secondarySubmitLabel?: string;
   secondarySubmittingLabel?: string;
   onSubmitButtonClick?: () => void;
+  /** Fires on pointer down, before click, so a file input can be read before focus moves. */
+  onSubmitButtonPointerDown?: () => void;
   onSecondarySubmitButtonClick?: () => void;
 
   // Optional unsaved changes guard
@@ -99,6 +101,7 @@ export function CreateFormLayout<T extends Record<string, any>>({
   secondarySubmitLabel,
   secondarySubmittingLabel,
   onSubmitButtonClick,
+  onSubmitButtonPointerDown,
   onSecondarySubmitButtonClick,
   showUnsavedGuard = true,
   submitDisabled = false,
@@ -328,6 +331,7 @@ export function CreateFormLayout<T extends Record<string, any>>({
                   <Button
                     type="submit"
                     disabled={isSubmitting || submitDisabled}
+                    onPointerDown={onSubmitButtonPointerDown}
                     onClick={onSubmitButtonClick}
                     className="min-w-[120px]"
                   >

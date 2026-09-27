@@ -2385,7 +2385,7 @@
       "editIconDesc": "تحديث معلومات الأيقونة",
       "iconCreatedSuccess": "تم إنشاء الأيقونة بنجاح",
       "iconUpdatedSuccess": "تم تحديث الأيقونة بنجاح",
-      "iconImageNotSaved": "الصورة الجديدة ما انحفظت. اختاروا أي صورة ثم حدّثوا.",
+      "iconImageNotSaved": "الصورة الجديدة ما انحفظت",
       "iconImageTooLarge": "حجم الصورة لازم يكون 8MB أو أقل.",
       "iconNameEnPlaceholder": "e.g. Star",
       "iconNameArPlaceholder": "مثال: نجمة",

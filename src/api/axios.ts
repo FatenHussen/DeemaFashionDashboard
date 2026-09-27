@@ -1,5 +1,5 @@
-import axios from 'axios';
 import { toast } from 'react-toastify';
+import axios, { AxiosHeaders } from 'axios';
 
 import { paths } from 'src/routes/paths';
 
@@ -50,6 +50,14 @@ axiosInstance.interceptors.request.use(
     }
 
     config.headers['Accept-Language'] = getActiveLanguageCode();
+
+    // Leave multipart boundary to the browser. A manual Content-Type, including
+    // application/json, makes Axios stringify FormData and drop the file bytes.
+    if (typeof FormData !== 'undefined' && config.data instanceof FormData) {
+      const headers = AxiosHeaders.from(config.headers);
+      headers.setContentType(false);
+      config.headers = headers;
+    }
 
     return config;
   },

@@ -63,26 +63,28 @@ function unwrapPagination(raw: unknown, fallbackPerPage: number, itemCount: numb
 function readFileAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result : '');
+    reader.onload = () => resolve(String(reader.result ?? ''));
     reader.onerror = () => reject(reader.error ?? new Error('Failed to read icon file'));
     reader.readAsDataURL(file);
   });
 }
 
+/** File, original filename, and the same bytes as a data URL. Omit all three when there is no new file. */
+async function appendIconImage(formData: FormData, file: File) {
+  const filename = file.name || 'icon.webp';
+  formData.append('image', file, filename);
+  formData.append('image_filename', filename);
+  // Windows often labels a .webp as application/octet-stream. Send that data URL too.
+  const dataUrl = await readFileAsDataUrl(file);
+  if (dataUrl.includes(';base64,')) {
+    formData.append('image_base64', dataUrl);
+  }
+}
+
 async function appendIconFields(formData: FormData, data: Partial<IconCreatePayload>) {
-  // File first. An empty field or a stored URL must not be posted as `image`.
-  // `image_base64` is the same bytes as text, because a multipart file part can
-  // be dropped while name and description still save.
+  // A stored URL must not be posted as `image`. Text fields alone do not replace the file.
   if (data.image instanceof File) {
-    const filename = data.image.name || 'icon.webp';
-    formData.append('image', data.image, filename);
-    formData.append('image_filename', filename);
-    // Windows often labels a .webp as application/octet-stream, so keep the
-    // data URL even when it does not start with data:image/.
-    const dataUrl = await readFileAsDataUrl(data.image);
-    if (dataUrl.includes(';base64,')) {
-      formData.append('image_base64', dataUrl);
-    }
+    await appendIconImage(formData, data.image);
   }
   if (data.name) {
     formData.append('name[en]', data.name.en ?? '');
@@ -95,10 +97,18 @@ async function appendIconFields(formData: FormData, data: Partial<IconCreatePayl
   if (data.is_active !== undefined) formData.append('is_active', data.is_active ? '1' : '0');
 }
 
+/** Raw `data.image` only. Do not fill it from `icon` — null means the upload was not stored. */
+function rawSavedImage(body: unknown): string | null {
+  const data = asRecord(asRecord(body)?.data);
+  if (!data || data.image == null || data.image === '') return null;
+  const url = iconUrlFrom(data.image);
+  return url || null;
+}
+
 function withNormalizedIcon(body: unknown) {
   const root = asRecord(body);
   const item = normalizeIconItem(asRecord(root?.data) ?? root);
-  return { ...(root ?? {}), data: item };
+  return { ...(root ?? {}), data: item, savedImage: rawSavedImage(body) };
 }
 
 export const _IconApi = {

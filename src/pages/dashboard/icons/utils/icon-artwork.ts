@@ -15,10 +15,9 @@ export function iconUrlFrom(value: unknown): string {
   return '';
 }
 
-function cacheVersion(url?: string | null): string {
-  const query = trimmedUrl(url).split('?')[1]?.split('#')[0] ?? '';
-  if (!query) return '';
-  return new URLSearchParams(query).get('v') ?? '';
+/** URL without `?query` or `#hash`. A new `?v=` alone is not a new file. */
+export function iconImagePath(url?: string | null): string {
+  return (url ?? '').split(/[?#]/)[0];
 }
 
 /** Storage path without `?v=` or hash. */
@@ -33,8 +32,8 @@ export function iconStoragePath(url?: string | null): string {
 }
 
 /**
- * The upload landed when the stored path changed, or the same file came back with a new `?v=`
- * (the server replaced the bytes in place and cache-busted the URL).
+ * A sent file was stored only when `data.image` is a URL whose path (ignoring `?v=`) changed.
+ * `null`, or the same path with a new cache-buster, means the bytes were not saved.
  */
 export function iconImageWasReplaced(
   previousUrl: string | null | undefined,
@@ -42,11 +41,9 @@ export function iconImageWasReplaced(
   sentFile: boolean
 ): boolean {
   if (!sentFile) return false;
-  const nextPath = iconStoragePath(nextUrl);
+  const nextPath = iconImagePath(nextUrl);
   if (!nextPath) return false;
-  if (nextPath !== iconStoragePath(previousUrl)) return true;
-  const nextVersion = cacheVersion(nextUrl);
-  return nextVersion !== '' && nextVersion !== cacheVersion(previousUrl);
+  return nextPath !== iconImagePath(previousUrl);
 }
 
 /** Keep the response URL, including `?v=`, for preview and lists. */
