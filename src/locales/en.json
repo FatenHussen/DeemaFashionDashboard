@@ -4526,7 +4526,7 @@
       "deliveryChoice": "Delivery choice",
       "deliveryChoiceAsap": "As soon as possible",
       "deliveryChoiceScheduled": "Scheduled day and time",
-      "asapScheduleOnAssign": "Set the delivery time when you assign a driver.",
+      "asapScheduleOnAssign": "After you assign a driver, set the delivery day and time in the section below.",
       "assignDriverScheduleHint": "The customer chose the soonest slot. You can send a delivery time with the driver assignment. Leave both fields empty to assign without a time.",
       "scheduledDelivery": "Set delivery date and time",
       "scheduledDeliveryDate": "Date",

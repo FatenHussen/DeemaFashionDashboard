@@ -15,8 +15,6 @@ import {
   formatScheduledDeliveryAt,
 } from '@/pages/dashboard/orders/utils/scheduled-delivery';
 
-import { Box, Typography } from 'src/shared/ui';
-
 const fieldClassName =
   'h-10 w-full rounded-lg border border-input bg-background px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25 disabled:opacity-50';
 
@@ -76,69 +74,58 @@ export function ScheduledDeliveryForm({
   };
 
   return (
-    <Box className="rounded-xl border border-border/60 bg-muted/20 p-3 sm:p-4">
-      <Typography variant="caption" className="text-muted-foreground">
-        {t('orders.scheduledDelivery')}
-      </Typography>
-      <Typography
-        variant="body1"
+    <div>
+      <p
         className={
           displayValue
-            ? 'mt-0.5 font-medium tabular-nums'
-            : 'mt-0.5 font-medium text-muted-foreground'
+            ? 'text-sm font-medium tabular-nums text-foreground'
+            : 'text-sm text-muted-foreground'
         }
       >
         {displayValue ?? t('orders.scheduledDeliveryEmpty')}
-      </Typography>
+      </p>
 
       {canSave ? (
-        <form onSubmit={handleSubmit} className="mt-3 space-y-3">
-          <Box className="grid grid-cols-2 gap-3">
-            <label className="block space-y-1.5">
-              <Typography variant="caption" className="text-muted-foreground">
-                {t('orders.scheduledDeliveryDate')}
-              </Typography>
-              <input
-                type="date"
-                value={date}
-                onChange={(event) => setDate(event.target.value)}
-                disabled={updateScheduledDelivery.isPending}
-                className={fieldClassName}
-              />
-            </label>
-            <label className="block space-y-1.5">
-              <Typography variant="caption" className="text-muted-foreground">
-                {t('orders.scheduledDeliveryTime')}
-              </Typography>
-              <input
-                type="time"
-                step={60}
-                value={time}
-                onChange={(event) => setTime(event.target.value.slice(0, 5))}
-                disabled={updateScheduledDelivery.isPending}
-                className={fieldClassName}
-              />
-            </label>
-          </Box>
-          <Button
-            type="submit"
-            variant="contained"
-            disabled={updateScheduledDelivery.isPending}
-            className="w-full sm:w-auto"
-          >
+        <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-end">
+          <label className="block min-w-0 flex-1 space-y-1.5">
+            <span className="text-xs text-muted-foreground">
+              {t('orders.scheduledDeliveryDate')}
+            </span>
+            <input
+              type="date"
+              value={date}
+              onChange={(event) => setDate(event.target.value)}
+              disabled={updateScheduledDelivery.isPending}
+              className={fieldClassName}
+            />
+          </label>
+          <label className="block min-w-0 flex-1 space-y-1.5">
+            <span className="text-xs text-muted-foreground">
+              {t('orders.scheduledDeliveryTime')}
+            </span>
+            <input
+              type="time"
+              step={60}
+              value={time}
+              onChange={(event) => setTime(event.target.value.slice(0, 5))}
+              disabled={updateScheduledDelivery.isPending}
+              className={fieldClassName}
+            />
+          </label>
+          <Button type="submit" variant="contained" disabled={updateScheduledDelivery.isPending}>
             {updateScheduledDelivery.isPending
               ? t('orders.scheduledDeliverySaving')
               : t('orders.scheduledDeliverySave')}
           </Button>
-          <Typography variant="caption" className="block text-muted-foreground">
-            {t('orders.scheduledDeliveryClearHint')}
-          </Typography>
         </form>
       ) : isLocked ? (
-        <Typography variant="caption" className="mt-2 block text-muted-foreground">
-          {t('orders.scheduledDeliveryLocked')}
-        </Typography>
+        <p className="mt-2 text-sm text-muted-foreground">{t('orders.scheduledDeliveryLocked')}</p>
       ) : null}
-    </Box>
+      {canSave ? (
+        <p className="mt-3 text-xs text-muted-foreground">
+          {t('orders.scheduledDeliveryClearHint')}
+        </p>
+      ) : null}
+    </div>
   );
 }

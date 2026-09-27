@@ -4538,7 +4538,7 @@
       "deliveryChoice": "خيار التوصيل",
       "deliveryChoiceAsap": "أقرب وقت ممكن",
       "deliveryChoiceScheduled": "يوم ووقت",
-      "asapScheduleOnAssign": "حدّد موعد التوصيل عند إسناد السائق.",
+      "asapScheduleOnAssign": "بعد إسناد السائق، حدّد يوم ووقت التوصيل في القسم التالي.",
       "assignDriverScheduleHint": "الزبون اختار أقرب وقت ممكن. تقدر ترسل الموعد مع إسناد السائق. اترك اليوم والوقت فارغين للإسناد بدون موعد.",
       "scheduledDelivery": "تحديد يوم ووقت التوصيل",
       "scheduledDeliveryDate": "اليوم",

@@ -15,7 +15,10 @@ import { RHFInfiniteSelect } from '@/shared/components/hook-form/rhf-infinite-se
 import { RejectOrderModal } from '@/pages/dashboard/orders/components/RejectOrderModal';
 import { OrderLineItemCard } from '@/pages/dashboard/orders/components/OrderLineItemCard';
 import { ScheduledDeliveryForm } from '@/pages/dashboard/orders/components/ScheduledDeliveryForm';
-import { AssignDriverScheduleFields } from '@/pages/dashboard/orders/components/AssignDriverScheduleFields';
+import {
+  deliveryChoiceLabel,
+  formatScheduledDeliveryAt,
+} from '@/pages/dashboard/orders/utils/scheduled-delivery';
 import {
   useAssignDriver,
   useFetchOrderById,
@@ -28,13 +31,6 @@ import {
   orderStatusBlocksAssignDriver,
   getAllowedOrderStatusTransitions,
 } from '@/pages/dashboard/orders/types/order.types';
-import {
-  isAsapDelivery,
-  deliveryChoiceLabel,
-  buildScheduledDeliveryAt,
-  splitScheduledDeliveryAt,
-  formatScheduledDeliveryAt,
-} from '@/pages/dashboard/orders/utils/scheduled-delivery';
 
 import { CONFIG } from 'src/global-config';
 import { Box, Typography } from 'src/shared/ui';
@@ -124,33 +120,41 @@ const driverFetcher = (page: number, limit: number) =>
     },
   }));
 
-function Panel({
+function Section({
   title,
-  extra,
+  action,
   children,
 }: {
   title: string;
-  extra?: ReactNode;
+  action?: ReactNode;
   children: ReactNode;
 }) {
   return (
-    <section className="overflow-hidden rounded-xl border border-border bg-card">
-      <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
-        <Typography variant="subtitle2" component="h2" className="text-foreground">
-          {title}
-        </Typography>
-        {extra}
+    <section className="border-b border-border py-6">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <h2 className="text-base font-semibold text-foreground">{title}</h2>
+        {action}
       </div>
-      <div className="px-4 py-1">{children}</div>
+      {children}
     </section>
   );
 }
 
-function Fact({ label, value }: { label: string; value: ReactNode }) {
+function Fields({
+  children,
+  columns = 'sm:grid-cols-2 xl:grid-cols-4',
+}: {
+  children: ReactNode;
+  columns?: string;
+}) {
+  return <div className={`grid grid-cols-1 gap-x-10 gap-y-5 ${columns}`}>{children}</div>;
+}
+
+function Field({ label, value }: { label: string; value: ReactNode }) {
   return (
-    <div className="flex items-start justify-between gap-6 border-b border-border/70 py-2.5 last:border-b-0">
-      <dt className="shrink-0 text-sm text-muted-foreground">{label}</dt>
-      <dd className="min-w-0 text-end text-sm font-medium text-foreground">{value}</dd>
+    <div className="min-w-0">
+      <div className="text-xs text-muted-foreground">{label}</div>
+      <div className="mt-1 break-words text-sm font-medium text-foreground">{value}</div>
     </div>
   );
 }
@@ -205,22 +209,12 @@ export default function DetailsPage() {
   const assignDriverMutation = useAssignDriver();
   const changeItemStatusMutation = useChangeItemStatus();
 
-  const assignDriverForm = useForm<{
-    driver_id: number;
-    scheduled_date: string;
-    scheduled_time: string;
-  }>({
-    defaultValues: { driver_id: 0, scheduled_date: '', scheduled_time: '' },
+  const assignDriverForm = useForm<{ driver_id: number }>({
+    defaultValues: { driver_id: 0 },
   });
 
-  const {
-    watch: watchDriverId,
-    reset: resetDriverForm,
-    setValue: setAssignDriverValue,
-  } = assignDriverForm;
+  const { watch: watchDriverId, reset: resetDriverForm } = assignDriverForm;
   const selectedDriverId = watchDriverId('driver_id');
-  const scheduledDate = watchDriverId('scheduled_date');
-  const scheduledTime = watchDriverId('scheduled_time');
   const order = orderResponse?.data;
 
   const [statusDraft, setStatusDraft] = useState<OrderStatus>('pending');
@@ -243,22 +237,8 @@ export default function DetailsPage() {
 
   useEffect(() => {
     if (!order) return;
-    const parts = isAsapDelivery(order)
-      ? splitScheduledDeliveryAt(order.scheduled_delivery_at)
-      : { date: '', time: '' };
-    resetDriverForm({
-      driver_id: order.driver?.id ?? 0,
-      scheduled_date: parts.date,
-      scheduled_time: parts.time,
-    });
-  }, [
-    order?.id,
-    order?.driver?.id,
-    order?.scheduled_delivery_at,
-    order?.delivery_choice,
-    order?.is_instant_delivery,
-    resetDriverForm,
-  ]);
+    resetDriverForm({ driver_id: order.driver?.id ?? 0 });
+  }, [order?.id, order?.driver?.id, resetDriverForm]);
 
   if (isLoading) {
     return (
@@ -342,35 +322,19 @@ export default function DetailsPage() {
     void handleChangeStatus(statusDraft);
   };
 
-  const handleAssignDriver = async (data: {
-    driver_id: number;
-    scheduled_date: string;
-    scheduled_time: string;
-  }) => {
+  const handleAssignDriver = async (data: { driver_id: number }) => {
     if (!canAssignDriver) return;
     const driverId = data.driver_id;
     if (!driverId || driverId === 0) return;
 
-    const payload: { driver_id: number; scheduled_delivery_at?: string } = {
-      driver_id: Number(driverId),
-    };
-    if (isAsapDelivery(order)) {
-      const scheduled = buildScheduledDeliveryAt(data.scheduled_date, data.scheduled_time);
-      if (scheduled === 'incomplete') {
-        toast.error(t('orders.scheduledDeliveryIncomplete'));
-        return;
-      }
-      if (scheduled) payload.scheduled_delivery_at = scheduled;
-    }
-
     try {
       await assignDriverMutation.mutateAsync({
         id: order.id,
-        data: payload,
+        data: { driver_id: Number(driverId) },
         queryId: id,
       });
       toast.success(t('form.driverAssignedSuccess'));
-      resetDriverForm({ driver_id: 0, scheduled_date: '', scheduled_time: '' });
+      resetDriverForm({ driver_id: 0 });
     } catch {
       return;
     }
@@ -389,37 +353,6 @@ export default function DetailsPage() {
       return;
     }
   };
-
-  const copyOrderCode = async () => {
-    try {
-      await navigator.clipboard.writeText(order.order_code);
-      toast.success(t('orders.orderCodeCopied'));
-    } catch {
-      return;
-    }
-  };
-
-  const timelineSteps: { status: OrderStatus; at: string | null | undefined }[] = [
-    { status: 'pending', at: order.timestamps?.pending_at },
-    { status: 'preparing', at: order.timestamps?.preparing_at },
-    { status: 'out_delivery', at: order.timestamps?.out_delivery_at },
-    { status: 'delivered', at: order.timestamps?.delivered_at },
-  ];
-  if (order.timestamps?.returned_by_user_at || normalizedOrderStatus === 'returned_by_user') {
-    timelineSteps.push({
-      status: 'returned_by_user',
-      at: order.timestamps?.returned_by_user_at,
-    });
-  }
-  const terminalStatuses: OrderStatus[] = [
-    'cancelled',
-    'cancelled_by_admin',
-    'rejected_by_delivery',
-    'faild_deliver',
-  ];
-  if (terminalStatuses.includes(normalizedOrderStatus)) {
-    timelineSteps.push({ status: normalizedOrderStatus, at: null });
-  }
 
   const address = order.user_address;
   const mapHref =
@@ -442,200 +375,254 @@ export default function DetailsPage() {
         queryId={id}
       />
 
-      <Box className="mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-6 lg:px-8 lg:pb-10">
-        <Button
-          variant="text"
-          color="inherit"
-          onClick={() => navigate('/orders')}
-          className="-ms-2 mb-4 text-muted-foreground"
-        >
-          <Iconify icon="solar:arrow-left-bold" width={18} className="me-1.5 rtl:rotate-180" />
-          {t('orders.backToOrders')}
-        </Button>
-
-        <header className="flex flex-col gap-5 border-b border-border pb-5 sm:flex-row sm:items-end sm:justify-between">
-          <div className="min-w-0">
-            <div className="flex items-center gap-1">
-              <Typography variant="h3" component="h1" className="truncate tracking-tight">
-                {order.order_code}
-              </Typography>
-              <button
-                type="button"
-                onClick={() => void copyOrderCode()}
-                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
-                aria-label={t('orders.copyOrderCode')}
-              >
-                <Iconify icon="solar:copy-bold" width={16} />
-              </button>
+      <Box className="w-full px-4 py-2 sm:px-6 lg:px-8">
+        <section className="border-b border-border py-6">
+          <Button
+            variant="text"
+            color="inherit"
+            onClick={() => navigate('/orders')}
+            className="-ms-2 mb-3 text-muted-foreground"
+          >
+            <Iconify icon="solar:arrow-left-bold" width={18} className="me-1.5 rtl:rotate-180" />
+            {t('orders.backToOrders')}
+          </Button>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <h1 className="truncate text-xl font-semibold text-foreground">{order.order_code}</h1>
+              <p className="mt-1 text-sm text-muted-foreground">{formatDate(order.created_at)}</p>
             </div>
-            <Typography variant="body2" className="mt-1 text-muted-foreground">
-              {formatDate(order.created_at)}
-            </Typography>
-            <div className="mt-3 flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-4">
               <StatusBadge status={normalizedOrderStatus} label={statusLabel} />
-              <span
-                className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-semibold ${
-                  order.is_paid
-                    ? 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-300'
-                    : 'bg-muted text-muted-foreground'
-                }`}
-              >
-                {order.is_paid ? t('orders.isPaid') : t('orders.unpaid')}
-              </span>
-              <span className="inline-flex items-center rounded-md bg-muted px-2 py-1 text-xs font-medium text-foreground">
-                {choiceLabel}
-              </span>
-            </div>
-          </div>
-          <div className="sm:text-end">
-            <Typography variant="body2" className="text-muted-foreground">
-              {t('orders.total')}
-            </Typography>
-            <p className="text-2xl font-semibold tabular-nums tracking-tight text-foreground">
-              {totalLabel}
-            </p>
-          </div>
-        </header>
-
-        {order.rejection_reason ? (
-          <div className="mt-4 rounded-lg border border-rose-500/25 bg-rose-500/10 px-4 py-3">
-            <Typography variant="caption" className="font-medium text-rose-700 dark:text-rose-300">
-              {t('rejectionReason')}
-            </Typography>
-            <Typography variant="body2" className="mt-1 text-foreground">
-              {order.rejection_reason}
-            </Typography>
-          </div>
-        ) : null}
-
-        <section className="mt-5 overflow-hidden rounded-xl border border-border bg-card">
-          <div className="grid lg:grid-cols-2 lg:divide-x lg:divide-border rtl:lg:divide-x-reverse">
-            <div className="p-4">
-              <Typography variant="subtitle2" component="h2">
-                {t('orders.changeOrderStatus')}
-              </Typography>
-              <Typography variant="caption" className="mt-1 block text-muted-foreground">
-                {allowedNextStatuses.length === 0
-                  ? t('orders.finalStatusNoChanges')
-                  : t('orders.changeOrderStatusHint')}
-              </Typography>
-              <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
-                <select
-                  value={statusDraft}
-                  onChange={(e) => setStatusDraft(e.target.value as OrderStatus)}
-                  disabled={
-                    changeStatusMutation.isPending ||
-                    !parsedOrderStatus ||
-                    allowedNextStatuses.length === 0
-                  }
-                  aria-label={t('orders.selectOrderStatus')}
-                  className={fieldClassName}
-                >
-                  {statusSelectOptions.map((s) => (
-                    <option key={s} value={s}>
-                      {getOrderStatusLabel(s, t)}
-                    </option>
-                  ))}
-                </select>
-                <Button
-                  type="button"
-                  variant="contained"
-                  onClick={handleApplyOrderStatus}
-                  disabled={
-                    changeStatusMutation.isPending ||
-                    !parsedOrderStatus ||
-                    statusDraft === parsedOrderStatus ||
-                    allowedNextStatuses.length === 0
-                  }
-                  className="shrink-0"
-                >
-                  {changeStatusMutation.isPending
-                    ? t('orders.updatingStatus')
-                    : t('orders.applyOrderStatus')}
-                </Button>
+              <div className="h-8 w-px bg-border" />
+              <div>
+                <div className="text-xs text-muted-foreground">{t('orders.total')}</div>
+                <div className="text-lg font-semibold tabular-nums text-foreground">
+                  {totalLabel}
+                </div>
               </div>
             </div>
+          </div>
+          {order.rejection_reason ? (
+            <p className="mt-4 rounded-lg bg-rose-500/10 px-3 py-2 text-sm text-foreground">
+              <span className="font-medium text-rose-700 dark:text-rose-300">
+                {t('rejectionReason')}:{' '}
+              </span>
+              {order.rejection_reason}
+            </p>
+          ) : null}
+        </section>
 
-            <div className="border-t border-border p-4 lg:border-t-0">
-              <Typography variant="subtitle2" component="h2">
-                {t('orders.assignDriver')}
-              </Typography>
-              {order.driver ? (
-                <Typography variant="body2" className="mt-1 text-muted-foreground">
-                  {t('orders.currentDriver')}{' '}
-                  <span className="font-medium text-foreground">{order.driver.name}</span>
-                  {order.driver.phone ? (
-                    <>
-                      {' '}
-                      <a href={`tel:${order.driver.phone}`} className="hover:text-foreground">
-                        {order.driver.phone}
-                      </a>
-                    </>
-                  ) : null}
-                </Typography>
-              ) : null}
-              {!canAssignDriver ? (
-                <Typography variant="caption" className="mt-1 block text-muted-foreground">
-                  {t('orders.assignDriverDisabledDeliveredOrOut')}
-                </Typography>
-              ) : null}
-              <FormProvider {...assignDriverForm}>
-                <form
-                  onSubmit={assignDriverForm.handleSubmit(handleAssignDriver)}
-                  className="mt-3 flex flex-col gap-3"
-                >
-                  {isAsapDelivery(order) ? (
-                    <AssignDriverScheduleFields
-                      date={scheduledDate}
-                      time={scheduledTime}
-                      disabled={!canAssignDriver || assignDriverMutation.isPending}
-                      onDateChange={(value) => setAssignDriverValue('scheduled_date', value)}
-                      onTimeChange={(value) => setAssignDriverValue('scheduled_time', value)}
-                    />
-                  ) : null}
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                    <div className="min-w-0 flex-1">
-                      <RHFInfiniteSelect
-                        name="driver_id"
-                        queryKey={['order', 'assign-driver', id]}
-                        fetcher={driverFetcher}
-                        placeholder={t('form.selectDriver')}
-                        initialLabel={order.driver?.name}
-                        pageSize={10}
-                        disabled={!canAssignDriver}
-                      />
-                    </div>
-                    <Button
-                      type="submit"
-                      variant="contained"
-                      className="shrink-0"
-                      disabled={
-                        !canAssignDriver ||
-                        !selectedDriverId ||
-                        selectedDriverId === 0 ||
-                        assignDriverMutation.isPending
-                      }
-                    >
-                      {t('orders.assign')}
-                    </Button>
-                  </div>
-                </form>
-              </FormProvider>
+        <section className="grid gap-10 border-b border-border py-6 lg:grid-cols-2">
+          <div>
+            <h2 className="mb-4 text-base font-semibold text-foreground">
+              {t('orders.changeOrderStatus')}
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              {allowedNextStatuses.length === 0
+                ? t('orders.finalStatusNoChanges')
+                : t('orders.changeOrderStatusHint')}
+            </p>
+            <div className="mt-4 space-y-3">
+              <select
+                value={statusDraft}
+                onChange={(e) => setStatusDraft(e.target.value as OrderStatus)}
+                disabled={
+                  changeStatusMutation.isPending ||
+                  !parsedOrderStatus ||
+                  allowedNextStatuses.length === 0
+                }
+                aria-label={t('orders.selectOrderStatus')}
+                className={fieldClassName}
+              >
+                {statusSelectOptions.map((s) => (
+                  <option key={s} value={s}>
+                    {getOrderStatusLabel(s, t)}
+                  </option>
+                ))}
+              </select>
+              <Button
+                type="button"
+                variant="contained"
+                onClick={handleApplyOrderStatus}
+                disabled={
+                  changeStatusMutation.isPending ||
+                  !parsedOrderStatus ||
+                  statusDraft === parsedOrderStatus ||
+                  allowedNextStatuses.length === 0
+                }
+              >
+                {changeStatusMutation.isPending
+                  ? t('orders.updatingStatus')
+                  : t('orders.applyOrderStatus')}
+              </Button>
             </div>
+          </div>
+
+          <div>
+            <h2 className="mb-4 text-base font-semibold text-foreground">
+              {t('orders.assignDriver')}
+            </h2>
+            {order.driver ? (
+              <p className="text-sm text-muted-foreground">
+                {t('orders.currentDriver')}{' '}
+                <span className="font-medium text-foreground">{order.driver.name}</span>
+                {order.driver.phone ? (
+                  <>
+                    {' '}
+                    <a href={`tel:${order.driver.phone}`} className="hover:underline">
+                      {order.driver.phone}
+                    </a>
+                  </>
+                ) : null}
+              </p>
+            ) : null}
+            {!canAssignDriver ? (
+              <p className="mt-1 text-sm text-muted-foreground">
+                {t('orders.assignDriverDisabledDeliveredOrOut')}
+              </p>
+            ) : null}
+            <FormProvider {...assignDriverForm}>
+              <form
+                onSubmit={assignDriverForm.handleSubmit(handleAssignDriver)}
+                className="mt-4 space-y-3"
+              >
+                <RHFInfiniteSelect
+                  name="driver_id"
+                  queryKey={['order', 'assign-driver', id]}
+                  fetcher={driverFetcher}
+                  placeholder={t('form.selectDriver')}
+                  initialLabel={order.driver?.name}
+                  pageSize={10}
+                  disabled={!canAssignDriver}
+                />
+                <Button
+                  type="submit"
+                  variant="contained"
+                  disabled={
+                    !canAssignDriver ||
+                    !selectedDriverId ||
+                    selectedDriverId === 0 ||
+                    assignDriverMutation.isPending
+                  }
+                >
+                  {t('orders.assign')}
+                </Button>
+              </form>
+            </FormProvider>
           </div>
         </section>
 
-        {isTrackable && address?.lat != null && address?.lng != null ? (
-          <section className="mt-5 overflow-hidden rounded-xl border border-border bg-card">
-            <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
-              <Typography variant="subtitle2" component="h2">
-                {t('orders.liveTracking')}
-              </Typography>
-              <span className="relative flex h-2.5 w-2.5 shrink-0" aria-hidden>
-                <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 motion-safe:animate-ping" />
-                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
-              </span>
+        <Section title={t('orders.scheduledDelivery')}>
+          {order.driver ? (
+            <ScheduledDeliveryForm
+              orderId={order.id}
+              queryId={id}
+              status={order.status}
+              scheduledDeliveryAt={order.scheduled_delivery_at}
+            />
+          ) : (
+            <div className="space-y-1">
+              {scheduledLabel ? (
+                <p className="text-sm font-medium tabular-nums text-foreground">{scheduledLabel}</p>
+              ) : null}
+              <p className="text-sm text-muted-foreground">{t('orders.asapScheduleOnAssign')}</p>
             </div>
+          )}
+        </Section>
+
+        <Section title={t('orders.orderInformation')}>
+          <Fields>
+            <Field label={t('orders.orderCode')} value={order.order_code} />
+            <Field
+              label={t('orders.cartType')}
+              value={<span className="capitalize">{order.cart_type}</span>}
+            />
+            <Field label={t('orders.deliveryChoice')} value={choiceLabel} />
+            <Field
+              label={t('orders.isPaid')}
+              value={order.is_paid ? t('common.yes') : t('common.no')}
+            />
+            <Field label={t('orders.totalQuantity')} value={order.total_quantity} />
+            <Field label={t('orders.assignedBy')} value={order.assigned_by || '—'} />
+            <Field label={t('orders.createdAt')} value={formatDate(order.created_at)} />
+          </Fields>
+        </Section>
+
+        <Section title={t('orders.customer')}>
+          <Fields>
+            <Field label={t('orders.name')} value={order.user?.name || '—'} />
+            <Field
+              label={t('orders.phone')}
+              value={
+                order.user?.phone ? (
+                  <a href={`tel:${order.user.phone}`} className="hover:underline">
+                    {order.user.phone}
+                  </a>
+                ) : (
+                  '—'
+                )
+              }
+            />
+            <Field
+              label={t('orders.email')}
+              value={
+                order.user?.email ? (
+                  <a href={`mailto:${order.user.email}`} className="hover:underline">
+                    {order.user.email}
+                  </a>
+                ) : (
+                  '—'
+                )
+              }
+            />
+            <Field label={t('orders.memberSince')} value={formatDate(order.user?.created_at)} />
+            {order.user?.affiliate?.is_affiliate ? (
+              <Field label={t('orders.affiliateId')} value={order.user.affiliate.affiliate_id} />
+            ) : null}
+          </Fields>
+        </Section>
+
+        {address ? (
+          <Section
+            title={t('orders.deliveryAddress')}
+            action={
+              mapHref ? (
+                <a
+                  href={mapHref}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-sm font-medium text-primary hover:underline"
+                >
+                  {t('orders.openInMaps')}
+                </a>
+              ) : undefined
+            }
+          >
+            <Fields columns="sm:grid-cols-2 lg:grid-cols-3">
+              <Field label={t('orders.label')} value={address.label || '—'} />
+              <Field label={t('orders.area')} value={address.area || '—'} />
+              <Field label={t('orders.streetName')} value={address.street_name || '—'} />
+              <Field label={t('orders.buildingNumber')} value={address.building_number || '—'} />
+              <Field label={t('orders.floorApartment')} value={address.floor_apartment || '—'} />
+              <Field label={t('orders.nearestLandmark')} value={address.nearest_landmark || '—'} />
+              <Field
+                label={t('orders.contactPhone')}
+                value={
+                  address.contact_phone ? (
+                    <a href={`tel:${address.contact_phone}`} className="hover:underline">
+                      {address.contact_phone}
+                    </a>
+                  ) : (
+                    '—'
+                  )
+                }
+              />
+            </Fields>
+          </Section>
+        ) : null}
+
+        {isTrackable && address?.lat != null && address?.lng != null ? (
+          <Section title={t('orders.liveTracking')}>
             <OrderTrackingMap
               destinationLat={Number(address.lat)}
               destinationLng={Number(address.lng)}
@@ -644,305 +631,173 @@ export default function DetailsPage() {
               driverName={order.driver?.name}
               height="420px"
             />
-          </section>
+          </Section>
         ) : null}
 
-        <div className="mt-5 grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_22rem]">
-          <div className="order-2 min-w-0 space-y-5 lg:order-1">
-            <Panel
-              title={t('orders.orderItems')}
-              extra={
-                order.items?.length ? (
-                  <span className="text-xs tabular-nums text-muted-foreground">
-                    {t('orders.itemsCountBadge', { count: order.items.length })}
-                  </span>
-                ) : undefined
-              }
-            >
-              <div className="space-y-3 py-3">
-                {!order.items?.length ? (
-                  <Typography variant="body2" className="py-8 text-center text-muted-foreground">
-                    {t('orders.noOrderItems')}
-                  </Typography>
-                ) : (
-                  order.items.map((item, index) => (
-                    <OrderLineItemCard
-                      key={item.id}
-                      item={item}
-                      index={index}
-                      t={t}
-                      statusTone={statusColors}
-                      getStatusLabel={(s) => getOrderStatusLabel(s, t, undefined)}
-                      onItemStatusChange={handleChangeItemStatus}
-                      itemStatusPending={changeItemStatusMutation.isPending}
-                    />
-                  ))
-                )}
-              </div>
-            </Panel>
+        <Section
+          title={t('orders.orderItems')}
+          action={
+            order.items?.length ? (
+              <span className="text-xs text-muted-foreground">
+                {t('orders.itemsCountBadge', { count: order.items.length })}
+              </span>
+            ) : undefined
+          }
+        >
+          {!order.items?.length ? (
+            <p className="px-5 py-10 text-center text-sm text-muted-foreground">
+              {t('orders.noOrderItems')}
+            </p>
+          ) : (
+            order.items.map((item, index) => (
+              <OrderLineItemCard
+                key={item.id}
+                item={item}
+                index={index}
+                t={t}
+                statusTone={statusColors}
+                getStatusLabel={(s) => getOrderStatusLabel(s, t, undefined)}
+                onItemStatusChange={handleChangeItemStatus}
+                itemStatusPending={changeItemStatusMutation.isPending}
+              />
+            ))
+          )}
+        </Section>
 
-            <Panel title={t('orders.pricing')}>
-              <div className="py-2">
-                <MoneyLine
-                  label={t('orders.subtotal')}
-                  value={formatMoneyLine(order.subtotal_formatted, order.subtotal)}
-                />
-                <MoneyLine
-                  label={t('orders.deliveryPrice')}
-                  value={formatMoneyLine(order.delivery_price_formatted, order.delivery_price)}
-                />
-                {order.total_with_delivery != null &&
-                Number(order.total_with_delivery) !== Number(order.total) ? (
-                  <MoneyLine
-                    label={t('orders.totalWithDelivery')}
-                    value={formatMoneyLine(order.total_formatted, order.total_with_delivery)}
-                  />
-                ) : null}
-                <MoneyLine
-                  label={t('orders.basketDiscount')}
-                  value={formatMoneyLine(order.basket_discount_formatted, order.basket_discount)}
-                />
-                {order.coupon_discount != null && order.coupon_discount !== 0 ? (
-                  <MoneyLine
-                    label={t('orders.couponDiscount')}
-                    value={String(order.coupon_discount)}
-                  />
-                ) : null}
-                {order.coupon_discount_from_points != null &&
-                order.coupon_discount_from_points !== '0' &&
-                order.coupon_discount_from_points !== '0.00' ? (
-                  <MoneyLine
-                    label={t('orders.couponDiscountFromPoints')}
-                    value={String(order.coupon_discount_from_points)}
-                  />
-                ) : null}
-                {order.free_delivery_from_points != null &&
-                order.free_delivery_from_points !== 0 ? (
-                  <MoneyLine
-                    label={t('orders.freeDeliveryFromPoints')}
-                    value={String(order.free_delivery_from_points)}
-                  />
-                ) : null}
-                <MoneyLine label={t('orders.total')} value={totalLabel} emphasize />
-              </div>
-            </Panel>
-          </div>
+        <Section title={t('orders.pricing')}>
+          <MoneyLine
+            label={t('orders.subtotal')}
+            value={formatMoneyLine(order.subtotal_formatted, order.subtotal)}
+          />
+          <MoneyLine
+            label={t('orders.deliveryPrice')}
+            value={formatMoneyLine(order.delivery_price_formatted, order.delivery_price)}
+          />
+          {order.total_with_delivery != null &&
+          Number(order.total_with_delivery) !== Number(order.total) ? (
+            <MoneyLine
+              label={t('orders.totalWithDelivery')}
+              value={formatMoneyLine(order.total_formatted, order.total_with_delivery)}
+            />
+          ) : null}
+          <MoneyLine
+            label={t('orders.basketDiscount')}
+            value={formatMoneyLine(order.basket_discount_formatted, order.basket_discount)}
+          />
+          {order.coupon_discount != null && order.coupon_discount !== 0 ? (
+            <MoneyLine label={t('orders.couponDiscount')} value={String(order.coupon_discount)} />
+          ) : null}
+          {order.coupon_discount_from_points != null &&
+          order.coupon_discount_from_points !== '0' &&
+          order.coupon_discount_from_points !== '0.00' ? (
+            <MoneyLine
+              label={t('orders.couponDiscountFromPoints')}
+              value={String(order.coupon_discount_from_points)}
+            />
+          ) : null}
+          {order.free_delivery_from_points != null && order.free_delivery_from_points !== 0 ? (
+            <MoneyLine
+              label={t('orders.freeDeliveryFromPoints')}
+              value={String(order.free_delivery_from_points)}
+            />
+          ) : null}
+          <MoneyLine label={t('orders.total')} value={totalLabel} emphasize />
+        </Section>
 
-          <aside className="order-1 space-y-5 lg:order-2">
-            <Panel title={t('orders.orderInformation')}>
-              <dl>
-                <Fact
-                  label={t('orders.cartType')}
-                  value={<span className="capitalize">{order.cart_type}</span>}
-                />
-                <Fact label={t('orders.deliveryChoice')} value={choiceLabel} />
-                <Fact label={t('orders.totalQuantity')} value={order.total_quantity} />
-                <Fact
-                  label={t('orders.assignedBy')}
-                  value={<span className="capitalize">{order.assigned_by || '—'}</span>}
-                />
-                <Fact label={t('orders.createdAt')} value={formatDate(order.created_at)} />
-              </dl>
-              <div className="border-t border-border py-3">
-                {isAsapDelivery(order) && !scheduledLabel ? (
-                  <Typography variant="body2" className="text-muted-foreground">
-                    {t('orders.asapScheduleOnAssign')}
-                  </Typography>
-                ) : (
-                  <ScheduledDeliveryForm
-                    orderId={order.id}
-                    queryId={id}
-                    status={order.status}
-                    scheduledDeliveryAt={order.scheduled_delivery_at}
-                  />
-                )}
-              </div>
-            </Panel>
+        <Section title={t('orders.statusTimeline')}>
+          <Fields>
+            <Field label={t('orders.pendingAt')} value={formatDate(order.timestamps?.pending_at)} />
+            <Field
+              label={t('orders.preparingAt')}
+              value={formatDate(order.timestamps?.preparing_at)}
+            />
+            <Field
+              label={t('orders.outForDeliveryAt')}
+              value={formatDate(order.timestamps?.out_delivery_at)}
+            />
+            <Field
+              label={t('orders.deliveredAt')}
+              value={formatDate(order.timestamps?.delivered_at)}
+            />
+            <Field
+              label={t('orders.returnedByUserAt')}
+              value={formatDate(order.timestamps?.returned_by_user_at)}
+            />
+          </Fields>
+        </Section>
 
-            <Panel title={t('orders.customer')}>
-              <div className="py-3">
-                <Typography variant="subtitle1" className="font-semibold">
-                  {order.user?.name || '—'}
-                </Typography>
-                <div className="mt-2 space-y-1">
-                  {order.user?.phone ? (
-                    <a
-                      href={`tel:${order.user.phone}`}
-                      className="block text-sm text-foreground hover:underline"
-                    >
-                      {order.user.phone}
-                    </a>
-                  ) : (
-                    <Typography variant="body2" className="text-muted-foreground">
-                      —
-                    </Typography>
-                  )}
-                  {order.user?.email ? (
-                    <a
-                      href={`mailto:${order.user.email}`}
-                      className="block truncate text-sm text-muted-foreground hover:text-foreground hover:underline"
-                    >
-                      {order.user.email}
-                    </a>
-                  ) : null}
-                </div>
-              </div>
-              <dl className="border-t border-border">
-                <Fact label={t('orders.memberSince')} value={formatDate(order.user?.created_at)} />
-                {order.user?.affiliate?.is_affiliate ? (
-                  <Fact label={t('orders.affiliateId')} value={order.user.affiliate.affiliate_id} />
-                ) : null}
-              </dl>
-            </Panel>
-
-            {address ? (
-              <Panel
-                title={t('orders.deliveryAddress')}
-                extra={
-                  mapHref ? (
-                    <a
-                      href={mapHref}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-xs font-medium text-primary hover:underline"
-                    >
-                      {t('orders.openInMaps')}
-                    </a>
-                  ) : undefined
-                }
-              >
-                <dl>
-                  <Fact label={t('orders.label')} value={address.label || '—'} />
-                  <Fact label={t('orders.area')} value={address.area || '—'} />
-                  <Fact label={t('orders.streetName')} value={address.street_name || '—'} />
-                  <Fact label={t('orders.buildingNumber')} value={address.building_number || '—'} />
-                  <Fact label={t('orders.floorApartment')} value={address.floor_apartment || '—'} />
-                  <Fact
-                    label={t('orders.nearestLandmark')}
-                    value={address.nearest_landmark || '—'}
-                  />
-                  <Fact
-                    label={t('orders.contactPhone')}
-                    value={
-                      address.contact_phone ? (
-                        <a href={`tel:${address.contact_phone}`} className="hover:underline">
-                          {address.contact_phone}
-                        </a>
-                      ) : (
-                        '—'
-                      )
-                    }
-                  />
-                </dl>
-              </Panel>
-            ) : null}
-
-            {order.driver ? (
-              <Panel title={t('orders.driver')}>
-                <div className="flex items-center gap-3 py-3">
-                  {driverPhoto ? (
-                    <img src={driverPhoto} alt="" className="h-11 w-11 rounded-full object-cover" />
-                  ) : (
-                    <span className="flex h-11 w-11 items-center justify-center rounded-full bg-muted text-sm font-semibold text-foreground">
-                      {(order.driver.name || '?').slice(0, 1)}
-                    </span>
-                  )}
-                  <div className="min-w-0">
-                    <Typography variant="subtitle2" className="truncate">
-                      {order.driver.name}
-                    </Typography>
-                    <a
-                      href={`tel:${order.driver.phone}`}
-                      className="text-sm text-muted-foreground hover:text-foreground hover:underline"
-                    >
-                      {order.driver.phone}
-                    </a>
-                  </div>
-                </div>
-                <dl className="border-t border-border">
-                  <Fact
-                    label={t('orders.status')}
-                    value={<span className="capitalize">{order.driver.status}</span>}
-                  />
-                  <Fact label={t('orders.averageRating')} value={order.driver.average_rating} />
-                  <Fact label={t('orders.totalOrders')} value={order.driver.total_orders} />
-                  <Fact label={t('orders.completedOrders')} value={order.driver.completed_orders} />
-                  <Fact label={t('orders.totalEarnings')} value={order.driver.total_earnings} />
-                  <Fact label={t('orders.ratePerOrder')} value={order.driver.rate_per_order} />
-                </dl>
-              </Panel>
-            ) : null}
-
+        {order.affiliate || order.driver ? (
+          <>
             {order.affiliate ? (
-              <Panel title={t('orders.affiliate')}>
-                <dl>
-                  <Fact label={t('orders.rate')} value={order.affiliate.affiliate_rate} />
-                  <Fact label={t('orders.source')} value={order.affiliate.affiliate_source} />
-                  <Fact
+              <Section title={t('orders.affiliate')}>
+                <Fields>
+                  <Field label={t('orders.rate')} value={order.affiliate.affiliate_rate} />
+                  <Field label={t('orders.source')} value={order.affiliate.affiliate_source} />
+                  <Field
                     label={t('orders.commission')}
                     value={order.affiliate.affiliate_commission}
                   />
                   {order.affiliate.affiliate_commission_type ? (
-                    <Fact
+                    <Field
                       label={t('orders.affiliateCommissionType')}
                       value={order.affiliate.affiliate_commission_type}
                     />
                   ) : null}
                   {order.affiliate.affiliate_fixed_commission != null &&
                   order.affiliate.affiliate_fixed_commission !== '' ? (
-                    <Fact
+                    <Field
                       label={t('orders.affiliateFixedCommission')}
                       value={String(order.affiliate.affiliate_fixed_commission)}
                     />
                   ) : null}
                   {order.affiliate.affiliate_commission_amount != null ? (
-                    <Fact
+                    <Field
                       label={t('orders.affiliateCommissionAmount')}
                       value={order.affiliate.affiliate_commission_amount}
                     />
                   ) : null}
-                </dl>
-              </Panel>
+                </Fields>
+              </Section>
             ) : null}
 
-            <Panel title={t('orders.statusTimeline')}>
-              <ol className="list-none py-3">
-                {timelineSteps.map((step, index) => {
-                  const done = Boolean(step.at);
-                  const current = step.status === normalizedOrderStatus;
-                  const last = index === timelineSteps.length - 1;
-                  return (
-                    <li key={step.status} className="flex gap-3">
-                      <div className="flex w-4 shrink-0 flex-col items-center">
-                        <span
-                          className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${
-                            current
-                              ? 'bg-primary ring-4 ring-primary/20'
-                              : done
-                                ? 'bg-primary'
-                                : 'border border-border bg-background'
-                          }`}
-                        />
-                        {!last ? <span className="mt-1 w-px flex-1 bg-border" /> : null}
-                      </div>
-                      <div className={last ? 'min-w-0' : 'min-w-0 pb-4'}>
-                        <Typography
-                          variant="body2"
-                          className={current ? 'font-semibold text-foreground' : 'font-medium'}
-                        >
-                          {getOrderStatusLabel(step.status, t)}
-                        </Typography>
-                        <Typography variant="caption" className="text-muted-foreground">
-                          {formatDate(step.at)}
-                        </Typography>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ol>
-            </Panel>
-          </aside>
-        </div>
+            {order.driver ? (
+              <Section title={t('orders.driver')}>
+                <div className="mb-4 flex items-center gap-3">
+                  {driverPhoto ? (
+                    <img src={driverPhoto} alt="" className="h-10 w-10 rounded-full object-cover" />
+                  ) : (
+                    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-sm font-semibold">
+                      {(order.driver.name || '?').slice(0, 1)}
+                    </span>
+                  )}
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-semibold">{order.driver.name}</div>
+                    <a
+                      href={`tel:${order.driver.phone}`}
+                      className="text-sm text-muted-foreground hover:underline"
+                    >
+                      {order.driver.phone}
+                    </a>
+                  </div>
+                </div>
+                <Fields>
+                  <Field
+                    label={t('orders.status')}
+                    value={<span className="capitalize">{order.driver.status}</span>}
+                  />
+                  <Field label={t('orders.averageRating')} value={order.driver.average_rating} />
+                  <Field label={t('orders.totalOrders')} value={order.driver.total_orders} />
+                  <Field
+                    label={t('orders.completedOrders')}
+                    value={order.driver.completed_orders}
+                  />
+                  <Field label={t('orders.totalEarnings')} value={order.driver.total_earnings} />
+                  <Field label={t('orders.ratePerOrder')} value={order.driver.rate_per_order} />
+                </Fields>
+              </Section>
+            ) : null}
+          </>
+        ) : null}
       </Box>
     </>
   );
