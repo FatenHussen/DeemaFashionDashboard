@@ -17,6 +17,11 @@ import {
   type IconFormValues,
 } from '@/pages/dashboard/icons/validation/icon.validation';
 import { iconArtworkSrc, iconPreviewUrl, iconImageWasReplaced } from '@/pages/dashboard/icons/utils/icon-artwork';
+import {
+  fileFromIconDataUrl,
+  isIconDataUrl,
+  snapshotIconFile,
+} from '@/pages/dashboard/icons/utils/icon-upload-file';
 
 import { CONFIG } from 'src/global-config';
 import { Box, Input, Typography } from 'src/shared/ui';
@@ -53,18 +58,6 @@ function savedIconImage(body: unknown): string | null {
   return typeof saved === 'string' && saved.trim() ? saved.trim() : null;
 }
 
-/** Keep the bytes even if the file input is cleared before the request is built. */
-function holdIconFile(file: File): File {
-  try {
-    return new File([file], file.name || 'icon.webp', {
-      type: file.type,
-      lastModified: file.lastModified,
-    });
-  } catch {
-    return file;
-  }
-}
-
 export default function CreatePage() {
   const { t } = useTranslation('table');
   const { id } = useParams<{ id?: string }>();
@@ -74,6 +67,9 @@ export default function CreatePage() {
   const [fileInputKey, setFileInputKey] = useState(0);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const pickedFileRef = useRef<File | null>(null);
+  const pickedDataUrlRef = useRef<string | null>(null);
+  const pickedNameRef = useRef('');
+  const snapshotRef = useRef<Promise<File | null> | null>(null);
   const baselineImageRef = useRef('');
   const previewTokenRef = useRef(0);
 
@@ -131,7 +127,13 @@ export default function CreatePage() {
     const token = ++previewTokenRef.current;
     const reader = new FileReader();
     reader.onloadend = () => {
-      if (token === previewTokenRef.current) setPreviewImage(reader.result as string);
+      const url = String(reader.result ?? '');
+      if (token !== previewTokenRef.current) return;
+      if (isIconDataUrl(url)) {
+        pickedDataUrlRef.current = url;
+        pickedNameRef.current = imageFile.name || pickedNameRef.current;
+      }
+      setPreviewImage(url);
     };
     reader.readAsDataURL(imageFile);
     return () => {
@@ -139,10 +141,49 @@ export default function CreatePage() {
     };
   }, [imageFile]);
 
-  const takeSelectedFile = () => {
+  const rememberFile = (file: File | null) => {
+    if (!(file instanceof File) || file.size <= 0) {
+      pickedFileRef.current = null;
+      pickedDataUrlRef.current = null;
+      pickedNameRef.current = '';
+      snapshotRef.current = null;
+      return;
+    }
+    pickedNameRef.current = file.name || 'icon.webp';
+    snapshotRef.current = snapshotIconFile(file).then((snapshot) => {
+      if (snapshot) pickedFileRef.current = snapshot;
+      return snapshot;
+    });
+  };
+
+  const takeSelectedFile = async (formValue: unknown) => {
     const fromInput = fileInputRef.current?.files?.[0];
-    if (fromInput instanceof File) pickedFileRef.current = holdIconFile(fromInput);
-    return pickedFileRef.current instanceof File ? pickedFileRef.current : null;
+    if (fromInput instanceof File && fromInput.size > 0) rememberFile(fromInput);
+    if (snapshotRef.current) {
+      const snapshot = await snapshotRef.current;
+      if (snapshot && snapshot.size > 0) return snapshot;
+    }
+    if (pickedFileRef.current instanceof File && pickedFileRef.current.size > 0) {
+      return pickedFileRef.current;
+    }
+    if (formValue instanceof File && formValue.size > 0) {
+      const snapshot = await snapshotIconFile(formValue);
+      if (snapshot) {
+        pickedFileRef.current = snapshot;
+        return snapshot;
+      }
+    }
+    if (isIconDataUrl(pickedDataUrlRef.current)) {
+      const fromPreview = await fileFromIconDataUrl(
+        pickedDataUrlRef.current,
+        pickedNameRef.current || 'icon.webp'
+      );
+      if (fromPreview) {
+        pickedFileRef.current = fromPreview;
+        return fromPreview;
+      }
+    }
+    return null;
   };
 
   const showSavedPreview = (url: string | null) => {
@@ -169,7 +210,7 @@ export default function CreatePage() {
 
   const onSubmit = async (data: IconFormValues) => {
     clearErrors();
-    const image = takeSelectedFile();
+    const image = await takeSelectedFile(data.image);
     if (image && image.size > ICON_IMAGE_MAX_BYTES) {
       const message = t('form.iconImageTooLarge');
       setError('image', { type: 'server', message });
@@ -194,6 +235,9 @@ export default function CreatePage() {
         }
         showSavedPreview(nextImage);
         pickedFileRef.current = null;
+        pickedDataUrlRef.current = null;
+        pickedNameRef.current = '';
+        snapshotRef.current = null;
         baselineImageRef.current = nextImage || previousImage;
         setValue('image', null, { shouldDirty: false });
         setFileInputKey((key) => key + 1);
@@ -216,12 +260,22 @@ export default function CreatePage() {
       }
     } catch (err: unknown) {
       applyServerFieldErrors(err);
+      if (err instanceof Error && err.message === 'ICON_IMAGE_EMPTY') {
+        const message = t('form.iconImageNotSaved');
+        setError('image', { type: 'server', message });
+        toast.error(message);
+      }
       console.error(err);
     }
   };
 
+  const captureLiveFile = () => {
+    const fromInput = fileInputRef.current?.files?.[0];
+    if (fromInput instanceof File && fromInput.size > 0) rememberFile(fromInput);
+  };
+
   const submitForm = (event?: React.BaseSyntheticEvent) => {
-    takeSelectedFile();
+    captureLiveFile();
     return handleSubmit(onSubmit)(event);
   };
 
@@ -237,8 +291,8 @@ export default function CreatePage() {
       <CreateFormLayout
         methods={methods as any}
         onSubmit={submitForm}
-        onSubmitButtonPointerDown={takeSelectedFile}
-        onSubmitButtonClick={takeSelectedFile}
+        onSubmitButtonPointerDown={captureLiveFile}
+        onSubmitButtonClick={captureLiveFile}
         onCancel={() => navigate('/icons')}
         isSubmitting={createMutation.isPending || updateMutation.isPending}
         errorMessage={createMutation.error?.message || updateMutation.error?.message || null}
@@ -282,7 +336,8 @@ export default function CreatePage() {
                     accept=".jpg,.jpeg,.png,.gif,.svg,.webp,image/jpeg,image/png,image/gif,image/svg+xml,image/webp"
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                       const file = e.target.files?.[0] ?? null;
-                      pickedFileRef.current = file instanceof File ? holdIconFile(file) : null;
+                      pickedFileRef.current = file instanceof File && file.size > 0 ? file : null;
+                      rememberFile(file instanceof File ? file : null);
                       onChange(file);
                     }}
                     error={!!error}

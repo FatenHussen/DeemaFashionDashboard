@@ -1,6 +1,13 @@
 import type { IconItem, IconListResponse, IconCreatePayload, IconDetailsResponse } from '../types/icon.types';
 
-import { apiRoutes, putMultipart, axiosInstance, postMultipart } from '@/api';
+import i18n from '@/lib/i18n';
+import { toast } from 'react-toastify';
+import { paths } from '@/routes/paths';
+import { CONFIG } from '@/global-config';
+import { apiRoutes, axiosInstance } from '@/api';
+import { ApiValidationError } from '@/api/errors';
+import { getActiveLanguageCode } from '@/lib/language-code';
+import { JWT_STORAGE_KEY } from '@/pages/auth/context/jwt/constant';
 
 import { iconUrlFrom, pickIconFileUrl } from '../utils/icon-artwork';
 
@@ -60,6 +67,20 @@ function unwrapPagination(raw: unknown, fallbackPerPage: number, itemCount: numb
   };
 }
 
+const ICON_MIME_BY_EXT: Record<string, string> = {
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  gif: 'image/gif',
+  svg: 'image/svg+xml',
+  webp: 'image/webp',
+};
+
+function iconMime(filename: string, fallbackType: string): string {
+  const ext = filename.split('.').pop()?.toLowerCase() ?? '';
+  return ICON_MIME_BY_EXT[ext] || (fallbackType.startsWith('image/') ? fallbackType : fallbackType || 'application/octet-stream');
+}
+
 function readFileAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -69,16 +90,104 @@ function readFileAsDataUrl(file: File): Promise<string> {
   });
 }
 
-/** File, original filename, and the same bytes as a data URL. Omit all three when there is no new file. */
+function bytesToDataUrl(bytes: ArrayBuffer, mime: string): string {
+  const view = new Uint8Array(bytes);
+  let binary = '';
+  const chunkSize = 8192;
+  for (let index = 0; index < view.length; index += chunkSize) {
+    binary += String.fromCharCode(...view.subarray(index, index + chunkSize));
+  }
+  return `data:${mime};base64,${btoa(binary)}`;
+}
+
+/**
+ * Read the bytes first, then send the file, its original name, and the same bytes as a data URL.
+ * A cloned or detached File can make the multipart part empty while the text fields still save.
+ */
 async function appendIconImage(formData: FormData, file: File) {
   const filename = file.name || 'icon.webp';
-  formData.append('image', file, filename);
-  formData.append('image_filename', filename);
-  // Windows often labels a .webp as application/octet-stream. Send that data URL too.
-  const dataUrl = await readFileAsDataUrl(file);
-  if (dataUrl.includes(';base64,')) {
-    formData.append('image_base64', dataUrl);
+  const bytes = await file.arrayBuffer();
+  if (!bytes.byteLength) {
+    throw new Error('ICON_IMAGE_EMPTY');
   }
+  const type = iconMime(filename, file.type);
+  const upload = new File([bytes], filename, { type, lastModified: file.lastModified });
+  formData.append('image', upload, filename);
+  formData.append('image_filename', filename);
+  const dataUrl = await readFileAsDataUrl(upload);
+  // Windows often labels a .webp as application/octet-stream. Send that data URL too.
+  formData.append('image_base64', dataUrl.includes(';base64,') ? dataUrl : bytesToDataUrl(bytes, type));
+}
+
+function iconApiUrl(path: string): string {
+  const base = String(CONFIG.serverUrl ?? '').replace(/\/$/, '');
+  return `${base}${path.startsWith('/') ? path : `/${path}`}`;
+}
+
+function validationMessage(errors: unknown): string | null {
+  if (!errors || typeof errors !== 'object') return null;
+  const lines: string[] = [];
+  for (const value of Object.values(errors as Record<string, unknown>)) {
+    const items = Array.isArray(value) ? value : [value];
+    for (const item of items) {
+      if (typeof item === 'string' && item.trim()) lines.push(item.trim());
+    }
+  }
+  return lines.length ? [...new Set(lines)].join(' · ') : null;
+}
+
+function fieldErrorBag(errors: unknown): Record<string, string[]> | null {
+  if (!errors || typeof errors !== 'object' || Array.isArray(errors)) return null;
+  const result: Record<string, string[]> = {};
+  for (const [field, value] of Object.entries(errors as Record<string, unknown>)) {
+    const messages = (Array.isArray(value) ? value : [value]).filter(
+      (item): item is string => typeof item === 'string' && item.trim() !== ''
+    );
+    if (messages.length) result[field] = messages;
+  }
+  return Object.keys(result).length ? result : null;
+}
+
+/** Browser `fetch` sets the multipart boundary. Axios must not set Content-Type on this body. */
+async function postIconForm(path: string, formData: FormData): Promise<unknown> {
+  const headers = new Headers();
+  const token = sessionStorage.getItem(JWT_STORAGE_KEY);
+  if (token) headers.set('Authorization', `Bearer ${token}`);
+  headers.set('Accept', 'application/json');
+  headers.set('Accept-Language', getActiveLanguageCode());
+
+  let response: Response;
+  try {
+    response = await fetch(iconApiUrl(path), { method: 'POST', headers, body: formData });
+  } catch (error) {
+    const message = i18n.t('networkError', { ns: 'common' });
+    toast.error(message);
+    throw Object.assign(new Error(message), { cause: error });
+  }
+
+  const body = await response.json().catch(() => null);
+  if (response.ok) return body;
+
+  const record = body && typeof body === 'object' ? (body as { message?: string; errors?: unknown }) : null;
+  const message =
+    validationMessage(record?.errors) ||
+    (typeof record?.message === 'string' && record.message.trim() ? record.message : '') ||
+    i18n.t('genericError', { ns: 'common' });
+
+  if (response.status === 401) {
+    sessionStorage.removeItem(JWT_STORAGE_KEY);
+    sessionStorage.removeItem('user_data');
+    if (!window.location.pathname.includes('/auth/')) {
+      window.location.replace(paths.auth.jwt.signIn);
+    }
+    toast.error(message);
+    throw new Error(message);
+  }
+
+  toast.error(message);
+  const fields = response.status === 422 ? fieldErrorBag(record?.errors) : null;
+  if (fields) throw new ApiValidationError(message, fields);
+  throw new Error(message);
 }
 
 async function appendIconFields(formData: FormData, data: Partial<IconCreatePayload>) {
@@ -140,18 +249,17 @@ export const _IconApi = {
   createIcon: async (data: IconCreatePayload): Promise<any> => {
     const formData = new FormData();
     await appendIconFields(formData, data);
-    // Do not set Content-Type — the browser must add the multipart boundary.
-    const response = await postMultipart(apiRoutes.icon.create, formData);
-    return withNormalizedIcon(response.data);
+    const body = await postIconForm(apiRoutes.icon.create, formData);
+    return withNormalizedIcon(body);
   },
 
   updateIcon: async (id: number | string, data: Partial<IconCreatePayload>): Promise<any> => {
     const formData = new FormData();
     await appendIconFields(formData, data);
     // PHP only parses files on POST. `_method=PUT` still hits the update route.
-    // Do not set Content-Type — the browser must add the multipart boundary.
-    const response = await putMultipart(apiRoutes.icon.update(id), formData);
-    return withNormalizedIcon(response.data);
+    formData.append('_method', 'PUT');
+    const body = await postIconForm(apiRoutes.icon.update(id), formData);
+    return withNormalizedIcon(body);
   },
 
   deleteIcon: async (id: number | string): Promise<any> => {
