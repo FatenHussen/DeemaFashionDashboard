@@ -73,14 +73,18 @@ export default function Page() {
     });
   }, [setSearchParams]);
 
+  /** Avoid deps on setPageOne/setSearchParams — they change after URL updates and would re-run this effect and reset page. */
+  const setPageOneRef = useRef(setPageOne);
+  setPageOneRef.current = setPageOne;
+
   const skipFirstFilterEffect = useRef(true);
   useEffect(() => {
     if (skipFirstFilterEffect.current) {
       skipFirstFilterEffect.current = false;
       return;
     }
-    setPageOne();
-  }, [search, isActiveFilter, categoryFilter, subCategoryFilter, countryFilter, dateFrom, dateTo, setPageOne]);
+    setPageOneRef.current();
+  }, [search, isActiveFilter, categoryFilter, subCategoryFilter, countryFilter, dateFrom, dateTo]);
 
   const { data: categoriesResp } = useQuery({
     queryKey: ['categories', 'brand-index-filter'],
@@ -283,6 +287,7 @@ export default function Page() {
         data={brandData}
         createPath={paths.dashboard.brand.create}
         hasDetails
+        detailsLink={`${paths.dashboard.brands}/details`}
         permissions={{
           create: hasPermission('create', 'brand'),
           update: hasPermission('update', 'brand'),

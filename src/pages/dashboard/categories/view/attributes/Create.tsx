@@ -6,8 +6,8 @@ import { useQuery } from '@tanstack/react-query';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useNavigate } from 'react-router';
 import { Iconify } from '@/shared/components/iconify';
-import { useMemo, useEffect, useCallback } from 'react';
 import { formatTranslated } from '@/utils/format-translated';
+import { useRef, useMemo, useEffect, useCallback } from 'react';
 import { useForm, useWatch, Controller, useFieldArray } from 'react-hook-form';
 import { _CategoryApi } from '@/pages/dashboard/categories/api/category.services';
 import { RHFInfiniteSelect } from '@/shared/components/hook-form/rhf-infinite-select';
@@ -34,6 +34,8 @@ import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout
 
 // ----------------------------------------------------------------------
 
+type SubmitAction = 'back' | 'createNew';
+
 function categoryListLabel(cat: Pick<CategoryData, 'name'>): string {
   return typeof cat.name === 'object' && cat.name !== null
     ? formatTranslated(cat.name as { en?: string; ar?: string })
@@ -51,6 +53,7 @@ export default function CreatePage() {
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
   const isEditMode = !!id;
+  const submitActionRef = useRef<SubmitAction>('back');
 
   const typeOptions = useMemo(
     () => [
@@ -187,11 +190,23 @@ export default function CreatePage() {
       if (isEditMode && id) {
         await updateCategoryAttributeMutation.mutateAsync({ id, data: payload });
         toast.success(t('form.categoryAttributeUpdatedSuccess'));
-        navigate('/categories/attributes');
+        if (submitActionRef.current === 'createNew') {
+          navigate('/categories/attributes/create');
+        } else {
+          navigate('/categories/attributes');
+        }
       } else {
         await createCategoryAttributeMutation.mutateAsync(payload);
         toast.success(t('form.categoryAttributeCreatedSuccess'));
-        navigate('/categories/attributes');
+        if (submitActionRef.current === 'createNew') {
+          // Keep category so consecutive attributes for the same root are faster.
+          reset({
+            ...defaultValues,
+            category_id: data.category_id,
+          });
+        } else {
+          navigate('/categories/attributes');
+        }
       }
     } catch (error: any) {
       console.error('Error saving category attribute:', error);
@@ -229,9 +244,19 @@ export default function CreatePage() {
         submitLabel={
           isEditMode ? t('form.updateCategoryAttributeSubmit') : t('form.createCategoryAttributeSubmit')
         }
+        secondarySubmitLabel={t('form.saveAndCreateNewAttribute')}
         submittingLabel={
           isEditMode ? t('form.updatingCategoryAttribute') : t('form.creatingCategoryAttribute')
         }
+        secondarySubmittingLabel={
+          isEditMode ? t('form.updatingCategoryAttribute') : t('form.creatingCategoryAttribute')
+        }
+        onSubmitButtonClick={() => {
+          submitActionRef.current = 'back';
+        }}
+        onSecondarySubmitButtonClick={() => {
+          submitActionRef.current = 'createNew';
+        }}
       >
         {/* ── Section: Configuration ── */}
         <Box className="rounded-2xl border border-border/50 bg-card/50 shadow-sm">
@@ -385,31 +410,18 @@ export default function CreatePage() {
         {attributeType !== 'color' && (
           <Box className="rounded-2xl border border-amber-500/25 bg-card/50 shadow-sm overflow-hidden">
             <Box className="border-b border-border/40 bg-gradient-to-r from-amber-500/[0.08] via-amber-500/[0.03] to-transparent px-6 py-5">
-              <Box className="flex flex-col gap-4">
-                <Box className="flex items-center gap-3">
-                  <Box className="h-9 w-9 rounded-xl bg-amber-500/15 border border-amber-500/25 flex items-center justify-center shrink-0">
-                    <Iconify icon="solar:list-bold" className="text-amber-600" width={18} />
-                  </Box>
-                  <Box className="min-w-0 flex-1">
-                    <Typography variant="subtitle1" className="font-semibold text-foreground leading-snug">
-                      {t('form.attributeValuesSection')}
-                    </Typography>
-                    <Typography variant="caption" className="text-muted-foreground mt-1 block">
-                      {t('form.attributeValuesSectionHint')}
-                    </Typography>
-                  </Box>
+              <Box className="flex items-center gap-3">
+                <Box className="h-9 w-9 rounded-xl bg-amber-500/15 border border-amber-500/25 flex items-center justify-center shrink-0">
+                  <Iconify icon="solar:list-bold" className="text-amber-600" width={18} />
                 </Box>
-                <Button
-                  type="button"
-                  variant="outlined"
-                  color="warning"
-                  size="small"
-                  onClick={() => append({ name: { en: '', ar: '' } })}
-                  className="w-full sm:w-auto sm:self-end inline-flex items-center justify-center gap-2"
-                >
-                  <Iconify icon="solar:add-circle-bold" width={18} height={18} />
-                  {t('form.addAttributeValue')}
-                </Button>
+                <Box className="min-w-0 flex-1">
+                  <Typography variant="subtitle1" className="font-semibold text-foreground leading-snug">
+                    {t('form.attributeValuesSection')}
+                  </Typography>
+                  <Typography variant="caption" className="text-muted-foreground mt-1 block">
+                    {t('form.attributeValuesSectionHint')}
+                  </Typography>
+                </Box>
               </Box>
             </Box>
             <Box className="p-6 space-y-4">
@@ -464,6 +476,17 @@ export default function CreatePage() {
                   </Box>
                 );
               })}
+              <Button
+                type="button"
+                variant="outlined"
+                color="warning"
+                size="small"
+                onClick={() => append({ name: { en: '', ar: '' } })}
+                className="w-full inline-flex items-center justify-center gap-2"
+              >
+                <Iconify icon="solar:add-circle-bold" width={18} height={18} />
+                {t('form.addAttributeValue')}
+              </Button>
             </Box>
           </Box>
         )}

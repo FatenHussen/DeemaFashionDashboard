@@ -314,31 +314,20 @@ export default function CreatePage() {
           </Box>
         </Box>
 
-        {/* ── Section: Preset values (value_options) ── Header kept visible: add-value control lives here */}
+        {/* ── Section: Preset values (value_options) ── */}
         <Box className="create-form-section-keep-header rounded-2xl border border-border/50 bg-card/50 shadow-sm">
-          <Box className="flex items-center justify-between gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-emerald-500/[0.06] via-emerald-500/[0.02] to-transparent flex-wrap">
-            <Box className="flex items-center gap-3 min-w-0">
-              <Box className="h-8 w-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
-                <Iconify icon="solar:list-check-bold" className="text-emerald-600" width={15} />
-              </Box>
-              <Box className="min-w-0">
-                <Typography variant="subtitle2" className="font-semibold text-foreground">
-                  {t('form.categoryDetailValueOptionsTitle')}
-                </Typography>
-                <Typography variant="caption" className="text-muted-foreground block">
-                  {t('form.categoryDetailValueOptionsDesc')}
-                </Typography>
-              </Box>
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-emerald-500/[0.06] via-emerald-500/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:list-check-bold" className="text-emerald-600" width={15} />
             </Box>
-            <Button
-              type="button"
-              variant="outlined"
-              size="small"
-              onClick={() => appendValueOption({ en: '', ar: '' })}
-            >
-              <Iconify icon="solar:add-circle-bold" width={16} className="mr-1" />
-              {t('form.addValueOption')}
-            </Button>
+            <Box className="min-w-0">
+              <Typography variant="subtitle2" className="font-semibold text-foreground">
+                {t('form.categoryDetailValueOptionsTitle')}
+              </Typography>
+              <Typography variant="caption" className="text-muted-foreground block">
+                {t('form.categoryDetailValueOptionsDesc')}
+              </Typography>
+            </Box>
           </Box>
           <Box className="p-6 space-y-4">
             {valueOptionFields.length === 0 ? (
@@ -392,6 +381,16 @@ export default function CreatePage() {
                 </Box>
               ))
             )}
+            <Button
+              type="button"
+              variant="outlined"
+              size="small"
+              onClick={() => appendValueOption({ en: '', ar: '' })}
+              className="w-full inline-flex items-center justify-center gap-2"
+            >
+              <Iconify icon="solar:add-circle-bold" width={16} />
+              {t('form.addValueOption')}
+            </Button>
           </Box>
         </Box>
       </CreateFormLayout>
