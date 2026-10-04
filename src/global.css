@@ -38,7 +38,7 @@
   --input: 203 213 225;
   --muted: 245 247 250;
   --muted-foreground: 51 65 85;
-  --primary: 194 120 0;
+  --primary: 199 32 164;
   --primary-foreground: 255 255 255;
   --popover: 255 255 255;
   --popover-foreground: 15 23 42;
@@ -49,8 +49,8 @@
   --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -1px rgba(0,0,0,0.05);
   --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.07), 0 4px 6px -2px rgba(0,0,0,0.04);
   --shadow-xl: 0 20px 25px -5px rgba(0,0,0,0.07), 0 10px 10px -5px rgba(0,0,0,0.03);
-  --shadow-primary-sm: 0 2px 8px rgba(194,120,0,0.18);
-  --shadow-primary-md: 0 4px 14px rgba(194,120,0,0.22);
+  --shadow-primary-sm: 0 2px 8px rgba(199,32,164,0.18);
+  --shadow-primary-md: 0 4px 14px rgba(199,32,164,0.22);
 
   /* Radius */
   --radius-sm: 6px;
@@ -70,7 +70,7 @@
   --input: 71 85 105;
   --muted: 22 30 44;
   --muted-foreground: 203 213 225;
-  --primary: 229 150 30;
+  --primary: 255 20 147;
   --primary-foreground: 255 255 255;
   --popover: 22 30 44;
   --popover-foreground: 241 245 249;
@@ -81,8 +81,8 @@
   --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.28), 0 2px 4px -1px rgba(0,0,0,0.18);
   --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.30), 0 4px 6px -2px rgba(0,0,0,0.20);
   --shadow-xl: 0 20px 25px -5px rgba(0,0,0,0.35), 0 10px 10px -5px rgba(0,0,0,0.25);
-  --shadow-primary-sm: 0 2px 8px rgba(194,120,0,0.28);
-  --shadow-primary-md: 0 4px 14px rgba(194,120,0,0.32);
+  --shadow-primary-sm: 0 2px 8px rgba(199,32,164,0.28);
+  --shadow-primary-md: 0 4px 14px rgba(199,32,164,0.32);
 }
 
 /** **************************************

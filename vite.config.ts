@@ -12,7 +12,7 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   // API host only (e.g. http://127.0.0.1:8000). The browser already requests `/api/...`;
   // if this value also ends with `/api`, the proxy forwards to `/api/api/...` and Laravel 404s.
-  const devProxyTarget = (env.VITE_DEV_PROXY_TARGET || 'https://tickdash.tickmartsy.com').replace(
+  const devProxyTarget = (env.VITE_DEV_PROXY_TARGET || 'http://127.0.0.1:8000').replace(
     /\/api\/?$/,
     ''
   );

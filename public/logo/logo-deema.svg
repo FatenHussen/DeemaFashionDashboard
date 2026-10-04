@@ -1,0 +1,16 @@
+<svg width="220" height="48" viewBox="0 0 220 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="24" cy="24" r="20" fill="url(#deema-brand)" />
+  <text x="24" y="31" font-size="22" font-weight="700" font-family="Public Sans, Arial, sans-serif" fill="#FFFFFF" text-anchor="middle">D</text>
+  <text x="56" y="30" font-size="22" font-weight="700" font-family="Public Sans, Arial, sans-serif" fill="url(#deema-wordmark)">Deema</text>
+  <text x="56" y="44" font-size="9" font-weight="600" font-family="Public Sans, Arial, sans-serif" fill="#6B2D5C" letter-spacing="2.5">FASHION</text>
+  <defs>
+    <linearGradient id="deema-brand" x1="4" y1="4" x2="44" y2="44" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#A020F0" />
+      <stop offset="1" stop-color="#FF1493" />
+    </linearGradient>
+    <linearGradient id="deema-wordmark" x1="56" y1="12" x2="160" y2="32" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#C720A4" />
+      <stop offset="1" stop-color="#FF1493" />
+    </linearGradient>
+  </defs>
+</svg>

@@ -18,7 +18,7 @@ const messaging = firebase.messaging();
 // Handle background messages (when the app is closed/minimized)
 messaging.onBackgroundMessage((payload) => {
   const { title, body, icon } = payload.notification ?? {};
-  self.registration.showNotification(title ?? 'Tikmool Admin', {
+  self.registration.showNotification(title ?? 'Deema Fashion Admin', {
     body: body ?? '',
     icon: icon ?? '/favicon.ico',
   });

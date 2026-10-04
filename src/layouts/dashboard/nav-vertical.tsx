@@ -47,7 +47,7 @@ export function NavVertical({
           {/* Logo — framed like a small “card” to anchor the rail */}
           <Box className="flex justify-center items-center px-4">
             <RouterLink href="/" className="block w-full max-w-[200px]">
-              <img src="/logo/logo.jpg" alt="Logo" className="h-16 w-full object-contain" />
+              <img src="/logo/logo-deema.svg" alt="Deema" className="h-16 w-full object-contain" />
             </RouterLink>
           </Box>
           <Box className="mt-4 mx-4 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
@@ -74,7 +74,7 @@ export function NavVertical({
       {slots?.topArea ?? (
         <Box className="flex justify-center px-2 py-4 relative z-10 shrink-0 border-b border-[var(--chrome-edge)]">
           <RouterLink href="/" className="block h-9 w-9">
-            <img src="/logo/logo.jpg" alt="Logo" className="h-full w-full object-contain" />
+            <img src="/logo/logo-deema.svg" alt="Deema" className="h-full w-full object-contain" />
           </RouterLink>
         </Box>
       )}

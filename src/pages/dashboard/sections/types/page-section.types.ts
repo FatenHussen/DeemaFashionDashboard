@@ -35,6 +35,10 @@ export interface PageSectionListItem {
   background_card_color?: string | null;
   background_crad_color?: string | null;
   filters?: Record<string, unknown> | null;
+  is_active?: boolean;
+  is_default?: boolean;
+  manual_model?: string | null;
+  api_method?: string | null;
   [key: string]: any;
 }
 
