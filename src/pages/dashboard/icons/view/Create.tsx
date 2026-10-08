@@ -12,11 +12,11 @@ import {
   useUpdateIcon,
   useFetchIconById,
 } from '@/pages/dashboard/icons/hooks/icon';
+import { iconArtworkSrc, iconPreviewUrl, iconImageWasReplaced } from '@/pages/dashboard/icons/utils/icon-artwork';
 import {
   IconCreateSchema,
   type IconFormValues,
 } from '@/pages/dashboard/icons/validation/icon.validation';
-import { iconArtworkSrc, iconPreviewUrl, iconImageWasReplaced } from '@/pages/dashboard/icons/utils/icon-artwork';
 
 import { CONFIG } from 'src/global-config';
 import { Box, Typography } from 'src/shared/ui';
