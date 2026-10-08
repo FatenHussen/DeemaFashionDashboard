@@ -7,6 +7,7 @@ import { useBoolean } from 'minimal-shared/hooks';
 import { useMemo, useState, useEffect, useCallback } from 'react';
 
 import { Box, Input, Modal } from 'src/shared/ui';
+import { usePermissions } from 'src/auth/hooks/use-permissions';
 import { Label } from 'src/shared/components/label';
 import { Iconify } from 'src/shared/components/iconify';
 import { Scrollbar } from 'src/shared/components/scrollbar';
@@ -27,6 +28,7 @@ const breakpoint = 'sm';
 export function Searchbar({ data: navItems = [], className, ...other }: SearchbarProps) {
   const { t: tTable } = useTranslation('table');
   const { t: tCommon } = useTranslation('common');
+  const { can, canAny } = usePermissions();
   const [isSmUp, setIsSmUp] = useState(false);
 
   useEffect(() => {
@@ -69,7 +71,14 @@ export function Searchbar({ data: navItems = [], className, ...other }: Searchba
     setSearchQuery(event.target.value);
   }, []);
 
-  const formattedNavItems = flattenNavSections(navItems);
+  const formattedNavItems = useMemo(
+    () =>
+      flattenNavSections(navItems, {
+        checkPermission: (permission) => (permission ? can(permission) : true),
+        checkPermissionAny: (list) => canAny(list),
+      }),
+    [navItems, can, canAny]
+  );
 
   const dataFiltered = useMemo(
     () =>

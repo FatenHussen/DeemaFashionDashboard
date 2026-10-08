@@ -1,12 +1,9 @@
 import type { NavSectionProps } from 'src/shared/components/nav-section';
+import type { NavItemDataProps } from 'src/shared/components/nav-section/types';
+
+import { canShowNavItem } from 'src/shared/components/nav-section/utils';
 
 // ----------------------------------------------------------------------
-
-export type NavItem = {
-  title: string;
-  path: string;
-  children?: NavItem[];
-};
 
 export type OutputItem = {
   title: string;
@@ -14,10 +11,30 @@ export type OutputItem = {
   group: string;
 };
 
-const flattenNavItems = (navItems: NavItem[], parentGroup?: string): OutputItem[] => {
+type PermissionCheckers = {
+  checkPermission?: (permission?: string) => boolean;
+  checkPermissionAny?: (permissions: string[]) => boolean;
+};
+
+const flattenNavItems = (
+  navItems: NavItemDataProps[],
+  parentGroup?: string,
+  checkers?: PermissionCheckers
+): OutputItem[] => {
   let flattenedItems: OutputItem[] = [];
 
   navItems.forEach((navItem) => {
+    if (
+      !canShowNavItem(
+        navItem,
+        undefined,
+        checkers?.checkPermission,
+        checkers?.checkPermissionAny
+      )
+    ) {
+      return;
+    }
+
     const currentGroup = parentGroup ? `${parentGroup}-${navItem.title}` : navItem.title;
     const groupArray = currentGroup.split('-');
 
@@ -28,15 +45,24 @@ const flattenNavItems = (navItems: NavItem[], parentGroup?: string): OutputItem[
     });
 
     if (navItem.children) {
-      flattenedItems = flattenedItems.concat(flattenNavItems(navItem.children, currentGroup));
+      flattenedItems = flattenedItems.concat(
+        flattenNavItems(navItem.children, currentGroup, checkers)
+      );
     }
   });
   return flattenedItems;
 };
 
-export function flattenNavSections(navSections: NavSectionProps['data']): OutputItem[] {
+export function flattenNavSections(
+  navSections: NavSectionProps['data'],
+  checkers?: PermissionCheckers
+): OutputItem[] {
   return navSections.flatMap((navSection) =>
-    flattenNavItems(navSection.items, typeof navSection.subheader === 'string' ? navSection.subheader : undefined)
+    flattenNavItems(
+      navSection.items,
+      typeof navSection.subheader === 'string' ? navSection.subheader : undefined,
+      checkers
+    )
   );
 }
 

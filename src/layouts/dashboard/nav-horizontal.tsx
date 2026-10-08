@@ -13,7 +13,6 @@ export type NavHorizontalProps = NavSectionProps & {
   layoutQuery?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   className?: string;
   style?: React.CSSProperties;
-  checkPermission?: (permission?: string) => boolean;
 };
 
 export function NavHorizontal({
@@ -21,6 +20,7 @@ export function NavHorizontal({
   className,
   checkPermissions,
   checkPermission,
+  checkPermissionAny,
   layoutQuery = 'md',
   style,
   ...other
@@ -53,6 +53,7 @@ export function NavHorizontal({
           data={data}
           checkPermissions={checkPermissions}
           checkPermission={checkPermission}
+          checkPermissionAny={checkPermissionAny}
           enabledRootRedirect
           {...other}
         />

@@ -24,7 +24,6 @@ type NavMobileProps = NavSectionProps & {
   };
   className?: string;
   style?: React.CSSProperties;
-  checkPermission?: (permission?: string) => boolean;
 };
 
 export function NavMobile({
@@ -35,6 +34,7 @@ export function NavMobile({
   className,
   checkPermissions,
   checkPermission,
+  checkPermissionAny,
   style,
   ...other
 }: NavMobileProps) {
@@ -72,6 +72,7 @@ export function NavMobile({
           data={data}
           checkPermissions={checkPermissions}
           checkPermission={checkPermission}
+          checkPermissionAny={checkPermissionAny}
           enabledRootRedirect
           className="px-4 flex-auto"
           {...other}

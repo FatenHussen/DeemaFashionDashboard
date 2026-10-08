@@ -139,11 +139,11 @@ export function NavList({
     return null;
   }
 
-  // Hidden item by permission
-  if (data.requiredPermissionAny && checkPermissionAny) {
-    if (!checkPermissionAny(data.requiredPermissionAny)) return null;
-  } else if (data.requiredPermission && checkPermission && !checkPermission(data.requiredPermission)) {
-    return null;
+  // Hidden item by permission (fail-closed when a gate is set)
+  if (data.requiredPermissionAny?.length) {
+    if (!checkPermissionAny || !checkPermissionAny(data.requiredPermissionAny)) return null;
+  } else if (data.requiredPermission) {
+    if (!checkPermission || !checkPermission(data.requiredPermission)) return null;
   }
 
   return (
