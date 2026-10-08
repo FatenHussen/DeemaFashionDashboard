@@ -8,7 +8,7 @@ import tailwindcss from '@tailwindcss/vite';
 
 const PORT = 8082;
 
-export default defineConfig(({ mode }) => {
+export default defineConfig(({ mode, command }) => {
   const env = loadEnv(mode, process.cwd(), '');
   // API host only (e.g. http://127.0.0.1:8000). The browser already requests `/api/...`;
   // if this value also ends with `/api`, the proxy forwards to `/api/api/...` and Laravel 404s.
@@ -28,15 +28,21 @@ export default defineConfig(({ mode }) => {
     tailwindcss(),
     checker({
       typescript: true,
-      eslint: {
-        useFlatConfig: true,
-        lintCommand: 'eslint "./src/**/*.{js,jsx,ts,tsx}"',
-        dev: { logLevel: ['error'] },
-      },
-      overlay: {
-        position: 'tl',
-        initialIsOpen: false,
-      },
+      // Lint in dev only — production builds must not fail on import-order noise
+      // when local vs server eslint-plugin-perfectionist disagree on line-length.
+      ...(command === 'serve'
+        ? {
+            eslint: {
+              useFlatConfig: true,
+              lintCommand: 'eslint "./src/**/*.{js,jsx,ts,tsx}"',
+              dev: { logLevel: ['error'] },
+            },
+            overlay: {
+              position: 'tl',
+              initialIsOpen: false,
+            },
+          }
+        : {}),
     }),
   ],
   resolve: {
