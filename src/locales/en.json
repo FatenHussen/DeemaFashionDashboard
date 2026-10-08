@@ -3469,6 +3469,7 @@
       "pageBuilderPositionBeforeHint": "Near the top of the page",
       "pageBuilderPositionAfterHint": "After the other sections",
       "pageBuilderSelectedSection": "Selected section",
+      "pageBuilderSelectedBanners": "{{count}} banners selected",
       "pageBuilderChangeSection": "Change",
       "pageBuilderSectionAddedSuccess": "Section added to the page successfully.",
       "pageBuilderSectionDeleteFailed": "Failed to delete the section.",

@@ -3471,6 +3471,7 @@
       "pageBuilderPositionBeforeHint": "قرب أعلى الصفحة",
       "pageBuilderPositionAfterHint": "بعد الأقسام الأخرى",
       "pageBuilderSelectedSection": "القسم المختار",
+      "pageBuilderSelectedBanners": "تم اختيار {{count}} بانرات",
       "pageBuilderChangeSection": "تغيير",
       "pageBuilderSectionAddedSuccess": "تمت إضافة القسم إلى الصفحة بنجاح.",
       "pageBuilderSectionDeleteFailed": "فشل حذف القسم.",

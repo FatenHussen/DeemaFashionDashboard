@@ -92,7 +92,8 @@ export default function PageAddSection() {
   const navigate = useNavigate();
 
   const [showWhenValues, setShowWhenValues] = useState<Record<string, any>>({});
-  const [selectedSection, setSelectedSection] = useState<SliderLibraryItem | null>(null);
+  /** One library section, or several banners that become one slider section. */
+  const [selectedItems, setSelectedItems] = useState<SliderLibraryItem[]>([]);
   const [filterContentType, setFilterContentType] = useState('');
   const [showColors, setShowColors] = useState(false);
 
@@ -129,7 +130,13 @@ export default function PageAddSection() {
       : false;
   }, [pageDetailsData]);
 
-  const isBannerSection = isBannerContentType(selectedSection?.content_type);
+  const selectedSection = selectedItems[0] ?? null;
+  const isBannerPicker = isBannerContentType(filterContentType);
+  const isBannerSection =
+    isBannerPicker || selectedItems.some((item) => isBannerContentType(item.content_type));
+  const selectedBannerIds = selectedItems
+    .map((item) => item.banner_id)
+    .filter((id): id is number => typeof id === 'number' && id > 0);
 
   const methods = useForm<UnifiedSectionFormValues>({
     resolver: zodResolver(UnifiedSectionSchema),
@@ -151,10 +158,33 @@ export default function PageAddSection() {
   const watchedBg = watch('background_color');
   const watchedCardBg = watch('background_card_color');
 
+  const handleLibrarySelect = (item: SliderLibraryItem | null) => {
+    if (!item) {
+      setSelectedItems([]);
+      return;
+    }
+    if (isBannerContentType(item.content_type) || isBannerContentType(filterContentType)) {
+      setSelectedItems((prev) => {
+        const exists = prev.some((row) => row.id === item.id);
+        if (exists) return prev.filter((row) => row.id !== item.id);
+        return [...prev, item];
+      });
+      return;
+    }
+    setSelectedItems([item]);
+  };
+
   useEffect(() => {
     if (!selectedSection) return;
     if (selectedSection.content_type) {
       setFilterContentType(selectedSection.content_type);
+    }
+    // Banner multi-pick creates a new section — keep slider defaults, don't copy colors
+    // from an arbitrary banner row (live banners have no section layout/colors).
+    if (selectedSection.banner_id) {
+      setValue('layout', 'slider', { shouldValidate: true });
+      setValue('variant', 'horizontal', { shouldValidate: true });
+      return;
     }
     setValue('background_color', selectedSection.background_color ?? '');
     setValue('background_card_color', selectedSection.background_card_color ?? '');
@@ -176,7 +206,7 @@ export default function PageAddSection() {
   const onSubmit = async (data: UnifiedSectionFormValues) => {
     if (!pageId) return;
 
-    if (!selectedSection) {
+    if (selectedItems.length === 0) {
       toast.error(t('form.pageBuilderLibraryRequired'));
       return;
     }
@@ -201,17 +231,22 @@ export default function PageAddSection() {
         : {}),
     };
 
-    const payload: UnifiedSectionCreatePayload = selectedSection.banner_id
+    const creatingBannerSection = selectedBannerIds.length > 0;
+
+    const payload: UnifiedSectionCreatePayload = creatingBannerSection
       ? {
           ...sharedPlacement,
           type: 'manual',
           content_type: 'banner',
-          name: bannerSectionName(selectedSection.name),
-          item_ids: [{ item_id: selectedSection.banner_id, order: 0 }],
+          name: bannerSectionName(selectedSection!.name),
+          item_ids: selectedBannerIds.map((itemId, index) => ({
+            item_id: itemId,
+            order: index,
+          })),
         }
       : {
           ...sharedPlacement,
-          section_id: selectedSection.id,
+          section_id: selectedSection!.id,
         };
 
     try {
@@ -262,26 +297,33 @@ export default function PageAddSection() {
         <FormStep n={1} title={t('form.pageBuilderAddStep1Title')}>
           <SliderLibraryPicker
             pageId={pageId ?? ''}
-            selectedId={selectedSection?.id ?? null}
+            selectedIds={selectedItems.map((item) => item.id)}
             selectedContentType={selectedSection?.content_type ?? filterContentType}
-            onSelect={setSelectedSection}
-            onContentTypeChange={setFilterContentType}
+            onSelect={handleLibrarySelect}
+            onContentTypeChange={(type) => {
+              setFilterContentType(type);
+              setSelectedItems([]);
+            }}
           />
 
-          {selectedSection && (
+          {selectedItems.length > 0 && (
             <Box className="flex items-center gap-3 rounded-2xl border border-primary/25 bg-primary/[0.05] px-4 py-3">
               <Iconify icon="solar:check-circle-bold" className="shrink-0 text-primary" width={22} />
               <Box className="min-w-0 flex-1">
                 <Typography variant="caption" className="text-muted-foreground">
-                  {t('form.pageBuilderSelectedSection')}
+                  {isBannerSection && selectedItems.length > 1
+                    ? t('form.pageBuilderSelectedBanners', { count: selectedItems.length })
+                    : t('form.pageBuilderSelectedSection')}
                 </Typography>
                 <Typography variant="subtitle2" className="font-bold text-foreground truncate">
-                  {sectionDisplayName(selectedSection)}
+                  {isBannerSection && selectedItems.length > 1
+                    ? selectedItems.map((item) => sectionDisplayName(item)).join(' · ')
+                    : sectionDisplayName(selectedSection!)}
                 </Typography>
               </Box>
               <button
                 type="button"
-                onClick={() => setSelectedSection(null)}
+                onClick={() => setSelectedItems([])}
                 className="shrink-0 text-sm font-medium text-primary hover:underline"
               >
                 {t('form.pageBuilderChangeSection')}

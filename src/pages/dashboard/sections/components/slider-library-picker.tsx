@@ -50,16 +50,19 @@ function sectionPreviewImage(imageUrl: string | null | undefined): string | null
 
 /**
  * Pick content type first, then browse matching sections from the library.
+ * Banner rows support multi-select (one slider section with several ads).
+ * Other content types stay single-select (link an existing section).
  */
 export function SliderLibraryPicker({
   pageId,
-  selectedId,
+  selectedIds,
   selectedContentType,
   onSelect,
   onContentTypeChange,
 }: {
   pageId: number | string;
-  selectedId: number | null;
+  /** Selected library row ids — multiple for banners, at most one otherwise. */
+  selectedIds: number[];
   selectedContentType?: string | null;
   onSelect: (item: SliderLibraryItem | null) => void;
   onContentTypeChange?: (contentType: string) => void;
@@ -72,6 +75,7 @@ export function SliderLibraryPicker({
   const sentinelRef = useRef<HTMLDivElement>(null);
   const listScrollRef = useRef<HTMLElement | null>(null);
   const isBannerList = isBannerContentType(contentType);
+  const selectedIdSet = new Set(selectedIds);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedSearch(searchTerm.trim()), 300);
@@ -183,6 +187,19 @@ export function SliderLibraryPicker({
             })}
           </Typography>
 
+          {isBannerList && (
+            <Box className="flex items-start gap-2 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3">
+              <Iconify
+                icon="solar:gallery-bold"
+                width={18}
+                className="mt-0.5 shrink-0 text-primary"
+              />
+              <Typography variant="body2" className="min-w-0 flex-1 text-muted-foreground">
+                {t('form.pageBuilderBannerPickHelper')}
+              </Typography>
+            </Box>
+          )}
+
           <Box className="relative">
             <Iconify
               icon="solar:magnifer-linear"
@@ -254,7 +271,7 @@ export function SliderLibraryPicker({
               ) : (
                 <Box className="divide-y divide-border/60">
                   {rows.map((section) => {
-                    const isSelected = selectedId === section.id;
+                    const isSelected = selectedIdSet.has(section.id);
                     const bannerCard = isBannerContentType(contentType) || contentType === 'gif';
                     const name = sectionName(section, bannerCard);
                     const previewImage = bannerCard ? sectionPreviewImage(section.image_url) : null;
@@ -268,7 +285,9 @@ export function SliderLibraryPicker({
                         }`}
                       >
                         <span
-                          className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 ${
+                          className={`flex h-5 w-5 shrink-0 items-center justify-center border-2 ${
+                            isBannerList ? 'rounded-md' : 'rounded-full'
+                          } ${
                             isSelected
                               ? 'border-primary bg-primary text-primary-foreground'
                               : 'border-border/80 bg-background'
