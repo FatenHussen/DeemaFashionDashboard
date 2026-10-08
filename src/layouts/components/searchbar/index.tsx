@@ -7,11 +7,12 @@ import { useBoolean } from 'minimal-shared/hooks';
 import { useMemo, useState, useEffect, useCallback } from 'react';
 
 import { Box, Input, Modal } from 'src/shared/ui';
-import { usePermissions } from 'src/auth/hooks/use-permissions';
 import { Label } from 'src/shared/components/label';
 import { Iconify } from 'src/shared/components/iconify';
 import { Scrollbar } from 'src/shared/components/scrollbar';
 import { SearchNotFound } from 'src/shared/components/search-not-found';
+
+import { usePermissions } from 'src/auth/hooks/use-permissions';
 
 import { ResultItem } from './result-item';
 import { applyFilter, flattenNavSections } from './utils';
@@ -22,8 +23,6 @@ export type SearchbarProps = React.HTMLAttributes<HTMLDivElement> & {
   data?: NavSectionProps['data'];
   className?: string;
 };
-
-const breakpoint = 'sm';
 
 export function Searchbar({ data: navItems = [], className, ...other }: SearchbarProps) {
   const { t: tTable } = useTranslation('table');
