@@ -2,7 +2,6 @@ import { Box, Typography } from '@/shared/ui';
 import { useRef, useState, useEffect } from 'react';
 import { Controller, useFormContext } from 'react-hook-form';
 import { HexColorInput, HexColorPicker } from 'react-colorful';
-import { UNLINKED_SHADE_SWATCH } from '@/pages/dashboard/colors/utils/catalog-hex';
 
 interface RHFColorPickerProps {
   name: string;
@@ -84,9 +83,9 @@ export function HexPaletteField({
             disabled={disabled}
             onClick={() => (open ? close() : setOpen(true))}
             className={`h-10 w-10 shrink-0 cursor-pointer rounded-lg border-2 transition-shadow hover:shadow-md disabled:cursor-wait ${
-              shown ? 'border-border' : 'border-border'
+              shown ? 'border-border' : 'border-dashed border-border bg-muted/40'
             }`}
-            style={{ backgroundColor: shown || UNLINKED_SHADE_SWATCH }}
+            style={{ backgroundColor: shown || 'transparent' }}
           />
           <Box className="flex h-10 flex-1 items-center gap-2 rounded-lg border border-input bg-background px-3">
             <span className="text-sm text-muted-foreground">#</span>

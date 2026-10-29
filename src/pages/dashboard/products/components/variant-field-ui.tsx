@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react';
 
 import { normalizeHexColorForCss } from '@/utils/shop-variant-image';
-import { UNLINKED_SHADE_SWATCH } from '@/pages/dashboard/colors/utils/catalog-hex';
 
 import { Typography } from 'src/shared/ui';
 
@@ -45,8 +44,7 @@ export function ColorAttributeDot({ hex }: { hex?: string | null }) {
   if (!raw) {
     return (
       <span
-        className="inline-block h-3.5 w-3.5 shrink-0 rounded-full border border-black/10"
-        style={{ backgroundColor: UNLINKED_SHADE_SWATCH }}
+        className="inline-block h-3.5 w-3.5 shrink-0 rounded-full border border-dashed border-border/60 bg-muted/40"
         aria-hidden
       />
     );

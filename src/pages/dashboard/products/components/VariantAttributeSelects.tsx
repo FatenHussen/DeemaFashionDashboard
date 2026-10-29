@@ -114,7 +114,7 @@ export function AttributeSingleSelect({
                 textValue={valLabel}
                 className="rounded-md py-2"
               >
-                {isColor ? (
+                {isColor && valHex ? (
                   <ColorAttributeOption hex={valHex} label={valLabel} />
                 ) : (
                   valLabel

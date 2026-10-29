@@ -12,7 +12,6 @@ import React from 'react';
 import { Controller } from 'react-hook-form';
 import { Iconify } from '@/shared/components/iconify';
 import { useActiveColorCatalog } from '@/pages/dashboard/colors/hooks/color';
-import { UNLINKED_SHADE_SWATCH } from '@/pages/dashboard/colors/utils/catalog-hex';
 
 import { Box, Button, Typography } from 'src/shared/ui';
 
@@ -175,16 +174,15 @@ function VariantTableRow({
             {valueRefs.length > 0 ? (
               valueRefs.map((val) => {
                 const valHex = linkedShadeHex(val, colorsHexLookup);
-                const showSwatch = Boolean(val.color_id) || Boolean(valHex);
                 return (
                 <span
                   key={val.id}
                   className="inline-flex items-center gap-0.5 rounded border border-border/60 bg-muted/30 px-1 py-0.5 text-[10px]"
                 >
-                  {showSwatch ? (
+                  {valHex ? (
                     <span
                       className="inline-block h-2 w-2 rounded-full border border-border/50"
-                      style={{ backgroundColor: valHex || UNLINKED_SHADE_SWATCH }}
+                      style={{ backgroundColor: valHex }}
                     />
                   ) : null}
                   {attributeValueLabel(val.name) || val.id}

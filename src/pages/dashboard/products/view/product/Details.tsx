@@ -19,7 +19,6 @@ import { useActiveColorCatalog } from '@/pages/dashboard/colors/hooks/color';
 import { useFetchProductById } from '@/pages/dashboard/products/hooks/product';
 import { useRootCategoryId } from '@/pages/dashboard/categories/hooks/category';
 import { useFetchCurrencies } from '@/pages/dashboard/currencies/hooks/currency';
-import { UNLINKED_SHADE_SWATCH } from '@/pages/dashboard/colors/utils/catalog-hex';
 import { useUpdateProductVariant } from '@/pages/dashboard/products/hooks/product-variant';
 import { isColorCategoryAttribute } from '@/pages/dashboard/categories/utils/color-attribute';
 import { useVariantDeleteFlow } from '@/pages/dashboard/products/hooks/use-variant-delete-flow';
@@ -1318,7 +1317,7 @@ export default function DetailsPage() {
                                         ''
                                       )}
                                       value={valueLabel}
-                                      colorDot={isColor ? (hex ?? UNLINKED_SHADE_SWATCH) : undefined}
+                                      colorDot={hex ?? undefined}
                                     />
                                   );
                                 })
@@ -1342,14 +1341,7 @@ export default function DetailsPage() {
                                       key={attr.id ?? ai}
                                       label={toDisplayString(attr.attribute)}
                                       value={attrValue}
-                                      colorDot={
-                                        isColorCategoryAttribute({
-                                          type: attr.type,
-                                          name: attr.attribute,
-                                        })
-                                          ? (hex ?? UNLINKED_SHADE_SWATCH)
-                                          : undefined
-                                      }
+                                      colorDot={hex ?? undefined}
                                     />
                                   );
                                 })}

@@ -196,11 +196,11 @@ export function CategoryAttributeColorValues({
   };
 
   return (
-    <Box className="rounded-2xl border border-primary/25 bg-card/50 shadow-sm">
-      <Box className="border-b border-border/40 bg-gradient-to-r from-primary/[0.08] via-primary/[0.03] to-transparent px-6 py-5">
+    <Box className="rounded-2xl border border-rose-500/25 bg-card/50 shadow-sm">
+      <Box className="border-b border-border/40 bg-gradient-to-r from-rose-500/[0.08] via-rose-500/[0.03] to-transparent px-6 py-5">
         <Box className="flex items-center gap-3">
-          <Box className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-primary/25 bg-primary/15">
-            <Iconify icon="solar:palette-bold" className="text-primary" width={18} />
+          <Box className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-rose-500/25 bg-rose-500/15">
+            <Iconify icon="solar:palette-bold" className="text-rose-600" width={18} />
           </Box>
           <Box className="min-w-0 flex-1">
             <Typography variant="subtitle1" className="font-semibold leading-snug text-foreground">
@@ -266,7 +266,7 @@ export function CategoryAttributeColorValues({
                 />
                 <input type="hidden" {...register(`values.${index}.hex`)} />
                 {colorId == null ? (
-                  <Typography variant="caption" className="mt-1.5 block text-muted-foreground">
+                  <Typography variant="caption" className="mt-1.5 block text-rose-600">
                     {t('form.attributeColorUnlinked')}
                   </Typography>
                 ) : null}
