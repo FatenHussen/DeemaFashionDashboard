@@ -9,24 +9,23 @@ import type {
 } from 'react-hook-form';
 
 import React from 'react';
-import { queryKeys } from '@/api/queryKeys';
 import { Controller } from 'react-hook-form';
-import { useQuery } from '@tanstack/react-query';
 import { Iconify } from '@/shared/components/iconify';
-import { _ColorApi } from '@/pages/dashboard/colors/api/color.services';
+import { useActiveColorCatalog } from '@/pages/dashboard/colors/hooks/color';
+import { UNLINKED_SHADE_SWATCH } from '@/pages/dashboard/colors/utils/catalog-hex';
 
 import { Box, Button, Typography } from 'src/shared/ui';
 
 import { VariantImagesField } from './VariantImagesField';
 import { toOptionalDiscount } from './variant-field-helpers';
 import {
+  linkedShadeHex,
   generateVariantSku,
   priceAfterDiscount,
   attributeValueLabel,
   buildColorsHexLookup,
   type ColorsHexLookup,
   type CategoryAttributeValueRef,
-  resolveCategoryAttributeValueHex,
 } from '../utils/variant-combinations';
 
 // ----------------------------------------------------------------------
@@ -175,16 +174,17 @@ function VariantTableRow({
           <Box className="flex flex-wrap gap-0.5 max-w-[8rem]">
             {valueRefs.length > 0 ? (
               valueRefs.map((val) => {
-                const valHex = resolveCategoryAttributeValueHex(val, colorsHexLookup);
+                const valHex = linkedShadeHex(val, colorsHexLookup);
+                const showSwatch = Boolean(val.color_id) || Boolean(valHex);
                 return (
                 <span
                   key={val.id}
                   className="inline-flex items-center gap-0.5 rounded border border-border/60 bg-muted/30 px-1 py-0.5 text-[10px]"
                 >
-                  {valHex ? (
+                  {showSwatch ? (
                     <span
                       className="inline-block h-2 w-2 rounded-full border border-border/50"
-                      style={{ backgroundColor: valHex }}
+                      style={{ backgroundColor: valHex || UNLINKED_SHADE_SWATCH }}
                     />
                   ) : null}
                   {attributeValueLabel(val.name) || val.id}
@@ -576,15 +576,11 @@ export function ProductVariantsCompactTable({
 }: ProductVariantsCompactTableProps) {
   const [openIndex, setOpenIndex] = React.useState<number | null>(null);
 
-  const { data: colorsResp } = useQuery({
-    queryKey: queryKeys.color.list({ per_page: 500, is_active: true, picker: 'variant-table' }),
-    queryFn: () => _ColorApi.getListColors({ page: 1, per_page: 500, is_active: true }),
-    staleTime: 5 * 60 * 1000,
-  });
+  const { data: colorItems } = useActiveColorCatalog();
 
   const colorsHexLookup = React.useMemo(
-    () => buildColorsHexLookup(colorsResp?.data?.items ?? []),
-    [colorsResp?.data?.items]
+    () => buildColorsHexLookup(colorItems ?? []),
+    [colorItems]
   );
 
   const detailColSpan =

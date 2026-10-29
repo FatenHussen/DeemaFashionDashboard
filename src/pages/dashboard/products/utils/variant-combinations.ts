@@ -1,4 +1,6 @@
 import { formatTranslated } from '@/utils/format-translated';
+import { normalizeCatalogHex } from '@/pages/dashboard/colors/utils/catalog-hex';
+import { isColorCategoryAttribute } from '@/pages/dashboard/categories/utils/color-attribute';
 
 /** Bilingual label on category attribute values. */
 export type AttributeValueName = { ar?: string; en?: string } | string | null | undefined;
@@ -6,6 +8,8 @@ export type AttributeValueName = { ar?: string; en?: string } | string | null | 
 export type CategoryAttributeValueRef = {
   id: number;
   name?: AttributeValueName;
+  /** `colors.id` — not this value's id. */
+  color_id?: number | null;
   hex?: string | null;
   color_hex?: string | null;
   color?: { hex?: string } | null;
@@ -13,76 +17,58 @@ export type CategoryAttributeValueRef = {
 
 export type ColorsHexLookup = {
   byId: Map<number, string>;
-  byName: Map<string, string>;
 };
 
-function coerceHexString(v: unknown): string | null {
-  if (v == null || typeof v !== 'string') return null;
-  const s = v.trim();
-  if (!/^#?[0-9A-Fa-f]{3,8}$/.test(s)) return null;
-  return s.startsWith('#') ? s : `#${s}`;
-}
-
-/** Map admin Colors list rows to id / name lookups for attribute value swatches. */
+/** Map `colors.id` → `#RRGGBB`. Names are not a swatch source. */
 export function buildColorsHexLookup(
-  colors: Array<{ id: number; hex?: string; name?: string | { ar?: string; en?: string } }>
+  colors: Array<{ id: number; hex?: string | null }>
 ): ColorsHexLookup {
   const byId = new Map<number, string>();
-  const byName = new Map<string, string>();
 
-  for (const c of colors) {
-    const hex = coerceHexString(c.hex);
-    if (!hex) continue;
-    byId.set(Number(c.id), hex);
-
-    if (typeof c.name === 'string') {
-      const key = c.name.trim().toLowerCase();
-      if (key) byName.set(key, hex);
-    } else if (c.name && typeof c.name === 'object') {
-      for (const part of [c.name.en, c.name.ar]) {
-        const key = String(part ?? '').trim().toLowerCase();
-        if (key) byName.set(key, hex);
-      }
-    }
+  for (const color of colors) {
+    const hex = normalizeCatalogHex(color.hex);
+    const id = Number(color.id);
+    if (!hex || !Number.isInteger(id) || id <= 0) continue;
+    byId.set(id, hex);
   }
 
-  return { byId, byName };
+  return { byId };
 }
 
-/** Resolve CSS hex for a category attribute value (color type). */
+/**
+ * Swatch hex comes from the linked `colors` row (`hex` or `color_id`).
+ * The value name is display text — "2" does not paint a circle.
+ */
 export function resolveCategoryAttributeValueHex(
   value: CategoryAttributeValueRef,
   lookup?: ColorsHexLookup | null
 ): string | null {
   const direct =
-    coerceHexString(value.hex) ??
-    coerceHexString(value.color?.hex) ??
-    coerceHexString(value.color_hex);
+    normalizeCatalogHex(value.hex) ??
+    normalizeCatalogHex(value.color?.hex) ??
+    normalizeCatalogHex(value.color_hex);
   if (direct) return direct;
 
-  if (typeof value.name === 'string') {
-    const fromName = coerceHexString(value.name);
-    if (fromName) return fromName;
-  }
-
-  if (lookup && value.id != null) {
-    const byId = lookup.byId.get(Number(value.id));
-    if (byId) return byId;
-  }
-
-  if (lookup) {
-    const label = attributeValueLabel(value.name).toLowerCase();
-    if (label && lookup.byName.has(label)) return lookup.byName.get(label)!;
-
-    if (value.name != null && typeof value.name === 'object') {
-      for (const part of [value.name.en, value.name.ar]) {
-        const key = String(part ?? '').trim().toLowerCase();
-        if (key && lookup.byName.has(key)) return lookup.byName.get(key)!;
-      }
-    }
+  const colorId = Number(value.color_id);
+  if (lookup && Number.isInteger(colorId) && colorId > 0) {
+    return lookup.byId.get(colorId) ?? null;
   }
 
   return null;
+}
+
+/**
+ * Circle hex only when the value is linked to a `colors` row that has a valid hex.
+ * A hex without `color_id` is not a shade, so the circle stays empty.
+ */
+export function linkedShadeHex(
+  value: CategoryAttributeValueRef | null | undefined,
+  lookup?: ColorsHexLookup | null
+): string | null {
+  if (!value) return null;
+  const colorId = Number(value.color_id);
+  if (!Number.isInteger(colorId) || colorId <= 0) return null;
+  return resolveCategoryAttributeValueHex(value, lookup);
 }
 
 export type VariantCombinationSelection = {
@@ -286,10 +272,18 @@ export function toCategoryAttributePickerRows(raw: unknown): CategoryAttributePi
     };
     const id = Number(rec.id);
     if (!Number.isInteger(id) || id <= 0) continue;
-    const values = (Array.isArray(rec.values) ? rec.values : []).filter((val) => {
-      const valueId = Number(val?.id);
-      return Number.isInteger(valueId) && valueId > 0;
-    });
+    const values = (Array.isArray(rec.values) ? rec.values : [])
+      .map((val) => {
+        const colorId = parsePositiveId(val?.color_id);
+        const hex = resolveCategoryAttributeValueHex(val);
+        return {
+          ...val,
+          id: Number(val?.id),
+          ...(colorId != null ? { color_id: colorId } : {}),
+          hex,
+        };
+      })
+      .filter((val) => Number.isInteger(val.id) && val.id > 0);
     rows.push({
       id,
       name: rec.name,
@@ -313,6 +307,8 @@ export function ensureCategoryAttributesFromVariants(
       value?: string;
       attribute?: string;
       type?: string;
+      hex?: string | null;
+      color_id?: number | null;
       category_attribute_id?: number;
     }>;
   }>
@@ -329,11 +325,25 @@ export function ensureCategoryAttributesFromVariants(
       const existing = byId.get(attributeId);
       const valueId = parsePositiveId(attr.id ?? attr.value_id);
       const nextValues = [...(existing?.values ?? [])];
-      if (valueId != null && !nextValues.some((val) => Number(val.id) === valueId)) {
-        nextValues.push({
-          id: valueId,
-          name: attr.value,
-        });
+      const hex = normalizeCatalogHex(attr.hex);
+      const colorId = parsePositiveId(attr.color_id);
+      if (valueId != null) {
+        const index = nextValues.findIndex((val) => Number(val.id) === valueId);
+        if (index === -1) {
+          nextValues.push({
+            id: valueId,
+            name: attr.value,
+            ...(hex ? { hex } : {}),
+            ...(colorId != null ? { color_id: colorId } : {}),
+          });
+        } else {
+          const current = nextValues[index];
+          nextValues[index] = {
+            ...current,
+            hex: resolveCategoryAttributeValueHex(current) ?? hex,
+            color_id: parsePositiveId(current.color_id) ?? colorId ?? current.color_id,
+          };
+        }
       }
       byId.set(attributeId, {
         id: attributeId,
@@ -356,6 +366,23 @@ export type VariantAttributeRow = {
 function parsePositiveId(value: unknown): number | null {
   const n = Number(value);
   return Number.isInteger(n) && n > 0 ? n : null;
+}
+
+/**
+ * Color lists offer only values linked to a `colors` row with a valid hex.
+ * The current selection stays, as text, so a re-save does not drop "2" or "7".
+ */
+export function attributePickerValues(
+  attribute: CategoryAttributePickerRow,
+  lookup: ColorsHexLookup | null | undefined,
+  selectedId: number
+): CategoryAttributeValueRef[] {
+  const values = Array.isArray(attribute.values) ? attribute.values : [];
+  if (!isColorCategoryAttribute(attribute)) return values;
+  return values.filter((value) => {
+    if (selectedId > 0 && Number(value.id) === selectedId) return true;
+    return linkedShadeHex(value, lookup) != null;
+  });
 }
 
 /** Selected value for this attribute from `attributes_values_ids` ∩ `values[].id`. */
@@ -385,6 +412,23 @@ export function resolveAttributeValueId(
     (item) => parsePositiveId(item.category_attribute_id) === attributeId
   );
   return parsePositiveId(row?.id ?? row?.value_id);
+}
+
+/** Ids still present on the loaded category attributes. A deleted value must not be re-sent. */
+export function retainCatalogAttributeValueIds(
+  ids: number[],
+  categoryAttributes: CategoryAttributePickerRow[]
+): number[] {
+  if (categoryAttributes.length === 0) return ids;
+  const known = new Set<number>();
+  for (const attribute of categoryAttributes) {
+    for (const value of attribute.values ?? []) {
+      const id = parsePositiveId(value.id);
+      if (id != null) known.add(id);
+    }
+  }
+  if (known.size === 0) return ids;
+  return ids.filter((id) => known.has(id));
 }
 
 /** Fill empty attribute slots from GET — never drop size when the form only has color. */
@@ -418,8 +462,40 @@ export function mergeVariantAttributeValueIds(
     push(resolveAttributeValueId(api, attr, variantAttributes));
   }
 
-  for (const id of form) push(id);
-  return result;
+  return retainCatalogAttributeValueIds(result, categoryAttributes);
+}
+
+/**
+ * Swap this color attribute's value for `nextValueId` and drop ids that are
+ * not on any loaded attribute. A deleted id otherwise fails
+ * `attributes_values_ids` exists validation.
+ */
+export function replaceColorAttributeValueId(
+  selectedIds: number[],
+  attributes: CategoryAttributePickerRow[],
+  colorAttribute: CategoryAttributePickerRow,
+  nextValueId: number
+): number[] {
+  const thisIds = new Set(
+    (colorAttribute.values ?? [])
+      .map((val) => parsePositiveId(val.id))
+      .filter((id): id is number => id != null)
+  );
+  const known = new Set<number>([nextValueId]);
+  for (const attr of attributes) {
+    for (const val of attr.values ?? []) {
+      const id = parsePositiveId(val.id);
+      if (id != null) known.add(id);
+    }
+  }
+
+  const kept = selectedIds
+    .map(parsePositiveId)
+    .filter(
+      (id): id is number =>
+        id != null && known.has(id) && !thisIds.has(id) && id !== nextValueId
+    );
+  return [...new Set([...kept, nextValueId])];
 }
 
 /** Replace this attribute's value in `attributes_values_ids` — other attributes stay put. */

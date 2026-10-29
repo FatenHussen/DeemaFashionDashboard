@@ -1,10 +1,16 @@
 import type { TFunction } from 'i18next';
+import type {
+  CategoryAttributeValue,
+  CategoryAttributeListResponse,
+} from '@/pages/dashboard/categories/types/category-attribute.types';
 
-import React from 'react';
 import { toast } from 'react-toastify';
-import { queryKeys } from '@/api/queryKeys';
-import { useQuery } from '@tanstack/react-query';
-import { _ColorApi } from '@/pages/dashboard/colors/api/color.services';
+import { useMemo, useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { useActiveColorCatalog } from '@/pages/dashboard/colors/hooks/color';
+import { normalizeCatalogHex } from '@/pages/dashboard/colors/utils/catalog-hex';
+import { HexPaletteField } from '@/shared/components/hook-form/rhf-color-picker';
+import { isColorCategoryAttribute } from '@/pages/dashboard/categories/utils/color-attribute';
 import {
   Select,
   SelectItem,
@@ -13,18 +19,22 @@ import {
   SelectTrigger,
 } from '@/shared/ui/select';
 
-import { Box } from 'src/shared/ui';
+import { Box, Typography } from 'src/shared/ui';
 
+import { persistVariantShade } from '../utils/persist-variant-shade';
 import { VariantFieldLabel, ColorAttributeOption } from './variant-field-ui';
 import {
   sortedComboKey,
+  linkedShadeHex,
   attributeValueLabel,
   buildColorsHexLookup,
+  attributePickerValues,
   replaceAttributeValueId,
-  selectedValueIdForAttribute,
-  resolveCategoryAttributeValueHex,
-  type CategoryAttributePickerRow,
   type VariantAttributeRow,
+  selectedValueIdForAttribute,
+  replaceColorAttributeValueId,
+  type CategoryAttributeValueRef,
+  type CategoryAttributePickerRow,
 } from '../utils/variant-combinations';
 
 // ----------------------------------------------------------------------
@@ -41,22 +51,47 @@ export function AttributeSingleSelect({
   onChange,
   colorsHexLookup,
   formatAttributeLabel,
+  colorHint,
   resetNonce = 0,
+  shadeBusy = false,
+  onCommitShade,
 }: {
   attr: CategoryAttributePickerRow;
   selectedId: number;
   onChange: (valueId: number) => void;
   colorsHexLookup: ReturnType<typeof buildColorsHexLookup>;
   formatAttributeLabel: (name: unknown) => string;
+  colorHint?: string;
   resetNonce?: number;
+  shadeBusy?: boolean;
+  onCommitShade?: (hex: string) => Promise<void>;
 }) {
-  const values = Array.isArray(attr.values) ? attr.values : [];
   const label = formatAttributeLabel(attr.name);
-  const isColor = String(attr.type ?? '').toLowerCase() === 'color';
+  const isColor = isColorCategoryAttribute(attr);
+  const values = attributePickerValues(attr, colorsHexLookup, selectedId);
+  const selected = values.find((val) => Number(val.id) === selectedId);
+  const selectedHex = isColor ? linkedShadeHex(selected, colorsHexLookup) ?? '' : '';
+  const [draftHex, setDraftHex] = useState(selectedHex);
+
+  useEffect(() => {
+    setDraftHex(selectedHex);
+  }, [selectedHex]);
 
   return (
     <Box className="min-w-0 space-y-1">
       <VariantFieldLabel>{label}</VariantFieldLabel>
+      {isColor && onCommitShade ? (
+        <HexPaletteField
+          value={draftHex}
+          disabled={shadeBusy}
+          helperText={colorHint}
+          placeholder="#RRGGBB"
+          onChange={setDraftHex}
+          onCommit={(hex) => {
+            void onCommitShade(hex).catch(() => setDraftHex(selectedHex));
+          }}
+        />
+      ) : null}
       <Select
         key={`${attr.id}-${resetNonce}`}
         value={selectedId > 0 ? String(selectedId) : ATTRIBUTE_NONE_VALUE}
@@ -71,9 +106,7 @@ export function AttributeSingleSelect({
           </SelectItem>
           {values.map((val) => {
             const valLabel = attributeValueLabel(val.name) || String(val.id);
-            const valHex = isColor
-              ? resolveCategoryAttributeValueHex(val, colorsHexLookup)
-              : null;
+            const valHex = isColor ? linkedShadeHex(val, colorsHexLookup) : null;
             return (
               <SelectItem
                 key={val.id}
@@ -91,6 +124,11 @@ export function AttributeSingleSelect({
           })}
         </SelectContent>
       </Select>
+      {isColor && colorHint && !onCommitShade ? (
+        <Typography variant="caption" className="block text-muted-foreground">
+          {colorHint}
+        </Typography>
+      ) : null}
     </Box>
   );
 }
@@ -117,24 +155,78 @@ export function VariantAttributeSelects({
   t,
   resetNonce = 0,
 }: Props) {
-  const { data: colorsResp } = useQuery({
-    queryKey: queryKeys.color.list({ per_page: 500, is_active: true, picker: 'variant-attribute-selects' }),
-    queryFn: () => _ColorApi.getListColors({ page: 1, per_page: 500, is_active: true }),
-    staleTime: 5 * 60 * 1000,
-  });
+  const { data: colorItems } = useActiveColorCatalog();
+  const queryClient = useQueryClient();
+  const [extraValues, setExtraValues] = useState<Record<number, CategoryAttributeValueRef[]>>({});
+  const [shadeBusyId, setShadeBusyId] = useState<number | null>(null);
 
-  const colorsHexLookup = React.useMemo(
-    () => buildColorsHexLookup(colorsResp?.data?.items ?? []),
-    [colorsResp?.data?.items]
+  const colorsHexLookup = useMemo(
+    () => buildColorsHexLookup(colorItems ?? []),
+    [colorItems]
   );
 
-  if (categoryAttributes.length === 0) return null;
+  const attributes = useMemo(
+    () =>
+      categoryAttributes.map((attr) => {
+        const extras = extraValues[attr.id] ?? [];
+        if (extras.length === 0) return attr;
+        const values = [...(attr.values ?? [])];
+        for (const extra of extras) {
+          const index = values.findIndex((val) => Number(val.id) === Number(extra.id));
+          if (index === -1) values.push(extra);
+          else values[index] = { ...values[index], ...extra };
+        }
+        return { ...attr, values };
+      }),
+    [categoryAttributes, extraValues]
+  );
+
+  if (attributes.length === 0) return null;
+
+  const rememberShade = (attributeId: number, value: CategoryAttributeValueRef) => {
+    setExtraValues((current) => {
+      const list = current[attributeId] ?? [];
+      const next = list.filter((row) => Number(row.id) !== Number(value.id));
+      return { ...current, [attributeId]: [...next, value] };
+    });
+    queryClient.setQueriesData<CategoryAttributeListResponse>(
+      { queryKey: ['categoryattribute', 'list'] },
+      (cached) => {
+        const items = cached?.data?.items;
+        if (!cached || !Array.isArray(items)) return cached;
+        return {
+          ...cached,
+          data: {
+            ...cached.data,
+            items: items.map((row) => {
+              if (Number(row.id) !== attributeId) return row;
+              const values = [...(row.values ?? [])];
+              const index = values.findIndex((item) => Number(item.id) === Number(value.id));
+              const stored: CategoryAttributeValue = {
+                id: value.id,
+                name:
+                  value.name && typeof value.name === 'object'
+                    ? { ar: value.name.ar ?? '', en: value.name.en ?? '' }
+                    : String(value.name ?? ''),
+                color_id: value.color_id,
+                hex: value.hex,
+              };
+              if (index === -1) values.push(stored);
+              else values[index] = { ...values[index], ...stored };
+              return { ...row, values };
+            }),
+          },
+        };
+      }
+    );
+  };
 
   return (
     <Box className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {categoryAttributes.map((attr) => {
+      {attributes.map((attr) => {
         const selectedId =
           selectedValueIdForAttribute(selectedIds, attr, variantAttributes) ?? 0;
+        const isColor = isColorCategoryAttribute(attr);
         return (
           <AttributeSingleSelect
             key={attr.id}
@@ -143,6 +235,53 @@ export function VariantAttributeSelects({
             resetNonce={resetNonce}
             colorsHexLookup={colorsHexLookup}
             formatAttributeLabel={formatAttributeLabel}
+            shadeBusy={shadeBusyId === attr.id}
+            colorHint={isColor ? t?.('form.productColorSwatchHint') : undefined}
+            onCommitShade={
+              isColor
+                ? async (hex) => {
+                    const nextHex = normalizeCatalogHex(hex);
+                    if (!nextHex) return;
+                    const selectedNow = (attr.values ?? []).find((val) => Number(val.id) === selectedId);
+                    if (linkedShadeHex(selectedNow, colorsHexLookup) === nextHex) return;
+                    setShadeBusyId(attr.id);
+                    try {
+                      const selected = selectedNow;
+                      const linked = await persistVariantShade({
+                        attributeId: attr.id,
+                        hex,
+                        selectedValueId: selectedId > 0 ? selectedId : null,
+                        selectedName: selected?.name,
+                        catalog: colorItems ?? [],
+                      });
+                      const nextIds = replaceColorAttributeValueId(
+                        selectedIds,
+                        attributes,
+                        attr,
+                        linked.valueId
+                      );
+                      if (existingComboKeys && nextIds.length > 0) {
+                        const key = sortedComboKey(nextIds);
+                        if (existingComboKeys.has(key)) {
+                          toast.error(t?.('form.variantAddDuplicateCombo') ?? '');
+                          throw new Error('duplicate variant combination');
+                        }
+                      }
+                      rememberShade(attr.id, {
+                        id: linked.valueId,
+                        name: linked.name,
+                        color_id: linked.colorId,
+                        hex: linked.hex,
+                      });
+                      onChange(nextIds);
+                      void queryClient.invalidateQueries({ queryKey: ['color', 'list'] });
+                      toast.success(t?.('form.productColorShadeSaved') ?? '');
+                    } finally {
+                      setShadeBusyId(null);
+                    }
+                  }
+                : undefined
+            }
             onChange={(valueId) => {
               const nextIds = replaceAttributeValueId(selectedIds, attr, valueId > 0 ? valueId : null);
               if (existingComboKeys && nextIds.length > 0) {
