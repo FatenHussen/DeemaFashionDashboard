@@ -478,7 +478,7 @@ export const apiRoutes = {
     details: (key: string) => `${ROOTS.ADMIN}/settings/${key}`,
     update: (key: string) => `${ROOTS.ADMIN}/settings/${key}`,
   },
-  /** Grouped system settings (delivery / TikMart cart limits). */
+  /** Grouped system settings (delivery / Deema Fashion cart limits). */
   systemSetting: {
     group: (group: string) => `${ROOTS.ADMIN}/system-settings/group/${group}`,
     update: (key: string) => `${ROOTS.ADMIN}/system-settings/${key}`,

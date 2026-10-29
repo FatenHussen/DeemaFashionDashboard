@@ -13,7 +13,7 @@
 | Language | Display name | Usage |
 |----------|--------------|--------|
 | English  | **Deema Fashion** | Page title, navbar, footer, auth screens, copyright |
-| Arabic   | **ديما فاشن** | Same surfaces in RTL |
+| Arabic   | **ديمة فاشن** | Same surfaces in RTL |
 
 **Tagline (reference — web copy, not a settings field today)**
 
@@ -38,7 +38,7 @@ Logos are served from the website `public/images/shared/` folder. Use these **fu
 | Field (suggested) | Value |
 |-------------------|--------|
 | Site / app name | `Deema Fashion` |
-| Site / app name (AR) | `ديما فاشن` |
+| Site / app name (AR) | `ديمة فاشن` |
 | Logo URL (primary) | `{SITE_URL}/images/shared/favicon.png` |
 | Logo URL (wide) | `{SITE_URL}/images/shared/logo.png` |
 | Favicon URL | `{SITE_URL}/images/shared/favicon.png` |
@@ -140,7 +140,7 @@ After dashboard save, `GET /api/user/settings` should return (minimum for brand)
 
 ### Typography & wordmark
 
-- Wordmark: **Deema Fashion** / **ديما فاشن**
+- Wordmark: **Deema Fashion** / **ديمة فاشن**
 - Gradient text (marketing): `#a020f0` → `#ff1493` (top to bottom)
 - UI font: system / project default sans-serif — no custom dashboard font field required.
 
@@ -173,7 +173,7 @@ The website currently **forces** `main_color` and `second_color` from static bra
 
 ```
 Brand name (EN):     Deema Fashion
-Brand name (AR):     ديما فاشن
+Brand name (AR):     ديمة فاشن
 
 Logo URL:            {SITE_URL}/images/shared/favicon.png
 Wide logo URL:       {SITE_URL}/images/shared/logo.png
@@ -195,7 +195,7 @@ Dark text_color:     #f5f5f5
 | الحقل | القيمة |
 |-------|--------|
 | اسم المتجر (EN) | Deema Fashion |
-| اسم المتجر (AR) | ديما فاشن |
+| اسم المتجر (AR) | ديمة فاشن |
 | رابط الشعار | `{SITE_URL}/images/shared/favicon.png` |
 | اللون الرئيسي (فاتح) | `#c720a4` |
 | اللون الثانوي (فاتح) | `#ff1493` |

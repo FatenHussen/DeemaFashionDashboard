@@ -96,7 +96,7 @@ export interface ShopData {
   category_ids?: number[];
   /** Resolved category rows from API. */
   categories?: Array<{ id: number; name: string | { ar: string; en: string } }>;
-  /** Platform TikMart shop. Cart limits come from delivery settings, not these columns. */
+  /** Platform Deema Fashion shop. Cart limits come from delivery settings, not these columns. */
   is_default?: boolean | number | string | null;
   /** Empty clears the minimum. Ignored for the platform shop. */
   min_order_amount?: number | string | null;

@@ -104,7 +104,7 @@ export const ShopSchema = zod.object({
   pricing_tier: zod.enum(['cheap', 'medium', 'expensive']),
   is_recommended: zod.boolean(),
   category_ids: zod.array(zod.coerce.number().min(1)).default([]),
-  /** Platform TikMart shop. Limits are edited from delivery settings. */
+  /** Platform Deema Fashion shop. Limits are edited from delivery settings. */
   is_default: zod.boolean().default(false),
   min_order_amount: zod.string().default(''),
   delivery_min_hours: zod.string().default(''),
