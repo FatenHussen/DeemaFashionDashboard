@@ -29,8 +29,29 @@ export interface CityFormValues {
     name: string;
     created_at: string;
   };
+  tax_type?: string | null;
+  tax_value?: number | string | null;
+  tax_rate?: number | string | null;
   created_at: string;
   [key: string]: any;
+}
+
+function formatCityTaxDisplay(
+  row: CityFormValues,
+  t: TFunction<'table'>
+): string {
+  const taxType = row.tax_type === 'fixed' ? 'fixed' : 'percent';
+  const raw =
+    row.tax_value != null && String(row.tax_value).trim() !== ''
+      ? Number(row.tax_value)
+      : taxType === 'percent' && row.tax_rate != null
+        ? Number(row.tax_rate)
+        : 0;
+  const value = Number.isFinite(raw) ? raw : 0;
+  if (taxType === 'fixed') {
+    return t('columns.cityTaxFixed', { value });
+  }
+  return t('columns.cityTaxPercent', { value });
 }
 
 export const cityColumns = (
@@ -77,6 +98,16 @@ export const cityColumns = (
           {formatTranslated(row.original.governorate?.name) || '-'}
         </span>
       </div>
+    ),
+  },
+  {
+    id: 'tax',
+    accessorFn: (row) => formatCityTaxDisplay(row, t),
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.tax')} />,
+    cell: ({ row }) => (
+      <span className="text-sm tabular-nums text-muted-foreground">
+        {formatCityTaxDisplay(row.original, t)}
+      </span>
     ),
   },
   {

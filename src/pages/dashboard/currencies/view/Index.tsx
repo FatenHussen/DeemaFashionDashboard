@@ -5,7 +5,11 @@ import { useTranslation } from 'react-i18next';
 import { DataTable } from '@/shared/ui/table-data/table-data';
 import { usePermissions } from '@/auth/hooks/use-permissions';
 import { currencyColumns, type CurrencyFormValues } from '@/columns/one/currencies/one';
-import { useDeleteCurrency, useFetchCurrencies } from '@/pages/dashboard/currencies/hooks/currency';
+import {
+  useDeleteCurrency,
+  useUpdateCurrency,
+  useFetchCurrencies,
+} from '@/pages/dashboard/currencies/hooks/currency';
 
 import { CONFIG } from 'src/global-config';
 
@@ -15,6 +19,7 @@ export default function Page() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [settingDefaultId, setSettingDefaultId] = useState<number | null>(null);
   const [search, setSearch] = useState<string>('');
 
   useEffect(() => {
@@ -26,6 +31,7 @@ export default function Page() {
 
   const { data: response, isLoading, error } = useFetchCurrencies(currentPage, pageSize, params);
   const deleteMutation = useDeleteCurrency();
+  const updateMutation = useUpdateCurrency();
 
   if (error) console.error('Error fetching currencies:', error);
 
@@ -42,6 +48,24 @@ export default function Page() {
   const onDeleteCancel = () => setDeletingId(null);
   const handleEdit = (row: { original: CurrencyFormValues }) => {
     navigate(`/currencies/update/${row.original.id}`, { state: { currency: row.original } });
+  };
+  const handleSetDefault = async (row: CurrencyFormValues) => {
+    if (!row.is_active) {
+      toast.error(t('form.cannotSetInactiveCurrencyAsDefault'));
+      return;
+    }
+    setSettingDefaultId(row.id);
+    try {
+      await updateMutation.mutateAsync({
+        id: row.id,
+        data: { is_default: true, is_active: true },
+      });
+      toast.success(t('form.currencySetDefaultSuccess'));
+    } catch {
+      /* axios interceptor toast */
+    } finally {
+      setSettingDefaultId(null);
+    }
   };
 
   const items: CurrencyFormValues[] = response?.data?.items || [];
@@ -60,7 +84,16 @@ export default function Page() {
         tableName={t("tableNames.currency")}
         columns={currencyColumns(
           { update: hasPermission('update', 'currency'), delete: hasPermission('delete', 'currency') },
-          t, onDelete, deleteMutation.isPending, deletingId !== null, onDeleteConfirm, onDeleteCancel, deletingId, handleEdit
+          t,
+          onDelete,
+          deleteMutation.isPending,
+          deletingId !== null,
+          onDeleteConfirm,
+          onDeleteCancel,
+          deletingId,
+          handleEdit,
+          handleSetDefault,
+          settingDefaultId
         )}
         data={items}
         createPath="/currencies/create"

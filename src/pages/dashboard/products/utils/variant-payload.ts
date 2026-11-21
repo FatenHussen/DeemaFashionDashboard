@@ -330,6 +330,73 @@ function shopLinksOfVariant(variant: unknown): unknown[] {
   return [];
 }
 
+/**
+ * Round-trip shop link `id` + `cost_price` from product GET so edit saves do not wipe costs.
+ * Falls back to a single seed row for `fallbackShopId` when variants have no links yet.
+ */
+export function collectShopVariantsFromProduct(
+  product:
+    | {
+        shop_id?: number | null;
+        shop?: { id?: number | null } | null;
+        variants?: unknown[] | null;
+      }
+    | null
+    | undefined
+): ShopVariantIndexRow[] {
+  if (!product) return [];
+  const out: ShopVariantIndexRow[] = [];
+  const variants = Array.isArray(product.variants) ? product.variants : [];
+
+  variants.forEach((variant, variantIndex) => {
+    for (const link of shopLinksOfVariant(variant)) {
+      if (!link || typeof link !== 'object') continue;
+      const rec = link as Record<string, unknown>;
+      const shopObj =
+        rec.shop && typeof rec.shop === 'object'
+          ? (rec.shop as Record<string, unknown>)
+          : null;
+      // Prefer explicit shop_id; shops[].id is the shop, while link.id is the pivot.
+      const linkShopId =
+        toFiniteNumber(rec.shop_id) ??
+        toFiniteNumber(shopObj?.id);
+      if (linkShopId == null || linkShopId <= 0) continue;
+      const pivotId = toFiniteNumber(rec.id);
+      const costPrice = toFiniteNumber(rec.cost_price);
+      out.push({
+        ...(pivotId != null && pivotId > 0 ? { id: pivotId } : {}),
+        shop_id: linkShopId,
+        variant_index: variantIndex,
+        ...(costPrice !== undefined ? { cost_price: costPrice } : {}),
+      });
+    }
+  });
+
+  if (out.length > 0) return out;
+
+  const fallbackShopId =
+    toFiniteNumber(product.shop_id) ?? toFiniteNumber(product.shop?.id);
+  if (fallbackShopId != null && fallbackShopId > 0) {
+    return [{ shop_id: fallbackShopId, variant_index: 0 }];
+  }
+  return [];
+}
+
+/** Expand links for the selected shop across every variant index. */
+export function buildShopVariantLinksForProduct(
+  rows: ShopVariantIndexRow[] | undefined,
+  selectedShopId: number,
+  variantCount: number
+): ShopVariantIndexRow[] {
+  if (selectedShopId <= 0 || variantCount <= 0) return [];
+  const forShop = (rows ?? []).filter((row) => Number(row.shop_id) === selectedShopId);
+  const seed =
+    forShop.length > 0
+      ? forShop
+      : [{ shop_id: selectedShopId, variant_index: 0 } satisfies ShopVariantIndexRow];
+  return expandShopVariantsForAllIndexes(seed, variantCount);
+}
+
 /** True when the payload/body actually includes a `variants` array we can inspect. */
 export function responseIncludesVariants(body: unknown): boolean {
   const product = unwrapProduct(body);

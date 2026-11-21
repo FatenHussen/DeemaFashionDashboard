@@ -333,8 +333,22 @@ export interface OrderDetailItemExtra {
 
 export interface OrderDetailItem {
   id: number;
+  product_id?: number | null;
   product_name: string;
   product_image?: string | null;
+  shop_name?: string | null;
+  sku?: string | null;
+  model?: string | null;
+  model_number?: string | null;
+  /** Snapshot stock at order time. */
+  available_quantity?: number | null;
+  stock?: number | null;
+  /** Snapshot tax charged on the line. */
+  tax_amount?: number | null;
+  tax?: number | null;
+  tax_type?: 'percent' | 'fixed' | string | null;
+  tax_rate?: number | null;
+  tax_value?: number | null;
   note?: string | null;
   quantity: number;
   /** Legacy list/detail field; detail API may use `unit_price` / `final_price` instead. */
@@ -354,6 +368,7 @@ export interface OrderDetailItem {
   status_label?: string | null;
   delivery_time?: string | null;
   extras?: OrderDetailItemExtra[] | null;
+  variant?: string | Record<string, unknown> | null;
   variant_attributes?:
     | Array<OrderDetailItemVariantAttribute>
     | Record<string, string | OrderDetailItemVariantAttribute>

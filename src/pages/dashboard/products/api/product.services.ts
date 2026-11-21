@@ -287,15 +287,9 @@ const buildProductFormData = (data: ProductCreateUpdatePayload): FormData => {
   // Whitelist-only. Empty arrays are omitted so the backend keeps current rows
   // (sending `variants: []` soft-deletes everything and seeds a default SKU).
   appendVariantRows(formData, data.variants);
-  // Platform: never send shop_variants. Shop: only when a row has cost_price.
-  const shopVariantsWithCost = (data.shop_variants ?? []).filter(
-    (row) => row != null && row.cost_price != null && Number.isFinite(Number(row.cost_price))
-  );
-  if (
-    (saleChannel === 'shop' || saleChannel == null) &&
-    shopVariantsWithCost.length > 0
-  ) {
-    appendShopVariantRows(formData, shopVariantsWithCost);
+  // Platform: never send shop_variants. Shop: send every link row (cost_price optional).
+  if (saleChannel === 'shop' || saleChannel == null) {
+    appendShopVariantRows(formData, data.shop_variants);
   }
 
   const validCategoryDetails = (data.category_details ?? []).filter(
@@ -313,6 +307,9 @@ const buildProductFormData = (data: ProductCreateUpdatePayload): FormData => {
       formData.append(`category_details[${index}][detail_value][en]`, detail.detail_value.en);
       formData.append(`category_details[${index}][detail_value][ar]`, detail.detail_value.ar);
     });
+  } else if (data.id != null && Array.isArray(data.category_details)) {
+    // Explicit clear on update — omitting the key leaves prior rows.
+    formData.append('category_details', '');
   }
 
   const extraRows = (data.extra_details ?? []).filter(
@@ -334,18 +331,25 @@ const buildProductFormData = (data: ProductCreateUpdatePayload): FormData => {
       );
       appendOptionalFiniteNumber(formData, `extra_details[${index}][price]`, detail.price);
     });
+  } else if (data.id != null && Array.isArray(data.extra_details)) {
+    formData.append('extra_details', '');
   }
 
-  (data.badges ?? []).forEach((badgeId) => {
-    formData.append('badges[]', String(badgeId));
-  });
+  const badgeIds = (data.badges ?? [])
+    .map((badgeId) => Number(badgeId))
+    .filter((badgeId) => Number.isFinite(badgeId) && badgeId > 0);
+  if (badgeIds.length > 0) {
+    badgeIds.forEach((badgeId) => formData.append('badges[]', String(badgeId)));
+  } else if (data.id != null && Array.isArray(data.badges)) {
+    formData.append('badges', '');
+  }
 
   const iconIds = (data.icon_ids ?? [])
     .map((iconId) => Number(iconId))
     .filter((iconId) => Number.isFinite(iconId) && iconId > 0);
   if (iconIds.length > 0) {
     iconIds.forEach((iconId) => formData.append('icon_ids[]', String(iconId)));
-  } else if (data.id != null) {
+  } else if (data.id != null && Array.isArray(data.icon_ids)) {
     // Omit on create. On update, empty must be explicit or PUT keeps old icons.
     formData.append('icon_ids', '');
   }

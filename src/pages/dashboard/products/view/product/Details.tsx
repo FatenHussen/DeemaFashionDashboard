@@ -1433,19 +1433,11 @@ export default function DetailsPage() {
                   {product.category_details.map((cd: any) => (
                     <ProductDetailsField
                       key={cd.id}
-                      label={cd.name}
-                      value={
-                        <Box className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
-                          <span>
-                            <span className="text-muted-foreground">{t('form.productDetailsLangEn')}: </span>
-                            {cd.value?.en}
-                          </span>
-                          <span>
-                            <span className="text-muted-foreground">{t('form.productDetailsLangAr')}: </span>
-                            {cd.value?.ar}
-                          </span>
-                        </Box>
-                      }
+                      label={formatTranslated(cd.name as Parameters<typeof formatTranslated>[0], String(cd.id))}
+                      value={formatTranslated(
+                        (cd.value ?? cd.detail_value) as Parameters<typeof formatTranslated>[0],
+                        '—'
+                      )}
                     />
                   ))}
                 </ProductDetailsFieldGrid>

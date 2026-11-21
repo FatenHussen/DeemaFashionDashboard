@@ -9,6 +9,8 @@ import { _GovernorateApi } from '@/pages/dashboard/locations/api/governorate.ser
 import {
   CitySchema,
   type CityFormValues,
+  toCityTaxWritePayload,
+  resolveCityTaxFormValues,
 } from '@/pages/dashboard/locations/validation/city.validation';
 import {
   useCreateCity,
@@ -18,6 +20,7 @@ import {
 
 import { CONFIG } from 'src/global-config';
 import { Box, Typography } from 'src/shared/ui';
+import { RHFSelect } from 'src/shared/components/hook-form/rhf-select';
 import { RHFTextField } from 'src/shared/components/hook-form/rhf-text-field';
 import { CreateFormLayout } from 'src/shared/components/forms/create-form-layout';
 import { RHFInfiniteSelect } from 'src/shared/components/hook-form/rhf-infinite-select';
@@ -49,6 +52,8 @@ export default function CreatePage() {
       ar: '',
     },
     governorate_id: 0,
+    tax_type: 'percent',
+    tax_value: 0,
   };
 
   const methods = useForm<CityFormValues>({
@@ -56,14 +61,18 @@ export default function CreatePage() {
     defaultValues,
   });
 
-  const { handleSubmit, reset } = methods;
+  const { handleSubmit, reset, watch } = methods;
+  const watchedTaxType = watch('tax_type');
 
   // Fetch city data if in edit mode
   useEffect(() => {
     if (isEditMode && cityData && !isLoadingCity) {
+      const tax = resolveCityTaxFormValues(cityData);
       reset({
         name: cityData.name,
         governorate_id: cityData.governorate?.id || 0,
+        tax_type: tax.tax_type,
+        tax_value: tax.tax_value,
       });
     }
   }, [cityData, isEditMode, isLoadingCity, reset]);
@@ -74,12 +83,14 @@ export default function CreatePage() {
 
   const onSubmit = async (data: CityFormValues) => {
     try {
+      const taxPayload = toCityTaxWritePayload(data);
       const payload = {
         name: {
           en: data.name.en,
           ar: data.name.ar,
         },
         governorate_id: data.governorate_id,
+        ...taxPayload,
       };
 
       if (isEditMode && id) {
@@ -101,6 +112,10 @@ export default function CreatePage() {
   };
 
   const infoText = isEditMode ? t('form.cityFormInfoEdit') : t('form.cityFormInfoCreate');
+  const taxTypeOptions = [
+    { value: 'percent', label: t('form.cityTaxTypePercent') },
+    { value: 'fixed', label: t('form.cityTaxTypeFixed') },
+  ];
 
   return (
     <>
@@ -176,6 +191,46 @@ export default function CreatePage() {
                 placeholder={t('form.selectGovernorate')}
                 helperText={t('form.cityGovernorateHelper')}
                 initialLabel={cityData?.governorate?.name}
+              />
+            </Box>
+          </Box>
+        </Box>
+
+        {/* ── Section: Tax ── */}
+        <Box className="rounded-2xl border border-border/50 bg-card/50 shadow-sm">
+          <Box className="flex items-center gap-3 px-6 py-4 border-b border-border/40 bg-gradient-to-r from-amber-500/[0.06] via-amber-500/[0.02] to-transparent">
+            <Box className="h-8 w-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
+              <Iconify icon="solar:bill-list-bold" className="text-amber-500" width={15} />
+            </Box>
+            <Typography variant="subtitle2" className="font-semibold text-foreground">
+              {t('form.cityTaxSection')}
+            </Typography>
+          </Box>
+          <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+            <Box className="group">
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
+                {t('form.cityTaxType')}
+              </Typography>
+              <RHFSelect
+                name="tax_type"
+                options={taxTypeOptions}
+                placeholder={t('form.cityTaxType')}
+                helperText={t('form.cityTaxTypeHelper')}
+              />
+            </Box>
+            <Box className="group">
+              <Typography variant="subtitle2" className="mb-2 font-semibold text-foreground">
+                {t('form.cityTaxValue')}
+              </Typography>
+              <RHFTextField
+                name="tax_value"
+                type="number"
+                placeholder={watchedTaxType === 'fixed' ? '1500' : '0'}
+                helperText={
+                  watchedTaxType === 'fixed'
+                    ? t('form.cityTaxValueFixedHelper')
+                    : t('form.cityTaxValuePercentHelper')
+                }
               />
             </Box>
           </Box>

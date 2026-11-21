@@ -3,6 +3,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 import type { CurrencyData } from '@/pages/dashboard/currencies/types/currency.types';
 
 import { z } from 'zod';
+import { Star } from 'lucide-react';
 import { TableActiveBadge } from '@/shared/components/table-status-badges';
 import { createToggleColumn } from '@/shared/ui/table-data/data-table-toggle-cell';
 import { DataTableRowActions } from '@/shared/ui/table-data/data-table-row-actions';
@@ -31,7 +32,9 @@ export const currencyColumns = (
   onDeleteConfirm?: () => void,
   onDeleteCancel?: () => void,
   deletingId?: number | null,
-  onEdit?: (row: any) => void
+  onEdit?: (row: any) => void,
+  onSetDefault?: (row: CurrencyFormValues) => void,
+  settingDefaultId?: number | null
 ): ColumnDef<CurrencyFormValues>[] => [
   {
     id: 'code',
@@ -81,7 +84,18 @@ export const currencyColumns = (
     ),
   },
   ...(permissions.update
-    ? [createToggleColumn<CurrencyFormValues>({ entityType: 'currency' })]
+    ? [
+        createToggleColumn<CurrencyFormValues>({
+          entityType: 'currency',
+          isToggleDisabled: (row) => Boolean(row.is_default),
+          guardToggle: (row, nextIsActive) => {
+            if (row.is_default && !nextIsActive) {
+              return t('form.cannotDeactivateDefaultCurrency');
+            }
+            return null;
+          },
+        }),
+      ]
     : []),
   {
     id: 'actions',
@@ -98,6 +112,21 @@ export const currencyColumns = (
         onDeleteCancel={onDeleteCancel}
         deletingId={deletingId}
         permissions={permissions}
+        extraActions={
+          permissions.update && onSetDefault && !row.original.is_default && row.original.is_active
+            ? [
+                {
+                  key: 'set-default',
+                  label:
+                    settingDefaultId === row.original.id
+                      ? t('form.settingDefaultCurrency')
+                      : t('form.setAsDefaultCurrency'),
+                  icon: <Star className="h-4 w-4" />,
+                  onClick: () => onSetDefault(row.original),
+                },
+              ]
+            : undefined
+        }
       />
     ),
   },

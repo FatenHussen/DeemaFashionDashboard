@@ -33,10 +33,10 @@ export interface CurrencyDetailsResponse {
 }
 
 export interface CurrencyCreateUpdatePayload {
-  code: string;
-  name: { ar: string; en: string };
-  symbol: string;
-  exchange_rate: number;
+  code?: string;
+  name?: { ar: string; en: string };
+  symbol?: string;
+  exchange_rate?: number;
   is_default?: boolean;
   is_active?: boolean;
 }

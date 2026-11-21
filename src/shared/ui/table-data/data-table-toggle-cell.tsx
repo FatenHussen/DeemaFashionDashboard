@@ -24,14 +24,26 @@ function ToggleVisibilityColumnHeader<TData>({
 
 type ToggleAppearance = 'switch' | 'eye';
 
-interface ToggleCellProps {
+interface ToggleCellProps<TData = unknown> {
   id: number;
   isActive: boolean;
   entityType: AdminToggleEntityType;
   appearance?: ToggleAppearance;
+  row?: TData;
+  disabled?: boolean;
+  /** Return a toast message to block the toggle; return null/undefined to allow. */
+  guardToggle?: (row: TData, nextIsActive: boolean) => string | null | undefined;
 }
 
-function ToggleCell({ id, isActive, entityType, appearance = 'switch' }: ToggleCellProps) {
+function ToggleCell<TData>({
+  id,
+  isActive,
+  entityType,
+  appearance = 'switch',
+  row,
+  disabled = false,
+  guardToggle,
+}: ToggleCellProps<TData>) {
   const { t } = useTranslation('table');
   const toggleMutation = useAdminToggleStatus();
 
@@ -42,11 +54,20 @@ function ToggleCell({ id, isActive, entityType, appearance = 'switch' }: ToggleC
     toggleMutation.variables.type === entityType;
 
   const handleToggle = async () => {
+    if (disabled) return;
+    const nextIsActive = !isActive;
+    if (guardToggle && row !== undefined) {
+      const blockedMessage = guardToggle(row, nextIsActive);
+      if (blockedMessage) {
+        toast.error(blockedMessage);
+        return;
+      }
+    }
     try {
       await toggleMutation.mutateAsync({
         type: entityType,
         id,
-        is_active: !isActive,
+        is_active: nextIsActive,
       });
       toast.success(
         appearance === 'eye'
@@ -69,7 +90,7 @@ function ToggleCell({ id, isActive, entityType, appearance = 'switch' }: ToggleC
           aria-pressed={isActive}
           aria-label={label}
           title={label}
-          disabled={isPending}
+          disabled={isPending || disabled}
           onClick={(e) => {
             e.stopPropagation();
             void handleToggle();
@@ -80,7 +101,7 @@ function ToggleCell({ id, isActive, entityType, appearance = 'switch' }: ToggleC
             isActive
               ? 'border-primary/25 bg-primary/10 text-primary hover:bg-primary/15'
               : 'border-border/60 bg-muted/40 text-muted-foreground hover:bg-muted hover:text-foreground',
-            isPending ? 'cursor-wait opacity-50' : 'cursor-pointer',
+            isPending || disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer',
           ].join(' ')}
         >
           <Iconify
@@ -99,16 +120,16 @@ function ToggleCell({ id, isActive, entityType, appearance = 'switch' }: ToggleC
         type="button"
         role="switch"
         aria-checked={isActive}
-        disabled={isPending}
+        disabled={isPending || disabled}
         onClick={(e) => {
           e.stopPropagation();
           void handleToggle();
         }}
         className={[
-          'relative h-7 w-12 shrink-0 cursor-pointer rounded-full border border-border/40 transition-colors',
+          'relative h-7 w-12 shrink-0 rounded-full border border-border/40 transition-colors',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background',
           isActive ? 'bg-primary' : 'bg-muted-foreground/35',
-          isPending ? 'cursor-wait opacity-50' : '',
+          isPending || disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer',
         ].join(' ')}
       >
         <span
@@ -141,12 +162,18 @@ interface CreateToggleColumnOptions<TData> {
   entityType: AdminToggleEntityType;
   getIsActive?: (row: TData) => boolean | undefined;
   appearance?: ToggleAppearance;
+  /** Return a toast message to block the toggle; return null/undefined to allow. */
+  guardToggle?: (row: TData, nextIsActive: boolean) => string | null | undefined;
+  /** When true, disable the control (e.g. default currency cannot be deactivated). */
+  isToggleDisabled?: (row: TData) => boolean;
 }
 
 export function createToggleColumn<TData>({
   entityType,
   getIsActive,
   appearance = 'switch',
+  guardToggle,
+  isToggleDisabled,
 }: CreateToggleColumnOptions<TData>): ColumnDef<TData> {
   return {
     id: 'toggle_active',
@@ -169,6 +196,9 @@ export function createToggleColumn<TData>({
           isActive={isActive}
           entityType={entityType}
           appearance={appearance}
+          row={row.original}
+          disabled={isToggleDisabled?.(row.original) ?? false}
+          guardToggle={guardToggle}
         />
       );
     },

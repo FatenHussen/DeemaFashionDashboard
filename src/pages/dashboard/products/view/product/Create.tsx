@@ -28,6 +28,7 @@ import { useId, useRef, useMemo, useState, useEffect, useCallback } from 'react'
 import { useFetchCurrencies } from '@/pages/dashboard/currencies/hooks/currency';
 import { useFetchWarranties } from '@/pages/dashboard/warranties/hooks/warranty';
 import { InfiniteScrollSelect } from '@/shared/components/infinite-scroll-select';
+import { SearchableSelect } from '@/shared/components/searchable-select';
 import { _CategoryApi } from '@/pages/dashboard/categories/api/category.services';
 import { useFetchCategoryById } from '@/pages/dashboard/categories/hooks/category';
 import { TinyMCEEditorField } from '@/shared/components/tinymce-editor/tinymce-editor';
@@ -62,6 +63,8 @@ import {
   variantImageFieldsFromRow,
   variantExistingImageFormState,
   extractVariantAttributeValueIds,
+  collectShopVariantsFromProduct,
+  buildShopVariantLinksForProduct,
 } from '@/pages/dashboard/products/utils/variant-payload';
 import {
   sortedComboKey,
@@ -176,6 +179,14 @@ function findCategoryDetailOptionKey(
   if (!detailValue || opts.length === 0) return '';
   const found = opts.find((o) => o.en === detailValue.en && o.ar === detailValue.ar);
   return found ? categoryDetailOptionKey(found) : '';
+}
+
+/** Visible label follows dashboard locale; keywords keep both langs searchable. */
+function categoryDetailValueOptionMeta(opt: CategoryDetailValueOption) {
+  return {
+    label: formatTranslated(opt, opt.en || opt.ar || ''),
+    keywords: `${opt.en} ${opt.ar}`.trim(),
+  };
 }
 
 /** Bilingual label helper for category attributes. */
@@ -1622,7 +1633,7 @@ export default function CreatePage() {
           .map((v: any) => (typeof v === 'object' && v?.id != null ? v.id : v))
           .filter((v) => v != null && v !== '' && !Number.isNaN(Number(v)))
           .map((v) => Number(v)),
-        shop_variants: [],
+        shop_variants: collectShopVariantsFromProduct(p),
         badges: p.badges?.length
           ? p.badges.map((b: any) => (typeof b === 'number' ? b : b.id))
           : [],
@@ -2062,6 +2073,24 @@ export default function CreatePage() {
         (payload as { cost_price_syp?: number }).cost_price_syp
       );
 
+      const shopVariantLinks =
+        saleChannel === 'shop' && selectedShopId > 0
+          ? buildShopVariantLinksForProduct(
+              (getValues('shop_variants') as
+                | Array<{
+                    id?: number;
+                    shop_id: number;
+                    variant_index: number;
+                    cost_price?: number;
+                  }>
+                | undefined) ??
+                payload.shop_variants ??
+                collectShopVariantsFromProduct(productResponse),
+              selectedShopId,
+              variantsForPayload.length
+            )
+          : undefined;
+
       const finalPayload = {
         ...payload,
         brand_id:
@@ -2086,7 +2115,7 @@ export default function CreatePage() {
             : undefined,
         shop_id: saleChannel === 'shop' && selectedShopId > 0 ? selectedShopId : undefined,
         variants: variantsForPayload,
-        shop_variants: undefined,
+        shop_variants: shopVariantLinks,
         category_details: payload.category_details?.filter(
           (cd) => cd.category_detail_id && cd.category_detail_id > 0
         ),
@@ -2128,7 +2157,7 @@ export default function CreatePage() {
         ...finalPayload,
         images: productImagesCompressed,
         variants: variantsCompressed,
-        shop_variants: undefined,
+        shop_variants: shopVariantLinks,
         thumbnail: thumb,
         seo_image: seoImg,
       };
@@ -2184,7 +2213,9 @@ export default function CreatePage() {
         const shopIdDirty = Boolean(dirtyFields.shop_id);
         const vendorDirty = Boolean(dirtyFields.vendor_id);
 
-        delete editApiPayload.shop_variants;
+        if (saleChannel !== 'shop' || !Array.isArray(editApiPayload.shop_variants)) {
+          delete editApiPayload.shop_variants;
+        }
 
         // Name-only edits omit sale_channel, shop_id, and vendor_id.
         // Sending them again re-links the shop and can reject a user id as vendor_id.
@@ -3484,27 +3515,32 @@ export default function CreatePage() {
                         control={control}
                         render={({ field: f, fieldState: { error } }) => (
                           <div className="flex-1 min-w-0">
-                            <select
-                              {...f}
-                              value={f.value}
-                              onChange={(e) => {
-                                f.onChange(Number(e.target.value));
+                            <SearchableSelect
+                              value={f.value ? String(f.value) : ''}
+                              onChange={(v) => {
+                                f.onChange(v ? Number(v) : 0);
                                 setValue(
                                   `category_details.${index}.detail_value`,
                                   { en: '', ar: '' },
                                   { shouldDirty: true, shouldValidate: true }
                                 );
                               }}
-                              className={fieldInputClass(!!error)}
-                            >
-                              {availableCategoryDetails.map((cd: any) => (
-                                <option key={cd.id} value={cd.id}>
-                                  {typeof cd.name === 'object'
-                                    ? cd.name?.en ?? cd.name?.ar
-                                    : cd.name}
-                                </option>
-                              ))}
-                            </select>
+                              options={availableCategoryDetails.map((cd: any) => {
+                                const nameObj =
+                                  typeof cd.name === 'object' && cd.name
+                                    ? (cd.name as { en?: string; ar?: string })
+                                    : null;
+                                return {
+                                  value: String(cd.id),
+                                  label: attributeLabel(cd.name, String(cd.id)),
+                                  keywords: nameObj
+                                    ? `${nameObj.en ?? ''} ${nameObj.ar ?? ''}`.trim()
+                                    : String(cd.name ?? ''),
+                                };
+                              })}
+                              placeholder={t('form.selectCategoryDetail')}
+                              disabled={availableCategoryDetails.length === 0}
+                            />
                             <FieldErrorText message={error?.message} />
                           </div>
                         )}
@@ -3525,11 +3561,12 @@ export default function CreatePage() {
                         <Typography variant="caption" className="text-muted-foreground font-medium block">
                           {t('form.categoryDetailPredefinedValueLabel')}
                         </Typography>
-                        <select
-                          className={fieldInputClass(false)}
+                        <SearchableSelect
                           value={matchedKey}
-                          onChange={(e) => {
-                            const v = e.target.value;
+                          clearable
+                          clearLabel={t('form.selectCategoryDetailValue')}
+                          placeholder={t('form.selectCategoryDetailValue')}
+                          onChange={(v) => {
                             if (!v) {
                               setValue(
                                 `category_details.${index}.detail_value`,
@@ -3549,19 +3586,19 @@ export default function CreatePage() {
                               /* ignore malformed */
                             }
                           }}
-                        >
-                          <option value="">{t('form.selectCategoryDetailValue')}</option>
-                          {valueOpts.map((opt, optIdx) => (
-                            <option key={optIdx} value={categoryDetailOptionKey(opt)}>
-                              {`${opt.en} / ${opt.ar}`}
-                            </option>
-                          ))}
-                        </select>
+                          options={valueOpts.map((opt) => {
+                            const meta = categoryDetailValueOptionMeta(opt);
+                            return {
+                              value: categoryDetailOptionKey(opt),
+                              label: meta.label,
+                              keywords: meta.keywords,
+                            };
+                          })}
+                        />
                         {hasOrphanSaved ? (
                           <Typography variant="caption" className="text-amber-600 dark:text-amber-500 block">
                             {t('form.categoryDetailValueNotInList', {
-                              en: dv.en ?? '',
-                              ar: dv.ar ?? '',
+                              value: formatTranslated(dv, dv.en || dv.ar || ''),
                             })}
                           </Typography>
                         ) : null}
@@ -3648,10 +3685,15 @@ export default function CreatePage() {
                         control={control}
                         render={({ field: f, fieldState: { error } }) => (
                           <div>
-                            <select
+                            <SearchableSelect
                               value={f.value ? String(f.value) : ''}
-                              onChange={(e) => {
-                                const v = e.target.value;
+                              clearable
+                              clearLabel={t('form.productExtraDetailSelectPlaceholder')}
+                              placeholder={t('form.productExtraDetailSelectPlaceholder')}
+                              disabled={
+                                categoryIdNum <= 0 || rowOptions.length === 0 || !productExtraPresets.length
+                              }
+                              onChange={(v) => {
                                 const nextId = v ? Number(v) : 0;
                                 f.onChange(nextId);
                                 if (nextId > 0) {
@@ -3663,20 +3705,15 @@ export default function CreatePage() {
                                   );
                                 }
                               }}
-                              onBlur={f.onBlur}
-                              ref={f.ref}
-                              className={fieldInputClass(!!error)}
-                              disabled={
-                                categoryIdNum <= 0 || rowOptions.length === 0 || !productExtraPresets.length
-                              }
-                            >
-                              <option value="">{t('form.productExtraDetailSelectPlaceholder')}</option>
-                              {rowOptions.map((pr) => (
-                                <option key={pr.id} value={String(pr.id)}>
-                                  {labelProductExtraPreset(pr)}
-                                </option>
-                              ))}
-                            </select>
+                              options={rowOptions.map((pr) => {
+                                const key = normalizeProductExtraLang(pr.detail_key);
+                                return {
+                                  value: String(pr.id),
+                                  label: labelProductExtraPreset(pr),
+                                  keywords: `${key.en} ${key.ar}`.trim(),
+                                };
+                              })}
+                            />
                             <FieldErrorText message={error?.message} />
                           </div>
                         )}
