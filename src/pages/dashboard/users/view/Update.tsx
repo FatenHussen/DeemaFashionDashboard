@@ -10,6 +10,7 @@ import { useParams, useNavigate, useLocation } from 'react-router';
 import { useForm, Controller, FormProvider } from 'react-hook-form';
 import { useFetchAreas } from '@/pages/dashboard/locations/hooks/area';
 import { useFetchProducts } from '@/pages/dashboard/products/hooks/product';
+import { resolveUserAreaId } from '@/pages/dashboard/users/lib/resolve-user-area-id';
 import { buildAffiliateCommissionPayload } from '@/pages/dashboard/users/lib/affiliate-commission';
 import {
   useUpdateUser,
@@ -125,7 +126,7 @@ export default function UpdatePage() {
       name: sourceUser.name || '',
       email: sourceUser.email || '',
       phone: sourceUser.phone || '',
-      area_id: (sourceUser as { area_id?: number }).area_id ?? 0,
+      area_id: resolveUserAreaId(sourceUser) ?? 0,
       password: '',
       password_confirmation: '',
     };
@@ -215,22 +216,43 @@ export default function UpdatePage() {
 
   const onSubmit = async (data: UserUpdateFormValues) => {
     try {
+      const nextPassword = data.password?.trim() ?? '';
+      const nextEmail = data.email.trim();
+      const currentEmail = String(sourceUser?.email ?? '').trim();
+      const emailChanged = nextEmail.toLowerCase() !== currentEmail.toLowerCase();
+      const nameChanged = data.name !== (sourceUser?.name ?? '');
+      const phoneChanged = (data.phone || '') !== (sourceUser?.phone || '');
+      const currentAreaId = resolveUserAreaId(sourceUser) ?? 0;
+      const areaChanged = data.area_id > 0 && data.area_id !== currentAreaId;
+      const profileChanged = nameChanged || phoneChanged || emailChanged || areaChanged;
+
+      // Password-only: send password fields only (no empty area_id / unchanged profile).
+      if (nextPassword && !profileChanged && !showApprovedAffiliateSection) {
+        await updateUserMutation.mutateAsync({
+          id: id!,
+          data: {
+            password: nextPassword,
+            password_confirmation: data.password_confirmation,
+          },
+        });
+        toast.success(t('form.userUpdatedSuccess'));
+        return;
+      }
+
       const payload: Record<string, unknown> = {
         name: data.name,
         last_name: '',
         phone: data.phone || '',
-        area_id: data.area_id,
       };
-      // Only send email when it actually changed. Re-sending the same email
-      // triggers unique validation ("email already in use") on some backends
-      // that don't ignore the current user id — blocking password-only updates.
-      const nextEmail = data.email.trim();
-      const currentEmail = String(sourceUser?.email ?? '').trim();
-      if (nextEmail.toLowerCase() !== currentEmail.toLowerCase()) {
+      // Only send a real area_id. Never 0 / "" — omit key to leave area unchanged.
+      if (data.area_id > 0) {
+        payload.area_id = data.area_id;
+      }
+      if (emailChanged) {
         payload.email = nextEmail;
       }
-      if (data.password?.trim()) {
-        payload.password = data.password;
+      if (nextPassword) {
+        payload.password = nextPassword;
         payload.password_confirmation = data.password_confirmation;
       }
       if (showApprovedAffiliateSection && data.affiliate_commission_type) {

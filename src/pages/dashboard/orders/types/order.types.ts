@@ -336,11 +336,12 @@ export interface OrderDetailItem {
   product_id?: number | null;
   product_name: string;
   product_image?: string | null;
-  shop_name?: string | null;
+  /** Store display name (string or localized `{ ar, en }`). */
+  shop_name?: string | { ar?: string; en?: string } | null;
   sku?: string | null;
   model?: string | null;
   model_number?: string | null;
-  /** Snapshot stock at order time. */
+  /** Current available stock for the ordered variant/product. */
   available_quantity?: number | null;
   stock?: number | null;
   /** Snapshot tax charged on the line. */

@@ -126,13 +126,17 @@ axiosInstance.interceptors.response.use(
 
     const status = error?.response?.status;
     const data = error?.response?.data;
+    // Prefer flattened unique `errors` for 422. Do not fall back to `message`
+    // when field errors already carry the same text (avoids duplicate toasts).
     const validationMessage = formatApiValidationErrors(data?.errors);
     const baseMessage =
       data?.message ||
       error?.message ||
       i18n.t('genericError', { ns: 'common' });
 
-    const message = validationMessage || baseMessage;
+    const message =
+      validationMessage ||
+      (typeof baseMessage === 'string' ? baseMessage : i18n.t('genericError', { ns: 'common' }));
 
     // 401 Unauthorized: token expired or invalid -> redirect to login.
     // `GET /admin/pages` is optional: the pages screen falls back when this route is

@@ -13,6 +13,7 @@ const UserSchema = z.object({
   name: z.string(),
   email: z.string(),
   phone: z.string().nullable(),
+  area_id: z.number().nullable().optional(),
   area: z.string().nullable().optional(),
   is_active: z.boolean().optional(),
   affiliate: z

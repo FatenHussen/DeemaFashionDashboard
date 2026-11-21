@@ -101,8 +101,11 @@ export default function CreatePage() {
         phone: data.phone || '',
         password: data.password,
         password_confirmation: data.password_confirmation,
-        area_id: data.area_id,
       };
+      // Never send area_id: 0 / "" — only a real areas id.
+      if (data.area_id > 0) {
+        payload.area_id = data.area_id;
+      }
       if (data.make_affiliate && data.affiliate_commission_type) {
         payload.is_affiliate = true;
         Object.assign(

@@ -206,7 +206,8 @@ export const UserUpdateSchema = z
     phone: z.string().optional().default(''),
     password: z.string().optional(),
     password_confirmation: z.string().optional(),
-    area_id: z.coerce.number().min(1, t('user.areaRequired')),
+    // 0 = unset; omit from API payload (never send empty area_id).
+    area_id: z.coerce.number().min(0).optional().default(0),
     affiliate_commission_type: affiliateCommissionTypeSchema.optional(),
     affiliate_id: z.union([z.string(), z.number()]).optional(),
     affiliate_rate: z.coerce.number().optional(),

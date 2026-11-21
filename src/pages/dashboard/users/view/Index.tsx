@@ -7,7 +7,7 @@ import { usePermissions } from '@/auth/hooks/use-permissions';
 import { useFetchAreas } from '@/pages/dashboard/locations/hooks/area';
 import { userColumns, type UserFormValues } from '@/columns/one/users/one';
 import { UpdatePasswordDialog } from '@/shared/components/update-password-dialog';
-import { useFetchUsers, useDeleteUser, useUpdateUser, useFetchUserById } from '@/pages/dashboard/users/hooks/user';
+import { useFetchUsers, useDeleteUser, useUpdateUser } from '@/pages/dashboard/users/hooks/user';
 
 import { CONFIG } from 'src/global-config';
 
@@ -28,7 +28,6 @@ export default function Page() {
   }, [search]);
 
   const { data: areasResponse } = useFetchAreas();
-  const { data: userDetailsResponse } = useFetchUserById(passwordDialogTargetId ?? '');
   const areas = areasResponse?.data?.items || [];
 
   const params: Record<string, number | string> = {
@@ -93,15 +92,10 @@ export default function Page() {
 
   const handlePasswordSubmit = async (data: { password: string; password_confirmation: string }) => {
     if (!passwordDialogTargetId) return;
-    const user = userDetailsResponse?.data ?? userData.find((u) => u.id === passwordDialogTargetId);
+    // Password-only: never send area_id or unchanged profile fields.
     await updateUserMutation.mutateAsync({
       id: passwordDialogTargetId,
       data: {
-        name: user?.name ?? '',
-        last_name: (user as any)?.last_name ?? '',
-        email: user?.email ?? '',
-        phone: user?.phone ?? '',
-        area_id: (user as any)?.area_id ?? 0,
         password: data.password,
         password_confirmation: data.password_confirmation,
       },

@@ -65,6 +65,9 @@ export interface UserItem {
   name: string;
   email: string;
   phone: string | null;
+  /** Numeric area id from list/details. Prefer this over parsing `area` name text. */
+  area_id?: number | null;
+  /** Display name from list (`GET /users`). */
   area?: string | null;
   is_active?: boolean;
   affiliate?: UserAffiliate;
@@ -118,14 +121,19 @@ export interface UserCreatePayload {
 }
 
 export interface UserUpdatePayload {
-  name: string;
+  /** Password-only updates may omit profile fields. */
+  name?: string;
   last_name?: string;
   /** Omit when unchanged so unique email rules don't block password-only updates. */
   email?: string;
-  phone: string;
+  phone?: string;
   password?: string;
   password_confirmation?: string;
-  area_id: number;
+  /**
+   * Send a real area id only. Omit the key (or `null`) when unset —
+   * never `0` / `""` (backend `exists` fails: «حقل area id غير موجود»).
+   */
+  area_id?: number | null;
   is_affiliate?: boolean;
   affiliate_id?: number | string;
   affiliate_commission_type?: AffiliateCommissionType;
