@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react';
 import type { TFunction } from 'i18next';
 
-import { toast } from 'react-toastify';
 import { Link } from 'react-router';
+import { toast } from 'react-toastify';
 import { Iconify } from '@/shared/components/iconify';
 import { formatTranslated } from '@/utils/format-translated';
 import {
@@ -18,6 +18,7 @@ import {
 } from '@/pages/dashboard/orders/types/order.types';
 
 import { paths } from 'src/routes/paths';
+
 import { toDisplayString } from 'src/utils/to-display-string';
 
 import { CONFIG } from 'src/global-config';

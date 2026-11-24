@@ -5,16 +5,17 @@ import { useTranslation } from 'react-i18next';
 import { RouterLink } from 'src/routes/components';
 
 // ----------------------------------------------------------------------
-// Brand palette (reference swatches)
-// #FFA000 orange · #1F2937 slate · #F3F4F6 / #F1F1F1 grays · #FFE8A3 / #FFF4CC warm highlights
+// Deema Fashion brand palette (admin chrome)
+// Primary #5A3A2E · Secondary #8B5E4A · Accent #D4B39A · Highlight #A9B07A · Surface #F7F5F2
 
 const BRAND = {
-  orange: '#FFA000',
-  slate: '#1F2937',
-  grayCool: '#F3F4F6',
-  grayNeutral: '#F1F1F1',
-  yellowSoft: '#FFE8A3',
-  cream: '#FFF4CC',
+  primary: '#5A3A2E',
+  secondary: '#8B5E4A',
+  accent: '#D4B39A',
+  highlight: '#A9B07A',
+  surface: '#F7F5F2',
+  muted: '#EAD8C7',
+  charcoal: '#1A1412',
 } as const;
 
 function HexBg() {
@@ -42,7 +43,7 @@ function HexBg() {
         <polygon points="50,5 90,27.5 90,72.5 50,95 10,72.5 10,27.5" />
       </svg>
       <svg
-        className="absolute bottom-[12%] left-[8%] h-32 w-32 text-[#FFE8A3]/20"
+        className="absolute bottom-[12%] left-[8%] h-32 w-32 text-[#D4B39A]/25"
         viewBox="0 0 100 100"
         fill="currentColor"
       >
@@ -58,21 +59,21 @@ function MarketingAurora() {
       <div
         className="auth-login-blob-a absolute -left-1/4 top-0 h-[55%] w-[70%] rounded-full blur-[100px]"
         style={{
-          backgroundColor: 'rgba(255, 160, 0, 0.22)',
+          backgroundColor: 'rgba(212, 179, 154, 0.28)',
           mixBlendMode: 'screen',
         }}
       />
       <div
         className="auth-login-blob-b absolute -right-[20%] bottom-0 h-[50%] w-[65%] rounded-full blur-[90px]"
         style={{
-          backgroundColor: 'rgba(255, 232, 163, 0.2)',
+          backgroundColor: 'rgba(169, 176, 122, 0.22)',
           mixBlendMode: 'screen',
         }}
       />
       <div
         className="auth-login-blob-c absolute left-1/3 top-1/2 h-[40%] w-[45%] -translate-y-1/2 rounded-full blur-[80px]"
         style={{
-          backgroundColor: 'rgba(255, 244, 204, 0.18)',
+          backgroundColor: 'rgba(234, 216, 199, 0.16)',
           mixBlendMode: 'overlay',
         }}
       />
@@ -101,8 +102,8 @@ function DashboardMockup() {
       </div>
 
       {/* Logo chip */}
-      <div className="absolute -right-1 top-0 z-10 flex h-10 w-10 items-center justify-center rounded-xl bg-white shadow-md sm:-right-2 sm:-top-2 sm:h-10 sm:w-10">
-        <span className="text-sm font-bold text-primary">T</span>
+      <div className="absolute -right-1 top-0 z-10 flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-white shadow-md sm:-right-2 sm:-top-2 sm:h-10 sm:w-10">
+        <img src="/logo/logo-deema.png" alt="" className="h-full w-full object-cover" />
       </div>
 
       {/* Main dashboard frame */}
@@ -110,21 +111,21 @@ function DashboardMockup() {
         <div className="flex gap-3">
           <div
             className="flex w-10 shrink-0 flex-col gap-1.5 rounded-lg p-1.5"
-            style={{ backgroundColor: BRAND.grayNeutral }}
+            style={{ backgroundColor: BRAND.muted }}
           >
-            <div className="h-1.5 w-full rounded bg-[#1F2937]/15" />
-            <div className="h-1.5 w-full rounded bg-[#1F2937]/10" />
-            <div className="h-1.5 w-full rounded bg-[#1F2937]/10" />
-            <div className="mt-1 h-1.5 w-full rounded bg-[#FFA000]/35" />
-            <div className="h-1.5 w-full rounded bg-[#1F2937]/10" />
+            <div className="h-1.5 w-full rounded bg-[#5A3A2E]/15" />
+            <div className="h-1.5 w-full rounded bg-[#5A3A2E]/10" />
+            <div className="h-1.5 w-full rounded bg-[#5A3A2E]/10" />
+            <div className="mt-1 h-1.5 w-full rounded bg-[#5A3A2E]/35" />
+            <div className="h-1.5 w-full rounded bg-[#5A3A2E]/10" />
           </div>
           <div className="min-w-0 flex-1 space-y-2">
             <div className="flex items-center justify-between gap-2">
-              <div className="h-2 w-20 rounded bg-[#1F2937]/12" />
-              <div className="h-2 w-8 rounded-full bg-[#1F2937]/10" />
+              <div className="h-2 w-20 rounded bg-[#5A3A2E]/12" />
+              <div className="h-2 w-8 rounded-full bg-[#5A3A2E]/10" />
             </div>
-            <div className="rounded-lg p-2" style={{ backgroundColor: BRAND.grayCool }}>
-              <svg viewBox="0 0 120 40" className="h-12 w-full text-[#FFA000]/50">
+            <div className="rounded-lg p-2" style={{ backgroundColor: BRAND.surface }}>
+              <svg viewBox="0 0 120 40" className="h-12 w-full text-[#8B5E4A]/55">
                 <path
                   d="M0 32 L15 18 L30 24 L45 12 L60 20 L75 8 L90 16 L105 4 L120 10"
                   fill="none"
@@ -143,29 +144,29 @@ function DashboardMockup() {
             <div className="grid grid-cols-2 gap-1.5">
               <div
                 className="rounded-md border p-1.5"
-                style={{ borderColor: BRAND.grayNeutral, backgroundColor: `${BRAND.grayCool}cc` }}
+                style={{ borderColor: BRAND.muted, backgroundColor: `${BRAND.surface}cc` }}
               >
-                <div className="mb-1 h-1 w-10 rounded bg-[#1F2937]/12" />
-                <div className="h-1.5 w-14 rounded bg-[#1F2937]/18" />
+                <div className="mb-1 h-1 w-10 rounded bg-[#5A3A2E]/12" />
+                <div className="h-1.5 w-14 rounded bg-[#5A3A2E]/18" />
               </div>
               <div
                 className="rounded-md border p-1.5"
-                style={{ borderColor: BRAND.grayNeutral, backgroundColor: `${BRAND.grayCool}cc` }}
+                style={{ borderColor: BRAND.muted, backgroundColor: `${BRAND.surface}cc` }}
               >
-                <div className="mb-1 h-1 w-10 rounded bg-[#1F2937]/12" />
-                <div className="h-1.5 w-14 rounded bg-[#1F2937]/18" />
+                <div className="mb-1 h-1 w-10 rounded bg-[#5A3A2E]/12" />
+                <div className="h-1.5 w-14 rounded bg-[#5A3A2E]/18" />
               </div>
             </div>
             <div
               className="flex items-center gap-2 rounded-lg border bg-white p-1.5"
-              style={{ borderColor: BRAND.grayNeutral }}
+              style={{ borderColor: BRAND.muted }}
             >
               <div
-                className="h-6 w-6 rounded-full bg-gradient-to-br from-[#FFA000] to-[#FFE8A3]"
+                className="h-6 w-6 rounded-full bg-gradient-to-br from-[#5A3A2E] to-[#D4B39A]"
               />
               <div className="min-w-0 flex-1 space-y-0.5">
-                <div className="h-1.5 w-16 rounded bg-[#1F2937]/12" />
-                <div className="h-1 w-12 rounded" style={{ backgroundColor: BRAND.grayCool }} />
+                <div className="h-1.5 w-16 rounded bg-[#5A3A2E]/12" />
+                <div className="h-1 w-12 rounded" style={{ backgroundColor: BRAND.muted }} />
               </div>
             </div>
           </div>
@@ -184,7 +185,7 @@ export type AuthSplitSectionProps = HTMLAttributes<HTMLDivElement> & {
   layoutQuery?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
   /** When true, panel sits inside the unified login card (tighter padding). */
   unifiedCard?: boolean;
-  /** `warm` = cream/yellow highlights; `cool` = cool gray mist + same base gradient. */
+  /** `warm` = cream/tan highlights; `cool` = muted wash + same base gradient. */
   marketingVariant?: 'warm' | 'cool';
   methods?: {
     path: string;
@@ -208,13 +209,13 @@ export function AuthSplitSection({
   const title = titleProp ?? t('authMarketingTitle');
   const subtitle = subtitleProp ?? t('authMarketingSubtitle');
 
-  // Base: slate → brand orange (#1F2937 → #FFA000); both variants share palette, overlay differs.
-  const panelBackground = `linear-gradient(155deg, ${BRAND.slate} 0%, ${BRAND.slate} 40%, ${BRAND.orange} 100%)`;
+  // Base: deep charcoal → primary brown; both variants share palette, overlay differs.
+  const panelBackground = `linear-gradient(155deg, ${BRAND.charcoal} 0%, ${BRAND.primary} 45%, ${BRAND.secondary} 100%)`;
 
   const overlayGradient =
     marketingVariant === 'cool'
-      ? `linear-gradient(125deg, rgba(243, 244, 246, 0.14) 0%, transparent 42%, rgba(241, 241, 241, 0.08) 55%, rgba(255, 160, 0, 0.28) 100%)`
-      : `linear-gradient(125deg, rgba(255, 232, 163, 0.22) 0%, transparent 42%, rgba(255, 244, 204, 0.14) 100%)`;
+      ? `linear-gradient(125deg, rgba(169, 176, 122, 0.16) 0%, transparent 42%, rgba(247, 245, 242, 0.08) 55%, rgba(212, 179, 154, 0.24) 100%)`
+      : `linear-gradient(125deg, rgba(212, 179, 154, 0.24) 0%, transparent 42%, rgba(234, 216, 199, 0.14) 100%)`;
 
   const displayClass =
     layoutQuery === 'md'

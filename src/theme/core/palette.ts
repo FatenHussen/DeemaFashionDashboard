@@ -141,13 +141,13 @@ export const grey = createPaletteChannel(themeConfig.palette.grey);
  * ➤
  */
 export const text = {
-  light: createPaletteChannel({ primary: grey[900], secondary: grey[700], disabled: grey[600] }),
-  dark: createPaletteChannel({ primary: '#FFFFFF', secondary: grey[400], disabled: grey[500] }),
+  light: createPaletteChannel({ primary: '#1F1F1F', secondary: grey[700], disabled: grey[600] }),
+  dark: createPaletteChannel({ primary: '#F7F5F2', secondary: grey[400], disabled: grey[500] }),
 };
 
 export const background = {
-  light: createPaletteChannel({ paper: '#FFFFFF', default: '#F3F4F6', neutral: grey[200] }),
-  dark: createPaletteChannel({ paper: grey[800], default: grey[900], neutral: '#28323D' }),
+  light: createPaletteChannel({ paper: '#FFFFFF', default: '#F7F5F2', neutral: '#EAD8C7' }),
+  dark: createPaletteChannel({ paper: '#2A1F1C', default: '#1A1412', neutral: '#3F291F' }),
 };
 
 export const action = (mode: 'light' | 'dark'): ActionColors => ({

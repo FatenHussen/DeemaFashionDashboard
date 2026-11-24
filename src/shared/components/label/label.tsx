@@ -19,7 +19,7 @@ const getLabelClasses = (
     filled: {
       default: 'text-white bg-foreground/80',
       primary: 'text-primary-foreground bg-primary',
-      secondary: 'text-white bg-[#8E33FF]',
+      secondary: 'text-secondary-foreground bg-secondary',
       info: 'text-white bg-sky-500',
       success: 'text-white bg-emerald-500',
       warning: 'text-white bg-amber-500',
@@ -28,7 +28,7 @@ const getLabelClasses = (
     outlined: {
       default: 'bg-transparent text-foreground border border-foreground/40',
       primary: 'bg-transparent text-primary border border-primary/60',
-      secondary: 'bg-transparent text-[#8E33FF] border border-[#8E33FF]/60',
+      secondary: 'bg-transparent text-secondary border border-secondary/60',
       info: 'bg-transparent text-sky-600 border border-sky-500/60',
       success: 'bg-transparent text-emerald-600 border border-emerald-500/60',
       warning: 'bg-transparent text-amber-600 border border-amber-500/60',
@@ -37,7 +37,7 @@ const getLabelClasses = (
     soft: {
       default: 'text-foreground bg-muted',
       primary: 'text-primary bg-primary/10',
-      secondary: 'text-[#8E33FF] bg-[#8E33FF]/10',
+      secondary: 'text-secondary bg-secondary/10',
       info: 'text-sky-700 bg-sky-100',
       success: 'text-emerald-700 bg-emerald-100',
       warning: 'text-amber-700 bg-amber-100',
@@ -46,7 +46,7 @@ const getLabelClasses = (
     inverted: {
       default: 'text-foreground/80 bg-muted/70',
       primary: 'text-primary bg-primary/15',
-      secondary: 'text-[#8E33FF] bg-[#8E33FF]/15',
+      secondary: 'text-secondary bg-secondary/15',
       info: 'text-sky-800 bg-sky-200',
       success: 'text-emerald-800 bg-emerald-200',
       warning: 'text-amber-800 bg-amber-200',

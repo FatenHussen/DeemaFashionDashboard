@@ -1,16 +1,15 @@
 <svg width="220" height="48" viewBox="0 0 220 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <circle cx="24" cy="24" r="20" fill="url(#deema-brand)" />
-  <text x="24" y="31" font-size="22" font-weight="700" font-family="Public Sans, Arial, sans-serif" fill="#FFFFFF" text-anchor="middle">D</text>
-  <text x="56" y="30" font-size="22" font-weight="700" font-family="Public Sans, Arial, sans-serif" fill="url(#deema-wordmark)">Deema</text>
-  <text x="56" y="44" font-size="9" font-weight="600" font-family="Public Sans, Arial, sans-serif" fill="#6B2D5C" letter-spacing="2.5">FASHION</text>
-  <defs>
-    <linearGradient id="deema-brand" x1="4" y1="4" x2="44" y2="44" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#A020F0" />
-      <stop offset="1" stop-color="#FF1493" />
-    </linearGradient>
-    <linearGradient id="deema-wordmark" x1="56" y1="12" x2="160" y2="32" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#C720A4" />
-      <stop offset="1" stop-color="#FF1493" />
-    </linearGradient>
-  </defs>
+  <!-- Deema Fashion mark — primary #5A3A2E · highlight #A9B07A -->
+  <rect x="2" y="2" width="44" height="44" rx="12" fill="#F7F5F2" stroke="#5A3A2E" stroke-width="1.5"/>
+  <!-- Butterfly accent -->
+  <path d="M12 18c2.2-3.4 5.2-4.8 7.2-3.2 0.6 0.5 1 1.2 1.1 2.1-1.8 0.2-3.5 1.4-4.8 3.4-0.9-1.1-2.1-1.9-3.5-2.3z" fill="none" stroke="#A9B07A" stroke-width="1.4" stroke-linecap="round"/>
+  <path d="M12 26c2.2 3.4 5.2 4.8 7.2 3.2 0.6-0.5 1-1.2 1.1-2.1-1.8-0.2-3.5-1.4-4.8-3.4-0.9 1.1-2.1 1.9-3.5 2.3z" fill="none" stroke="#A9B07A" stroke-width="1.4" stroke-linecap="round"/>
+  <!-- DF monogram -->
+  <path d="M18 12h10c7.2 0 12 4.6 12 12s-4.8 12-12 12H18V12z" fill="none" stroke="#5A3A2E" stroke-width="3.2" stroke-linejoin="round"/>
+  <path d="M18 12v24" stroke="#5A3A2E" stroke-width="3.2" stroke-linecap="square"/>
+  <path d="M18 20h11" stroke="#5A3A2E" stroke-width="3" stroke-linecap="square"/>
+  <path d="M18 28h9" stroke="#5A3A2E" stroke-width="3" stroke-linecap="square"/>
+  <!-- Wordmark -->
+  <text x="56" y="28" font-size="20" font-weight="700" font-family="Public Sans, Arial, sans-serif" fill="#5A3A2E">Deema</text>
+  <text x="56" y="42" font-size="9" font-weight="600" font-family="Public Sans, Arial, sans-serif" fill="#8B5E4A" letter-spacing="2.5">FASHION</text>
 </svg>

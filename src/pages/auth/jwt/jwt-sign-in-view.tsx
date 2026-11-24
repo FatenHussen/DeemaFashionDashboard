@@ -158,9 +158,9 @@ export function JwtSignInView() {
       {/* Brand */}
       <Box className="flex flex-col justify-center items-start auth-login-enter mb-8 flex flex-wrap items-center ">
         <img
-          src="/logo/logo-deema.svg"
+          src="/logo/logo-deema.png"
           alt={tc('appTitle')}
-          className="h-24 w-auto max-w-[240px] object-contain object-left"
+          className="h-24 w-auto max-w-[160px] object-contain object-left"
         />
         {/* <Typography variant="h6" className="font-bold tracking-tight text-foreground">
           {tc('appTitle')}

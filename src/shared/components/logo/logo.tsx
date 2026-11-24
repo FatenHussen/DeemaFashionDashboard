@@ -17,7 +17,7 @@ export function Logo({ disabled, className, href = '/', isSingle = true, ...othe
   const { t } = useTranslation('common');
 
   const deemaLogo = (
-    <img src="/logo/logo-deema.svg" alt="Deema" className="h-full w-full object-contain object-left" />
+    <img src="/logo/logo-deema.png" alt="Deema Fashion" className="h-full w-full object-contain object-left" />
   );
 
   return (

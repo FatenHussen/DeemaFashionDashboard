@@ -18,7 +18,7 @@ export interface BadgeProps {
 const colorClasses = {
   default: 'bg-foreground/70 text-white',
   primary: 'bg-primary text-primary-foreground',
-  secondary: 'bg-[#8E33FF] text-white',
+  secondary: 'bg-secondary text-secondary-foreground',
   error: 'bg-red-500 text-white',
   warning: 'bg-amber-500 text-white',
   info: 'bg-sky-500 text-white',

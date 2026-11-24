@@ -22,7 +22,7 @@ const getButtonClasses = (
   const variantClasses: Record<ButtonVariant, Record<ButtonColor, string>> = {
     contained: {
       primary: 'bg-primary text-primary-foreground hover:bg-primary/90 active:bg-primary/80 shadow-sm hover:shadow-md transition-shadow',
-      secondary: 'bg-[#8E33FF] text-white hover:bg-[#7A29E0] active:bg-[#6B20D0] shadow-sm hover:shadow-md transition-shadow',
+      secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/90 active:bg-secondary/80 shadow-sm hover:shadow-md transition-shadow',
       error: 'bg-red-500 text-white hover:bg-red-600 active:bg-red-700 shadow-sm hover:shadow-md transition-shadow',
       warning: 'bg-amber-500 text-white hover:bg-amber-600 active:bg-amber-700 shadow-sm hover:shadow-md transition-shadow',
       info: 'bg-sky-500 text-white hover:bg-sky-600 active:bg-sky-700 shadow-sm hover:shadow-md transition-shadow',
@@ -49,7 +49,7 @@ const getButtonClasses = (
     },
     soft: {
       primary: 'bg-primary/10 text-primary hover:bg-primary/18 active:bg-primary/25',
-      secondary: 'bg-[#8E33FF]/10 text-[#8E33FF] hover:bg-[#8E33FF]/18 active:bg-[#8E33FF]/25',
+      secondary: 'bg-secondary/10 text-secondary hover:bg-secondary/18 active:bg-secondary/25',
       error: 'bg-red-50 text-red-700 hover:bg-red-100 active:bg-red-200',
       warning: 'bg-amber-50 text-amber-700 hover:bg-amber-100 active:bg-amber-200',
       info: 'bg-sky-50 text-sky-700 hover:bg-sky-100 active:bg-sky-200',

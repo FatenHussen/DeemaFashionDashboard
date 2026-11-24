@@ -19,6 +19,7 @@ import { useFetchUnits } from '@/pages/dashboard/units/hooks/unit';
 import { useFetchShops } from '@/pages/dashboard/vendor/hooks/shop';
 import { _ShopApi } from '@/pages/dashboard/vendor/api/shop.services';
 import { compressImage, compressImages } from '@/utils/compress-image';
+import { SearchableSelect } from '@/shared/components/searchable-select';
 import { _VendorApi } from '@/pages/dashboard/vendor/api/vendor.services';
 import { _BrandApi } from '@/pages/dashboard/products/api/brand.services';
 import { _ProductApi } from '@/pages/dashboard/products/api/product.services';
@@ -28,7 +29,6 @@ import { useId, useRef, useMemo, useState, useEffect, useCallback } from 'react'
 import { useFetchCurrencies } from '@/pages/dashboard/currencies/hooks/currency';
 import { useFetchWarranties } from '@/pages/dashboard/warranties/hooks/warranty';
 import { InfiniteScrollSelect } from '@/shared/components/infinite-scroll-select';
-import { SearchableSelect } from '@/shared/components/searchable-select';
 import { _CategoryApi } from '@/pages/dashboard/categories/api/category.services';
 import { useFetchCategoryById } from '@/pages/dashboard/categories/hooks/category';
 import { TinyMCEEditorField } from '@/shared/components/tinymce-editor/tinymce-editor';
@@ -58,15 +58,6 @@ import {
   type GeneratedVariantRow,
 } from '@/pages/dashboard/products/components/VariantGeneratorPanel';
 import {
-  toVariantPayload,
-  isHiddenDefaultVariant,
-  variantImageFieldsFromRow,
-  variantExistingImageFormState,
-  extractVariantAttributeValueIds,
-  collectShopVariantsFromProduct,
-  buildShopVariantLinksForProduct,
-} from '@/pages/dashboard/products/utils/variant-payload';
-import {
   sortedComboKey,
   resolveAttributeValuesByIds,
   mergeVariantAttributeValueIds,
@@ -74,6 +65,15 @@ import {
   retainCatalogAttributeValueIds,
   ensureCategoryAttributesFromVariants,
 } from '@/pages/dashboard/products/utils/variant-combinations';
+import {
+  toVariantPayload,
+  isHiddenDefaultVariant,
+  variantImageFieldsFromRow,
+  variantExistingImageFormState,
+  collectShopVariantsFromProduct,
+  extractVariantAttributeValueIds,
+  buildShopVariantLinksForProduct,
+} from '@/pages/dashboard/products/utils/variant-payload';
 
 import { paths } from 'src/routes/paths';
 

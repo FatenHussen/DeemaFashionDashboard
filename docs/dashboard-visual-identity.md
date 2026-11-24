@@ -46,11 +46,12 @@ Logos are served from the website `public/images/shared/` folder. Use these **fu
 
 ### Logo usage rules
 
-- **Navbar & footer:** icon (`favicon.png`) + wordmark gradient text — do not stretch the icon.
+- **Navbar & footer:** icon (`favicon.png`) + wordmark — do not stretch the icon.
 - **Minimum clear space:** at least half the icon height on all sides.
-- **Backgrounds:** icon works on white, light gray, and dark plum (`#1a0f1e`). Use `logo-footer.png` on very dark footers if contrast is low.
-- **Do not** recolor the logo file; brand magenta comes from the palette below.
+- **Backgrounds:** icon works on white, cream (`#EAD8C7`), surface (`#F7F5F2`), and dark espresso (`#1A1412`). Use `logo-footer.png` on very dark footers if contrast is low.
+- **Do not** recolor the logo file; brand chocolate & sage come from the palette below.
 - **Format:** PNG with transparency preferred.
+- **Butterfly accent:** use highlight sage (`#A9B07A`) for the butterfly mark when rendering vector lockups.
 
 ---
 
@@ -58,30 +59,44 @@ Logos are served from the website `public/images/shared/` folder. Use these **fu
 
 Set these in the dashboard **App Settings → Colors** (mapped to `data.color` and `data.dark_color` in the API).
 
+### Full brand system (design reference)
+
+| Role | Hex | Name | Usage |
+|------|-----|------|--------|
+| Primary | `#5A3A2E` | Chocolate brown | Brand, headers, primary buttons, logo |
+| Secondary | `#8B5E4A` | Terracotta | Sections, secondary CTAs, highlights |
+| Accent | `#D4B39A` | Warm sand | Soft fills, key decorative elements |
+| Background | `#EAD8C7` | Soft cream | Marketing page washes (use sparingly in admin) |
+| Surface | `#F7F5F2` | Linen | Cards, admin canvas, content areas |
+| Highlight | `#A9B07A` | Sage olive | Butterfly, emphasis, variety |
+| Text | `#1F1F1F` | Charcoal | Primary text & icons |
+
 ### Light mode — `data.color`
 
 | Dashboard field | API key | Hex | Name | Usage |
 |-----------------|---------|-----|------|--------|
-| Main color | `main_color` | `#c720a4` | Brand magenta | Primary buttons, links, navbar accents, badges |
-| Second color | `second_color` | `#ff1493` | Deep pink | Gradients, hover, secondary CTAs, highlights |
-| Text color | `text_color` | `#2a2a2a` | Charcoal | Body text on light backgrounds |
+| Main color | `main_color` | `#5A3A2E` | Chocolate brown | Primary buttons, links, navbar accents, badges |
+| Second color | `second_color` | `#8B5E4A` | Terracotta | Gradients, hover, secondary CTAs |
+| Text color | `text_color` | `#1F1F1F` | Charcoal | Body text on light backgrounds |
 
 ### Dark mode — `data.dark_color`
 
 | Dashboard field | API key | Hex | Name | Usage |
 |-----------------|---------|-----|------|--------|
-| Main color | `main_color` | `#ff1493` | Deep pink | Primary actions (inverted vs light) |
-| Second color | `second_color` | `#c720a4` | Brand magenta | Gradient partner, secondary accents |
-| Text color | `text_color` | `#f5f5f5` | Off-white | Body text on dark backgrounds |
+| Main color | `main_color` | `#D4B39A` | Warm sand | Primary actions (readable on dark) |
+| Second color | `second_color` | `#A9B07A` | Sage olive | Gradient partner, secondary accents |
+| Text color | `text_color` | `#F7F5F2` | Linen | Body text on dark backgrounds |
 
 ### Supporting accents (CSS / design reference — optional in dashboard)
 
 | Token | Hex | Usage |
 |-------|-----|--------|
-| Gold accent | `#c5a572` | Premium highlights, trust badges, secondary emphasis |
-| Plum accent | `#6b2d5c` | Deep brand shade, dark UI depth |
-| Gradient start | `#a020f0` | Wordmark & hero gradients (top) |
-| Gradient end | `#ff1493` | Wordmark & hero gradients (bottom) |
+| Accent sand | `#D4B39A` | Premium soft fills, dark-mode primary |
+| Highlight sage | `#A9B07A` | Butterfly, emphasis chips |
+| Primary dark | `#3F291F` | Hover / pressed primary |
+| Gradient start | `#5A3A2E` | Brand → cream washes |
+| Gradient mid | `#8B5E4A` | Sections |
+| Gradient end | `#F7F5F2` | Surface fade |
 | Success | `#16a34a` | Order success, stock available |
 | Error | `#EF4444` | Errors, destructive actions |
 
@@ -89,19 +104,27 @@ Set these in the dashboard **App Settings → Colors** (mapped to `data.color` a
 
 | Surface | Hex |
 |---------|-----|
-| Page canvas | `#ffffff` |
-| Secondary surface | `#f4f6f9` |
-| Card | `#ffffff` |
-| Brand whisper tint | `#f5f3f7` |
+| Page canvas (admin) | `#F7F5F2` |
+| Marketing wash | `#EAD8C7` |
+| Card | `#FFFFFF` |
+| Brand whisper tint | `#EDE0D8` |
 
 ### Dark mode backgrounds (reference)
 
 | Surface | Hex |
 |---------|-----|
-| Page canvas | `#1a0f1e` |
-| Secondary surface | `#221428` |
-| Card | `#1e1224` |
-| Brand tint | `#2a1528` |
+| Page canvas | `#1A1412` |
+| Secondary surface | `#2A1F1C` |
+| Card | `#2A1F1C` |
+| Brand tint | `#3F291F` |
+
+### Button styles (brand board)
+
+| Style | Fill | Text / stroke |
+|-------|------|----------------|
+| Primary | `#5A3A2E` | White |
+| Secondary | `#EAD8C7` | `#5A3A2E` |
+| Outline | Transparent | `#5A3A2E` border + text |
 
 ---
 
@@ -115,14 +138,14 @@ After dashboard save, `GET /api/user/settings` should return (minimum for brand)
   "message": "OK",
   "data": {
     "color": {
-      "main_color": "#c720a4",
-      "second_color": "#ff1493",
-      "text_color": "#2a2a2a"
+      "main_color": "#5A3A2E",
+      "second_color": "#8B5E4A",
+      "text_color": "#1F1F1F"
     },
     "dark_color": {
-      "main_color": "#ff1493",
-      "second_color": "#c720a4",
-      "text_color": "#f5f5f5"
+      "main_color": "#D4B39A",
+      "second_color": "#A9B07A",
+      "text_color": "#F7F5F2"
     }
   }
 }
@@ -134,38 +157,44 @@ After dashboard save, `GET /api/user/settings` should return (minimum for brand)
 
 ### Personality
 
-- **Fashion-forward**, warm, and approachable — not corporate orange/blue defaults.
-- **Magenta + pink** = energy and style; **gold** = premium touches (deals, trust).
-- **Neutral gray/white canvases** — brand color is reserved for actions and accents, not full-page washes.
+- **Warm, grounded, and fashion-soft** — chocolate + cream with a sage butterfly accent.
+- **Primary brown** carries authority; **sage** adds life without competing.
+- **Neutral linen/white canvases** in the admin — brand color is for actions and accents, not full-page washes (reserve cream washes for marketing).
 
 ### Typography & wordmark
 
 - Wordmark: **Deema Fashion** / **ديمة فاشن**
-- Gradient text (marketing): `#a020f0` → `#ff1493` (top to bottom)
+- Logo mark: DF monogram + sage butterfly
 - UI font: system / project default sans-serif — no custom dashboard font field required.
 
 ### Buttons & CTAs
 
 - Primary: `main_color` background, white text
-- Hover: slightly darker magenta (`#a8188a` light / `#c720a4` dark)
-- Secondary: outline or `second_color` accent
+- Hover: darker chocolate (`#3F291F` light / slightly deeper sand on dark)
+- Secondary: soft cream fill or terracotta / sage accent
 
 ### What to avoid
 
 | Don't use | Reason |
 |-----------|--------|
+| Magenta `#C720A4` / pink `#FF1493` | Previous Deema palette — retired |
 | Orange `#FF6B00` / cyan defaults | Old TickMart palette — conflicts with Deema |
-| Full magenta page backgrounds | Reduces readability; use neutral canvas |
-| Random third brand color | Breaks gradient system |
+| Full cream page backgrounds in admin | Reduces density/readability; use linen `#F7F5F2` |
+| Random third brand color | Breaks chocolate → terracotta → sage system |
 
 ---
 
 ## 6) Web implementation note
 
-The website currently **forces** `main_color` and `second_color` from static brand tokens (`src/shared/lib/brandColors.ts`) until the dashboard is updated. Once the values above are saved in production:
+The website may still force `main_color` / `second_color` from static brand tokens until settings are updated. Once the values above are saved in production:
 
-1. Confirm `GET /user/settings` returns the Deema hex values.
-2. Remove or relax the frontend override in `useThemeFromApi.ts` if desired.
+1. Confirm `GET /user/settings` returns the Deema earth hex values.
+2. Remove or relax any frontend override if desired.
+
+Dashboard theme sources of truth:
+
+- `src/theme/theme-config.ts` — MUI-style primary/secondary scales
+- `src/global.css` — Tailwind CSS variables (`--primary`, `--secondary`, `--highlight`, …)
 
 ---
 
@@ -179,13 +208,13 @@ Logo URL:            {SITE_URL}/images/shared/favicon.png
 Wide logo URL:       {SITE_URL}/images/shared/logo.png
 Favicon URL:         {SITE_URL}/images/shared/favicon.png
 
-Light main_color:    #c720a4
-Light second_color:  #ff1493
-Light text_color:    #2a2a2a
+Light main_color:    #5A3A2E
+Light second_color:  #8B5E4A
+Light text_color:    #1F1F1F
 
-Dark main_color:     #ff1493
-Dark second_color:   #c720a4
-Dark text_color:     #f5f5f5
+Dark main_color:     #D4B39A
+Dark second_color:   #A9B07A
+Dark text_color:     #F7F5F2
 ```
 
 ---
@@ -197,15 +226,15 @@ Dark text_color:     #f5f5f5
 | اسم المتجر (EN) | Deema Fashion |
 | اسم المتجر (AR) | ديمة فاشن |
 | رابط الشعار | `{SITE_URL}/images/shared/favicon.png` |
-| اللون الرئيسي (فاتح) | `#c720a4` |
-| اللون الثانوي (فاتح) | `#ff1493` |
-| لون النص (فاتح) | `#2a2a2a` |
-| اللون الرئيسي (داكن) | `#ff1493` |
-| اللون الثانوي (داكن) | `#c720a4` |
-| لون النص (داكن) | `#f5f5f5` |
+| اللون الرئيسي (فاتح) | `#5A3A2E` |
+| اللون الثانوي (فاتح) | `#8B5E4A` |
+| لون النص (فاتح) | `#1F1F1F` |
+| اللون الرئيسي (داكن) | `#D4B39A` |
+| اللون الثانوي (داكن) | `#A9B07A` |
+| لون النص (داكن) | `#F7F5F2` |
 
-**ملاحظة:** لا تستخدم ألوان TickMart البرتقالية القديمة — الهوية الحالية **Deema Fashion** بالمagenta والوردي.
+**ملاحظة:** لا تستخدم ألوان TickMart البرتقالية أو الهوية الوردية القديمة — الهوية الحالية **Deema Fashion** بالبني الشوكولاتي والكريمي مع لمسة الزيتوني.
 
 ---
 
-*Last updated: August 2026 · Source: Deema Fashion web app (`src/index.css`, `src/shared/lib/brandColors.ts`, `public/images/shared/`)*
+*Last updated: November 2026 · Source: Deema Fashion visual identity boards + dashboard theme (`theme-config.ts`, `global.css`)*

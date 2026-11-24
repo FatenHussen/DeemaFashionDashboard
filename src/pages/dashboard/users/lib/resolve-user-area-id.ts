@@ -1,11 +1,11 @@
-import type { UserAddress, UserDetailsData, UserItem } from '../types/user.types';
+import type { UserAddress } from '../types/user.types';
 
-type UserLike = Partial<UserDetailsData> &
-  Partial<UserItem> & {
-    area_id?: number;
-    area?: string | null | { id?: number };
-    addresses?: UserAddress[];
-  };
+/** Loose shape so list (`UserItem`) and details (`UserDetailsData`) both type-check. */
+type UserLike = {
+  area_id?: number | null;
+  area?: string | null | { id?: number | null };
+  addresses?: UserAddress[];
+};
 
 /** Prefer top-level `area_id`, then nested `area.id`, then default/first address area. */
 export function resolveUserAreaId(user: UserLike | null | undefined): number | undefined {
